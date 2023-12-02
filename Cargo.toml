@@ -1,0 +1,15 @@
+[package]
+name = "nd-rlib"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nd-arr = { path = "ext/arr" }
+nd-algorithms = { path = "ext/algorithms" }
+nd-colors = { path = "ext/colors" }
+nd-num = { path = "ext/num" }
+
+[dev-dependencies]
+criterion = "0"
