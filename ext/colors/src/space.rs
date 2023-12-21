@@ -1,4 +1,7 @@
-use std::ops::{Add, Div, Mul, Sub};
+use std::{
+    fmt::Debug,
+    ops::{Add, Div, Mul, Sub},
+};
 
 use nd_arr::as_arr;
 use nd_num::{Float, Number, Ops, Unsigned};
@@ -31,7 +34,7 @@ where
         + Div<&'ops Container>, {
 }
 
-pub trait Color<'ops>: ColorOps<'ops, Self::Container> {
+pub trait Color<'ops>: ColorOps<'ops, Self::Container> + Default + Debug + Clone + Copy + PartialEq + Eq {
     type Type;
     type Container;
 
@@ -43,11 +46,11 @@ pub trait Color<'ops>: ColorOps<'ops, Self::Container> {
 }
 
 macro_rules! color {
-    ($name:ident, $trait:path, $len:expr, $min:expr, $max:expr $(,)?) => {
-        #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-        pub struct $name<T: $trait>([T; $len]);
+    ($type:ident, $trait:path, $len:expr, $min:expr, $max:expr $(,)?) => {
+        #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+        pub struct $type<T: $trait>([T; $len]);
 
-        impl<'ops, T: $trait> Color<'ops> for $name<T> {
+        impl<'ops, T: $trait> Color<'ops> for $type<T> {
             type Container = [T; $len];
             type Type = T;
 
@@ -58,28 +61,28 @@ macro_rules! color {
             fn get(&self) -> &Self::Container { &self.0 }
         }
 
-        impl<T: $trait> From<&[T; $len]> for $name<T> {
-            fn from(value: &[T; $len]) -> Self { $name::<T>(*value) }
+        impl<T: $trait> From<&[T; $len]> for $type<T> {
+            fn from(value: &[T; $len]) -> Self { $type::<T>(*value) }
         }
 
-        impl<T: $trait> TryFrom<&[T]> for $name<T> {
+        impl<T: $trait> TryFrom<&[T]> for $type<T> {
             type Error = ColorError;
 
             fn try_from(value: &[T]) -> Result<Self, Self::Error> {
                 if value.len() == $len {
-                    Ok($name::<T>(*as_arr!(value, 0, $len)))
+                    Ok($type::<T>(*as_arr!(value, 0, $len)))
                 } else {
                     Err(ColorError::LengthMismatch($len as u8, value.len() as u8))
                 }
             }
         }
 
-        impl<T: $trait> TryFrom<&Vec<T>> for $name<T> {
+        impl<T: $trait> TryFrom<&Vec<T>> for $type<T> {
             type Error = ColorError;
 
             fn try_from(value: &Vec<T>) -> Result<Self, Self::Error> {
                 if value.len() == $len {
-                    Ok($name::<T>(*as_arr!(&value[..], 0, $len)))
+                    Ok($type::<T>(*as_arr!(&value[..], 0, $len)))
                 } else {
                     Err(ColorError::LengthMismatch($len as u8, value.len() as u8))
                 }
@@ -95,24 +98,28 @@ color!(Hsla, Float, 4, 0.0, 1.0);
 color!(Hsb, Float, 3, 0.0, 1.0);
 color!(Hsba, Float, 4, 0.0, 1.0);
 
-pub type Pixels = PixelsUF<u8, f32>;
-pub enum PixelsUF<U: Unsigned, F: Float> {
-    Rgb(Rgb<U>),
-    Rgba(Rgba<U>),
-    Hsl(Hsl<F>),
-    Hsla(Hsla<F>),
-    Hsb(Hsb<F>),
-    Hsba(Hsba<F>),
+impl<T: Unsigned> Add<Self> for Rgb<T> {
+    type Output = Rgb<T>;
+
+    fn add(self, rhs: Self) -> Self::Output { todo!() }
 }
 
-pub struct Size {
-    width:  usize,
-    height: usize,
+impl<T: Unsigned> Add<Self> for &Rgb<T> {
+    type Output = Rgb<T>;
+
+    fn add(self, rhs: Self) -> Self::Output { todo!() }
 }
 
-pub struct Image {
-    pixels: Pixels,
-    size:   Size,
+impl<T: Unsigned> Add<&Self> for Rgb<T> {
+    type Output = Rgb<T>;
+
+    fn add(self, rhs: &Self) -> Self::Output { todo!() }
+}
+
+impl<T: Unsigned> Add<&Self> for &Rgb<T> {
+    type Output = Rgb<T>;
+
+    fn add(self, rhs: &Self) -> Self::Output { todo!() }
 }
 
 #[cfg(test)]

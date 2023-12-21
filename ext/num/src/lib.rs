@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
-pub trait Ops<'ops, Rhs = Self>:
+pub trait Ops<'ops, Rhs: 'ops = Self>:
     'ops
     + Sized
     + Add<Rhs>
@@ -20,8 +20,44 @@ pub trait Ops<'ops, Rhs = Self>:
     + MulAssign<&'ops Rhs>
     + DivAssign<&'ops Rhs>
 where
-    Rhs: 'ops,
     &'ops Self: Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs> + Add<&'ops Rhs> + Sub<&'ops Rhs> + Mul<&'ops Rhs> + Div<&'ops Rhs>, {
+}
+
+pub trait OpsScalar<'ops, N: 'ops + Number>:
+    'ops + Sized + Add<N> + Sub<N> + Mul<N> + Div<N> + AddAssign<N> + SubAssign<N> + MulAssign<N> + DivAssign<N>
+where
+    N: Add<Self>
+        + Sub<Self>
+        + Mul<Self>
+        + Div<Self>
+        + AddAssign<Self>
+        + SubAssign<Self>
+        + MulAssign<Self>
+        + DivAssign<Self>
+        + Add<&'ops Self>
+        + Sub<&'ops Self>
+        + Mul<&'ops Self>
+        + Div<&'ops Self>
+        + AddAssign<&'ops Self>
+        + SubAssign<&'ops Self>
+        + MulAssign<&'ops Self>
+        + DivAssign<&'ops Self>,
+    &'ops N: Add<Self>
+        + Sub<Self>
+        + Mul<Self>
+        + Div<Self>
+        + AddAssign<Self>
+        + SubAssign<Self>
+        + MulAssign<Self>
+        + DivAssign<Self>
+        + Add<&'ops Self>
+        + Sub<&'ops Self>
+        + Mul<&'ops Self>
+        + Div<&'ops Self>
+        + AddAssign<&'ops Self>
+        + SubAssign<&'ops Self>
+        + MulAssign<&'ops Self>
+        + DivAssign<&'ops Self>, {
 }
 
 pub trait AddChecked<Rhs = Self> {
