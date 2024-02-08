@@ -1,64 +1,87 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
-pub trait Ops<'ops, Rhs: 'ops = Self>:
-    'ops
-    + Sized
-    + Add<Rhs>
-    + Sub<Rhs>
-    + Mul<Rhs>
-    + Div<Rhs>
-    + AddAssign<Rhs>
-    + SubAssign<Rhs>
-    + MulAssign<Rhs>
-    + DivAssign<Rhs>
-    + Add<&'ops Rhs>
-    + Sub<&'ops Rhs>
-    + Mul<&'ops Rhs>
-    + Div<&'ops Rhs>
-    + AddAssign<&'ops Rhs>
-    + SubAssign<&'ops Rhs>
-    + MulAssign<&'ops Rhs>
-    + DivAssign<&'ops Rhs>
+pub trait Ops<Rhs = Self>: Sized + Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs>
 where
-    &'ops Self: Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs> + Add<&'ops Rhs> + Sub<&'ops Rhs> + Mul<&'ops Rhs> + Div<&'ops Rhs>, {
+    Rhs: Ops<Self>, {
+    type Output;
 }
 
-pub trait OpsScalar<'ops, N: 'ops + Number>:
-    'ops + Sized + Add<N> + Sub<N> + Mul<N> + Div<N> + AddAssign<N> + SubAssign<N> + MulAssign<N> + DivAssign<N>
-where
-    N: Add<Self>
-        + Sub<Self>
-        + Mul<Self>
-        + Div<Self>
-        + AddAssign<Self>
-        + SubAssign<Self>
-        + MulAssign<Self>
-        + DivAssign<Self>
-        + Add<&'ops Self>
-        + Sub<&'ops Self>
-        + Mul<&'ops Self>
-        + Div<&'ops Self>
-        + AddAssign<&'ops Self>
-        + SubAssign<&'ops Self>
-        + MulAssign<&'ops Self>
-        + DivAssign<&'ops Self>,
-    &'ops N: Add<Self>
-        + Sub<Self>
-        + Mul<Self>
-        + Div<Self>
-        + AddAssign<Self>
-        + SubAssign<Self>
-        + MulAssign<Self>
-        + DivAssign<Self>
-        + Add<&'ops Self>
-        + Sub<&'ops Self>
-        + Mul<&'ops Self>
-        + Div<&'ops Self>
-        + AddAssign<&'ops Self>
-        + SubAssign<&'ops Self>
-        + MulAssign<&'ops Self>
-        + DivAssign<&'ops Self>, {
+pub trait OpsAssign<Rhs = Self>: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> {
+    type Output;
 }
+
+pub trait OpsFull<'ops, Rhs = Self>
+where
+    Rhs: 'ops + Ops<Self> + Ops<&'ops Self>,
+    Self: 'ops + Ops<Rhs> + Ops<&'ops Rhs>,
+    &'ops Rhs: Ops<Self> + Ops<&'ops Self>,
+    &'ops Self: Ops<Rhs> + Ops<&'ops Rhs>, {
+}
+
+struct X {
+    x: u64,
+}
+
+macro_rules! ops_impl {
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
+        impl $op_trait<$type> for $type {
+            type Output = <Self as Ops>::Output;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: $type) -> Self::Output { (|$lhs: $type, $rhs: $type| $fn)(self, rhs) }
+        }
+
+        impl $op_trait<$type> for &$type {
+            type Output = <Self as Ops>::Output;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: $type) -> Self::Output { (|$lhs: &$type, $rhs: $type| $fn)(self, rhs) }
+        }
+
+        impl $op_trait<&$type> for $type {
+            type Output = <Self as Ops>::Output;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: &$type) -> Self::Output { (|$lhs: $type, $rhs: &$type| $fn)(self, rhs) }
+        }
+
+        impl $op_trait<&$type> for &$type {
+            type Output = <Self as Ops>::Output;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: &$type) -> Self::Output { (|$lhs: &$type, $rhs: &$type| $fn)(self, rhs) }
+        }
+    };
+    (+, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Add, add, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
+    (-, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Sub, sub, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
+    (*, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Mul, mul, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
+    (/, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Div, div, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
+    (
+        | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
+    ) => {
+        ops_impl!(+, |$lhs: $type1, $rhs: $type2| -> $type $add);
+        ops_impl!(-, |$lhs: $type1, $rhs: $type2| -> $type $sub);
+        ops_impl!(*, |$lhs: $type1, $rhs: $type2| -> $type $mul);
+        ops_impl!(/, |$lhs: $type1, $rhs: $type2| -> $type $div);
+
+        impl Ops<$type> for $type { type Output = $type; }
+        impl Ops<$type> for &$type { type Output = $type; }
+        impl Ops<&$type> for $type { type Output = $type; }
+        impl Ops<&$type> for &$type { type Output = $type; }
+
+        impl<'ops> OpsFull<'ops> for $type {}
+    };
+    (
+        | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | => $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
+    ) => {
+    };
+}
+
+ops_impl!(|a: X, b: X| -> X,
+          + { X { x: a.x + b.x } },
+          - { X { x: a.x - b.x } },
+          * { X { x: a.x * b.x } },
+          / { X { x: a.x / b.x } });
 
 pub trait AddChecked<Rhs = Self> {
     type Output;
