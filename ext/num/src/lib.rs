@@ -10,7 +10,7 @@ pub trait OpsAssign<Rhs = Self>: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs
     type Output;
 }
 
-pub trait OpsFull<'ops, Rhs = Self>
+pub trait OpsAll<'ops, Rhs = Self>
 where
     Rhs: 'ops + Ops<Self> + Ops<&'ops Self>,
     Self: 'ops + Ops<Rhs> + Ops<&'ops Rhs>,
@@ -18,38 +18,35 @@ where
     &'ops Self: Ops<Rhs> + Ops<&'ops Rhs>, {
 }
 
-struct X {
-    x: u64,
-}
-
+#[macro_export]
 macro_rules! ops_impl {
     ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
-        impl $op_trait<$type> for $type {
-            type Output = <Self as Ops>::Output;
+        impl $op_trait<$type2> for $type1 {
+            type Output = <Self as Ops<$type2>>::Output;
 
             #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: $type) -> Self::Output { (|$lhs: $type, $rhs: $type| $fn)(self, rhs) }
+            fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: $type1, $rhs: $type2| $fn)(self, rhs) }
         }
 
-        impl $op_trait<$type> for &$type {
-            type Output = <Self as Ops>::Output;
+        impl $op_trait<$type2> for &$type1 {
+            type Output = <Self as Ops<$type2>>::Output;
 
             #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: $type) -> Self::Output { (|$lhs: &$type, $rhs: $type| $fn)(self, rhs) }
+            fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: &$type1, $rhs: $type2| $fn)(self, rhs) }
         }
 
-        impl $op_trait<&$type> for $type {
-            type Output = <Self as Ops>::Output;
+        impl $op_trait<&$type2> for $type1 {
+            type Output = <Self as Ops<$type2>>::Output;
 
             #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: &$type) -> Self::Output { (|$lhs: $type, $rhs: &$type| $fn)(self, rhs) }
+            fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: $type1, $rhs: &$type2| $fn)(self, rhs) }
         }
 
-        impl $op_trait<&$type> for &$type {
-            type Output = <Self as Ops>::Output;
+        impl $op_trait<&$type2> for &$type1 {
+            type Output = <Self as Ops<$type2>>::Output;
 
             #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: &$type) -> Self::Output { (|$lhs: &$type, $rhs: &$type| $fn)(self, rhs) }
+            fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: &$type1, $rhs: &$type2| $fn)(self, rhs) }
         }
     };
     (+, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Add, add, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
@@ -64,24 +61,20 @@ macro_rules! ops_impl {
         ops_impl!(*, |$lhs: $type1, $rhs: $type2| -> $type $mul);
         ops_impl!(/, |$lhs: $type1, $rhs: $type2| -> $type $div);
 
-        impl Ops<$type> for $type { type Output = $type; }
-        impl Ops<$type> for &$type { type Output = $type; }
-        impl Ops<&$type> for $type { type Output = $type; }
-        impl Ops<&$type> for &$type { type Output = $type; }
+        impl Ops<$type2> for $type1 { type Output = $type; }
+        impl Ops<$type2> for &$type1 { type Output = $type; }
+        impl Ops<&$type2> for $type1 { type Output = $type; }
+        impl Ops<&$type2> for &$type1 { type Output = $type; }
 
-        impl<'ops> OpsFull<'ops> for $type {}
+        impl<'ops> OpsAll<'ops, $type2> for $type1 {}
     };
     (
         | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | => $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
     ) => {
+        ops_impl!(|$lhs: $type1, $rhs: $type2| -> $type, + $add, - $sub, * $mul, / $div);
+        ops_impl!(|$rhs: $type2, $lhs: $type1| -> $type, + $add, - $sub, * $mul, / $div);
     };
 }
-
-ops_impl!(|a: X, b: X| -> X,
-          + { X { x: a.x + b.x } },
-          - { X { x: a.x - b.x } },
-          * { X { x: a.x * b.x } },
-          / { X { x: a.x / b.x } });
 
 pub trait AddChecked<Rhs = Self> {
     type Output;
@@ -204,3 +197,37 @@ int_arr_impl!(Unsigned, [u8, u16, u32, u64, u128]);
 float_arr_impl!(Float, [f32, f64]);
 
 pub(crate) use ops_checked_impl;
+
+#[cfg(test)]
+mod tests {
+    use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+
+    use super::{Ops, OpsAll, OpsAssign};
+
+    struct X {
+        x: u64,
+    }
+
+    struct A {
+        x: u64,
+    }
+
+    struct B {
+        x: u64,
+    }
+
+    ops_impl!(|a: X, b: X| -> X,
+          + { X { x: a.x + b.x } },
+          - { X { x: a.x - b.x } },
+          * { X { x: a.x * b.x } },
+          / { X { x: a.x / b.x } });
+
+    ops_impl!(|a: A, b: B| => A,
+          + { A { x: a.x + b.x } },
+          - { A { x: a.x - b.x } },
+          * { A { x: a.x * b.x } },
+          / { A { x: a.x / b.x } });
+
+    #[test]
+    fn ops() {}
+}
