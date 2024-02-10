@@ -200,27 +200,25 @@ pub(crate) use ops_checked_impl;
 
 #[cfg(test)]
 mod tests {
-    use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+    use std::ops::{Add, Div, Mul, Sub};
 
-    use super::{Ops, OpsAll, OpsAssign};
+    use super::{Ops, OpsAll};
 
-    struct X {
-        x: u64,
-    }
-
+    #[derive(Debug, PartialEq, Eq)]
     struct A {
-        x: u64,
+        x: i64,
     }
 
+    #[derive(Debug, PartialEq, Eq)]
     struct B {
-        x: u64,
+        x: i64,
     }
 
-    ops_impl!(|a: X, b: X| -> X,
-          + { X { x: a.x + b.x } },
-          - { X { x: a.x - b.x } },
-          * { X { x: a.x * b.x } },
-          / { X { x: a.x / b.x } });
+    ops_impl!(|a: A, b: A| -> A,
+          + { A { x: a.x + b.x } },
+          - { A { x: a.x - b.x } },
+          * { A { x: a.x * b.x } },
+          / { A { x: a.x / b.x } });
 
     ops_impl!(|a: A, b: B| => A,
           + { A { x: a.x + b.x } },
@@ -229,5 +227,87 @@ mod tests {
           / { A { x: a.x / b.x } });
 
     #[test]
-    fn ops() {}
+    fn ops() {
+        let a1 = A {
+            x: 8
+        };
+        let a2 = A {
+            x: 2
+        };
+        let b = B {
+            x: 2
+        };
+
+        let a_fn = || A {
+            x: 8
+        };
+
+        let b_fn = || B {
+            x: 2
+        };
+
+        assert_eq!(&a1 + &a2, A {
+            x: 10
+        });
+
+        assert_eq!(&a1 - &a2, A {
+            x: 6
+        });
+
+        assert_eq!(&a1 * &a2, A {
+            x: 16
+        });
+
+        assert_eq!(&a1 / &a2, A {
+            x: 4
+        });
+
+        assert_eq!(&a1 + &b, A {
+            x: 10
+        });
+
+        assert_eq!(&a1 - &b, A {
+            x: 6
+        });
+
+        assert_eq!(&a1 * &b, A {
+            x: 16
+        });
+
+        assert_eq!(&a1 / &b, A {
+            x: 4
+        });
+
+        assert_eq!(a_fn() + a_fn(), A {
+            x: 16
+        });
+
+        assert_eq!(a_fn() - a_fn(), A {
+            x: 0
+        });
+
+        assert_eq!(a_fn() * a_fn(), A {
+            x: 64
+        });
+
+        assert_eq!(a_fn() / a_fn(), A {
+            x: 1
+        });
+
+        assert_eq!(a_fn() + b_fn(), A {
+            x: 10
+        });
+
+        assert_eq!(a_fn() - b_fn(), A {
+            x: 6
+        });
+
+        assert_eq!(a_fn() * b_fn(), A {
+            x: 16
+        });
+
+        assert_eq!(a_fn() / b_fn(), A {
+            x: 4
+        });
+    }
 }
