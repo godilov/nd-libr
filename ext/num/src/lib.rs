@@ -23,6 +23,7 @@ where
     Rhs: 'ops, {
 }
 
+#[macro_export]
 macro_rules! ops_impl_bin_internal {
     ($op_trait:ident, $op_name:ident, | $lhs:ident : & $typel:ty, $rhs:ident : & $typer:ty | -> $type:ty $fn:block) => {
         impl $op_trait<&$typer> for &$typel {
@@ -58,43 +59,44 @@ macro_rules! ops_impl_bin_internal {
     };
 }
 
+#[macro_export]
 macro_rules! ops_impl_internal {
     ($op_trait:ident, $op_name:ident, | $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => {
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$typel, $rhs: &$typer| -> $type $fn);
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$typel, $rhs: $typer| -> $type $fn);
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: &$typer| -> $type $fn);
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$typel, $rhs: &$typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: &$typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident, | $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => {
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$typel, $rhs: $typer| -> $type $fn);
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident, | $lhs:ident : $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => {
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: &$typer| -> $type $fn);
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: &$typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident, | $lhs:ident : $typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => {
-        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
 
-    (+ , $($t:tt)+) => { ops_impl_internal!(Add, add, $($t)+); };
-    (- , $($t:tt)+) => { ops_impl_internal!(Sub, sub, $($t)+); };
-    (* , $($t:tt)+) => { ops_impl_internal!(Mul, mul, $($t)+); };
-    (/ , $($t:tt)+) => { ops_impl_internal!(Div, div, $($t)+); };
-    (% , $($t:tt)+) => { ops_impl_internal!(Rem, rem, $($t)+); };
+    (+ , $($t:tt)+) => { $crate::ops_impl_internal!(Add, add, $($t)+); };
+    (- , $($t:tt)+) => { $crate::ops_impl_internal!(Sub, sub, $($t)+); };
+    (* , $($t:tt)+) => { $crate::ops_impl_internal!(Mul, mul, $($t)+); };
+    (/ , $($t:tt)+) => { $crate::ops_impl_internal!(Div, div, $($t)+); };
+    (% , $($t:tt)+) => { $crate::ops_impl_internal!(Rem, rem, $($t)+); };
 }
 
 #[macro_export]
 macro_rules! ops_impl {
-    ($op:tt, | $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: &$typel, $rhs: &$typer| -> $type $fn); };
-    ($op:tt, | $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: &$typel, $rhs: $typer| -> $type $fn); };
-    ($op:tt, | $lhs:ident : $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: $typel, $rhs: &$typer| -> $type $fn); };
-    ($op:tt, | $lhs:ident : $typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: $typel, $rhs: $typer| -> $type $fn); };
+    ($op:tt, | $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_internal!($op, |$lhs: &$typel, $rhs: &$typer| -> $type $fn); };
+    ($op:tt, | $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_internal!($op, |$lhs: &$typel, $rhs: $typer| -> $type $fn); };
+    ($op:tt, | $lhs:ident : $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_internal!($op, |$lhs: $typel, $rhs: &$typer| -> $type $fn); };
+    ($op:tt, | $lhs:ident : $typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_internal!($op, |$lhs: $typel, $rhs: $typer| -> $type $fn); };
     (| $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | -> $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(+, |$lhs: &$typel, $rhs: &$typer| -> $type $add);
-        ops_impl!(-, |$lhs: &$typel, $rhs: &$typer| -> $type $sub);
-        ops_impl!(*, |$lhs: &$typel, $rhs: &$typer| -> $type $mul);
-        ops_impl!(/, |$lhs: &$typel, $rhs: &$typer| -> $type $div);
+        $crate::ops_impl!(+, |$lhs: &$typel, $rhs: &$typer| -> $type $add);
+        $crate::ops_impl!(-, |$lhs: &$typel, $rhs: &$typer| -> $type $sub);
+        $crate::ops_impl!(*, |$lhs: &$typel, $rhs: &$typer| -> $type $mul);
+        $crate::ops_impl!(/, |$lhs: &$typel, $rhs: &$typer| -> $type $div);
 
         impl Ops<$typer> for $typel { type Output = $type; }
         impl Ops<$typer> for &$typel { type Output = $type; }
@@ -104,40 +106,40 @@ macro_rules! ops_impl {
         impl<'ops> OpsAll<'ops, $typer> for $typel {}
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | -> $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(+, |$lhs: &$typel, $rhs: $typer| -> $type $add);
-        ops_impl!(-, |$lhs: &$typel, $rhs: $typer| -> $type $sub);
-        ops_impl!(*, |$lhs: &$typel, $rhs: $typer| -> $type $mul);
-        ops_impl!(/, |$lhs: &$typel, $rhs: $typer| -> $type $div);
+        $crate::ops_impl!(+, |$lhs: &$typel, $rhs: $typer| -> $type $add);
+        $crate::ops_impl!(-, |$lhs: &$typel, $rhs: $typer| -> $type $sub);
+        $crate::ops_impl!(*, |$lhs: &$typel, $rhs: $typer| -> $type $mul);
+        $crate::ops_impl!(/, |$lhs: &$typel, $rhs: $typer| -> $type $div);
     };
     (| $lhs:ident : $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(+, |$lhs: $typel, $rhs: &$typer| -> $type $add);
-        ops_impl!(-, |$lhs: $typel, $rhs: &$typer| -> $type $sub);
-        ops_impl!(*, |$lhs: $typel, $rhs: &$typer| -> $type $mul);
-        ops_impl!(/, |$lhs: $typel, $rhs: &$typer| -> $type $div);
+        $crate::ops_impl!(+, |$lhs: $typel, $rhs: &$typer| -> $type $add);
+        $crate::ops_impl!(-, |$lhs: $typel, $rhs: &$typer| -> $type $sub);
+        $crate::ops_impl!(*, |$lhs: $typel, $rhs: &$typer| -> $type $mul);
+        $crate::ops_impl!(/, |$lhs: $typel, $rhs: &$typer| -> $type $div);
     };
     (| $lhs:ident : $typel:ty, $rhs:ident : $typer:ty | -> $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(+, |$lhs: $typel, $rhs: $typer| -> $type $add);
-        ops_impl!(-, |$lhs: $typel, $rhs: $typer| -> $type $sub);
-        ops_impl!(*, |$lhs: $typel, $rhs: $typer| -> $type $mul);
-        ops_impl!(/, |$lhs: $typel, $rhs: $typer| -> $type $div);
+        $crate::ops_impl!(+, |$lhs: $typel, $rhs: $typer| -> $type $add);
+        $crate::ops_impl!(-, |$lhs: $typel, $rhs: $typer| -> $type $sub);
+        $crate::ops_impl!(*, |$lhs: $typel, $rhs: $typer| -> $type $mul);
+        $crate::ops_impl!(/, |$lhs: $typel, $rhs: $typer| -> $type $div);
 
         impl Ops<$typer> for $typel { type Output = $type; }
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | => $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(|$lhs: &$typel, $rhs: &$typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
-        ops_impl!(|$rhs: &$typer, $lhs: &$typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$lhs: &$typel, $rhs: &$typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$rhs: &$typer, $lhs: &$typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | => $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(|$lhs: &$typel, $rhs: $typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
-        ops_impl!(|$rhs: &$typer, $lhs: $typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$lhs: &$typel, $rhs: $typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$rhs: &$typer, $lhs: $typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
     };
     (| $lhs:ident : $typel:ty, $rhs:ident : &$typer:ty | => $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(|$lhs: $typel, $rhs: &$typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
-        ops_impl!(|$rhs: $typer, $lhs: &$typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$lhs: $typel, $rhs: &$typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$rhs: $typer, $lhs: &$typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
     };
     (| $lhs:ident : $typel:ty, $rhs:ident : $typer:ty | => $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
-        ops_impl!(|$lhs: $typel, $rhs: $typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
-        ops_impl!(|$rhs: $typer, $lhs: $typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$lhs: $typel, $rhs: $typer| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
+        $crate::ops_impl!(|$rhs: $typer, $lhs: $typel| -> $type, + $add - $sub * $mul / $div $(% $rem)?);
     };
 }
 
@@ -260,8 +262,6 @@ macro_rules! float_arr_impl {
 int_arr_impl!(Signed, [i8, i16, i32, i64, i128]);
 int_arr_impl!(Unsigned, [u8, u16, u32, u64, u128]);
 float_arr_impl!(Float, [f32, f64]);
-
-pub(crate) use ops_checked_impl;
 
 #[cfg(test)]
 mod tests {
