@@ -20,7 +20,7 @@ where
 
 #[macro_export]
 macro_rules! ops_impl {
-    ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => {
         impl $op_trait<$type2> for $type1 {
             type Output = <Self as Ops<$type2>>::Output;
 
@@ -49,17 +49,17 @@ macro_rules! ops_impl {
             fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: &$type1, $rhs: &$type2| $fn)(self, rhs) }
         }
     };
-    (+, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Add, add, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
-    (-, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Sub, sub, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
-    (*, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Mul, mul, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
-    (/, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl!(Div, div, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
+    (+, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Add, add, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
+    (-, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Sub, sub, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
+    (*, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Mul, mul, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
+    (/, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Div, div, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
     (
-        | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
+        | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
     ) => {
-        ops_impl!(+, |$lhs: $type1, $rhs: $type2| -> $type $add);
-        ops_impl!(-, |$lhs: $type1, $rhs: $type2| -> $type $sub);
-        ops_impl!(*, |$lhs: $type1, $rhs: $type2| -> $type $mul);
-        ops_impl!(/, |$lhs: $type1, $rhs: $type2| -> $type $div);
+        ops_impl!(+, |$lhs: &$type1, $rhs: &$type2| -> $type $add);
+        ops_impl!(-, |$lhs: &$type1, $rhs: &$type2| -> $type $sub);
+        ops_impl!(*, |$lhs: &$type1, $rhs: &$type2| -> $type $mul);
+        ops_impl!(/, |$lhs: &$type1, $rhs: &$type2| -> $type $div);
 
         impl Ops<$type2> for $type1 { type Output = $type; }
         impl Ops<$type2> for &$type1 { type Output = $type; }
@@ -69,10 +69,10 @@ macro_rules! ops_impl {
         impl<'ops> OpsAll<'ops, $type2> for $type1 {}
     };
     (
-        | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | => $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
+        | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | => $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
     ) => {
-        ops_impl!(|$lhs: $type1, $rhs: $type2| -> $type, + $add, - $sub, * $mul, / $div);
-        ops_impl!(|$rhs: $type2, $lhs: $type1| -> $type, + $add, - $sub, * $mul, / $div);
+        ops_impl!(|$lhs: &$type1, $rhs: &$type2| -> $type, + $add, - $sub, * $mul, / $div);
+        ops_impl!(|$rhs: &$type2, $lhs: &$type1| -> $type, + $add, - $sub, * $mul, / $div);
     };
 }
 
@@ -214,13 +214,13 @@ mod tests {
         x: i64,
     }
 
-    ops_impl!(|a: A, b: A| -> A,
+    ops_impl!(|a: &A, b: &A| -> A,
           + { A { x: a.x + b.x } },
           - { A { x: a.x - b.x } },
           * { A { x: a.x * b.x } },
           / { A { x: a.x / b.x } });
 
-    ops_impl!(|a: A, b: B| => A,
+    ops_impl!(|a: &A, b: &B| => A,
           + { A { x: a.x + b.x } },
           - { A { x: a.x - b.x } },
           * { A { x: a.x * b.x } },
@@ -228,86 +228,30 @@ mod tests {
 
     #[test]
     fn ops() {
-        let a1 = A {
-            x: 8
-        };
-        let a2 = A {
-            x: 2
-        };
-        let b = B {
-            x: 2
-        };
+        let a1 = A { x: 16 };
+        let a2 = A { x: 2 };
+        let b = B { x: 2 };
 
-        let a_fn = || A {
-            x: 8
-        };
+        let a_fn = |x: i64| A { x };
 
-        let b_fn = || B {
-            x: 2
-        };
+        let b_fn = |x: i64| B { x };
 
-        assert_eq!(&a1 + &a2, A {
-            x: 10
-        });
+        assert_eq!(&a1 + &a2, A { x: 18 });
+        assert_eq!(&a1 - &a2, A { x: 14 });
+        assert_eq!(&a1 * &a2, A { x: 32 });
+        assert_eq!(&a1 / &a2, A { x: 8 });
+        assert_eq!(&a1 + &b, A { x: 18 });
+        assert_eq!(&a1 - &b, A { x: 14 });
+        assert_eq!(&a1 * &b, A { x: 32 });
+        assert_eq!(&a1 / &b, A { x: 8 });
 
-        assert_eq!(&a1 - &a2, A {
-            x: 6
-        });
-
-        assert_eq!(&a1 * &a2, A {
-            x: 16
-        });
-
-        assert_eq!(&a1 / &a2, A {
-            x: 4
-        });
-
-        assert_eq!(&a1 + &b, A {
-            x: 10
-        });
-
-        assert_eq!(&a1 - &b, A {
-            x: 6
-        });
-
-        assert_eq!(&a1 * &b, A {
-            x: 16
-        });
-
-        assert_eq!(&a1 / &b, A {
-            x: 4
-        });
-
-        assert_eq!(a_fn() + a_fn(), A {
-            x: 16
-        });
-
-        assert_eq!(a_fn() - a_fn(), A {
-            x: 0
-        });
-
-        assert_eq!(a_fn() * a_fn(), A {
-            x: 64
-        });
-
-        assert_eq!(a_fn() / a_fn(), A {
-            x: 1
-        });
-
-        assert_eq!(a_fn() + b_fn(), A {
-            x: 10
-        });
-
-        assert_eq!(a_fn() - b_fn(), A {
-            x: 6
-        });
-
-        assert_eq!(a_fn() * b_fn(), A {
-            x: 16
-        });
-
-        assert_eq!(a_fn() / b_fn(), A {
-            x: 4
-        });
+        assert_eq!(a_fn(16) + a_fn(2), A { x: 18 });
+        assert_eq!(a_fn(16) - a_fn(2), A { x: 14 });
+        assert_eq!(a_fn(16) * a_fn(2), A { x: 32 });
+        assert_eq!(a_fn(16) / a_fn(2), A { x: 8 });
+        assert_eq!(a_fn(16) + b_fn(2), A { x: 18 });
+        assert_eq!(a_fn(16) - b_fn(2), A { x: 14 });
+        assert_eq!(a_fn(16) * b_fn(2), A { x: 32 });
+        assert_eq!(a_fn(16) / b_fn(2), A { x: 8 });
     }
 }

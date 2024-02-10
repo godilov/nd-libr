@@ -71,7 +71,7 @@ reorder_impl_items = true
 space_after_colon = true
 space_before_colon = false
 spaces_around_ranges = false
-struct_lit_single_line = false
+struct_lit_single_line = true
 
 trailing_comma = "Vertical"
 trailing_semicolon = true
