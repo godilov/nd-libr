@@ -18,32 +18,97 @@ where
     &'ops Self: Ops<Rhs> + Ops<&'ops Rhs>, {
 }
 
+pub trait OpsAssignAll<'ops, Rhs = Self>: OpsAssign<Rhs> + OpsAssign<&'ops Rhs>
+where
+    Rhs: 'ops, {
+}
+
+macro_rules! ops_bin_impl_ {
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : & $type1:ty, $rhs:ident : & $type2:ty | -> $type:ty $fn:block) => {
+        impl $op_trait<&$type2> for &$type1 {
+            type Output = $type;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: &$type1, $rhs: &$type2| $fn)(self, rhs) }
+        }
+    };
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : & $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
+        impl $op_trait<$type2> for &$type1 {
+            type Output = $type;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: &$type1, $rhs: $type2| $fn)(self, rhs) }
+        }
+    };
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : & $type2:ty | -> $type:ty $fn:block) => {
+        impl $op_trait<&$type2> for $type1 {
+            type Output = $type;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: $type1, $rhs: &$type2| $fn)(self, rhs) }
+        }
+    };
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
+        impl $op_trait<$type2> for $type1 {
+            type Output = $type;
+
+            #[allow(clippy::redundant_closure_call)]
+            fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: $type1, $rhs: $type2| $fn)(self, rhs) }
+        }
+    };
+}
+
+macro_rules! ops_impl_ {
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => {
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: &$type1, $rhs: &$type2| -> $type $fn);
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: &$type1, $rhs: $type2| -> $type $fn);
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: &$type2| -> $type $fn);
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+    };
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : &$type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: &$type1, $rhs: $type2| -> $type $fn);
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+    };
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => {
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: &$type2| -> $type $fn);
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+    };
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
+        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+    };
+
+    (+ , $($t:tt)+) => { ops_impl_!(Add, add, $($t)+); };
+    (- , $($t:tt)+) => { ops_impl_!(Sub, sub, $($t)+); };
+    (* , $($t:tt)+) => { ops_impl_!(Mul, mul, $($t)+); };
+    (/ , $($t:tt)+) => { ops_impl_!(Div, div, $($t)+); };
+}
+
 #[macro_export]
 macro_rules! ops_impl {
     ($op_trait:ident, $op_name:ident, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => {
         impl $op_trait<$type2> for $type1 {
-            type Output = <Self as Ops<$type2>>::Output;
+            type Output = $type;
 
             #[allow(clippy::redundant_closure_call)]
             fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: $type1, $rhs: $type2| $fn)(self, rhs) }
         }
 
         impl $op_trait<$type2> for &$type1 {
-            type Output = <Self as Ops<$type2>>::Output;
+            type Output = $type;
 
             #[allow(clippy::redundant_closure_call)]
             fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: &$type1, $rhs: $type2| $fn)(self, rhs) }
         }
 
         impl $op_trait<&$type2> for $type1 {
-            type Output = <Self as Ops<$type2>>::Output;
+            type Output = $type;
 
             #[allow(clippy::redundant_closure_call)]
             fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: $type1, $rhs: &$type2| $fn)(self, rhs) }
         }
 
         impl $op_trait<&$type2> for &$type1 {
-            type Output = <Self as Ops<$type2>>::Output;
+            type Output = $type;
 
             #[allow(clippy::redundant_closure_call)]
             fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: &$type1, $rhs: &$type2| $fn)(self, rhs) }
@@ -233,13 +298,13 @@ mod tests {
         let b = B { x: 2 };
 
         let a_fn = |x: i64| A { x };
-
         let b_fn = |x: i64| B { x };
 
         assert_eq!(&a1 + &a2, A { x: 18 });
         assert_eq!(&a1 - &a2, A { x: 14 });
         assert_eq!(&a1 * &a2, A { x: 32 });
         assert_eq!(&a1 / &a2, A { x: 8 });
+
         assert_eq!(&a1 + &b, A { x: 18 });
         assert_eq!(&a1 - &b, A { x: 14 });
         assert_eq!(&a1 * &b, A { x: 32 });
@@ -249,6 +314,7 @@ mod tests {
         assert_eq!(a_fn(16) - a_fn(2), A { x: 14 });
         assert_eq!(a_fn(16) * a_fn(2), A { x: 32 });
         assert_eq!(a_fn(16) / a_fn(2), A { x: 8 });
+
         assert_eq!(a_fn(16) + b_fn(2), A { x: 18 });
         assert_eq!(a_fn(16) - b_fn(2), A { x: 14 });
         assert_eq!(a_fn(16) * b_fn(2), A { x: 32 });
