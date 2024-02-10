@@ -108,18 +108,12 @@ macro_rules! ops_impl {
         ops_impl!(-, |$lhs: &$typel, $rhs: $typer| -> $type $sub);
         ops_impl!(*, |$lhs: &$typel, $rhs: $typer| -> $type $mul);
         ops_impl!(/, |$lhs: &$typel, $rhs: $typer| -> $type $div);
-
-        impl Ops<$typer> for $typel { type Output = $type; }
-        impl Ops<$typer> for &$typel { type Output = $type; }
     };
     (| $lhs:ident : $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
         ops_impl!(+, |$lhs: $typel, $rhs: &$typer| -> $type $add);
         ops_impl!(-, |$lhs: $typel, $rhs: &$typer| -> $type $sub);
         ops_impl!(*, |$lhs: $typel, $rhs: &$typer| -> $type $mul);
         ops_impl!(/, |$lhs: $typel, $rhs: &$typer| -> $type $div);
-
-        impl Ops<$typer> for $typel { type Output = $type; }
-        impl Ops<&$typer> for $typel { type Output = $type; }
     };
     (| $lhs:ident : $typel:ty, $rhs:ident : $typer:ty | -> $type:ty, + $add:block - $sub:block * $mul:block / $div:block $(% $rem:block)?) => {
         ops_impl!(+, |$lhs: $typel, $rhs: $typer| -> $type $add);
