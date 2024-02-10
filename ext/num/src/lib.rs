@@ -23,7 +23,7 @@ where
     Rhs: 'ops, {
 }
 
-macro_rules! ops_bin_impl_ {
+macro_rules! ops_impl_bin_internal {
     ($op_trait:ident, $op_name:ident, | $lhs:ident : & $type1:ty, $rhs:ident : & $type2:ty | -> $type:ty $fn:block) => {
         impl $op_trait<&$type2> for &$type1 {
             type Output = $type;
@@ -58,66 +58,37 @@ macro_rules! ops_bin_impl_ {
     };
 }
 
-macro_rules! ops_impl_ {
+macro_rules! ops_impl_internal {
     ($op_trait:ident, $op_name:ident, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => {
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: &$type1, $rhs: &$type2| -> $type $fn);
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: &$type1, $rhs: $type2| -> $type $fn);
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: &$type2| -> $type $fn);
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$type1, $rhs: &$type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$type1, $rhs: $type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $type1, $rhs: &$type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident, | $lhs:ident : &$type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: &$type1, $rhs: $type2| -> $type $fn);
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: &$type1, $rhs: $type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => {
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: &$type2| -> $type $fn);
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $type1, $rhs: &$type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => {
-        ops_bin_impl_!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
+        ops_impl_bin_internal!($op_trait, $op_name, |$lhs: $type1, $rhs: $type2| -> $type $fn);
     };
 
-    (+ , $($t:tt)+) => { ops_impl_!(Add, add, $($t)+); };
-    (- , $($t:tt)+) => { ops_impl_!(Sub, sub, $($t)+); };
-    (* , $($t:tt)+) => { ops_impl_!(Mul, mul, $($t)+); };
-    (/ , $($t:tt)+) => { ops_impl_!(Div, div, $($t)+); };
+    (+ , $($t:tt)+) => { ops_impl_internal!(Add, add, $($t)+); };
+    (- , $($t:tt)+) => { ops_impl_internal!(Sub, sub, $($t)+); };
+    (* , $($t:tt)+) => { ops_impl_internal!(Mul, mul, $($t)+); };
+    (/ , $($t:tt)+) => { ops_impl_internal!(Div, div, $($t)+); };
 }
 
 #[macro_export]
 macro_rules! ops_impl {
-    ($op_trait:ident, $op_name:ident, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => {
-        impl $op_trait<$type2> for $type1 {
-            type Output = $type;
-
-            #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: $type1, $rhs: $type2| $fn)(self, rhs) }
-        }
-
-        impl $op_trait<$type2> for &$type1 {
-            type Output = $type;
-
-            #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: $type2) -> Self::Output { (|$lhs: &$type1, $rhs: $type2| $fn)(self, rhs) }
-        }
-
-        impl $op_trait<&$type2> for $type1 {
-            type Output = $type;
-
-            #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: $type1, $rhs: &$type2| $fn)(self, rhs) }
-        }
-
-        impl $op_trait<&$type2> for &$type1 {
-            type Output = $type;
-
-            #[allow(clippy::redundant_closure_call)]
-            fn $op_name(self, rhs: &$type2) -> Self::Output { (|$lhs: &$type1, $rhs: &$type2| $fn)(self, rhs) }
-        }
-    };
-    (+, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Add, add, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
-    (-, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Sub, sub, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
-    (*, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Mul, mul, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
-    (/, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl!(Div, div, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
+    ($op:tt, | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: &$type1, $rhs: &$type2| -> $type $fn); };
+    ($op:tt, | $lhs:ident : &$type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: &$type1, $rhs: $type2| -> $type $fn); };
+    ($op:tt, | $lhs:ident : $type1:ty, $rhs:ident : &$type2:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: $type1, $rhs: &$type2| -> $type $fn); };
+    ($op:tt, | $lhs:ident : $type1:ty, $rhs:ident : $type2:ty | -> $type:ty $fn:block) => { ops_impl_internal!($op, |$lhs: $type1, $rhs: $type2| -> $type $fn); };
     (
         | $lhs:ident : &$type1:ty, $rhs:ident : &$type2:ty | -> $type:ty, + $add:block, - $sub:block, * $mul:block, / $div:block
     ) => {
