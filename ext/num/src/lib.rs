@@ -269,7 +269,7 @@ macro_rules! ops_impl {
             $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: $typer| -> $type $mul);
             $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: $typer| -> $type $div);
 
-            impl OpsAssign<$typer> for $typel {}
+            impl $crate::OpsAssign<$typer> for $typel {}
         )?
 
         $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: $typer| -> $type $rem);)?
@@ -278,13 +278,13 @@ macro_rules! ops_impl {
             $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: $typer| -> $type $and);
             $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: $typer| -> $type $xor);
 
-            impl OpsBitAssign<$typer> for $typel {}
+            impl $crate::OpsBitAssign<$typer> for $typel {}
         )?
         $(
             $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: $typer| -> $type $shl);
             $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: $typer| -> $type $shr);
 
-            impl OpsShiftAssign<$typer> for $typel {}
+            impl $crate::OpsShiftAssign<$typer> for $typel {}
         )?
     };
 
@@ -381,7 +381,7 @@ macro_rules! ops_impl {
             $crate::ops_impl!(* |$lhs: $typel, $rhs: $typer| -> $type $mul);
             $crate::ops_impl!(/ |$lhs: $typel, $rhs: $typer| -> $type $div);
 
-            impl Ops<$typer> for $typel { type Output = $type; }
+            impl $crate::Ops<$typer> for $typel { type Output = $type; }
         )?
 
         $($crate::ops_impl!(% |$lhs: $typel, $rhs: $typer| -> $type $rem);)?
@@ -390,13 +390,13 @@ macro_rules! ops_impl {
             $crate::ops_impl!(& |$lhs: $typel, $rhs: $typer| -> $type $and);
             $crate::ops_impl!(^ |$lhs: $typel, $rhs: $typer| -> $type $xor);
 
-            impl OpsBit<$typer> for $typel { type Output = $type; }
+            impl $crate::OpsBit<$typer> for $typel { type Output = $type; }
         )?
         $(
             $crate::ops_impl!(<< |$lhs: $typel, $rhs: $typer| -> $type $shl);
             $crate::ops_impl!(>> |$lhs: $typel, $rhs: $typer| -> $type $shr);
 
-            impl OpsShift<$typer> for $typel { type Output = $type; }
+            impl $crate::OpsShift<$typer> for $typel { type Output = $type; }
         )?
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | => $type:ty,
@@ -640,75 +640,79 @@ mod tests {
               neg { A { x: -a.x } }
               not { A { x: -a.x } });
 
+    macro_rules! assert_ops {
+        ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
+            assert_eq!($argl + $argr, $fn($val1 + $val2));
+            assert_eq!($argl - $argr, $fn($val1 - $val2));
+            assert_eq!($argl * $argr, $fn($val1 * $val2));
+            assert_eq!($argl / $argr, $fn($val1 / $val2));
+            assert_eq!($argl % $argr, $fn($val1 % $val2));
+            assert_eq!($argl | $argr, $fn($val1 | $val2));
+            assert_eq!($argl & $argr, $fn($val1 & $val2));
+            assert_eq!($argl ^ $argr, $fn($val1 ^ $val2));
+            assert_eq!($argl << $argr, $fn($val1 << $val2));
+            assert_eq!($argl >> $argr, $fn($val1 >> $val2));
+        };
+    }
+
+    macro_rules! assert_ops_mut {
+        ($op:tt $argl:expr, $argr:expr, $val:expr) => {{
+            let mut val = $argl;
+
+            val $op $argr;
+
+            assert_eq!(val, $val);
+        }};
+        ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
+            assert_ops_mut!(+= $argl, $argr, $fn($val1 + $val2));
+            assert_ops_mut!(-= $argl, $argr, $fn($val1 - $val2));
+            assert_ops_mut!(*= $argl, $argr, $fn($val1 * $val2));
+            assert_ops_mut!(/= $argl, $argr, $fn($val1 / $val2));
+            assert_ops_mut!(%= $argl, $argr, $fn($val1 % $val2));
+            assert_ops_mut!(|= $argl, $argr, $fn($val1 | $val2));
+            assert_ops_mut!(&= $argl, $argr, $fn($val1 & $val2));
+            assert_ops_mut!(^= $argl, $argr, $fn($val1 ^ $val2));
+            assert_ops_mut!(<<= $argl, $argr, $fn($val1 << $val2));
+            assert_ops_mut!(>>= $argl, $argr, $fn($val1 >> $val2));
+        };
+    }
+
+    fn a_fn(x: i64) -> A { A { x } }
+    fn b_fn(x: i64) -> B { B { x } }
+
     #[test]
     fn ops() {
-        let a1 = A { x: 16 };
-        let a2 = A { x: 2 };
-        let b = B { x: 2 };
+        let val1 = 32i64;
+        let val2 = 2i64;
 
-        let a_fn = |x: i64| A { x };
-        let b_fn = |x: i64| B { x };
+        assert_ops!(&a_fn(val1), &a_fn(val2), a_fn, val1, val2);
+        assert_ops!(&a_fn(val1), &b_fn(val2), a_fn, val1, val2);
 
-        assert_eq!(&a1 + &a2, A { x: 18 });
-        assert_eq!(&a1 - &a2, A { x: 14 });
-        assert_eq!(&a1 * &a2, A { x: 32 });
-        assert_eq!(&a1 / &a2, A { x: 8 });
+        assert_ops!(&a_fn(val1), a_fn(val2), a_fn, val1, val2);
+        assert_ops!(&a_fn(val1), b_fn(val2), a_fn, val1, val2);
 
-        assert_eq!(&a1 + &b, A { x: 18 });
-        assert_eq!(&a1 - &b, A { x: 14 });
-        assert_eq!(&a1 * &b, A { x: 32 });
-        assert_eq!(&a1 / &b, A { x: 8 });
+        assert_ops!(a_fn(val1), &a_fn(val2), a_fn, val1, val2);
+        assert_ops!(a_fn(val1), &b_fn(val2), a_fn, val1, val2);
 
-        assert_eq!(a_fn(16) + a_fn(2), A { x: 18 });
-        assert_eq!(a_fn(16) - a_fn(2), A { x: 14 });
-        assert_eq!(a_fn(16) * a_fn(2), A { x: 32 });
-        assert_eq!(a_fn(16) / a_fn(2), A { x: 8 });
+        assert_ops!(a_fn(val1), a_fn(val2), a_fn, val1, val2);
+        assert_ops!(a_fn(val1), b_fn(val2), a_fn, val1, val2);
 
-        assert_eq!(a_fn(16) + b_fn(2), A { x: 18 });
-        assert_eq!(a_fn(16) - b_fn(2), A { x: 14 });
-        assert_eq!(a_fn(16) * b_fn(2), A { x: 32 });
-        assert_eq!(a_fn(16) / b_fn(2), A { x: 8 });
+        assert_eq!(-&a_fn(val1), a_fn(-val1));
+        assert_eq!(!&a_fn(val1), a_fn(-val1));
 
-        assert_eq!(-&a1, A { x: -16 });
-        assert_eq!(!&a1, A { x: -16 });
+        assert_eq!(-a_fn(val1), a_fn(-val1));
+        assert_eq!(!a_fn(val1), a_fn(-val1));
     }
 
     #[test]
     fn ops_mut() {
-        let mut val = A { x: 16 };
-        let a = A { x: 2 };
-        let b = B { x: 2 };
+        let val1 = 32i64;
+        let val2 = 2i64;
 
-        val += &a;
+        assert_ops_mut!(a_fn(val1), &a_fn(val2), a_fn, val1, val2);
+        assert_ops_mut!(a_fn(val1), &b_fn(val2), a_fn, val1, val2);
 
-        assert_eq!(val, A { x: 18 });
-
-        val -= &a;
-
-        assert_eq!(val, A { x: 16 });
-
-        val *= &a;
-
-        assert_eq!(val, A { x: 32 });
-
-        val /= &a;
-
-        assert_eq!(val, A { x: 16 });
-
-        val += &b;
-
-        assert_eq!(val, A { x: 18 });
-
-        val -= &b;
-
-        assert_eq!(val, A { x: 16 });
-
-        val *= &b;
-
-        assert_eq!(val, A { x: 32 });
-
-        val /= &b;
-
-        assert_eq!(val, A { x: 16 });
+        assert_ops_mut!(a_fn(val1), a_fn(val2), a_fn, val1, val2);
+        assert_ops_mut!(a_fn(val1), b_fn(val2), a_fn, val1, val2);
     }
 }
