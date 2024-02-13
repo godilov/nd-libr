@@ -205,9 +205,9 @@ macro_rules! ops_impl_raw {
     (*= $($t:tt)+) => { $crate::ops_impl_std_complete!(MulAssign, mul_assign, $($t)+); };
     (/= $($t:tt)+) => { $crate::ops_impl_std_complete!(DivAssign, div_assign, $($t)+); };
     (%= $($t:tt)+) => { $crate::ops_impl_std_complete!(RemAssign, rem_assign, $($t)+); };
-    (|= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitOr, bitor_assign, $($t)+); };
-    (&= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitAnd, bitand_assign, $($t)+); };
-    (^= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitXor, bitxor_assign, $($t)+); };
+    (|= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitOrAssign, bitor_assign, $($t)+); };
+    (&= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitAndAssign, bitand_assign, $($t)+); };
+    (^= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitXorAssign, bitxor_assign, $($t)+); };
     (<<= $($t:tt)+) => { $crate::ops_impl_std_complete!(ShlAssign, shl_assign, $($t)+); };
     (>>= $($t:tt)+) => { $crate::ops_impl_std_complete!(ShrAssign, shr_assign, $($t)+); };
 
@@ -268,12 +268,12 @@ macro_rules! ops_impl {
      $(+= $add:block -= $sub:block *= $mul:block /= $div:block)? $(%= $rem:block)?
      $(|= $or:block &= $and:block ^= $xor:block)? $(<<= $shl:block >>= $shr:block)?) => {
         $(
-            $crate::ops_impl!(+=, |$lhs: &mut $typel, $rhs: $typer| -> $type $add);
-            $crate::ops_impl!(-=, |$lhs: &mut $typel, $rhs: $typer| -> $type $sub);
-            $crate::ops_impl!(*=, |$lhs: &mut $typel, $rhs: $typer| -> $type $mul);
-            $crate::ops_impl!(/=, |$lhs: &mut $typel, $rhs: $typer| -> $type $div);
+            $crate::ops_impl!(+= |$lhs: &mut $typel, $rhs: $typer| -> $type $add);
+            $crate::ops_impl!(-= |$lhs: &mut $typel, $rhs: $typer| -> $type $sub);
+            $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: $typer| -> $type $mul);
+            $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: $typer| -> $type $div);
 
-            impl OpsAssign<$typer> for $typel;
+            impl OpsAssign<$typer> for $typel {}
         )?
 
         $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: $typer| -> $type $rem);)?
@@ -597,6 +597,10 @@ mod tests {
         Not,
         Rem,
         RemAssign,
+        Shl,
+        ShlAssign,
+        Shr,
+        ShrAssign,
         Sub,
         SubAssign,
     };
@@ -617,25 +621,49 @@ mod tests {
               + { A { x: a.x + b.x } }
               - { A { x: a.x - b.x } }
               * { A { x: a.x * b.x } }
-              / { A { x: a.x / b.x } });
+              / { A { x: a.x / b.x } }
+              % { A { x: a.x % b.x } }
+              | { A { x: a.x | b.x } }
+              & { A { x: a.x & b.x } }
+              ^ { A { x: a.x ^ b.x } }
+              << { A { x: a.x << b.x } }
+              >> { A { x: a.x >> b.x } });
 
     ops_impl!(|a: &A, b: &B| => A,
               + { A { x: a.x + b.x } }
               - { A { x: a.x - b.x } }
               * { A { x: a.x * b.x } }
-              / { A { x: a.x / b.x } });
+              / { A { x: a.x / b.x } }
+              % { A { x: a.x % b.x } }
+              | { A { x: a.x | b.x } }
+              & { A { x: a.x & b.x } }
+              ^ { A { x: a.x ^ b.x } }
+              << { A { x: a.x << b.x } }
+              >> { A { x: a.x >> b.x } });
 
     ops_impl!(|a: &mut A, b: &A| -> A,
               += { a.x += b.x }
               -= { a.x -= b.x }
               *= { a.x *= b.x }
-              /= { a.x /= b.x });
+              /= { a.x /= b.x }
+              %= { a.x %= b.x }
+              |= { a.x |= b.x }
+              &= { a.x &= b.x }
+              ^= { a.x ^= b.x }
+              <<= { a.x <<= b.x }
+              >>= { a.x >>= b.x });
 
     ops_impl!(|a: &mut A, b: &B| -> A,
               += { a.x += b.x }
               -= { a.x -= b.x }
               *= { a.x *= b.x }
-              /= { a.x /= b.x });
+              /= { a.x /= b.x }
+              %= { a.x %= b.x }
+              |= { a.x |= b.x }
+              &= { a.x &= b.x }
+              ^= { a.x ^= b.x }
+              <<= { a.x <<= b.x }
+              >>= { a.x >>= b.x });
 
     ops_impl!(|a: &A| -> A,
               neg { A { x: -a.x } }
