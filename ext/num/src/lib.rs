@@ -19,28 +19,37 @@ use std::ops::{
     SubAssign,
 };
 
+#[cfg(feature = "ops-traits")]
 pub trait Ops<Rhs = Self>: Sized + Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs>
 where
     Rhs: Ops<Self>, {
     type Output;
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsBit<Rhs = Self>: Sized + BitOr<Rhs> + BitAnd<Rhs> + BitXor<Rhs>
 where
     Rhs: OpsBit<Self>, {
     type Output;
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsShift<Rhs = Self>: Sized + Shl<Rhs> + Shr<Rhs>
 where
     Rhs: OpsShift<Self>, {
     type Output;
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsAssign<Rhs = Self>: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> {}
+
+#[cfg(feature = "ops-traits")]
 pub trait OpsBitAssign<Rhs = Self>: BitOrAssign<Rhs> + BitAndAssign<Rhs> + BitXorAssign<Rhs> {}
+
+#[cfg(feature = "ops-traits")]
 pub trait OpsShiftAssign<Rhs = Self>: ShlAssign<Rhs> + ShrAssign<Rhs> {}
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsAll<'ops, Rhs = Self>
 where
     Rhs: 'ops + Ops<Self> + Ops<&'ops Self>,
@@ -49,6 +58,7 @@ where
     &'ops Self: Ops<Rhs> + Ops<&'ops Rhs>, {
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsBitAll<'ops, Rhs = Self>
 where
     Rhs: 'ops + OpsBit<Self> + OpsBit<&'ops Self>,
@@ -57,6 +67,7 @@ where
     &'ops Self: OpsBit<Rhs> + OpsBit<&'ops Rhs>, {
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsShiftAll<'ops, Rhs = Self>
 where
     Rhs: 'ops + OpsShift<Self> + OpsShift<&'ops Self>,
@@ -65,16 +76,19 @@ where
     &'ops Self: OpsShift<Rhs> + OpsShift<&'ops Rhs>, {
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsAssignAll<'ops, Rhs = Self>: OpsAssign<Rhs> + OpsAssign<&'ops Rhs>
 where
     Rhs: 'ops, {
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsBitAssignAll<'ops, Rhs = Self>: OpsBitAssign<Rhs> + OpsBitAssign<&'ops Rhs>
 where
     Rhs: 'ops, {
 }
 
+#[cfg(feature = "ops-traits")]
 pub trait OpsShiftAssignAll<'ops, Rhs = Self>: OpsShiftAssign<Rhs> + OpsShiftAssign<&'ops Rhs>
 where
     Rhs: 'ops, {
@@ -233,10 +247,10 @@ macro_rules! ops_impl {
             $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: &$typer| -> $type $mul);
             $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: &$typer| -> $type $div);
 
-            impl $crate::OpsAssign<$typer> for $typel {}
-            impl $crate::OpsAssign<&$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<&$typer> for $typel {}
 
-            impl $crate::OpsAssignAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsAssignAll<'_, $typer> for $typel {}
         )?
 
         $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: &$typer| -> $type $rem);)?
@@ -245,19 +259,19 @@ macro_rules! ops_impl {
             $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: &$typer| -> $type $and);
             $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: &$typer| -> $type $xor);
 
-            impl $crate::OpsBitAssign<$typer> for $typel {}
-            impl $crate::OpsBitAssign<&$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<&$typer> for $typel {}
 
-            impl $crate::OpsBitAssignAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssignAll<'_, $typer> for $typel {}
         )?
         $(
             $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: &$typer| -> $type $shl);
             $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: &$typer| -> $type $shr);
 
-            impl $crate::OpsShiftAssign<$typer> for $typel {}
-            impl $crate::OpsShiftAssign<&$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<&$typer> for $typel {}
 
-            impl $crate::OpsShiftAssignAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssignAll<'_, $typer> for $typel {}
         )?
     };
     (| $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | -> $type:ty,
@@ -269,7 +283,7 @@ macro_rules! ops_impl {
             $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: $typer| -> $type $mul);
             $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: $typer| -> $type $div);
 
-            impl $crate::OpsAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<$typer> for $typel {}
         )?
 
         $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: $typer| -> $type $rem);)?
@@ -278,13 +292,13 @@ macro_rules! ops_impl {
             $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: $typer| -> $type $and);
             $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: $typer| -> $type $xor);
 
-            impl $crate::OpsBitAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<$typer> for $typel {}
         )?
         $(
             $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: $typer| -> $type $shl);
             $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: $typer| -> $type $shr);
 
-            impl $crate::OpsShiftAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<$typer> for $typel {}
         )?
     };
 
@@ -297,12 +311,12 @@ macro_rules! ops_impl {
             $crate::ops_impl!(* |$lhs: &$typel, $rhs: &$typer| -> $type $mul);
             $crate::ops_impl!(/ |$lhs: &$typel, $rhs: &$typer| -> $type $div);
 
-            impl $crate::Ops<$typer> for $typel { type Output = $type; }
-            impl $crate::Ops<$typer> for &$typel { type Output = $type; }
-            impl $crate::Ops<&$typer> for $typel { type Output = $type; }
-            impl $crate::Ops<&$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::Ops<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::Ops<$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::Ops<&$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::Ops<&$typer> for &$typel { type Output = $type; }
 
-            impl $crate::OpsAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsAll<'_, $typer> for $typel {}
         )?
 
         $($crate::ops_impl!(% |$lhs: &$typel, $rhs: &$typer| -> $type $rem);)?
@@ -311,23 +325,23 @@ macro_rules! ops_impl {
             $crate::ops_impl!(& |$lhs: &$typel, $rhs: &$typer| -> $type $and);
             $crate::ops_impl!(^ |$lhs: &$typel, $rhs: &$typer| -> $type $xor);
 
-            impl $crate::OpsBit<$typer> for $typel { type Output = $type; }
-            impl $crate::OpsBit<$typer> for &$typel { type Output = $type; }
-            impl $crate::OpsBit<&$typer> for $typel { type Output = $type; }
-            impl $crate::OpsBit<&$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<&$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<&$typer> for &$typel { type Output = $type; }
 
-            impl $crate::OpsBitAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAll<'_, $typer> for $typel {}
         )?
         $(
             $crate::ops_impl!(<< |$lhs: &$typel, $rhs: &$typer| -> $type $shl);
             $crate::ops_impl!(>> |$lhs: &$typel, $rhs: &$typer| -> $type $shr);
 
-            impl $crate::OpsShift<$typer> for $typel { type Output = $type; }
-            impl $crate::OpsShift<$typer> for &$typel { type Output = $type; }
-            impl $crate::OpsShift<&$typer> for $typel { type Output = $type; }
-            impl $crate::OpsShift<&$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<&$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<&$typer> for &$typel { type Output = $type; }
 
-            impl $crate::OpsShiftAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAll<'_, $typer> for $typel {}
         )?
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | -> $type:ty,
@@ -381,7 +395,7 @@ macro_rules! ops_impl {
             $crate::ops_impl!(* |$lhs: $typel, $rhs: $typer| -> $type $mul);
             $crate::ops_impl!(/ |$lhs: $typel, $rhs: $typer| -> $type $div);
 
-            impl $crate::Ops<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::Ops<$typer> for $typel { type Output = $type; }
         )?
 
         $($crate::ops_impl!(% |$lhs: $typel, $rhs: $typer| -> $type $rem);)?
@@ -390,13 +404,13 @@ macro_rules! ops_impl {
             $crate::ops_impl!(& |$lhs: $typel, $rhs: $typer| -> $type $and);
             $crate::ops_impl!(^ |$lhs: $typel, $rhs: $typer| -> $type $xor);
 
-            impl $crate::OpsBit<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<$typer> for $typel { type Output = $type; }
         )?
         $(
             $crate::ops_impl!(<< |$lhs: $typel, $rhs: $typer| -> $type $shl);
             $crate::ops_impl!(>> |$lhs: $typel, $rhs: $typer| -> $type $shr);
 
-            impl $crate::OpsShift<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<$typer> for $typel { type Output = $type; }
         )?
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | => $type:ty,
