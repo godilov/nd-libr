@@ -1,5 +1,5 @@
 [package]
-name = "nd-arr"
+name = "nd-core"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,5 +7,8 @@ edition = "2021"
 
 [dependencies]
 
-[dev-dependencies]
-criterion = "0"
+[features]
+default = ["num", "ops", "ops-traits"]
+num = []
+ops = []
+ops-traits = []

@@ -1,3 +1,4 @@
+#[cfg(feature = "ops-traits")]
 use std::ops::{
     Add,
     AddAssign,
@@ -247,10 +248,10 @@ macro_rules! ops_impl {
             $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: &$typer| $mul);
             $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: &$typer| $div);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<$typer> for $typel {}
-            #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<&$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsAssign<&$typer> for $typel {}
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsAssignAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsAssignAll<'_, $typer> for $typel {}
         )?
 
         $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: &$typer| $rem);)?
@@ -259,19 +260,19 @@ macro_rules! ops_impl {
             $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: &$typer| $and);
             $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: &$typer| $xor);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<$typer> for $typel {}
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<&$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBitAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBitAssign<&$typer> for $typel {}
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssignAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBitAssignAll<'_, $typer> for $typel {}
         )?
         $(
             $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: &$typer| $shl);
             $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: &$typer| $shr);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<$typer> for $typel {}
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<&$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShiftAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShiftAssign<&$typer> for $typel {}
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssignAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShiftAssignAll<'_, $typer> for $typel {}
         )?
     };
     (| $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty |,
@@ -283,7 +284,7 @@ macro_rules! ops_impl {
             $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: $typer| $mul);
             $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: $typer| $div);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsAssign<$typer> for $typel {}
         )?
 
         $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: $typer| $rem);)?
@@ -292,13 +293,13 @@ macro_rules! ops_impl {
             $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: $typer| $and);
             $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: $typer| $xor);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBitAssign<$typer> for $typel {}
         )?
         $(
             $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: $typer| $shl);
             $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: $typer| $shr);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<$typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShiftAssign<$typer> for $typel {}
         )?
     };
 
@@ -311,12 +312,12 @@ macro_rules! ops_impl {
             $crate::ops_impl!(* |$lhs: &$typel, $rhs: &$typer| -> $type $mul);
             $crate::ops_impl!(/ |$lhs: &$typel, $rhs: &$typer| -> $type $div);
 
-            #[cfg(feature = "ops-traits")] impl $crate::Ops<$typer> for $typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::Ops<$typer> for &$typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::Ops<&$typer> for $typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::Ops<&$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::Ops<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::Ops<$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::Ops<&$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::Ops<&$typer> for &$typel { type Output = $type; }
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsAll<'_, $typer> for $typel {}
         )?
 
         $($crate::ops_impl!(% |$lhs: &$typel, $rhs: &$typer| -> $type $rem);)?
@@ -325,23 +326,23 @@ macro_rules! ops_impl {
             $crate::ops_impl!(& |$lhs: &$typel, $rhs: &$typer| -> $type $and);
             $crate::ops_impl!(^ |$lhs: &$typel, $rhs: &$typer| -> $type $xor);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<$typer> for $typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<$typer> for &$typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<&$typer> for $typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<&$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBit<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBit<$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBit<&$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBit<&$typer> for &$typel { type Output = $type; }
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBitAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBitAll<'_, $typer> for $typel {}
         )?
         $(
             $crate::ops_impl!(<< |$lhs: &$typel, $rhs: &$typer| -> $type $shl);
             $crate::ops_impl!(>> |$lhs: &$typel, $rhs: &$typer| -> $type $shr);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<$typer> for $typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<$typer> for &$typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<&$typer> for $typel { type Output = $type; }
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<&$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShift<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShift<$typer> for &$typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShift<&$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShift<&$typer> for &$typel { type Output = $type; }
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAll<'_, $typer> for $typel {}
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShiftAll<'_, $typer> for $typel {}
         )?
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | -> $type:ty,
@@ -395,7 +396,7 @@ macro_rules! ops_impl {
             $crate::ops_impl!(* |$lhs: $typel, $rhs: $typer| -> $type $mul);
             $crate::ops_impl!(/ |$lhs: $typel, $rhs: $typer| -> $type $div);
 
-            #[cfg(feature = "ops-traits")] impl $crate::Ops<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::Ops<$typer> for $typel { type Output = $type; }
         )?
 
         $($crate::ops_impl!(% |$lhs: $typel, $rhs: $typer| -> $type $rem);)?
@@ -404,13 +405,13 @@ macro_rules! ops_impl {
             $crate::ops_impl!(& |$lhs: $typel, $rhs: $typer| -> $type $and);
             $crate::ops_impl!(^ |$lhs: $typel, $rhs: $typer| -> $type $xor);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsBit<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsBit<$typer> for $typel { type Output = $type; }
         )?
         $(
             $crate::ops_impl!(<< |$lhs: $typel, $rhs: $typer| -> $type $shl);
             $crate::ops_impl!(>> |$lhs: $typel, $rhs: $typer| -> $type $shr);
 
-            #[cfg(feature = "ops-traits")] impl $crate::OpsShift<$typer> for $typel { type Output = $type; }
+            #[cfg(feature = "ops-traits")] impl $crate::ops::OpsShift<$typer> for $typel { type Output = $type; }
         )?
     };
     (| $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | => $type:ty,
@@ -468,129 +469,9 @@ macro_rules! ops_impl {
     };
 }
 
-pub trait AddChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_add(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait SubChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait MulChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_mul(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait DivChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait Number: Sized + Clone + Copy + Add + Sub + Mul + Div + PartialEq + PartialOrd {
-    type Type;
-
-    const MIN: Self::Type;
-    const MAX: Self::Type;
-
-    fn value(&self) -> &Self::Type;
-}
-
-pub trait Int: Number + AddChecked + SubChecked + MulChecked + DivChecked {
-    const BITS: u32;
-}
-
-pub trait Signed: Int {}
-pub trait Unsigned: Int {}
-pub trait Float: Number {}
-
-macro_rules! ops_checked_impl {
-    ($type:ty $(,)?) => {
-        impl AddChecked for $type {
-            type Output = $type;
-
-            fn checked_add(self, rhs: Self) -> Option<Self::Output> { self.checked_add(rhs) }
-        }
-
-        impl SubChecked for $type {
-            type Output = $type;
-
-            fn checked_sub(self, rhs: Self) -> Option<Self::Output> { self.checked_sub(rhs) }
-        }
-
-        impl MulChecked for $type {
-            type Output = $type;
-
-            fn checked_mul(self, rhs: Self) -> Option<Self::Output> { self.checked_mul(rhs) }
-        }
-
-        impl DivChecked for $type {
-            type Output = $type;
-
-            fn checked_div(self, rhs: Self) -> Option<Self::Output> { self.checked_div(rhs) }
-        }
-    };
-}
-
-macro_rules! number_impl {
-    ($type:ty $(,)?) => {
-        impl Number for $type {
-            type Type = $type;
-
-            const MAX: Self::Type = <$type>::MAX;
-            const MIN: Self::Type = <$type>::MIN;
-
-            fn value(&self) -> &Self::Type { self }
-        }
-    };
-}
-
-macro_rules! int_impl {
-    ($trait:ty, $type:ty $(,)?) => {
-        number_impl!($type);
-
-        impl Int for $type {
-            const BITS: u32 = <$type>::BITS;
-        }
-
-        impl $trait for $type {}
-
-        ops_checked_impl!($type);
-    };
-}
-
-macro_rules! float_impl {
-    ($trait:ty, $type:ty $(,)?) => {
-        number_impl!($type);
-
-        impl $trait for $type {}
-    };
-}
-
-macro_rules! int_arr_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(int_impl!($trait, $type,);)+
-    };
-}
-
-macro_rules! float_arr_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(float_impl!($trait, $type);)+
-    };
-}
-
-int_arr_impl!(Signed, [i8, i16, i32, i64, i128]);
-int_arr_impl!(Unsigned, [u8, u16, u32, u64, u128]);
-float_arr_impl!(Float, [f32, f64]);
-
 #[cfg(test)]
 mod tests {
-    use super::ops_impl;
+    use crate::ops_impl;
 
     macro_rules! ops_struct_def {
         ($type1:ident, $type2:ident $(,)?) => {
