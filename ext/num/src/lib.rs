@@ -96,13 +96,13 @@ where
 
 #[macro_export]
 macro_rules! ops_impl_std {
-    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : & $typer:ty | -> $type:ty $fn:block) => {
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : & $typer:ty | $fn:block) => {
         impl std::ops::$op_trait<&$typer> for $typel {
             #[allow(clippy::redundant_closure_call)]
             fn $op_name(&mut self, rhs: &$typer) { (|$lhs: &mut $typel, $rhs: &$typer| $fn)(self, rhs); }
         }
     };
-    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => {
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | $fn:block) => {
         impl std::ops::$op_trait<$typer> for $typel {
             #[allow(clippy::redundant_closure_call)]
             fn $op_name(&mut self, rhs: $typer) { (|$lhs: &mut $typel, $rhs: $typer| $fn)(self, rhs); }
@@ -162,12 +162,12 @@ macro_rules! ops_impl_std {
 
 #[macro_export]
 macro_rules! ops_impl_std_complete {
-    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => {
-        $crate::ops_impl_std!($op_trait, $op_name, |$lhs: &mut $typel, $rhs: &$typer| -> $type $fn);
-        $crate::ops_impl_std!($op_trait, $op_name, |$lhs: &mut $typel, $rhs: $typer| -> $type $fn);
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : &$typer:ty | $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, |$lhs: &mut $typel, $rhs: &$typer| $fn);
+        $crate::ops_impl_std!($op_trait, $op_name, |$lhs: &mut $typel, $rhs: $typer| $fn);
     };
-    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => {
-        $crate::ops_impl_std!($op_trait, $op_name, |$lhs: &mut $typel, $rhs: $typer| -> $type $fn);
+    ($op_trait:ident, $op_name:ident, | $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, |$lhs: &mut $typel, $rhs: $typer| $fn);
     };
 
     ($op_trait:ident, $op_name:ident, | $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => {
@@ -227,8 +227,8 @@ macro_rules! ops_impl_raw {
 
 #[macro_export]
 macro_rules! ops_impl {
-    ($op:tt | $lhs:ident : &mut $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_raw!($op |$lhs: &mut $typel, $rhs: &$typer| -> $type $fn); };
-    ($op:tt | $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_raw!($op |$lhs: &mut $typel, $rhs: $typer| -> $type $fn); };
+    ($op:tt | $lhs:ident : &mut $typel:ty, $rhs:ident : &$typer:ty | $fn:block) => { $crate::ops_impl_raw!($op |$lhs: &mut $typel, $rhs: &$typer| $fn); };
+    ($op:tt | $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | $fn:block) => { $crate::ops_impl_raw!($op |$lhs: &mut $typel, $rhs: $typer| $fn); };
 
     ($op:tt | $lhs:ident : &$typel:ty, $rhs:ident : &$typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_raw!($op |$lhs: &$typel, $rhs: &$typer| -> $type $fn); };
     ($op:tt | $lhs:ident : &$typel:ty, $rhs:ident : $typer:ty | -> $type:ty $fn:block) => { $crate::ops_impl_raw!($op |$lhs: &$typel, $rhs: $typer| -> $type $fn); };
@@ -238,14 +238,14 @@ macro_rules! ops_impl {
     ($op:ident | $lhs:ident : &$typel:ty | -> $type:ty $fn:block) => { $crate::ops_impl_raw!($op |$lhs: &$typel| -> $type $fn); };
     ($op:ident | $lhs:ident : $typel:ty | -> $type:ty $fn:block) => { $crate::ops_impl_raw!($op |$lhs: $typel| -> $type $fn); };
 
-    (| $lhs:ident : &mut $typel:ty, $rhs:ident : &$typer:ty | -> $type:ty,
+    (| $lhs:ident : &mut $typel:ty, $rhs:ident : &$typer:ty |,
      $(+= $add:block -= $sub:block *= $mul:block /= $div:block)? $(%= $rem:block)?
      $(|= $or:block &= $and:block ^= $xor:block)? $(<<= $shl:block >>= $shr:block)?) => {
         $(
-            $crate::ops_impl!(+= |$lhs: &mut $typel, $rhs: &$typer| -> $type $add);
-            $crate::ops_impl!(-= |$lhs: &mut $typel, $rhs: &$typer| -> $type $sub);
-            $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: &$typer| -> $type $mul);
-            $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: &$typer| -> $type $div);
+            $crate::ops_impl!(+= |$lhs: &mut $typel, $rhs: &$typer| $add);
+            $crate::ops_impl!(-= |$lhs: &mut $typel, $rhs: &$typer| $sub);
+            $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: &$typer| $mul);
+            $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: &$typer| $div);
 
             #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<$typer> for $typel {}
             #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<&$typer> for $typel {}
@@ -253,11 +253,11 @@ macro_rules! ops_impl {
             #[cfg(feature = "ops-traits")] impl $crate::OpsAssignAll<'_, $typer> for $typel {}
         )?
 
-        $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: &$typer| -> $type $rem);)?
+        $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: &$typer| $rem);)?
         $(
-            $crate::ops_impl!(|= |$lhs: &mut $typel, $rhs: &$typer| -> $type $or);
-            $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: &$typer| -> $type $and);
-            $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: &$typer| -> $type $xor);
+            $crate::ops_impl!(|= |$lhs: &mut $typel, $rhs: &$typer| $or);
+            $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: &$typer| $and);
+            $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: &$typer| $xor);
 
             #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<$typer> for $typel {}
             #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<&$typer> for $typel {}
@@ -265,8 +265,8 @@ macro_rules! ops_impl {
             #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssignAll<'_, $typer> for $typel {}
         )?
         $(
-            $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: &$typer| -> $type $shl);
-            $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: &$typer| -> $type $shr);
+            $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: &$typer| $shl);
+            $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: &$typer| $shr);
 
             #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<$typer> for $typel {}
             #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<&$typer> for $typel {}
@@ -274,29 +274,29 @@ macro_rules! ops_impl {
             #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssignAll<'_, $typer> for $typel {}
         )?
     };
-    (| $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty | -> $type:ty,
+    (| $lhs:ident : &mut $typel:ty, $rhs:ident : $typer:ty |,
      $(+= $add:block -= $sub:block *= $mul:block /= $div:block)? $(%= $rem:block)?
      $(|= $or:block &= $and:block ^= $xor:block)? $(<<= $shl:block >>= $shr:block)?) => {
         $(
-            $crate::ops_impl!(+= |$lhs: &mut $typel, $rhs: $typer| -> $type $add);
-            $crate::ops_impl!(-= |$lhs: &mut $typel, $rhs: $typer| -> $type $sub);
-            $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: $typer| -> $type $mul);
-            $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: $typer| -> $type $div);
+            $crate::ops_impl!(+= |$lhs: &mut $typel, $rhs: $typer| $add);
+            $crate::ops_impl!(-= |$lhs: &mut $typel, $rhs: $typer| $sub);
+            $crate::ops_impl!(*= |$lhs: &mut $typel, $rhs: $typer| $mul);
+            $crate::ops_impl!(/= |$lhs: &mut $typel, $rhs: $typer| $div);
 
             #[cfg(feature = "ops-traits")] impl $crate::OpsAssign<$typer> for $typel {}
         )?
 
-        $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: $typer| -> $type $rem);)?
+        $($crate::ops_impl!(%= |$lhs: &mut $typel, $rhs: $typer| $rem);)?
         $(
-            $crate::ops_impl!(|= |$lhs: &mut $typel, $rhs: $typer| -> $type $or);
-            $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: $typer| -> $type $and);
-            $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: $typer| -> $type $xor);
+            $crate::ops_impl!(|= |$lhs: &mut $typel, $rhs: $typer| $or);
+            $crate::ops_impl!(&= |$lhs: &mut $typel, $rhs: $typer| $and);
+            $crate::ops_impl!(^= |$lhs: &mut $typel, $rhs: $typer| $xor);
 
             #[cfg(feature = "ops-traits")] impl $crate::OpsBitAssign<$typer> for $typel {}
         )?
         $(
-            $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: $typer| -> $type $shl);
-            $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: $typer| -> $type $shr);
+            $crate::ops_impl!(<<= |$lhs: &mut $typel, $rhs: $typer| $shl);
+            $crate::ops_impl!(>>= |$lhs: &mut $typel, $rhs: $typer| $shr);
 
             #[cfg(feature = "ops-traits")] impl $crate::OpsShiftAssign<$typer> for $typel {}
         )?
@@ -592,67 +592,198 @@ float_arr_impl!(Float, [f32, f64]);
 mod tests {
     use super::ops_impl;
 
-    #[derive(Debug, PartialEq, Eq)]
-    struct A {
-        x: i64,
+    macro_rules! ops_struct_def {
+        ($type1:ident, $type2:ident $(,)?) => {
+            #[derive(Debug, PartialEq, Eq)]
+            struct $type1 {
+                x: i64,
+            }
+
+            #[derive(Debug, PartialEq, Eq)]
+            struct $type2 {
+                x: i64,
+            }
+        };
     }
 
-    #[derive(Debug, PartialEq, Eq)]
-    struct B {
-        x: i64,
+    macro_rules! ops_struct_impl {
+        (|&mut $type1:ty, &$type2:ty|) => {
+            ops_impl!(|a: &mut $type1, b: &$type1|,
+                    += { a.x += b.x }
+                    -= { a.x -= b.x }
+                    *= { a.x *= b.x }
+                    /= { a.x /= b.x }
+                    %= { a.x %= b.x }
+                    |= { a.x |= b.x }
+                    &= { a.x &= b.x }
+                    ^= { a.x ^= b.x }
+                    <<= { a.x <<= b.x }
+                    >>= { a.x >>= b.x });
+
+            ops_impl!(|a: &mut $type1, b: &$type2|,
+                    += { a.x += b.x }
+                    -= { a.x -= b.x }
+                    *= { a.x *= b.x }
+                    /= { a.x /= b.x }
+                    %= { a.x %= b.x }
+                    |= { a.x |= b.x }
+                    &= { a.x &= b.x }
+                    ^= { a.x ^= b.x }
+                    <<= { a.x <<= b.x }
+                    >>= { a.x >>= b.x });
+        };
+        (|&mut $type1:ty, $type2:ty|) => {
+            ops_impl!(|a: &mut $type1, b: $type1|,
+                    += { a.x += b.x }
+                    -= { a.x -= b.x }
+                    *= { a.x *= b.x }
+                    /= { a.x /= b.x }
+                    %= { a.x %= b.x }
+                    |= { a.x |= b.x }
+                    &= { a.x &= b.x }
+                    ^= { a.x ^= b.x }
+                    <<= { a.x <<= b.x }
+                    >>= { a.x >>= b.x });
+
+            ops_impl!(|a: &mut $type1, b: $type2|,
+                    += { a.x += b.x }
+                    -= { a.x -= b.x }
+                    *= { a.x *= b.x }
+                    /= { a.x /= b.x }
+                    %= { a.x %= b.x }
+                    |= { a.x |= b.x }
+                    &= { a.x &= b.x }
+                    ^= { a.x ^= b.x }
+                    <<= { a.x <<= b.x }
+                    >>= { a.x >>= b.x });
+        };
+        (|&$type1:ty, &$type2:ty| -> $type:ident) => {
+            ops_impl!(|a: &$type1, b: &$type1| -> $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+
+            ops_impl!(|a: &$type1, b: &$type2| => $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+        };
+        (|&$type1:ty, $type2:ty| -> $type:ident) => {
+            ops_impl!(|a: &$type1, b: $type1| -> $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+
+            ops_impl!(|a: &$type1, b: $type2| => $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+        };
+        (|$type1:ty, &$type2:ty| -> $type:ident) => {
+            ops_impl!(|a: $type1, b: &$type1| -> $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+
+            ops_impl!(|a: $type1, b: &$type2| => $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+        };
+        (|$type1:ty, $type2:ty| -> $type:ident) => {
+            ops_impl!(|a: $type1, b: $type1| -> $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+
+            ops_impl!(|a: $type1, b: $type2| => $type,
+                    + { $type { x: a.x + b.x } }
+                    - { $type { x: a.x - b.x } }
+                    * { $type { x: a.x * b.x } }
+                    / { $type { x: a.x / b.x } }
+                    % { $type { x: a.x % b.x } }
+                    | { $type { x: a.x | b.x } }
+                    & { $type { x: a.x & b.x } }
+                    ^ { $type { x: a.x ^ b.x } }
+                    << { $type { x: a.x << b.x } }
+                    >> { $type { x: a.x >> b.x } });
+        };
+        (|&$type1:ty| -> $type:ident) => {
+            ops_impl!(|a: &$type1| -> $type,
+                    neg { $type { x: -a.x } }
+                    not { $type { x: -a.x } });
+        };
+        (|$type1:ty| -> $type:ident) => {
+            ops_impl!(|a: $type1| -> $type,
+                    neg { $type { x: -a.x } }
+                    not { $type { x: -a.x } });
+        };
     }
 
-    ops_impl!(|a: &A, b: &A| -> A,
-              + { A { x: a.x + b.x } }
-              - { A { x: a.x - b.x } }
-              * { A { x: a.x * b.x } }
-              / { A { x: a.x / b.x } }
-              % { A { x: a.x % b.x } }
-              | { A { x: a.x | b.x } }
-              & { A { x: a.x & b.x } }
-              ^ { A { x: a.x ^ b.x } }
-              << { A { x: a.x << b.x } }
-              >> { A { x: a.x >> b.x } });
+    ops_struct_def!(A, B);
+    ops_struct_def!(A1, B1);
+    ops_struct_def!(A2, B2);
+    ops_struct_def!(A3, B3);
 
-    ops_impl!(|a: &A, b: &B| => A,
-              + { A { x: a.x + b.x } }
-              - { A { x: a.x - b.x } }
-              * { A { x: a.x * b.x } }
-              / { A { x: a.x / b.x } }
-              % { A { x: a.x % b.x } }
-              | { A { x: a.x | b.x } }
-              & { A { x: a.x & b.x } }
-              ^ { A { x: a.x ^ b.x } }
-              << { A { x: a.x << b.x } }
-              >> { A { x: a.x >> b.x } });
+    ops_struct_impl!(|&mut A, &B|);
+    ops_struct_impl!(|&mut A1, B1|);
 
-    ops_impl!(|a: &mut A, b: &A| -> A,
-              += { a.x += b.x }
-              -= { a.x -= b.x }
-              *= { a.x *= b.x }
-              /= { a.x /= b.x }
-              %= { a.x %= b.x }
-              |= { a.x |= b.x }
-              &= { a.x &= b.x }
-              ^= { a.x ^= b.x }
-              <<= { a.x <<= b.x }
-              >>= { a.x >>= b.x });
+    ops_struct_impl!(|&A, &B| -> A);
+    ops_struct_impl!(|&A1, B1| -> A1);
+    ops_struct_impl!(|A2, &B2| -> A2);
+    ops_struct_impl!(|A3, B3| -> A3);
 
-    ops_impl!(|a: &mut A, b: &B| -> A,
-              += { a.x += b.x }
-              -= { a.x -= b.x }
-              *= { a.x *= b.x }
-              /= { a.x /= b.x }
-              %= { a.x %= b.x }
-              |= { a.x |= b.x }
-              &= { a.x &= b.x }
-              ^= { a.x ^= b.x }
-              <<= { a.x <<= b.x }
-              >>= { a.x >>= b.x });
-
-    ops_impl!(|a: &A| -> A,
-              neg { A { x: -a.x } }
-              not { A { x: -a.x } });
+    ops_struct_impl!(|&A| -> A);
+    ops_struct_impl!(|A1| -> A1);
 
     macro_rules! assert_ops {
         ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
