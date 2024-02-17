@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, Sub};
+use crate::ops::{Ops, OpsAssign};
 
 pub trait AddChecked<Rhs = Self> {
     type Output;
@@ -24,13 +24,15 @@ pub trait DivChecked<Rhs = Self> {
     fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
-pub trait Number: Sized + Clone + Copy + Add + Sub + Mul + Div + PartialEq + PartialOrd {
+pub trait Number: Sized + Clone + Copy + Ops + OpsAssign + PartialEq + PartialOrd {
     type Type;
 
-    const MIN: Self::Type;
-    const MAX: Self::Type;
+    const ZERO: Self;
+    const ONE: Self;
+    const MIN: Self;
+    const MAX: Self;
 
-    fn value(&self) -> &Self::Type;
+    fn val(&self) -> &Self::Type;
 }
 
 pub trait Int: Number + AddChecked + SubChecked + MulChecked + DivChecked {
@@ -70,21 +72,29 @@ macro_rules! ops_checked_impl {
 }
 
 macro_rules! number_impl {
-    ($type:ty $(,)?) => {
+    ($type:ty, $zero:expr, $one:expr $(,)?) => {
+        impl Ops for $type {
+            type Output = $type;
+        }
+
+        impl OpsAssign for $type {}
+
         impl Number for $type {
             type Type = $type;
 
-            const MAX: Self::Type = <$type>::MAX;
-            const MIN: Self::Type = <$type>::MIN;
+            const MAX: Self = <$type>::MAX;
+            const MIN: Self = <$type>::MIN;
+            const ONE: Self = $zero;
+            const ZERO: Self = $one;
 
-            fn value(&self) -> &Self::Type { self }
+            fn val(&self) -> &Self::Type { self }
         }
     };
 }
 
 macro_rules! int_impl {
     ($trait:ty, $type:ty $(,)?) => {
-        number_impl!($type);
+        number_impl!($type, 0, 1);
 
         impl Int for $type {
             const BITS: u32 = <$type>::BITS;
@@ -98,7 +108,7 @@ macro_rules! int_impl {
 
 macro_rules! float_impl {
     ($trait:ty, $type:ty $(,)?) => {
-        number_impl!($type);
+        number_impl!($type, 0.0, 1.0);
 
         impl $trait for $type {}
     };

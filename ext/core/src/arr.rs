@@ -16,7 +16,7 @@ macro_rules! as_arr {
         $crate::arr::as_arr_impl::<_, $len>(&$slice[0..$len])
     };
     ($slice:expr, $index:expr, $len:expr) => {
-        $crate::as_arr_impl::<_, $len>(&$slice[$index..$index + $len])
+        $crate::arr::as_arr_impl::<_, $len>(&$slice[$index..$index + $len])
     };
 }
 
@@ -26,7 +26,7 @@ macro_rules! as_arr_mut {
         $crate::arr::as_arr_mut_impl::<_, $len>(&mut $slice[0..$len])
     };
     ($slice:expr, $index:expr, $len:expr) => {
-        $crate:as_arr_mut_impl::<_, $len>(&mut $slice[$index..$index + $len])
+        $crate::arr::as_arr_mut_impl::<_, $len>(&mut $slice[$index..$index + $len])
     };
 }
 

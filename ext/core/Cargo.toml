@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 
 [features]
-default = ["num", "ops", "ops-traits"]
+default = ["num", "ops"]
 num = []
 ops = []
-ops-traits = []
+vec-avx = []
