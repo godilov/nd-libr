@@ -1,19 +1,17 @@
 [package]
 name = "nd-colors"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
-nd-core = { path = "../core" }
+anyhow.workspace = true
+thiserror.workspace = true
 
-anyhow = "1"
-thiserror = "1"
+rayon.workspace = true
+tokio.workspace = true
+tracing.workspace = true
 
-rayon = "1"
-tokio = "1"
-tracing = "0"
+nd-core.workspace = true
 
 [dev-dependencies]
-criterion = "0"
+criterion.workspace = true
