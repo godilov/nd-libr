@@ -10,6 +10,9 @@ members = ["ext/*"]
 version = "0.1.0"
 edition = "2021"
 
+[workspace.lints.rust]
+[workspace.lints.clippy]
+
 [workspace.dependencies]
 anyhow = "1"
 thiserror = "1"
