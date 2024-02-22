@@ -12,4 +12,3 @@ workspace = true
 default = ["num", "ops"]
 num = []
 ops = []
-vec-avx = []

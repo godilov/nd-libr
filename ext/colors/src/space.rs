@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use nd_core::num::{Float, Number, Unsigned};
+use nd_core::{
+    num::{Float, Number, Unsigned},
+    vec::Vec,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
