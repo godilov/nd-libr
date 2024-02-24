@@ -365,19 +365,19 @@ macro_rules! ops_impl {
         $crate::if_any!(($($add)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssign<$typer> for $typel {}
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssign<&$typer> for $typel {}
-            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssignAll<'_, $typer> for $typel {}
+            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssignAll<'_, $typer> for $typel {}
         });
 
         $crate::if_any!(($($or)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssign<$typer> for $typel {}
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssign<&$typer> for $typel {}
-            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssignAll<'_, $typer> for $typel {}
+            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssignAll<'_, $typer> for $typel {}
         });
 
         $crate::if_any!(($($shl)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssign<$typer> for $typel {}
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssign<&$typer> for $typel {}
-            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssignAll<'_, $typer> for $typel {}
+            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssignAll<'_, $typer> for $typel {}
         });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -429,7 +429,7 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<&$typer> for $typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<&$typer> for &$typel { type Output = $type; }
 
-            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<'_, $typer> for $typel {}
+            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<'_, $typer> for $typel {}
         });
 
         $crate::if_any!(($($or)?) {
@@ -438,7 +438,7 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<&$typer> for $typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<&$typer> for &$typel { type Output = $type; }
 
-            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAll<'_, $typer> for $typel {}
+            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAll<'_, $typer> for $typel {}
         });
 
         $crate::if_any!(($($shl)?) {
@@ -447,7 +447,7 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<&$typer> for $typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<&$typer> for &$typel { type Output = $type; }
 
-            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAll<'_, $typer> for $typel {}
+            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAll<'_, $typer> for $typel {}
         });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -795,11 +795,6 @@ mod tests {
     ops_struct_def!(A2, B2);
     ops_struct_def!(A3, B3);
 
-    ops_struct_def!(X, Y, N, Number);
-    ops_struct_def!(X1, Y1, N, Number);
-    ops_struct_def!(X2, Y2, N, Number);
-    ops_struct_def!(X3, Y3, N, Number);
-
     ops_struct_impl!(|&mut A, &B|);
     ops_struct_impl!(|&mut A1, B1|);
 
@@ -811,13 +806,21 @@ mod tests {
     ops_struct_impl!(|&A| -> A);
     ops_struct_impl!(|A1| -> A1);
 
-    ops_impl!(<N: Number> |a: &X<N>, b: &Y<N>| -> X<N>,
-              + { X::<N> { x: N::default() } }
-              - { X::<N> { x: N::default() } }
-              * { X::<N> { x: N::default() } }
-              / { X::<N> { x: N::default() } });
+    // ops_struct_def!(X, Y, N, Number);
+    // ops_struct_def!(X1, Y1, N, Number);
+    // ops_struct_def!(X2, Y2, N, Number);
+    // ops_struct_def!(X3, Y3, N, Number);
 
-    // ops_struct_impl!(<N: Number> |&X<N>, &Y<N>| -> X<N>);
+    // ops_struct_impl!(<N: Number> |&mut X<N>, &Y<N>| -> X<N>);
+    // ops_struct_impl!(<N: Number> |&mut X1<N>, Y1<N>| -> X<N>);
+
+    // ops_struct_impl!(<N: Number + Rem> |&X<N>, &Y<N>| -> X<N>);
+    // ops_struct_impl!(<N: Number + Rem> |&X1<N>, Y1<N>| -> X<N>);
+    // ops_struct_impl!(<N: Number + Rem> |X2<N>, &Y2<N>| -> X<N>);
+    // ops_struct_impl!(<N: Number + Rem> |X3<N>, Y3<N>| -> X<N>);
+
+    // ops_struct_impl!(<N: Number + Rem> |&X<N>| -> X<N>);
+    // ops_struct_impl!(<N: Number + Rem> |X1<N>| -> X1<N>);
 
     macro_rules! assert_ops {
         ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
