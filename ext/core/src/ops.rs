@@ -362,23 +362,23 @@ macro_rules! ops_impl {
         $crate::ops_impl!(<<= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($shl)?);
         $crate::ops_impl!(>>= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($shr)?);
 
-        $crate::if_block!($($add)?
+        $crate::if_any!(($($add)?) {
             impl $crate::ops::OpsAssign<$typer> for $typel {}
             impl $crate::ops::OpsAssign<&$typer> for $typel {}
             impl $crate::ops::OpsAssignAll<'_, $typer> for $typel {}
-        );
+        });
 
-        $crate::if_block!($($or)?
+        $crate::if_any!(($($or)?) {
             impl $crate::ops::OpsBitAssign<$typer> for $typel {}
             impl $crate::ops::OpsBitAssign<&$typer> for $typel {}
             impl $crate::ops::OpsBitAssignAll<'_, $typer> for $typel {}
-        );
+        });
 
-        $crate::if_block!($($shl)?
+        $crate::if_any!(($($shl)?) {
             impl $crate::ops::OpsShiftAssign<$typer> for $typel {}
             impl $crate::ops::OpsShiftAssign<&$typer> for $typel {}
             impl $crate::ops::OpsShiftAssignAll<'_, $typer> for $typel {}
-        );
+        });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path |,
@@ -395,17 +395,17 @@ macro_rules! ops_impl {
         $crate::ops_impl!(<<= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($shl)?);
         $crate::ops_impl!(>>= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($shr)?);
 
-        $crate::if_block!($($add)?
+        $crate::if_any!(($($add)?) {
             impl $crate::ops::OpsAssign<$typer> for $typel {}
-        );
+        });
 
-        $crate::if_block!($($or)?
+        $crate::if_any!(($($or)?) {
             impl $crate::ops::OpsBitAssign<$typer> for $typel {}
-        );
+        });
 
-        $crate::if_block!($($shl)?
+        $crate::if_any!(($($shl)?) {
             impl $crate::ops::OpsShiftAssign<$typer> for $typel {}
-        );
+        });
     };
 
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -423,32 +423,32 @@ macro_rules! ops_impl {
         $crate::ops_impl!(<< $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($shl)?);
         $crate::ops_impl!(>> $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($shr)?);
 
-        $crate::if_block!($($add)?
+        $crate::if_any!(($($add)?) {
             impl $crate::ops::Ops<$typer> for $typel { type Output = $type; }
             impl $crate::ops::Ops<$typer> for &$typel { type Output = $type; }
             impl $crate::ops::Ops<&$typer> for $typel { type Output = $type; }
             impl $crate::ops::Ops<&$typer> for &$typel { type Output = $type; }
 
             impl $crate::ops::OpsAll<'_, $typer> for $typel {}
-        );
+        });
 
-        $crate::if_block!($($or)?
+        $crate::if_any!(($($or)?) {
             impl $crate::ops::OpsBit<$typer> for $typel { type Output = $type; }
             impl $crate::ops::OpsBit<$typer> for &$typel { type Output = $type; }
             impl $crate::ops::OpsBit<&$typer> for $typel { type Output = $type; }
             impl $crate::ops::OpsBit<&$typer> for &$typel { type Output = $type; }
 
             impl $crate::ops::OpsBitAll<'_, $typer> for $typel {}
-        );
+        });
 
-        $crate::if_block!($($shl)?
+        $crate::if_any!(($($shl)?) {
             impl $crate::ops::OpsShift<$typer> for $typel { type Output = $type; }
             impl $crate::ops::OpsShift<$typer> for &$typel { type Output = $type; }
             impl $crate::ops::OpsShift<&$typer> for $typel { type Output = $type; }
             impl $crate::ops::OpsShift<&$typer> for &$typel { type Output = $type; }
 
             impl $crate::ops::OpsShiftAll<'_, $typer> for $typel {}
-        );
+        });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path,
@@ -495,17 +495,17 @@ macro_rules! ops_impl {
         $crate::ops_impl!(<< $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($shl)?);
         $crate::ops_impl!(>> $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($shr)?);
 
-        $crate::if_block!($($add)?
+        $crate::if_any!(($($add)?) {
             impl $crate::ops::Ops<$typer> for $typel { type Output = $type; }
-        );
+        });
 
-        $crate::if_block!($($or)?
+        $crate::if_any!(($($or)?) {
             impl $crate::ops::OpsBit<$typer> for $typel { type Output = $type; }
-        );
+        });
 
-        $crate::if_block!($($shl)?
+        $crate::if_any!(($($shl)?) {
             impl $crate::ops::OpsShift<$typer> for $typel { type Output = $type; }
-        );
+        });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | => $type:path,
