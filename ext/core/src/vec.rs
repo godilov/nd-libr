@@ -109,19 +109,4 @@ mod std_impl {
     vec_impl!(4: [Vec4u8, Vec4u16, Vec4u32, Vec4u64]);
     vec_impl!(4: [Vec4i8, Vec4i16, Vec4i32, Vec4i64]);
     vec_impl!(4: [Vec4f32, Vec4f64]);
-
-    // use std::ops::Add;
-
-    // impl<N: Number + From<<N as Add<N>>::Output>> Add<N> for Vec<N, 4> {
-    //     type Output = Vec<N, 4>;
-
-    //     fn add(self, rhs: N) -> Self::Output {
-    //         Vec::<N, 4>([
-    //             (self.0[0] + rhs).into(),
-    //             (self.0[1] + rhs).into(),
-    //             (self.0[2] + rhs).into(),
-    //             (self.0[3] + rhs).into()
-    //         ])
-    //     }
-    // }
 }
