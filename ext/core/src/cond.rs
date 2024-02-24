@@ -6,3 +6,5 @@ macro_rules! if_any {
 
     (() { $($fn:tt)+ }) => {};
 }
+
+// \$(< \$(\$((\$const:ident))? \$t:ident \$(: \$trait:ident \$(+ \$trait_seq:path)\*)? \$(,)?)+ >)?
