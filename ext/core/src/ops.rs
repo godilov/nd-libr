@@ -53,6 +53,16 @@ where
     type Output;
 }
 
+pub trait OpsAssign<Rhs = Self>: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> {}
+
+pub trait OpsRemAssign<Rhs = Self>: RemAssign<Rhs> {}
+
+pub trait OpsBitAssign<Rhs = Self>: BitOrAssign<Rhs> + BitAndAssign<Rhs> + BitXorAssign<Rhs> {}
+
+pub trait OpsShiftAssign<Rhs = Self>: ShlAssign<Rhs> + ShrAssign<Rhs> {}
+
+pub trait OpsAssignAll<Rhs = Self>: OpsAssign<Rhs> + OpsRemAssign<Rhs> + OpsShiftAssign<Rhs> + OpsBitAssign<Rhs> {}
+
 pub trait OpsFrom<Rhs = Self>:
     Ops<Rhs>
     + From<<Self as Add<Rhs>>::Output>
@@ -87,16 +97,6 @@ pub trait OpsAllFrom<Rhs = Self>: OpsAll<Rhs> + OpsFrom<Rhs> + OpsRemFrom<Rhs> +
 where
     Rhs: OpsAll<Self>, {
 }
-
-pub trait OpsAssign<Rhs = Self>: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> {}
-
-pub trait OpsRemAssign<Rhs = Self>: RemAssign<Rhs> {}
-
-pub trait OpsBitAssign<Rhs = Self>: BitOrAssign<Rhs> + BitAndAssign<Rhs> + BitXorAssign<Rhs> {}
-
-pub trait OpsShiftAssign<Rhs = Self>: ShlAssign<Rhs> + ShrAssign<Rhs> {}
-
-pub trait OpsAssignAll<Rhs = Self>: OpsAssign<Rhs> + OpsRemAssign<Rhs> + OpsShiftAssign<Rhs> + OpsBitAssign<Rhs> {}
 
 #[macro_export]
 macro_rules! ops_impl_std {
@@ -914,6 +914,9 @@ mod tests {
     fn a_fn(x: i64) -> A { A { x } }
     fn b_fn(x: i64) -> B { B { x } }
 
+    fn x_fn<N: Number>(x: N) -> X<N> { X::<N> { x } }
+    fn y_fn<N: Number>(x: N) -> Y<N> { Y::<N> { x } }
+
     #[test]
     fn ops() {
         let val1 = 32i64;
@@ -939,6 +942,30 @@ mod tests {
     }
 
     #[test]
+    fn ops_gen() {
+        let val1 = 32i64;
+        let val2 = 2i64;
+
+        assert_ops!(&x_fn(val1), &x_fn(val2), x_fn, val1, val2);
+        assert_ops!(&x_fn(val1), &y_fn(val2), x_fn, val1, val2);
+
+        assert_ops!(&x_fn(val1), x_fn(val2), x_fn, val1, val2);
+        assert_ops!(&x_fn(val1), y_fn(val2), x_fn, val1, val2);
+
+        assert_ops!(x_fn(val1), &x_fn(val2), x_fn, val1, val2);
+        assert_ops!(x_fn(val1), &y_fn(val2), x_fn, val1, val2);
+
+        assert_ops!(x_fn(val1), x_fn(val2), x_fn, val1, val2);
+        assert_ops!(x_fn(val1), y_fn(val2), x_fn, val1, val2);
+
+        assert_eq!(-&x_fn(val1), x_fn(-val1));
+        assert_eq!(!&x_fn(val1), x_fn(-val1));
+
+        assert_eq!(-x_fn(val1), x_fn(-val1));
+        assert_eq!(!x_fn(val1), x_fn(-val1));
+    }
+
+    #[test]
     fn ops_mut() {
         let val1 = 32i64;
         let val2 = 2i64;
@@ -948,5 +975,17 @@ mod tests {
 
         assert_ops_mut!(a_fn(val1), a_fn(val2), a_fn, val1, val2);
         assert_ops_mut!(a_fn(val1), b_fn(val2), a_fn, val1, val2);
+    }
+
+    #[test]
+    fn ops_gen_mut() {
+        let val1 = 32i64;
+        let val2 = 2i64;
+
+        assert_ops_mut!(x_fn(val1), &x_fn(val2), x_fn, val1, val2);
+        assert_ops_mut!(x_fn(val1), &y_fn(val2), x_fn, val1, val2);
+
+        assert_ops_mut!(x_fn(val1), x_fn(val2), x_fn, val1, val2);
+        assert_ops_mut!(x_fn(val1), y_fn(val2), x_fn, val1, val2);
     }
 }
