@@ -11,6 +11,10 @@ use std::ops::{
     DivAssign,
     Mul,
     MulAssign,
+    Neg,
+    Not,
+    Rem,
+    RemAssign,
     Shl,
     ShlAssign,
     Shr,
@@ -22,6 +26,12 @@ use std::ops::{
 pub trait Ops<Rhs = Self>: Sized + Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs>
 where
     Rhs: Ops<Self>, {
+    type Output;
+}
+
+pub trait OpsRem<Rhs = Self>: Sized + Rem<Rhs>
+where
+    Rhs: OpsRem<Self>, {
     type Output;
 }
 
@@ -37,50 +47,56 @@ where
     type Output;
 }
 
+pub trait OpsAll<Rhs = Self>: Ops<Rhs> + OpsRem<Rhs> + OpsBit<Rhs> + OpsShift<Rhs>
+where
+    Rhs: OpsAll<Self>, {
+    type Output;
+}
+
+pub trait OpsFrom<Rhs = Self>:
+    Ops<Rhs>
+    + From<<Self as Add<Rhs>>::Output>
+    + From<<Self as Sub<Rhs>>::Output>
+    + From<<Self as Mul<Rhs>>::Output>
+    + From<<Self as Div<Rhs>>::Output>
+where
+    Rhs: Ops<Self>, {
+}
+
+pub trait OpsRemFrom<Rhs = Self>: OpsRem<Rhs> + From<<Self as Rem<Rhs>>::Output>
+where
+    Rhs: OpsRem<Self>, {
+}
+
+pub trait OpsBitFrom<Rhs = Self>:
+    OpsBit<Rhs> + From<<Self as BitOr<Rhs>>::Output> + From<<Self as BitAnd<Rhs>>::Output> + From<<Self as BitXor<Rhs>>::Output>
+where
+    Rhs: OpsBit<Self>, {
+}
+
+pub trait OpsShiftFrom<Rhs = Self>:
+    OpsShift<Rhs> + From<<Self as Shl<Rhs>>::Output> + From<<Self as Shr<Rhs>>::Output>
+where
+    Rhs: OpsShift<Self>, {
+}
+
+pub trait OpsNegFrom: Neg + From<<Self as Neg>::Output> {}
+pub trait OpsNotFrom: Not + From<<Self as Not>::Output> {}
+
+pub trait OpsAllFrom<Rhs = Self>: OpsAll<Rhs> + OpsFrom<Rhs> + OpsRemFrom<Rhs> + OpsBitFrom<Rhs> + OpsShiftFrom<Rhs>
+where
+    Rhs: OpsAll<Self>, {
+}
+
 pub trait OpsAssign<Rhs = Self>: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> {}
+
+pub trait OpsRemAssign<Rhs = Self>: RemAssign<Rhs> {}
 
 pub trait OpsBitAssign<Rhs = Self>: BitOrAssign<Rhs> + BitAndAssign<Rhs> + BitXorAssign<Rhs> {}
 
 pub trait OpsShiftAssign<Rhs = Self>: ShlAssign<Rhs> + ShrAssign<Rhs> {}
 
-pub trait OpsAll<'ops, Rhs = Self>
-where
-    Rhs: 'ops + Ops<Self> + Ops<&'ops Self>,
-    Self: 'ops + Ops<Rhs> + Ops<&'ops Rhs>,
-    &'ops Rhs: Ops<Self> + Ops<&'ops Self>,
-    &'ops Self: Ops<Rhs> + Ops<&'ops Rhs>, {
-}
-
-pub trait OpsBitAll<'ops, Rhs = Self>
-where
-    Rhs: 'ops + OpsBit<Self> + OpsBit<&'ops Self>,
-    Self: 'ops + OpsBit<Rhs> + OpsBit<&'ops Rhs>,
-    &'ops Rhs: OpsBit<Self> + OpsBit<&'ops Self>,
-    &'ops Self: OpsBit<Rhs> + OpsBit<&'ops Rhs>, {
-}
-
-pub trait OpsShiftAll<'ops, Rhs = Self>
-where
-    Rhs: 'ops + OpsShift<Self> + OpsShift<&'ops Self>,
-    Self: 'ops + OpsShift<Rhs> + OpsShift<&'ops Rhs>,
-    &'ops Rhs: OpsShift<Self> + OpsShift<&'ops Self>,
-    &'ops Self: OpsShift<Rhs> + OpsShift<&'ops Rhs>, {
-}
-
-pub trait OpsAssignAll<'ops, Rhs = Self>: OpsAssign<Rhs> + OpsAssign<&'ops Rhs>
-where
-    Rhs: 'ops, {
-}
-
-pub trait OpsBitAssignAll<'ops, Rhs = Self>: OpsBitAssign<Rhs> + OpsBitAssign<&'ops Rhs>
-where
-    Rhs: 'ops, {
-}
-
-pub trait OpsShiftAssignAll<'ops, Rhs = Self>: OpsShiftAssign<Rhs> + OpsShiftAssign<&'ops Rhs>
-where
-    Rhs: 'ops, {
-}
+pub trait OpsAssignAll<Rhs = Self>: OpsAssign<Rhs> + OpsRemAssign<Rhs> + OpsShiftAssign<Rhs> + OpsBitAssign<Rhs> {}
 
 #[macro_export]
 macro_rules! ops_impl_std {
@@ -365,19 +381,26 @@ macro_rules! ops_impl {
         $crate::if_any!(($($add)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssign<$typer> for $typel {}
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssign<&$typer> for $typel {}
-            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssignAll<'_, $typer> for $typel {}
+        });
+
+        $crate::if_any!(($($rem)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRemAssign<$typer> for $typel {}
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRemAssign<&$typer> for $typel {}
         });
 
         $crate::if_any!(($($or)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssign<$typer> for $typel {}
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssign<&$typer> for $typel {}
-            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssignAll<'_, $typer> for $typel {}
         });
 
         $crate::if_any!(($($shl)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssign<$typer> for $typel {}
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssign<&$typer> for $typel {}
-            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssignAll<'_, $typer> for $typel {}
+        });
+
+        $crate::if_all!(($($add)?) ($($rem)?) ($($or)?) ($($shl)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssignAll<$typer> for $typel {}
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssignAll<&$typer> for $typel {}
         });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -399,12 +422,20 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssign<$typer> for $typel {}
         });
 
+        $crate::if_any!(($($rem)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRemAssign<$typer> for $typel {}
+        });
+
         $crate::if_any!(($($or)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAssign<$typer> for $typel {}
         });
 
         $crate::if_any!(($($shl)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAssign<$typer> for $typel {}
+        });
+
+        $crate::if_all!(($($add)?) ($($rem)?) ($($or)?) ($($shl)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssignAll<$typer> for $typel {}
         });
     };
 
@@ -428,8 +459,13 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<$typer> for &$typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<&$typer> for $typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<&$typer> for &$typel { type Output = $type; }
+        });
 
-            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<'_, $typer> for $typel {}
+        $crate::if_any!(($($rem)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRem<$typer> for $typel { type Output = $type; }
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRem<$typer> for &$typel { type Output = $type; }
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRem<&$typer> for $typel { type Output = $type; }
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRem<&$typer> for &$typel { type Output = $type; }
         });
 
         $crate::if_any!(($($or)?) {
@@ -437,8 +473,6 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<$typer> for &$typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<&$typer> for $typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<&$typer> for &$typel { type Output = $type; }
-
-            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBitAll<'_, $typer> for $typel {}
         });
 
         $crate::if_any!(($($shl)?) {
@@ -446,8 +480,13 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<$typer> for &$typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<&$typer> for $typel { type Output = $type; }
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<&$typer> for &$typel { type Output = $type; }
+        });
 
-            // impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShiftAll<'_, $typer> for $typel {}
+        $crate::if_all!(($($add)?) ($($rem)?) ($($or)?) ($($shl)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<$typer> for $typel { type Output = $type; }
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<$typer> for &$typel { type Output = $type; }
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<&$typer> for $typel { type Output = $type; }
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<&$typer> for &$typel { type Output = $type; }
         });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -499,12 +538,20 @@ macro_rules! ops_impl {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<$typer> for $typel { type Output = $type; }
         });
 
+        $crate::if_any!(($($rem)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRem<$typer> for $typel { type Output = $type; }
+        });
+
         $crate::if_any!(($($or)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<$typer> for $typel { type Output = $type; }
         });
 
         $crate::if_any!(($($shl)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($add)?) ($($rem)?) ($($or)?) ($($shl)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<$typer> for $typel { type Output = $type; }
         });
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -578,7 +625,12 @@ macro_rules! ops_impl {
 
 #[cfg(test)]
 mod tests {
-    use crate::{num::Number, ops_impl};
+    use super::OpsAssignAll;
+    use crate::{
+        num::Number,
+        ops::{OpsAllFrom, OpsNegFrom, OpsNotFrom},
+        ops_impl,
+    };
 
     macro_rules! ops_struct_def {
         ($type1:ident, $type2:ident $(,)?) => {
@@ -666,127 +718,127 @@ mod tests {
          |&$type1:path, &$type2:path| -> $type:path) => {
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: &$type1, b: &$type1| -> $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
 
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: &$type1, b: &$type2| => $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
         };
         ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
          |&$type1:path, $type2:path| -> $type:path) => {
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: &$type1, b: $type1| -> $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
 
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: &$type1, b: $type2| => $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
         };
         ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
          |$type1:path, &$type2:path| -> $type:path) => {
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: $type1, b: &$type1| -> $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
 
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: $type1, b: &$type2| => $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
         };
         ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
          |$type1:path, $type2:path| -> $type:path) => {
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: $type1, b: $type1| -> $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
 
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: $type1, b: $type2| => $type,
-                    + { $type { x: a.x + b.x } }
-                    - { $type { x: a.x - b.x } }
-                    * { $type { x: a.x * b.x } }
-                    / { $type { x: a.x / b.x } }
-                    % { $type { x: a.x % b.x } }
-                    | { $type { x: a.x | b.x } }
-                    & { $type { x: a.x & b.x } }
-                    ^ { $type { x: a.x ^ b.x } }
-                    << { $type { x: a.x << b.x } }
-                    >> { $type { x: a.x >> b.x } });
+                    + { $type { x: (a.x + b.x).into() } }
+                    - { $type { x: (a.x - b.x).into() } }
+                    * { $type { x: (a.x * b.x).into() } }
+                    / { $type { x: (a.x / b.x).into() } }
+                    % { $type { x: (a.x % b.x).into() } }
+                    | { $type { x: (a.x | b.x).into() } }
+                    & { $type { x: (a.x & b.x).into() } }
+                    ^ { $type { x: (a.x ^ b.x).into() } }
+                    << { $type { x: (a.x << b.x).into() } }
+                    >> { $type { x: (a.x >> b.x).into() } });
         };
         ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
          |&$type1:path| -> $type:path) => {
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: &$type1| -> $type,
-                    neg { $type { x: -a.x } }
-                    not { $type { x: -a.x } });
+                    neg { $type { x: (-a.x).into() } }
+                    not { $type { x: (-a.x).into() } });
         };
         ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
          |$type1:path| -> $type:path) => {
             ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: $type1| -> $type,
-                    neg { $type { x: -a.x } }
-                    not { $type { x: -a.x } });
+                    neg { $type { x: (-a.x).into() } }
+                    not { $type { x: (-a.x).into() } });
         };
     }
 
@@ -806,21 +858,21 @@ mod tests {
     ops_struct_impl!(|&A| -> A);
     ops_struct_impl!(|A1| -> A1);
 
-    // ops_struct_def!(X, Y, N, Number);
-    // ops_struct_def!(X1, Y1, N, Number);
-    // ops_struct_def!(X2, Y2, N, Number);
-    // ops_struct_def!(X3, Y3, N, Number);
+    ops_struct_def!(X, Y, N, Number);
+    ops_struct_def!(X1, Y1, N, Number);
+    ops_struct_def!(X2, Y2, N, Number);
+    ops_struct_def!(X3, Y3, N, Number);
 
-    // ops_struct_impl!(<N: Number> |&mut X<N>, &Y<N>| -> X<N>);
-    // ops_struct_impl!(<N: Number> |&mut X1<N>, Y1<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsAssignAll> |&mut X<N>, &Y<N>|);
+    ops_struct_impl!(<N: Number + OpsAssignAll> |&mut X1<N>, Y1<N>|);
 
-    // ops_struct_impl!(<N: Number + Rem> |&X<N>, &Y<N>| -> X<N>);
-    // ops_struct_impl!(<N: Number + Rem> |&X1<N>, Y1<N>| -> X<N>);
-    // ops_struct_impl!(<N: Number + Rem> |X2<N>, &Y2<N>| -> X<N>);
-    // ops_struct_impl!(<N: Number + Rem> |X3<N>, Y3<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |&X<N>, &Y<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |&X1<N>, Y1<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |X2<N>, &Y2<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |X3<N>, Y3<N>| -> X<N>);
 
-    // ops_struct_impl!(<N: Number + Rem> |&X<N>| -> X<N>);
-    // ops_struct_impl!(<N: Number + Rem> |X1<N>| -> X1<N>);
+    ops_struct_impl!(<N: Number + OpsNegFrom + OpsNotFrom> |&X<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
 
     macro_rules! assert_ops {
         ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
