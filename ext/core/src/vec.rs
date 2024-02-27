@@ -1,6 +1,11 @@
 use crate::{num::Number, ops_impl};
 
-pub struct Vec<N: Number, const L: usize>([N; L]);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Vec<N: Number, const L: usize>(pub [N; L]);
+
+impl<N: Number, const L: usize> Default for Vec<N, L> {
+    fn default() -> Self { Vec::<N, L>([N::default(); L]) }
+}
 
 macro_rules! vec_impl {
     (1: [$($type:path),+]) => {

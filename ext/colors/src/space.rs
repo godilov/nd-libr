@@ -26,13 +26,13 @@ pub trait Color: Default + Debug + Clone + Copy + PartialEq + Eq {
 macro_rules! color {
     ($type:ident, $trait:ident, $len:expr, $min:expr, $max:expr $(,)?) => {
         #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-        pub struct $type<T: $trait>([T; $len]);
+        pub struct $type<T: $trait>(pub Vec<T, $len>);
 
         impl<T: $trait> Color for $type<T>
         where
             T: Default + Debug + Clone + Copy + PartialEq + Eq,
         {
-            type Container = [T; $len];
+            type Container = Vec<T, $len>;
             type Type = T;
 
             const LEN: u8 = $len;

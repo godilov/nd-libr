@@ -24,7 +24,7 @@ pub trait DivChecked<Rhs = Self> {
     fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
-pub trait Number: Default + Sized + Clone + Copy + Ops + OpsAssign + PartialEq + PartialOrd {
+pub trait Number: Sized + Default + Clone + Copy + Ops + OpsAssign + PartialEq + PartialOrd {
     type Type;
 
     const ZERO: Self;
