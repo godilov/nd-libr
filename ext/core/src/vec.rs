@@ -1,4 +1,4 @@
-use crate::{num::Number, ops_impl};
+use crate::{num::Number, ops_impl_bin};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Vec<N: Number, const L: usize>(pub [N; L]);
@@ -10,7 +10,7 @@ impl<N: Number, const L: usize> Default for Vec<N, L> {
 macro_rules! vec_impl {
     (1: [$($type:path),+]) => {
         $(
-            ops_impl!(|a: &$type, b: &$type| -> $type,
+            ops_impl_bin!(|a: &$type, b: &$type| -> $type,
                     + { $type ([a.0[0] + b.0[0]]) }
                     - { $type ([a.0[0] - b.0[0]]) }
                     * { $type ([a.0[0] * b.0[0]]) }
@@ -19,7 +19,7 @@ macro_rules! vec_impl {
     };
     (2: [$($type:path),+]) => {
         $(
-            ops_impl!(|a: &$type, b: &$type| -> $type,
+            ops_impl_bin!(|a: &$type, b: &$type| -> $type,
                     + { $type ([a.0[0] + b.0[0], a.0[1] + b.0[1]]) }
                     - { $type ([a.0[0] - b.0[0], a.0[1] - b.0[1]]) }
                     * { $type ([a.0[0] * b.0[0], a.0[1] * b.0[1]]) }
@@ -28,7 +28,7 @@ macro_rules! vec_impl {
     };
     (3: [$($type:path),+]) => {
         $(
-            ops_impl!(|a: &$type, b: &$type| -> $type,
+            ops_impl_bin!(|a: &$type, b: &$type| -> $type,
                     + { $type ([a.0[0] + b.0[0], a.0[1] + b.0[1], a.0[2] + b.0[2]]) }
                     - { $type ([a.0[0] - b.0[0], a.0[1] - b.0[1], a.0[2] - b.0[2]]) }
                     * { $type ([a.0[0] * b.0[0], a.0[1] * b.0[1], a.0[2] * b.0[2]]) }
@@ -37,7 +37,7 @@ macro_rules! vec_impl {
     };
     (4: [$($type:path),+]) => {
         $(
-            ops_impl!(|a: &$type, b: &$type| -> $type,
+            ops_impl_bin!(|a: &$type, b: &$type| -> $type,
                     + { $type ([a.0[0] + b.0[0], a.0[1] + b.0[1], a.0[2] + b.0[2], a.0[3] + b.0[3]]) }
                     - { $type ([a.0[0] - b.0[0], a.0[1] - b.0[1], a.0[2] - b.0[2], a.0[3] - b.0[3]]) }
                     * { $type ([a.0[0] * b.0[0], a.0[1] * b.0[1], a.0[2] * b.0[2], a.0[3] * b.0[3]]) }
