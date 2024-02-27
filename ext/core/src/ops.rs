@@ -621,6 +621,49 @@ macro_rules! ops_impl {
         $crate::ops_impl!(neg $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $($neg)?);
         $crate::ops_impl!(not $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $($not)?);
     };
+
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path |, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer |, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path |, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer |, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | => $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| => $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | => $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| => $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | => $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| => $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | => $type:path, { $lhs_expr:expr } [$($op:tt )+] { $rhs_expr:expr }) => {
+        $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| => $type, $($op { $lhs_expr $op $rhs_expr })+);
+    };
 }
 
 #[cfg(test)]
@@ -842,36 +885,36 @@ mod tests {
         };
     }
 
-    ops_struct_def!(A, B);
+    ops_struct_def!(A0, B0);
     ops_struct_def!(A1, B1);
     ops_struct_def!(A2, B2);
     ops_struct_def!(A3, B3);
 
-    ops_struct_impl!(|&mut A, &B|);
+    ops_struct_impl!(|&mut A0, &B0|);
     ops_struct_impl!(|&mut A1, B1|);
 
-    ops_struct_impl!(|&A, &B| -> A);
+    ops_struct_impl!(|&A0, &B0| -> A0);
     ops_struct_impl!(|&A1, B1| -> A1);
     ops_struct_impl!(|A2, &B2| -> A2);
     ops_struct_impl!(|A3, B3| -> A3);
 
-    ops_struct_impl!(|&A| -> A);
+    ops_struct_impl!(|&A0| -> A0);
     ops_struct_impl!(|A1| -> A1);
 
-    ops_struct_def!(X, Y, N, Number);
+    ops_struct_def!(X0, Y0, N, Number);
     ops_struct_def!(X1, Y1, N, Number);
     ops_struct_def!(X2, Y2, N, Number);
     ops_struct_def!(X3, Y3, N, Number);
 
-    ops_struct_impl!(<N: Number + OpsAssignAll> |&mut X<N>, &Y<N>|);
+    ops_struct_impl!(<N: Number + OpsAssignAll> |&mut X0<N>, &Y0<N>|);
     ops_struct_impl!(<N: Number + OpsAssignAll> |&mut X1<N>, Y1<N>|);
 
-    ops_struct_impl!(<N: Number + OpsAllFrom> |&X<N>, &Y<N>| -> X<N>);
-    ops_struct_impl!(<N: Number + OpsAllFrom> |&X1<N>, Y1<N>| -> X<N>);
-    ops_struct_impl!(<N: Number + OpsAllFrom> |X2<N>, &Y2<N>| -> X<N>);
-    ops_struct_impl!(<N: Number + OpsAllFrom> |X3<N>, Y3<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |&X0<N>, &Y0<N>| -> X0<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |&X1<N>, Y1<N>| -> X0<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |X2<N>, &Y2<N>| -> X0<N>);
+    ops_struct_impl!(<N: Number + OpsAllFrom> |X3<N>, Y3<N>| -> X0<N>);
 
-    ops_struct_impl!(<N: Number + OpsNegFrom + OpsNotFrom> |&X<N>| -> X<N>);
+    ops_struct_impl!(<N: Number + OpsNegFrom + OpsNotFrom> |&X0<N>| -> X0<N>);
     ops_struct_impl!(<N: Number + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
 
     macro_rules! assert_ops {
@@ -911,11 +954,11 @@ mod tests {
         };
     }
 
-    fn a_fn(x: i64) -> A { A { x } }
-    fn b_fn(x: i64) -> B { B { x } }
+    fn a_fn(x: i64) -> A0 { A0 { x } }
+    fn b_fn(x: i64) -> B0 { B0 { x } }
 
-    fn x_fn<N: Number>(x: N) -> X<N> { X::<N> { x } }
-    fn y_fn<N: Number>(x: N) -> Y<N> { Y::<N> { x } }
+    fn x_fn<N: Number>(x: N) -> X0<N> { X0::<N> { x } }
+    fn y_fn<N: Number>(x: N) -> Y0<N> { Y0::<N> { x } }
 
     #[test]
     fn ops() {
