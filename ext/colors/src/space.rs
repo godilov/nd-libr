@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use nd_core::{
     num::{Float, Number, Unsigned},
+    ops_impl_bin_auto,
     vec::Vec,
 };
 use thiserror::Error;
@@ -12,7 +13,7 @@ pub enum ColorError {
     LengthMismatch(u8, u8),
 }
 
-pub trait Color: Default + Debug + Clone + Copy + PartialEq + Eq {
+pub trait Color: Debug + Default + Clone + Copy + PartialEq + Eq {
     type Type;
     type Container;
 
@@ -24,13 +25,13 @@ pub trait Color: Default + Debug + Clone + Copy + PartialEq + Eq {
 }
 
 macro_rules! color {
-    ($type:ident, $trait:ident, $len:expr, $min:expr, $max:expr $(,)?) => {
+    ($type:ident < $trait:ident, $len:tt > , $min:expr, $max:expr $(,)?) => {
         #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
         pub struct $type<T: $trait>(pub Vec<T, $len>);
 
         impl<T: $trait> Color for $type<T>
         where
-            T: Default + Debug + Clone + Copy + PartialEq + Eq,
+            T: Debug + Default + Clone + Copy + PartialEq + Eq,
         {
             type Container = Vec<T, $len>;
             type Type = T;
@@ -44,9 +45,18 @@ macro_rules! color {
     };
 }
 
-color!(Rgb, Unsigned, 3, T::MIN, T::MAX);
-color!(Rgba, Unsigned, 4, T::MIN, T::MAX);
-color!(Hsl, Float, 3, <T as Number>::ZERO, <T as Number>::ONE);
-color!(Hsla, Float, 4, <T as Number>::ZERO, <T as Number>::ONE);
-color!(Hsb, Float, 3, <T as Number>::ZERO, <T as Number>::ONE);
-color!(Hsba, Float, 4, <T as Number>::ZERO, <T as Number>::ONE);
+macro_rules! color_ops_impl {
+    ($type:ident : [$($t:ty[$($op:tt)+]),+]) => {
+        $(ops_impl_bin_auto!(|a: &$type<$t>, b: &$type<$t>| -> $type<$t>, (a.0) [$($op)+] (b.0) -> |val| { $type::<$t>(val) });)+
+    };
+}
+
+color!(Rgb<Unsigned, 3>, T::MIN, T::MAX);
+color!(Rgba<Unsigned, 4>, T::MIN, T::MAX);
+color!(Hsl<Float, 3>, <T as Number>::ZERO, <T as Number>::ONE);
+color!(Hsla<Float, 4>, <T as Number>::ZERO, <T as Number>::ONE);
+color!(Hsb<Float, 3>, <T as Number>::ZERO, <T as Number>::ONE);
+color!(Hsba<Float, 4>, <T as Number>::ZERO, <T as Number>::ONE);
+
+color_ops_impl!(Rgb: [u8[+-*/%], u16[+-*/%], u32[+-*/%], u64[+-*/%], u128[+-*/%]]);
+color_ops_impl!(Rgba: [u8[+-*/%], u16[+-*/%], u32[+-*/%], u64[+-*/%], u128[+-*/%]]);
