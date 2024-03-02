@@ -1,6 +1,8 @@
 #[macro_export]
 macro_rules! if_any {
-    ($(())+ { $($fn:tt)+ }) => {};
+    ($(())+ { $($fn:tt)+ } $(or { $($fn_or:tt)+ })?) => {
+        $($($fn_or)+)?
+    };
 
     ($(($($t:tt)*))+ { $($fn:tt)+ }) => {
         $($fn)+
@@ -13,5 +15,8 @@ macro_rules! if_all {
         $($fn)+
     };
 
-    ($(($($t:tt)*))+ { $($fn:tt)+ }) => {};
+    ($(($($t:tt)*))+ { $($fn:tt)+ } $(or { $($fn_or:tt)+ })?) => {
+        $($($fn_or)+)?
+    };
+
 }
