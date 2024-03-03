@@ -1,62 +1,42 @@
-use std::fmt::Debug;
+use nd_core::{num::Number, vec::Vec as NdVec};
 
-use nd_core::{
-    num::{Float, Number, Unsigned},
-    ops_impl_bin_auto,
-    vec::Vec,
-};
-use thiserror::Error;
+pub type Rgb<T> = NdVec<T, 3>;
+pub type Rgba<T> = NdVec<T, 4>;
+pub type Hsl<T> = NdVec<T, 3>;
+pub type Hsla<T> = NdVec<T, 4>;
+pub type Hsb<T> = NdVec<T, 3>;
+pub type Hsba<T> = NdVec<T, 4>;
+pub type Scale<T> = NdVec<T, 1>;
 
-#[derive(Error, Debug)]
-pub enum ColorError {
-    #[error("ColorError::LengthMismatch: expected {0}, found {1}")]
-    LengthMismatch(u8, u8),
+pub enum Color<T: Number> {
+    Rgb(Rgb<T>),
+    Hsl(Hsl<T>),
+    Hsb(Hsb<T>),
 }
 
-pub trait Color: Debug + Default + Clone + Copy + PartialEq + Eq {
-    type Type;
-    type Container;
-
-    const LEN: u8;
-    const MIN: Self::Type;
-    const MAX: Self::Type;
-
-    fn get(&self) -> &Self::Container;
+pub enum ColorAlpha<T: Number> {
+    Rgba(Rgba<T>),
+    Hsla(Hsla<T>),
+    Hsba(Hsba<T>),
 }
 
-macro_rules! color {
-    ($type:ident < $trait:ident, $len:tt > , $min:expr, $max:expr $(,)?) => {
-        #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-        pub struct $type<T: $trait>(pub Vec<T, $len>);
-
-        impl<T: $trait> Color for $type<T>
-        where
-            T: Debug + Default + Clone + Copy + PartialEq + Eq,
-        {
-            type Container = Vec<T, $len>;
-            type Type = T;
-
-            const LEN: u8 = $len;
-            const MAX: Self::Type = $min;
-            const MIN: Self::Type = $max;
-
-            fn get(&self) -> &Self::Container { &self.0 }
-        }
-    };
+pub enum ColorArr {
+    Rgb8(Vec<Rgb<u8>>),
+    Rgb16(Vec<Rgb<u16>>),
+    Rgb32(Vec<Rgb<u32>>),
+    Rgb64(Vec<Rgb<u64>>),
+    Rgb128(Vec<Rgb<u128>>),
+    Hsl32(Vec<Hsl<f32>>),
+    Hsl64(Vec<Hsl<f64>>),
+    Hsb32(Vec<Hsb<f32>>),
+    Hsb64(Vec<Hsb<f64>>),
+    Rgba8(Vec<Rgba<u8>>),
+    Rgba16(Vec<Rgba<u16>>),
+    Rgba32(Vec<Rgba<u32>>),
+    Rgba64(Vec<Rgba<u64>>),
+    Rgba128(Vec<Rgba<u128>>),
+    Hsla32(Vec<Hsla<f32>>),
+    Hsla64(Vec<Hsla<f64>>),
+    Hsba32(Vec<Hsba<f32>>),
+    Hsba64(Vec<Hsba<f64>>),
 }
-
-macro_rules! color_ops_impl {
-    ($type:ident : [$($t:ty[$($op:tt)+]),+]) => {
-        $(ops_impl_bin_auto!(|a: &$type<$t>, b: &$type<$t>| -> $type<$t>, (a.0) [$($op)+] (b.0) -> |val| { $type::<$t>(val) });)+
-    };
-}
-
-color!(Rgb<Unsigned, 3>, T::MIN, T::MAX);
-color!(Rgba<Unsigned, 4>, T::MIN, T::MAX);
-color!(Hsl<Float, 3>, <T as Number>::ZERO, <T as Number>::ONE);
-color!(Hsla<Float, 4>, <T as Number>::ZERO, <T as Number>::ONE);
-color!(Hsb<Float, 3>, <T as Number>::ZERO, <T as Number>::ONE);
-color!(Hsba<Float, 4>, <T as Number>::ZERO, <T as Number>::ONE);
-
-color_ops_impl!(Rgb: [u8[+-*/%], u16[+-*/%], u32[+-*/%], u64[+-*/%], u128[+-*/%]]);
-color_ops_impl!(Rgba: [u8[+-*/%], u16[+-*/%], u32[+-*/%], u64[+-*/%], u128[+-*/%]]);
