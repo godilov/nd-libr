@@ -1,5 +1,5 @@
 [package]
-name = "nd-ecs"
+name = "nd-blockchain"
 version.workspace = true
 edition.workspace = true
 

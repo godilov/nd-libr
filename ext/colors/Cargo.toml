@@ -3,9 +3,6 @@ name = "nd-colors"
 version.workspace = true
 edition.workspace = true
 
-[lints]
-workspace = true
-
 [dependencies]
 anyhow.workspace = true
 thiserror.workspace = true
@@ -18,3 +15,6 @@ nd-core.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+
+[lints]
+workspace = true

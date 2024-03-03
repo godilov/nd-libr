@@ -3,10 +3,10 @@ name = "nd-core"
 version.workspace = true
 edition.workspace = true
 
+[dependencies]
+
 [lints]
 workspace = true
-
-[dependencies]
 
 [features]
 default = ["num", "ops"]
