@@ -18,5 +18,4 @@ macro_rules! if_all {
     ($(($($t:tt)*))+ { $($fn:tt)+ } $(or { $($fn_or:tt)+ })?) => {
         $($($fn_or)+)?
     };
-
 }
