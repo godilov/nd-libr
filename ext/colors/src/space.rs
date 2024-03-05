@@ -43,69 +43,92 @@ pub enum ColorArr {
     Scale64(Vec<Scale<f64>>),
 }
 
+macro_rules! cast {
+    (@rgb_from $type:path, $val:ident, $from:ty, $to:ty) => {
+        $type(
+            $val.iter()
+                .map(|x| {
+                    let ratio = <$from>::MAX / <$to>::MAX as $from;
+                    let r = x.0[0] / ratio;
+                    let g = x.0[1] / ratio;
+                    let b = x.0[2] / ratio;
+
+                    NdVec::<$to, 3>([r as $to, g as $to, b as $to])
+                })
+                .collect::<Vec<Rgb<$to>>>(),
+        )
+    };
+    (@rgb_to $type:path, $val:ident, $from:ty, $to:ty) => {
+        $type(
+            $val.iter()
+                .map(|x| {
+                    let ratio = <$to>::MAX / <$from>::MAX as $to;
+                    let r = x.0[0] as $to * ratio;
+                    let g = x.0[1] as $to * ratio;
+                    let b = x.0[2] as $to * ratio;
+
+                    NdVec::<$to, 3>([r as $to, g as $to, b as $to])
+                })
+                .collect::<Vec<Rgb<$to>>>(),
+        )
+    };
+}
+
 impl ColorArr {
     fn to_rgb8(&self) -> Self {
         match self {
             | ColorArr::Rgb8(val) => ColorArr::Rgb8(val.clone()),
-            | ColorArr::Rgb16(val) => ColorArr::Rgb8(
-                val.iter()
-                    .map(|x| {
-                        let ratio = u16::MAX / u8::MAX as u16;
-                        let r = x.0[0] / ratio;
-                        let g = x.0[1] / ratio;
-                        let b = x.0[2] / ratio;
-
-                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
-                    })
-                    .collect::<Vec<Rgb<u8>>>(),
-            ),
-            | ColorArr::Rgb32(val) => ColorArr::Rgb8(
-                val.iter()
-                    .map(|x| {
-                        let ratio = u32::MAX / u8::MAX as u32;
-                        let r = x.0[0] / ratio;
-                        let g = x.0[1] / ratio;
-                        let b = x.0[2] / ratio;
-
-                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
-                    })
-                    .collect::<Vec<Rgb<u8>>>(),
-            ),
-            | ColorArr::Rgb64(val) => ColorArr::Rgb8(
-                val.iter()
-                    .map(|x| {
-                        let ratio = u64::MAX / u8::MAX as u64;
-                        let r = x.0[0] / ratio;
-                        let g = x.0[1] / ratio;
-                        let b = x.0[2] / ratio;
-
-                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
-                    })
-                    .collect::<Vec<Rgb<u8>>>(),
-            ),
-            | ColorArr::Rgb128(val) => ColorArr::Rgb8(
-                val.iter()
-                    .map(|x| {
-                        let ratio = u128::MAX / u8::MAX as u128;
-                        let r = x.0[0] / ratio;
-                        let g = x.0[1] / ratio;
-                        let b = x.0[2] / ratio;
-
-                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
-                    })
-                    .collect::<Vec<Rgb<u8>>>(),
-            ),
+            | ColorArr::Rgb16(val) => cast!(@rgb_from ColorArr::Rgb8, val, u16, u8),
+            | ColorArr::Rgb32(val) => cast!(@rgb_from ColorArr::Rgb8, val, u32, u8),
+            | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb8, val, u64, u8),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb8, val, u128, u8),
             | _ => todo!(),
         }
     }
 
-    fn to_rgb16(&self) -> Self { todo!() }
+    fn to_rgb16(&self) -> Self {
+        match self {
+            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb16, val, u8, u16),
+            | ColorArr::Rgb16(val) => ColorArr::Rgb16(val.clone()),
+            | ColorArr::Rgb32(val) => cast!(@rgb_from ColorArr::Rgb16, val, u32, u16),
+            | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb16, val, u64, u16),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb16, val, u128, u16),
+            | _ => todo!(),
+        }
+    }
 
-    fn to_rgb32(&self) -> Self { todo!() }
+    fn to_rgb32(&self) -> Self {
+        match self {
+            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb32, val, u8, u32),
+            | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb32, val, u16, u32),
+            | ColorArr::Rgb32(val) => ColorArr::Rgb32(val.clone()),
+            | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb32, val, u64, u32),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb32, val, u128, u32),
+            | _ => todo!(),
+        }
+    }
 
-    fn to_rgb64(&self) -> Self { todo!() }
+    fn to_rgb64(&self) -> Self {
+        match self {
+            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb64, val, u8, u64),
+            | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb64, val, u16, u64),
+            | ColorArr::Rgb32(val) => cast!(@rgb_to ColorArr::Rgb64, val, u16, u64),
+            | ColorArr::Rgb64(val) => ColorArr::Rgb64(val.clone()),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb64, val, u128, u64),
+            | _ => todo!(),
+        }
+    }
 
-    fn to_rgb128(&self) -> Self { todo!() }
+    fn to_rgb128(&self) -> Self {
+        match self {
+            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb128, val, u8, u128),
+            | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
+            | ColorArr::Rgb32(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
+            | ColorArr::Rgb64(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
+            | ColorArr::Rgb128(val) => ColorArr::Rgb128(val.clone()),
+            | _ => todo!(),
+        }
+    }
 
     fn to_hsl32(&self) -> Self { todo!() }
 
