@@ -6,6 +6,6 @@ struct Resolution {
 }
 
 struct Image {
-    data: ColorArr,
-    res:  Resolution,
+    arr: ColorArr,
+    res: Resolution,
 }

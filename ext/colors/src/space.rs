@@ -39,4 +39,100 @@ pub enum ColorArr {
     Hsla64(Vec<Hsla<f64>>),
     Hsba32(Vec<Hsba<f32>>),
     Hsba64(Vec<Hsba<f64>>),
+    Scale32(Vec<Scale<f32>>),
+    Scale64(Vec<Scale<f64>>),
+}
+
+impl ColorArr {
+    fn to_rgb8(&self) -> Self {
+        match self {
+            | ColorArr::Rgb8(val) => ColorArr::Rgb8(*val),
+            | ColorArr::Rgb16(val) => ColorArr::Rgb8(
+                val.iter()
+                    .map(|x| {
+                        let ratio = u16::MAX / u8::MAX as u16;
+                        let r = x.0[0] / ratio;
+                        let g = x.0[1] / ratio;
+                        let b = x.0[2] / ratio;
+
+                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
+                    })
+                    .collect::<Vec<Rgb<u8>>>(),
+            ),
+            | ColorArr::Rgb32(val) => ColorArr::Rgb8(
+                val.iter()
+                    .map(|x| {
+                        let ratio = u32::MAX / u8::MAX as u32;
+                        let r = x.0[0] / ratio;
+                        let g = x.0[1] / ratio;
+                        let b = x.0[2] / ratio;
+
+                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
+                    })
+                    .collect::<Vec<Rgb<u8>>>(),
+            ),
+            | ColorArr::Rgb64(val) => ColorArr::Rgb8(
+                val.iter()
+                    .map(|x| {
+                        let ratio = u64::MAX / u8::MAX as u64;
+                        let r = x.0[0] / ratio;
+                        let g = x.0[1] / ratio;
+                        let b = x.0[2] / ratio;
+
+                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
+                    })
+                    .collect::<Vec<Rgb<u8>>>(),
+            ),
+            | ColorArr::Rgb128(val) => ColorArr::Rgb8(
+                val.iter()
+                    .map(|x| {
+                        let ratio = u128::MAX / u8::MAX as u128;
+                        let r = x.0[0] / ratio;
+                        let g = x.0[1] / ratio;
+                        let b = x.0[2] / ratio;
+
+                        NdVec::<u8, 3>([r as u8, g as u8, b as u8])
+                    })
+                    .collect::<Vec<Rgb<u8>>>(),
+            ),
+        }
+    }
+
+    fn to_rgb16(&self) -> Self { todo!() }
+
+    fn to_rgb32(&self) -> Self { todo!() }
+
+    fn to_rgb64(&self) -> Self { todo!() }
+
+    fn to_rgb128(&self) -> Self { todo!() }
+
+    fn to_hsl32(&self) -> Self { todo!() }
+
+    fn to_hsl64(&self) -> Self { todo!() }
+
+    fn to_hsb32(&self) -> Self { todo!() }
+
+    fn to_hsb64(&self) -> Self { todo!() }
+
+    fn to_rgba8(&self) -> Self { todo!() }
+
+    fn to_rgba16(&self) -> Self { todo!() }
+
+    fn to_rgba32(&self) -> Self { todo!() }
+
+    fn to_rgba64(&self) -> Self { todo!() }
+
+    fn to_rgba128(&self) -> Self { todo!() }
+
+    fn to_hsla32(&self) -> Self { todo!() }
+
+    fn to_hsla64(&self) -> Self { todo!() }
+
+    fn to_hsba32(&self) -> Self { todo!() }
+
+    fn to_hsba64(&self) -> Self { todo!() }
+
+    fn to_scale32(&self) -> Self { todo!() }
+
+    fn to_scale64(&self) -> Self { todo!() }
 }
