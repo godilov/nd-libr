@@ -98,8 +98,8 @@ mod avx_impl {
     vec_ops_impl!(+ 1: [Vec<i8, 1>, Vec<i16, 1>, Vec<i32, 1>, Vec<i64, 1>, Vec<i128, 1>]);
     vec_ops_impl!(1: [Vec<f32, 1>, Vec<f64, 1>]);
 
-    vec_ops_impl!(+ 2: [Vec<u8, 2>, Vec<u16, 2>, Vec<u32, 2>, Vec<u64, 2>, Vec<u128, 2>]);
-    vec_ops_impl!(+ 2: [Vec<i8, 2>, Vec<i16, 2>, Vec<i32, 2>, Vec<i64, 2>, Vec<i128, 2>]);
+    vec_ops_impl!(+ 2: [Vec<u8, 2>, Vec<u16, 2>, Vec<u32, 2>, /* Vec<u64, 2>,*/ Vec<u128, 2>]);
+    vec_ops_impl!(+ 2: [Vec<i8, 2>, Vec<i16, 2>, Vec<i32, 2>, /* Vec<i64, 2>,*/ Vec<i128, 2>]);
     vec_ops_impl!(2: [Vec<f32, 2>, Vec<f64, 2>]);
 
     vec_ops_impl!(+ 3: [Vec<u8, 3>, Vec<u16, 3>, Vec<u32, 3>, Vec<u64, 3>, Vec<u128, 3>]);
@@ -126,29 +126,77 @@ mod avx_impl {
     vec_ops_impl!(+ 8: [Vec<i8, 8>, Vec<i16, 8>, Vec<i32, 8>, Vec<i64, 8>, Vec<i128, 8>]);
     vec_ops_impl!(8: [Vec<f32, 8>, Vec<f64, 8>]);
 
-    // ops_impl_bin!(|a: &Vec<u8, 2>, b: &Vec<u8, 2>| -> Vec<u8, 2>,
-    // + {
-    //     unsafe {
-    //         let a_ptr = &a.0 as *const u8 as *const i8 as *const __m128i;
-    //         let b_ptr = &b.0 as *const u8 as *const i8 as *const __m128i;
+    ops_impl_bin!(|a: &Vec<u64, 2>, b: &Vec<u64, 2>| -> Vec<u64, 2>,
+    + {
+        unsafe {
+            let a_vec = _mm_set_epi64x(a.0[0] as i64, a.0[1] as i64);
+            let b_vec = _mm_set_epi64x(b.0[0] as i64, b.0[1] as i64);
 
-    //         let a_vec = _mm_set_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, a.0[1] as i8, a.0[0] as i8);
-    //         let b_vec = _mm_set_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, a.0[1] as i8, a.0[0] as i8);
+            let vec = _mm_add_epi64(a_vec, b_vec);
 
-    //         let vec = _mm_add_epi8(a_vec, b_vec);
-    //     }
+            Vec::<u64, 2>([
+                _mm_extract_epi64::<0>(vec) as u64,
+                _mm_extract_epi64::<1>(vec) as u64,
+            ])
+        }
+    }
+    - {
+        unsafe {
+            let a_vec = _mm_set_epi64x(a.0[0] as i64, a.0[1] as i64);
+            let b_vec = _mm_set_epi64x(b.0[0] as i64, b.0[1] as i64);
 
-    //     Vec::<u8, 2>([0; 2])
-    // }
-    // - {
-    //     Vec::<u8, 2>([0; 2])
-    // }
-    // * {
-    //     Vec::<u8, 2>([0; 2])}
-    // / {
-    //     Vec::<u8, 2>([0; 2])
-    // }
-    // % {
-    //     Vec::<u8, 2>([0; 2])
-    // });
+            let vec = _mm_sub_epi64(a_vec, b_vec);
+
+            Vec::<u64, 2>([
+                _mm_extract_epi64::<0>(vec) as u64,
+                _mm_extract_epi64::<1>(vec) as u64,
+            ])
+        }
+    }
+    * {
+        Vec::<u64, 2>([a.0[0] * b.0[0], a.0[1] * b.0[1]])
+    }
+    / {
+        Vec::<u64, 2>([a.0[0] / b.0[0], a.0[1] / b.0[1]])
+    }
+    % {
+        Vec::<u64, 2>([a.0[0] % b.0[0], a.0[1] % b.0[1]])
+    });
+
+    ops_impl_bin!(|a: &Vec<i64, 2>, b: &Vec<i64, 2>| -> Vec<i64, 2>,
+    + {
+        unsafe {
+            let a_vec = _mm_set_epi64x(a.0[0], a.0[1]);
+            let b_vec = _mm_set_epi64x(b.0[0], b.0[1]);
+
+            let vec = _mm_add_epi64(a_vec, b_vec);
+
+            Vec::<i64, 2>([
+                _mm_extract_epi64::<0>(vec),
+                _mm_extract_epi64::<1>(vec),
+            ])
+        }
+    }
+    - {
+        unsafe {
+            let a_vec = _mm_set_epi64x(a.0[0], a.0[1]);
+            let b_vec = _mm_set_epi64x(b.0[0], b.0[1]);
+
+            let vec = _mm_sub_epi64(a_vec, b_vec);
+
+            Vec::<i64, 2>([
+                _mm_extract_epi64::<0>(vec),
+                _mm_extract_epi64::<1>(vec),
+            ])
+        }
+    }
+    * {
+        Vec::<i64, 2>([a.0[0] * b.0[0], a.0[1] * b.0[1]])
+    }
+    / {
+        Vec::<i64, 2>([a.0[0] / b.0[0], a.0[1] / b.0[1]])
+    }
+    % {
+        Vec::<i64, 2>([a.0[0] % b.0[0], a.0[1] % b.0[1]])
+    });
 }
