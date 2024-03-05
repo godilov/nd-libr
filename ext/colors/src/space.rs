@@ -46,7 +46,7 @@ pub enum ColorArr {
 impl ColorArr {
     fn to_rgb8(&self) -> Self {
         match self {
-            | ColorArr::Rgb8(val) => ColorArr::Rgb8(*val),
+            | ColorArr::Rgb8(val) => ColorArr::Rgb8(val.clone()),
             | ColorArr::Rgb16(val) => ColorArr::Rgb8(
                 val.iter()
                     .map(|x| {
@@ -95,6 +95,7 @@ impl ColorArr {
                     })
                     .collect::<Vec<Rgb<u8>>>(),
             ),
+            | _ => todo!(),
         }
     }
 
