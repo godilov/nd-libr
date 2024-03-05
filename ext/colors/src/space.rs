@@ -45,39 +45,35 @@ pub enum ColorArr {
 
 macro_rules! cast {
     (@rgb_from $type:path, $val:ident, $from:ty, $to:ty) => {
-        $type(
-            $val.iter()
-                .map(|x| {
-                    let ratio = <$from>::MAX / <$to>::MAX as $from;
-                    let r = x.0[0] / ratio;
-                    let g = x.0[1] / ratio;
-                    let b = x.0[2] / ratio;
+        $val.iter()
+            .map(|x| {
+                let ratio = <$from>::MAX / <$to>::MAX as $from;
+                let r = x.0[0] / ratio;
+                let g = x.0[1] / ratio;
+                let b = x.0[2] / ratio;
 
-                    NdVec::<$to, 3>([r as $to, g as $to, b as $to])
-                })
-                .collect::<Vec<Rgb<$to>>>(),
-        )
+                NdVec::<$to, 3>([r as $to, g as $to, b as $to])
+            })
+            .collect::<Vec<Rgb<$to>>>()
     };
     (@rgb_to $type:path, $val:ident, $from:ty, $to:ty) => {
-        $type(
-            $val.iter()
-                .map(|x| {
-                    let ratio = <$to>::MAX / <$from>::MAX as $to;
-                    let r = x.0[0] as $to * ratio;
-                    let g = x.0[1] as $to * ratio;
-                    let b = x.0[2] as $to * ratio;
+        $val.iter()
+            .map(|x| {
+                let ratio = <$to>::MAX / <$from>::MAX as $to;
+                let r = x.0[0] as $to * ratio;
+                let g = x.0[1] as $to * ratio;
+                let b = x.0[2] as $to * ratio;
 
-                    NdVec::<$to, 3>([r as $to, g as $to, b as $to])
-                })
-                .collect::<Vec<Rgb<$to>>>(),
-        )
+                NdVec::<$to, 3>([r as $to, g as $to, b as $to])
+            })
+            .collect::<Vec<Rgb<$to>>>()
     };
 }
 
 impl ColorArr {
-    fn to_rgb8(&self) -> Self {
+    fn to_rgb8(&self) -> Vec<Rgb<u8>> {
         match self {
-            | ColorArr::Rgb8(val) => ColorArr::Rgb8(val.clone()),
+            | ColorArr::Rgb8(val) => val.clone(),
             | ColorArr::Rgb16(val) => cast!(@rgb_from ColorArr::Rgb8, val, u16, u8),
             | ColorArr::Rgb32(val) => cast!(@rgb_from ColorArr::Rgb8, val, u32, u8),
             | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb8, val, u64, u8),
@@ -86,10 +82,10 @@ impl ColorArr {
         }
     }
 
-    fn to_rgb16(&self) -> Self {
+    fn to_rgb16(&self) -> Vec<Rgb<u16>> {
         match self {
             | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb16, val, u8, u16),
-            | ColorArr::Rgb16(val) => ColorArr::Rgb16(val.clone()),
+            | ColorArr::Rgb16(val) => val.clone(),
             | ColorArr::Rgb32(val) => cast!(@rgb_from ColorArr::Rgb16, val, u32, u16),
             | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb16, val, u64, u16),
             | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb16, val, u128, u16),
@@ -97,66 +93,96 @@ impl ColorArr {
         }
     }
 
-    fn to_rgb32(&self) -> Self {
+    fn to_rgb32(&self) -> Vec<Rgb<u32>> {
         match self {
             | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb32, val, u8, u32),
             | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb32, val, u16, u32),
-            | ColorArr::Rgb32(val) => ColorArr::Rgb32(val.clone()),
+            | ColorArr::Rgb32(val) => val.clone(),
             | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb32, val, u64, u32),
             | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb32, val, u128, u32),
             | _ => todo!(),
         }
     }
 
-    fn to_rgb64(&self) -> Self {
+    fn to_rgb64(&self) -> Vec<Rgb<u64>> {
         match self {
             | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb64, val, u8, u64),
             | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb64, val, u16, u64),
             | ColorArr::Rgb32(val) => cast!(@rgb_to ColorArr::Rgb64, val, u16, u64),
-            | ColorArr::Rgb64(val) => ColorArr::Rgb64(val.clone()),
+            | ColorArr::Rgb64(val) => val.clone(),
             | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb64, val, u128, u64),
             | _ => todo!(),
         }
     }
 
-    fn to_rgb128(&self) -> Self {
+    fn to_rgb128(&self) -> Vec<Rgb<u128>> {
         match self {
             | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb128, val, u8, u128),
             | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
             | ColorArr::Rgb32(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
             | ColorArr::Rgb64(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
-            | ColorArr::Rgb128(val) => ColorArr::Rgb128(val.clone()),
+            | ColorArr::Rgb128(val) => val.clone(),
             | _ => todo!(),
         }
     }
 
-    fn to_hsl32(&self) -> Self { todo!() }
+    fn to_hsl32(&self) -> Vec<Hsl<f32>> {
+        todo!();
+    }
 
-    fn to_hsl64(&self) -> Self { todo!() }
+    fn to_hsl64(&self) -> Vec<Hsl<f64>> {
+        todo!();
+    }
 
-    fn to_hsb32(&self) -> Self { todo!() }
+    fn to_hsb32(&self) -> Vec<Hsb<f32>> {
+        todo!();
+    }
 
-    fn to_hsb64(&self) -> Self { todo!() }
+    fn to_hsb64(&self) -> Vec<Hsb<f64>> {
+        todo!();
+    }
 
-    fn to_rgba8(&self) -> Self { todo!() }
+    fn to_rgba8(&self) -> Vec<Rgba<u8>> {
+        todo!();
+    }
 
-    fn to_rgba16(&self) -> Self { todo!() }
+    fn to_rgba16(&self) -> Vec<Rgba<u16>> {
+        todo!();
+    }
 
-    fn to_rgba32(&self) -> Self { todo!() }
+    fn to_rgba32(&self) -> Vec<Rgba<u32>> {
+        todo!();
+    }
 
-    fn to_rgba64(&self) -> Self { todo!() }
+    fn to_rgba64(&self) -> Vec<Rgba<u64>> {
+        todo!();
+    }
 
-    fn to_rgba128(&self) -> Self { todo!() }
+    fn to_rgba128(&self) -> Vec<Rgba<u128>> {
+        todo!();
+    }
 
-    fn to_hsla32(&self) -> Self { todo!() }
+    fn to_hsla32(&self) -> Vec<Hsla<f32>> {
+        todo!();
+    }
 
-    fn to_hsla64(&self) -> Self { todo!() }
+    fn to_hsla64(&self) -> Vec<Hsla<f64>> {
+        todo!();
+    }
 
-    fn to_hsba32(&self) -> Self { todo!() }
+    fn to_hsba32(&self) -> Vec<Hsba<f32>> {
+        todo!();
+    }
 
-    fn to_hsba64(&self) -> Self { todo!() }
+    fn to_hsba64(&self) -> Vec<Hsba<f64>> {
+        todo!();
+    }
 
-    fn to_scale32(&self) -> Self { todo!() }
+    fn to_scale32(&self) -> Vec<Scale<f32>> {
+        todo!();
+    }
 
-    fn to_scale64(&self) -> Self { todo!() }
+    fn to_scale64(&self) -> Vec<Scale<f64>> {
+        todo!();
+    }
 }
