@@ -44,7 +44,7 @@ pub enum ColorArr {
 }
 
 macro_rules! cast {
-    (@rgb_from $type:path, $val:ident, $from:ty, $to:ty) => {
+    (@rgb_from $val:ident, $from:ty, $to:ty) => {
         $val.iter()
             .map(|x| {
                 let ratio = <$from>::MAX / <$to>::MAX as $from;
@@ -56,7 +56,7 @@ macro_rules! cast {
             })
             .collect::<Vec<Rgb<$to>>>()
     };
-    (@rgb_to $type:path, $val:ident, $from:ty, $to:ty) => {
+    (@rgb_to $val:ident, $from:ty, $to:ty) => {
         $val.iter()
             .map(|x| {
                 let ratio = <$to>::MAX / <$from>::MAX as $to;
@@ -74,54 +74,84 @@ impl ColorArr {
     fn to_rgb8(&self) -> Vec<Rgb<u8>> {
         match self {
             | ColorArr::Rgb8(val) => val.clone(),
-            | ColorArr::Rgb16(val) => cast!(@rgb_from ColorArr::Rgb8, val, u16, u8),
-            | ColorArr::Rgb32(val) => cast!(@rgb_from ColorArr::Rgb8, val, u32, u8),
-            | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb8, val, u64, u8),
-            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb8, val, u128, u8),
+            | ColorArr::Rgb16(val) => cast!(@rgb_from val, u16, u8),
+            | ColorArr::Rgb32(val) => cast!(@rgb_from val, u32, u8),
+            | ColorArr::Rgb64(val) => cast!(@rgb_from val, u64, u8),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from val, u128, u8),
+
+            | ColorArr::Rgba8(val) => cast!(@rgb_from val, u8, u8),
+            | ColorArr::Rgba16(val) => cast!(@rgb_from val, u16, u8),
+            | ColorArr::Rgba32(val) => cast!(@rgb_from val, u32, u8),
+            | ColorArr::Rgba64(val) => cast!(@rgb_from val, u64, u8),
+            | ColorArr::Rgba128(val) => cast!(@rgb_from val, u128, u8),
             | _ => todo!(),
         }
     }
 
     fn to_rgb16(&self) -> Vec<Rgb<u16>> {
         match self {
-            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb16, val, u8, u16),
+            | ColorArr::Rgb8(val) => cast!(@rgb_to val, u8, u16),
             | ColorArr::Rgb16(val) => val.clone(),
-            | ColorArr::Rgb32(val) => cast!(@rgb_from ColorArr::Rgb16, val, u32, u16),
-            | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb16, val, u64, u16),
-            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb16, val, u128, u16),
+            | ColorArr::Rgb32(val) => cast!(@rgb_from val, u32, u16),
+            | ColorArr::Rgb64(val) => cast!(@rgb_from val, u64, u16),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from val, u128, u16),
+
+            | ColorArr::Rgba8(val) => cast!(@rgb_from val, u8, u16),
+            | ColorArr::Rgba16(val) => cast!(@rgb_from val, u16, u16),
+            | ColorArr::Rgba32(val) => cast!(@rgb_from val, u32, u16),
+            | ColorArr::Rgba64(val) => cast!(@rgb_from val, u64, u16),
+            | ColorArr::Rgba128(val) => cast!(@rgb_from val, u128, u16),
             | _ => todo!(),
         }
     }
 
     fn to_rgb32(&self) -> Vec<Rgb<u32>> {
         match self {
-            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb32, val, u8, u32),
-            | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb32, val, u16, u32),
+            | ColorArr::Rgb8(val) => cast!(@rgb_to val, u8, u32),
+            | ColorArr::Rgb16(val) => cast!(@rgb_to val, u16, u32),
             | ColorArr::Rgb32(val) => val.clone(),
-            | ColorArr::Rgb64(val) => cast!(@rgb_from ColorArr::Rgb32, val, u64, u32),
-            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb32, val, u128, u32),
+            | ColorArr::Rgb64(val) => cast!(@rgb_from val, u64, u32),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from val, u128, u32),
+
+            | ColorArr::Rgba8(val) => cast!(@rgb_from val, u8, u32),
+            | ColorArr::Rgba16(val) => cast!(@rgb_from val, u16, u32),
+            | ColorArr::Rgba32(val) => cast!(@rgb_from val, u32, u32),
+            | ColorArr::Rgba64(val) => cast!(@rgb_from val, u64, u32),
+            | ColorArr::Rgba128(val) => cast!(@rgb_from val, u128, u32),
             | _ => todo!(),
         }
     }
 
     fn to_rgb64(&self) -> Vec<Rgb<u64>> {
         match self {
-            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb64, val, u8, u64),
-            | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb64, val, u16, u64),
-            | ColorArr::Rgb32(val) => cast!(@rgb_to ColorArr::Rgb64, val, u16, u64),
+            | ColorArr::Rgb8(val) => cast!(@rgb_to val, u8, u64),
+            | ColorArr::Rgb16(val) => cast!(@rgb_to val, u16, u64),
+            | ColorArr::Rgb32(val) => cast!(@rgb_to val, u16, u64),
             | ColorArr::Rgb64(val) => val.clone(),
-            | ColorArr::Rgb128(val) => cast!(@rgb_from ColorArr::Rgb64, val, u128, u64),
+            | ColorArr::Rgb128(val) => cast!(@rgb_from val, u128, u64),
+
+            | ColorArr::Rgba8(val) => cast!(@rgb_from val, u8, u64),
+            | ColorArr::Rgba16(val) => cast!(@rgb_from val, u16, u64),
+            | ColorArr::Rgba32(val) => cast!(@rgb_from val, u32, u64),
+            | ColorArr::Rgba64(val) => cast!(@rgb_from val, u64, u64),
+            | ColorArr::Rgba128(val) => cast!(@rgb_from val, u128, u64),
             | _ => todo!(),
         }
     }
 
     fn to_rgb128(&self) -> Vec<Rgb<u128>> {
         match self {
-            | ColorArr::Rgb8(val) => cast!(@rgb_to ColorArr::Rgb128, val, u8, u128),
-            | ColorArr::Rgb16(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
-            | ColorArr::Rgb32(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
-            | ColorArr::Rgb64(val) => cast!(@rgb_to ColorArr::Rgb128, val, u16, u128),
+            | ColorArr::Rgb8(val) => cast!(@rgb_to val, u8, u128),
+            | ColorArr::Rgb16(val) => cast!(@rgb_to val, u16, u128),
+            | ColorArr::Rgb32(val) => cast!(@rgb_to val, u16, u128),
+            | ColorArr::Rgb64(val) => cast!(@rgb_to val, u16, u128),
             | ColorArr::Rgb128(val) => val.clone(),
+
+            | ColorArr::Rgba8(val) => cast!(@rgb_from val, u8, u128),
+            | ColorArr::Rgba16(val) => cast!(@rgb_from val, u16, u128),
+            | ColorArr::Rgba32(val) => cast!(@rgb_from val, u32, u128),
+            | ColorArr::Rgba64(val) => cast!(@rgb_from val, u64, u128),
+            | ColorArr::Rgba128(val) => cast!(@rgb_from val, u128, u128),
             | _ => todo!(),
         }
     }
