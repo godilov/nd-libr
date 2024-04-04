@@ -19,6 +19,8 @@ macro_rules! vec_ops_arr {
     (0: ($a:expr) $op:tt ($b:expr) [$ind:expr] -> [$($body:tt)*]) => { [$($body)*] };
 }
 
+// TODO: Make scalar version of vec_ops_arr
+
 macro_rules! vec_ops_impl {
     (+ $n:tt: [$($type:path),+]) => {
         $(
