@@ -24,10 +24,12 @@ tracing = "0"
 criterion = "0"
 
 nd-algorithms = { path = "ext/algorithms" }
-nd-colors = { path = "ext/colors" }
 nd-core = { path = "ext/core" }
+nd-hash = { path = "ext/hash" }
+nd-prime = { path = "ext/prime" }
 
 [dependencies]
 nd-algorithms.workspace = true
-nd-colors.workspace = true
 nd-core.workspace = true
+nd-hash.workspace = true
+nd-prime.workspace = true
