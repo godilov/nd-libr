@@ -3,17 +3,9 @@ name = "nd-libr"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-members = ["ext/*"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[workspace.package]
-version = "0.1.0"
-edition = "2021"
-
-[workspace.lints.rust]
-[workspace.lints.clippy]
-
-[workspace.dependencies]
+[dependencies]
 anyhow = "1"
 thiserror = "1"
 
@@ -22,14 +14,3 @@ tokio = "1"
 tracing = "0"
 
 criterion = "0"
-
-nd-algorithms = { path = "ext/algorithms" }
-nd-core = { path = "ext/core" }
-nd-hash = { path = "ext/hash" }
-nd-prime = { path = "ext/prime" }
-
-[dependencies]
-nd-algorithms.workspace = true
-nd-core.workspace = true
-nd-hash.workspace = true
-nd-prime.workspace = true
