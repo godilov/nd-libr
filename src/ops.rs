@@ -1,3 +1,5 @@
+// TODO: Optimize usage
+
 use std::ops::{
     Add,
     AddAssign,
@@ -96,6 +98,30 @@ pub trait OpsNotFrom: Not + From<<Self as Not>::Output> {}
 pub trait OpsAllFrom<Rhs = Self>: OpsAll<Rhs> + OpsFrom<Rhs> + OpsRemFrom<Rhs> + OpsBitFrom<Rhs> + OpsShiftFrom<Rhs>
 where
     Rhs: OpsAll<Self>, {
+}
+
+pub trait AddChecked<Rhs = Self> {
+    type Output;
+
+    fn checked_add(self, rhs: Rhs) -> Option<Self::Output>;
+}
+
+pub trait SubChecked<Rhs = Self> {
+    type Output;
+
+    fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
+}
+
+pub trait MulChecked<Rhs = Self> {
+    type Output;
+
+    fn checked_mul(self, rhs: Rhs) -> Option<Self::Output>;
+}
+
+pub trait DivChecked<Rhs = Self> {
+    type Output;
+
+    fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
 #[macro_export]
@@ -701,6 +727,43 @@ macro_rules! ops_impl_bin_diff_auto {
     };
 }
 
+#[macro_export]
+macro_rules! ops_checked_impl {
+    ($type:ty $(,)?) => {
+        impl AddChecked for $type {
+            type Output = $type;
+
+            fn checked_add(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_add(rhs)
+            }
+        }
+
+        impl SubChecked for $type {
+            type Output = $type;
+
+            fn checked_sub(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_sub(rhs)
+            }
+        }
+
+        impl MulChecked for $type {
+            type Output = $type;
+
+            fn checked_mul(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_mul(rhs)
+            }
+        }
+
+        impl DivChecked for $type {
+            type Output = $type;
+
+            fn checked_div(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_div(rhs)
+            }
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::OpsAssignAll;
@@ -989,11 +1052,19 @@ mod tests {
         };
     }
 
-    fn a_fn(x: i64) -> A0 { A0 { x } }
-    fn b_fn(x: i64) -> B0 { B0 { x } }
+    fn a_fn(x: i64) -> A0 {
+        A0 { x }
+    }
+    fn b_fn(x: i64) -> B0 {
+        B0 { x }
+    }
 
-    fn x_fn<N: Number>(x: N) -> X0<N> { X0::<N> { x } }
-    fn y_fn<N: Number>(x: N) -> Y0<N> { Y0::<N> { x } }
+    fn x_fn<N: Number>(x: N) -> X0<N> {
+        X0::<N> { x }
+    }
+    fn y_fn<N: Number>(x: N) -> Y0<N> {
+        Y0::<N> { x }
+    }
 
     #[test]
     fn ops() {

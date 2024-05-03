@@ -21,7 +21,7 @@ enum_discrim_align_threshold = 64
 struct_field_align_threshold = 64
 
 fn_params_layout = "Tall"
-fn_single_line = true
+fn_single_line = false
 
 imports_granularity = "Crate"
 group_imports = "StdExternalCrate"
@@ -37,8 +37,8 @@ brace_style = "PreferSameLine"
 color = "Auto"
 combine_control_expr = true
 condense_wildcard_suffixes = false
-control_brace_style = "AlwaysSameLine"
-empty_item_single_line = true
+control_brace_style = "ClosingNextLine"
+empty_item_single_line = false
 
 error_on_line_overflow = false
 error_on_unformatted = false

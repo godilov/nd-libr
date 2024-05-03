@@ -4,7 +4,9 @@ use crate::{num::Number, ops_impl_bin};
 pub struct Vec<N: Number, const L: usize>(pub [N; L]);
 
 impl<N: Number, const L: usize> Default for Vec<N, L> {
-    fn default() -> Self { Vec::<N, L>([N::default(); L]) }
+    fn default() -> Self {
+        Vec::<N, L>([N::default(); L])
+    }
 }
 
 macro_rules! vec_ops_arr {
