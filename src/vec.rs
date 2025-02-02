@@ -88,13 +88,12 @@ mod std_impl {
     vec_ops_impl!(8: [Vec<f32, 8>, Vec<f64, 8>]);
 }
 
-#[cfg(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "avx2"
-))]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "avx2"))]
 mod avx_impl {
-    #[cfg(target_arch = "x86")] use std::arch::x86::*;
-    #[cfg(target_arch = "x86_64")] use std::arch::x86_64::*;
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
 
     use super::*;
 

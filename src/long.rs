@@ -2,8 +2,7 @@ use std::cmp::{max, Ordering};
 
 use crate::{
     ops::{Ops, OpsAssign},
-    ops_impl_bin,
-    ops_impl_mut,
+    ops_impl_bin, ops_impl_mut,
 };
 
 pub trait NumberLong: Sized + Default + Clone + Ops + OpsAssign + PartialEq + Eq + PartialOrd + Ord {
@@ -34,7 +33,11 @@ impl Default for UnsignedLong {
     }
 }
 
-fn cmp_long(a: &[u32], b: &[u32], sign: NumberSign) -> Ordering {
+fn cmp_long(
+    a: &[u32],
+    b: &[u32],
+    sign: NumberSign,
+) -> Ordering {
     match a.len().cmp(&b.len()) {
         | Ordering::Equal => {
             let len = a.len();
@@ -47,8 +50,7 @@ fn cmp_long(a: &[u32], b: &[u32], sign: NumberSign) -> Ordering {
                     | Ordering::Less => {
                         if sign == NumberSign::POS {
                             return Ordering::Less;
-                        }
-                        else {
+                        } else {
                             return Ordering::Greater;
                         }
                     },
@@ -56,8 +58,7 @@ fn cmp_long(a: &[u32], b: &[u32], sign: NumberSign) -> Ordering {
                     | Ordering::Greater => {
                         if sign == NumberSign::POS {
                             return Ordering::Greater;
-                        }
-                        else {
+                        } else {
                             return Ordering::Less;
                         }
                     },
@@ -71,7 +72,10 @@ fn cmp_long(a: &[u32], b: &[u32], sign: NumberSign) -> Ordering {
 }
 
 impl Ord for SignedLong {
-    fn cmp(&self, other: &Self) -> Ordering {
+    fn cmp(
+        &self,
+        other: &Self,
+    ) -> Ordering {
         if self.1 != other.1 {
             return self.1.cmp(&other.1);
         }
@@ -81,19 +85,28 @@ impl Ord for SignedLong {
 }
 
 impl Ord for UnsignedLong {
-    fn cmp(&self, other: &Self) -> Ordering {
+    fn cmp(
+        &self,
+        other: &Self,
+    ) -> Ordering {
         cmp_long(&self.0, &other.0, NumberSign::POS)
     }
 }
 
 impl PartialOrd for SignedLong {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(
+        &self,
+        other: &Self,
+    ) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl PartialOrd for UnsignedLong {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(
+        &self,
+        other: &Self,
+    ) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }

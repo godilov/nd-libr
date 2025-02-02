@@ -36,7 +36,8 @@ mod tests {
 
     fn as_arr_impl<T, const L: usize>(value: &[T; L])
     where
-        T: Clone + PartialEq, {
+        T: Clone + PartialEq,
+    {
         let slice = &value[0..L];
         let arr = &as_arr!(slice, L).clone();
 
@@ -50,7 +51,8 @@ mod tests {
 
     fn as_arr_mut_impl<T, const L: usize>(value: &mut [T; L])
     where
-        T: Clone + PartialEq, {
+        T: Clone + PartialEq,
+    {
         let slice = &mut value[0..L];
         let arr = &as_arr_mut!(slice, L).clone();
 

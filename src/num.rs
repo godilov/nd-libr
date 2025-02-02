@@ -53,22 +53,16 @@ macro_rules! number_impl {
             type Output = $type;
         }
 
-        impl OpsAssign<$type> for $type {
-        }
+        impl OpsAssign<$type> for $type {}
 
-        impl OpsAssign<&$type> for $type {
-        }
+        impl OpsAssign<&$type> for $type {}
 
-        impl OpsRemAssign<$type> for $type {
-        }
+        impl OpsRemAssign<$type> for $type {}
 
-        impl OpsRemAssign<&$type> for $type {
-        }
+        impl OpsRemAssign<&$type> for $type {}
 
-        impl OpsFrom for $type {
-        }
-        impl OpsRemFrom for $type {
-        }
+        impl OpsFrom for $type {}
+        impl OpsRemFrom for $type {}
 
         impl Number for $type {
             type Type = $type;
@@ -137,42 +131,31 @@ macro_rules! int_impl {
             type Output = $type;
         }
 
-        impl OpsBitAssign<$type> for $type {
-        }
+        impl OpsBitAssign<$type> for $type {}
 
-        impl OpsBitAssign<&$type> for $type {
-        }
+        impl OpsBitAssign<&$type> for $type {}
 
-        impl OpsShiftAssign<$type> for $type {
-        }
+        impl OpsShiftAssign<$type> for $type {}
 
-        impl OpsShiftAssign<&$type> for $type {
-        }
+        impl OpsShiftAssign<&$type> for $type {}
 
-        impl OpsAssignAll<$type> for $type {
-        }
+        impl OpsAssignAll<$type> for $type {}
 
-        impl OpsAssignAll<&$type> for $type {
-        }
+        impl OpsAssignAll<&$type> for $type {}
 
-        impl OpsBitFrom for $type {
-        }
+        impl OpsBitFrom for $type {}
 
-        impl OpsShiftFrom for $type {
-        }
+        impl OpsShiftFrom for $type {}
 
-        impl OpsNotFrom for $type {
-        }
+        impl OpsNotFrom for $type {}
 
-        impl OpsAllFrom for $type {
-        }
+        impl OpsAllFrom for $type {}
 
         impl Int for $type {
             const BITS: u32 = <$type>::BITS;
         }
 
-        impl $trait for $type {
-        }
+        impl $trait for $type {}
 
         ops_checked_impl!($type);
     };
@@ -182,8 +165,7 @@ macro_rules! float_impl {
     ($trait:ty, $type:ty $(,)?) => {
         number_impl!($type, 0.0, 1.0);
 
-        impl $trait for $type {
-        }
+        impl $trait for $type {}
     };
 }
 
@@ -203,17 +185,12 @@ int_arr_impl!(Signed, [i8, i16, i32, i64, i128]);
 int_arr_impl!(Unsigned, [u8, u16, u32, u64, u128]);
 float_arr_impl!(Float, [f32, f64]);
 
-impl OpsNegFrom for i8 {
-}
+impl OpsNegFrom for i8 {}
 
-impl OpsNegFrom for i16 {
-}
+impl OpsNegFrom for i16 {}
 
-impl OpsNegFrom for i32 {
-}
+impl OpsNegFrom for i32 {}
 
-impl OpsNegFrom for i64 {
-}
+impl OpsNegFrom for i64 {}
 
-impl OpsNegFrom for i128 {
-}
+impl OpsNegFrom for i128 {}

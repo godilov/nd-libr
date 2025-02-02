@@ -1,57 +1,42 @@
 // TODO: Optimize usage
 
 use std::ops::{
-    Add,
-    AddAssign,
-    BitAnd,
-    BitAndAssign,
-    BitOr,
-    BitOrAssign,
-    BitXor,
-    BitXorAssign,
-    Div,
-    DivAssign,
-    Mul,
-    MulAssign,
-    Neg,
-    Not,
-    Rem,
-    RemAssign,
-    Shl,
-    ShlAssign,
-    Shr,
-    ShrAssign,
-    Sub,
-    SubAssign,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
+    Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
 pub trait Ops<Rhs = Self>: Sized + Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs>
 where
-    Rhs: Ops<Self>, {
+    Rhs: Ops<Self>,
+{
     type Output;
 }
 
 pub trait OpsRem<Rhs = Self>: Sized + Rem<Rhs>
 where
-    Rhs: OpsRem<Self>, {
+    Rhs: OpsRem<Self>,
+{
     type Output;
 }
 
 pub trait OpsBit<Rhs = Self>: Sized + BitOr<Rhs> + BitAnd<Rhs> + BitXor<Rhs>
 where
-    Rhs: OpsBit<Self>, {
+    Rhs: OpsBit<Self>,
+{
     type Output;
 }
 
 pub trait OpsShift<Rhs = Self>: Sized + Shl<Rhs> + Shr<Rhs>
 where
-    Rhs: OpsShift<Self>, {
+    Rhs: OpsShift<Self>,
+{
     type Output;
 }
 
 pub trait OpsAll<Rhs = Self>: Ops<Rhs> + OpsRem<Rhs> + OpsBit<Rhs> + OpsShift<Rhs>
 where
-    Rhs: OpsAll<Self>, {
+    Rhs: OpsAll<Self>,
+{
     type Output;
 }
 
@@ -63,7 +48,10 @@ pub trait OpsBitAssign<Rhs = Self>: BitOrAssign<Rhs> + BitAndAssign<Rhs> + BitXo
 
 pub trait OpsShiftAssign<Rhs = Self>: ShlAssign<Rhs> + ShrAssign<Rhs> {}
 
-pub trait OpsAssignAll<Rhs = Self>: OpsAssign<Rhs> + OpsRemAssign<Rhs> + OpsShiftAssign<Rhs> + OpsBitAssign<Rhs> {}
+pub trait OpsAssignAll<Rhs = Self>:
+    OpsAssign<Rhs> + OpsRemAssign<Rhs> + OpsShiftAssign<Rhs> + OpsBitAssign<Rhs>
+{
+}
 
 pub trait OpsFrom<Rhs = Self>:
     Ops<Rhs>
@@ -72,56 +60,77 @@ pub trait OpsFrom<Rhs = Self>:
     + From<<Self as Mul<Rhs>>::Output>
     + From<<Self as Div<Rhs>>::Output>
 where
-    Rhs: Ops<Self>, {
+    Rhs: Ops<Self>,
+{
 }
 
 pub trait OpsRemFrom<Rhs = Self>: OpsRem<Rhs> + From<<Self as Rem<Rhs>>::Output>
 where
-    Rhs: OpsRem<Self>, {
+    Rhs: OpsRem<Self>,
+{
 }
 
 pub trait OpsBitFrom<Rhs = Self>:
-    OpsBit<Rhs> + From<<Self as BitOr<Rhs>>::Output> + From<<Self as BitAnd<Rhs>>::Output> + From<<Self as BitXor<Rhs>>::Output>
+    OpsBit<Rhs>
+    + From<<Self as BitOr<Rhs>>::Output>
+    + From<<Self as BitAnd<Rhs>>::Output>
+    + From<<Self as BitXor<Rhs>>::Output>
 where
-    Rhs: OpsBit<Self>, {
+    Rhs: OpsBit<Self>,
+{
 }
 
 pub trait OpsShiftFrom<Rhs = Self>:
     OpsShift<Rhs> + From<<Self as Shl<Rhs>>::Output> + From<<Self as Shr<Rhs>>::Output>
 where
-    Rhs: OpsShift<Self>, {
+    Rhs: OpsShift<Self>,
+{
 }
 
 pub trait OpsNegFrom: Neg + From<<Self as Neg>::Output> {}
 pub trait OpsNotFrom: Not + From<<Self as Not>::Output> {}
 
-pub trait OpsAllFrom<Rhs = Self>: OpsAll<Rhs> + OpsFrom<Rhs> + OpsRemFrom<Rhs> + OpsBitFrom<Rhs> + OpsShiftFrom<Rhs>
+pub trait OpsAllFrom<Rhs = Self>:
+    OpsAll<Rhs> + OpsFrom<Rhs> + OpsRemFrom<Rhs> + OpsBitFrom<Rhs> + OpsShiftFrom<Rhs>
 where
-    Rhs: OpsAll<Self>, {
+    Rhs: OpsAll<Self>,
+{
 }
 
 pub trait AddChecked<Rhs = Self> {
     type Output;
 
-    fn checked_add(self, rhs: Rhs) -> Option<Self::Output>;
+    fn checked_add(
+        self,
+        rhs: Rhs,
+    ) -> Option<Self::Output>;
 }
 
 pub trait SubChecked<Rhs = Self> {
     type Output;
 
-    fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
+    fn checked_sub(
+        self,
+        rhs: Rhs,
+    ) -> Option<Self::Output>;
 }
 
 pub trait MulChecked<Rhs = Self> {
     type Output;
 
-    fn checked_mul(self, rhs: Rhs) -> Option<Self::Output>;
+    fn checked_mul(
+        self,
+        rhs: Rhs,
+    ) -> Option<Self::Output>;
 }
 
 pub trait DivChecked<Rhs = Self> {
     type Output;
 
-    fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
+    fn checked_div(
+        self,
+        rhs: Rhs,
+    ) -> Option<Self::Output>;
 }
 
 #[macro_export]
@@ -733,7 +742,10 @@ macro_rules! ops_checked_impl {
         impl AddChecked for $type {
             type Output = $type;
 
-            fn checked_add(self, rhs: Self) -> Option<Self::Output> {
+            fn checked_add(
+                self,
+                rhs: Self,
+            ) -> Option<Self::Output> {
                 self.checked_add(rhs)
             }
         }
@@ -741,7 +753,10 @@ macro_rules! ops_checked_impl {
         impl SubChecked for $type {
             type Output = $type;
 
-            fn checked_sub(self, rhs: Self) -> Option<Self::Output> {
+            fn checked_sub(
+                self,
+                rhs: Self,
+            ) -> Option<Self::Output> {
                 self.checked_sub(rhs)
             }
         }
@@ -749,7 +764,10 @@ macro_rules! ops_checked_impl {
         impl MulChecked for $type {
             type Output = $type;
 
-            fn checked_mul(self, rhs: Self) -> Option<Self::Output> {
+            fn checked_mul(
+                self,
+                rhs: Self,
+            ) -> Option<Self::Output> {
                 self.checked_mul(rhs)
             }
         }
@@ -757,7 +775,10 @@ macro_rules! ops_checked_impl {
         impl DivChecked for $type {
             type Output = $type;
 
-            fn checked_div(self, rhs: Self) -> Option<Self::Output> {
+            fn checked_div(
+                self,
+                rhs: Self,
+            ) -> Option<Self::Output> {
                 self.checked_div(rhs)
             }
         }
