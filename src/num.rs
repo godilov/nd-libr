@@ -11,12 +11,12 @@ pub trait Number: Sized + Default + Clone + Copy + Ops + OpsAssign + PartialEq +
     fn val(&self) -> &Self::Type;
 }
 
-pub trait Int: Number + AddChecked + SubChecked + MulChecked + DivChecked {
+pub trait Integer: Number + AddChecked + SubChecked + MulChecked + DivChecked + Eq + Ord {
     const BITS: u32;
 }
 
-pub trait Signed: Int {}
-pub trait Unsigned: Int {}
+pub trait Signed: Integer {}
+pub trait Unsigned: Integer {}
 pub trait Float: Number {}
 
 macro_rules! number_impl {
@@ -54,11 +54,9 @@ macro_rules! number_impl {
         }
 
         impl OpsAssign<$type> for $type {}
-
         impl OpsAssign<&$type> for $type {}
 
         impl OpsRemAssign<$type> for $type {}
-
         impl OpsRemAssign<&$type> for $type {}
 
         impl OpsFrom for $type {}
@@ -132,26 +130,20 @@ macro_rules! int_impl {
         }
 
         impl OpsBitAssign<$type> for $type {}
-
         impl OpsBitAssign<&$type> for $type {}
 
         impl OpsShiftAssign<$type> for $type {}
-
         impl OpsShiftAssign<&$type> for $type {}
 
         impl OpsAssignAll<$type> for $type {}
-
         impl OpsAssignAll<&$type> for $type {}
 
         impl OpsBitFrom for $type {}
-
         impl OpsShiftFrom for $type {}
-
         impl OpsNotFrom for $type {}
-
         impl OpsAllFrom for $type {}
 
-        impl Int for $type {
+        impl Integer for $type {
             const BITS: u32 = <$type>::BITS;
         }
 
@@ -186,11 +178,7 @@ int_arr_impl!(Unsigned, [u8, u16, u32, u64, u128]);
 float_arr_impl!(Float, [f32, f64]);
 
 impl OpsNegFrom for i8 {}
-
 impl OpsNegFrom for i16 {}
-
 impl OpsNegFrom for i32 {}
-
 impl OpsNegFrom for i64 {}
-
 impl OpsNegFrom for i128 {}
