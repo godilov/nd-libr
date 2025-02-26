@@ -132,8 +132,8 @@ pub trait DivChecked<Rhs = Self> {
 }
 
 #[macro_export]
-macro_rules! ops_impl_std_mut {
-    ($op_trait:ident, $op_name:ident,
+macro_rules! ops_impl_std {
+    (@mut $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path | $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait<&$typer> for $typel {
@@ -141,7 +141,7 @@ macro_rules! ops_impl_std_mut {
             fn $op_name(&mut self, rhs: &$typer) { (|$lhs: &mut $typel, $rhs: &$typer| $fn)(self, rhs); }
         }
     };
-    ($op_trait:ident, $op_name:ident,
+    (@mut $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path | $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait<$typer> for $typel {
@@ -149,11 +149,8 @@ macro_rules! ops_impl_std_mut {
             fn $op_name(&mut self, rhs: $typer) { (|$lhs: &mut $typel, $rhs: $typer| $fn)(self, rhs); }
         }
     };
-}
 
-#[macro_export]
-macro_rules! ops_impl_std_bin {
-    ($op_trait:ident, $op_name:ident,
+    (@binary $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait<&$typer> for &$typel {
@@ -163,7 +160,7 @@ macro_rules! ops_impl_std_bin {
             fn $op_name(self, rhs: &$typer) -> Self::Output { (|$lhs: &$typel, $rhs: &$typer| $fn)(self, rhs) }
         }
     };
-    ($op_trait:ident, $op_name:ident,
+    (@binary $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait<$typer> for &$typel {
@@ -173,7 +170,7 @@ macro_rules! ops_impl_std_bin {
             fn $op_name(self, rhs: $typer) -> Self::Output { (|$lhs: &$typel, $rhs: $typer| $fn)(self, rhs) }
         }
     };
-    ($op_trait:ident, $op_name:ident,
+    (@binary $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait<&$typer> for $typel {
@@ -183,7 +180,7 @@ macro_rules! ops_impl_std_bin {
             fn $op_name(self, rhs: &$typer) -> Self::Output { (|$lhs: $typel, $rhs: &$typer| $fn)(self, rhs) }
         }
     };
-    ($op_trait:ident, $op_name:ident,
+    (@binary $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait<$typer> for $typel {
@@ -193,11 +190,8 @@ macro_rules! ops_impl_std_bin {
             fn $op_name(self, rhs: $typer) -> Self::Output { (|$lhs: $typel, $rhs: $typer| $fn)(self, rhs) }
         }
     };
-}
 
-#[macro_export]
-macro_rules! ops_impl_std {
-    ($op_trait:ident, $op_name:ident,
+    (@unary $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path | -> $type:path $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait for &$typel {
@@ -207,7 +201,7 @@ macro_rules! ops_impl_std {
             fn $op_name(self) -> Self::Output { (|$lhs: &$typel| $fn)(self) }
         }
     };
-    ($op_trait:ident, $op_name:ident,
+    (@unary $op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path | -> $type:path $fn:block) => {
         impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? std::ops::$op_trait for $typel {
@@ -217,214 +211,86 @@ macro_rules! ops_impl_std {
             fn $op_name(self) -> Self::Output { (|$lhs: $typel| $fn)(self) }
         }
     };
-}
 
-#[macro_export]
-macro_rules! ops_impl_std_complete {
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path | $fn:block) => {
-        $crate::ops_impl_std_mut!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: &mut $typel, $rhs: &$typer| $fn);
-        $crate::ops_impl_std_mut!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: &mut $typel, $rhs: $typer| $fn);
+        $crate::ops_impl_std!(@mut $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $fn);
+        $crate::ops_impl_std!(@mut $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $fn);
     };
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path | $fn:block) => {
-        $crate::ops_impl_std_mut!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: &mut $typel, $rhs: $typer| $fn);
+        $crate::ops_impl_std!(@mut $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $fn);
     };
 
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: &$typel, $rhs: &$typer| -> $type $fn);
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: &$typel, $rhs: $typer| -> $type $fn);
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: $typel, $rhs: &$typer| -> $type $fn);
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: &$typel, $rhs: $typer| -> $type $fn);
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: $typel, $rhs: &$typer| -> $type $fn);
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_std_bin!($op_trait, $op_name,
-                                  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                  |$lhs: $typel, $rhs: $typer| -> $type $fn);
+        $crate::ops_impl_std!(@binary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $fn);
     };
 
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_std!($op_trait, $op_name,
-                              $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                              |$lhs: &$typel| -> $type $fn);
-        $crate::ops_impl_std!($op_trait, $op_name,
-                              $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                              |$lhs: $typel| -> $type $fn);
+        $crate::ops_impl_std!(@unary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel| -> $type $fn);
+        $crate::ops_impl_std!(@unary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $fn);
     };
     ($op_trait:ident, $op_name:ident,
      $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_std!($op_trait, $op_name,
-                              $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                              |$lhs: $typel| -> $type $fn);
+        $crate::ops_impl_std!(@unary $op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $fn);
     };
-}
-
-#[macro_export]
-macro_rules! ops_impl_op_raw {
-    (+ $($t:tt)+) => { $crate::ops_impl_std_complete!(Add, add, $($t)+); };
-    (- $($t:tt)+) => { $crate::ops_impl_std_complete!(Sub, sub, $($t)+); };
-    (* $($t:tt)+) => { $crate::ops_impl_std_complete!(Mul, mul, $($t)+); };
-    (/ $($t:tt)+) => { $crate::ops_impl_std_complete!(Div, div, $($t)+); };
-    (% $($t:tt)+) => { $crate::ops_impl_std_complete!(Rem, rem, $($t)+); };
-    (| $($t:tt)+) => { $crate::ops_impl_std_complete!(BitOr, bitor, $($t)+); };
-    (& $($t:tt)+) => { $crate::ops_impl_std_complete!(BitAnd, bitand, $($t)+); };
-    (^ $($t:tt)+) => { $crate::ops_impl_std_complete!(BitXor, bitxor, $($t)+); };
-    (<< $($t:tt)+) => { $crate::ops_impl_std_complete!(Shl, shl, $($t)+); };
-    (>> $($t:tt)+) => { $crate::ops_impl_std_complete!(Shr, shr, $($t)+); };
-
-    (+= $($t:tt)+) => { $crate::ops_impl_std_complete!(AddAssign, add_assign, $($t)+); };
-    (-= $($t:tt)+) => { $crate::ops_impl_std_complete!(SubAssign, sub_assign, $($t)+); };
-    (*= $($t:tt)+) => { $crate::ops_impl_std_complete!(MulAssign, mul_assign, $($t)+); };
-    (/= $($t:tt)+) => { $crate::ops_impl_std_complete!(DivAssign, div_assign, $($t)+); };
-    (%= $($t:tt)+) => { $crate::ops_impl_std_complete!(RemAssign, rem_assign, $($t)+); };
-    (|= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitOrAssign, bitor_assign, $($t)+); };
-    (&= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitAndAssign, bitand_assign, $($t)+); };
-    (^= $($t:tt)+) => { $crate::ops_impl_std_complete!(BitXorAssign, bitxor_assign, $($t)+); };
-    (<<= $($t:tt)+) => { $crate::ops_impl_std_complete!(ShlAssign, shl_assign, $($t)+); };
-    (>>= $($t:tt)+) => { $crate::ops_impl_std_complete!(ShrAssign, shr_assign, $($t)+); };
-
-    (neg $($t:tt)+) => { $crate::ops_impl_std_complete!(Neg, neg, $($t)+); };
-    (not $($t:tt)+) => { $crate::ops_impl_std_complete!(Not, not, $($t)+); };
-}
-
-#[macro_export]
-macro_rules! ops_impl_op_mut {
-    ($op:tt
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path | $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: &mut $typel, $rhs: &$typer| $fn);
-    };
-    ($op:tt
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path | $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: &mut $typel, $rhs: $typer| $fn);
-    };
-
-    ($op:tt $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path |) => {};
-    ($op:tt $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path |) => {};
-}
-
-#[macro_export]
-macro_rules! ops_impl_op_bin {
-    ($op:tt
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: &$typel, $rhs: &$typer| -> $type $fn);
-    };
-    ($op:tt
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: &$typel, $rhs: $typer| -> $type $fn);
-    };
-    ($op:tt
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: $typel, $rhs: &$typer| -> $type $fn);
-    };
-    ($op:tt
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: $typel, $rhs: $typer| -> $type $fn);
-    };
-
-    ($op:tt $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path) => {};
-    ($op:tt $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path) => {};
-    ($op:tt $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path) => {};
-    ($op:tt $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path) => {};
-}
-
-#[macro_export]
-macro_rules! ops_impl_op {
-    ($op:ident
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &$typel:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: &$typel| -> $type $fn);
-    };
-    ($op:ident
-     $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path | -> $type:path $fn:block) => {
-        $crate::ops_impl_op_raw!($op
-                                 $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
-                                 |$lhs: $typel| -> $type $fn);
-    };
-
-    ($op:ident $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &$typel:path | -> $type:path) => {};
-    ($op:ident $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : $typel:path | -> $type:path) => {};
 }
 
 #[macro_export]
 macro_rules! ops_impl_mut {
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path | $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $fn);
+    };
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path | $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $fn);
+    };
+
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path |) => {};
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path |) => {};
+
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path |,
      $(+= $add:block)? $(-= $sub:block)? $(*= $mul:block)? $(/= $div:block)? $(%= $rem:block)?
      $(|= $or:block)? $(&= $and:block)? $(^= $xor:block)? $(<<= $shl:block)? $(>>= $shr:block)?) => {
-        $crate::ops_impl_op_mut!(+= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($add)?);
-        $crate::ops_impl_op_mut!(-= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($sub)?);
-        $crate::ops_impl_op_mut!(*= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($mul)?);
-        $crate::ops_impl_op_mut!(/= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($div)?);
-        $crate::ops_impl_op_mut!(%= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($rem)?);
-        $crate::ops_impl_op_mut!(|= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($or)?);
-        $crate::ops_impl_op_mut!(&= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($and)?);
-        $crate::ops_impl_op_mut!(^= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($xor)?);
-        $crate::ops_impl_op_mut!(<<= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($shl)?);
-        $crate::ops_impl_op_mut!(>>= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($shr)?);
+        $crate::ops_impl_mut!(@impl AddAssign,    add_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($add)?);
+        $crate::ops_impl_mut!(@impl SubAssign,    sub_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($sub)?);
+        $crate::ops_impl_mut!(@impl MulAssign,    mul_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($mul)?);
+        $crate::ops_impl_mut!(@impl DivAssign,    div_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($div)?);
+        $crate::ops_impl_mut!(@impl RemAssign,    rem_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($rem)?);
+        $crate::ops_impl_mut!(@impl BitOrAssign,  bitor_assign,  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($or)?);
+        $crate::ops_impl_mut!(@impl BitAndAssign, bitand_assign, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($and)?);
+        $crate::ops_impl_mut!(@impl BitXorAssign, bitxor_assign, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($xor)?);
+        $crate::ops_impl_mut!(@impl ShlAssign,    shl_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($shl)?);
+        $crate::ops_impl_mut!(@impl ShrAssign,    shr_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer| $($shr)?);
 
         $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssign<$typer> for $typel {}
@@ -455,16 +321,16 @@ macro_rules! ops_impl_mut {
      | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path |,
      $(+= $add:block)? $(-= $sub:block)? $(*= $mul:block)? $(/= $div:block)? $(%= $rem:block)?
      $(|= $or:block)? $(&= $and:block)? $(^= $xor:block)? $(<<= $shl:block)? $(>>= $shr:block)?) => {
-        $crate::ops_impl_op_mut!(+= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($add)?);
-        $crate::ops_impl_op_mut!(-= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($sub)?);
-        $crate::ops_impl_op_mut!(*= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($mul)?);
-        $crate::ops_impl_op_mut!(/= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($div)?);
-        $crate::ops_impl_op_mut!(%= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($rem)?);
-        $crate::ops_impl_op_mut!(|= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($or)?);
-        $crate::ops_impl_op_mut!(&= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($and)?);
-        $crate::ops_impl_op_mut!(^= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($xor)?);
-        $crate::ops_impl_op_mut!(<<= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($shl)?);
-        $crate::ops_impl_op_mut!(>>= $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($shr)?);
+        $crate::ops_impl_mut!(@impl AddAssign,    add_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($add)?);
+        $crate::ops_impl_mut!(@impl SubAssign,    sub_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($sub)?);
+        $crate::ops_impl_mut!(@impl MulAssign,    mul_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($mul)?);
+        $crate::ops_impl_mut!(@impl DivAssign,    div_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($div)?);
+        $crate::ops_impl_mut!(@impl RemAssign,    rem_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($rem)?);
+        $crate::ops_impl_mut!(@impl BitOrAssign,  bitor_assign,  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($or)?);
+        $crate::ops_impl_mut!(@impl BitAndAssign, bitand_assign, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($and)?);
+        $crate::ops_impl_mut!(@impl BitXorAssign, bitxor_assign, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($xor)?);
+        $crate::ops_impl_mut!(@impl ShlAssign,    shl_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($shl)?);
+        $crate::ops_impl_mut!(@impl ShrAssign,    shr_assign,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer| $($shr)?);
 
         $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAssign<$typer> for $typel {}
@@ -490,20 +356,42 @@ macro_rules! ops_impl_mut {
 
 #[macro_export]
 macro_rules! ops_impl_bin {
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $fn);
+    };
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $fn);
+    };
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $fn);
+    };
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $fn);
+    };
+
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path) => {};
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path) => {};
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path) => {};
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path) => {};
+
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path,
      $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
      $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
-        $crate::ops_impl_op_bin!(+ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($add)?);
-        $crate::ops_impl_op_bin!(- $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($sub)?);
-        $crate::ops_impl_op_bin!(* $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($mul)?);
-        $crate::ops_impl_op_bin!(/ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($div)?);
-        $crate::ops_impl_op_bin!(% $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($rem)?);
-        $crate::ops_impl_op_bin!(| $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($or)?);
-        $crate::ops_impl_op_bin!(& $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($and)?);
-        $crate::ops_impl_op_bin!(^ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($xor)?);
-        $crate::ops_impl_op_bin!(<< $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($shl)?);
-        $crate::ops_impl_op_bin!(>> $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($shr)?);
+        $crate::ops_impl_bin!(@impl Add,    add,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($add)?);
+        $crate::ops_impl_bin!(@impl Sub,    sub,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($sub)?);
+        $crate::ops_impl_bin!(@impl Mul,    mul,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($mul)?);
+        $crate::ops_impl_bin!(@impl Div,    div,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($div)?);
+        $crate::ops_impl_bin!(@impl Rem,    rem,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($rem)?);
+        $crate::ops_impl_bin!(@impl BitOr,  bitor,  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($or)?);
+        $crate::ops_impl_bin!(@impl BitAnd, bitand, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($and)?);
+        $crate::ops_impl_bin!(@impl BitXor, bitxor, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($xor)?);
+        $crate::ops_impl_bin!(@impl Shl,    shl,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($shl)?);
+        $crate::ops_impl_bin!(@impl Shr,    shr,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type $($shr)?);
 
         $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<$typer> for $typel { type Output = $type; }
@@ -544,46 +432,16 @@ macro_rules! ops_impl_bin {
      | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path,
      $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
      $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
-        $crate::ops_impl_op_bin!(+ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($add)?);
-        $crate::ops_impl_op_bin!(- $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($sub)?);
-        $crate::ops_impl_op_bin!(* $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($mul)?);
-        $crate::ops_impl_op_bin!(/ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($div)?);
-        $crate::ops_impl_op_bin!(% $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($rem)?);
-        $crate::ops_impl_op_bin!(| $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($or)?);
-        $crate::ops_impl_op_bin!(& $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($and)?);
-        $crate::ops_impl_op_bin!(^ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($xor)?);
-        $crate::ops_impl_op_bin!(<< $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($shl)?);
-        $crate::ops_impl_op_bin!(>> $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($shr)?);
-    };
-    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path,
-     $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
-     $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
-        $crate::ops_impl_op_bin!(+ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($add)?);
-        $crate::ops_impl_op_bin!(- $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($sub)?);
-        $crate::ops_impl_op_bin!(* $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($mul)?);
-        $crate::ops_impl_op_bin!(/ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($div)?);
-        $crate::ops_impl_op_bin!(% $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($rem)?);
-        $crate::ops_impl_op_bin!(| $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($or)?);
-        $crate::ops_impl_op_bin!(& $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($and)?);
-        $crate::ops_impl_op_bin!(^ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($xor)?);
-        $crate::ops_impl_op_bin!(<< $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($shl)?);
-        $crate::ops_impl_op_bin!(>> $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($shr)?);
-    };
-    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path,
-     $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
-     $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
-        $crate::ops_impl_op_bin!(+ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($add)?);
-        $crate::ops_impl_op_bin!(- $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($sub)?);
-        $crate::ops_impl_op_bin!(* $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($mul)?);
-        $crate::ops_impl_op_bin!(/ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($div)?);
-        $crate::ops_impl_op_bin!(% $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($rem)?);
-        $crate::ops_impl_op_bin!(| $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($or)?);
-        $crate::ops_impl_op_bin!(& $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($and)?);
-        $crate::ops_impl_op_bin!(^ $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($xor)?);
-        $crate::ops_impl_op_bin!(<< $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($shl)?);
-        $crate::ops_impl_op_bin!(>> $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($shr)?);
+        $crate::ops_impl_bin!(@impl Add,    add,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($add)?);
+        $crate::ops_impl_bin!(@impl Sub,    sub,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($sub)?);
+        $crate::ops_impl_bin!(@impl Mul,    mul,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($mul)?);
+        $crate::ops_impl_bin!(@impl Div,    div,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($div)?);
+        $crate::ops_impl_bin!(@impl Rem,    rem,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($rem)?);
+        $crate::ops_impl_bin!(@impl BitOr,  bitor,  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($or)?);
+        $crate::ops_impl_bin!(@impl BitAnd, bitand, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($and)?);
+        $crate::ops_impl_bin!(@impl BitXor, bitxor, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($xor)?);
+        $crate::ops_impl_bin!(@impl Shl,    shl,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($shl)?);
+        $crate::ops_impl_bin!(@impl Shr,    shr,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type $($shr)?);
 
         $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<$typer> for $typel { type Output = $type; }
@@ -605,11 +463,78 @@ macro_rules! ops_impl_bin {
             impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<$typer> for $typel { type Output = $type; }
         });
     };
-}
-
-#[macro_export]
-macro_rules! ops_impl_bin_diff {
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path,
+     $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
+     $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
+        $crate::ops_impl_bin!(@impl Add,    add,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($add)?);
+        $crate::ops_impl_bin!(@impl Sub,    sub,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($sub)?);
+        $crate::ops_impl_bin!(@impl Mul,    mul,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($mul)?);
+        $crate::ops_impl_bin!(@impl Div,    div,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($div)?);
+        $crate::ops_impl_bin!(@impl Rem,    rem,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($rem)?);
+        $crate::ops_impl_bin!(@impl BitOr,  bitor,  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($or)?);
+        $crate::ops_impl_bin!(@impl BitAnd, bitand, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($and)?);
+        $crate::ops_impl_bin!(@impl BitXor, bitxor, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($xor)?);
+        $crate::ops_impl_bin!(@impl Shl,    shl,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($shl)?);
+        $crate::ops_impl_bin!(@impl Shr,    shr,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type $($shr)?);
+
+        $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($rem)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRem<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($or)?) ($($and)?) ($($xor)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($shl)?) ($($shr)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) ($($rem)?) ($($or)?) ($($and)?) ($($xor)?) ($($shl)?) ($($shr)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<$typer> for $typel { type Output = $type; }
+        });
+    };
+    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path,
+     $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
+     $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
+        $crate::ops_impl_bin!(@impl Add,    add,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($add)?);
+        $crate::ops_impl_bin!(@impl Sub,    sub,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($sub)?);
+        $crate::ops_impl_bin!(@impl Mul,    mul,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($mul)?);
+        $crate::ops_impl_bin!(@impl Div,    div,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($div)?);
+        $crate::ops_impl_bin!(@impl Rem,    rem,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($rem)?);
+        $crate::ops_impl_bin!(@impl BitOr,  bitor,  $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($or)?);
+        $crate::ops_impl_bin!(@impl BitAnd, bitand, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($and)?);
+        $crate::ops_impl_bin!(@impl BitXor, bitxor, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($xor)?);
+        $crate::ops_impl_bin!(@impl Shl,    shl,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($shl)?);
+        $crate::ops_impl_bin!(@impl Shr,    shr,    $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type $($shr)?);
+
+        $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::Ops<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($rem)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsRem<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($or)?) ($($and)?) ($($xor)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsBit<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($shl)?) ($($shr)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsShift<$typer> for $typel { type Output = $type; }
+        });
+
+        $crate::if_all!(($($add)?) ($($sub)?) ($($mul)?) ($($div)?) ($($rem)?) ($($or)?) ($($and)?) ($($xor)?) ($($shl)?) ($($shr)?) {
+            impl $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? $crate::ops::OpsAll<$typer> for $typel { type Output = $type; }
+        });
+    };
+
+    (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path,
      $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
      $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
@@ -623,7 +548,7 @@ macro_rules! ops_impl_bin_diff {
                               $(+ $add)? $(- $sub)? $(* $mul)? $(/ $div)? $(% $rem)?
                               $(| $or)? $(& $and)? $(^ $xor)? $(<< $shl)? $(>> $shr)?);
     };
-    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+    (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path,
      $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
      $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
@@ -637,7 +562,7 @@ macro_rules! ops_impl_bin_diff {
                               $(+ $add)? $(- $sub)? $(* $mul)? $(/ $div)? $(% $rem)?
                               $(| $or)? $(& $and)? $(^ $xor)? $(<< $shl)? $(>> $shr)?);
     };
-    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+    (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path,
      $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
      $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
@@ -651,7 +576,7 @@ macro_rules! ops_impl_bin_diff {
                               $(+ $add)? $(- $sub)? $(* $mul)? $(/ $div)? $(% $rem)?
                               $(| $or)? $(& $and)? $(^ $xor)? $(<< $shl)? $(>> $shr)?);
     };
-    ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+    (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path,
      $(+ $add:block)? $(- $sub:block)? $(* $mul:block)? $(/ $div:block)? $(% $rem:block)?
      $(| $or:block)? $(& $and:block)? $(^ $xor:block)? $(<< $shl:block)? $(>> $shr:block)?) => {
@@ -669,17 +594,28 @@ macro_rules! ops_impl_bin_diff {
 
 #[macro_export]
 macro_rules! ops_impl {
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : &$typel:path | -> $type:path $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel| -> $type $fn);
+    };
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
+     | $lhs:ident : $typel:path | -> $type:path $fn:block) => {
+        $crate::ops_impl_std!($op_trait, $op_name, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $fn);
+    };
+
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : &$typel:path | -> $type:path) => {};
+    (@impl $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)? | $lhs:ident : $typel:path | -> $type:path) => {};
+
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path | -> $type:path, $(neg $neg:block)? $(not $not:block)?) => {
-        $crate::ops_impl_op!(neg $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel| -> $type $($neg)?);
-        $crate::ops_impl_op!(not $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel| -> $type $($not)?);
+        $crate::ops_impl!(@impl Neg, neg, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel| -> $type $($neg)?);
+        $crate::ops_impl!(@impl Not, not, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel| -> $type $($not)?);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path | -> $type:path, $(neg $neg:block)? $(not $not:block)?) => {
-        $crate::ops_impl_op!(neg $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $($neg)?);
-        $crate::ops_impl_op!(not $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $($not)?);
+        $crate::ops_impl!(@impl Neg, neg, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $($neg)?);
+        $crate::ops_impl!(@impl Not, not, $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel| -> $type $($not)?);
     };
-
 }
 
 #[macro_export]
@@ -718,19 +654,19 @@ macro_rules! ops_impl_bin_auto {
 macro_rules! ops_impl_bin_diff_auto {
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr) -> $fn:expr) => {
-        $crate::ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
+        $crate::ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr) -> $fn:expr) => {
-        $crate::ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
+        $crate::ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr) -> $fn:expr) => {
-        $crate::ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
+        $crate::ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
      | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr) -> $fn:expr) => {
-        $crate::ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
+        $crate::ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| => $type, $($op { $fn($lhs_expr $op $rhs_expr) })+);
     };
 }
 
@@ -889,7 +825,7 @@ mod tests {
                     << { $type { x: (a.x << b.x).into() } }
                     >> { $type { x: (a.x >> b.x).into() } });
 
-            ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
+            ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: &$type1, b: &$type2| -> $type,
                     + { $type { x: (a.x + b.x).into() } }
                     - { $type { x: (a.x - b.x).into() } }
@@ -917,7 +853,7 @@ mod tests {
                     << { $type { x: (a.x << b.x).into() } }
                     >> { $type { x: (a.x >> b.x).into() } });
 
-            ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
+            ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: &$type1, b: $type2| -> $type,
                     + { $type { x: (a.x + b.x).into() } }
                     - { $type { x: (a.x - b.x).into() } }
@@ -945,7 +881,7 @@ mod tests {
                     << { $type { x: (a.x << b.x).into() } }
                     >> { $type { x: (a.x >> b.x).into() } });
 
-            ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
+            ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: $type1, b: &$type2| -> $type,
                     + { $type { x: (a.x + b.x).into() } }
                     - { $type { x: (a.x - b.x).into() } }
@@ -973,7 +909,7 @@ mod tests {
                     << { $type { x: (a.x << b.x).into() } }
                     >> { $type { x: (a.x >> b.x).into() } });
 
-            ops_impl_bin_diff!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
+            ops_impl_bin!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)?
                 |a: $type1, b: $type2| -> $type,
                     + { $type { x: (a.x + b.x).into() } }
                     - { $type { x: (a.x - b.x).into() } }
