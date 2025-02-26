@@ -1,29 +1,80 @@
-use std::cmp::{max, Ordering};
+use crate::num::Sign;
+use digit::Single;
 
-use crate::{
-    ops::{Ops, OpsAssign},
-    ops_impl_bin, ops_impl_mut,
-};
+#[cfg(target_pointer_width = "64")]
+mod digit {
+    pub type Single = u32;
+    pub type Double = u64;
 
-pub trait NumberLong: Sized + Default + Clone + Ops + OpsAssign + PartialEq + Eq + PartialOrd + Ord {
-    const MAX: u64;
+    pub(super) const DEC_MAX: Single = 1_000_000_000;
+    pub(super) const DEC_WIDTH: u8 = 9;
+
+    pub(super) const OCT_MAX: Single = 1 << 30;
+    pub(super) const OCT_WIDTH: u8 = 10;
 }
+
+#[cfg(target_pointer_width = "32")]
+mod digit {
+    pub type Single = u16;
+    pub type Double = u32;
+
+    pub(super) const DEC_MAX: Single = 10_000;
+    pub(super) const DEC_WIDTH: u8 = 4;
+
+    pub(super) const OCT_MAX: Single = 1 << 15;
+    pub(super) const OCT_WIDTH: u8 = 5;
+}
+
+mod radix {
+    use super::digit::{DEC_MAX, DEC_WIDTH, OCT_MAX, OCT_WIDTH};
+    use super::Single;
+
+    pub trait Radix {
+        const MAX: Single;
+        const WIDTH: u8;
+    }
+
+    pub struct Bin;
+    pub struct Oct;
+    pub struct Dec;
+    pub struct Hex;
+
+    impl Radix for Bin {
+        const MAX: Single = 1 << (Single::BITS - 1);
+        const WIDTH: u8 = Single::BITS as u8;
+    }
+
+    impl Radix for Oct {
+        const MAX: Single = OCT_MAX;
+        const WIDTH: u8 = OCT_WIDTH;
+    }
+
+    impl Radix for Dec {
+        const MAX: Single = DEC_MAX;
+        const WIDTH: u8 = DEC_WIDTH;
+    }
+
+    impl Radix for Hex {
+        const MAX: Single = 1 << (Single::BITS - 1);
+        const WIDTH: u8 = Single::BITS as u8 / 4;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SignedLong(Vec<Single>, Sign);
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnsignedLong(Vec<Single>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum NumberSign {
-    NEG = -1,
-    POS = 1,
-}
+pub struct SignedFixed<const L: usize>([Single; L], Sign);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignedLong(Vec<u32>, NumberSign);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnsignedLong(Vec<u32>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnsignedFixed<const L: usize>([Single; L]);
 
 impl Default for SignedLong {
     fn default() -> Self {
-        SignedLong(vec![0], NumberSign::POS)
+        SignedLong(vec![0], Sign::POS)
     }
 }
 
@@ -33,186 +84,16 @@ impl Default for UnsignedLong {
     }
 }
 
-fn cmp_long(
-    a: &[u32],
-    b: &[u32],
-    sign: NumberSign,
-) -> Ordering {
-    match a.len().cmp(&b.len()) {
-        | Ordering::Equal => {
-            let len = a.len();
+type S128 = ();
+type S256 = ();
+type S512 = ();
+type S1024 = ();
+type S2048 = ();
+type S4096 = ();
 
-            let lhs = &a[..len];
-            let rhs = &b[..len];
-
-            for i in (0..len).rev() {
-                match lhs[i].cmp(&rhs[i]) {
-                    | Ordering::Less => {
-                        if sign == NumberSign::POS {
-                            return Ordering::Less;
-                        } else {
-                            return Ordering::Greater;
-                        }
-                    },
-                    | Ordering::Equal => (),
-                    | Ordering::Greater => {
-                        if sign == NumberSign::POS {
-                            return Ordering::Greater;
-                        } else {
-                            return Ordering::Less;
-                        }
-                    },
-                }
-            }
-
-            Ordering::Equal
-        },
-        | order => order,
-    }
-}
-
-impl Ord for SignedLong {
-    fn cmp(
-        &self,
-        other: &Self,
-    ) -> Ordering {
-        if self.1 != other.1 {
-            return self.1.cmp(&other.1);
-        }
-
-        cmp_long(&self.0, &other.0, self.1)
-    }
-}
-
-impl Ord for UnsignedLong {
-    fn cmp(
-        &self,
-        other: &Self,
-    ) -> Ordering {
-        cmp_long(&self.0, &other.0, NumberSign::POS)
-    }
-}
-
-impl PartialOrd for SignedLong {
-    fn partial_cmp(
-        &self,
-        other: &Self,
-    ) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialOrd for UnsignedLong {
-    fn partial_cmp(
-        &self,
-        other: &Self,
-    ) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-// impl NumberLong for SignedLong {
-//     const MAX: u64 = u32::MAX as u64;
-// }
-//
-// impl NumberLong for UnsignedLong {
-//     const MAX: u64 = u32::MAX as u64;
-// }
-
-// ops_impl_bin!(|a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
-// + {
-//     const MAX: u64 = <UnsignedLong as NumberLong>::MAX;
-//
-//     let a_len = a.0.len();
-//     let b_len = b.0.len();
-//
-//     let mut res = UnsignedLong(Vec::<u32>::with_capacity(max(a_len, b_len)));
-//
-//     let mut index = 0;
-//     let mut carry = 0;
-//
-//     while index < a_len || index < b_len || carry > 0 {
-//         let a_val = if index < a_len { a.0[index] } else { 0 };
-//         let b_val = if index < b_len { b.0[index] } else { 0 };
-//
-//         let val = a_val as u64 + b_val as u64 + carry as u64;
-//
-//         carry = (val / MAX) as u32;
-//
-//         res.0.push((val - carry as u64 * MAX) as u32);
-//
-//         index += 1;
-//     }
-//
-//     res
-// }
-// - {
-//     const MAX: u64 = <UnsignedLong as NumberLong>::MAX;
-//
-//     let a_len = a.0.len();
-//     let b_len = b.0.len();
-//
-//     let mut res = UnsignedLong(Vec::<u32>::with_capacity(max(a_len, b_len)));
-//
-//     let mut index = 0;
-//     let mut carry = 0;
-//
-//     while index < a_len || index < b_len || carry > 0 {
-//         let a_val = if index < a_len { a.0[index] } else { 0 };
-//         let b_val = if index < b_len { b.0[index] } else { 0 };
-//
-//         let val = a_val as u64 - b_val as u64 - carry as u64;
-//
-//         carry = (val / MAX) as u32;
-//
-//         res.0.push((val - carry as u64 * MAX) as u32);
-//
-//         index += 1;
-//     }
-//
-//     res
-// }
-// * {
-//     let mut res = UnsignedLong(Vec::<u32>::new());
-//
-//     res
-// }
-// / {
-//     let mut res = UnsignedLong(Vec::<u32>::new());
-//
-//     res
-// });
-//
-// ops_impl_mut!(|a: &mut UnsignedLong, b: &UnsignedLong|,
-//               += {}
-//               -= {}
-//               *= {}
-//               /= {});
-//
-// ops_impl_bin!(|a: &SignedLong, b: &SignedLong| -> SignedLong,
-// + {
-//     let mut res = SignedLong(Vec::<u32>::new(), NumberSign::POS);
-//
-//     res
-// }
-// - {
-//     let mut res = SignedLong(Vec::<u32>::new(), NumberSign::POS);
-//
-//     res
-// }
-// * {
-//     let mut res = SignedLong(Vec::<u32>::new(), NumberSign::POS);
-//
-//     res
-// }
-// / {
-//     let mut res = SignedLong(Vec::<u32>::new(), NumberSign::POS);
-//
-//     res
-// });
-//
-// ops_impl_mut!(|a: &mut SignedLong, b: &SignedLong|,
-//               += {}
-//               -= {}
-//               *= {}
-//               /= {});
+type U128 = ();
+type U256 = ();
+type U512 = ();
+type U1024 = ();
+type U2048 = ();
+type U4096 = ();

@@ -1,17 +1,33 @@
-use crate::{ops::*, ops_checked_impl};
+use crate::{
+    ops::{
+        AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllFrom, OpsAssign, OpsAssignAll, OpsBit, OpsBitAssign,
+        OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRem, OpsRemAssign, OpsRemFrom, OpsShift, OpsShiftAssign,
+        OpsShiftFrom, SubChecked,
+    },
+    ops_checked_impl,
+};
 
-pub trait Number: Sized + Default + Clone + Copy + Ops + OpsAssign + PartialEq + PartialOrd {
-    type Type;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Sign {
+    NEG = -1,
+    NIL = 0,
+    POS = 1,
+}
 
+pub trait Constants {
     const ZERO: Self;
     const ONE: Self;
     const MIN: Self;
     const MAX: Self;
+}
+
+pub trait Number: Sized + Default + Clone + Copy + PartialEq + PartialOrd + Ops + OpsAssign + Constants {
+    type Type;
 
     fn val(&self) -> &Self::Type;
 }
 
-pub trait Integer: Number + AddChecked + SubChecked + MulChecked + DivChecked + Eq + Ord {
+pub trait Integer: Eq + Ord + Number + AddChecked + SubChecked + MulChecked + DivChecked {
     const BITS: u32;
 }
 
@@ -62,13 +78,15 @@ macro_rules! number_impl {
         impl OpsFrom for $type {}
         impl OpsRemFrom for $type {}
 
-        impl Number for $type {
-            type Type = $type;
-
+        impl Constants for $type {
             const MAX: Self = <$type>::MAX;
             const MIN: Self = <$type>::MIN;
             const ONE: Self = $zero;
             const ZERO: Self = $one;
+        }
+
+        impl Number for $type {
+            type Type = $type;
 
             fn val(&self) -> &Self::Type {
                 self
