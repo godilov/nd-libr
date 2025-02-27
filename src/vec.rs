@@ -1,4 +1,4 @@
-use crate::{num::Number, ops_impl_bin};
+use crate::{num::Number, ops_impl};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Vec<N: Number, const L: usize>(pub [N; L]);
@@ -26,7 +26,7 @@ macro_rules! vec_ops_arr {
 macro_rules! vec_ops_impl {
     (+ $n:tt: [$($type:path),+]) => {
         $(
-            ops_impl_bin!(|a: &$type, b: &$type| -> $type,
+            ops_impl!(|a: &$type, b: &$type| -> $type,
                     + { $type (vec_ops_arr!($n: (a.0) + (b.0) [0] -> [])) }
                     - { $type (vec_ops_arr!($n: (a.0) - (b.0) [0] -> [])) }
                     * { $type (vec_ops_arr!($n: (a.0) * (b.0) [0] -> [])) }
@@ -41,7 +41,7 @@ macro_rules! vec_ops_impl {
     };
     ($n:tt: [$($type:path),+]) => {
         $(
-            ops_impl_bin!(|a: &$type, b: &$type| -> $type,
+            ops_impl!(|a: &$type, b: &$type| -> $type,
                     + { $type (vec_ops_arr!($n: (a.0) + (b.0) [0] -> [])) }
                     - { $type (vec_ops_arr!($n: (a.0) - (b.0) [0] -> [])) }
                     * { $type (vec_ops_arr!($n: (a.0) * (b.0) [0] -> [])) }
