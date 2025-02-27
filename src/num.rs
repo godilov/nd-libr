@@ -1,10 +1,7 @@
-use crate::{
-    ops::{
-        AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllFrom, OpsAssign, OpsAssignAll, OpsBit, OpsBitAssign,
-        OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRem, OpsRemAssign, OpsRemFrom, OpsShift, OpsShiftAssign,
-        OpsShiftFrom, SubChecked,
-    },
-    ops_checked_impl,
+use crate::ops::{
+    AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllFrom, OpsAssign, OpsAssignAll, OpsBit, OpsBitAssign,
+    OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRem, OpsRemAssign, OpsRemFrom, OpsShift, OpsShiftAssign,
+    OpsShiftFrom, SubChecked,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -81,8 +78,8 @@ macro_rules! number_impl {
         impl Constants for $type {
             const MAX: Self = <$type>::MAX;
             const MIN: Self = <$type>::MIN;
-            const ONE: Self = $zero;
-            const ZERO: Self = $one;
+            const ONE: Self = $one;
+            const ZERO: Self = $zero;
         }
 
         impl Number for $type {
@@ -95,7 +92,46 @@ macro_rules! number_impl {
     };
 }
 
+macro_rules! int_impl_checked {
+    ($type:ty $(,)?) => {
+        impl AddChecked for $type {
+            type Output = $type;
+
+            fn checked_add(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_add(rhs)
+            }
+        }
+
+        impl SubChecked for $type {
+            type Output = $type;
+
+            fn checked_sub(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_sub(rhs)
+            }
+        }
+
+        impl MulChecked for $type {
+            type Output = $type;
+
+            fn checked_mul(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_mul(rhs)
+            }
+        }
+
+        impl DivChecked for $type {
+            type Output = $type;
+
+            fn checked_div(self, rhs: Self) -> Option<Self::Output> {
+                self.checked_div(rhs)
+            }
+        }
+    };
+}
+
 macro_rules! int_impl {
+    ($trait:ty, [$($type:ty),+] $(,)?) => {
+        $(int_impl!($trait, $type,);)+
+    };
     ($trait:ty, $type:ty $(,)?) => {
         number_impl!($type, 0, 1);
 
@@ -167,11 +203,14 @@ macro_rules! int_impl {
 
         impl $trait for $type {}
 
-        ops_checked_impl!($type);
+        int_impl_checked!($type);
     };
 }
 
 macro_rules! float_impl {
+    ($trait:ty, [$($type:ty),+] $(,)?) => {
+        $(float_impl!($trait, $type);)+
+    };
     ($trait:ty, $type:ty $(,)?) => {
         number_impl!($type, 0.0, 1.0);
 
@@ -179,21 +218,9 @@ macro_rules! float_impl {
     };
 }
 
-macro_rules! int_arr_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(int_impl!($trait, $type,);)+
-    };
-}
-
-macro_rules! float_arr_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(float_impl!($trait, $type);)+
-    };
-}
-
-int_arr_impl!(Signed, [i8, i16, i32, i64, i128]);
-int_arr_impl!(Unsigned, [u8, u16, u32, u64, u128]);
-float_arr_impl!(Float, [f32, f64]);
+int_impl!(Signed, [i8, i16, i32, i64, i128]);
+int_impl!(Unsigned, [u8, u16, u32, u64, u128]);
+float_impl!(Float, [f32, f64]);
 
 impl OpsNegFrom for i8 {}
 impl OpsNegFrom for i16 {}

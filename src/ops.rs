@@ -98,37 +98,25 @@ where
 pub trait AddChecked<Rhs = Self> {
     type Output;
 
-    fn checked_add(
-        self,
-        rhs: Rhs,
-    ) -> Option<Self::Output>;
+    fn checked_add(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
 pub trait SubChecked<Rhs = Self> {
     type Output;
 
-    fn checked_sub(
-        self,
-        rhs: Rhs,
-    ) -> Option<Self::Output>;
+    fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
 pub trait MulChecked<Rhs = Self> {
     type Output;
 
-    fn checked_mul(
-        self,
-        rhs: Rhs,
-    ) -> Option<Self::Output>;
+    fn checked_mul(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
 pub trait DivChecked<Rhs = Self> {
     type Output;
 
-    fn checked_div(
-        self,
-        rhs: Rhs,
-    ) -> Option<Self::Output>;
+    fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
 #[macro_export]
@@ -615,95 +603,46 @@ macro_rules! ops_impl {
 #[macro_export]
 macro_rules! ops_impl_auto {
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path |, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : &mut $typel:path, $rhs:ident : &$typer:path |, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: &$typer |, $($op { $lhs_expr $op $rhs_expr })+);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path |, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : &mut $typel:path, $rhs:ident : $typer:path |, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &mut $typel, $rhs: $typer |, $($op { $lhs_expr $op $rhs_expr })+);
     };
 
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| -> $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| -> $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| -> $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
     };
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!($(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| -> $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
     };
 
     (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : &$typel:path, $rhs:ident : &$typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: &$typer| => $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
     };
     (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : &$typel:path, $rhs:ident : $typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: &$typel, $rhs: $typer| => $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
     };
     (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : $typel:path, $rhs:ident : &$typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: &$typer| => $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
     };
     (@rev $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
-     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path, ($lhs_expr:expr) [$($op:tt)+] ($rhs_expr:expr)) => {
+     | $lhs:ident : $typel:path, $rhs:ident : $typer:path | -> $type:path, [$($op:tt)+] ($lhs_expr:expr) ($rhs_expr:expr)) => {
         $crate::ops_impl!(@rev $(<$($($const)? $t $(: $trait $(+ $trait_seq)*)? ,)+>)? |$lhs: $typel, $rhs: $typer| => $type, $($op { ($lhs_expr $op $rhs_expr).into() })+);
-    };
-}
-
-#[macro_export]
-macro_rules! ops_checked_impl {
-    ($type:ty $(,)?) => {
-        impl AddChecked for $type {
-            type Output = $type;
-
-            fn checked_add(
-                self,
-                rhs: Self,
-            ) -> Option<Self::Output> {
-                self.checked_add(rhs)
-            }
-        }
-
-        impl SubChecked for $type {
-            type Output = $type;
-
-            fn checked_sub(
-                self,
-                rhs: Self,
-            ) -> Option<Self::Output> {
-                self.checked_sub(rhs)
-            }
-        }
-
-        impl MulChecked for $type {
-            type Output = $type;
-
-            fn checked_mul(
-                self,
-                rhs: Self,
-            ) -> Option<Self::Output> {
-                self.checked_mul(rhs)
-            }
-        }
-
-        impl DivChecked for $type {
-            type Output = $type;
-
-            fn checked_div(
-                self,
-                rhs: Self,
-            ) -> Option<Self::Output> {
-                self.checked_div(rhs)
-            }
-        }
     };
 }
 
