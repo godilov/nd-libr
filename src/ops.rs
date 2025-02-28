@@ -655,8 +655,8 @@ macro_rules! ops_impl_auto {
 
 #[cfg(test)]
 mod tests {
-    use super::{OpsAllAssign, OpsAllFrom, OpsNegFrom, OpsNotFrom};
-    use crate::{num::Number, ops_impl, ops_impl_auto};
+    use super::{OpsAll, OpsAllAssign, OpsAllFrom, OpsNegFrom, OpsNotFrom};
+    use crate::{ops_impl, ops_impl_auto};
 
     macro_rules! ops_struct_def {
         ($type1:ident, $type2:ident $(,)?) => {
@@ -854,10 +854,10 @@ mod tests {
     ops_struct_def!(A2, B2);
     ops_struct_def!(A3, B3);
 
-    ops_struct_def!(X0, Y0, Number);
-    ops_struct_def!(X1, Y1, Number);
-    ops_struct_def!(X2, Y2, Number);
-    ops_struct_def!(X3, Y3, Number);
+    ops_struct_def!(X0, Y0, Sized + Copy + OpsAll + OpsAllAssign);
+    ops_struct_def!(X1, Y1, Sized + Copy + OpsAll + OpsAllAssign);
+    ops_struct_def!(X2, Y2, Sized + Copy + OpsAll + OpsAllAssign);
+    ops_struct_def!(X3, Y3, Sized + Copy + OpsAll + OpsAllAssign);
 
     ops_struct_impl!(|&mut A0, &B0|);
     ops_struct_impl!(|&mut A1, B1|);
@@ -870,16 +870,16 @@ mod tests {
     ops_struct_impl!(|&A0| -> A0);
     ops_struct_impl!(|A1| -> A1);
 
-    ops_struct_impl!(<N: Number + OpsAllAssign> |&mut X0<N>, &Y0<N>|);
-    ops_struct_impl!(<N: Number + OpsAllAssign> |&mut X1<N>, Y1<N>|);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign> |&mut X0<N>, &Y0<N>|);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign> |&mut X1<N>, Y1<N>|);
 
-    ops_struct_impl!(<N: Number + OpsAllFrom> |&X0<N>, &Y0<N>| -> X0<N>);
-    ops_struct_impl!(<N: Number + OpsAllFrom> |&X1<N>, Y1<N>| -> X0<N>);
-    ops_struct_impl!(<N: Number + OpsAllFrom> |X2<N>, &Y2<N>| -> X0<N>);
-    ops_struct_impl!(<N: Number + OpsAllFrom> |X3<N>, Y3<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |&X0<N>, &Y0<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |&X1<N>, Y1<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |X2<N>, &Y2<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |X3<N>, Y3<N>| -> X0<N>);
 
-    ops_struct_impl!(<N: Number + OpsNegFrom + OpsNotFrom> |&X0<N>| -> X0<N>);
-    ops_struct_impl!(<N: Number + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsNegFrom + OpsNotFrom> |&X0<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
 
     macro_rules! assert_ops {
         ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
@@ -926,11 +926,11 @@ mod tests {
         B0 { x }
     }
 
-    fn x_fn<N: Number + OpsAllFrom>(x: N) -> X0<N> {
+    fn x_fn<N: Sized + Copy + OpsAll + OpsAllAssign>(x: N) -> X0<N> {
         X0::<N> { x }
     }
 
-    fn y_fn<N: Number + OpsAllFrom>(x: N) -> Y0<N> {
+    fn y_fn<N: Sized + Copy + OpsAll + OpsAllAssign>(x: N) -> Y0<N> {
         Y0::<N> { x }
     }
 
