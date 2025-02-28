@@ -51,10 +51,7 @@ mod tests {
     use super::*;
     use crate::{as_arr, as_arr_mut};
 
-    fn as_arr_impl<T, const L: usize>(value: &[T; L]) -> Result<(), AsArrError>
-    where
-        T: Clone + PartialEq,
-    {
+    fn as_arr_impl<T: Clone + PartialEq, const L: usize>(value: &[T; L]) -> Result<(), AsArrError> {
         let slice = &value[0..L];
         let arr = as_arr!(slice, L)?;
 
@@ -68,10 +65,7 @@ mod tests {
         Ok(())
     }
 
-    fn as_arr_mut_impl<T, const L: usize>(value: &mut [T; L]) -> Result<(), AsArrError>
-    where
-        T: Clone + PartialEq,
-    {
+    fn as_arr_mut_impl<T: Clone + PartialEq, const L: usize>(value: &mut [T; L]) -> Result<(), AsArrError> {
         let slice = &mut value[0..L];
         let arr = as_arr_mut!(slice, L)?.clone();
 

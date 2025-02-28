@@ -1,5 +1,5 @@
 use crate::ops::{
-    AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllFrom, OpsAssign, OpsAssignAll, OpsBit, OpsBitAssign,
+    AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAllFrom, OpsAssign, OpsBit, OpsBitAssign,
     OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRem, OpsRemAssign, OpsRemFrom, OpsShift, OpsShiftAssign,
     OpsShiftFrom, SubChecked,
 };
@@ -189,8 +189,8 @@ macro_rules! int_impl {
         impl OpsShiftAssign<$type> for $type {}
         impl OpsShiftAssign<&$type> for $type {}
 
-        impl OpsAssignAll<$type> for $type {}
-        impl OpsAssignAll<&$type> for $type {}
+        impl OpsAllAssign<$type> for $type {}
+        impl OpsAllAssign<&$type> for $type {}
 
         impl OpsBitFrom for $type {}
         impl OpsShiftFrom for $type {}
