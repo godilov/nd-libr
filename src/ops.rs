@@ -36,39 +36,7 @@ pub trait OpsAllAssign<Rhs = Self>:
 {
 }
 
-pub trait OpsFrom<Rhs: Ops<Self> = Self>:
-    Ops<Rhs>
-    + From<<Self as Add<Rhs>>::Output>
-    + From<<Self as Sub<Rhs>>::Output>
-    + From<<Self as Mul<Rhs>>::Output>
-    + From<<Self as Div<Rhs>>::Output>
-{
-}
-
-pub trait OpsRemFrom<Rhs: OpsRem<Self> = Self>: OpsRem<Rhs> + From<<Self as Rem<Rhs>>::Output> {}
-
-pub trait OpsBitFrom<Rhs: OpsBit<Self> = Self>:
-    OpsBit<Rhs>
-    + From<<Self as BitOr<Rhs>>::Output>
-    + From<<Self as BitAnd<Rhs>>::Output>
-    + From<<Self as BitXor<Rhs>>::Output>
-{
-}
-
-pub trait OpsShiftFrom<Rhs: OpsShift<Self> = Self>:
-    OpsShift<Rhs> + From<<Self as Shl<Rhs>>::Output> + From<<Self as Shr<Rhs>>::Output>
-{
-}
-
-pub trait OpsNegFrom: Neg + From<<Self as Neg>::Output> {}
-pub trait OpsNotFrom: Not + From<<Self as Not>::Output> {}
-
-pub trait OpsAllFrom<Rhs: OpsAll<Self> = Self>:
-    OpsAll<Rhs> + OpsFrom<Rhs> + OpsRemFrom<Rhs> + OpsBitFrom<Rhs> + OpsShiftFrom<Rhs>
-{
-}
-
-pub trait OpsFromDiff<Lhs: Ops<Rhs>, Rhs: Ops<Lhs> = Lhs>:
+pub trait OpsFrom<Lhs: Ops<Rhs> = Self, Rhs: Ops<Lhs> = Lhs>:
     From<<Lhs as Add<Rhs>>::Output>
     + From<<Lhs as Sub<Rhs>>::Output>
     + From<<Lhs as Mul<Rhs>>::Output>
@@ -76,20 +44,23 @@ pub trait OpsFromDiff<Lhs: Ops<Rhs>, Rhs: Ops<Lhs> = Lhs>:
 {
 }
 
-pub trait OpsRemFromDiff<Lhs: OpsRem<Rhs>, Rhs: OpsRem<Lhs> = Lhs>: From<<Lhs as Rem<Rhs>>::Output> {}
+pub trait OpsRemFrom<Lhs: OpsRem<Rhs> = Self, Rhs: OpsRem<Lhs> = Lhs>: From<<Lhs as Rem<Rhs>>::Output> {}
 
-pub trait OpsBitFromDiff<Lhs: OpsBit<Rhs>, Rhs: OpsBit<Lhs> = Lhs>:
+pub trait OpsBitFrom<Lhs: OpsBit<Rhs> = Self, Rhs: OpsBit<Lhs> = Lhs>:
     From<<Lhs as BitOr<Rhs>>::Output> + From<<Lhs as BitAnd<Rhs>>::Output> + From<<Lhs as BitXor<Rhs>>::Output>
 {
 }
 
-pub trait OpsShiftFromDiff<Lhs: OpsShift<Rhs>, Rhs: OpsShift<Lhs> = Lhs>:
+pub trait OpsShiftFrom<Lhs: OpsShift<Rhs> = Self, Rhs: OpsShift<Lhs> = Lhs>:
     From<<Lhs as Shl<Rhs>>::Output> + From<<Lhs as Shr<Rhs>>::Output>
 {
 }
 
-pub trait OpsAllFromDiff<Lhs: OpsAll<Rhs>, Rhs: OpsAll<Lhs> = Lhs>:
-    OpsFromDiff<Lhs, Rhs> + OpsRemFromDiff<Lhs, Rhs> + OpsBitFromDiff<Lhs, Rhs> + OpsShiftFromDiff<Lhs, Rhs>
+pub trait OpsNegFrom: Neg + From<<Self as Neg>::Output> {}
+pub trait OpsNotFrom: Not + From<<Self as Not>::Output> {}
+
+pub trait OpsAllFrom<Lhs: OpsAll<Rhs> = Self, Rhs: OpsAll<Lhs> = Lhs>:
+    OpsFrom<Lhs, Rhs> + OpsRemFrom<Lhs, Rhs> + OpsBitFrom<Lhs, Rhs> + OpsShiftFrom<Lhs, Rhs>
 {
 }
 
@@ -655,8 +626,7 @@ macro_rules! ops_impl_auto {
 
 #[cfg(test)]
 mod tests {
-    use super::{OpsAll, OpsAllAssign, OpsAllFrom, OpsNegFrom, OpsNotFrom};
-    use crate::{ops_impl, ops_impl_auto};
+    use super::*;
 
     macro_rules! ops_struct_def {
         ($type1:ident, $type2:ident $(,)?) => {
@@ -691,18 +661,6 @@ mod tests {
             #[derive(Debug, PartialEq, Eq)]
             struct $type2<N: $trait$(+ $traits)*> {
                 x: N,
-            }
-
-            impl<N: $trait $(+ $traits)*> From<N> for $type1<N> {
-                fn from(value: N) -> Self {
-                    Self { x: value }
-                }
-            }
-
-            impl<N: $trait $(+ $traits)*> From<N> for $type2<N> {
-                fn from(value: N) -> Self {
-                    Self { x: value }
-                }
             }
         };
     }
@@ -854,10 +812,10 @@ mod tests {
     ops_struct_def!(A2, B2);
     ops_struct_def!(A3, B3);
 
-    ops_struct_def!(X0, Y0, Sized + Copy + OpsAll + OpsAllAssign);
-    ops_struct_def!(X1, Y1, Sized + Copy + OpsAll + OpsAllAssign);
-    ops_struct_def!(X2, Y2, Sized + Copy + OpsAll + OpsAllAssign);
-    ops_struct_def!(X3, Y3, Sized + Copy + OpsAll + OpsAllAssign);
+    ops_struct_def!(X0, Y0, Sized + Copy);
+    ops_struct_def!(X1, Y1, Sized + Copy);
+    ops_struct_def!(X2, Y2, Sized + Copy);
+    ops_struct_def!(X3, Y3, Sized + Copy);
 
     ops_struct_impl!(|&mut A0, &B0|);
     ops_struct_impl!(|&mut A1, B1|);
@@ -870,16 +828,16 @@ mod tests {
     ops_struct_impl!(|&A0| -> A0);
     ops_struct_impl!(|A1| -> A1);
 
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign> |&mut X0<N>, &Y0<N>|);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign> |&mut X1<N>, Y1<N>|);
+    ops_struct_impl!(<N: Sized + Copy + OpsAllAssign> |&mut X0<N>, &Y0<N>|);
+    ops_struct_impl!(<N: Sized + Copy + OpsAllAssign> |&mut X1<N>, Y1<N>|);
 
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |&X0<N>, &Y0<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |&X1<N>, Y1<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |X2<N>, &Y2<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsAllFrom> |X3<N>, Y3<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |&X0<N>, &Y0<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |&X1<N>, Y1<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |X2<N>, &Y2<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |X3<N>, Y3<N>| -> X0<N>);
 
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsNegFrom + OpsNotFrom> |&X0<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllAssign + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsNegFrom + OpsNotFrom> |&X0<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Copy + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
 
     macro_rules! assert_ops {
         ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
@@ -926,11 +884,11 @@ mod tests {
         B0 { x }
     }
 
-    fn x_fn<N: Sized + Copy + OpsAll + OpsAllAssign>(x: N) -> X0<N> {
+    fn x_fn<N: Sized + Copy>(x: N) -> X0<N> {
         X0::<N> { x }
     }
 
-    fn y_fn<N: Sized + Copy + OpsAll + OpsAllAssign>(x: N) -> Y0<N> {
+    fn y_fn<N: Sized + Copy>(x: N) -> Y0<N> {
         Y0::<N> { x }
     }
 
