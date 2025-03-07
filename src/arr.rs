@@ -1,14 +1,14 @@
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AsArrError {
+pub enum Error {
     #[error("Invalid slice length (actual: {act}, required: {req})")]
     InvalidLength { act: usize, req: usize },
 }
 
-pub fn as_arr<T, const L: usize>(slice: &[T]) -> Result<&[T; L], AsArrError> {
+pub fn as_arr<T, const L: usize>(slice: &[T]) -> Result<&[T; L], Error> {
     if slice.len() < L {
-        return Err(AsArrError::InvalidLength { act: slice.len(), req: L });
+        return Err(Error::InvalidLength { act: slice.len(), req: L });
     }
 
     let ptr = slice.as_ptr() as *const [T; L];
@@ -16,9 +16,9 @@ pub fn as_arr<T, const L: usize>(slice: &[T]) -> Result<&[T; L], AsArrError> {
     unsafe { Ok(&*ptr) }
 }
 
-pub fn as_arr_mut<T, const L: usize>(slice: &mut [T]) -> Result<&mut [T; L], AsArrError> {
+pub fn as_arr_mut<T, const L: usize>(slice: &mut [T]) -> Result<&mut [T; L], Error> {
     if slice.len() < L {
-        return Err(AsArrError::InvalidLength { act: slice.len(), req: L });
+        return Err(Error::InvalidLength { act: slice.len(), req: L });
     }
 
     let ptr = slice.as_mut_ptr() as *mut [T; L];
@@ -49,9 +49,8 @@ macro_rules! as_arr_mut {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{as_arr, as_arr_mut};
 
-    fn as_arr_impl<T: Clone + PartialEq, const L: usize>(value: &[T; L]) -> Result<(), AsArrError> {
+    fn as_arr_impl<T: Clone + PartialEq, const L: usize>(value: &[T; L]) -> Result<(), Error> {
         let slice = &value[0..L];
         let arr = as_arr!(slice, L)?;
 
@@ -65,7 +64,7 @@ mod tests {
         Ok(())
     }
 
-    fn as_arr_mut_impl<T: Clone + PartialEq, const L: usize>(value: &mut [T; L]) -> Result<(), AsArrError> {
+    fn as_arr_mut_impl<T: Clone + PartialEq, const L: usize>(value: &mut [T; L]) -> Result<(), Error> {
         let slice = &mut value[0..L];
         let arr = as_arr_mut!(slice, L)?.clone();
 

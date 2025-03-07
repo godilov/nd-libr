@@ -1,8 +1,9 @@
 use crate::ops::{
     AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAllFrom, OpsAssign, OpsBit, OpsBitAssign,
-    OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRem, OpsRemAssign, OpsRemFrom, OpsShift, OpsShiftAssign,
-    OpsShiftFrom, SubChecked,
+    OpsBitFrom, OpsChecked, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRem, OpsRemAssign, OpsRemFrom, OpsShift,
+    OpsShiftAssign, OpsShiftFrom, SubChecked,
 };
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -18,13 +19,13 @@ pub trait Constants {
     const MAX: Self;
 }
 
-pub trait Number: Sized + Default + Clone + Copy + PartialEq + PartialOrd + Ops + OpsAssign + Constants {
+pub trait Number: Sized + Default + Display + Clone + PartialEq + PartialOrd + Constants + Ops + OpsAssign {
     type Type;
 
     fn val(&self) -> &Self::Type;
 }
 
-pub trait Integer: Eq + Ord + Number + AddChecked + SubChecked + MulChecked + DivChecked {
+pub trait Integer: Eq + Ord + Number + OpsChecked {
     const BITS: u32;
 }
 
@@ -125,6 +126,8 @@ macro_rules! int_impl_checked {
                 self.checked_div(rhs)
             }
         }
+
+        impl OpsChecked for $type {}
     };
 }
 

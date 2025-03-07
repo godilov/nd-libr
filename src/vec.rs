@@ -1,9 +1,9 @@
 use crate::{num::Number, ops_impl};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Vec<N: Number, const L: usize>(pub [N; L]);
+pub struct Vec<N: Number + Copy, const L: usize>(pub [N; L]);
 
-impl<N: Number, const L: usize> Default for Vec<N, L> {
+impl<N: Number + Copy, const L: usize> Default for Vec<N, L> {
     fn default() -> Self {
         Vec::<N, L>([N::default(); L])
     }

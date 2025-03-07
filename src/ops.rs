@@ -88,6 +88,11 @@ pub trait DivChecked<Rhs = Self> {
     fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
+pub trait OpsChecked<Rhs = Self>: AddChecked<Rhs> + SubChecked<Rhs> + MulChecked<Rhs> + DivChecked<Rhs> {}
+
+// TODO: Consider cmp_impl's for std::cmp::*
+
+// TODO: Consider ways to make procedural macro instead of declarative
 #[macro_export]
 macro_rules! ops_impl_std {
     (@mut $op_trait:ident, $op_name:ident,
@@ -220,6 +225,7 @@ macro_rules! ops_impl_std {
     };
 }
 
+// TODO: Consider ways to make procedural macro instead of declarative
 #[macro_export]
 macro_rules! ops_impl {
     (@mut $op_trait:ident, $op_name:ident, $(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -569,6 +575,7 @@ macro_rules! ops_impl {
     };
 }
 
+// TODO: Consider ways to make procedural macro instead of declarative
 #[macro_export]
 macro_rules! ops_impl_auto {
     ($(< $($(($const:ident))? $t:ident $(: $trait:ident $(+ $trait_seq:path)*)? $(,)?)+ >)?
@@ -812,10 +819,10 @@ mod tests {
     ops_struct_def!(A2, B2);
     ops_struct_def!(A3, B3);
 
-    ops_struct_def!(X0, Y0, Sized + Copy);
-    ops_struct_def!(X1, Y1, Sized + Copy);
-    ops_struct_def!(X2, Y2, Sized + Copy);
-    ops_struct_def!(X3, Y3, Sized + Copy);
+    ops_struct_def!(X0, Y0, Sized + Clone + Copy);
+    ops_struct_def!(X1, Y1, Sized + Clone + Copy);
+    ops_struct_def!(X2, Y2, Sized + Clone + Copy);
+    ops_struct_def!(X3, Y3, Sized + Clone + Copy);
 
     ops_struct_impl!(|&mut A0, &B0|);
     ops_struct_impl!(|&mut A1, B1|);
@@ -828,16 +835,16 @@ mod tests {
     ops_struct_impl!(|&A0| -> A0);
     ops_struct_impl!(|A1| -> A1);
 
-    ops_struct_impl!(<N: Sized + Copy + OpsAllAssign> |&mut X0<N>, &Y0<N>|);
-    ops_struct_impl!(<N: Sized + Copy + OpsAllAssign> |&mut X1<N>, Y1<N>|);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsAllAssign> |&mut X0<N>, &Y0<N>|);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsAllAssign> |&mut X1<N>, Y1<N>|);
 
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |&X0<N>, &Y0<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |&X1<N>, Y1<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |X2<N>, &Y2<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsAll + OpsAllFrom> |X3<N>, Y3<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsAll + OpsAllFrom> |&X0<N>, &Y0<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsAll + OpsAllFrom> |&X1<N>, Y1<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsAll + OpsAllFrom> |X2<N>, &Y2<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsAll + OpsAllFrom> |X3<N>, Y3<N>| -> X0<N>);
 
-    ops_struct_impl!(<N: Sized + Copy + OpsNegFrom + OpsNotFrom> |&X0<N>| -> X0<N>);
-    ops_struct_impl!(<N: Sized + Copy + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsNegFrom + OpsNotFrom> |&X0<N>| -> X0<N>);
+    ops_struct_impl!(<N: Sized + Clone + Copy + OpsNegFrom + OpsNotFrom> |X1<N>| -> X1<N>);
 
     macro_rules! assert_ops {
         ($argl:expr, $argr:expr, $fn:ident, $val1:expr, $val2:expr) => {
