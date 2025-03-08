@@ -1,7 +1,4 @@
-pub mod arr;
-pub mod bytes;
 pub mod cond;
-pub mod iter;
 pub mod long;
 pub mod math;
 pub mod num;
