@@ -5,10 +5,11 @@ use crate::ops::{
 };
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
+    #[default]
+    ZERO = 0,
     NEG = -1,
-    NIL = 0,
     POS = 1,
 }
 

@@ -19,7 +19,7 @@ impl Iterator for PrimesIter {
 
         self.data.push(self.next);
 
-        for n in self.next + 1..Prime::MAX {
+        for n in (self.next + 2..Prime::MAX).step_by(2) {
             let mut is_prime = true;
             let mut idx = 0;
 

@@ -8,9 +8,9 @@ pub use self::fixed::{
 };
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TryFromIteratorError {
-    #[error("Iterator exceeds maximum length of {len}")]
-    ExceedLength { len: usize },
+pub enum TryFromBytesError {
+    #[error("Exceeded maximum length of {max} with {len}")]
+    ExceedLength { len: usize, max: usize },
 }
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
@@ -143,41 +143,126 @@ mod radix {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SignedLong {
     sign: Sign,
     data: Vec<Single>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnsignedLong {
     data: Vec<Single>,
 }
 
-impl Default for SignedLong {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SignedFixed<const L: usize> {
+    sign: Sign,
+    data: [Single; L],
+    len: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnsignedFixed<const L: usize> {
+    data: [Single; L],
+    len: usize,
+}
+
+impl<const L: usize> Default for SignedFixed<L> {
     fn default() -> Self {
-        Self { sign: Sign::NIL, data: vec![0] }
+        Self {
+            sign: Sign::ZERO,
+            data: [0; L],
+            len: 0,
+        }
     }
 }
 
-impl Default for UnsignedLong {
+impl<const L: usize> Default for UnsignedFixed<L> {
     fn default() -> Self {
-        Self { data: vec![0] }
+        Self { data: [0; L], len: 0 }
     }
 }
 
-// TODO: Make from u8
-// impl FromIterator<Single> for SignedLong {
-//     fn from_iter<T: IntoIterator<Item = Single>>(iter: T) -> Self {
-//         Self::new(Sign::POS, iter.into_iter().collect())
-//     }
-// }
-//
-// impl FromIterator<Single> for UnsignedLong {
-//     fn from_iter<T: IntoIterator<Item = Single>>(iter: T) -> Self {
-//         Self::new(iter.into_iter().collect())
-//     }
-// }
+macro_rules! from_impl_long {
+    ($type:ident, [$($from:ty),+] $(,)?) => {
+        $(from_impl_long!($type, $from);)+
+    };
+    ($type:ident, [$pos:expr, $neg:expr], [$($from:ty),+] $(,)?) => {
+        $(from_impl_long!($type, $from, $pos, $neg);)+
+    };
+    ($type:ident, $from:ty $(, $pos:expr, $neg:expr)?) => {
+        impl From<$from> for $type {
+            #[allow(arithmetic_overflow, clippy::manual_div_ceil)]
+            fn from(value: $from) -> Self {
+                const LEN: usize = ((<$from>::BITS + Single::BITS - 1) / Single::BITS) as usize;
+
+                if value == 0 {
+                    return Default::default();
+                }
+
+                let mut data = vec![0; LEN];
+                let mut len = 0;
+                let mut val = value.abs_diff(0);
+
+                while val > 0 {
+                    data[len] = val as Single;
+                    len += 1;
+                    val >>= Single::BITS;
+                }
+
+                data.truncate(len);
+
+                Self { $(sign: if value > 0 { $pos } else { $neg },)? data }
+            }
+        }
+    };
+}
+
+macro_rules! from_impl_fixed {
+    ($type:ident, [$($from:ty),+] $(,)?) => {
+        $(from_impl_fixed!($type, $from);)+
+    };
+    ($type:ident, [$pos:expr, $neg:expr], [$($from:ty),+] $(,)?) => {
+        $(from_impl_fixed!($type, $from, $pos, $neg);)+
+    };
+    ($type:ident, $from:ty $(, $pos:expr, $neg:expr)?) => {
+        impl<const L: usize> From<$from> for $type<L> {
+            #[allow(arithmetic_overflow)]
+            fn from(value: $from) -> Self {
+                if value == 0 {
+                    return Default::default();
+                }
+
+                let mut data = [0; L];
+                let mut len = 0;
+                let mut val = value.abs_diff(0);
+
+                while val > 0 {
+                    data[len] = val as Single;
+                    len += 1;
+                    val >>= Single::BITS;
+                }
+
+                Self { $(sign: if value > 0 { $pos } else { $neg },)? data, len }
+            }
+        }
+    };
+}
+
+from_impl_long!(
+    SignedLong,
+    [Sign::POS, Sign::NEG],
+    [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
+);
+
+from_impl_fixed!(
+    SignedFixed,
+    [Sign::POS, Sign::NEG],
+    [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
+);
+
+from_impl_long!(UnsignedLong, [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
+from_impl_fixed!(UnsignedFixed, [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
 
 impl FromStr for SignedLong {
     type Err = TryFromStrError;
@@ -201,102 +286,6 @@ impl FromStr for UnsignedLong {
     }
 }
 
-impl SignedLong {
-    fn new(sign: Sign, mut data: Vec<Single>) -> Self {
-        let len = get_len(&data);
-
-        data.truncate(len);
-
-        let sign = if data.is_empty() { Sign::NIL } else { sign };
-
-        Self { sign, data }
-    }
-
-    pub fn from_bytes(sign: Sign, data: &[u8]) -> Self {
-        todo!()
-    }
-
-    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
-        IntoRadixLongIter { radix, data: self.data }
-    }
-
-    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
-        self.clone().into_radix(radix)
-    }
-}
-
-impl UnsignedLong {
-    fn new(mut data: Vec<Single>) -> Self {
-        let len = get_len(&data);
-
-        data.truncate(len);
-
-        Self { data }
-    }
-
-    pub fn from_bytes(sign: Sign, data: &[u8]) -> Self {
-        todo!()
-    }
-
-    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
-        IntoRadixLongIter { radix, data: self.data }
-    }
-
-    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
-        self.clone().into_radix(radix)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SignedFixed<const L: usize> {
-    sign: Sign,
-    data: [Single; L],
-    len: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UnsignedFixed<const L: usize> {
-    data: [Single; L],
-    len: usize,
-}
-
-impl<const L: usize> Default for SignedFixed<L> {
-    fn default() -> Self {
-        Self {
-            sign: Sign::NIL,
-            data: [0; L],
-            len: 0,
-        }
-    }
-}
-
-impl<const L: usize> Default for UnsignedFixed<L> {
-    fn default() -> Self {
-        Self { data: [0; L], len: 0 }
-    }
-}
-
-// TODO: Make from u8
-// impl<const L: usize> TryFromIterator<Single> for SignedFixed<L> {
-//     type Error = TryFromIteratorError;
-//
-//     fn try_from_iter<T: IntoIterator<Item = Single>>(iter: T) -> Result<Self, Self::Error> {
-//         let (data, len) = try_from_iter(iter)?;
-//
-//         Ok(Self { sign: Sign::POS, data, len })
-//     }
-// }
-//
-// impl<const L: usize> TryFromIterator<Single> for UnsignedFixed<L> {
-//     type Error = TryFromIteratorError;
-//
-//     fn try_from_iter<T: IntoIterator<Item = Single>>(iter: T) -> Result<Self, Self::Error> {
-//         let (data, len) = try_from_iter(iter)?;
-//
-//         Ok(Self { data, len })
-//     }
-// }
-
 impl<const L: usize> FromStr for SignedFixed<L> {
     type Err = TryFromStrError;
 
@@ -319,15 +308,45 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
     }
 }
 
-impl<const L: usize> SignedFixed<L> {
-    fn new(sign: Sign, data: [Single; L]) -> Self {
-        let len = get_len(&data);
+impl SignedLong {
+    pub fn from_slice(slice: &[u8]) -> Self {
+        let data = from_slice_long(slice);
+        let sign = if data.is_empty() { Sign::ZERO } else { Sign::POS };
 
-        Self { sign, data, len }
+        Self { sign, data }
     }
 
-    pub fn from_bytes(sign: Sign, data: &[u8]) -> Self {
-        todo!()
+    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
+        IntoRadixLongIter { radix, data: self.data }
+    }
+
+    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
+        self.clone().into_radix(radix)
+    }
+}
+
+impl UnsignedLong {
+    pub fn from_slice(slice: &[u8]) -> Self {
+        let data = from_slice_long(slice);
+
+        Self { data }
+    }
+
+    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
+        IntoRadixLongIter { radix, data: self.data }
+    }
+
+    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
+        self.clone().into_radix(radix)
+    }
+}
+
+impl<const L: usize> SignedFixed<L> {
+    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromBytesError> {
+        let (data, len) = from_slice_fixed(slice)?;
+        let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
+
+        Ok(Self { sign, data, len })
     }
 
     pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
@@ -344,14 +363,10 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    fn new(data: [Single; L]) -> Self {
-        let len = get_len(&data);
+    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromBytesError> {
+        let (data, len) = from_slice_fixed(slice)?;
 
-        Self { data, len }
-    }
-
-    pub fn from_bytes(sign: Sign, data: &[u8]) -> Self {
-        todo!()
+        Ok(Self { data, len })
     }
 
     pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
@@ -365,6 +380,68 @@ impl<const L: usize> UnsignedFixed<L> {
     pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
         (*self).into_radix(radix)
     }
+}
+
+#[allow(clippy::manual_div_ceil)]
+fn from_slice_long(slice: &[u8]) -> Vec<Single> {
+    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
+
+    let chunks = slice.chunks(RATIO).enumerate();
+
+    let mut res = vec![0; (slice.len() + RATIO - 1) / RATIO];
+
+    for (i, chunk) in chunks {
+        let ptr = &mut res[i];
+
+        for (s, &val) in chunk.iter().enumerate() {
+            *ptr |= (val as Single) << (8 * s);
+        }
+    }
+
+    let len = get_len(&res);
+
+    res.truncate(len);
+    res
+}
+
+#[allow(clippy::manual_div_ceil)]
+fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromBytesError> {
+    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
+
+    let len = (slice.len() + RATIO - 1) / RATIO;
+    if len > L {
+        return Err(TryFromBytesError::ExceedLength { len, max: L });
+    }
+
+    let chunks = slice.chunks(RATIO).enumerate();
+
+    let mut res = [0; L];
+
+    for (i, chunk) in chunks {
+        let ptr = &mut res[i];
+
+        for (s, &val) in chunk.iter().enumerate() {
+            *ptr |= (val as Single) << (8 * s);
+        }
+    }
+
+    Ok((res, get_len(&res)))
+}
+
+fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
+    let s = s.as_bytes();
+    let (s, sign) = get_sign(s)?;
+    let (s, radix) = get_radix(s)?;
+
+    todo!()
+}
+
+fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usize), TryFromStrError> {
+    let s = s.as_bytes();
+    let (s, sign) = get_sign(s)?;
+    let (s, radix) = get_radix(s)?;
+
+    todo!()
 }
 
 struct IntoRadixLongIter {
@@ -429,42 +506,6 @@ impl<const L: usize> Iterator for IntoRadixFixedIter<L> {
 
         (any != 0).then_some(acc as usize)
     }
-}
-
-// fn try_from_iter<const L: usize, T: IntoIterator<Item = Single>>(
-//     iter: T,
-// ) -> Result<([Single; L], usize), TryFromIteratorError> {
-//     let mut data = [0; L];
-//     let mut len = 0;
-//
-//     for (i, digit) in iter.into_iter().enumerate() {
-//         if i == L {
-//             return Err(TryFromIteratorError::ExceedLength { len: L });
-//         }
-//
-//         if digit != 0 {
-//             data[i] = digit;
-//             len = i + 1;
-//         }
-//     }
-//
-//     Ok((data, len))
-// }
-
-fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
-    let s = s.as_bytes();
-    let (s, sign) = get_sign(s)?;
-    let (s, radix) = get_radix(s)?;
-
-    todo!()
-}
-
-fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usize), TryFromStrError> {
-    let s = s.as_bytes();
-    let (s, sign) = get_sign(s)?;
-    let (s, radix) = get_radix(s)?;
-
-    todo!()
 }
 
 fn get_len(data: &[Single]) -> usize {
