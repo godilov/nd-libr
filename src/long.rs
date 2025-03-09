@@ -1,6 +1,9 @@
-#![allow(arithmetic_overflow, clippy::manual_div_ceil)]
+#![allow(clippy::manual_div_ceil)]
 
-use self::digit::{Double, Single};
+use self::{
+    digit::{Double, Single},
+    radix::RADIX,
+};
 use crate::num::Sign;
 use std::str::FromStr;
 use thiserror::Error;
@@ -30,10 +33,12 @@ mod digit {
     pub(super) type Single = u64;
     pub(super) type Double = u128;
 
-    pub(super) const OCT_MAX: Single = 1 << 63;
+    pub(super) const OCT_MAX: Single = (1 << 63) - 1;
+    pub(super) const OCT_RADIX: Double = 1 << 63;
     pub(super) const OCT_WIDTH: u8 = 21;
 
-    pub(super) const DEC_MAX: Single = 10_000_000_000_000_000_000;
+    pub(super) const DEC_MAX: Single = 9_999_999_999_999_999_999;
+    pub(super) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 19;
 }
 
@@ -42,10 +47,12 @@ mod digit {
     pub(super) type Single = u32;
     pub(super) type Double = u64;
 
-    pub(super) const OCT_MAX: Single = 1 << 30;
+    pub(super) const OCT_MAX: Single = (1 << 30) - 1;
+    pub(super) const OCT_RADIX: Double = 1 << 30;
     pub(super) const OCT_WIDTH: u8 = 10;
 
-    pub(super) const DEC_MAX: Single = 1_000_000_000;
+    pub(super) const DEC_MAX: Single = 999_999_999;
+    pub(super) const DEC_RADIX: Double = 1_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 9;
 }
 
@@ -54,60 +61,61 @@ mod digit {
     pub(super) type Single = u8;
     pub(super) type Double = u16;
 
-    pub(super) const OCT_MAX: Single = 1 << 6;
+    pub(super) const OCT_MAX: Single = (1 << 6) - 1;
+    pub(super) const OCT_RADIX: Double = 1 << 6;
     pub(super) const OCT_WIDTH: u8 = 2;
 
-    pub(super) const DEC_MAX: Single = 100;
+    pub(super) const DEC_MAX: Single = 99;
+    pub(super) const DEC_RADIX: Double = 100;
     pub(super) const DEC_WIDTH: u8 = 2;
 }
 
+#[macro_export]
 macro_rules! signed_fixed {
-    (@bits $bits:expr) => {
-        SignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
-    };
-    (@bytes $bytes:expr) => {
-        signed_fixed(@bits 8 * $bytes)
+    ($dataits:expr) => {
+        SignedFixed<{ (($dataits + Single::BITS - 1) / Single::BITS) as usize }>
     };
 }
 
+#[macro_export]
 macro_rules! unsigned_fixed {
-    (@bits $bits:expr) => {
-        UnsignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
-    };
-    (@bytes $bytes:expr) => {
-        signed_fixed(@bits 8 * $bytes)
+    ($dataits:expr) => {
+        UnsignedFixed<{ (($dataits + Single::BITS - 1) / Single::BITS) as usize }>
     };
 }
 
-pub type S128 = signed_fixed!(@bits 128);
-pub type S192 = signed_fixed!(@bits 192);
-pub type S256 = signed_fixed!(@bits 256);
-pub type S384 = signed_fixed!(@bits 384);
-pub type S512 = signed_fixed!(@bits 512);
-pub type S1024 = signed_fixed!(@bits 1024);
-pub type S2048 = signed_fixed!(@bits 2048);
-pub type S3072 = signed_fixed!(@bits 3072);
-pub type S4096 = signed_fixed!(@bits 4096);
+pub type S128 = signed_fixed!(128);
+pub type S192 = signed_fixed!(192);
+pub type S256 = signed_fixed!(256);
+pub type S384 = signed_fixed!(384);
+pub type S512 = signed_fixed!(512);
+pub type S1024 = signed_fixed!(1024);
+pub type S2048 = signed_fixed!(2048);
+pub type S3072 = signed_fixed!(3072);
+pub type S4096 = signed_fixed!(4096);
 
-pub type U128 = unsigned_fixed!(@bits 128);
-pub type U192 = unsigned_fixed!(@bits 192);
-pub type U256 = unsigned_fixed!(@bits 256);
-pub type U384 = unsigned_fixed!(@bits 384);
-pub type U512 = unsigned_fixed!(@bits 512);
-pub type U1024 = unsigned_fixed!(@bits 1024);
-pub type U2048 = unsigned_fixed!(@bits 2048);
-pub type U3072 = unsigned_fixed!(@bits 3072);
-pub type U4096 = unsigned_fixed!(@bits 4096);
+pub type U128 = unsigned_fixed!(128);
+pub type U192 = unsigned_fixed!(192);
+pub type U256 = unsigned_fixed!(256);
+pub type U384 = unsigned_fixed!(384);
+pub type U512 = unsigned_fixed!(512);
+pub type U1024 = unsigned_fixed!(1024);
+pub type U2048 = unsigned_fixed!(2048);
+pub type U3072 = unsigned_fixed!(3072);
+pub type U4096 = unsigned_fixed!(4096);
 
 #[allow(unused)]
 mod radix {
     use super::{
-        Single, TryFromRadixError,
-        digit::{DEC_MAX, DEC_WIDTH, OCT_MAX, OCT_WIDTH},
+        Double, Single, TryFromRadixError,
+        digit::{DEC_MAX, DEC_RADIX, DEC_WIDTH, OCT_MAX, OCT_RADIX, OCT_WIDTH},
     };
+
+    pub(super) const RADIX: Double = (1 as Double) << Single::BITS;
 
     pub trait Constants {
         const MAX: Single = Single::MAX;
+        const RADIX: Double = (1 as Double) << Single::BITS;
         const WIDTH: u8;
         const PREFIX: &str;
         const ALPHABET: &str;
@@ -117,15 +125,8 @@ mod radix {
     pub struct Oct;
     pub struct Dec;
     pub struct Hex;
-    pub struct Radix {
-        pub max: Single,
-        pub width: u8,
-        pub prefix: &'static str,
-        pub alphabet: &'static str,
-    }
 
     impl Constants for Bin {
-        const MAX: Single = Single::MAX;
         const WIDTH: u8 = Single::BITS as u8;
         const PREFIX: &str = "0b";
         const ALPHABET: &str = "01";
@@ -133,6 +134,7 @@ mod radix {
 
     impl Constants for Oct {
         const MAX: Single = OCT_MAX;
+        const RADIX: Double = OCT_RADIX;
         const WIDTH: u8 = OCT_WIDTH;
         const PREFIX: &str = "0o";
         const ALPHABET: &str = "01234567";
@@ -140,50 +142,16 @@ mod radix {
 
     impl Constants for Dec {
         const MAX: Single = DEC_MAX;
+        const RADIX: Double = DEC_RADIX;
         const WIDTH: u8 = DEC_WIDTH;
         const PREFIX: &str = "";
         const ALPHABET: &str = "0123456789";
     }
 
     impl Constants for Hex {
-        const MAX: Single = Single::MAX;
         const WIDTH: u8 = Single::BITS as u8 / 4;
         const PREFIX: &str = "0x";
         const ALPHABET: &str = "0123456789ABCDEF";
-    }
-
-    impl TryFrom<u8> for Radix {
-        type Error = TryFromRadixError;
-
-        fn try_from(value: u8) -> Result<Self, Self::Error> {
-            match value {
-                | 2 => Ok(Self {
-                    max: Bin::MAX,
-                    width: Bin::WIDTH,
-                    prefix: Bin::PREFIX,
-                    alphabet: Bin::ALPHABET,
-                }),
-                | 8 => Ok(Self {
-                    max: Oct::MAX,
-                    width: Oct::WIDTH,
-                    prefix: Oct::PREFIX,
-                    alphabet: Oct::ALPHABET,
-                }),
-                | 10 => Ok(Self {
-                    max: Dec::MAX,
-                    width: Dec::WIDTH,
-                    prefix: Dec::PREFIX,
-                    alphabet: Dec::ALPHABET,
-                }),
-                | 16 => Ok(Self {
-                    max: Hex::MAX,
-                    width: Hex::WIDTH,
-                    prefix: Hex::PREFIX,
-                    alphabet: Hex::ALPHABET,
-                }),
-                | _ => Err(TryFromRadixError::InvalidRadix(value)),
-            }
-        }
     }
 }
 
@@ -250,7 +218,7 @@ macro_rules! from_impl_long {
                 while val > 0 {
                     data[len] = val as Single;
                     len += 1;
-                    val >>= Single::BITS;
+                    val = val.checked_shr(Single::BITS).unwrap_or(0);
                 }
 
                 data.truncate(len);
@@ -282,7 +250,7 @@ macro_rules! from_impl_fixed {
                 while val > 0 {
                     data[len] = val as Single;
                     len += 1;
-                    val >>= Single::BITS;
+                    val = val.checked_shr(Single::BITS).unwrap_or(0);
                 }
 
                 Self { $(sign: if value > 0 { $pos } else { $neg },)? data, len }
@@ -303,8 +271,8 @@ from_impl_fixed!(
     [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
 );
 
-from_impl_long!(UnsignedLong, [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
-from_impl_fixed!(UnsignedFixed, [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
+from_impl_long!(UnsignedLong, [u8, u16, u32, u64, u128, usize]);
+from_impl_fixed!(UnsignedFixed, [u8, u16, u32, u64, u128, usize]);
 
 impl FromStr for SignedLong {
     type Err = TryFromStrError;
@@ -384,7 +352,7 @@ impl UnsignedLong {
 }
 
 impl<const L: usize> SignedFixed<L> {
-    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
+    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
         let (data, len) = from_slice_fixed(slice)?;
         let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
 
@@ -405,7 +373,7 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
+    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
         let (data, len) = from_slice_fixed(slice)?;
 
         Ok(Self { data, len })
@@ -472,6 +440,12 @@ fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
     let s = s.as_bytes();
     let (s, sign) = get_sign(s)?;
     let (s, radix) = get_radix(s)?;
+
+    // TODO: Proper non-pow-2 parsing
+    if radix & (radix - 1) > 0 {
+        return Err(TryFromRadixError::InvalidRadix(radix).into());
+    }
+
     let vals = get_values(s, radix)?;
 
     let sbits = Single::BITS as usize;
@@ -479,23 +453,20 @@ fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
     let len = (s.len() * rbits + sbits - 1) / sbits;
 
     let mut acc = 0 as Double;
-    let mut mul = 1 as Double;
-    let mut idx = 0;
+    let mut pow = 1 as Double;
     let mut res = vec![0; len];
+    let mut idx = 0;
 
     for &val in vals.iter().rev() {
-        acc += mul * val as Double;
-        mul *= radix as Double;
+        acc += pow * val as Double;
+        pow *= radix as Double;
 
-        if acc > Single::MAX as Double {
-            let div = acc / Single::MAX as Double;
-            let rem = acc % Single::MAX as Double;
-
-            acc = div;
-            mul = 1;
-
-            res[idx] = rem as Single;
+        if pow >= RADIX {
+            res[idx] = (acc % RADIX) as Single;
             idx += 1;
+
+            acc /= RADIX;
+            pow >>= Single::BITS;
         }
     }
 
@@ -516,36 +487,41 @@ fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usi
     let s = s.as_bytes();
     let (s, sign) = get_sign(s)?;
     let (s, radix) = get_radix(s)?;
+
+    // TODO: Proper non-pow-2 parsing
+    if radix & (radix - 1) > 0 {
+        return Err(TryFromRadixError::InvalidRadix(radix).into());
+    }
+
     let vals = get_values(s, radix)?;
 
     let mut acc = 0 as Double;
-    let mut mul = 1 as Double;
-    let mut idx = 0;
+    let mut pow = 1 as Double;
     let mut res = [0; L];
+    let mut idx = 0;
 
     for &val in vals.iter().rev() {
-        acc += mul * val as Double;
-        mul *= radix as Double;
+        acc += pow * val as Double;
+        pow *= radix as Double;
 
-        if acc > Single::MAX as Double {
-            if idx == L {
+        if pow >= RADIX {
+            if idx == L && acc > 0 {
                 return Err(TryFromStrError::ExceedLength { len: idx + 1, max: L });
             }
 
-            let div = acc / Single::MAX as Double;
-            let rem = acc % Single::MAX as Double;
+            if idx < L {
+                res[idx] = (acc % RADIX) as Single;
+                idx += 1;
+            }
 
-            acc = div;
-            mul = 1;
-
-            res[idx] = rem as Single;
-            idx += 1;
+            acc /= RADIX;
+            pow >>= Single::BITS;
         }
     }
 
     if acc > 0 && idx < L {
         res[idx] = acc as Single;
-    } else if idx == L {
+    } else if acc > 0 && idx == L {
         return Err(TryFromStrError::ExceedLength { len: idx + 1, max: L });
     }
 
@@ -658,9 +634,9 @@ fn get_radix(s: &[u8]) -> Result<(&[u8], u8), TryFromStrError> {
     }
 
     let val = match &s[..2] {
-        | b"0x" | b"0X" => (&s[..2], 16),
-        | b"0o" | b"0O" => (&s[..2], 8),
-        | b"0b" | b"0B" => (&s[..2], 2),
+        | b"0x" | b"0X" => (&s[2..], 16),
+        | b"0o" | b"0O" => (&s[2..], 8),
+        | b"0b" | b"0B" => (&s[2..], 2),
         | _ => (s, 10),
     };
 
@@ -669,11 +645,269 @@ fn get_radix(s: &[u8]) -> Result<(&[u8], u8), TryFromStrError> {
 
 fn get_values(s: &[u8], radix: u8) -> Result<Vec<u8>, TryFromStrError> {
     s.iter()
-        .map(|&ch| match ch {
-            | b'0'..=b'9' if ch - b'0' < radix => Ok(ch - b'0'),
-            | b'a'..=b'f' if ch - b'a' + 10 < radix => Ok(ch - b'a' + 10),
-            | b'A'..=b'F' if ch - b'A' + 10 < radix => Ok(ch - b'A' + 10),
-            | _ => Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix }),
+        .filter_map(|&ch| match ch {
+            | b'0'..=b'9' if ch - b'0' < radix => Some(Ok(ch - b'0')),
+            | b'a'..=b'f' if ch - b'a' + 10 < radix => Some(Ok(ch - b'a' + 10)),
+            | b'A'..=b'F' if ch - b'A' + 10 < radix => Some(Ok(ch - b'A' + 10)),
+            | b'_' => None,
+            | _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
         })
         .collect::<Result<Vec<u8>, TryFromStrError>>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type S32 = signed_fixed!(32);
+    type U32 = unsigned_fixed!(32);
+
+    macro_rules! assert_long_from {
+        (@signed $expr:expr, $data:expr, $sign:expr) => {
+            assert_eq!(SignedLong::from($expr), SignedLong { sign: $sign, data: $data });
+        };
+        (@unsigned $expr:expr, $data:expr) => {
+            assert_eq!(UnsignedLong::from($expr), UnsignedLong { data: $data });
+        };
+    }
+
+    macro_rules! assert_fixed_from {
+        (@signed $expr:expr, $data:expr, $len:expr, $sign:expr) => {
+            assert_eq!(
+                S32::from($expr),
+                S32 {
+                    sign: $sign,
+                    data: $data,
+                    len: $len
+                }
+            );
+        };
+        (@unsigned $expr:expr, $data:expr, $len:expr) => {
+            assert_eq!(U32::from($expr), U32 { data: $data, len: $len });
+        };
+    }
+
+    macro_rules! assert_long_from_slice {
+        (@signed $expr:expr, $data:expr, $sign:expr) => {
+            assert_eq!(SignedLong::from_slice($expr), SignedLong { sign: $sign, data: $data });
+        };
+        (@unsigned $expr:expr, $data:expr) => {
+            assert_eq!(UnsignedLong::from_slice($expr), UnsignedLong { data: $data });
+        };
+    }
+
+    macro_rules! assert_fixed_from_slice {
+        (@signed $expr:expr, $data:expr, $len:expr, $sign:expr) => {
+            assert_eq!(
+                S32::try_from_slice($expr),
+                Ok(S32 {
+                    sign: $sign,
+                    data: $data,
+                    len: $len
+                })
+            );
+        };
+        (@unsigned $expr:expr, $data:expr, $len:expr) => {
+            assert_eq!(U32::try_from_slice($expr), Ok(U32 { data: $data, len: $len }));
+        };
+    }
+
+    macro_rules! assert_long_from_str {
+        (@signed $expr:expr, $data:expr, $sign:expr) => {
+            assert_eq!(SignedLong::from_str($expr), Ok(SignedLong { sign: $sign, data: $data }));
+        };
+        (@unsigned $expr:expr, $data:expr) => {
+            assert_eq!(UnsignedLong::from_str($expr), Ok(UnsignedLong { data: $data }));
+        };
+    }
+
+    macro_rules! assert_fixed_from_str {
+        (@signed $expr:expr, $data:expr, $len:expr, $sign:expr) => {
+            assert_eq!(
+                S32::from_str($expr),
+                Ok(S32 {
+                    sign: $sign,
+                    data: $data,
+                    len: $len
+                })
+            );
+        };
+        (@unsigned $expr:expr, $data:expr, $len:expr) => {
+            assert_eq!(U32::from_str($expr), Ok(U32 { data: $data, len: $len }));
+        };
+    }
+
+    #[test]
+    fn from_std_long() {
+        assert_eq!(SignedLong::from(0_i8), SignedLong::default());
+        assert_eq!(SignedLong::from(0_i16), SignedLong::default());
+        assert_eq!(SignedLong::from(0_i32), SignedLong::default());
+        assert_eq!(SignedLong::from(0_i64), SignedLong::default());
+        assert_eq!(SignedLong::from(0_i128), SignedLong::default());
+
+        assert_eq!(UnsignedLong::from(0_u8), UnsignedLong::default());
+        assert_eq!(UnsignedLong::from(0_u16), UnsignedLong::default());
+        assert_eq!(UnsignedLong::from(0_u32), UnsignedLong::default());
+        assert_eq!(UnsignedLong::from(0_u64), UnsignedLong::default());
+        assert_eq!(UnsignedLong::from(0_u128), UnsignedLong::default());
+
+        assert_long_from!(@signed 0xFF_i32, vec![255], Sign::POS);
+        assert_long_from!(@signed -0xFF_i32, vec![255], Sign::NEG);
+        assert_long_from!(@unsigned 0xFF_u32, vec![255]);
+
+        assert_long_from!(@signed 0x10000000_i32, vec![0, 0, 0, 16], Sign::POS);
+        assert_long_from!(@signed -0x10000000_i32, vec![0, 0, 0, 16], Sign::NEG);
+        assert_long_from!(@unsigned 0x10000000_u32, vec![0, 0, 0, 16]);
+
+        assert_long_from!(@signed 0xFEDCBA9_i32, vec![169, 203, 237, 15], Sign::POS);
+        assert_long_from!(@signed -0xFEDCBA9_i32, vec![169, 203, 237, 15], Sign::NEG);
+        assert_long_from!(@unsigned 0xFEDCBA9_u32, vec![169, 203, 237, 15]);
+    }
+
+    #[test]
+    fn from_std_fixed() {
+        assert_eq!(S32::from(0_i8), S32::default());
+        assert_eq!(S32::from(0_i16), S32::default());
+        assert_eq!(S32::from(0_i32), S32::default());
+        assert_eq!(S32::from(0_i64), S32::default());
+        assert_eq!(S32::from(0_i128), S32::default());
+
+        assert_eq!(U32::from(0_u8), U32::default());
+        assert_eq!(U32::from(0_u16), U32::default());
+        assert_eq!(U32::from(0_u32), U32::default());
+        assert_eq!(U32::from(0_u64), U32::default());
+        assert_eq!(U32::from(0_u128), U32::default());
+
+        assert_fixed_from!(@signed 0xFF_i32, [255, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from!(@signed -0xFF_i32, [255, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from!(@unsigned 0xFF_u32, [255, 0, 0, 0], 1);
+
+        assert_fixed_from!(@signed 0x10000000_i32, [0, 0, 0, 16], 4, Sign::POS);
+        assert_fixed_from!(@signed -0x10000000_i32, [0, 0, 0, 16], 4, Sign::NEG);
+        assert_fixed_from!(@unsigned 0x10000000_u32, [0, 0, 0, 16], 4);
+
+        assert_fixed_from!(@signed 0xFEDCBA9_i32, [169, 203, 237, 15], 4, Sign::POS);
+        assert_fixed_from!(@signed -0xFEDCBA9_i32, [169, 203, 237, 15], 4, Sign::NEG);
+        assert_fixed_from!(@unsigned 0xFEDCBA9_u32, [169, 203, 237, 15], 4);
+    }
+
+    #[test]
+    fn from_slice_long() {
+        assert_eq!(SignedLong::from_slice(&[]), SignedLong::default());
+        assert_eq!(UnsignedLong::from_slice(&[]), UnsignedLong::default());
+
+        assert_long_from_slice!(@signed &[255, 0, 0, 0], vec![255], Sign::POS);
+        assert_long_from_slice!(@unsigned &[255, 0, 0, 0], vec![255]);
+
+        assert_long_from_slice!(@signed &[0, 0, 0, 16], vec![0, 0, 0, 16], Sign::POS);
+        assert_long_from_slice!(@unsigned &[0, 0, 0, 16], vec![0, 0, 0, 16]);
+
+        assert_long_from_slice!(@signed &[169, 203, 237, 15], vec![169, 203, 237, 15], Sign::POS);
+        assert_long_from_slice!(@unsigned &[169, 203, 237, 15], vec![169, 203, 237, 15]);
+    }
+
+    #[test]
+    fn from_slice_fixed() {
+        assert_eq!(S32::try_from_slice(&[]), Ok(S32::default()));
+        assert_eq!(U32::try_from_slice(&[]), Ok(U32::default()));
+
+        assert_fixed_from_slice!(@signed &[255, 0, 0, 0], [255, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_slice!(@unsigned &[255, 0, 0, 0], [255, 0, 0, 0], 1);
+
+        assert_fixed_from_slice!(@signed &[0, 0, 0, 16], [0, 0, 0, 16], 4, Sign::POS);
+        assert_fixed_from_slice!(@unsigned &[0, 0, 0, 16], [0, 0, 0, 16], 4);
+
+        assert_fixed_from_slice!(@signed &[169, 203, 237, 15], [169, 203, 237, 15], 4, Sign::POS);
+        assert_fixed_from_slice!(@unsigned &[169, 203, 237, 15], [169, 203, 237, 15], 4);
+    }
+
+    #[test]
+    fn from_str_long() {
+        // assert_eq!(SignedLong::from_str("0"), Ok(SignedLong::default()));
+        assert_eq!(SignedLong::from_str("0b0"), Ok(SignedLong::default()));
+        assert_eq!(SignedLong::from_str("0o0"), Ok(SignedLong::default()));
+        assert_eq!(SignedLong::from_str("0x0"), Ok(SignedLong::default()));
+
+        // assert_eq!(UnsignedLong::from_str("0"), Ok(UnsignedLong::default()));
+        assert_eq!(UnsignedLong::from_str("0b0"), Ok(UnsignedLong::default()));
+        assert_eq!(UnsignedLong::from_str("0o0"), Ok(UnsignedLong::default()));
+        assert_eq!(UnsignedLong::from_str("0x0"), Ok(UnsignedLong::default()));
+
+        // assert_long_from_str!(@signed "0099", vec![99], Sign::POS);
+        // assert_long_from_str!(@signed "-0099", vec![99], Sign::NEG);
+        // assert_long_from_str!(@unsigned "0099", vec![99]);
+
+        assert_long_from_str!(@signed "0b0011", vec![0b11], Sign::POS);
+        assert_long_from_str!(@signed "-0b0011", vec![0b11], Sign::NEG);
+        assert_long_from_str!(@unsigned "0b0011", vec![0b11]);
+
+        assert_long_from_str!(@signed "0o0077", vec![0o77], Sign::POS);
+        assert_long_from_str!(@signed "-0o0077", vec![0o77], Sign::NEG);
+        assert_long_from_str!(@unsigned "0o0077", vec![0o77]);
+
+        assert_long_from_str!(@signed "0x00FF", vec![0xFF], Sign::POS);
+        assert_long_from_str!(@signed "-0x00FF", vec![0xFF], Sign::NEG);
+        assert_long_from_str!(@unsigned "0x00FF", vec![0xFF]);
+
+        // assert_long_from_str!(@signed "000987654321", vec![177, 104, 222, 58], Sign::POS);
+        // assert_long_from_str!(@signed "-000987654321", vec![177, 104, 222, 58], Sign::NEG);
+        // assert_long_from_str!(@unsigned "000987654321", vec![177, 104, 222, 58]);
+
+        assert_long_from_str!(@signed "0b0000111110101100011010001000", vec![136, 198, 250], Sign::POS);
+        assert_long_from_str!(@signed "-0b0000111110101100011010001000", vec![136, 198, 250], Sign::NEG);
+        assert_long_from_str!(@unsigned "0b0000111110101100011010001000", vec![136, 198, 250]);
+
+        assert_long_from_str!(@signed "0o0076543210", vec![136, 198, 250], Sign::POS);
+        assert_long_from_str!(@signed "-0o0076543210", vec![136, 198, 250], Sign::NEG);
+        assert_long_from_str!(@unsigned "0o0076543210", vec![136, 198, 250]);
+
+        assert_long_from_str!(@signed "0x000FEDCBA9", vec![169, 203, 237, 15], Sign::POS);
+        assert_long_from_str!(@signed "-0x000FEDCBA9", vec![169, 203, 237, 15], Sign::NEG);
+        assert_long_from_str!(@unsigned "0x000FEDCBA9", vec![169, 203, 237, 15]);
+    }
+
+    #[test]
+    fn from_str_fixed() {
+        // assert_eq!(S32::from_str("0"), Ok(S32::default()));
+        assert_eq!(S32::from_str("0b0"), Ok(S32::default()));
+        assert_eq!(S32::from_str("0o0"), Ok(S32::default()));
+        assert_eq!(S32::from_str("0x0"), Ok(S32::default()));
+
+        // assert_eq!(U32::from_str("0"), Ok(U32::default()));
+        assert_eq!(U32::from_str("0b0"), Ok(U32::default()));
+        assert_eq!(U32::from_str("0o0"), Ok(U32::default()));
+        assert_eq!(U32::from_str("0x0"), Ok(U32::default()));
+
+        // assert_fixed_from_str!(@signed "0099", [99, 0, 0, 0], 1, Sign::POS);
+        // assert_fixed_from_str!(@signed "-0099", [99, 0, 0, 0], 1, Sign::NEG);
+        // assert_fixed_from_str!(@unsigned "0099", [99, 0, 0, 0], 1);
+
+        assert_fixed_from_str!(@signed "0b0011", [0b11, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_str!(@signed "-0b0011", [0b11, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0b0011", [0b11, 0, 0, 0], 1);
+
+        assert_fixed_from_str!(@signed "0o0077", [0o77, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_str!(@signed "-0o0077", [0o77, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0o0077", [0o77, 0, 0, 0], 1);
+
+        assert_fixed_from_str!(@signed "0x00FF", [0xFF, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_str!(@signed "-0x00FF", [0xFF, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0x00FF", [0xFF, 0, 0, 0], 1);
+
+        // assert_fixed_from_str!(@signed "000987654321", [177, 104, 222, 58], 4, Sign::POS);
+        // assert_fixed_from_str!(@signed "-000987654321", [177, 104, 222, 58], 4, Sign::NEG);
+        // assert_fixed_from_str!(@unsigned "000987654321", [177, 104, 222, 58], 4);
+
+        assert_fixed_from_str!(@signed "0b0000111110101100011010001000", [136, 198, 250, 0], 3, Sign::POS);
+        assert_fixed_from_str!(@signed "-0b0000111110101100011010001000", [136, 198, 250, 0], 3, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0b0000111110101100011010001000", [136, 198, 250, 0], 3);
+
+        assert_fixed_from_str!(@signed "0o0076543210", [136, 198, 250, 0], 3, Sign::POS);
+        assert_fixed_from_str!(@signed "-0o0076543210", [136, 198, 250, 0], 3, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0o0076543210", [136, 198, 250, 0], 3);
+
+        assert_fixed_from_str!(@signed "0x000FEDCBA9", [169, 203, 237, 15], 4, Sign::POS);
+        assert_fixed_from_str!(@signed "-0x000FEDCBA9", [169, 203, 237, 15], 4, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0x000FEDCBA9", [169, 203, 237, 15], 4);
+    }
 }
