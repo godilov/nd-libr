@@ -1,108 +1,112 @@
+#![allow(arithmetic_overflow, clippy::manual_div_ceil)]
+
 use self::digit::{Double, Single};
 use crate::num::Sign;
 use std::str::FromStr;
 use thiserror::Error;
 
-pub use self::fixed::{
-    S128, S192, S256, S384, S512, S1024, S2048, S3072, S4096, U128, U192, U256, U384, U512, U1024, U2048, U3072, U4096,
-};
-
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TryFromBytesError {
-    #[error("Exceeded maximum length of {max} with {len}")]
-    ExceedLength { len: usize, max: usize },
+pub enum TryFromRadixError {
+    #[error("Found invalid radix `{0}`")]
+    InvalidRadix(u8),
 }
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryFromStrError {
-    #[error("Found empty during parsing from String")]
-    Empty,
-    #[error("Found negative number during parsing of Unsigned from String")]
+    #[error("Exceeded maximum length of {max} with {len}")]
+    ExceedLength { len: usize, max: usize },
+    #[error("Found empty during parsing from string")]
+    InvalidLength,
+    #[error(transparent)]
+    InvalidRadix(#[from] TryFromRadixError),
+    #[error("Found invalid symbol `{ch}` during parsing from string of radix `{radix}`")]
+    InvalidSymbol { ch: char, radix: u8 },
+    #[error("Found negative number during parsing from string for unsigned")]
     UnsignedNegative,
 }
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(all(target_pointer_width = "64", not(test)))]
+mod digit {
+    pub(super) type Single = u64;
+    pub(super) type Double = u128;
+
+    pub(super) const OCT_MAX: Single = 1 << 63;
+    pub(super) const OCT_WIDTH: u8 = 21;
+
+    pub(super) const DEC_MAX: Single = 10_000_000_000_000_000_000;
+    pub(super) const DEC_WIDTH: u8 = 19;
+}
+
+#[cfg(all(target_pointer_width = "32", not(test)))]
 mod digit {
     pub(super) type Single = u32;
     pub(super) type Double = u64;
 
-    pub(super) const DEC_MAX: Single = 1_000_000_000;
-    pub(super) const DEC_WIDTH: u8 = 9;
-
     pub(super) const OCT_MAX: Single = 1 << 30;
     pub(super) const OCT_WIDTH: u8 = 10;
+
+    pub(super) const DEC_MAX: Single = 1_000_000_000;
+    pub(super) const DEC_WIDTH: u8 = 9;
 }
 
-#[cfg(target_pointer_width = "64")]
-mod fixed {
-    use super::{SignedFixed, UnsignedFixed};
-
-    pub type S128 = SignedFixed<4>;
-    pub type S192 = SignedFixed<6>;
-    pub type S256 = SignedFixed<8>;
-    pub type S384 = SignedFixed<12>;
-    pub type S512 = SignedFixed<16>;
-    pub type S1024 = SignedFixed<32>;
-    pub type S2048 = SignedFixed<64>;
-    pub type S3072 = SignedFixed<96>;
-    pub type S4096 = SignedFixed<128>;
-
-    pub type U128 = UnsignedFixed<4>;
-    pub type U192 = UnsignedFixed<6>;
-    pub type U256 = UnsignedFixed<8>;
-    pub type U384 = UnsignedFixed<12>;
-    pub type U512 = UnsignedFixed<16>;
-    pub type U1024 = UnsignedFixed<32>;
-    pub type U2048 = UnsignedFixed<64>;
-    pub type U3072 = UnsignedFixed<96>;
-    pub type U4096 = UnsignedFixed<128>;
-}
-
-#[cfg(target_pointer_width = "32")]
+#[cfg(test)]
 mod digit {
-    pub(super) type Single = u16;
-    pub(super) type Double = u32;
+    pub(super) type Single = u8;
+    pub(super) type Double = u16;
 
-    pub(super) const DEC_MAX: Single = 10_000;
-    pub(super) const DEC_WIDTH: u8 = 4;
+    pub(super) const OCT_MAX: Single = 1 << 6;
+    pub(super) const OCT_WIDTH: u8 = 2;
 
-    pub(super) const OCT_MAX: Single = 1 << 15;
-    pub(super) const OCT_WIDTH: u8 = 5;
+    pub(super) const DEC_MAX: Single = 100;
+    pub(super) const DEC_WIDTH: u8 = 2;
 }
 
-#[cfg(target_pointer_width = "32")]
-mod fixed {
-    use super::{SignedFixed, UnsignedFixed};
-
-    pub type S128 = SignedFixed<8>;
-    pub type S192 = SignedFixed<12>;
-    pub type S256 = SignedFixed<16>;
-    pub type S384 = SignedFixed<24>;
-    pub type S512 = SignedFixed<32>;
-    pub type S1024 = SignedFixed<64>;
-    pub type S2048 = SignedFixed<128>;
-    pub type S3072 = SignedFixed<192>;
-    pub type S4096 = SignedFixed<256>;
-
-    pub type U128 = UnsignedFixed<8>;
-    pub type U192 = UnsignedFixed<12>;
-    pub type U256 = UnsignedFixed<16>;
-    pub type U384 = UnsignedFixed<24>;
-    pub type U512 = UnsignedFixed<32>;
-    pub type U1024 = UnsignedFixed<64>;
-    pub type U2048 = UnsignedFixed<128>;
-    pub type U3072 = UnsignedFixed<192>;
-    pub type U4096 = UnsignedFixed<256>;
+macro_rules! signed_fixed {
+    (@bits $bits:expr) => {
+        SignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
+    };
+    (@bytes $bytes:expr) => {
+        signed_fixed(@bits 8 * $bytes)
+    };
 }
+
+macro_rules! unsigned_fixed {
+    (@bits $bits:expr) => {
+        UnsignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
+    };
+    (@bytes $bytes:expr) => {
+        signed_fixed(@bits 8 * $bytes)
+    };
+}
+
+pub type S128 = signed_fixed!(@bits 128);
+pub type S192 = signed_fixed!(@bits 192);
+pub type S256 = signed_fixed!(@bits 256);
+pub type S384 = signed_fixed!(@bits 384);
+pub type S512 = signed_fixed!(@bits 512);
+pub type S1024 = signed_fixed!(@bits 1024);
+pub type S2048 = signed_fixed!(@bits 2048);
+pub type S3072 = signed_fixed!(@bits 3072);
+pub type S4096 = signed_fixed!(@bits 4096);
+
+pub type U128 = unsigned_fixed!(@bits 128);
+pub type U192 = unsigned_fixed!(@bits 192);
+pub type U256 = unsigned_fixed!(@bits 256);
+pub type U384 = unsigned_fixed!(@bits 384);
+pub type U512 = unsigned_fixed!(@bits 512);
+pub type U1024 = unsigned_fixed!(@bits 1024);
+pub type U2048 = unsigned_fixed!(@bits 2048);
+pub type U3072 = unsigned_fixed!(@bits 3072);
+pub type U4096 = unsigned_fixed!(@bits 4096);
 
 #[allow(unused)]
 mod radix {
     use super::{
-        Single,
+        Single, TryFromRadixError,
         digit::{DEC_MAX, DEC_WIDTH, OCT_MAX, OCT_WIDTH},
     };
 
-    pub trait Radix {
+    pub trait Constants {
         const MAX: Single = Single::MAX;
         const WIDTH: u8;
         const PREFIX: &str;
@@ -113,33 +117,73 @@ mod radix {
     pub struct Oct;
     pub struct Dec;
     pub struct Hex;
+    pub struct Radix {
+        pub max: Single,
+        pub width: u8,
+        pub prefix: &'static str,
+        pub alphabet: &'static str,
+    }
 
-    impl Radix for Bin {
+    impl Constants for Bin {
         const MAX: Single = Single::MAX;
         const WIDTH: u8 = Single::BITS as u8;
         const PREFIX: &str = "0b";
         const ALPHABET: &str = "01";
     }
 
-    impl Radix for Oct {
+    impl Constants for Oct {
         const MAX: Single = OCT_MAX;
         const WIDTH: u8 = OCT_WIDTH;
         const PREFIX: &str = "0o";
         const ALPHABET: &str = "01234567";
     }
 
-    impl Radix for Dec {
+    impl Constants for Dec {
         const MAX: Single = DEC_MAX;
         const WIDTH: u8 = DEC_WIDTH;
         const PREFIX: &str = "";
         const ALPHABET: &str = "0123456789";
     }
 
-    impl Radix for Hex {
+    impl Constants for Hex {
         const MAX: Single = Single::MAX;
         const WIDTH: u8 = Single::BITS as u8 / 4;
         const PREFIX: &str = "0x";
         const ALPHABET: &str = "0123456789ABCDEF";
+    }
+
+    impl TryFrom<u8> for Radix {
+        type Error = TryFromRadixError;
+
+        fn try_from(value: u8) -> Result<Self, Self::Error> {
+            match value {
+                | 2 => Ok(Self {
+                    max: Bin::MAX,
+                    width: Bin::WIDTH,
+                    prefix: Bin::PREFIX,
+                    alphabet: Bin::ALPHABET,
+                }),
+                | 8 => Ok(Self {
+                    max: Oct::MAX,
+                    width: Oct::WIDTH,
+                    prefix: Oct::PREFIX,
+                    alphabet: Oct::ALPHABET,
+                }),
+                | 10 => Ok(Self {
+                    max: Dec::MAX,
+                    width: Dec::WIDTH,
+                    prefix: Dec::PREFIX,
+                    alphabet: Dec::ALPHABET,
+                }),
+                | 16 => Ok(Self {
+                    max: Hex::MAX,
+                    width: Hex::WIDTH,
+                    prefix: Hex::PREFIX,
+                    alphabet: Hex::ALPHABET,
+                }),
+                | _ => Err(TryFromRadixError::InvalidRadix(value)),
+            }
+        }
     }
 }
 
@@ -192,7 +236,6 @@ macro_rules! from_impl_long {
     };
     ($type:ident, $from:ty $(, $pos:expr, $neg:expr)?) => {
         impl From<$from> for $type {
-            #[allow(arithmetic_overflow, clippy::manual_div_ceil)]
             fn from(value: $from) -> Self {
                 const LEN: usize = ((<$from>::BITS + Single::BITS - 1) / Single::BITS) as usize;
 
@@ -227,7 +270,6 @@ macro_rules! from_impl_fixed {
     };
     ($type:ident, $from:ty $(, $pos:expr, $neg:expr)?) => {
         impl<const L: usize> From<$from> for $type<L> {
-            #[allow(arithmetic_overflow)]
             fn from(value: $from) -> Self {
                 if value == 0 {
                     return Default::default();
@@ -342,7 +384,7 @@ impl UnsignedLong {
 }
 
 impl<const L: usize> SignedFixed<L> {
-    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromBytesError> {
+    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
         let (data, len) = from_slice_fixed(slice)?;
         let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
 
@@ -363,7 +405,7 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromBytesError> {
+    pub fn from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
         let (data, len) = from_slice_fixed(slice)?;
 
         Ok(Self { data, len })
@@ -382,7 +424,6 @@ impl<const L: usize> UnsignedFixed<L> {
     }
 }
 
-#[allow(clippy::manual_div_ceil)]
 fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
@@ -404,13 +445,12 @@ fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     res
 }
 
-#[allow(clippy::manual_div_ceil)]
-fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromBytesError> {
+fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromStrError> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
     let len = (slice.len() + RATIO - 1) / RATIO;
     if len > L {
-        return Err(TryFromBytesError::ExceedLength { len, max: L });
+        return Err(TryFromStrError::ExceedLength { len, max: L });
     }
 
     let chunks = slice.chunks(RATIO).enumerate();
@@ -432,16 +472,88 @@ fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
     let s = s.as_bytes();
     let (s, sign) = get_sign(s)?;
     let (s, radix) = get_radix(s)?;
+    let vals = get_values(s, radix)?;
 
-    todo!()
+    let sbits = Single::BITS as usize;
+    let rbits = (2 * radix - 1).ilog2() as usize;
+    let len = (s.len() * rbits + sbits - 1) / sbits;
+
+    let mut acc = 0 as Double;
+    let mut mul = 1 as Double;
+    let mut idx = 0;
+    let mut res = vec![0; len];
+
+    for &val in vals.iter().rev() {
+        acc += mul * val as Double;
+        mul *= radix as Double;
+
+        if acc > Single::MAX as Double {
+            let div = acc / Single::MAX as Double;
+            let rem = acc % Single::MAX as Double;
+
+            acc = div;
+            mul = 1;
+
+            res[idx] = rem as Single;
+            idx += 1;
+        }
+    }
+
+    if acc > 0 {
+        res[idx] = acc as Single;
+    }
+
+    let len = get_len(&res);
+
+    res.truncate(len);
+
+    let sign = if res.is_empty() { Sign::ZERO } else { sign };
+
+    Ok((sign, res))
 }
 
 fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usize), TryFromStrError> {
     let s = s.as_bytes();
     let (s, sign) = get_sign(s)?;
     let (s, radix) = get_radix(s)?;
+    let vals = get_values(s, radix)?;
 
-    todo!()
+    let mut acc = 0 as Double;
+    let mut mul = 1 as Double;
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for &val in vals.iter().rev() {
+        acc += mul * val as Double;
+        mul *= radix as Double;
+
+        if acc > Single::MAX as Double {
+            if idx == L {
+                return Err(TryFromStrError::ExceedLength { len: idx + 1, max: L });
+            }
+
+            let div = acc / Single::MAX as Double;
+            let rem = acc % Single::MAX as Double;
+
+            acc = div;
+            mul = 1;
+
+            res[idx] = rem as Single;
+            idx += 1;
+        }
+    }
+
+    if acc > 0 && idx < L {
+        res[idx] = acc as Single;
+    } else if idx == L {
+        return Err(TryFromStrError::ExceedLength { len: idx + 1, max: L });
+    }
+
+    let len = get_len(&res);
+
+    let sign = if len == 0 { Sign::ZERO } else { sign };
+
+    Ok((sign, res, len))
 }
 
 struct IntoRadixLongIter {
@@ -524,7 +636,7 @@ fn get_len(data: &[Single]) -> usize {
 
 fn get_sign(s: &[u8]) -> Result<(&[u8], Sign), TryFromStrError> {
     if s.is_empty() {
-        return Err(TryFromStrError::Empty);
+        return Err(TryFromStrError::InvalidLength);
     }
 
     let val = match s[0] {
@@ -538,7 +650,7 @@ fn get_sign(s: &[u8]) -> Result<(&[u8], Sign), TryFromStrError> {
 
 fn get_radix(s: &[u8]) -> Result<(&[u8], u8), TryFromStrError> {
     if s.is_empty() {
-        return Err(TryFromStrError::Empty);
+        return Err(TryFromStrError::InvalidLength);
     }
 
     if s.len() < 2 {
@@ -553,4 +665,15 @@ fn get_radix(s: &[u8]) -> Result<(&[u8], u8), TryFromStrError> {
     };
 
     Ok(val)
+}
+
+fn get_values(s: &[u8], radix: u8) -> Result<Vec<u8>, TryFromStrError> {
+    s.iter()
+        .map(|&ch| match ch {
+            | b'0'..=b'9' if ch - b'0' < radix => Ok(ch - b'0'),
+            | b'a'..=b'f' if ch - b'a' + 10 < radix => Ok(ch - b'a' + 10),
+            | b'A'..=b'F' if ch - b'A' + 10 < radix => Ok(ch - b'A' + 10),
+            | _ => Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix }),
+        })
+        .collect::<Result<Vec<u8>, TryFromStrError>>()
 }
