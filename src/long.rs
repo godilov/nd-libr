@@ -11,8 +11,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryFromStrError {
-    #[error("Exceeded maximum length of {max} with {len}")]
-    ExceedLength { len: usize, max: usize },
     #[error("Found empty during parsing from string")]
     InvalidLength,
     #[error("Found invalid symbol `{ch}` during parsing from string of radix `{radix}`")]
@@ -21,8 +19,12 @@ pub enum TryFromStrError {
     UnsignedNegative,
     #[error(transparent)]
     FromDigits(#[from] TryFromDigitsError),
-    #[error(transparent)]
-    FromRadix(#[from] RadixError),
+}
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TryFromSliceError {
+    #[error("Exceeded maximum length of {max} with {len}")]
+    ExceedLength { len: usize, max: usize },
 }
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
@@ -338,6 +340,13 @@ impl SignedLong {
         Self { sign, data }
     }
 
+    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+        let data = try_from_digits_long(digits, radix)?;
+        let sign = if data.is_empty() { Sign::ZERO } else { Sign::POS };
+
+        Ok(Self { sign, data })
+    }
+
     pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
         into_radix(&mut self.data, radix)
     }
@@ -354,6 +363,12 @@ impl UnsignedLong {
         Self { data }
     }
 
+    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+        let data = try_from_digits_long(digits, radix)?;
+
+        Ok(Self { data })
+    }
+
     pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
         into_radix(&mut self.data, radix)
     }
@@ -364,8 +379,15 @@ impl UnsignedLong {
 }
 
 impl<const L: usize> SignedFixed<L> {
-    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
+    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
         let (data, len) = from_slice_fixed(slice)?;
+        let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
+
+        Ok(Self { sign, data, len })
+    }
+
+    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+        let (data, len) = try_from_digits_fixed(digits, radix)?;
         let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
 
         Ok(Self { sign, data, len })
@@ -381,8 +403,14 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromStrError> {
+    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
         let (data, len) = from_slice_fixed(slice)?;
+
+        Ok(Self { data, len })
+    }
+
+    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+        let (data, len) = try_from_digits_fixed(digits, radix)?;
 
         Ok(Self { data, len })
     }
@@ -399,16 +427,12 @@ impl<const L: usize> UnsignedFixed<L> {
 fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
-    let chunks = slice.chunks(RATIO).enumerate();
-
+    let mut shift = 0;
     let mut res = vec![0; (slice.len() + RATIO - 1) / RATIO];
 
-    for (i, chunk) in chunks {
-        let ptr = &mut res[i];
-
-        for (s, &val) in chunk.iter().enumerate() {
-            *ptr |= (val as Single) << (8 * s);
-        }
+    for (i, &byte) in slice.iter().enumerate() {
+        res[i / RATIO] |= (byte as Single) << shift;
+        shift = (shift << u8::BITS) & (Single::BITS - 1);
     }
 
     let len = get_len(&res);
@@ -417,25 +441,21 @@ fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     res
 }
 
-fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromStrError> {
+fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromSliceError> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
     let len = (slice.len() + RATIO - 1) / RATIO;
 
     if len > L {
-        return Err(TryFromStrError::ExceedLength { len, max: L });
+        return Err(TryFromSliceError::ExceedLength { len, max: L });
     }
 
-    let chunks = slice.chunks(RATIO).enumerate();
-
+    let mut shift = 0;
     let mut res = [0; L];
 
-    for (i, chunk) in chunks {
-        let ptr = &mut res[i];
-
-        for (s, &val) in chunk.iter().enumerate() {
-            *ptr |= (val as Single) << (8 * s);
-        }
+    for (i, &byte) in slice.iter().enumerate() {
+        res[i / RATIO] |= (byte as Single) << shift;
+        shift = (shift << u8::BITS) & (Single::BITS - 1);
     }
 
     Ok((res, get_len(&res)))
@@ -636,11 +656,11 @@ fn into_radix_bin(digits: &[Single], radix: u8) -> Result<Vec<u8>, RadixError> {
         return Err(RadixError::Invalid(radix));
     }
 
-    let bitmask = (radix - 1) as Double;
-    let bitshift = radix.ilog2() as Double;
+    let mask = (radix - 1) as Double;
+    let shift = radix.ilog2() as Double;
 
     let sbits = Single::BITS as usize;
-    let rbits = bitshift as usize;
+    let rbits = shift as usize;
     let len = (digits.len() * sbits + rbits - 1) / rbits;
 
     let mut acc = 0;
@@ -650,13 +670,13 @@ fn into_radix_bin(digits: &[Single], radix: u8) -> Result<Vec<u8>, RadixError> {
 
     for &digit in digits {
         acc = (digit << rem) as Double;
-        rem = (rem + sbits as Double) % bitshift;
+        rem = (rem + sbits as Double) % shift;
 
         while acc >= radix as Double {
-            res[idx] = (acc & bitmask) as u8;
+            res[idx] = (acc & mask) as u8;
             idx += 1;
 
-            acc >>= bitshift;
+            acc >>= shift;
         }
     }
 
