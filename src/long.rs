@@ -22,7 +22,7 @@ pub enum TryFromStrError {
     #[error(transparent)]
     FromDigits(#[from] TryFromDigitsError),
     #[error(transparent)]
-    FromRadix(#[from] TryFromRadixError),
+    FromRadix(#[from] RadixError),
 }
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,13 +30,13 @@ pub enum TryFromDigitsError {
     #[error("Exceeded maximum length of {max} with {len}")]
     ExceedLength { len: usize, max: usize },
     #[error(transparent)]
-    InvalidRadix(#[from] TryFromRadixError),
+    InvalidRadix(#[from] RadixError),
 }
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TryFromRadixError {
+pub enum RadixError {
     #[error("Found invalid radix `{0}`")]
-    InvalidRadix(u8),
+    Invalid(u8),
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -83,15 +83,15 @@ mod digit {
 
 #[macro_export]
 macro_rules! signed_fixed {
-    ($dataits:expr) => {
-        SignedFixed<{ (($dataits + Single::BITS - 1) / Single::BITS) as usize }>
+    ($bits:expr) => {
+        SignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
     };
 }
 
 #[macro_export]
 macro_rules! unsigned_fixed {
-    ($dataits:expr) => {
-        UnsignedFixed<{ (($dataits + Single::BITS - 1) / Single::BITS) as usize }>
+    ($bits:expr) => {
+        UnsignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
     };
 }
 
@@ -338,11 +338,11 @@ impl SignedLong {
         Self { sign, data }
     }
 
-    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
-        IntoRadixLongIter { radix, data: self.data }
+    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+        into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
+    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
         self.clone().into_radix(radix)
     }
 }
@@ -354,11 +354,11 @@ impl UnsignedLong {
         Self { data }
     }
 
-    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
-        IntoRadixLongIter { radix, data: self.data }
+    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+        into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
+    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
         self.clone().into_radix(radix)
     }
 }
@@ -371,15 +371,11 @@ impl<const L: usize> SignedFixed<L> {
         Ok(Self { sign, data, len })
     }
 
-    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
-        IntoRadixFixedIter {
-            radix,
-            data: self.data,
-            len: self.len,
-        }
+    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+        into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
+    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
         (*self).into_radix(radix)
     }
 }
@@ -391,15 +387,11 @@ impl<const L: usize> UnsignedFixed<L> {
         Ok(Self { data, len })
     }
 
-    pub fn into_radix(self, radix: usize) -> impl Iterator<Item = usize> {
-        IntoRadixFixedIter {
-            radix,
-            data: self.data,
-            len: self.len,
-        }
+    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+        into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: usize) -> impl Iterator<Item = usize> {
+    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
         (*self).into_radix(radix)
     }
 }
@@ -454,7 +446,7 @@ fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
     let (s, radix) = get_radix_from_str(s)?;
     let digits = get_digits_from_str(s, radix)?;
 
-    let res = try_from_digits_long_bin(&digits, radix).or_else(|_| try_from_digits_long(&digits, radix))?;
+    let res = try_from_digits_long(&digits, radix)?;
 
     let sign = if res.is_empty() { Sign::ZERO } else { sign };
 
@@ -466,10 +458,7 @@ fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usi
     let (s, radix) = get_radix_from_str(s)?;
     let digits = get_digits_from_str(s, radix)?;
 
-    let (res, len) = try_from_digits_fixed_bin(&digits, radix).or_else(|err| match err {
-        | TryFromDigitsError::ExceedLength { len: _, max: _ } => Err(err),
-        | TryFromDigitsError::InvalidRadix(_) => try_from_digits_fixed(&digits, radix),
-    })?;
+    let (res, len) = try_from_digits_fixed(&digits, radix)?;
 
     let sign = if len == 0 { Sign::ZERO } else { sign };
 
@@ -478,17 +467,17 @@ fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usi
 
 fn try_from_digits_long_bin(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFromDigitsError> {
     if radix < 2 || radix & (radix - 1) > 0 {
-        return Err(TryFromRadixError::InvalidRadix(radix).into());
+        return Err(RadixError::Invalid(radix).into());
     }
 
     let sbits = Single::BITS as usize;
     let rbits = (2 * radix - 1).ilog2() as usize;
     let len = (digits.len() * rbits + sbits - 1) / sbits;
 
-    let mut acc = 0 as Double;
-    let mut pow = 1 as Double;
-    let mut res = vec![0; len];
+    let mut acc = 0;
+    let mut pow = 1;
     let mut idx = 0;
+    let mut res = vec![0; len];
 
     for &digit in digits.iter() {
         acc += pow * digit as Double;
@@ -518,13 +507,13 @@ fn try_from_digits_fixed_bin<const L: usize>(
     radix: u8,
 ) -> Result<([Single; L], usize), TryFromDigitsError> {
     if radix < 2 || radix & (radix - 1) > 0 {
-        return Err(TryFromRadixError::InvalidRadix(radix).into());
+        return Err(RadixError::Invalid(radix).into());
     }
 
-    let mut acc = 0 as Double;
-    let mut pow = 1 as Double;
-    let mut res = [0; L];
+    let mut acc = 0;
+    let mut pow = 1;
     let mut idx = 0;
+    let mut res = [0; L];
 
     for &digit in digits.iter() {
         acc += pow * digit as Double;
@@ -559,15 +548,20 @@ fn try_from_digits_fixed_bin<const L: usize>(
 
 fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFromDigitsError> {
     if radix < 2 {
-        return Err(TryFromRadixError::InvalidRadix(radix).into());
+        return Err(RadixError::Invalid(radix).into());
+    }
+
+    match try_from_digits_long_bin(digits, radix) {
+        | Ok(val) => return Ok(val),
+        | Err(_) => (),
     }
 
     let sbits = Single::BITS as usize;
     let rbits = (2 * radix - 1).ilog2() as usize;
     let len = (digits.len() * rbits + sbits - 1) / sbits;
 
-    let mut res = vec![0; len];
     let mut idx = 0;
+    let mut res = vec![0; len];
 
     for &digit in digits.iter().rev() {
         let mut acc = digit as Double;
@@ -596,11 +590,19 @@ fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFrom
 
 fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([Single; L], usize), TryFromDigitsError> {
     if radix < 2 {
-        return Err(TryFromRadixError::InvalidRadix(radix).into());
+        return Err(RadixError::Invalid(radix).into());
     }
 
-    let mut res = [0; L];
+    match try_from_digits_fixed_bin(digits, radix) {
+        | Ok(val) => return Ok(val),
+        | Err(err) => match err {
+            | TryFromDigitsError::ExceedLength { len: _, max: _ } => return Err(err),
+            | TryFromDigitsError::InvalidRadix(_) => (),
+        },
+    }
+
     let mut idx = 0;
+    let mut res = [0; L];
 
     for &digit in digits.iter().rev() {
         let mut acc = digit as Double;
@@ -629,68 +631,88 @@ fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([S
     Ok((res, idx))
 }
 
-struct IntoRadixLongIter {
-    radix: usize,
-    data: Vec<Single>,
+fn into_radix_bin(digits: &[Single], radix: u8) -> Result<Vec<u8>, RadixError> {
+    if radix < 2 || radix & (radix - 1) > 0 {
+        return Err(RadixError::Invalid(radix));
+    }
+
+    let bitmask = (radix - 1) as Double;
+    let bitshift = radix.ilog2() as Double;
+
+    let sbits = Single::BITS as usize;
+    let rbits = bitshift as usize;
+    let len = (digits.len() * sbits + rbits - 1) / rbits;
+
+    let mut acc = 0;
+    let mut rem = 0;
+    let mut idx = 0;
+    let mut res = vec![0; len];
+
+    for &digit in digits {
+        acc = (digit << rem) as Double;
+        rem = (rem + sbits as Double) % bitshift;
+
+        while acc >= radix as Double {
+            res[idx] = (acc & bitmask) as u8;
+            idx += 1;
+
+            acc >>= bitshift;
+        }
+    }
+
+    if acc > 0 {
+        res[idx] = acc as u8;
+        idx += 1;
+    }
+
+    res.truncate(idx);
+
+    Ok(res)
 }
 
-struct IntoRadixFixedIter<const L: usize> {
-    radix: usize,
-    data: [Single; L],
-    len: usize,
-}
+fn into_radix(digits: &mut [Single], radix: u8) -> Result<Vec<u8>, RadixError> {
+    if radix < 2 {
+        return Err(RadixError::Invalid(radix));
+    }
 
-impl Iterator for IntoRadixLongIter {
-    type Item = usize;
+    match into_radix_bin(digits, radix) {
+        | Ok(val) => return Ok(val),
+        | _ => (),
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut any = Single::default();
-        let mut acc = Double::default();
+    let sbits = Single::BITS as usize;
+    let rbits = (2 * radix - 1).ilog2() as usize;
+    let len = (digits.len() * sbits + rbits - 1) / rbits;
 
-        for digit in self.data.iter_mut().rev() {
+    let mut idx = 0;
+    let mut res = vec![0; len];
+    let mut len = digits.len();
+
+    loop {
+        let mut any = 0;
+        let mut acc = 0;
+
+        for digit in digits.iter_mut().take(len).rev() {
             any |= *digit;
             acc = (acc << Single::BITS) | *digit as Double;
 
-            *digit = (acc / self.radix as Double) as Single;
+            *digit = (acc / radix as Double) as Single;
 
-            acc %= self.radix as Double;
+            acc %= radix as Double;
         }
 
-        let len = self.data.len();
-        let len = len - self.data.iter().rev().position(|&digit| digit > 0).unwrap_or(len);
-
-        self.data.truncate(len);
-
-        (any != 0).then_some(acc as usize)
-    }
-}
-
-impl<const L: usize> Iterator for IntoRadixFixedIter<L> {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut any = Single::default();
-        let mut acc = Double::default();
-
-        for digit in self.data.iter_mut().take(self.len).rev() {
-            any |= *digit;
-            acc = (acc << Single::BITS) | *digit as Double;
-
-            *digit = (acc / self.radix as Double) as Single;
-
-            acc %= self.radix as Double;
+        if any == 0 {
+            break;
         }
 
-        self.len -= self
-            .data
-            .iter()
-            .take(self.len)
-            .rev()
-            .position(|&digit| digit > 0)
-            .unwrap_or(self.len);
-
-        (any != 0).then_some(acc as usize)
+        res[idx] = acc as u8;
+        idx += 1;
+        len -= digits.iter().take(len).rev().position(|&digit| digit > 0).unwrap_or(len);
     }
+
+    res.truncate(idx);
+
+    Ok(res)
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
