@@ -2,17 +2,12 @@
 
 use self::{
     digit::{Double, Single},
-    radix::RADIX,
+    radix::RADIX_VAL,
 };
 use crate::num::Sign;
+use radix::RADIX_MASK;
 use std::str::FromStr;
 use thiserror::Error;
-
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TryFromRadixError {
-    #[error("Found invalid radix `{0}`")]
-    InvalidRadix(u8),
-}
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryFromStrError {
@@ -20,12 +15,28 @@ pub enum TryFromStrError {
     ExceedLength { len: usize, max: usize },
     #[error("Found empty during parsing from string")]
     InvalidLength,
-    #[error(transparent)]
-    InvalidRadix(#[from] TryFromRadixError),
     #[error("Found invalid symbol `{ch}` during parsing from string of radix `{radix}`")]
     InvalidSymbol { ch: char, radix: u8 },
     #[error("Found negative number during parsing from string for unsigned")]
     UnsignedNegative,
+    #[error(transparent)]
+    FromDigits(#[from] TryFromDigitsError),
+    #[error(transparent)]
+    FromRadix(#[from] TryFromRadixError),
+}
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TryFromDigitsError {
+    #[error("Exceeded maximum length of {max} with {len}")]
+    ExceedLength { len: usize, max: usize },
+    #[error(transparent)]
+    InvalidRadix(#[from] TryFromRadixError),
+}
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TryFromRadixError {
+    #[error("Found invalid radix `{0}`")]
+    InvalidRadix(u8),
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -107,11 +118,12 @@ pub type U4096 = unsigned_fixed!(4096);
 #[allow(unused)]
 mod radix {
     use super::{
-        Double, Single, TryFromRadixError,
+        Double, Single,
         digit::{DEC_MAX, DEC_RADIX, DEC_WIDTH, OCT_MAX, OCT_RADIX, OCT_WIDTH},
     };
 
-    pub(super) const RADIX: Double = (1 as Double) << Single::BITS;
+    pub(super) const RADIX_VAL: Double = Single::MAX as Double + 1;
+    pub(super) const RADIX_MASK: Double = Single::MAX as Double;
 
     pub trait Constants {
         const MAX: Single = Single::MAX;
@@ -417,6 +429,7 @@ fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize)
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
     let len = (slice.len() + RATIO - 1) / RATIO;
+
     if len > L {
         return Err(TryFromStrError::ExceedLength { len, max: L });
     }
@@ -437,46 +450,11 @@ fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize)
 }
 
 fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
-    let s = s.as_bytes();
-    let (s, sign) = get_sign(s)?;
-    let (s, radix) = get_radix(s)?;
+    let (s, sign) = get_sign_from_str(s)?;
+    let (s, radix) = get_radix_from_str(s)?;
+    let digits = get_digits_from_str(s, radix)?;
 
-    // TODO: Proper non-pow-2 parsing
-    if radix & (radix - 1) > 0 {
-        return Err(TryFromRadixError::InvalidRadix(radix).into());
-    }
-
-    let vals = get_values(s, radix)?;
-
-    let sbits = Single::BITS as usize;
-    let rbits = (2 * radix - 1).ilog2() as usize;
-    let len = (s.len() * rbits + sbits - 1) / sbits;
-
-    let mut acc = 0 as Double;
-    let mut pow = 1 as Double;
-    let mut res = vec![0; len];
-    let mut idx = 0;
-
-    for &val in vals.iter().rev() {
-        acc += pow * val as Double;
-        pow *= radix as Double;
-
-        if pow >= RADIX {
-            res[idx] = (acc % RADIX) as Single;
-            idx += 1;
-
-            acc /= RADIX;
-            pow >>= Single::BITS;
-        }
-    }
-
-    if acc > 0 {
-        res[idx] = acc as Single;
-    }
-
-    let len = get_len(&res);
-
-    res.truncate(len);
+    let res = try_from_digits_long_bin(&digits, radix).or_else(|_| try_from_digits_long(&digits, radix))?;
 
     let sign = if res.is_empty() { Sign::ZERO } else { sign };
 
@@ -484,52 +462,171 @@ fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
 }
 
 fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usize), TryFromStrError> {
-    let s = s.as_bytes();
-    let (s, sign) = get_sign(s)?;
-    let (s, radix) = get_radix(s)?;
+    let (s, sign) = get_sign_from_str(s)?;
+    let (s, radix) = get_radix_from_str(s)?;
+    let digits = get_digits_from_str(s, radix)?;
 
-    // TODO: Proper non-pow-2 parsing
-    if radix & (radix - 1) > 0 {
+    let (res, len) = try_from_digits_fixed_bin(&digits, radix).or_else(|err| match err {
+        | TryFromDigitsError::ExceedLength { len: _, max: _ } => Err(err),
+        | TryFromDigitsError::InvalidRadix(_) => try_from_digits_fixed(&digits, radix),
+    })?;
+
+    let sign = if len == 0 { Sign::ZERO } else { sign };
+
+    Ok((sign, res, len))
+}
+
+fn try_from_digits_long_bin(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFromDigitsError> {
+    if radix < 2 || radix & (radix - 1) > 0 {
         return Err(TryFromRadixError::InvalidRadix(radix).into());
     }
 
-    let vals = get_values(s, radix)?;
+    let sbits = Single::BITS as usize;
+    let rbits = (2 * radix - 1).ilog2() as usize;
+    let len = (digits.len() * rbits + sbits - 1) / sbits;
+
+    let mut acc = 0 as Double;
+    let mut pow = 1 as Double;
+    let mut res = vec![0; len];
+    let mut idx = 0;
+
+    for &digit in digits.iter() {
+        acc += pow * digit as Double;
+        pow *= radix as Double;
+
+        if pow >= RADIX_VAL {
+            res[idx] = (acc & RADIX_MASK) as Single;
+            idx += 1;
+
+            acc >>= Single::BITS;
+            pow >>= Single::BITS;
+        }
+    }
+
+    if acc > 0 {
+        res[idx] = acc as Single;
+        idx += 1;
+    }
+
+    res.truncate(idx);
+
+    Ok(res)
+}
+
+fn try_from_digits_fixed_bin<const L: usize>(
+    digits: &[u8],
+    radix: u8,
+) -> Result<([Single; L], usize), TryFromDigitsError> {
+    if radix < 2 || radix & (radix - 1) > 0 {
+        return Err(TryFromRadixError::InvalidRadix(radix).into());
+    }
 
     let mut acc = 0 as Double;
     let mut pow = 1 as Double;
     let mut res = [0; L];
     let mut idx = 0;
 
-    for &val in vals.iter().rev() {
-        acc += pow * val as Double;
+    for &digit in digits.iter() {
+        acc += pow * digit as Double;
         pow *= radix as Double;
 
-        if pow >= RADIX {
+        if pow >= RADIX_VAL {
             if idx == L && acc > 0 {
-                return Err(TryFromStrError::ExceedLength { len: idx + 1, max: L });
+                return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
             }
 
             if idx < L {
-                res[idx] = (acc % RADIX) as Single;
+                res[idx] = (acc & RADIX_MASK) as Single;
                 idx += 1;
             }
 
-            acc /= RADIX;
+            acc >>= Single::BITS;
             pow >>= Single::BITS;
         }
     }
 
-    if acc > 0 && idx < L {
-        res[idx] = acc as Single;
-    } else if acc > 0 && idx == L {
-        return Err(TryFromStrError::ExceedLength { len: idx + 1, max: L });
+    if idx == L && acc > 0 {
+        return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
     }
 
-    let len = get_len(&res);
+    if idx < L && acc > 0 {
+        res[idx] = acc as Single;
+        idx += 1;
+    }
 
-    let sign = if len == 0 { Sign::ZERO } else { sign };
+    Ok((res, idx))
+}
 
-    Ok((sign, res, len))
+fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFromDigitsError> {
+    if radix < 2 {
+        return Err(TryFromRadixError::InvalidRadix(radix).into());
+    }
+
+    let sbits = Single::BITS as usize;
+    let rbits = (2 * radix - 1).ilog2() as usize;
+    let len = (digits.len() * rbits + sbits - 1) / sbits;
+
+    let mut res = vec![0; len];
+    let mut idx = 0;
+
+    for &digit in digits.iter().rev() {
+        let mut acc = digit as Double;
+
+        for res in res.iter_mut().take(idx + 1) {
+            acc += *res as Double * radix as Double;
+
+            *res = (acc & RADIX_MASK) as Single;
+
+            acc >>= Single::BITS;
+        }
+
+        if idx < len && acc > 0 {
+            res[idx] += acc as Single;
+        }
+
+        if idx < len && res[idx] > 0 {
+            idx += 1;
+        }
+    }
+
+    res.truncate(idx);
+
+    Ok(res)
+}
+
+fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([Single; L], usize), TryFromDigitsError> {
+    if radix < 2 {
+        return Err(TryFromRadixError::InvalidRadix(radix).into());
+    }
+
+    let mut res = [0; L];
+    let mut idx = 0;
+
+    for &digit in digits.iter().rev() {
+        let mut acc = digit as Double;
+
+        for (i, res) in res.iter_mut().enumerate().take(idx + 1) {
+            acc += *res as Double * radix as Double;
+
+            *res = (acc & RADIX_MASK) as Single;
+
+            acc >>= Single::BITS;
+
+            if i + 1 == L && acc > 0 {
+                return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
+            }
+        }
+
+        if idx < L && acc > 0 {
+            res[idx] += acc as Single;
+        }
+
+        if idx < L && res[idx] > 0 {
+            idx += 1;
+        }
+    }
+
+    Ok((res, idx))
 }
 
 struct IntoRadixLongIter {
@@ -596,6 +693,72 @@ impl<const L: usize> Iterator for IntoRadixFixedIter<L> {
     }
 }
 
+fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
+    if s.is_empty() {
+        return Err(TryFromStrError::InvalidLength);
+    }
+
+    let bytes = s.as_bytes();
+
+    let val = match bytes[0] {
+        | b'+' => (&s[1..], Sign::POS),
+        | b'-' => (&s[1..], Sign::NEG),
+        | _ => (s, Sign::POS),
+    };
+
+    Ok(val)
+}
+
+fn get_radix_from_str(s: &str) -> Result<(&str, u8), TryFromStrError> {
+    if s.is_empty() {
+        return Err(TryFromStrError::InvalidLength);
+    }
+
+    if s.len() < 2 {
+        return Ok((s, 10));
+    }
+
+    let bytes = s.as_bytes();
+
+    let val = match &bytes[..2] {
+        | b"0x" | b"0X" => (&s[2..], 16),
+        | b"0o" | b"0O" => (&s[2..], 8),
+        | b"0b" | b"0B" => (&s[2..], 2),
+        | _ => (s, 10),
+    };
+
+    Ok(val)
+}
+
+fn get_digits_from_str(s: &str, radix: u8) -> Result<Vec<u8>, TryFromStrError> {
+    let mut res = s
+        .as_bytes()
+        .iter()
+        .rev()
+        .filter_map(|&ch| match ch {
+            | b'0'..=b'9' if ch - b'0' < radix => Some(Ok(ch - b'0')),
+            | b'a'..=b'f' if ch - b'a' + 10 < radix => Some(Ok(ch - b'a' + 10)),
+            | b'A'..=b'F' if ch - b'A' + 10 < radix => Some(Ok(ch - b'A' + 10)),
+            | b'_' => None,
+            | _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
+        })
+        .collect::<Result<Vec<u8>, TryFromStrError>>()?;
+
+    let mut len = res.len();
+
+    for &digit in res.iter().rev() {
+        if digit > 0 {
+            break;
+        }
+
+        len -= 1;
+    }
+
+    res.truncate(len);
+
+    Ok(res)
+}
+
 fn get_len(data: &[Single]) -> usize {
     let mut len = data.len();
 
@@ -608,51 +771,6 @@ fn get_len(data: &[Single]) -> usize {
     }
 
     0
-}
-
-fn get_sign(s: &[u8]) -> Result<(&[u8], Sign), TryFromStrError> {
-    if s.is_empty() {
-        return Err(TryFromStrError::InvalidLength);
-    }
-
-    let val = match s[0] {
-        | b'+' => (&s[1..], Sign::POS),
-        | b'-' => (&s[1..], Sign::NEG),
-        | _ => (s, Sign::POS),
-    };
-
-    Ok(val)
-}
-
-fn get_radix(s: &[u8]) -> Result<(&[u8], u8), TryFromStrError> {
-    if s.is_empty() {
-        return Err(TryFromStrError::InvalidLength);
-    }
-
-    if s.len() < 2 {
-        return Ok((s, 10));
-    }
-
-    let val = match &s[..2] {
-        | b"0x" | b"0X" => (&s[2..], 16),
-        | b"0o" | b"0O" => (&s[2..], 8),
-        | b"0b" | b"0B" => (&s[2..], 2),
-        | _ => (s, 10),
-    };
-
-    Ok(val)
-}
-
-fn get_values(s: &[u8], radix: u8) -> Result<Vec<u8>, TryFromStrError> {
-    s.iter()
-        .filter_map(|&ch| match ch {
-            | b'0'..=b'9' if ch - b'0' < radix => Some(Ok(ch - b'0')),
-            | b'a'..=b'f' if ch - b'a' + 10 < radix => Some(Ok(ch - b'a' + 10)),
-            | b'A'..=b'F' if ch - b'A' + 10 < radix => Some(Ok(ch - b'A' + 10)),
-            | b'_' => None,
-            | _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
-        })
-        .collect::<Result<Vec<u8>, TryFromStrError>>()
 }
 
 #[cfg(test)]
@@ -823,91 +941,91 @@ mod tests {
 
     #[test]
     fn from_str_long() {
-        // assert_eq!(SignedLong::from_str("0"), Ok(SignedLong::default()));
+        assert_eq!(SignedLong::from_str("0"), Ok(SignedLong::default()));
         assert_eq!(SignedLong::from_str("0b0"), Ok(SignedLong::default()));
         assert_eq!(SignedLong::from_str("0o0"), Ok(SignedLong::default()));
         assert_eq!(SignedLong::from_str("0x0"), Ok(SignedLong::default()));
 
-        // assert_eq!(UnsignedLong::from_str("0"), Ok(UnsignedLong::default()));
+        assert_eq!(UnsignedLong::from_str("0"), Ok(UnsignedLong::default()));
         assert_eq!(UnsignedLong::from_str("0b0"), Ok(UnsignedLong::default()));
         assert_eq!(UnsignedLong::from_str("0o0"), Ok(UnsignedLong::default()));
         assert_eq!(UnsignedLong::from_str("0x0"), Ok(UnsignedLong::default()));
 
-        // assert_long_from_str!(@signed "0099", vec![99], Sign::POS);
-        // assert_long_from_str!(@signed "-0099", vec![99], Sign::NEG);
-        // assert_long_from_str!(@unsigned "0099", vec![99]);
+        assert_long_from_str!(@signed "0099", vec![99], Sign::POS);
+        assert_long_from_str!(@signed "-0099", vec![99], Sign::NEG);
+        assert_long_from_str!(@unsigned "0099", vec![99]);
 
-        assert_long_from_str!(@signed "0b0011", vec![0b11], Sign::POS);
-        assert_long_from_str!(@signed "-0b0011", vec![0b11], Sign::NEG);
-        assert_long_from_str!(@unsigned "0b0011", vec![0b11]);
+        assert_long_from_str!(@signed "0b00000011", vec![0b11], Sign::POS);
+        assert_long_from_str!(@signed "-0b00000011", vec![0b11], Sign::NEG);
+        assert_long_from_str!(@unsigned "0b00000011", vec![0b11]);
 
-        assert_long_from_str!(@signed "0o0077", vec![0o77], Sign::POS);
-        assert_long_from_str!(@signed "-0o0077", vec![0o77], Sign::NEG);
-        assert_long_from_str!(@unsigned "0o0077", vec![0o77]);
+        assert_long_from_str!(@signed "0o00000077", vec![0o77], Sign::POS);
+        assert_long_from_str!(@signed "-0o00000077", vec![0o77], Sign::NEG);
+        assert_long_from_str!(@unsigned "0o00000077", vec![0o77]);
 
-        assert_long_from_str!(@signed "0x00FF", vec![0xFF], Sign::POS);
-        assert_long_from_str!(@signed "-0x00FF", vec![0xFF], Sign::NEG);
-        assert_long_from_str!(@unsigned "0x00FF", vec![0xFF]);
+        assert_long_from_str!(@signed "0x000000FF", vec![0xFF], Sign::POS);
+        assert_long_from_str!(@signed "-0x000000FF", vec![0xFF], Sign::NEG);
+        assert_long_from_str!(@unsigned "0x000000FF", vec![0xFF]);
 
-        // assert_long_from_str!(@signed "000987654321", vec![177, 104, 222, 58], Sign::POS);
-        // assert_long_from_str!(@signed "-000987654321", vec![177, 104, 222, 58], Sign::NEG);
-        // assert_long_from_str!(@unsigned "000987654321", vec![177, 104, 222, 58]);
+        assert_long_from_str!(@signed "0000000987654321", vec![177, 104, 222, 58], Sign::POS);
+        assert_long_from_str!(@signed "-0000000987654321", vec![177, 104, 222, 58], Sign::NEG);
+        assert_long_from_str!(@unsigned "0000000987654321", vec![177, 104, 222, 58]);
 
-        assert_long_from_str!(@signed "0b0000111110101100011010001000", vec![136, 198, 250], Sign::POS);
-        assert_long_from_str!(@signed "-0b0000111110101100011010001000", vec![136, 198, 250], Sign::NEG);
-        assert_long_from_str!(@unsigned "0b0000111110101100011010001000", vec![136, 198, 250]);
+        assert_long_from_str!(@signed "0b00000000111110101100011010001000", vec![136, 198, 250], Sign::POS);
+        assert_long_from_str!(@signed "-0b00000000111110101100011010001000", vec![136, 198, 250], Sign::NEG);
+        assert_long_from_str!(@unsigned "0b00000000111110101100011010001000", vec![136, 198, 250]);
 
-        assert_long_from_str!(@signed "0o0076543210", vec![136, 198, 250], Sign::POS);
-        assert_long_from_str!(@signed "-0o0076543210", vec![136, 198, 250], Sign::NEG);
-        assert_long_from_str!(@unsigned "0o0076543210", vec![136, 198, 250]);
+        assert_long_from_str!(@signed "0o00000076543210", vec![136, 198, 250], Sign::POS);
+        assert_long_from_str!(@signed "-0o00000076543210", vec![136, 198, 250], Sign::NEG);
+        assert_long_from_str!(@unsigned "0o00000076543210", vec![136, 198, 250]);
 
-        assert_long_from_str!(@signed "0x000FEDCBA9", vec![169, 203, 237, 15], Sign::POS);
-        assert_long_from_str!(@signed "-0x000FEDCBA9", vec![169, 203, 237, 15], Sign::NEG);
-        assert_long_from_str!(@unsigned "0x000FEDCBA9", vec![169, 203, 237, 15]);
+        assert_long_from_str!(@signed "0x0000000FEDCBA9", vec![169, 203, 237, 15], Sign::POS);
+        assert_long_from_str!(@signed "-0x0000000FEDCBA9", vec![169, 203, 237, 15], Sign::NEG);
+        assert_long_from_str!(@unsigned "0x0000000FEDCBA9", vec![169, 203, 237, 15]);
     }
 
     #[test]
     fn from_str_fixed() {
-        // assert_eq!(S32::from_str("0"), Ok(S32::default()));
+        assert_eq!(S32::from_str("0"), Ok(S32::default()));
         assert_eq!(S32::from_str("0b0"), Ok(S32::default()));
         assert_eq!(S32::from_str("0o0"), Ok(S32::default()));
         assert_eq!(S32::from_str("0x0"), Ok(S32::default()));
 
-        // assert_eq!(U32::from_str("0"), Ok(U32::default()));
+        assert_eq!(U32::from_str("0"), Ok(U32::default()));
         assert_eq!(U32::from_str("0b0"), Ok(U32::default()));
         assert_eq!(U32::from_str("0o0"), Ok(U32::default()));
         assert_eq!(U32::from_str("0x0"), Ok(U32::default()));
 
-        // assert_fixed_from_str!(@signed "0099", [99, 0, 0, 0], 1, Sign::POS);
-        // assert_fixed_from_str!(@signed "-0099", [99, 0, 0, 0], 1, Sign::NEG);
-        // assert_fixed_from_str!(@unsigned "0099", [99, 0, 0, 0], 1);
+        assert_fixed_from_str!(@signed "0099", [99, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_str!(@signed "-0099", [99, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0099", [99, 0, 0, 0], 1);
 
-        assert_fixed_from_str!(@signed "0b0011", [0b11, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_str!(@signed "-0b0011", [0b11, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0b0011", [0b11, 0, 0, 0], 1);
+        assert_fixed_from_str!(@signed "0b00000011", [0b11, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_str!(@signed "-0b00000011", [0b11, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0b00000011", [0b11, 0, 0, 0], 1);
 
-        assert_fixed_from_str!(@signed "0o0077", [0o77, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_str!(@signed "-0o0077", [0o77, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0o0077", [0o77, 0, 0, 0], 1);
+        assert_fixed_from_str!(@signed "0o00000077", [0o77, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_str!(@signed "-0o00000077", [0o77, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0o00000077", [0o77, 0, 0, 0], 1);
 
-        assert_fixed_from_str!(@signed "0x00FF", [0xFF, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_str!(@signed "-0x00FF", [0xFF, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0x00FF", [0xFF, 0, 0, 0], 1);
+        assert_fixed_from_str!(@signed "0x000000FF", [0xFF, 0, 0, 0], 1, Sign::POS);
+        assert_fixed_from_str!(@signed "-0x000000FF", [0xFF, 0, 0, 0], 1, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0x000000FF", [0xFF, 0, 0, 0], 1);
 
-        // assert_fixed_from_str!(@signed "000987654321", [177, 104, 222, 58], 4, Sign::POS);
-        // assert_fixed_from_str!(@signed "-000987654321", [177, 104, 222, 58], 4, Sign::NEG);
-        // assert_fixed_from_str!(@unsigned "000987654321", [177, 104, 222, 58], 4);
+        assert_fixed_from_str!(@signed "0000000987654321", [177, 104, 222, 58], 4, Sign::POS);
+        assert_fixed_from_str!(@signed "-0000000987654321", [177, 104, 222, 58], 4, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0000000987654321", [177, 104, 222, 58], 4);
 
-        assert_fixed_from_str!(@signed "0b0000111110101100011010001000", [136, 198, 250, 0], 3, Sign::POS);
-        assert_fixed_from_str!(@signed "-0b0000111110101100011010001000", [136, 198, 250, 0], 3, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0b0000111110101100011010001000", [136, 198, 250, 0], 3);
+        assert_fixed_from_str!(@signed "0b00000000111110101100011010001000", [136, 198, 250, 0], 3, Sign::POS);
+        assert_fixed_from_str!(@signed "-0b00000000111110101100011010001000", [136, 198, 250, 0], 3, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0b00000000111110101100011010001000", [136, 198, 250, 0], 3);
 
-        assert_fixed_from_str!(@signed "0o0076543210", [136, 198, 250, 0], 3, Sign::POS);
-        assert_fixed_from_str!(@signed "-0o0076543210", [136, 198, 250, 0], 3, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0o0076543210", [136, 198, 250, 0], 3);
+        assert_fixed_from_str!(@signed "0o00000076543210", [136, 198, 250, 0], 3, Sign::POS);
+        assert_fixed_from_str!(@signed "-0o00000076543210", [136, 198, 250, 0], 3, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0o00000076543210", [136, 198, 250, 0], 3);
 
-        assert_fixed_from_str!(@signed "0x000FEDCBA9", [169, 203, 237, 15], 4, Sign::POS);
-        assert_fixed_from_str!(@signed "-0x000FEDCBA9", [169, 203, 237, 15], 4, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0x000FEDCBA9", [169, 203, 237, 15], 4);
+        assert_fixed_from_str!(@signed "0x0000000FEDCBA9", [169, 203, 237, 15], 4, Sign::POS);
+        assert_fixed_from_str!(@signed "-0x0000000FEDCBA9", [169, 203, 237, 15], 4, Sign::NEG);
+        assert_fixed_from_str!(@unsigned "0x0000000FEDCBA9", [169, 203, 237, 15], 4);
     }
 }
