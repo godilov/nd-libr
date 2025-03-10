@@ -431,8 +431,10 @@ fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     let mut res = vec![0; (slice.len() + RATIO - 1) / RATIO];
 
     for (i, &byte) in slice.iter().enumerate() {
-        res[i / RATIO] |= (byte as Single) << shift;
-        shift = (shift << u8::BITS) & (Single::BITS - 1);
+        let idx = i / RATIO;
+
+        res[idx] |= ((byte as Single) << shift) as Single;
+        shift = (shift + u8::BITS) & (Single::BITS - 1);
     }
 
     let len = get_len(&res);
@@ -454,8 +456,10 @@ fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize)
     let mut res = [0; L];
 
     for (i, &byte) in slice.iter().enumerate() {
-        res[i / RATIO] |= (byte as Single) << shift;
-        shift = (shift << u8::BITS) & (Single::BITS - 1);
+        let idx = i / RATIO;
+
+        res[idx] |= ((byte as Single) << shift) as Single;
+        shift = (shift + u8::BITS) & (Single::BITS - 1);
     }
 
     Ok((res, get_len(&res)))
