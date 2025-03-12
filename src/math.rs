@@ -2,6 +2,42 @@ pub type Prime = u64;
 
 pub struct Primes {}
 
+impl Primes {
+    pub fn iter(count: usize) -> impl Iterator<Item = Prime> {
+        PrimesIter {
+            data: Vec::with_capacity(count),
+            next: 2,
+            idx: 0,
+            len: count,
+        }
+    }
+}
+
+pub fn gcd_ext(a: i64, b: i64) -> (i64, i64, i64) {
+    if b == 0 {
+        return (a, 1, 0);
+    }
+
+    let (g, x, y) = gcd_ext(b, a % b);
+
+    (g, y, x - a / b * y)
+}
+
+pub fn gcd(mut a: i64, mut b: i64) -> i64 {
+    while b > 0 {
+        let x = b;
+
+        b = a % b;
+        a = x;
+    }
+
+    a
+}
+
+pub fn lcm(a: i64, b: i64) -> i64 {
+    a / gcd(a, b) * b
+}
+
 struct PrimesIter {
     data: Vec<Prime>,
     next: Prime,
@@ -19,7 +55,7 @@ impl Iterator for PrimesIter {
 
         self.data.push(self.next);
 
-        for n in (self.next + 2..Prime::MAX).step_by(2) {
+        for n in self.next + 1..Prime::MAX {
             let mut is_prime = true;
             let mut idx = 0;
 
@@ -38,23 +74,10 @@ impl Iterator for PrimesIter {
 
         self.data.last().copied()
     }
-}
 
-impl Primes {
-    pub fn iter(count: usize) -> impl Iterator<Item = Prime> {
-        PrimesIter {
-            data: Vec::with_capacity(count),
-            next: 2,
-            idx: 0,
-            len: count,
-        }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len, Some(self.len))
     }
 }
 
-pub fn gcd() {
-    todo!()
-}
-
-pub fn lcm() {
-    todo!()
-}
+impl ExactSizeIterator for PrimesIter {}
