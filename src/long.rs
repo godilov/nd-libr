@@ -1194,11 +1194,23 @@ mod tests {
         assert_long_into_radix!(@signed [30, 30, 30, 30], 31);
         assert_long_into_radix!(@unsigned [30, 30, 30, 30], 31);
 
+        assert_long_into_radix!(@signed [0, 0, 30, 30], 31);
+        assert_long_into_radix!(@unsigned [0, 0, 30, 30], 31);
+
+        assert_long_into_radix!(@signed [0, 1, 0, 30], 31);
+        assert_long_into_radix!(@unsigned [0, 1, 0, 30], 31);
+
         assert_long_into_radix!(@signed [30, 30], 32);
         assert_long_into_radix!(@unsigned [30, 30], 32);
 
         assert_long_into_radix!(@signed [30, 30, 30, 30], 32);
         assert_long_into_radix!(@unsigned [30, 30, 30, 30], 32);
+
+        assert_long_into_radix!(@signed [0, 0, 30, 30], 32);
+        assert_long_into_radix!(@unsigned [0, 0, 30, 30], 32);
+
+        assert_long_into_radix!(@signed [0, 1, 0, 30], 32);
+        assert_long_into_radix!(@unsigned [0, 1, 0, 30], 32);
 
         Ok(())
     }
@@ -1214,11 +1226,23 @@ mod tests {
         assert_fixed_into_radix!(@signed [30, 30, 30, 30], 4, 31);
         assert_fixed_into_radix!(@unsigned [30, 30, 30, 30], 4, 31);
 
+        assert_fixed_into_radix!(@signed [0, 0, 30, 30], 4, 31);
+        assert_fixed_into_radix!(@unsigned [0, 0, 30, 30], 4, 31);
+
+        assert_fixed_into_radix!(@signed [0, 1, 0, 30], 4, 31);
+        assert_fixed_into_radix!(@unsigned [0, 1, 0, 30], 4, 31);
+
         assert_fixed_into_radix!(@signed [30, 30, 0, 0], 2, 32);
         assert_fixed_into_radix!(@unsigned [30, 30, 0, 0], 2, 32);
 
         assert_fixed_into_radix!(@signed [30, 30, 30, 30], 4, 32);
         assert_fixed_into_radix!(@unsigned [30, 30, 30, 30], 4, 32);
+
+        assert_fixed_into_radix!(@signed [0, 0, 30, 30], 4, 32);
+        assert_fixed_into_radix!(@unsigned [0, 0, 30, 30], 4, 32);
+
+        assert_fixed_into_radix!(@signed [0, 1, 0, 30], 4, 32);
+        assert_fixed_into_radix!(@unsigned [0, 1, 0, 30], 4, 32);
 
         Ok(())
     }
