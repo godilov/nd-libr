@@ -4,7 +4,7 @@ use self::{
     digit::{Double, Single},
     radix::RADIX_VAL,
 };
-use crate::num::Sign;
+use crate::num::{Constants, Sign};
 use radix::RADIX_MASK;
 use std::str::FromStr;
 use thiserror::Error;
@@ -13,8 +13,8 @@ use thiserror::Error;
 pub enum TryFromStrError {
     #[error("Found empty during parsing from string")]
     InvalidLength,
-    #[error("Found invalid symbol `{ch}` during parsing from string of radix `{radix}`")]
-    InvalidSymbol { ch: char, radix: u8 },
+    #[error("Found invalid symbol '{0}' during parsing from string of radix `{1}`")]
+    InvalidSymbol(char, u8),
     #[error("Found negative number during parsing from string for unsigned")]
     UnsignedNegative,
     #[error(transparent)]
@@ -37,8 +37,10 @@ pub enum TryFromDigitsError {
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RadixError {
-    #[error("Found invalid radix `{0}`")]
+    #[error("Found invalid radix '{0}'")]
     Invalid(u8),
+    #[error("Found invalid value '{0}' for radix '{1}'")]
+    InvalidDigit(u8, u8),
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -394,7 +396,7 @@ impl<const L: usize> SignedFixed<L> {
     }
 
     pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
-        into_radix(&mut self.data, radix)
+        into_radix(&mut self.data[..self.len], radix)
     }
 
     pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
@@ -416,7 +418,7 @@ impl<const L: usize> UnsignedFixed<L> {
     }
 
     pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
-        into_radix(&mut self.data, radix)
+        into_radix(&mut self.data[..self.len], radix)
     }
 
     pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
@@ -437,9 +439,7 @@ fn from_slice_long(slice: &[u8]) -> Vec<Single> {
         shift = (shift + u8::BITS) & (Single::BITS - 1);
     }
 
-    let len = get_len(&res);
-
-    res.truncate(len);
+    res.truncate(get_len(&res));
     res
 }
 
@@ -495,7 +495,7 @@ fn try_from_digits_long_bin(digits: &[u8], radix: u8) -> Result<Vec<Single>, Try
     }
 
     let sbits = Single::BITS as usize;
-    let rbits = (2 * radix - 1).ilog2() as usize;
+    let rbits = radix.ilog2() as usize;
     let len = (digits.len() * rbits + sbits - 1) / sbits;
 
     let mut acc = 0;
@@ -504,6 +504,10 @@ fn try_from_digits_long_bin(digits: &[u8], radix: u8) -> Result<Vec<Single>, Try
     let mut res = vec![0; len];
 
     for &digit in digits.iter() {
+        if digit >= radix {
+            return Err(RadixError::InvalidDigit(digit, radix).into());
+        }
+
         acc += pow * digit as Double;
         pow *= radix as Double;
 
@@ -518,10 +522,9 @@ fn try_from_digits_long_bin(digits: &[u8], radix: u8) -> Result<Vec<Single>, Try
 
     if acc > 0 {
         res[idx] = acc as Single;
-        idx += 1;
     }
 
-    res.truncate(idx);
+    res.truncate(get_len(&res));
 
     Ok(res)
 }
@@ -540,6 +543,10 @@ fn try_from_digits_fixed_bin<const L: usize>(
     let mut res = [0; L];
 
     for &digit in digits.iter() {
+        if digit >= radix {
+            return Err(RadixError::InvalidDigit(digit, radix).into());
+        }
+
         acc += pow * digit as Double;
         pow *= radix as Double;
 
@@ -564,10 +571,9 @@ fn try_from_digits_fixed_bin<const L: usize>(
 
     if idx < L && acc > 0 {
         res[idx] = acc as Single;
-        idx += 1;
     }
 
-    Ok((res, idx))
+    Ok((res, get_len(&res)))
 }
 
 fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFromDigitsError> {
@@ -588,6 +594,10 @@ fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFrom
     let mut res = vec![0; len];
 
     for &digit in digits.iter().rev() {
+        if digit >= radix {
+            return Err(RadixError::InvalidDigit(digit, radix).into());
+        }
+
         let mut acc = digit as Double;
 
         for res in res.iter_mut().take(idx + 1) {
@@ -607,7 +617,7 @@ fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFrom
         }
     }
 
-    res.truncate(idx);
+    res.truncate(get_len(&res));
 
     Ok(res)
 }
@@ -629,6 +639,10 @@ fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([S
     let mut res = [0; L];
 
     for &digit in digits.iter().rev() {
+        if digit >= radix {
+            return Err(RadixError::InvalidDigit(digit, radix).into());
+        }
+
         let mut acc = digit as Double;
 
         for (i, res) in res.iter_mut().enumerate().take(idx + 1) {
@@ -652,7 +666,7 @@ fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([S
         }
     }
 
-    Ok((res, idx))
+    Ok((res, get_len(&res)))
 }
 
 fn into_radix_bin(digits: &[Single], radix: u8) -> Result<Vec<u8>, RadixError> {
@@ -673,23 +687,23 @@ fn into_radix_bin(digits: &[Single], radix: u8) -> Result<Vec<u8>, RadixError> {
     let mut res = vec![0; len];
 
     for &digit in digits {
-        acc = (digit << rem) as Double;
-        rem = (rem + sbits as Double) % shift;
+        acc |= (digit as Double) << rem;
+        rem += sbits as Double;
 
         while acc >= radix as Double {
             res[idx] = (acc & mask) as u8;
             idx += 1;
 
             acc >>= shift;
+            rem -= shift;
         }
     }
 
     if acc > 0 {
         res[idx] = acc as u8;
-        idx += 1;
     }
 
-    res.truncate(idx);
+    res.truncate(get_len(&res));
 
     Ok(res)
 }
@@ -734,7 +748,7 @@ fn into_radix(digits: &mut [Single], radix: u8) -> Result<Vec<u8>, RadixError> {
         len -= digits.iter().take(len).rev().position(|&digit| digit > 0).unwrap_or(len);
     }
 
-    res.truncate(idx);
+    res.truncate(get_len(&res));
 
     Ok(res)
 }
@@ -786,7 +800,7 @@ fn get_digits_from_str(s: &str, radix: u8) -> Result<Vec<u8>, TryFromStrError> {
             | b'a'..=b'f' if ch - b'a' + 10 < radix => Some(Ok(ch - b'a' + 10)),
             | b'A'..=b'F' if ch - b'A' + 10 < radix => Some(Ok(ch - b'A' + 10)),
             | b'_' => None,
-            | _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
+            | _ => Some(Err(TryFromStrError::InvalidSymbol(ch as char, radix))),
         })
         .collect::<Result<Vec<u8>, TryFromStrError>>()?;
 
@@ -805,11 +819,11 @@ fn get_digits_from_str(s: &str, radix: u8) -> Result<Vec<u8>, TryFromStrError> {
     Ok(res)
 }
 
-fn get_len(data: &[Single]) -> usize {
+fn get_len<T: Constants + PartialEq + Eq>(data: &[T]) -> usize {
     let mut len = data.len();
 
-    for &digit in data.iter().rev() {
-        if digit > 0 {
+    for digit in data.iter().rev() {
+        if digit != &T::ZERO {
             return len;
         }
 
@@ -876,6 +890,34 @@ mod tests {
         };
     }
 
+    macro_rules! assert_long_from_digits {
+        (@signed $expr:expr, $radix:expr, $data:expr, $sign:expr) => {
+            assert_eq!(
+                SignedLong::try_from_digits($expr, $radix),
+                Ok(SignedLong { sign: $sign, data: $data })
+            );
+        };
+        (@unsigned $expr:expr, $radix:expr, $data:expr) => {
+            assert_eq!(UnsignedLong::try_from_digits($expr, $radix), Ok(UnsignedLong { data: $data }));
+        };
+    }
+
+    macro_rules! assert_fixed_from_digits {
+        (@signed $expr:expr, $radix:expr, $data:expr, $len:expr, $sign:expr) => {
+            assert_eq!(
+                S32::try_from_digits($expr, $radix),
+                Ok(S32 {
+                    sign: $sign,
+                    data: $data,
+                    len: $len
+                })
+            );
+        };
+        (@unsigned $expr:expr, $radix:expr, $data:expr, $len:expr) => {
+            assert_eq!(U32::try_from_digits($expr, $radix), Ok(U32 { data: $data, len: $len }));
+        };
+    }
+
     macro_rules! assert_long_from_str {
         (@signed $expr:expr, $data:expr, $sign:expr) => {
             assert_eq!(SignedLong::from_str($expr), Ok(SignedLong { sign: $sign, data: $data }));
@@ -898,6 +940,36 @@ mod tests {
         };
         (@unsigned $expr:expr, $data:expr, $len:expr) => {
             assert_eq!(U32::from_str($expr), Ok(U32 { data: $data, len: $len }));
+        };
+    }
+
+    macro_rules! assert_long_into_radix {
+        (@signed $expr:expr, $radix:expr) => {
+            assert_eq!(
+                SignedLong::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
+                Vec::from($expr)
+            );
+        };
+        (@unsigned $expr:expr, $radix:expr) => {
+            assert_eq!(
+                UnsignedLong::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
+                Vec::from($expr)
+            );
+        };
+    }
+
+    macro_rules! assert_fixed_into_radix {
+        (@signed $expr:expr, $len:expr, $radix:expr) => {
+            assert_eq!(
+                S32::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
+                $expr.into_iter().take($len).collect::<Vec<_>>()
+            );
+        };
+        (@unsigned $expr:expr, $len:expr, $radix:expr) => {
+            assert_eq!(
+                U32::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
+                $expr.into_iter().take($len).collect::<Vec<_>>()
+            );
         };
     }
 
@@ -983,6 +1055,42 @@ mod tests {
 
         assert_fixed_from_slice!(@signed &[169, 203, 237, 15], [169, 203, 237, 15], 4, Sign::POS);
         assert_fixed_from_slice!(@unsigned &[169, 203, 237, 15], [169, 203, 237, 15], 4);
+    }
+
+    #[test]
+    fn from_digits_long() {
+        assert_eq!(SignedLong::try_from_digits(&[], 31), Ok(SignedLong::default()));
+        assert_eq!(UnsignedLong::try_from_digits(&[], 31), Ok(UnsignedLong::default()));
+
+        assert_long_from_digits!(@signed &[30, 30, 0, 0], 31, vec![192, 3], Sign::POS);
+        assert_long_from_digits!(@unsigned &[30, 30, 0, 0], 31, vec![192, 3]);
+
+        assert_long_from_digits!(@signed &[30, 30, 30, 30], 31, vec![128, 23, 14], Sign::POS);
+        assert_long_from_digits!(@unsigned &[30, 30, 30, 30], 31, vec![128, 23, 14]);
+
+        assert_long_from_digits!(@signed &[30, 30, 0, 0], 32, vec![222, 3], Sign::POS);
+        assert_long_from_digits!(@unsigned &[30, 30, 0, 0], 32, vec![222, 3]);
+
+        assert_long_from_digits!(@signed &[30, 30, 30, 30], 32, vec![222, 123, 15], Sign::POS);
+        assert_long_from_digits!(@unsigned &[30, 30, 30, 30], 32, vec![222, 123, 15]);
+    }
+
+    #[test]
+    fn from_digits_fixed() {
+        assert_eq!(S32::try_from_digits(&[], 31), Ok(S32::default()));
+        assert_eq!(U32::try_from_digits(&[], 31), Ok(U32::default()));
+
+        assert_fixed_from_digits!(@signed &[30, 30, 0, 0], 31, [192, 3, 0, 0], 2, Sign::POS);
+        assert_fixed_from_digits!(@unsigned &[30, 30, 0, 0], 31, [192, 3, 0, 0], 2);
+
+        assert_fixed_from_digits!(@signed &[30, 30, 30, 30], 31, [128, 23, 14, 0], 3, Sign::POS);
+        assert_fixed_from_digits!(@unsigned &[30, 30, 30, 30], 31, [128, 23, 14, 0], 3);
+
+        assert_fixed_from_digits!(@signed &[30, 30, 0, 0], 32, [222, 3, 0, 0], 2, Sign::POS);
+        assert_fixed_from_digits!(@unsigned &[30, 30, 0, 0], 32, [222, 3, 0, 0], 2);
+
+        assert_fixed_from_digits!(@signed &[30, 30, 30, 30], 32, [222, 123, 15, 0], 3, Sign::POS);
+        assert_fixed_from_digits!(@unsigned &[30, 30, 30, 30], 32, [222, 123, 15, 0], 3);
     }
 
     #[test]
@@ -1073,5 +1181,45 @@ mod tests {
         assert_fixed_from_str!(@signed "0x0000000FEDCBA9", [169, 203, 237, 15], 4, Sign::POS);
         assert_fixed_from_str!(@signed "-0x0000000FEDCBA9", [169, 203, 237, 15], 4, Sign::NEG);
         assert_fixed_from_str!(@unsigned "0x0000000FEDCBA9", [169, 203, 237, 15], 4);
+    }
+
+    #[test]
+    fn into_radix_long() -> anyhow::Result<()> {
+        assert_eq!(SignedLong::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
+        assert_eq!(UnsignedLong::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
+
+        assert_long_into_radix!(@signed [30, 30], 31);
+        assert_long_into_radix!(@unsigned [30, 30], 31);
+
+        assert_long_into_radix!(@signed [30, 30, 30, 30], 31);
+        assert_long_into_radix!(@unsigned [30, 30, 30, 30], 31);
+
+        assert_long_into_radix!(@signed [30, 30], 32);
+        assert_long_into_radix!(@unsigned [30, 30], 32);
+
+        assert_long_into_radix!(@signed [30, 30, 30, 30], 32);
+        assert_long_into_radix!(@unsigned [30, 30, 30, 30], 32);
+
+        Ok(())
+    }
+
+    #[test]
+    fn into_radix_fixed() -> anyhow::Result<()> {
+        assert_eq!(S32::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
+        assert_eq!(U32::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
+
+        assert_fixed_into_radix!(@signed [30, 30, 0, 0], 2, 31);
+        assert_fixed_into_radix!(@unsigned [30, 30, 0, 0], 2, 31);
+
+        assert_fixed_into_radix!(@signed [30, 30, 30, 30], 4, 31);
+        assert_fixed_into_radix!(@unsigned [30, 30, 30, 30], 4, 31);
+
+        assert_fixed_into_radix!(@signed [30, 30, 0, 0], 2, 32);
+        assert_fixed_into_radix!(@unsigned [30, 30, 0, 0], 2, 32);
+
+        assert_fixed_into_radix!(@signed [30, 30, 30, 30], 4, 32);
+        assert_fixed_into_radix!(@unsigned [30, 30, 30, 30], 4, 32);
+
+        Ok(())
     }
 }
