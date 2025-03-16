@@ -2,26 +2,11 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Error, Expr, GenericParam, Generics, Ident, Path, Token, Type, WherePredicate, braced,
+    Error, Expr, Generics, Ident, Path, Token, Type, braced,
     parse::{Parse, ParseStream},
-    parse_macro_input,
-    punctuated::Punctuated,
-    token,
+    parse_macro_input, token,
 };
 use syn::{parse_str, parse2};
-
-#[allow(dead_code)]
-struct OpsGeneric {
-    pub l_token: Token![<],
-    pub params: Punctuated<GenericParam, Token![,]>,
-    pub r_token: Token![>],
-}
-
-#[allow(dead_code)]
-struct OpsWhere {
-    pub token: Token![where],
-    pub predicates: Punctuated<WherePredicate, Token![,]>,
-}
 
 #[allow(dead_code)]
 struct OpsRaw {
@@ -92,25 +77,6 @@ struct OpsImplStd<OpsSignature: Parse> {
 type OpsImplStdMutable = OpsImplStd<OpsSignatureMutable>;
 type OpsImplStdBinary = OpsImplStd<OpsSignatureBinary>;
 type OpsImplStdUnary = OpsImplStd<OpsSignatureUnary>;
-
-impl Parse for OpsGeneric {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            l_token: input.parse()?,
-            params: input.parse_terminated(GenericParam::parse, Token![,])?,
-            r_token: input.parse()?,
-        })
-    }
-}
-
-impl Parse for OpsWhere {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            token: input.parse()?,
-            predicates: input.parse_terminated(WherePredicate::parse, Token![,])?,
-        })
-    }
-}
 
 impl Parse for OpsRaw {
     fn parse(input: ParseStream) -> syn::Result<Self> {
