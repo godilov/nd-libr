@@ -38,32 +38,32 @@ mod tests {
     macro_rules! ops_struct_impl {
         (@mut $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$($mut:ident)? $type1:ty, $type2:ty|) => {
             ops_impl!(@mut $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2|
-                add { a.0 += b.0 },
-                sub { a.0 -= b.0 },
-                mul { a.0 *= b.0 },
-                div { a.0 /= b.0 },
-                rem { a.0 %= b.0 },
-                bitor { a.0 |= b.0 },
-                bitand { a.0 &= b.0 },
-                bitxor { a.0 ^= b.0 },
-                shl { a.0 <<= b.0 },
-                shr { a.0 >>= b.0 });
+                 += { a.0 += b.0 },
+                 -= { a.0 -= b.0 },
+                 *= { a.0 *= b.0 },
+                 /= { a.0 /= b.0 },
+                 %= { a.0 %= b.0 },
+                 |= { a.0 |= b.0 },
+                 &= { a.0 &= b.0 },
+                 ^= { a.0 ^= b.0 },
+                 <<= { a.0 <<= b.0 },
+                 >>= { a.0 >>= b.0 });
         };
         (@bin $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$type1:ty, $type2:ty| -> $type:ty) => {
             ops_impl!(@bin $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type
-                add { (a.0 + b.0).into() },
-                sub { (a.0 - b.0).into() },
-                mul { (a.0 * b.0).into() },
-                div { (a.0 / b.0).into() },
-                rem { (a.0 % b.0).into() },
-                bitor { (a.0 | b.0).into() },
-                bitand { (a.0 & b.0).into() },
-                bitxor { (a.0 ^ b.0).into() },
-                shl { (a.0 << b.0).into() },
-                shr { (a.0 >> b.0).into() });
+                + { (a.0 + b.0).into() },
+                - { (a.0 - b.0).into() },
+                * { (a.0 * b.0).into() },
+                / { (a.0 / b.0).into() },
+                % { (a.0 % b.0).into() },
+                | { (a.0 | b.0).into() },
+                & { (a.0 & b.0).into() },
+                ^ { (a.0 ^ b.0).into() },
+                << { (a.0 << b.0).into() },
+                >> { (a.0 >> b.0).into() });
         };
         (@un $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$type1:ty| -> $type:ty) => {
-            ops_impl!(@un $(<$($generics)+> $(where $($where)+)?)? |a: $type1| -> $type neg { (-a.0).into() }, not { (!a.0).into() });
+            ops_impl!(@un $(<$($generics)+> $(where $($where)+)?)? |a: $type1| -> $type - { (-a.0).into() }, ! { (!a.0).into() });
         };
     }
 
