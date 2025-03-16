@@ -2,10 +2,11 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, Error, ExprBlock, Generics, Ident, Path, Token, Type, UnOp,
+    BinOp, Error, Expr, ExprBlock, Generics, Ident, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
+    token::{Bracket, Paren},
 };
 use syn::{parse_str, parse2};
 
@@ -16,7 +17,6 @@ struct OpsRaw {
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
 struct OpsSignatureMutable {
     lhs_token: Token![|],
     lhs_ident: Ident,
@@ -33,7 +33,6 @@ struct OpsSignatureMutable {
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
 struct OpsSignatureBinary {
     lhs_token: Token![|],
     lhs_ident: Ident,
@@ -51,7 +50,6 @@ struct OpsSignatureBinary {
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
 struct OpsSignatureUnary {
     lhs_token: Token![|],
     lhs_ident: Ident,
@@ -73,15 +71,44 @@ struct OpsImplEntry<Op: Parse> {
 struct OpsImpl<OpsSignature: Parse, Op: Parse> {
     generics: Option<Generics>,
     signature: OpsSignature,
+    colon: Token![,],
     entries: Punctuated<OpsImplEntry<Op>, Token![,]>,
+}
+
+#[allow(dead_code)]
+struct OpsImplAutoBin<OpsSignature: Parse, Op: Parse> {
+    generics: Option<Generics>,
+    signature: OpsSignature,
+    colon: Token![,],
+    lhs_paren: Paren,
+    lhs_expr: Expr,
+    rhs_paren: Paren,
+    rhs_expr: Expr,
+    ops_bracket: Bracket,
+    ops: Punctuated<Op, Token![,]>,
+}
+
+#[allow(dead_code)]
+struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
+    generics: Option<Generics>,
+    signature: OpsSignature,
+    colon: Token![,],
+    lhs_paren: Paren,
+    lhs_expr: Expr,
+    ops_bracket: Bracket,
+    ops: Punctuated<Op, Token![,]>,
 }
 
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
 type OpsImplBinary = OpsImpl<OpsSignatureBinary, BinOp>;
 type OpsImplUnary = OpsImpl<OpsSignatureUnary, UnOp>;
 
+type OpsImplAutoMutable = OpsImplAutoBin<OpsSignatureMutable, BinOp>;
+type OpsImplAutoBinary = OpsImplAutoBin<OpsSignatureBinary, BinOp>;
+type OpsImplAutoUnary = OpsImplAutoUn<OpsSignatureUnary, UnOp>;
+
 impl Parse for OpsRaw {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         let _ = input.parse::<Token![@]>()?;
 
         let ident = if input.peek(Token![mut]) {
@@ -100,7 +127,7 @@ impl Parse for OpsRaw {
 }
 
 impl Parse for OpsSignatureMutable {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
             lhs_ident: input.parse()?,
@@ -119,7 +146,7 @@ impl Parse for OpsSignatureMutable {
 }
 
 impl Parse for OpsSignatureBinary {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
             lhs_ident: input.parse()?,
@@ -139,7 +166,7 @@ impl Parse for OpsSignatureBinary {
 }
 
 impl Parse for OpsSignatureUnary {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
             lhs_ident: input.parse()?,
@@ -154,7 +181,7 @@ impl Parse for OpsSignatureUnary {
 }
 
 impl<Op: Parse> Parse for OpsImplEntry<Op> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
             expr: input.parse()?,
@@ -163,7 +190,7 @@ impl<Op: Parse> Parse for OpsImplEntry<Op> {
 }
 
 impl<OpsSinature: Parse, Op: Parse> Parse for OpsImpl<OpsSinature, Op> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         let generics = input.parse().ok().map(|val: Generics| Generics {
             lt_token: val.lt_token,
             params: val.params,
@@ -174,7 +201,59 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImpl<OpsSinature, Op> {
         Ok(Self {
             generics,
             signature: input.parse()?,
+            colon: input.parse()?,
             entries: input.parse_terminated(OpsImplEntry::parse, Token![,])?,
+        })
+    }
+}
+
+impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoBin<OpsSinature, Op> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let generics = input.parse().ok().map(|val: Generics| Generics {
+            lt_token: val.lt_token,
+            params: val.params,
+            gt_token: val.gt_token,
+            where_clause: input.parse().ok(),
+        });
+
+        let lhs_content;
+        let rhs_content;
+        let ops_content;
+
+        Ok(Self {
+            generics,
+            signature: input.parse()?,
+            colon: input.parse()?,
+            lhs_paren: parenthesized!(lhs_content in input),
+            lhs_expr: lhs_content.parse()?,
+            rhs_paren: parenthesized!(rhs_content in input),
+            rhs_expr: rhs_content.parse()?,
+            ops_bracket: bracketed!(ops_content in input),
+            ops: ops_content.parse_terminated(Op::parse, Token![,])?,
+        })
+    }
+}
+
+impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let generics = input.parse().ok().map(|val: Generics| Generics {
+            lt_token: val.lt_token,
+            params: val.params,
+            gt_token: val.gt_token,
+            where_clause: input.parse().ok(),
+        });
+
+        let lhs_content;
+        let ops_content;
+
+        Ok(Self {
+            generics,
+            signature: input.parse()?,
+            colon: input.parse()?,
+            lhs_paren: parenthesized!(lhs_content in input),
+            lhs_expr: lhs_content.parse()?,
+            ops_bracket: bracketed!(ops_content in input),
+            ops: ops_content.parse_terminated(Op::parse, Token![,])?,
         })
     }
 }
@@ -441,11 +520,100 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro]
-pub fn ops_impl_auto(_stream: TokenStreamStd) -> TokenStreamStd {
-    todo!()
+pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
+    const ERROR: &str = "You must specify one of the identifiers: `@mut`, `@bin`, `@un`";
+
+    let raw = parse_macro_input!(stream as OpsRaw);
+
+    match raw.id.as_str() {
+        | "@mut" => {
+            let body = raw.body;
+            let ops = parse2::<OpsImplAutoMutable>(body).and_then(|val| {
+                Ok(OpsImplMutable {
+                    generics: val.generics,
+                    signature: val.signature,
+                    colon: Default::default(),
+                    entries: val
+                        .ops
+                        .into_iter()
+                        .map(|op| {
+                            let lhs = &val.lhs_expr;
+                            let rhs = &val.rhs_expr;
+
+                            Ok(OpsImplEntry::<BinOp> {
+                                op,
+                                expr: parse2::<ExprBlock>(quote! {{ #lhs #op #rhs; }})?,
+                            })
+                        })
+                        .collect::<Result<Punctuated<OpsImplEntry<BinOp>, Token![,]>>>()?,
+                })
+            });
+
+            match ops {
+                | Ok(val) => quote! { #val }.into(),
+                | Err(err) => err.to_compile_error().into(),
+            }
+        },
+        | "@bin" => {
+            let body = raw.body;
+            let ops = parse2::<OpsImplAutoBinary>(body).and_then(|val| {
+                Ok(OpsImplBinary {
+                    generics: val.generics,
+                    signature: val.signature,
+                    colon: Default::default(),
+                    entries: val
+                        .ops
+                        .into_iter()
+                        .map(|op| {
+                            let lhs = &val.lhs_expr;
+                            let rhs = &val.rhs_expr;
+
+                            Ok(OpsImplEntry::<BinOp> {
+                                op,
+                                expr: parse2::<ExprBlock>(quote! {{ (#lhs #op #rhs).into() }})?,
+                            })
+                        })
+                        .collect::<Result<Punctuated<OpsImplEntry<BinOp>, Token![,]>>>()?,
+                })
+            });
+
+            match ops {
+                | Ok(val) => quote! { #val }.into(),
+                | Err(err) => err.to_compile_error().into(),
+            }
+        },
+        | "@un" => {
+            let body = raw.body;
+            let ops = parse2::<OpsImplAutoUnary>(body).and_then(|val| {
+                Ok(OpsImplUnary {
+                    generics: val.generics,
+                    signature: val.signature,
+                    colon: Default::default(),
+                    entries: val
+                        .ops
+                        .into_iter()
+                        .map(|op| {
+                            let lhs = &val.lhs_expr;
+
+                            Ok(OpsImplEntry::<UnOp> {
+                                op,
+                                expr: parse2::<ExprBlock>(quote! {{ (#op #lhs).into() }})?,
+                            })
+                        })
+                        .collect::<Result<Punctuated<OpsImplEntry<UnOp>, Token![,]>>>()?,
+                })
+            });
+
+            match ops {
+                | Ok(val) => quote! { #val }.into(),
+                | Err(err) => err.to_compile_error().into(),
+            }
+        },
+        | _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
+    }
 }
 
-fn get_std_path_mut(op: &BinOp) -> syn::Result<(Ident, Path)> {
+fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
         | BinOp::AddAssign(_) => Ok(("add_assign", "std::ops::AddAssign")),
         | BinOp::SubAssign(_) => Ok(("sub_assign", "std::ops::SubAssign")),
@@ -469,7 +637,7 @@ fn get_std_path_mut(op: &BinOp) -> syn::Result<(Ident, Path)> {
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
 }
 
-fn get_std_path_binary(op: &BinOp) -> syn::Result<(Ident, Path)> {
+fn get_std_path_binary(op: &BinOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
         | BinOp::Add(_) => Ok(("add", "std::ops::Add")),
         | BinOp::Sub(_) => Ok(("sub", "std::ops::Sub")),
@@ -493,7 +661,7 @@ fn get_std_path_binary(op: &BinOp) -> syn::Result<(Ident, Path)> {
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
 }
 
-fn get_std_path_unary(op: &UnOp) -> syn::Result<(Ident, Path)> {
+fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
         | UnOp::Not(_) => Ok(("not", "std::ops::Not")),
         | UnOp::Neg(_) => Ok(("neg", "std::ops::Neg")),

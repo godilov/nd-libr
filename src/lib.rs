@@ -10,7 +10,7 @@ mod tests {
     use crate::ops::{
         OpsAll, OpsAllAssign, OpsAllFrom, OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRemFrom, OpsShiftFrom,
     };
-    use proc::ops_impl;
+    use proc::ops_impl_auto;
     use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Not, Rem, Shl, Shr, Sub};
 
     macro_rules! ops_struct_def {
@@ -32,38 +32,6 @@ mod tests {
                     Self(value)
                 }
             }
-        };
-    }
-
-    macro_rules! ops_struct_impl {
-        (@mut $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$($mut:ident)? $type1:ty, $type2:ty|) => {
-            ops_impl!(@mut $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2|
-                 += { a.0 += b.0 },
-                 -= { a.0 -= b.0 },
-                 *= { a.0 *= b.0 },
-                 /= { a.0 /= b.0 },
-                 %= { a.0 %= b.0 },
-                 |= { a.0 |= b.0 },
-                 &= { a.0 &= b.0 },
-                 ^= { a.0 ^= b.0 },
-                 <<= { a.0 <<= b.0 },
-                 >>= { a.0 >>= b.0 });
-        };
-        (@bin $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$type1:ty, $type2:ty| -> $type:ty) => {
-            ops_impl!(@bin $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type
-                + { (a.0 + b.0).into() },
-                - { (a.0 - b.0).into() },
-                * { (a.0 * b.0).into() },
-                / { (a.0 / b.0).into() },
-                % { (a.0 % b.0).into() },
-                | { (a.0 | b.0).into() },
-                & { (a.0 & b.0).into() },
-                ^ { (a.0 ^ b.0).into() },
-                << { (a.0 << b.0).into() },
-                >> { (a.0 >> b.0).into() });
-        };
-        (@un $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$type1:ty| -> $type:ty) => {
-            ops_impl!(@un $(<$($generics)+> $(where $($where)+)?)? |a: $type1| -> $type - { (-a.0).into() }, ! { (!a.0).into() });
         };
     }
 
@@ -126,63 +94,47 @@ mod tests {
     ops_struct_def!([N][N: Sized + Copy] X2, Y2, N);
     ops_struct_def!([N][N: Sized + Copy] X3, Y3, N);
 
-    ops_struct_impl!(@mut |&mut A0, &B0|);
-    ops_struct_impl!(@mut |&mut A0, &A0|);
-    ops_struct_impl!(@mut |&mut A1, B1|);
-    ops_struct_impl!(@mut |&mut A1, A1|);
-    ops_struct_impl!(@mut |mut A2, &B2|);
-    ops_struct_impl!(@mut |mut A2, &A2|);
-    ops_struct_impl!(@mut |mut A3, B3|);
-    ops_struct_impl!(@mut |mut A3, A3|);
+    ops_impl_auto!(@mut |a: &mut A0, b: &B0|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut |a: &mut A0, b: &A0|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut |a: &mut A1, b:  B1|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut |a: &mut A1, b:  A1|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut |a:  mut A2, b: &B2|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut |a:  mut A2, b: &A2|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut |a:  mut A3, b:  B3|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut |a:  mut A3, b:  A3|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_struct_impl!(@bin |&A0, &B0| -> A0);
-    ops_struct_impl!(@bin |&A0, &A0| -> A0);
-    ops_struct_impl!(@bin |&A1, B1| -> A1);
-    ops_struct_impl!(@bin |&A1, A1| -> A1);
-    ops_struct_impl!(@bin |A2, &B2| -> A2);
-    ops_struct_impl!(@bin |A2, &A2| -> A2);
-    ops_struct_impl!(@bin |A3, B3| -> A3);
-    ops_struct_impl!(@bin |A3, A3| -> A3);
+    ops_impl_auto!(@bin |a: &A0, b: &B0| -> A0, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin |a: &A0, b: &A0| -> A0, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin |a: &A1, b:  B1| -> A1, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin |a: &A1, b:  A1| -> A1, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin |a:  A2, b: &B2| -> A2, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin |a:  A2, b: &A2| -> A2, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin |a:  A3, b:  B3| -> A3, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin |a:  A3, b:  A3| -> A3, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
-    ops_struct_impl!(@un |&A0| -> A0);
-    ops_struct_impl!(@un |A1| -> A1);
+    ops_impl_auto!(@un |a: &A0| -> A0, (a.0) [-, !]);
+    ops_impl_auto!(@un |a:  A1| -> A1, (a.0) [-, !]);
 
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |&mut X0<N>, &Y0<N>|);
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |&mut X0<N>, &X0<N>|);
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |&mut X1<N>, Y1<N>|);
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |&mut X1<N>, X1<N>|);
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |mut X2<N>, &Y2<N>|);
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |mut X2<N>, &X2<N>|);
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |mut X3<N>, Y3<N>|);
-    ops_struct_impl!(@mut [N: Sized + Copy + OpsAllAssign] |mut X3<N>, X3<N>|);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a: &mut X0<N>, b: &Y0<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a: &mut X0<N>, b: &X0<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a: &mut X1<N>, b:  Y1<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a: &mut X1<N>, b:  X1<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X2<N>, b: &Y2<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X2<N>, b: &X2<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X3<N>, b:  Y3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X3<N>, b:  X3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X0<N>: OpsAllFrom<N>] |&X0<N>, &Y0<N>| -> X0<N>);
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X0<N>: OpsAllFrom<N>] |&X0<N>, &X0<N>| -> X0<N>);
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X1<N>: OpsAllFrom<N>] |&X1<N>, Y1<N>| -> X1<N>);
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X1<N>: OpsAllFrom<N>] |&X1<N>, X1<N>| -> X1<N>);
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X2<N>: OpsAllFrom<N>] |X2<N>, &Y2<N>| -> X2<N>);
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X2<N>: OpsAllFrom<N>] |X2<N>, &X2<N>| -> X2<N>);
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X3<N>: OpsAllFrom<N>] |X3<N>, Y3<N>| -> X3<N>);
-    ops_struct_impl!(@bin [N: Sized + Copy + OpsAll] where [X3<N>: OpsAllFrom<N>] |X3<N>, X3<N>| -> X3<N>);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &Y0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &X0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  Y1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  X1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &Y2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &X2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  Y3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  X3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
-    ops_struct_impl!(@un [N: Sized + Copy + Neg + Not] where [X0<N>: OpsNegFrom<N> + OpsNotFrom<N>] |&X0<N>| -> X0<N>);
-    ops_struct_impl!(@un [N: Sized + Copy + Neg + Not] where [X1<N>: OpsNegFrom<N> + OpsNotFrom<N>] |X1<N>| -> X1<N>);
-
-    fn a_fn(x: i64) -> A0 {
-        A0(x)
-    }
-
-    fn b_fn(x: i64) -> B0 {
-        B0(x)
-    }
-
-    fn x_fn<N: Sized + Copy + OpsAll>(x: N) -> X0<N> {
-        X0::<N>(x)
-    }
-
-    fn y_fn<N: Sized + Copy + OpsAll>(x: N) -> Y0<N> {
-        Y0::<N>(x)
-    }
+    ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X0<N>: OpsNegFrom<N> + OpsNotFrom<N> |a: &X0<N>| -> X0<N>, (a.0) [-, !]);
+    ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X1<N>: OpsNegFrom<N> + OpsNotFrom<N> |a:  X1<N>| -> X1<N>, (a.0) [-, !]);
 
     impl<N: Sized + Copy + OpsAll> OpsFrom<N> for X0<N> where
         Self: From<<N as Add>::Output> + From<<N as Sub>::Output> + From<<N as Mul>::Output> + From<<N as Div>::Output>
@@ -209,23 +161,23 @@ mod tests {
         let val1 = 32i64;
         let val2 = 2i64;
 
-        assert_ops!(&a_fn(val1), &a_fn(val2), a_fn, val1, val2);
-        assert_ops!(&a_fn(val1), &b_fn(val2), a_fn, val1, val2);
+        assert_ops!(&A0(val1), &A0(val2), A0, val1, val2);
+        assert_ops!(&A0(val1), &B0(val2), A0, val1, val2);
 
-        assert_ops!(&a_fn(val1), a_fn(val2), a_fn, val1, val2);
-        assert_ops!(&a_fn(val1), b_fn(val2), a_fn, val1, val2);
+        assert_ops!(&A0(val1), A0(val2), A0, val1, val2);
+        assert_ops!(&A0(val1), B0(val2), A0, val1, val2);
 
-        assert_ops!(a_fn(val1), &a_fn(val2), a_fn, val1, val2);
-        assert_ops!(a_fn(val1), &b_fn(val2), a_fn, val1, val2);
+        assert_ops!(A0(val1), &A0(val2), A0, val1, val2);
+        assert_ops!(A0(val1), &B0(val2), A0, val1, val2);
 
-        assert_ops!(a_fn(val1), a_fn(val2), a_fn, val1, val2);
-        assert_ops!(a_fn(val1), b_fn(val2), a_fn, val1, val2);
+        assert_ops!(A0(val1), A0(val2), A0, val1, val2);
+        assert_ops!(A0(val1), B0(val2), A0, val1, val2);
 
-        assert_eq!(-&a_fn(val1), a_fn(-val1));
-        assert_eq!(!&a_fn(val1), a_fn(!val1));
+        assert_eq!(-&A0(val1), A0(-val1));
+        assert_eq!(!&A0(val1), A0(!val1));
 
-        assert_eq!(-a_fn(val1), a_fn(-val1));
-        assert_eq!(!a_fn(val1), a_fn(!val1));
+        assert_eq!(-A0(val1), A0(-val1));
+        assert_eq!(!A0(val1), A0(!val1));
     }
 
     #[test]
@@ -233,23 +185,23 @@ mod tests {
         let val1 = 32i64;
         let val2 = 2i64;
 
-        assert_ops!(&x_fn(val1), &x_fn(val2), x_fn, val1, val2);
-        assert_ops!(&x_fn(val1), &y_fn(val2), x_fn, val1, val2);
+        assert_ops!(&X0(val1), &X0(val2), X0, val1, val2);
+        assert_ops!(&X0(val1), &Y0(val2), X0, val1, val2);
 
-        assert_ops!(&x_fn(val1), x_fn(val2), x_fn, val1, val2);
-        assert_ops!(&x_fn(val1), y_fn(val2), x_fn, val1, val2);
+        assert_ops!(&X0(val1), X0(val2), X0, val1, val2);
+        assert_ops!(&X0(val1), Y0(val2), X0, val1, val2);
 
-        assert_ops!(x_fn(val1), &x_fn(val2), x_fn, val1, val2);
-        assert_ops!(x_fn(val1), &y_fn(val2), x_fn, val1, val2);
+        assert_ops!(X0(val1), &X0(val2), X0, val1, val2);
+        assert_ops!(X0(val1), &Y0(val2), X0, val1, val2);
 
-        assert_ops!(x_fn(val1), x_fn(val2), x_fn, val1, val2);
-        assert_ops!(x_fn(val1), y_fn(val2), x_fn, val1, val2);
+        assert_ops!(X0(val1), X0(val2), X0, val1, val2);
+        assert_ops!(X0(val1), Y0(val2), X0, val1, val2);
 
-        assert_eq!(-&x_fn(val1), x_fn(-val1));
-        assert_eq!(!&x_fn(val1), x_fn(!val1));
+        assert_eq!(-&X0(val1), X0(-val1));
+        assert_eq!(!&X0(val1), X0(!val1));
 
-        assert_eq!(-x_fn(val1), x_fn(-val1));
-        assert_eq!(!x_fn(val1), x_fn(!val1));
+        assert_eq!(-X0(val1), X0(-val1));
+        assert_eq!(!X0(val1), X0(!val1));
     }
 
     #[test]
@@ -257,15 +209,15 @@ mod tests {
         let val1 = 32i64;
         let val2 = 2i64;
 
-        assert_ops_mut!(@ref &mut a_fn(val1), &a_fn(val2), a_fn, val1, val2);
-        assert_ops_mut!(@ref &mut a_fn(val1), &b_fn(val2), a_fn, val1, val2);
-        assert_ops_mut!(@ref &mut a_fn(val1), a_fn(val2), a_fn, val1, val2);
-        assert_ops_mut!(@ref &mut a_fn(val1), b_fn(val2), a_fn, val1, val2);
+        assert_ops_mut!(@ref &mut A0(val1), &A0(val2), A0, val1, val2);
+        assert_ops_mut!(@ref &mut A0(val1), &B0(val2), A0, val1, val2);
+        assert_ops_mut!(@ref &mut A0(val1), A0(val2), A0, val1, val2);
+        assert_ops_mut!(@ref &mut A0(val1), B0(val2), A0, val1, val2);
 
-        assert_ops_mut!(@mut a_fn(val1), &a_fn(val2), a_fn, val1, val2);
-        assert_ops_mut!(@mut a_fn(val1), &b_fn(val2), a_fn, val1, val2);
-        assert_ops_mut!(@mut a_fn(val1), a_fn(val2), a_fn, val1, val2);
-        assert_ops_mut!(@mut a_fn(val1), b_fn(val2), a_fn, val1, val2);
+        assert_ops_mut!(@mut A0(val1), &A0(val2), A0, val1, val2);
+        assert_ops_mut!(@mut A0(val1), &B0(val2), A0, val1, val2);
+        assert_ops_mut!(@mut A0(val1), A0(val2), A0, val1, val2);
+        assert_ops_mut!(@mut A0(val1), B0(val2), A0, val1, val2);
     }
 
     #[test]
@@ -273,14 +225,14 @@ mod tests {
         let val1 = 32i64;
         let val2 = 2i64;
 
-        assert_ops_mut!(@ref &mut x_fn(val1), &x_fn(val2), x_fn, val1, val2);
-        assert_ops_mut!(@ref &mut x_fn(val1), &y_fn(val2), x_fn, val1, val2);
-        assert_ops_mut!(@ref &mut x_fn(val1), x_fn(val2), x_fn, val1, val2);
-        assert_ops_mut!(@ref &mut x_fn(val1), y_fn(val2), x_fn, val1, val2);
+        assert_ops_mut!(@ref &mut X0(val1), &X0(val2), X0, val1, val2);
+        assert_ops_mut!(@ref &mut X0(val1), &Y0(val2), X0, val1, val2);
+        assert_ops_mut!(@ref &mut X0(val1), X0(val2), X0, val1, val2);
+        assert_ops_mut!(@ref &mut X0(val1), Y0(val2), X0, val1, val2);
 
-        assert_ops_mut!(@mut x_fn(val1), &x_fn(val2), x_fn, val1, val2);
-        assert_ops_mut!(@mut x_fn(val1), &y_fn(val2), x_fn, val1, val2);
-        assert_ops_mut!(@mut x_fn(val1), x_fn(val2), x_fn, val1, val2);
-        assert_ops_mut!(@mut x_fn(val1), y_fn(val2), x_fn, val1, val2);
+        assert_ops_mut!(@mut X0(val1), &X0(val2), X0, val1, val2);
+        assert_ops_mut!(@mut X0(val1), &Y0(val2), X0, val1, val2);
+        assert_ops_mut!(@mut X0(val1), X0(val2), X0, val1, val2);
+        assert_ops_mut!(@mut X0(val1), Y0(val2), X0, val1, val2);
     }
 }
