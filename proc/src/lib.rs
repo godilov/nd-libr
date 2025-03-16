@@ -4,7 +4,7 @@ use quote::{ToTokens, quote};
 use syn::{
     BinOp, Error, Expr, ExprBlock, Generics, Ident, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
     parse::{Parse, ParseStream},
-    parse_macro_input,
+    parse_macro_input, parse_quote,
     punctuated::Punctuated,
     token::{Bracket, Paren},
 };
@@ -528,25 +528,23 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match raw.id.as_str() {
         | "@mut" => {
             let body = raw.body;
-            let ops = parse2::<OpsImplAutoMutable>(body).and_then(|val| {
-                Ok(OpsImplMutable {
-                    generics: val.generics,
-                    signature: val.signature,
-                    colon: Default::default(),
-                    entries: val
-                        .ops
-                        .into_iter()
-                        .map(|op| {
-                            let lhs = &val.lhs_expr;
-                            let rhs = &val.rhs_expr;
+            let ops = parse2::<OpsImplAutoMutable>(body).map(|val| OpsImplMutable {
+                generics: val.generics,
+                signature: val.signature,
+                colon: Default::default(),
+                entries: val
+                    .ops
+                    .into_iter()
+                    .map(|op| {
+                        let lhs = &val.lhs_expr;
+                        let rhs = &val.rhs_expr;
 
-                            Ok(OpsImplEntry::<BinOp> {
-                                op,
-                                expr: parse2::<ExprBlock>(quote! {{ #lhs #op #rhs; }})?,
-                            })
-                        })
-                        .collect::<Result<Punctuated<OpsImplEntry<BinOp>, Token![,]>>>()?,
-                })
+                        OpsImplEntry::<BinOp> {
+                            op,
+                            expr: parse_quote! {{ #lhs #op #rhs; }},
+                        }
+                    })
+                    .collect::<Punctuated<OpsImplEntry<BinOp>, Token![,]>>(),
             });
 
             match ops {
@@ -556,25 +554,23 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
         },
         | "@bin" => {
             let body = raw.body;
-            let ops = parse2::<OpsImplAutoBinary>(body).and_then(|val| {
-                Ok(OpsImplBinary {
-                    generics: val.generics,
-                    signature: val.signature,
-                    colon: Default::default(),
-                    entries: val
-                        .ops
-                        .into_iter()
-                        .map(|op| {
-                            let lhs = &val.lhs_expr;
-                            let rhs = &val.rhs_expr;
+            let ops = parse2::<OpsImplAutoBinary>(body).map(|val| OpsImplBinary {
+                generics: val.generics,
+                signature: val.signature,
+                colon: Default::default(),
+                entries: val
+                    .ops
+                    .into_iter()
+                    .map(|op| {
+                        let lhs = &val.lhs_expr;
+                        let rhs = &val.rhs_expr;
 
-                            Ok(OpsImplEntry::<BinOp> {
-                                op,
-                                expr: parse2::<ExprBlock>(quote! {{ (#lhs #op #rhs).into() }})?,
-                            })
-                        })
-                        .collect::<Result<Punctuated<OpsImplEntry<BinOp>, Token![,]>>>()?,
-                })
+                        OpsImplEntry::<BinOp> {
+                            op,
+                            expr: parse_quote! {{ (#lhs #op #rhs).into() }},
+                        }
+                    })
+                    .collect::<Punctuated<OpsImplEntry<BinOp>, Token![,]>>(),
             });
 
             match ops {
@@ -584,24 +580,22 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
         },
         | "@un" => {
             let body = raw.body;
-            let ops = parse2::<OpsImplAutoUnary>(body).and_then(|val| {
-                Ok(OpsImplUnary {
-                    generics: val.generics,
-                    signature: val.signature,
-                    colon: Default::default(),
-                    entries: val
-                        .ops
-                        .into_iter()
-                        .map(|op| {
-                            let lhs = &val.lhs_expr;
+            let ops = parse2::<OpsImplAutoUnary>(body).map(|val| OpsImplUnary {
+                generics: val.generics,
+                signature: val.signature,
+                colon: Default::default(),
+                entries: val
+                    .ops
+                    .into_iter()
+                    .map(|op| {
+                        let lhs = &val.lhs_expr;
 
-                            Ok(OpsImplEntry::<UnOp> {
-                                op,
-                                expr: parse2::<ExprBlock>(quote! {{ (#op #lhs).into() }})?,
-                            })
-                        })
-                        .collect::<Result<Punctuated<OpsImplEntry<UnOp>, Token![,]>>>()?,
-                })
+                        OpsImplEntry::<UnOp> {
+                            op,
+                            expr: parse_quote! {{ (#op #lhs).into() }},
+                        }
+                    })
+                    .collect::<Punctuated<OpsImplEntry<UnOp>, Token![,]>>(),
             });
 
             match ops {
