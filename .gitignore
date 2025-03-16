@@ -1,11 +1,2 @@
 /target
 /Cargo.lock
-
-/ext/algorithms/target
-/ext/algorithms/Cargo.lock
-
-/ext/colors/target
-/ext/colors/Cargo.lock
-
-/ext/core/target
-/ext/core/Cargo.lock
