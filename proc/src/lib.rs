@@ -2,9 +2,10 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Error, Expr, Generics, Ident, Path, Token, Type, braced,
+    Error, ExprBlock, Generics, Ident, Path, Token, Type,
     parse::{Parse, ParseStream},
-    parse_macro_input, token,
+    parse_macro_input,
+    punctuated::Punctuated,
 };
 use syn::{parse_str, parse2};
 
@@ -15,12 +16,7 @@ struct OpsRaw {
 }
 
 #[allow(dead_code)]
-struct OpsId<Id: Parse> {
-    at: Token![@],
-    id: Id,
-}
-
-#[allow(dead_code)]
+#[derive(Clone)]
 struct OpsSignatureMutable {
     lhs_token: Token![|],
     lhs_ident: Ident,
@@ -37,6 +33,7 @@ struct OpsSignatureMutable {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 struct OpsSignatureBinary {
     lhs_token: Token![|],
     lhs_ident: Ident,
@@ -54,6 +51,7 @@ struct OpsSignatureBinary {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 struct OpsSignatureUnary {
     lhs_token: Token![|],
     lhs_ident: Ident,
@@ -66,17 +64,21 @@ struct OpsSignatureUnary {
 }
 
 #[allow(dead_code)]
-struct OpsImplStd<OpsSignature: Parse> {
+struct OpsImplEntry {
     ident: Ident,
-    generics: Option<Generics>,
-    signature: OpsSignature,
-    brace: token::Brace,
-    expr: Expr,
+    expr: ExprBlock,
 }
 
-type OpsImplStdMutable = OpsImplStd<OpsSignatureMutable>;
-type OpsImplStdBinary = OpsImplStd<OpsSignatureBinary>;
-type OpsImplStdUnary = OpsImplStd<OpsSignatureUnary>;
+#[allow(dead_code)]
+struct OpsImpl<OpsSignature: Parse> {
+    generics: Option<Generics>,
+    signature: OpsSignature,
+    entries: Punctuated<OpsImplEntry, Token![,]>,
+}
+
+type OpsImplMutable = OpsImpl<OpsSignatureMutable>;
+type OpsImplBinary = OpsImpl<OpsSignatureBinary>;
+type OpsImplUnary = OpsImpl<OpsSignatureUnary>;
 
 impl Parse for OpsRaw {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -93,15 +95,6 @@ impl Parse for OpsRaw {
         Ok(Self {
             id: format!("@{}", ident),
             body,
-        })
-    }
-}
-
-impl<Id: Parse> Parse for OpsId<Id> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            at: input.parse()?,
-            id: input.parse()?,
         })
     }
 }
@@ -160,11 +153,17 @@ impl Parse for OpsSignatureUnary {
     }
 }
 
-impl<OpsSinature: Parse> Parse for OpsImplStd<OpsSinature> {
+impl Parse for OpsImplEntry {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let expr;
+        Ok(Self {
+            ident: input.parse()?,
+            expr: input.parse()?,
+        })
+    }
+}
 
-        let ident = input.parse()?;
+impl<OpsSinature: Parse> Parse for OpsImpl<OpsSinature> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let generics = input.parse().ok().map(|val: Generics| Generics {
             lt_token: val.lt_token,
             params: val.params,
@@ -173,26 +172,31 @@ impl<OpsSinature: Parse> Parse for OpsImplStd<OpsSinature> {
         });
 
         Ok(Self {
-            ident,
             generics,
             signature: input.parse()?,
-            brace: braced!(expr in input),
-            expr: expr.parse()?,
+            entries: input.parse_terminated(OpsImplEntry::parse, Token![,])?,
         })
     }
 }
 
-impl ToTokens for OpsImplStdMutable {
+impl ToTokens for OpsImplMutable {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        fn get_impl(val: &OpsImplStdMutable, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
-            let (ident, path) = match get_std_path_mut(&val.ident) {
+        struct OpsImpl<'ops> {
+            ident: &'ops Ident,
+            generics: Option<&'ops Generics>,
+            signature: &'ops OpsSignatureMutable,
+            expr: &'ops ExprBlock,
+        }
+
+        fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
+            let (ident, path) = match get_std_path_mut(val.ident) {
                 | Ok(val) => val,
                 | Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
-            let generics = val.generics.as_ref().map(|val| val.split_for_impl());
+            let generics = val.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
                 | Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
                 | None => (None, None),
@@ -222,39 +226,55 @@ impl ToTokens for OpsImplStdMutable {
         let some = Some(Default::default());
         let none = None;
 
-        match (lhs, rhs) {
-            | (true, true) => {
-                tokens.extend(get_impl(self, some, some));
-                tokens.extend(get_impl(self, some, none));
-                tokens.extend(get_impl(self, none, some));
-                tokens.extend(get_impl(self, none, none));
-            },
-            | (true, false) => {
-                tokens.extend(get_impl(self, some, none));
-                tokens.extend(get_impl(self, none, none));
-            },
-            | (false, true) => {
-                tokens.extend(get_impl(self, none, some));
-                tokens.extend(get_impl(self, none, none));
-            },
-            | (false, false) => {
-                tokens.extend(get_impl(self, none, none));
-            },
+        for entry in &self.entries {
+            let val = &OpsImpl {
+                ident: &entry.ident,
+                generics: self.generics.as_ref(),
+                signature: &self.signature,
+                expr: &entry.expr,
+            };
+
+            match (lhs, rhs) {
+                | (true, true) => {
+                    tokens.extend(get_impl(val, some, some));
+                    tokens.extend(get_impl(val, some, none));
+                    tokens.extend(get_impl(val, none, some));
+                    tokens.extend(get_impl(val, none, none));
+                },
+                | (true, false) => {
+                    tokens.extend(get_impl(val, some, none));
+                    tokens.extend(get_impl(val, none, none));
+                },
+                | (false, true) => {
+                    tokens.extend(get_impl(val, none, some));
+                    tokens.extend(get_impl(val, none, none));
+                },
+                | (false, false) => {
+                    tokens.extend(get_impl(val, none, none));
+                },
+            }
         }
     }
 }
 
-impl ToTokens for OpsImplStdBinary {
+impl ToTokens for OpsImplBinary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        fn get_impl(val: &OpsImplStdBinary, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
-            let (ident, path) = match get_std_path_binary(&val.ident) {
+        struct OpsImpl<'ops> {
+            ident: &'ops Ident,
+            generics: Option<&'ops Generics>,
+            signature: &'ops OpsSignatureBinary,
+            expr: &'ops ExprBlock,
+        }
+
+        fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
+            let (ident, path) = match get_std_path_binary(val.ident) {
                 | Ok(val) => val,
                 | Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
-            let generics = val.generics.as_ref().map(|val| val.split_for_impl());
+            let generics = val.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
                 | Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
                 | None => (None, None),
@@ -285,39 +305,55 @@ impl ToTokens for OpsImplStdBinary {
         let some = Some(Default::default());
         let none = None;
 
-        match (lhs, rhs) {
-            | (true, true) => {
-                tokens.extend(get_impl(self, some, some));
-                tokens.extend(get_impl(self, some, none));
-                tokens.extend(get_impl(self, none, some));
-                tokens.extend(get_impl(self, none, none));
-            },
-            | (true, false) => {
-                tokens.extend(get_impl(self, some, none));
-                tokens.extend(get_impl(self, none, none));
-            },
-            | (false, true) => {
-                tokens.extend(get_impl(self, none, some));
-                tokens.extend(get_impl(self, none, none));
-            },
-            | (false, false) => {
-                tokens.extend(get_impl(self, none, none));
-            },
+        for entry in &self.entries {
+            let val = &OpsImpl {
+                ident: &entry.ident,
+                generics: self.generics.as_ref(),
+                signature: &self.signature,
+                expr: &entry.expr,
+            };
+
+            match (lhs, rhs) {
+                | (true, true) => {
+                    tokens.extend(get_impl(val, some, some));
+                    tokens.extend(get_impl(val, some, none));
+                    tokens.extend(get_impl(val, none, some));
+                    tokens.extend(get_impl(val, none, none));
+                },
+                | (true, false) => {
+                    tokens.extend(get_impl(val, some, none));
+                    tokens.extend(get_impl(val, none, none));
+                },
+                | (false, true) => {
+                    tokens.extend(get_impl(val, none, some));
+                    tokens.extend(get_impl(val, none, none));
+                },
+                | (false, false) => {
+                    tokens.extend(get_impl(val, none, none));
+                },
+            }
         }
     }
 }
 
-impl ToTokens for OpsImplStdUnary {
+impl ToTokens for OpsImplUnary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        fn get_impl(val: &OpsImplStdUnary, lhs_ref: Option<Token![&]>) -> TokenStream {
-            let (ident, path) = match get_std_path_unary(&val.ident) {
+        struct OpsImpl<'ops> {
+            ident: &'ops Ident,
+            generics: Option<&'ops Generics>,
+            signature: &'ops OpsSignatureUnary,
+            expr: &'ops ExprBlock,
+        }
+
+        fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>) -> TokenStream {
+            let (ident, path) = match get_std_path_unary(val.ident) {
                 | Ok(val) => val,
                 | Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
-            let generics = val.generics.as_ref().map(|val| val.split_for_impl());
+            let generics = val.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
                 | Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
                 | None => (None, None),
@@ -345,20 +381,29 @@ impl ToTokens for OpsImplStdUnary {
         let some = Some(Default::default());
         let none = None;
 
-        match lhs {
-            | true => {
-                tokens.extend(get_impl(self, some));
-                tokens.extend(get_impl(self, none));
-            },
-            | false => {
-                tokens.extend(get_impl(self, none));
-            },
+        for entry in &self.entries {
+            let val = &OpsImpl {
+                ident: &entry.ident,
+                generics: self.generics.as_ref(),
+                signature: &self.signature,
+                expr: &entry.expr,
+            };
+
+            match lhs {
+                | true => {
+                    tokens.extend(get_impl(val, some));
+                    tokens.extend(get_impl(val, none));
+                },
+                | false => {
+                    tokens.extend(get_impl(val, none));
+                },
+            }
         }
     }
 }
 
 #[proc_macro]
-pub fn ops_impl_std(stream: TokenStreamStd) -> TokenStreamStd {
+pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
     const ERROR: &str = "You must specify one of the identifiers: `@mut`, `@bin`, `@un`";
 
     let raw = parse_macro_input!(stream as OpsRaw);
@@ -366,7 +411,7 @@ pub fn ops_impl_std(stream: TokenStreamStd) -> TokenStreamStd {
     match raw.id.as_str() {
         | "@mut" => {
             let body = raw.body;
-            let ops = parse2::<OpsImplStdMutable>(body);
+            let ops = parse2::<OpsImplMutable>(body);
 
             match ops {
                 | Ok(val) => quote! { #val }.into(),
@@ -375,7 +420,7 @@ pub fn ops_impl_std(stream: TokenStreamStd) -> TokenStreamStd {
         },
         | "@bin" => {
             let body = raw.body;
-            let ops = parse2::<OpsImplStdBinary>(body);
+            let ops = parse2::<OpsImplBinary>(body);
 
             match ops {
                 | Ok(val) => quote! { #val }.into(),
@@ -384,7 +429,7 @@ pub fn ops_impl_std(stream: TokenStreamStd) -> TokenStreamStd {
         },
         | "@un" => {
             let body = raw.body;
-            let ops = parse2::<OpsImplStdUnary>(body);
+            let ops = parse2::<OpsImplUnary>(body);
 
             match ops {
                 | Ok(val) => quote! { #val }.into(),
@@ -393,11 +438,6 @@ pub fn ops_impl_std(stream: TokenStreamStd) -> TokenStreamStd {
         },
         | _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
     }
-}
-
-#[proc_macro]
-pub fn ops_impl(_stream: TokenStreamStd) -> TokenStreamStd {
-    todo!()
 }
 
 #[proc_macro]

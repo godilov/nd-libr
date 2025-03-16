@@ -10,7 +10,7 @@ mod tests {
     use crate::ops::{
         OpsAll, OpsAllAssign, OpsAllFrom, OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRemFrom, OpsShiftFrom,
     };
-    use proc::ops_impl_std;
+    use proc::ops_impl;
     use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Not, Rem, Shl, Shr, Sub};
 
     macro_rules! ops_struct_def {
@@ -37,32 +37,33 @@ mod tests {
 
     macro_rules! ops_struct_impl {
         (@mut $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$($mut:ident)? $type1:ty, $type2:ty|) => {
-            ops_impl_std!(@mut add    $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 += b.0 });
-            ops_impl_std!(@mut sub    $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 -= b.0 });
-            ops_impl_std!(@mut mul    $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 *= b.0 });
-            ops_impl_std!(@mut div    $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 /= b.0 });
-            ops_impl_std!(@mut rem    $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 %= b.0 });
-            ops_impl_std!(@mut bitor  $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 |= b.0 });
-            ops_impl_std!(@mut bitand $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 &= b.0 });
-            ops_impl_std!(@mut bitxor $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 ^= b.0 });
-            ops_impl_std!(@mut shl    $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 <<= b.0 });
-            ops_impl_std!(@mut shr    $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2| { a.0 >>= b.0 });
+            ops_impl!(@mut $(<$($generics)+> $(where $($where)+)?)? |a: $($mut)? $type1, b: $type2|
+                add { a.0 += b.0 },
+                sub { a.0 -= b.0 },
+                mul { a.0 *= b.0 },
+                div { a.0 /= b.0 },
+                rem { a.0 %= b.0 },
+                bitor { a.0 |= b.0 },
+                bitand { a.0 &= b.0 },
+                bitxor { a.0 ^= b.0 },
+                shl { a.0 <<= b.0 },
+                shr { a.0 >>= b.0 });
         };
         (@bin $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$type1:ty, $type2:ty| -> $type:ty) => {
-            ops_impl_std!(@bin add    $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 + b.0).into() });
-            ops_impl_std!(@bin sub    $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 - b.0).into() });
-            ops_impl_std!(@bin mul    $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 * b.0).into() });
-            ops_impl_std!(@bin div    $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 / b.0).into() });
-            ops_impl_std!(@bin rem    $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 % b.0).into() });
-            ops_impl_std!(@bin bitor  $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 | b.0).into() });
-            ops_impl_std!(@bin bitand $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 & b.0).into() });
-            ops_impl_std!(@bin bitxor $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 ^ b.0).into() });
-            ops_impl_std!(@bin shl    $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 << b.0).into() });
-            ops_impl_std!(@bin shr    $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type { (a.0 >> b.0).into() });
+            ops_impl!(@bin $(<$($generics)+> $(where $($where)+)?)? |a: $type1, b: $type2| -> $type
+                add { (a.0 + b.0).into() },
+                sub { (a.0 - b.0).into() },
+                mul { (a.0 * b.0).into() },
+                div { (a.0 / b.0).into() },
+                rem { (a.0 % b.0).into() },
+                bitor { (a.0 | b.0).into() },
+                bitand { (a.0 & b.0).into() },
+                bitxor { (a.0 ^ b.0).into() },
+                shl { (a.0 << b.0).into() },
+                shr { (a.0 >> b.0).into() });
         };
         (@un $([$($generics:tt)+] $(where [$($where:tt)+])?)? |$type1:ty| -> $type:ty) => {
-            ops_impl_std!(@un neg $(<$($generics)+> $(where $($where)+)?)? |a: $type1| -> $type { (-a.0).into() });
-            ops_impl_std!(@un not $(<$($generics)+> $(where $($where)+)?)? |a: $type1| -> $type { (!a.0).into() });
+            ops_impl!(@un $(<$($generics)+> $(where $($where)+)?)? |a: $type1| -> $type neg { (-a.0).into() }, not { (!a.0).into() });
         };
     }
 
