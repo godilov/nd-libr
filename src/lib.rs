@@ -7,11 +7,9 @@ pub mod vec;
 
 #[cfg(test)]
 mod tests {
-    use crate::ops::{
-        OpsAll, OpsAllAssign, OpsAllFrom, OpsBitFrom, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRemFrom, OpsShiftFrom,
-    };
+    use crate::ops::{OpsAll, OpsAllAssign, OpsAllFrom, OpsNegFrom, OpsNotFrom};
     use proc::ops_impl_auto;
-    use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Not, Rem, Shl, Shr, Sub};
+    use std::ops::{Neg, Not};
 
     macro_rules! ops_struct_def {
         ($([$($gen:tt)+][$($generics:tt)+] $(where [$($where:tt)+])?)? $type1:ident, $type2:ident, $type:ty $(,)?) => {
@@ -124,37 +122,17 @@ mod tests {
     ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X3<N>, b:  Y3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
     ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X3<N>, b:  X3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &Y0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &X0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  Y1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  X1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &Y2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &X2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  Y3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  X3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N, N> |a: &X0<N>, b: &Y0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N, N> |a: &X0<N>, b: &X0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N, N> |a: &X1<N>, b:  Y1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N, N> |a: &X1<N>, b:  X1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N, N> |a:  X2<N>, b: &Y2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N, N> |a:  X2<N>, b: &X2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N, N> |a:  X3<N>, b:  Y3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N, N> |a:  X3<N>, b:  X3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
     ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X0<N>: OpsNegFrom<N> + OpsNotFrom<N> |a: &X0<N>| -> X0<N>, (a.0) [-, !]);
     ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X1<N>: OpsNegFrom<N> + OpsNotFrom<N> |a:  X1<N>| -> X1<N>, (a.0) [-, !]);
-
-    impl<N: Sized + Copy + OpsAll> OpsFrom<N> for X0<N> where
-        Self: From<<N as Add>::Output> + From<<N as Sub>::Output> + From<<N as Mul>::Output> + From<<N as Div>::Output>
-    {
-    }
-
-    impl<N: Sized + Copy + OpsAll> OpsRemFrom<N> for X0<N> where Self: From<<N as Rem>::Output> {}
-    impl<N: Sized + Copy + OpsAll> OpsBitFrom<N> for X0<N> where
-        Self: From<<N as BitOr>::Output> + From<<N as BitAnd>::Output> + From<<N as BitXor>::Output>
-    {
-    }
-
-    impl<N: Sized + Copy + OpsAll> OpsShiftFrom<N> for X0<N> where Self: From<<N as Shl>::Output> + From<<N as Shr>::Output> {}
-    impl<N: Sized + Copy + OpsAll> OpsAllFrom<N> for X0<N> where
-        Self: OpsFrom<N> + OpsRemFrom<N> + OpsBitFrom<N> + OpsShiftFrom<N>
-    {
-    }
-
-    impl<N: Sized + Copy + Neg + Not> OpsNegFrom<N> for X0<N> where Self: From<<N as Neg>::Output> {}
-    impl<N: Sized + Copy + Neg + Not> OpsNotFrom<N> for X0<N> where Self: From<<N as Not>::Output> {}
 
     #[test]
     fn ops() {
@@ -184,6 +162,8 @@ mod tests {
     fn ops_gen() {
         let val1 = 32i64;
         let val2 = 2i64;
+
+        // assert_eq!((&X0(val1)) + (&X0(val2)), X0(val1 + val2));
 
         assert_ops!(&X0(val1), &X0(val2), X0, val1, val2);
         assert_ops!(&X0(val1), &Y0(val2), X0, val1, val2);

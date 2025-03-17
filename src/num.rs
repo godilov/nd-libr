@@ -1,8 +1,4 @@
-use crate::ops::{
-    AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAllFrom, OpsAssign, OpsBit, OpsBitAssign,
-    OpsBitFrom, OpsChecked, OpsFrom, OpsNegFrom, OpsNotFrom, OpsRem, OpsRemAssign, OpsRemFrom, OpsShift,
-    OpsShiftAssign, OpsShiftFrom, SubChecked,
-};
+use crate::ops::{AddChecked, DivChecked, MulChecked, Ops, OpsAssign, OpsChecked, SubChecked};
 use std::fmt::Display;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -36,47 +32,6 @@ pub trait Float: Number {}
 
 macro_rules! number_impl {
     ($type:ty, $zero:expr, $one:expr $(,)?) => {
-        impl Ops<$type> for $type {
-            type Output = $type;
-        }
-
-        impl Ops<$type> for &$type {
-            type Output = $type;
-        }
-
-        impl Ops<&$type> for $type {
-            type Output = $type;
-        }
-
-        impl Ops<&$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsRem<$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsRem<$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsRem<&$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsRem<&$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsAssign<$type> for $type {}
-        impl OpsAssign<&$type> for $type {}
-
-        impl OpsRemAssign<$type> for $type {}
-        impl OpsRemAssign<&$type> for $type {}
-
-        impl OpsFrom for $type {}
-        impl OpsRemFrom for $type {}
-
         impl Constants for $type {
             const MAX: Self = <$type>::MAX;
             const MIN: Self = <$type>::MIN;
@@ -139,68 +94,6 @@ macro_rules! int_impl {
     ($trait:ty, $type:ty $(,)?) => {
         number_impl!($type, 0, 1);
 
-        impl OpsBit<$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsBit<$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsBit<&$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsBit<&$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsShift<$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsShift<$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsShift<&$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsShift<&$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsAll<$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsAll<$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsAll<&$type> for $type {
-            type Output = $type;
-        }
-
-        impl OpsAll<&$type> for &$type {
-            type Output = $type;
-        }
-
-        impl OpsBitAssign<$type> for $type {}
-        impl OpsBitAssign<&$type> for $type {}
-
-        impl OpsShiftAssign<$type> for $type {}
-        impl OpsShiftAssign<&$type> for $type {}
-
-        impl OpsAllAssign<$type> for $type {}
-        impl OpsAllAssign<&$type> for $type {}
-
-        impl OpsBitFrom for $type {}
-        impl OpsShiftFrom for $type {}
-        impl OpsNotFrom for $type {}
-        impl OpsAllFrom for $type {}
-
         impl Integer for $type {
             const BITS: u32 = <$type>::BITS;
         }
@@ -225,9 +118,3 @@ macro_rules! float_impl {
 int_impl!(Signed, [i8, i16, i32, i64, i128]);
 int_impl!(Unsigned, [u8, u16, u32, u64, u128]);
 float_impl!(Float, [f32, f64]);
-
-impl OpsNegFrom for i8 {}
-impl OpsNegFrom for i16 {}
-impl OpsNegFrom for i32 {}
-impl OpsNegFrom for i64 {}
-impl OpsNegFrom for i128 {}
