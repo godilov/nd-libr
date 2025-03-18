@@ -18,7 +18,7 @@ pub trait OpsAllAssign<Rhs = Self>:
 {
 }
 
-pub trait OpsFrom<Lhs: Ops<Rhs>, Rhs>:
+pub trait OpsFrom<Lhs: Ops<Rhs> = Self, Rhs = Lhs>:
     From<<Lhs as Add<Rhs>>::Output>
     + From<<Lhs as Sub<Rhs>>::Output>
     + From<<Lhs as Mul<Rhs>>::Output>
@@ -26,14 +26,14 @@ pub trait OpsFrom<Lhs: Ops<Rhs>, Rhs>:
 {
 }
 
-pub trait OpsRemFrom<Lhs: OpsRem<Rhs>, Rhs>: From<<Lhs as Rem<Rhs>>::Output> {}
+pub trait OpsRemFrom<Lhs: OpsRem<Rhs> = Self, Rhs = Lhs>: From<<Lhs as Rem<Rhs>>::Output> {}
 
-pub trait OpsBitFrom<Lhs: OpsBit<Rhs>, Rhs>:
+pub trait OpsBitFrom<Lhs: OpsBit<Rhs> = Self, Rhs = Lhs>:
     From<<Lhs as BitOr<Rhs>>::Output> + From<<Lhs as BitAnd<Rhs>>::Output> + From<<Lhs as BitXor<Rhs>>::Output>
 {
 }
 
-pub trait OpsShiftFrom<Lhs: OpsShift<Rhs>, Rhs>:
+pub trait OpsShiftFrom<Lhs: OpsShift<Rhs> = Self, Rhs = Lhs>:
     From<<Lhs as Shl<Rhs>>::Output> + From<<Lhs as Shr<Rhs>>::Output>
 {
 }
@@ -41,7 +41,7 @@ pub trait OpsShiftFrom<Lhs: OpsShift<Rhs>, Rhs>:
 pub trait OpsNegFrom<Lhs: Neg = Self>: From<<Lhs as Neg>::Output> {}
 pub trait OpsNotFrom<Lhs: Not = Self>: From<<Lhs as Not>::Output> {}
 
-pub trait OpsAllFrom<Lhs: OpsAll<Rhs>, Rhs>:
+pub trait OpsAllFrom<Lhs: OpsAll<Rhs> = Self, Rhs = Lhs>:
     OpsFrom<Lhs, Rhs> + OpsRemFrom<Lhs, Rhs> + OpsBitFrom<Lhs, Rhs> + OpsShiftFrom<Lhs, Rhs>
 {
 }

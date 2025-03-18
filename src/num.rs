@@ -1,4 +1,4 @@
-use crate::ops::{AddChecked, DivChecked, MulChecked, Ops, OpsAssign, OpsChecked, SubChecked};
+use crate::ops::{AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAssign, OpsChecked, SubChecked};
 use std::fmt::Display;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -22,7 +22,7 @@ pub trait Number: Sized + Default + Display + Clone + PartialEq + PartialOrd + C
     fn val(&self) -> &Self::Type;
 }
 
-pub trait Integer: Eq + Ord + Number + OpsChecked {
+pub trait Integer: Eq + Ord + Number + OpsChecked + OpsAll + OpsAllAssign {
     const BITS: u32;
 }
 

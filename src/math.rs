@@ -1,3 +1,5 @@
+use crate::{num::Integer, ops::OpsAllFrom};
+
 pub type Prime = u64;
 
 pub struct Primes {}
@@ -11,31 +13,6 @@ impl Primes {
             len: count,
         }
     }
-}
-
-pub fn gcd_ext(a: i64, b: i64) -> (i64, i64, i64) {
-    if b == 0 {
-        return (a, 1, 0);
-    }
-
-    let (g, x, y) = gcd_ext(b, a % b);
-
-    (g, y, x - a / b * y)
-}
-
-pub fn gcd(mut a: i64, mut b: i64) -> i64 {
-    while b > 0 {
-        let x = b;
-
-        b = a % b;
-        a = x;
-    }
-
-    a
-}
-
-pub fn lcm(a: i64, b: i64) -> i64 {
-    a / gcd(a, b) * b
 }
 
 struct PrimesIter {
@@ -81,3 +58,41 @@ impl Iterator for PrimesIter {
 }
 
 impl ExactSizeIterator for PrimesIter {}
+
+pub fn gcd_ext<I: Integer + OpsAllFrom>(a: I, b: I) -> (I, I, I) {
+    if b == I::ZERO {
+        return (a, I::ONE, I::ZERO);
+    }
+
+    let aop = a.clone();
+    let bop = b.clone();
+    let rem = I::from(aop % bop);
+
+    let (g, x, y) = gcd_ext(b.clone(), rem);
+
+    let xval = y.clone();
+    let yval = I::from(a / b);
+    let yval = I::from(yval * y);
+    let yval = I::from(x - yval);
+
+    (g, xval, yval)
+}
+
+pub fn gcd<I: Integer + OpsAllFrom>(mut a: I, mut b: I) -> I {
+    while b > I::ZERO {
+        let x = b.clone();
+
+        b = I::from(a % b.clone());
+        a = x;
+    }
+
+    a
+}
+
+pub fn lcm<I: Integer + OpsAllFrom>(a: I, b: I) -> I {
+    let aop = a.clone();
+    let bop = b.clone();
+    let gop = gcd(aop, bop);
+
+    I::from(I::from(a / gop) * b)
+}
