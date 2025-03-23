@@ -1,5 +1,24 @@
+use proc::ops_impl;
+
 use crate::ops::{AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAssign, OpsChecked, SubChecked};
-use std::fmt::Display;
+use std::{cmp::Ordering, fmt::Display};
+
+macro_rules! sign_from {
+    ([$($from:ty),+]) => {
+        $(sign_from!($from);)+
+    };
+    ($from:ty) => {
+        impl From<$from> for Sign {
+            fn from(value: $from) -> Self {
+                match value.cmp(&0) {
+                    Ordering::Less => Sign::NEG,
+                    Ordering::Equal => Sign::ZERO,
+                    Ordering::Greater => Sign::POS,
+                }
+            }
+        }
+    };
+}
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -8,6 +27,29 @@ pub enum Sign {
     NEG = -1,
     POS = 1,
 }
+
+sign_from!([u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
+
+ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
+* {
+    match (a, b) {
+        (Sign::ZERO, _) => Sign::ZERO,
+        (_, Sign::ZERO) => Sign::ZERO,
+        (Sign::NEG, Sign::NEG) => Sign::POS,
+        (Sign::NEG, Sign::POS) => Sign::NEG,
+        (Sign::POS, Sign::NEG) => Sign::NEG,
+        (Sign::POS, Sign::POS) => Sign::POS,
+    }
+});
+
+ops_impl!(@un |a: Sign| -> Sign,
+- {
+    match a {
+        Sign::ZERO => Sign::ZERO,
+        Sign::NEG => Sign::POS,
+        Sign::POS => Sign::NEG,
+    }
+});
 
 pub trait Constants {
     const ZERO: Self;
