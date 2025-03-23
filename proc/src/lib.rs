@@ -2,7 +2,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, Error, Expr, ExprBlock, Generics, Ident, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
+    BinOp, Error, Expr, Generics, Ident, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
@@ -64,7 +64,7 @@ struct OpsSignatureUnary {
 #[allow(dead_code)]
 struct OpsImplEntry<Op: Parse> {
     op: Op,
-    expr: ExprBlock,
+    expr: Expr,
 }
 
 #[allow(dead_code)]
@@ -264,7 +264,7 @@ impl ToTokens for OpsImplMutable {
             op: &'ops BinOp,
             generics: Option<&'ops Generics>,
             signature: &'ops OpsSignatureMutable,
-            expr: &'ops ExprBlock,
+            expr: &'ops Expr,
         }
 
         fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
@@ -342,7 +342,7 @@ impl ToTokens for OpsImplBinary {
             op: &'ops BinOp,
             generics: Option<&'ops Generics>,
             signature: &'ops OpsSignatureBinary,
-            expr: &'ops ExprBlock,
+            expr: &'ops Expr,
         }
 
         fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
@@ -421,7 +421,7 @@ impl ToTokens for OpsImplUnary {
             op: &'ops UnOp,
             generics: Option<&'ops Generics>,
             signature: &'ops OpsSignatureUnary,
-            expr: &'ops ExprBlock,
+            expr: &'ops Expr,
         }
 
         fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>) -> TokenStream {
