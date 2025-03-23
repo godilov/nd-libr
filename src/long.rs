@@ -6,8 +6,42 @@ use self::{
 };
 use crate::num::{Constants, Sign};
 use radix::RADIX_MASK;
-use std::str::FromStr;
+use std::{cmp::Ordering, panic, str::FromStr};
 use thiserror::Error;
+
+#[macro_export]
+macro_rules! signed_fixed {
+    ($bits:expr) => {
+        SignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
+    };
+}
+
+#[macro_export]
+macro_rules! unsigned_fixed {
+    ($bits:expr) => {
+        UnsignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
+    };
+}
+
+pub type S128 = signed_fixed!(128);
+pub type S192 = signed_fixed!(192);
+pub type S256 = signed_fixed!(256);
+pub type S384 = signed_fixed!(384);
+pub type S512 = signed_fixed!(512);
+pub type S1024 = signed_fixed!(1024);
+pub type S2048 = signed_fixed!(2048);
+pub type S3072 = signed_fixed!(3072);
+pub type S4096 = signed_fixed!(4096);
+
+pub type U128 = unsigned_fixed!(128);
+pub type U192 = unsigned_fixed!(192);
+pub type U256 = unsigned_fixed!(256);
+pub type U384 = unsigned_fixed!(384);
+pub type U512 = unsigned_fixed!(512);
+pub type U1024 = unsigned_fixed!(1024);
+pub type U2048 = unsigned_fixed!(2048);
+pub type U3072 = unsigned_fixed!(3072);
+pub type U4096 = unsigned_fixed!(4096);
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryFromStrError {
@@ -86,40 +120,6 @@ mod digit {
     pub(super) const DEC_RADIX: Double = 100;
     pub(super) const DEC_WIDTH: u8 = 2;
 }
-
-#[macro_export]
-macro_rules! signed_fixed {
-    ($bits:expr) => {
-        SignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
-    };
-}
-
-#[macro_export]
-macro_rules! unsigned_fixed {
-    ($bits:expr) => {
-        UnsignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
-    };
-}
-
-pub type S128 = signed_fixed!(128);
-pub type S192 = signed_fixed!(192);
-pub type S256 = signed_fixed!(256);
-pub type S384 = signed_fixed!(384);
-pub type S512 = signed_fixed!(512);
-pub type S1024 = signed_fixed!(1024);
-pub type S2048 = signed_fixed!(2048);
-pub type S3072 = signed_fixed!(3072);
-pub type S4096 = signed_fixed!(4096);
-
-pub type U128 = unsigned_fixed!(128);
-pub type U192 = unsigned_fixed!(192);
-pub type U256 = unsigned_fixed!(256);
-pub type U384 = unsigned_fixed!(384);
-pub type U512 = unsigned_fixed!(512);
-pub type U1024 = unsigned_fixed!(1024);
-pub type U2048 = unsigned_fixed!(2048);
-pub type U3072 = unsigned_fixed!(3072);
-pub type U4096 = unsigned_fixed!(4096);
 
 #[allow(unused)]
 mod radix {
@@ -217,10 +217,10 @@ macro_rules! from_impl_long {
     ($type:ident, [$($from:ty),+] $(,)?) => {
         $(from_impl_long!($type, $from);)+
     };
-    ($type:ident, [$pos:expr, $neg:expr], [$($from:ty),+] $(,)?) => {
-        $(from_impl_long!($type, $from, $pos, $neg);)+
+    ($type:ident, [$pos:expr], [$($from:ty),+] $(,)?) => {
+        $(from_impl_long!($type, $from, $pos);)+
     };
-    ($type:ident, $from:ty $(, $pos:expr, $neg:expr)?) => {
+    ($type:ident, $from:ty $(, $pos:expr)?) => {
         impl From<$from> for $type {
             fn from(value: $from) -> Self {
                 const LEN: usize = ((<$from>::BITS + Single::BITS - 1) / Single::BITS) as usize;
@@ -241,7 +241,7 @@ macro_rules! from_impl_long {
 
                 data.truncate(len);
 
-                Self { $(sign: if value > 0 { $pos } else { $neg },)? data }
+                Self { $(sign: $pos * Sign::from(value),)? data }
             }
         }
     };
@@ -251,10 +251,10 @@ macro_rules! from_impl_fixed {
     ($type:ident, [$($from:ty),+] $(,)?) => {
         $(from_impl_fixed!($type, $from);)+
     };
-    ($type:ident, [$pos:expr, $neg:expr], [$($from:ty),+] $(,)?) => {
-        $(from_impl_fixed!($type, $from, $pos, $neg);)+
+    ($type:ident, [$pos:expr], [$($from:ty),+] $(,)?) => {
+        $(from_impl_fixed!($type, $from, $pos);)+
     };
-    ($type:ident, $from:ty $(, $pos:expr, $neg:expr)?) => {
+    ($type:ident, $from:ty $(, $pos:expr)?) => {
         impl<const L: usize> From<$from> for $type<L> {
             fn from(value: $from) -> Self {
                 if value == 0 {
@@ -271,7 +271,7 @@ macro_rules! from_impl_fixed {
                     val = val.checked_shr(Single::BITS).unwrap_or(0);
                 }
 
-                Self { $(sign: if value > 0 { $pos } else { $neg },)? data, len }
+                Self { $(sign: $pos * Sign::from(value),)? data, len }
             }
         }
     };
@@ -279,13 +279,13 @@ macro_rules! from_impl_fixed {
 
 from_impl_long!(
     SignedLong,
-    [Sign::POS, Sign::NEG],
+    [Sign::POS],
     [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
 );
 
 from_impl_fixed!(
     SignedFixed,
-    [Sign::POS, Sign::NEG],
+    [Sign::POS],
     [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
 );
 
@@ -337,6 +337,11 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
 }
 
 impl SignedLong {
+    #[allow(dead_code)]
+    fn from_raw((data, sign): (Vec<Single>, Sign)) -> Self {
+        Self { data, sign }
+    }
+
     pub fn from_slice(slice: &[u8]) -> Self {
         let data = from_slice_long(slice);
         let sign = if data.is_empty() { Sign::ZERO } else { Sign::POS };
@@ -361,6 +366,11 @@ impl SignedLong {
 }
 
 impl UnsignedLong {
+    #[allow(dead_code)]
+    fn from_raw((data, _): (Vec<Single>, Sign)) -> Self {
+        Self { data }
+    }
+
     pub fn from_slice(slice: &[u8]) -> Self {
         let data = from_slice_long(slice);
 
@@ -383,6 +393,11 @@ impl UnsignedLong {
 }
 
 impl<const L: usize> SignedFixed<L> {
+    #[allow(dead_code)]
+    fn from_raw((data, sign, len): ([Single; L], Sign, usize)) -> Self {
+        Self { data, sign, len }
+    }
+
     pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
         let (data, len) = from_slice_fixed(slice)?;
         let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
@@ -407,6 +422,11 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
+    #[allow(dead_code)]
+    fn from_raw((data, _, len): ([Single; L], Sign, usize)) -> Self {
+        Self { data, len }
+    }
+
     pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
         let (data, len) = from_slice_fixed(slice)?;
 
@@ -547,7 +567,7 @@ fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFrom
     }
 
     let sbits = Single::BITS as usize;
-    let rbits = (2 * radix - 1).ilog2() as usize;
+    let rbits = 1 + radix.ilog2() as usize;
     let len = (digits.len() * rbits + sbits - 1) / sbits;
 
     let mut idx = 0;
@@ -721,7 +741,7 @@ fn into_radix(digits: &mut [Single], radix: u8) -> Result<Vec<u8>, RadixError> {
     }
 
     let sbits = Single::BITS as usize;
-    let rbits = (2 * radix - 1).ilog2() as usize;
+    let rbits = 1 + radix.ilog2() as usize;
     let len = (digits.len() * sbits + rbits - 1) / rbits;
 
     let mut idx = 0;
@@ -754,6 +774,222 @@ fn into_radix(digits: &mut [Single], radix: u8) -> Result<Vec<u8>, RadixError> {
 
     Ok(res)
 }
+
+fn cmp_long(a: &[Single], b: &[Single]) -> Ordering {
+    match a.len().cmp(&b.len()) {
+        | Ordering::Less => Ordering::Less,
+        | Ordering::Equal => a
+            .iter()
+            .rev()
+            .zip(b.iter().rev())
+            .map(|(&a, &b)| a.cmp(&b))
+            .find(|&x| x != Ordering::Equal)
+            .unwrap_or(Ordering::Equal),
+        | Ordering::Greater => Ordering::Greater,
+    }
+}
+
+fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+    match (asign, bsign) {
+        | (Sign::ZERO, Sign::ZERO) => return Default::default(),
+        | (Sign::ZERO, _) => return (b.to_vec(), bsign),
+        | (_, Sign::ZERO) => return (a.to_vec(), asign),
+        | _ => (),
+    }
+
+    if asign != bsign {
+        return sub_long((a, asign), (b, -bsign));
+    }
+
+    let len = a.len().max(b.len()) + 1;
+
+    let mut acc = 0;
+    let mut res = vec![0; len];
+
+    for i in 0..len {
+        let aop = if i < a.len() { a[i] } else { 0 } as Double;
+        let bop = if i < b.len() { b[i] } else { 0 } as Double;
+
+        acc += aop + bop;
+
+        res[i] = (acc & RADIX_MASK) as Single;
+        acc >>= Single::BITS;
+    }
+
+    res.truncate(get_len(&res));
+
+    let sign = if res.is_empty() { Sign::ZERO } else { asign };
+
+    (res, sign)
+}
+
+fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+    match (asign, bsign) {
+        | (Sign::ZERO, Sign::ZERO) => return Default::default(),
+        | (Sign::ZERO, _) => return (b.to_vec(), Sign::NEG * bsign),
+        | (_, Sign::ZERO) => return (a.to_vec(), Sign::POS * asign),
+        | _ => (),
+    }
+
+    if asign != bsign {
+        return add_long((a, asign), (b, -bsign));
+    }
+
+    let (a, b, sign) = match cmp_long(a, b) {
+        | Ordering::Less => (b, a, asign * Sign::NEG),
+        | Ordering::Equal => return Default::default(),
+        | Ordering::Greater => (a, b, asign * Sign::POS),
+    };
+
+    let mut acc = 0;
+    let mut res = vec![0; a.len()];
+
+    for i in 0..a.len() {
+        let aop = if i < a.len() { a[i] } else { 0 } as Double;
+        let bop = if i < b.len() { b[i] } else { 0 } as Double;
+
+        let diff = (RADIX_VAL + aop - bop - acc) & RADIX_MASK;
+
+        res[i] = diff as Single;
+
+        if aop < bop + acc {
+            acc = 1;
+        } else {
+            acc = 0;
+        }
+    }
+
+    res.truncate(get_len(&res));
+
+    let sign = if res.is_empty() { Sign::ZERO } else { sign };
+
+    (res, sign)
+}
+
+fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+    match (asign, bsign) {
+        | (Sign::ZERO, _) => return Default::default(),
+        | (_, Sign::ZERO) => return Default::default(),
+        | _ => (),
+    }
+
+    let len = a.len() + b.len();
+
+    let mut res = vec![0; len];
+
+    for i in 0..a.len() {
+        let mut acc = 0;
+
+        for j in 0..b.len() {
+            let aop = a[i] as Double;
+            let bop = b[j] as Double;
+            let rop = res[i + j] as Double;
+
+            acc += rop + aop * bop;
+
+            res[i + j] = (acc & RADIX_MASK) as Single;
+            acc >>= Single::BITS;
+        }
+
+        let idx = i + b.len();
+        let val = acc + res[idx] as Double;
+
+        res[idx] = (val & RADIX_MASK) as Single;
+    }
+
+    res.truncate(get_len(&res));
+
+    let sign = if res.is_empty() { Sign::ZERO } else { asign * bsign };
+
+    (res, sign)
+}
+
+fn div_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+    let (div, _, sign) = divrem_long((a, asign), (b, bsign));
+
+    (div, sign)
+}
+
+fn rem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+    let (_, rem, sign) = divrem_long((a, asign), (b, bsign));
+
+    (rem, sign)
+}
+
+fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Vec<Single>, Sign) {
+    match (asign, bsign) {
+        | (Sign::ZERO, _) => return Default::default(),
+        | (_, Sign::ZERO) => panic!("Division by zero"),
+        | _ => (),
+    }
+
+    match cmp_long(a, b) {
+        | Ordering::Less => return (vec![0], a.to_vec(), asign * bsign),
+        | Ordering::Equal => return (vec![1], vec![0], asign * bsign),
+        | Ordering::Greater => (),
+    }
+
+    let mut div = vec![0; a.len()];
+    let mut rem = vec![];
+
+    for i in (0..a.len()).rev() {
+        rem.push(a[i]);
+
+        if rem.len() < b.len() {
+            continue;
+        }
+
+        let mut l = 0 as Double;
+        let mut r = RADIX_VAL;
+        let mut val = vec![];
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            val = mul_long((b, Sign::POS), (&[m as Single], Sign::POS)).0;
+
+            match cmp_long(&val, &rem) {
+                | Ordering::Less => l = m + 1,
+                | Ordering::Equal => {
+                    l = m;
+
+                    break;
+                },
+                | Ordering::Greater => r = m,
+            }
+        }
+
+        div[i] = l as Single;
+        rem = if l > 0 {
+            sub_long((&rem, Sign::POS), (&val, Sign::POS)).0
+        } else {
+            rem
+        };
+    }
+
+    div.truncate(get_len(&div));
+    rem.truncate(get_len(&rem));
+
+    let sign = if div.is_empty() { Sign::ZERO } else { asign * bsign };
+
+    (div, rem, sign)
+}
+
+// ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong { sign: -a.sign, data: a.data.clone() });
+// ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
+//     + SignedLong::from_raw(add_long((&a.data, a.sign), (&b.data, b.sign))),
+//     - SignedLong::from_raw(sub_long((&a.data, a.sign), (&b.data, b.sign))),
+//     * SignedLong::from_raw(mul_long((&a.data, a.sign), (&b.data, b.sign))),
+//     / SignedLong::from_raw(div_long((&a.data, a.sign), (&b.data, b.sign))),
+//     % SignedLong::from_raw(rem_long((&a.data, a.sign), (&b.data, b.sign))));
+//
+// ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed::<L> { sign: -a.sign, data: a.data, len: a.len });
+// ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed<L>,
+//     + SignedFixed::<L>::from_raw(add_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))),
+//     - SignedFixed::<L>::from_raw(sub_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))),
+//     * SignedFixed::<L>::from_raw(mul_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))),
+//     / SignedFixed::<L>::from_raw(div_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))),
+//     % SignedFixed::<L>::from_raw(rem_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {
@@ -948,14 +1184,14 @@ mod tests {
     macro_rules! assert_long_into_radix {
         (@signed $expr:expr, $radix:expr) => {
             assert_eq!(
-                SignedLong::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
-                Vec::from($expr)
+                SignedLong::try_from_digits($expr, $radix)?.into_radix($radix)?,
+                normalized($expr)
             );
         };
         (@unsigned $expr:expr, $radix:expr) => {
             assert_eq!(
-                UnsignedLong::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
-                Vec::from($expr)
+                UnsignedLong::try_from_digits($expr, $radix)?.into_radix($radix)?,
+                normalized($expr)
             );
         };
     }
@@ -963,70 +1199,56 @@ mod tests {
     macro_rules! assert_fixed_into_radix {
         (@signed $expr:expr, $len:expr, $radix:expr) => {
             assert_eq!(
-                S32::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
-                $expr.into_iter().take($len).collect::<Vec<_>>()
+                S32::try_from_digits($expr, $radix)?.into_radix($radix)?,
+                $expr.iter().take($len).copied().collect::<Vec<_>>()
             );
         };
         (@unsigned $expr:expr, $len:expr, $radix:expr) => {
             assert_eq!(
-                U32::try_from_digits(&$expr, $radix)?.into_radix($radix)?,
-                $expr.into_iter().take($len).collect::<Vec<_>>()
+                U32::try_from_digits($expr, $radix)?.into_radix($radix)?,
+                $expr.iter().take($len).copied().collect::<Vec<_>>()
             );
         };
     }
 
+    fn normalized(val: &[u8]) -> Vec<u8> {
+        let len = get_len(val);
+
+        val[..len].to_vec()
+    }
+
     #[test]
     fn from_std_long() {
-        assert_eq!(SignedLong::from(0_i8), SignedLong::default());
-        assert_eq!(SignedLong::from(0_i16), SignedLong::default());
-        assert_eq!(SignedLong::from(0_i32), SignedLong::default());
-        assert_eq!(SignedLong::from(0_i64), SignedLong::default());
-        assert_eq!(SignedLong::from(0_i128), SignedLong::default());
+        for val in u16::MIN..=u16::MAX {
+            let bytes = (val as u32).to_le_bytes();
 
-        assert_eq!(UnsignedLong::from(0_u8), UnsignedLong::default());
-        assert_eq!(UnsignedLong::from(0_u16), UnsignedLong::default());
-        assert_eq!(UnsignedLong::from(0_u32), UnsignedLong::default());
-        assert_eq!(UnsignedLong::from(0_u64), UnsignedLong::default());
-        assert_eq!(UnsignedLong::from(0_u128), UnsignedLong::default());
+            let pval = val as i32;
+            let nval = -pval;
 
-        assert_long_from!(@signed 0xFF_i32, vec![255], Sign::POS);
-        assert_long_from!(@signed -0xFF_i32, vec![255], Sign::NEG);
-        assert_long_from!(@unsigned 0xFF_u32, vec![255]);
+            let sign_pos = Sign::from(pval);
+            let sign_neg = Sign::from(nval);
 
-        assert_long_from!(@signed 0x10000000_i32, vec![0, 0, 0, 16], Sign::POS);
-        assert_long_from!(@signed -0x10000000_i32, vec![0, 0, 0, 16], Sign::NEG);
-        assert_long_from!(@unsigned 0x10000000_u32, vec![0, 0, 0, 16]);
-
-        assert_long_from!(@signed 0xFEDCBA9_i32, vec![169, 203, 237, 15], Sign::POS);
-        assert_long_from!(@signed -0xFEDCBA9_i32, vec![169, 203, 237, 15], Sign::NEG);
-        assert_long_from!(@unsigned 0xFEDCBA9_u32, vec![169, 203, 237, 15]);
+            assert_long_from!(@signed pval, normalized(&bytes), sign_pos);
+            assert_long_from!(@signed nval, normalized(&bytes), sign_neg);
+            assert_long_from!(@unsigned val, normalized(&bytes));
+        }
     }
 
     #[test]
     fn from_std_fixed() {
-        assert_eq!(S32::from(0_i8), S32::default());
-        assert_eq!(S32::from(0_i16), S32::default());
-        assert_eq!(S32::from(0_i32), S32::default());
-        assert_eq!(S32::from(0_i64), S32::default());
-        assert_eq!(S32::from(0_i128), S32::default());
+        for val in u16::MIN..=u16::MAX {
+            let bytes = (val as u32).to_le_bytes();
 
-        assert_eq!(U32::from(0_u8), U32::default());
-        assert_eq!(U32::from(0_u16), U32::default());
-        assert_eq!(U32::from(0_u32), U32::default());
-        assert_eq!(U32::from(0_u64), U32::default());
-        assert_eq!(U32::from(0_u128), U32::default());
+            let pval = val as i32;
+            let nval = -pval;
 
-        assert_fixed_from!(@signed 0xFF_i32, [255, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from!(@signed -0xFF_i32, [255, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from!(@unsigned 0xFF_u32, [255, 0, 0, 0], 1);
+            let sign_pos = Sign::from(pval);
+            let sign_neg = Sign::from(nval);
 
-        assert_fixed_from!(@signed 0x10000000_i32, [0, 0, 0, 16], 4, Sign::POS);
-        assert_fixed_from!(@signed -0x10000000_i32, [0, 0, 0, 16], 4, Sign::NEG);
-        assert_fixed_from!(@unsigned 0x10000000_u32, [0, 0, 0, 16], 4);
-
-        assert_fixed_from!(@signed 0xFEDCBA9_i32, [169, 203, 237, 15], 4, Sign::POS);
-        assert_fixed_from!(@signed -0xFEDCBA9_i32, [169, 203, 237, 15], 4, Sign::NEG);
-        assert_fixed_from!(@unsigned 0xFEDCBA9_u32, [169, 203, 237, 15], 4);
+            assert_fixed_from!(@signed pval, bytes, get_len(&bytes), sign_pos);
+            assert_fixed_from!(@signed nval, bytes, get_len(&bytes), sign_neg);
+            assert_fixed_from!(@unsigned val, bytes, get_len(&bytes));
+        }
     }
 
     #[test]
@@ -1034,14 +1256,12 @@ mod tests {
         assert_eq!(SignedLong::from_slice(&[]), SignedLong::default());
         assert_eq!(UnsignedLong::from_slice(&[]), UnsignedLong::default());
 
-        assert_long_from_slice!(@signed &[255, 0, 0, 0], vec![255], Sign::POS);
-        assert_long_from_slice!(@unsigned &[255, 0, 0, 0], vec![255]);
+        for val in u16::MIN..=u16::MAX {
+            let bytes = (val as u32).to_le_bytes();
 
-        assert_long_from_slice!(@signed &[0, 0, 0, 16], vec![0, 0, 0, 16], Sign::POS);
-        assert_long_from_slice!(@unsigned &[0, 0, 0, 16], vec![0, 0, 0, 16]);
-
-        assert_long_from_slice!(@signed &[169, 203, 237, 15], vec![169, 203, 237, 15], Sign::POS);
-        assert_long_from_slice!(@unsigned &[169, 203, 237, 15], vec![169, 203, 237, 15]);
+            assert_long_from_slice!(@signed &bytes, normalized(&bytes), Sign::from(val));
+            assert_long_from_slice!(@unsigned &bytes, normalized(&bytes));
+        }
     }
 
     #[test]
@@ -1049,14 +1269,12 @@ mod tests {
         assert_eq!(S32::try_from_slice(&[]), Ok(S32::default()));
         assert_eq!(U32::try_from_slice(&[]), Ok(U32::default()));
 
-        assert_fixed_from_slice!(@signed &[255, 0, 0, 0], [255, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_slice!(@unsigned &[255, 0, 0, 0], [255, 0, 0, 0], 1);
+        for val in u16::MIN..=u16::MAX {
+            let bytes = (val as u32).to_le_bytes();
 
-        assert_fixed_from_slice!(@signed &[0, 0, 0, 16], [0, 0, 0, 16], 4, Sign::POS);
-        assert_fixed_from_slice!(@unsigned &[0, 0, 0, 16], [0, 0, 0, 16], 4);
-
-        assert_fixed_from_slice!(@signed &[169, 203, 237, 15], [169, 203, 237, 15], 4, Sign::POS);
-        assert_fixed_from_slice!(@unsigned &[169, 203, 237, 15], [169, 203, 237, 15], 4);
+            assert_fixed_from_slice!(@signed &bytes, bytes, get_len(&bytes), Sign::from(val));
+            assert_fixed_from_slice!(@unsigned &bytes, bytes, get_len(&bytes));
+        }
     }
 
     #[test]
@@ -1097,92 +1315,78 @@ mod tests {
 
     #[test]
     fn from_str_long() {
-        assert_eq!(SignedLong::from_str("0"), Ok(SignedLong::default()));
-        assert_eq!(SignedLong::from_str("0b0"), Ok(SignedLong::default()));
-        assert_eq!(SignedLong::from_str("0o0"), Ok(SignedLong::default()));
-        assert_eq!(SignedLong::from_str("0x0"), Ok(SignedLong::default()));
+        for val in (u16::MIN..=u16::MAX).step_by(7) {
+            let dec_pos = format!("{:#020}", val);
+            let bin_pos = format!("{:#020b}", val);
+            let oct_pos = format!("{:#020o}", val);
+            let hex_pos = format!("{:#020x}", val);
 
-        assert_eq!(UnsignedLong::from_str("0"), Ok(UnsignedLong::default()));
-        assert_eq!(UnsignedLong::from_str("0b0"), Ok(UnsignedLong::default()));
-        assert_eq!(UnsignedLong::from_str("0o0"), Ok(UnsignedLong::default()));
-        assert_eq!(UnsignedLong::from_str("0x0"), Ok(UnsignedLong::default()));
+            let dec_neg = format!("-{:#020}", val);
+            let bin_neg = format!("-{:#020b}", val);
+            let oct_neg = format!("-{:#020o}", val);
+            let hex_neg = format!("-{:#020x}", val);
 
-        assert_long_from_str!(@signed "0099", vec![99], Sign::POS);
-        assert_long_from_str!(@signed "-0099", vec![99], Sign::NEG);
-        assert_long_from_str!(@unsigned "0099", vec![99]);
+            let bytes = val.to_le_bytes();
 
-        assert_long_from_str!(@signed "0b00000011", vec![0b11], Sign::POS);
-        assert_long_from_str!(@signed "-0b00000011", vec![0b11], Sign::NEG);
-        assert_long_from_str!(@unsigned "0b00000011", vec![0b11]);
+            let (sign_pos, sign_neg) = if val > 0 {
+                (Sign::POS, Sign::NEG)
+            } else {
+                (Sign::ZERO, Sign::ZERO)
+            };
 
-        assert_long_from_str!(@signed "0o00000077", vec![0o77], Sign::POS);
-        assert_long_from_str!(@signed "-0o00000077", vec![0o77], Sign::NEG);
-        assert_long_from_str!(@unsigned "0o00000077", vec![0o77]);
+            assert_long_from_str!(@signed &dec_pos, normalized(&bytes), sign_pos);
+            assert_long_from_str!(@signed &bin_pos, normalized(&bytes), sign_pos);
+            assert_long_from_str!(@signed &oct_pos, normalized(&bytes), sign_pos);
+            assert_long_from_str!(@signed &hex_pos, normalized(&bytes), sign_pos);
 
-        assert_long_from_str!(@signed "0x000000FF", vec![0xFF], Sign::POS);
-        assert_long_from_str!(@signed "-0x000000FF", vec![0xFF], Sign::NEG);
-        assert_long_from_str!(@unsigned "0x000000FF", vec![0xFF]);
+            assert_long_from_str!(@signed &dec_neg, normalized(&bytes), sign_neg);
+            assert_long_from_str!(@signed &bin_neg, normalized(&bytes), sign_neg);
+            assert_long_from_str!(@signed &oct_neg, normalized(&bytes), sign_neg);
+            assert_long_from_str!(@signed &hex_neg, normalized(&bytes), sign_neg);
 
-        assert_long_from_str!(@signed "0000000987654321", vec![177, 104, 222, 58], Sign::POS);
-        assert_long_from_str!(@signed "-0000000987654321", vec![177, 104, 222, 58], Sign::NEG);
-        assert_long_from_str!(@unsigned "0000000987654321", vec![177, 104, 222, 58]);
-
-        assert_long_from_str!(@signed "0b00000000111110101100011010001000", vec![136, 198, 250], Sign::POS);
-        assert_long_from_str!(@signed "-0b00000000111110101100011010001000", vec![136, 198, 250], Sign::NEG);
-        assert_long_from_str!(@unsigned "0b00000000111110101100011010001000", vec![136, 198, 250]);
-
-        assert_long_from_str!(@signed "0o00000076543210", vec![136, 198, 250], Sign::POS);
-        assert_long_from_str!(@signed "-0o00000076543210", vec![136, 198, 250], Sign::NEG);
-        assert_long_from_str!(@unsigned "0o00000076543210", vec![136, 198, 250]);
-
-        assert_long_from_str!(@signed "0x0000000FEDCBA9", vec![169, 203, 237, 15], Sign::POS);
-        assert_long_from_str!(@signed "-0x0000000FEDCBA9", vec![169, 203, 237, 15], Sign::NEG);
-        assert_long_from_str!(@unsigned "0x0000000FEDCBA9", vec![169, 203, 237, 15]);
+            assert_long_from_str!(@unsigned &dec_pos, normalized(&bytes));
+            assert_long_from_str!(@unsigned &bin_pos, normalized(&bytes));
+            assert_long_from_str!(@unsigned &oct_pos, normalized(&bytes));
+            assert_long_from_str!(@unsigned &hex_pos, normalized(&bytes));
+        }
     }
 
     #[test]
     fn from_str_fixed() {
-        assert_eq!(S32::from_str("0"), Ok(S32::default()));
-        assert_eq!(S32::from_str("0b0"), Ok(S32::default()));
-        assert_eq!(S32::from_str("0o0"), Ok(S32::default()));
-        assert_eq!(S32::from_str("0x0"), Ok(S32::default()));
+        for val in (u16::MIN..=u16::MAX).step_by(7) {
+            let dec_pos = format!("{:#020}", val);
+            let bin_pos = format!("{:#020b}", val);
+            let oct_pos = format!("{:#020o}", val);
+            let hex_pos = format!("{:#020x}", val);
 
-        assert_eq!(U32::from_str("0"), Ok(U32::default()));
-        assert_eq!(U32::from_str("0b0"), Ok(U32::default()));
-        assert_eq!(U32::from_str("0o0"), Ok(U32::default()));
-        assert_eq!(U32::from_str("0x0"), Ok(U32::default()));
+            let dec_neg = format!("-{:#020}", val);
+            let bin_neg = format!("-{:#020b}", val);
+            let oct_neg = format!("-{:#020o}", val);
+            let hex_neg = format!("-{:#020x}", val);
 
-        assert_fixed_from_str!(@signed "0099", [99, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_str!(@signed "-0099", [99, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0099", [99, 0, 0, 0], 1);
+            let bytes = (val as u32).to_le_bytes();
 
-        assert_fixed_from_str!(@signed "0b00000011", [0b11, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_str!(@signed "-0b00000011", [0b11, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0b00000011", [0b11, 0, 0, 0], 1);
+            let (sign_pos, sign_neg) = if val > 0 {
+                (Sign::POS, Sign::NEG)
+            } else {
+                (Sign::ZERO, Sign::ZERO)
+            };
 
-        assert_fixed_from_str!(@signed "0o00000077", [0o77, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_str!(@signed "-0o00000077", [0o77, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0o00000077", [0o77, 0, 0, 0], 1);
+            assert_fixed_from_str!(@signed &dec_pos, bytes, get_len(&bytes), sign_pos);
+            assert_fixed_from_str!(@signed &bin_pos, bytes, get_len(&bytes), sign_pos);
+            assert_fixed_from_str!(@signed &oct_pos, bytes, get_len(&bytes), sign_pos);
+            assert_fixed_from_str!(@signed &hex_pos, bytes, get_len(&bytes), sign_pos);
 
-        assert_fixed_from_str!(@signed "0x000000FF", [0xFF, 0, 0, 0], 1, Sign::POS);
-        assert_fixed_from_str!(@signed "-0x000000FF", [0xFF, 0, 0, 0], 1, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0x000000FF", [0xFF, 0, 0, 0], 1);
+            assert_fixed_from_str!(@signed &dec_neg, bytes, get_len(&bytes), sign_neg);
+            assert_fixed_from_str!(@signed &bin_neg, bytes, get_len(&bytes), sign_neg);
+            assert_fixed_from_str!(@signed &oct_neg, bytes, get_len(&bytes), sign_neg);
+            assert_fixed_from_str!(@signed &hex_neg, bytes, get_len(&bytes), sign_neg);
 
-        assert_fixed_from_str!(@signed "0000000987654321", [177, 104, 222, 58], 4, Sign::POS);
-        assert_fixed_from_str!(@signed "-0000000987654321", [177, 104, 222, 58], 4, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0000000987654321", [177, 104, 222, 58], 4);
-
-        assert_fixed_from_str!(@signed "0b00000000111110101100011010001000", [136, 198, 250, 0], 3, Sign::POS);
-        assert_fixed_from_str!(@signed "-0b00000000111110101100011010001000", [136, 198, 250, 0], 3, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0b00000000111110101100011010001000", [136, 198, 250, 0], 3);
-
-        assert_fixed_from_str!(@signed "0o00000076543210", [136, 198, 250, 0], 3, Sign::POS);
-        assert_fixed_from_str!(@signed "-0o00000076543210", [136, 198, 250, 0], 3, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0o00000076543210", [136, 198, 250, 0], 3);
-
-        assert_fixed_from_str!(@signed "0x0000000FEDCBA9", [169, 203, 237, 15], 4, Sign::POS);
-        assert_fixed_from_str!(@signed "-0x0000000FEDCBA9", [169, 203, 237, 15], 4, Sign::NEG);
-        assert_fixed_from_str!(@unsigned "0x0000000FEDCBA9", [169, 203, 237, 15], 4);
+            assert_fixed_from_str!(@unsigned &dec_pos, bytes, get_len(&bytes));
+            assert_fixed_from_str!(@unsigned &bin_pos, bytes, get_len(&bytes));
+            assert_fixed_from_str!(@unsigned &oct_pos, bytes, get_len(&bytes));
+            assert_fixed_from_str!(@unsigned &hex_pos, bytes, get_len(&bytes));
+        }
     }
 
     #[test]
@@ -1190,29 +1394,15 @@ mod tests {
         assert_eq!(SignedLong::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
         assert_eq!(UnsignedLong::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
 
-        assert_long_into_radix!(@signed [30, 30], 31);
-        assert_long_into_radix!(@unsigned [30, 30], 31);
+        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
+        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
 
-        assert_long_into_radix!(@signed [30, 30, 30, 30], 31);
-        assert_long_into_radix!(@unsigned [30, 30, 30, 30], 31);
-
-        assert_long_into_radix!(@signed [0, 0, 30, 30], 31);
-        assert_long_into_radix!(@unsigned [0, 0, 30, 30], 31);
-
-        assert_long_into_radix!(@signed [0, 1, 0, 30], 31);
-        assert_long_into_radix!(@unsigned [0, 1, 0, 30], 31);
-
-        assert_long_into_radix!(@signed [30, 30], 32);
-        assert_long_into_radix!(@unsigned [30, 30], 32);
-
-        assert_long_into_radix!(@signed [30, 30, 30, 30], 32);
-        assert_long_into_radix!(@unsigned [30, 30, 30, 30], 32);
-
-        assert_long_into_radix!(@signed [0, 0, 30, 30], 32);
-        assert_long_into_radix!(@unsigned [0, 0, 30, 30], 32);
-
-        assert_long_into_radix!(@signed [0, 1, 0, 30], 32);
-        assert_long_into_radix!(@unsigned [0, 1, 0, 30], 32);
+        for &radix in &radixes {
+            for entry in &entries {
+                assert_long_into_radix!(@signed entry, radix as u8);
+                assert_long_into_radix!(@unsigned entry, radix as u8);
+            }
+        }
 
         Ok(())
     }
@@ -1222,30 +1412,56 @@ mod tests {
         assert_eq!(S32::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
         assert_eq!(U32::try_from_digits(&[], 31)?.into_radix(31)?, vec![]);
 
-        assert_fixed_into_radix!(@signed [30, 30, 0, 0], 2, 31);
-        assert_fixed_into_radix!(@unsigned [30, 30, 0, 0], 2, 31);
+        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
+        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
 
-        assert_fixed_into_radix!(@signed [30, 30, 30, 30], 4, 31);
-        assert_fixed_into_radix!(@unsigned [30, 30, 30, 30], 4, 31);
-
-        assert_fixed_into_radix!(@signed [0, 0, 30, 30], 4, 31);
-        assert_fixed_into_radix!(@unsigned [0, 0, 30, 30], 4, 31);
-
-        assert_fixed_into_radix!(@signed [0, 1, 0, 30], 4, 31);
-        assert_fixed_into_radix!(@unsigned [0, 1, 0, 30], 4, 31);
-
-        assert_fixed_into_radix!(@signed [30, 30, 0, 0], 2, 32);
-        assert_fixed_into_radix!(@unsigned [30, 30, 0, 0], 2, 32);
-
-        assert_fixed_into_radix!(@signed [30, 30, 30, 30], 4, 32);
-        assert_fixed_into_radix!(@unsigned [30, 30, 30, 30], 4, 32);
-
-        assert_fixed_into_radix!(@signed [0, 0, 30, 30], 4, 32);
-        assert_fixed_into_radix!(@unsigned [0, 0, 30, 30], 4, 32);
-
-        assert_fixed_into_radix!(@signed [0, 1, 0, 30], 4, 32);
-        assert_fixed_into_radix!(@unsigned [0, 1, 0, 30], 4, 32);
+        for &radix in &radixes {
+            for entry in &entries {
+                assert_fixed_into_radix!(@signed entry, get_len(entry), radix as u8);
+                assert_fixed_into_radix!(@unsigned entry, get_len(entry), radix as u8);
+            }
+        }
 
         Ok(())
+    }
+
+    #[test]
+    fn add_long_test() {
+        for aop in (i16::MIN..=i16::MAX).step_by(101) {
+            for bop in (i16::MIN..=i16::MAX).step_by(103) {
+                let aop = aop as i32;
+                let bop = bop as i32;
+
+                let along = SignedLong::from(aop);
+                let blong = SignedLong::from(bop);
+
+                let (sum, sign_sum) = add_long((&along.data, along.sign), (&blong.data, blong.sign));
+                let (sub, sign_sub) = sub_long((&along.data, along.sign), (&blong.data, blong.sign));
+
+                assert_eq!(SignedLong { data: sum, sign: sign_sum }, SignedLong::from(aop + bop));
+                assert_eq!(SignedLong { data: sub, sign: sign_sub }, SignedLong::from(aop - bop));
+            }
+        }
+    }
+
+    #[test]
+    fn mul_long_test() {
+        for aop in (i16::MIN..=i16::MAX).step_by(101) {
+            for bop in (i16::MIN..=i16::MAX).step_by(103) {
+                let aop = aop as i64;
+                let bop = bop as i64;
+
+                let along = SignedLong::from(aop);
+                let blong = SignedLong::from(bop);
+
+                let (mul, sign_mul) = mul_long((&along.data, along.sign), (&blong.data, blong.sign));
+                // let (div, sign_div) = div_long((&along.data, along.sign), (&blong.data, blong.sign));
+                // let (rem, sign_rem) = rem_long((&along.data, along.sign), (&blong.data, blong.sign));
+
+                assert_eq!(SignedLong { data: mul, sign: sign_mul }, SignedLong::from(aop * bop));
+                // assert_eq!(SignedLong { data: div, sign: sign_div }, SignedLong::from(aop / bop));
+                // assert_eq!(SignedLong { data: rem, sign: sign_rem }, SignedLong::from(aop % bop));
+            }
+        }
     }
 }
