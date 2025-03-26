@@ -5,6 +5,7 @@ use self::{
     radix::RADIX_VAL,
 };
 use crate::num::{Constants, Sign};
+use proc::ops_impl;
 use radix::RADIX_MASK;
 use std::{cmp::Ordering, panic, str::FromStr};
 use thiserror::Error;
@@ -905,18 +906,18 @@ fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
 }
 
 fn div_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
-    let (div, _, sign) = divrem_long((a, asign), (b, bsign));
+    let (div, _, sign, _) = divrem_long((a, asign), (b, bsign));
 
     (div, sign)
 }
 
 fn rem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
-    let (_, rem, sign) = divrem_long((a, asign), (b, bsign));
+    let (_, rem, _, sign) = divrem_long((a, asign), (b, bsign));
 
     (rem, sign)
 }
 
-fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Vec<Single>, Sign) {
+fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Vec<Single>, Sign, Sign) {
     match (asign, bsign) {
         | (Sign::ZERO, _) => return Default::default(),
         | (_, Sign::ZERO) => panic!("Division by zero"),
@@ -924,65 +925,77 @@ fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> 
     }
 
     match cmp_long(a, b) {
-        | Ordering::Less => return (vec![0], a.to_vec(), asign * bsign),
-        | Ordering::Equal => return (vec![1], vec![0], asign * bsign),
+        | Ordering::Less => return (vec![], a.to_vec(), Sign::ZERO, asign),
+        | Ordering::Equal => return (vec![1], vec![], asign * bsign, Sign::ZERO),
         | Ordering::Greater => (),
     }
 
     let mut div = vec![0; a.len()];
-    let mut rem = vec![];
+    let mut rem = vec![0; b.len() + 1];
+    let mut len = 0;
 
     for i in (0..a.len()).rev() {
-        rem.push(a[i]);
+        for j in (1..len + 1).rev() {
+            rem[j] = rem[j - 1];
+        }
 
-        if rem.len() < b.len() {
+        rem[0] = a[i];
+        len += 1;
+
+        if len < b.len() {
             continue;
         }
 
         let mut l = 0 as Double;
         let mut r = RADIX_VAL;
-        let mut val = vec![];
 
         while l < r {
             let m = l + (r - l) / 2;
+            let s = Sign::from(m);
 
-            val = mul_long((b, Sign::POS), (&[m as Single], Sign::POS)).0;
+            let (val, _) = mul_long((b, Sign::POS), (&[m as Single], s));
 
-            match cmp_long(&val, &rem) {
+            match cmp_long(&val, &rem[..len]) {
                 | Ordering::Less => l = m + 1,
-                | Ordering::Equal => {
-                    l = m;
-
-                    break;
-                },
+                | Ordering::Equal => l = m + 1,
                 | Ordering::Greater => r = m,
             }
         }
 
-        div[i] = l as Single;
-        rem = if l > 0 {
-            sub_long((&rem, Sign::POS), (&val, Sign::POS)).0
-        } else {
-            rem
+        if l > 1 {
+            l -= 1;
+
+            let (val, _) = mul_long((b, Sign::POS), (&[l as Single], Sign::POS));
+            let (sub, _) = sub_long((&rem[..len], Sign::POS), (&val, Sign::POS));
+
+            div[i] = l as Single;
+            len = sub.len();
+
+            rem.fill(0);
+
+            for (j, d) in sub.iter().copied().enumerate() {
+                rem[j] = d;
+            }
         };
     }
 
     div.truncate(get_len(&div));
     rem.truncate(get_len(&rem));
 
-    let sign = if div.is_empty() { Sign::ZERO } else { asign * bsign };
+    let div_sign = if div.is_empty() { Sign::ZERO } else { asign * bsign };
+    let rem_sign = if rem.is_empty() { Sign::ZERO } else { asign };
 
-    (div, rem, sign)
+    (div, rem, div_sign, rem_sign)
 }
 
-// ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong { sign: -a.sign, data: a.data.clone() });
-// ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
-//     + SignedLong::from_raw(add_long((&a.data, a.sign), (&b.data, b.sign))),
-//     - SignedLong::from_raw(sub_long((&a.data, a.sign), (&b.data, b.sign))),
-//     * SignedLong::from_raw(mul_long((&a.data, a.sign), (&b.data, b.sign))),
-//     / SignedLong::from_raw(div_long((&a.data, a.sign), (&b.data, b.sign))),
-//     % SignedLong::from_raw(rem_long((&a.data, a.sign), (&b.data, b.sign))));
-//
+ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong { sign: -a.sign, data: a.data.clone() });
+ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
+    + SignedLong::from_raw(add_long((&a.data, a.sign), (&b.data, b.sign))),
+    - SignedLong::from_raw(sub_long((&a.data, a.sign), (&b.data, b.sign))),
+    * SignedLong::from_raw(mul_long((&a.data, a.sign), (&b.data, b.sign))),
+    / SignedLong::from_raw(div_long((&a.data, a.sign), (&b.data, b.sign))),
+    % SignedLong::from_raw(rem_long((&a.data, a.sign), (&b.data, b.sign))));
+
 // ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed::<L> { sign: -a.sign, data: a.data, len: a.len });
 // ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed<L>,
 //     + SignedFixed::<L>::from_raw(add_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))),
@@ -1426,7 +1439,7 @@ mod tests {
     }
 
     #[test]
-    fn add_long_test() {
+    fn addsub_long() {
         for aop in (i16::MIN..=i16::MAX).step_by(101) {
             for bop in (i16::MIN..=i16::MAX).step_by(103) {
                 let aop = aop as i32;
@@ -1445,7 +1458,7 @@ mod tests {
     }
 
     #[test]
-    fn mul_long_test() {
+    fn muldiv_long() {
         for aop in (i16::MIN..=i16::MAX).step_by(101) {
             for bop in (i16::MIN..=i16::MAX).step_by(103) {
                 let aop = aop as i64;
@@ -1455,12 +1468,12 @@ mod tests {
                 let blong = SignedLong::from(bop);
 
                 let (mul, sign_mul) = mul_long((&along.data, along.sign), (&blong.data, blong.sign));
-                // let (div, sign_div) = div_long((&along.data, along.sign), (&blong.data, blong.sign));
-                // let (rem, sign_rem) = rem_long((&along.data, along.sign), (&blong.data, blong.sign));
+                let (div, sign_div) = div_long((&along.data, along.sign), (&blong.data, blong.sign));
+                let (rem, sign_rem) = rem_long((&along.data, along.sign), (&blong.data, blong.sign));
 
                 assert_eq!(SignedLong { data: mul, sign: sign_mul }, SignedLong::from(aop * bop));
-                // assert_eq!(SignedLong { data: div, sign: sign_div }, SignedLong::from(aop / bop));
-                // assert_eq!(SignedLong { data: rem, sign: sign_rem }, SignedLong::from(aop % bop));
+                assert_eq!(SignedLong { data: div, sign: sign_div }, SignedLong::from(aop / bop));
+                assert_eq!(SignedLong { data: rem, sign: sign_rem }, SignedLong::from(aop % bop));
             }
         }
     }
