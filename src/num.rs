@@ -24,95 +24,6 @@ macro_rules! unsigned_fixed {
     };
 }
 
-pub type S128 = signed_fixed!(128);
-pub type S192 = signed_fixed!(192);
-pub type S256 = signed_fixed!(256);
-pub type S384 = signed_fixed!(384);
-pub type S512 = signed_fixed!(512);
-pub type S1024 = signed_fixed!(1024);
-pub type S2048 = signed_fixed!(2048);
-pub type S3072 = signed_fixed!(3072);
-pub type S4096 = signed_fixed!(4096);
-
-pub type U128 = unsigned_fixed!(128);
-pub type U192 = unsigned_fixed!(192);
-pub type U256 = unsigned_fixed!(256);
-pub type U384 = unsigned_fixed!(384);
-pub type U512 = unsigned_fixed!(512);
-pub type U1024 = unsigned_fixed!(1024);
-pub type U2048 = unsigned_fixed!(2048);
-pub type U3072 = unsigned_fixed!(3072);
-pub type U4096 = unsigned_fixed!(4096);
-
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Sign {
-    #[default]
-    ZERO = 0,
-    NEG = -1,
-    POS = 1,
-}
-
-macro_rules! sign_from {
-    ([$($from:ty),+]) => {
-        $(sign_from!($from);)+
-    };
-    ($from:ty) => {
-        impl From<$from> for Sign {
-            fn from(value: $from) -> Self {
-                match value.cmp(&0) {
-                    Ordering::Less => Sign::NEG,
-                    Ordering::Equal => Sign::ZERO,
-                    Ordering::Greater => Sign::POS,
-                }
-            }
-        }
-    };
-}
-
-sign_from!([u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
-
-ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
-* {
-    match (a, b) {
-        (Sign::ZERO, _) => Sign::ZERO,
-        (_, Sign::ZERO) => Sign::ZERO,
-        (Sign::NEG, Sign::NEG) => Sign::POS,
-        (Sign::NEG, Sign::POS) => Sign::NEG,
-        (Sign::POS, Sign::NEG) => Sign::NEG,
-        (Sign::POS, Sign::POS) => Sign::POS,
-    }
-});
-
-ops_impl!(@un |a: Sign| -> Sign,
-- {
-    match a {
-        Sign::ZERO => Sign::ZERO,
-        Sign::NEG => Sign::POS,
-        Sign::POS => Sign::NEG,
-    }
-});
-
-pub trait Constants {
-    const ZERO: Self;
-    const ONE: Self;
-    const MIN: Self;
-    const MAX: Self;
-}
-
-pub trait Number: Sized + Default + Display + Clone + PartialEq + PartialOrd + Constants + Ops + OpsAssign {
-    type Type;
-
-    fn val(&self) -> &Self::Type;
-}
-
-pub trait Integer: Eq + Ord + Number + OpsChecked + OpsAll + OpsAllAssign {
-    const BITS: u32;
-}
-
-pub trait Signed: Integer {}
-pub trait Unsigned: Integer {}
-pub trait Float: Number {}
-
 macro_rules! number_impl {
     ($type:ty, $zero:expr, $one:expr $(,)?) => {
         impl Constants for $type {
@@ -198,9 +109,106 @@ macro_rules! float_impl {
     };
 }
 
-int_impl!(Signed, [i8, i16, i32, i64, i128]);
-int_impl!(Unsigned, [u8, u16, u32, u64, u128]);
-float_impl!(Float, [f32, f64]);
+macro_rules! sign_from {
+    ([$($from:ty),+]) => {
+        $(sign_from!($from);)+
+    };
+    ($from:ty) => {
+        impl From<$from> for Sign {
+            fn from(value: $from) -> Self {
+                match value.cmp(&0) {
+                    Ordering::Less => Sign::NEG,
+                    Ordering::Equal => Sign::ZERO,
+                    Ordering::Greater => Sign::POS,
+                }
+            }
+        }
+    };
+}
+
+macro_rules! long_from {
+    ($type:ident, [$($from:ty),+] $(,)?) => {
+        $(long_from!($type, $from);)+
+    };
+    ($type:ident, [$pos:expr], [$($from:ty),+] $(,)?) => {
+        $(long_from!($type, $from, $pos);)+
+    };
+    ($type:ident, $from:ty $(, $pos:expr)?) => {
+        impl From<$from> for $type {
+            fn from(value: $from) -> Self {
+                const LEN: usize = ((<$from>::BITS + Single::BITS - 1) / Single::BITS) as usize;
+
+                if value == 0 {
+                    return Default::default();
+                }
+
+                let mut data = vec![0; LEN];
+                let mut len = 0;
+                let mut val = value.abs_diff(0);
+
+                while val > 0 {
+                    data[len] = val as Single;
+                    len += 1;
+                    val = val.checked_shr(Single::BITS).unwrap_or(0);
+                }
+
+                data.truncate(len);
+
+                Self { $(sign: $pos * Sign::from(value),)? data }
+            }
+        }
+    };
+}
+
+macro_rules! fixed_from {
+    ($type:ident, [$($from:ty),+] $(,)?) => {
+        $(fixed_from!($type, $from);)+
+    };
+    ($type:ident, [$pos:expr], [$($from:ty),+] $(,)?) => {
+        $(fixed_from!($type, $from, $pos);)+
+    };
+    ($type:ident, $from:ty $(, $pos:expr)?) => {
+        impl<const L: usize> From<$from> for $type<L> {
+            fn from(value: $from) -> Self {
+                if value == 0 {
+                    return Default::default();
+                }
+
+                let mut data = [0; L];
+                let mut len = 0;
+                let mut val = value.abs_diff(0);
+
+                while val > 0 {
+                    data[len] = val as Single;
+                    len += 1;
+                    val = val.checked_shr(Single::BITS).unwrap_or(0);
+                }
+
+                Self { $(sign: $pos * Sign::from(value),)? data, len }
+            }
+        }
+    };
+}
+
+pub type S128 = signed_fixed!(128);
+pub type S192 = signed_fixed!(192);
+pub type S256 = signed_fixed!(256);
+pub type S384 = signed_fixed!(384);
+pub type S512 = signed_fixed!(512);
+pub type S1024 = signed_fixed!(1024);
+pub type S2048 = signed_fixed!(2048);
+pub type S3072 = signed_fixed!(3072);
+pub type S4096 = signed_fixed!(4096);
+
+pub type U128 = unsigned_fixed!(128);
+pub type U192 = unsigned_fixed!(192);
+pub type U256 = unsigned_fixed!(256);
+pub type U384 = unsigned_fixed!(384);
+pub type U512 = unsigned_fixed!(512);
+pub type U1024 = unsigned_fixed!(1024);
+pub type U2048 = unsigned_fixed!(2048);
+pub type U3072 = unsigned_fixed!(3072);
+pub type U4096 = unsigned_fixed!(4096);
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryFromStrError {
@@ -237,6 +245,69 @@ pub enum RadixError {
     #[error("Found invalid value '{digit}' for radix '{radix}'")]
     InvalidDigit { digit: u8, radix: u8 },
 }
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OpsError {
+    #[error("Exceeded maximum length of {max} with {len}")]
+    ExceedLength { len: usize, max: usize },
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Sign {
+    #[default]
+    ZERO = 0,
+    NEG = -1,
+    POS = 1,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SignedLong {
+    sign: Sign,
+    data: Vec<Single>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnsignedLong {
+    data: Vec<Single>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SignedFixed<const L: usize> {
+    sign: Sign,
+    data: [Single; L],
+    len: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnsignedFixed<const L: usize> {
+    data: [Single; L],
+    len: usize,
+}
+
+pub trait Constants {
+    const ZERO: Self;
+    const ONE: Self;
+    const MIN: Self;
+    const MAX: Self;
+}
+
+pub trait Number: Sized + Default + Display + Clone + PartialEq + PartialOrd + Constants + Ops + OpsAssign {
+    type Type;
+
+    fn val(&self) -> &Self::Type;
+}
+
+pub trait Integer: Eq + Ord + Number + OpsChecked + OpsAll + OpsAllAssign {
+    const BITS: u32;
+}
+
+pub trait Signed: Integer {}
+pub trait Unsigned: Integer {}
+pub trait Float: Number {}
+
+int_impl!(Signed, [i8, i16, i32, i64, i128]);
+int_impl!(Unsigned, [u8, u16, u32, u64, u128]);
+float_impl!(Float, [f32, f64]);
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
 mod digit {
@@ -332,30 +403,6 @@ mod radix {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SignedLong {
-    sign: Sign,
-    data: Vec<Single>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UnsignedLong {
-    data: Vec<Single>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SignedFixed<const L: usize> {
-    sign: Sign,
-    data: [Single; L],
-    len: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UnsignedFixed<const L: usize> {
-    data: [Single; L],
-    len: usize,
-}
-
 impl<const L: usize> Default for SignedFixed<L> {
     fn default() -> Self {
         Self {
@@ -372,84 +419,22 @@ impl<const L: usize> Default for UnsignedFixed<L> {
     }
 }
 
-macro_rules! from_impl_long {
-    ($type:ident, [$($from:ty),+] $(,)?) => {
-        $(from_impl_long!($type, $from);)+
-    };
-    ($type:ident, [$pos:expr], [$($from:ty),+] $(,)?) => {
-        $(from_impl_long!($type, $from, $pos);)+
-    };
-    ($type:ident, $from:ty $(, $pos:expr)?) => {
-        impl From<$from> for $type {
-            fn from(value: $from) -> Self {
-                const LEN: usize = ((<$from>::BITS + Single::BITS - 1) / Single::BITS) as usize;
+sign_from!([u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
 
-                if value == 0 {
-                    return Default::default();
-                }
-
-                let mut data = vec![0; LEN];
-                let mut len = 0;
-                let mut val = value.abs_diff(0);
-
-                while val > 0 {
-                    data[len] = val as Single;
-                    len += 1;
-                    val = val.checked_shr(Single::BITS).unwrap_or(0);
-                }
-
-                data.truncate(len);
-
-                Self { $(sign: $pos * Sign::from(value),)? data }
-            }
-        }
-    };
-}
-
-macro_rules! from_impl_fixed {
-    ($type:ident, [$($from:ty),+] $(,)?) => {
-        $(from_impl_fixed!($type, $from);)+
-    };
-    ($type:ident, [$pos:expr], [$($from:ty),+] $(,)?) => {
-        $(from_impl_fixed!($type, $from, $pos);)+
-    };
-    ($type:ident, $from:ty $(, $pos:expr)?) => {
-        impl<const L: usize> From<$from> for $type<L> {
-            fn from(value: $from) -> Self {
-                if value == 0 {
-                    return Default::default();
-                }
-
-                let mut data = [0; L];
-                let mut len = 0;
-                let mut val = value.abs_diff(0);
-
-                while val > 0 {
-                    data[len] = val as Single;
-                    len += 1;
-                    val = val.checked_shr(Single::BITS).unwrap_or(0);
-                }
-
-                Self { $(sign: $pos * Sign::from(value),)? data, len }
-            }
-        }
-    };
-}
-
-from_impl_long!(
+long_from!(
     SignedLong,
     [Sign::POS],
     [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
 );
 
-from_impl_fixed!(
+fixed_from!(
     SignedFixed,
     [Sign::POS],
     [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
 );
 
-from_impl_long!(UnsignedLong, [u8, u16, u32, u64, u128, usize]);
-from_impl_fixed!(UnsignedFixed, [u8, u16, u32, u64, u128, usize]);
+long_from!(UnsignedLong, [u8, u16, u32, u64, u128, usize]);
+fixed_from!(UnsignedFixed, [u8, u16, u32, u64, u128, usize]);
 
 impl FromStr for SignedLong {
     type Err = TryFromStrError;
@@ -1145,6 +1130,27 @@ fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> 
 
     (div, rem, div_sign, rem_sign)
 }
+
+ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
+* {
+    match (a, b) {
+        (Sign::ZERO, _) => Sign::ZERO,
+        (_, Sign::ZERO) => Sign::ZERO,
+        (Sign::NEG, Sign::NEG) => Sign::POS,
+        (Sign::NEG, Sign::POS) => Sign::NEG,
+        (Sign::POS, Sign::NEG) => Sign::NEG,
+        (Sign::POS, Sign::POS) => Sign::POS,
+    }
+});
+
+ops_impl!(@un |a: Sign| -> Sign,
+- {
+    match a {
+        Sign::ZERO => Sign::ZERO,
+        Sign::NEG => Sign::POS,
+        Sign::POS => Sign::NEG,
+    }
+});
 
 ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong { sign: -a.sign, data: a.data.clone() });
 ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
