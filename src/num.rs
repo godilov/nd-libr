@@ -1210,6 +1210,46 @@ fn sub_fixed<const L: usize>(
     (res, len, sign)
 }
 
+fn mul_fixed<const L: usize>(
+    (a, alen, asign): (&[Single; L], usize, Sign),
+    (b, blen, bsign): (&[Single; L], usize, Sign),
+) -> ([Single; L], usize, Sign) {
+    match (asign, bsign) {
+        | (Sign::ZERO, _) => return ([Default::default(); L], Default::default(), Default::default()),
+        | (_, Sign::ZERO) => return ([Default::default(); L], Default::default(), Default::default()),
+        | _ => (),
+    }
+
+    let mut res = [0; L];
+
+    for i in 0..alen {
+        let mut acc = 0;
+
+        for j in 0..blen.min(L - i) {
+            let aop = a[i] as Double;
+            let bop = b[j] as Double;
+            let rop = res[i + j] as Double;
+
+            acc += rop + aop * bop;
+
+            res[i + j] = (acc & RADIX_MASK) as Single;
+            acc >>= Single::BITS;
+        }
+
+        if i + blen < L {
+            let idx = i + blen;
+            let val = acc + res[idx] as Double;
+
+            res[idx] = (val & RADIX_MASK) as Single;
+        }
+    }
+
+    let len = get_len(&res);
+    let sign = if len == 0 { Sign::ZERO } else { asign * bsign };
+
+    (res, len, sign)
+}
+
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
 * {
     match (a, b) {
@@ -1243,9 +1283,9 @@ ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedF
 ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed<L>,
     + SignedFixed::<L>::from_raw(add_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
     - SignedFixed::<L>::from_raw(sub_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))));
-//     * SignedFixed::<L>::from_raw(mul_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))),
-//     / SignedFixed::<L>::from_raw(div_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))),
-//     % SignedFixed::<L>::from_raw(rem_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, a.len))));
+//     * SignedFixed::<L>::from_raw(mul_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, b.len))),
+//     / SignedFixed::<L>::from_raw(div_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, b.len))),
+//     % SignedFixed::<L>::from_raw(rem_fixed((&a.data, a.sign, a.len), (&b.data, b.sign, b.len))));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {
@@ -1329,8 +1369,6 @@ fn get_len<T: Constants + PartialEq + Eq>(data: &[T]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::u32;
-
     use super::*;
 
     type S32 = signed_fixed!(32);
@@ -1706,8 +1744,8 @@ mod tests {
     fn muldiv_long() {
         for aop in (i16::MIN..=i16::MAX).step_by(101) {
             for bop in (i16::MIN..=i16::MAX).step_by(103) {
-                let aop = aop as i64;
-                let bop = bop as i64;
+                let aop = aop as i32;
+                let bop = bop as i32;
 
                 let a = SignedLong::from(aop);
                 let b = SignedLong::from(bop);
@@ -1752,6 +1790,34 @@ mod tests {
                     },
                     S32::from(aop - bop)
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn muldiv_fixed() {
+        for aop in (i16::MIN..=i16::MAX).step_by(101) {
+            for bop in (i16::MIN..=i16::MAX).step_by(103) {
+                let aop = aop as i32;
+                let bop = bop as i32;
+
+                let a = S32::from(aop);
+                let b = S32::from(bop);
+
+                let (mul, mul_len, mul_sign) = mul_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign));
+                // let (div, div_sign) = div_long((&a.data, a.sign), (&b.data, b.sign));
+                // let (rem, rem_sign) = rem_long((&a.data, a.sign), (&b.data, b.sign));
+
+                assert_eq!(
+                    S32 {
+                        data: mul,
+                        len: mul_len,
+                        sign: mul_sign
+                    },
+                    S32::from(aop * bop)
+                );
+                // assert_eq!(SignedLong { data: div, sign: div_sign }, SignedLong::from(aop / bop));
+                // assert_eq!(SignedLong { data: rem, sign: rem_sign }, SignedLong::from(aop % bop));
             }
         }
     }
