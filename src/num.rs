@@ -482,14 +482,14 @@ impl SignedLong {
 
     pub fn from_slice(slice: &[u8]) -> Self {
         let data = from_slice_long(slice);
-        let sign = if data.is_empty() { Sign::ZERO } else { Sign::POS };
+        let sign = get_sign(data.len(), Sign::POS);
 
         Self { sign, data }
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
         let data = try_from_digits_long(digits, radix)?;
-        let sign = if data.is_empty() { Sign::ZERO } else { Sign::POS };
+        let sign = get_sign(data.len(), Sign::POS);
 
         Ok(Self { sign, data })
     }
@@ -536,16 +536,23 @@ impl<const L: usize> SignedFixed<L> {
         Self { data, sign, len }
     }
 
+    pub fn from_slice(slice: &[u8]) -> Self {
+        let (data, len) = from_slice_fixed(slice);
+        let sign = get_sign(len, Sign::POS);
+
+        Self { sign, data, len }
+    }
+
     pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
-        let (data, len) = from_slice_fixed(slice)?;
-        let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
+        let (data, len) = try_from_slice_fixed(slice)?;
+        let sign = get_sign(len, Sign::POS);
 
         Ok(Self { sign, data, len })
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
         let (data, len) = try_from_digits_fixed(digits, radix)?;
-        let sign = if len == 0 { Sign::ZERO } else { Sign::POS };
+        let sign = get_sign(len, Sign::POS);
 
         Ok(Self { sign, data, len })
     }
@@ -561,12 +568,18 @@ impl<const L: usize> SignedFixed<L> {
 
 impl<const L: usize> UnsignedFixed<L> {
     #[allow(dead_code)]
-    fn from_raw((data, len, sign): ([Single; L], usize, Sign)) -> Self {
+    fn from_raw((data, len, _): ([Single; L], usize, Sign)) -> Self {
+        Self { data, len }
+    }
+
+    pub fn from_slice(slice: &[u8]) -> Self {
+        let (data, len) = from_slice_fixed(slice);
+
         Self { data, len }
     }
 
     pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
-        let (data, len) = from_slice_fixed(slice)?;
+        let (data, len) = try_from_slice_fixed(slice)?;
 
         Ok(Self { data, len })
     }
@@ -603,7 +616,23 @@ fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     res
 }
 
-fn from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromSliceError> {
+fn from_slice_fixed<const L: usize>(slice: &[u8]) -> ([Single; L], usize) {
+    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
+
+    let mut shift = 0;
+    let mut res = [0; L];
+
+    for (i, &byte) in slice.iter().enumerate().take(RATIO * L) {
+        let idx = i / RATIO;
+
+        res[idx] |= ((byte as Single) << shift) as Single;
+        shift = (shift + u8::BITS) & (Single::BITS - 1);
+    }
+
+    (res, get_len(&res))
+}
+
+fn try_from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromSliceError> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
     let len = (slice.len() + RATIO - 1) / RATIO;
@@ -632,7 +661,7 @@ fn try_from_str_long(s: &str) -> Result<(Sign, Vec<Single>), TryFromStrError> {
 
     let res = try_from_digits_long(&digits, radix)?;
 
-    let sign = if res.is_empty() { Sign::ZERO } else { sign };
+    let sign = get_sign(res.len(), sign);
 
     Ok((sign, res))
 }
@@ -644,7 +673,7 @@ fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usi
 
     let (res, len) = try_from_digits_fixed(&digits, radix)?;
 
-    let sign = if len == 0 { Sign::ZERO } else { sign };
+    let sign = get_sign(len, sign);
 
     Ok((sign, res, len))
 }
@@ -956,7 +985,7 @@ fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
 
     res.truncate(get_len(&res));
 
-    let sign = if res.is_empty() { Sign::ZERO } else { asign };
+    let sign = get_sign(res.len(), asign);
 
     (res, sign)
 }
@@ -999,7 +1028,7 @@ fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
 
     res.truncate(get_len(&res));
 
-    let sign = if res.is_empty() { Sign::ZERO } else { sign };
+    let sign = get_sign(res.len(), sign);
 
     (res, sign)
 }
@@ -1037,7 +1066,7 @@ fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
 
     res.truncate(get_len(&res));
 
-    let sign = if res.is_empty() { Sign::ZERO } else { asign * bsign };
+    let sign = get_sign(res.len(), asign * bsign);
 
     (res, sign)
 }
@@ -1159,7 +1188,7 @@ fn add_fixed<const L: usize>(
     }
 
     let len = get_len(&res);
-    let sign = if len == 0 { Sign::ZERO } else { asign };
+    let sign = get_sign(len, asign);
 
     (res, len, sign)
 }
@@ -1204,7 +1233,7 @@ fn sub_fixed<const L: usize>(
     }
 
     let len = get_len(&res);
-    let sign = if res.is_empty() { Sign::ZERO } else { sign };
+    let sign = get_sign(res.len(), sign);
 
     (res, len, sign)
 }
@@ -1244,7 +1273,7 @@ fn mul_fixed<const L: usize>(
     }
 
     let len = get_len(&res);
-    let sign = if len == 0 { Sign::ZERO } else { asign * bsign };
+    let sign = get_sign(len, asign * bsign);
 
     (res, len, sign)
 }
@@ -1285,6 +1314,7 @@ fn divrem_fixed<const L: usize>(
         | Ordering::Greater => (),
     }
 
+    // TODO: Find a way to make this static array
     let mut div = vec![0; L];
     let mut rem = vec![0; L + 1];
     let mut len = 0;
@@ -1370,6 +1400,7 @@ ops_impl!(@un |a: Sign| -> Sign,
 });
 
 ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong { sign: -a.sign, data: a.data.clone() });
+
 ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
     + SignedLong::from_raw(add_long((&a.data, a.sign), (&b.data, b.sign))),
     - SignedLong::from_raw(sub_long((&a.data, a.sign), (&b.data, b.sign))),
@@ -1377,13 +1408,28 @@ ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
     / SignedLong::from_raw(div_long((&a.data, a.sign), (&b.data, b.sign))),
     % SignedLong::from_raw(rem_long((&a.data, a.sign), (&b.data, b.sign))));
 
+ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
+    + UnsignedLong::from_raw(add_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
+    - UnsignedLong::from_raw(sub_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
+    * UnsignedLong::from_raw(mul_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
+    / UnsignedLong::from_raw(div_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
+    % UnsignedLong::from_raw(rem_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))));
+
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed::<L> { sign: -a.sign, data: a.data, len: a.len });
+
 ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed<L>,
     + SignedFixed::<L>::from_raw(add_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
     - SignedFixed::<L>::from_raw(sub_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
     * SignedFixed::<L>::from_raw(mul_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
     / SignedFixed::<L>::from_raw(div_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
     % SignedFixed::<L>::from_raw(rem_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))));
+
+ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed<L>,
+    + UnsignedFixed::<L>::from_raw(add_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    - UnsignedFixed::<L>::from_raw(sub_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    * UnsignedFixed::<L>::from_raw(mul_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    / UnsignedFixed::<L>::from_raw(div_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    % UnsignedFixed::<L>::from_raw(rem_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {
@@ -1465,6 +1511,10 @@ fn get_len<T: Constants + PartialEq + Eq>(data: &[T]) -> usize {
     0
 }
 
+fn get_sign(len: usize, default: Sign) -> Sign {
+    if len > 0 { default } else { Sign::ZERO }
+}
+
 fn get_arr<const L: usize>(val: Single) -> [Single; L] {
     let mut res = [0; L];
 
@@ -1516,16 +1566,16 @@ mod tests {
     macro_rules! assert_fixed_from_slice {
         (@signed $expr:expr, $data:expr, $len:expr, $sign:expr) => {
             assert_eq!(
-                S32::try_from_slice($expr),
-                Ok(S32 {
+                S32::from_slice($expr),
+                S32 {
                     sign: $sign,
                     data: $data,
                     len: $len
-                })
+                }
             );
         };
         (@unsigned $expr:expr, $data:expr, $len:expr) => {
-            assert_eq!(U32::try_from_slice($expr), Ok(U32 { data: $data, len: $len }));
+            assert_eq!(U32::from_slice($expr), U32 { data: $data, len: $len });
         };
     }
 
@@ -1667,8 +1717,8 @@ mod tests {
 
     #[test]
     fn from_slice_fixed() {
-        assert_eq!(S32::try_from_slice(&[]), Ok(S32::default()));
-        assert_eq!(U32::try_from_slice(&[]), Ok(U32::default()));
+        assert_eq!(S32::from_slice(&[]), S32::default());
+        assert_eq!(U32::from_slice(&[]), U32::default());
 
         for val in u16::MIN..=u16::MAX {
             let bytes = (val as u32).to_le_bytes();
