@@ -157,14 +157,16 @@ macro_rules! long_from {
                 }
 
                 let mut data = vec![0; LEN];
-                let mut len = 0;
+                let mut idx = 0;
                 let mut val = value.abs_diff(0);
 
                 while val > 0 {
-                    data[len] = val as Single;
-                    len += 1;
+                    data[idx] = val as Single;
+                    idx += 1;
                     val = val.checked_shr(Single::BITS).unwrap_or(0);
                 }
+
+                let len = get_len(&data);
 
                 data.truncate(len);
 
@@ -189,16 +191,18 @@ macro_rules! fixed_from {
                 }
 
                 let mut data = [0; L];
-                let mut len = 0;
+                let mut idx = 0;
                 let mut val = value.abs_diff(0);
 
-                while val > 0 {
-                    data[len] = val as Single;
-                    len += 1;
+                while idx < L && val > 0 {
+                    data[idx] = val as Single;
+                    idx += 1;
                     val = val.checked_shr(Single::BITS).unwrap_or(0);
                 }
 
-                Self { $(sign: $pos * Sign::from(value),)? data, len }
+                let len = get_len(&data);
+
+                Self { $(sign: if len > 0 { $pos * Sign::from(value) } else { Sign::ZERO },)? data, len }
             }
         }
     };
@@ -1130,24 +1134,24 @@ fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoR
     Ok(res)
 }
 
-fn write_num_bin(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
-    write!(buf, "{:01$b}", digit, pow)
+fn write_num_bin(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$b}", digit, width)
 }
 
-fn write_num_oct(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
-    write!(buf, "{:01$o}", digit, pow)
+fn write_num_oct(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$o}", digit, width)
 }
 
-fn write_num_dec(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
-    write!(buf, "{:01$}", digit, pow)
+fn write_num_dec(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$}", digit, width)
 }
 
-fn write_num_lhex(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
-    write!(buf, "{:01$x}", digit, pow)
+fn write_num_lhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$x}", digit, width)
 }
 
-fn write_num_uhex(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
-    write!(buf, "{:01$X}", digit, pow)
+fn write_num_uhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$X}", digit, width)
 }
 
 fn write_num<R: Radix, F>(_: R, fmt: &mut Formatter<'_>, digits: &[Single], sign: Sign, func: F) -> std::fmt::Result
@@ -1540,7 +1544,7 @@ fn divrem_fixed<const L: usize>(
 
     match cmp_nums(a, b) {
         | Ordering::Less => return ([0; L], *a, 0, alen, Sign::ZERO, asign),
-        | Ordering::Equal => return (get_arr::<L>(1), [0; L], 1, 0, asign * bsign, Sign::ZERO),
+        | Ordering::Equal => return (get_arr(1), [0; L], 1, 0, asign * bsign, Sign::ZERO),
         | Ordering::Greater => (),
     }
 
@@ -1568,7 +1572,7 @@ fn divrem_fixed<const L: usize>(
             let m = l + (r - l) / 2;
             let s = Sign::from(m);
 
-            let (val, _, _) = mul_fixed((b, blen, Sign::POS), (&get_arr::<L>(m as Single), 1, s));
+            let (val, _, _) = mul_fixed((b, blen, Sign::POS), (&get_arr(m as Single), 1, s));
             let remop = rem.first_chunk().unwrap_or(&[0; L]);
 
             match cmp_nums(&val, remop) {
@@ -1582,7 +1586,7 @@ fn divrem_fixed<const L: usize>(
         if digit > 0 {
             let remop = rem.first_chunk().unwrap_or(&[0; L]);
 
-            let (val, val_len, _) = mul_fixed((b, blen, Sign::POS), (&get_arr::<L>(digit), 1, Sign::POS));
+            let (val, val_len, _) = mul_fixed((b, blen, Sign::POS), (&get_arr(digit), 1, Sign::POS));
             let (sub, sub_len, _) = sub_fixed((remop, len, Sign::POS), (&val, val_len, Sign::POS));
 
             div[i] = digit;
@@ -1645,21 +1649,21 @@ ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
     / UnsignedLong::from_raw(div_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
     % UnsignedLong::from_raw(rem_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))));
 
-ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed::<L> { sign: -a.sign, data: a.data, len: a.len });
+ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed { sign: -a.sign, data: a.data, len: a.len });
 
 ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed<L>,
-    + SignedFixed::<L>::from_raw(add_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
-    - SignedFixed::<L>::from_raw(sub_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
-    * SignedFixed::<L>::from_raw(mul_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
-    / SignedFixed::<L>::from_raw(div_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
-    % SignedFixed::<L>::from_raw(rem_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))));
+    + SignedFixed::from_raw(add_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
+    - SignedFixed::from_raw(sub_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
+    * SignedFixed::from_raw(mul_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
+    / SignedFixed::from_raw(div_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
+    % SignedFixed::from_raw(rem_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))));
 
 ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed<L>,
-    + UnsignedFixed::<L>::from_raw(add_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
-    - UnsignedFixed::<L>::from_raw(sub_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
-    * UnsignedFixed::<L>::from_raw(mul_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
-    / UnsignedFixed::<L>::from_raw(div_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
-    % UnsignedFixed::<L>::from_raw(rem_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))));
+    + UnsignedFixed::from_raw(add_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    - UnsignedFixed::from_raw(sub_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    * UnsignedFixed::from_raw(mul_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    / UnsignedFixed::from_raw(div_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    % UnsignedFixed::from_raw(rem_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {
@@ -1771,6 +1775,8 @@ fn get_arr<const L: usize>(val: Single) -> [Single; L] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const PRIMES: [usize; 2] = [10_570_841, 10_570_849];
 
     type S32 = signed_fixed!(32);
     type U32 = unsigned_fixed!(32);
@@ -2124,13 +2130,13 @@ mod tests {
 
     #[test]
     fn addsub_long() {
-        for aop in (i16::MIN..=i16::MAX).step_by(211) {
-            for bop in (i16::MIN..=i16::MAX).step_by(307) {
-                let aop = aop as i32;
-                let bop = bop as i32;
-
+        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
+
+                let aop = aop as i64;
+                let bop = bop as i64;
 
                 assert_eq!(a + b, SignedLong::from(aop + bop));
                 assert_eq!(a - b, SignedLong::from(aop - bop));
@@ -2140,13 +2146,13 @@ mod tests {
 
     #[test]
     fn muldiv_long() {
-        for aop in (i16::MIN..=i16::MAX).step_by(211) {
-            for bop in (i16::MIN..=i16::MAX).step_by(307) {
-                let aop = aop as i32;
-                let bop = bop as i32;
-
+        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
+
+                let aop = aop as i64;
+                let bop = bop as i64;
 
                 assert_eq!(a * b, SignedLong::from(aop * bop));
                 assert_eq!(a / b, SignedLong::from(aop / bop));
@@ -2157,13 +2163,13 @@ mod tests {
 
     #[test]
     fn addsub_fixed() {
-        for aop in (i16::MIN..=i16::MAX).step_by(211) {
-            for bop in (i16::MIN..=i16::MAX).step_by(307) {
-                let aop = aop as i32;
-                let bop = bop as i32;
-
+        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &S32::from(aop);
                 let b = &S32::from(bop);
+
+                let aop = aop as i64;
+                let bop = bop as i64;
 
                 assert_eq!(a + b, S32::from(aop + bop));
                 assert_eq!(a - b, S32::from(aop - bop));
@@ -2173,13 +2179,13 @@ mod tests {
 
     #[test]
     fn muldiv_fixed() {
-        for aop in (i16::MIN..=i16::MAX).step_by(211) {
-            for bop in (i16::MIN..=i16::MAX).step_by(307) {
-                let aop = aop as i32;
-                let bop = bop as i32;
-
+        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &S32::from(aop);
                 let b = &S32::from(bop);
+
+                let aop = aop as i64;
+                let bop = bop as i64;
 
                 assert_eq!(a * b, S32::from(aop * bop));
                 assert_eq!(a / b, S32::from(aop / bop));
