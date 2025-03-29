@@ -1389,6 +1389,92 @@ fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> 
     (div, rem, div_sign, rem_sign)
 }
 
+fn bit_long<F>(a: &[Single], b: &[Single], func: F) -> (Vec<Single>, Sign)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    let len = a.len().max(b.len());
+
+    let mut res = vec![0; len];
+
+    for i in 0..len {
+        let aop = if i < a.len() { a[i] } else { 0 };
+        let bop = if i < b.len() { b[i] } else { 0 };
+
+        res[i] = func(aop, bop);
+    }
+
+    let len = get_len(&res);
+    let sign = get_sign(len, Sign::POS);
+
+    res.truncate(len);
+
+    (res, sign)
+}
+
+fn shl_long((a, asign): (&[Single], Sign), len: usize) -> (Vec<Single>, Sign) {
+    if len == 0 {
+        return (a.to_vec(), asign);
+    }
+
+    if asign == Sign::ZERO {
+        return (vec![], Sign::ZERO);
+    }
+
+    let sbits = Single::BITS as usize;
+    let offset = len / sbits;
+    let shift = len & (sbits - 1);
+    let len = a.len() + (len + sbits - 1) / sbits;
+    let shl = shift as u32;
+    let shr = (sbits - shift) as u32;
+
+    let mut acc = 0;
+    let mut res = vec![0; len];
+
+    for i in 0..a.len() {
+        res[i + offset] = (a[i] << shl) | acc;
+        acc = a[i].checked_shr(shr).unwrap_or(0);
+    }
+
+    if shift > 0 {
+        res[a.len() + offset] = acc;
+    }
+
+    res.truncate(get_len(&res));
+
+    (res, asign)
+}
+
+fn shr_long((a, asign): (&[Single], Sign), len: usize) -> (Vec<Single>, Sign) {
+    if len == 0 {
+        return (a.to_vec(), asign);
+    }
+
+    let sbits = Single::BITS as usize;
+
+    if asign == Sign::ZERO || len >= a.len() * sbits {
+        return (vec![], Sign::ZERO);
+    }
+
+    let offset = len / sbits;
+    let shift = len & (sbits - 1);
+    let len = a.len() - len / sbits;
+    let shr = shift as u32;
+    let shl = (sbits - shift) as u32;
+
+    let mut acc = 0;
+    let mut res = vec![0; len];
+
+    for i in (offset..a.len()).rev() {
+        res[i - offset] = (a[i] >> shr) | acc;
+        acc = a[i].checked_shl(shl).unwrap_or(0);
+    }
+
+    res.truncate(get_len(&res));
+
+    (res, asign)
+}
+
 fn add_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
@@ -1612,6 +1698,79 @@ fn divrem_fixed<const L: usize>(
     (div, rem, div_len, rem_len, div_sign, rem_sign)
 }
 
+fn bit_fixed<const L: usize, F>(a: &[Single; L], b: &[Single; L], func: F) -> ([Single; L], usize, Sign)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    let mut res = [0; L];
+
+    for i in 0..L {
+        res[i] = func(a[i], b[i]);
+    }
+
+    let len = get_len(&res);
+    let sign = get_sign(len, Sign::POS);
+
+    (res, len, sign)
+}
+
+fn shl_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> ([Single; L], usize, Sign) {
+    if len == 0 {
+        return (*a, alen, asign);
+    }
+
+    if asign == Sign::ZERO {
+        return ([0; L], 0, Sign::ZERO);
+    }
+
+    let sbits = Single::BITS as usize;
+    let offset = len / sbits;
+    let shift = len & (sbits - 1);
+    let shl = shift as u32;
+    let shr = (sbits - shift) as u32;
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    for i in 0..alen.min(L - offset) {
+        res[i + offset] = (a[i] << shl) | acc;
+        acc = a[i].checked_shr(shr).unwrap_or(0);
+    }
+
+    if shift > 0 {
+        res[a.len() + offset] = acc;
+    }
+
+    (res, get_len(&res), asign)
+}
+
+fn shr_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> ([Single; L], usize, Sign) {
+    if len == 0 {
+        return (*a, alen, asign);
+    }
+
+    let sbits = Single::BITS as usize;
+
+    if asign == Sign::ZERO || len >= alen * sbits {
+        return ([0; L], 0, Sign::ZERO);
+    }
+
+    let offset = len / sbits;
+    let shift = len & (sbits - 1);
+    let shr = shift as u32;
+    let shl = (sbits - shift) as u32;
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    for i in (offset..alen).rev() {
+        res[i - offset] = (a[i] >> shr) | acc;
+        acc = a[i].checked_shl(shl).unwrap_or(0);
+    }
+
+    (res, get_len(&res), asign)
+}
+
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
 * {
     match (a, b) {
@@ -1640,14 +1799,28 @@ ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
     - SignedLong::from_raw(sub_long((&a.data, a.sign), (&b.data, b.sign))),
     * SignedLong::from_raw(mul_long((&a.data, a.sign), (&b.data, b.sign))),
     / SignedLong::from_raw(div_long((&a.data, a.sign), (&b.data, b.sign))),
-    % SignedLong::from_raw(rem_long((&a.data, a.sign), (&b.data, b.sign))));
+    % SignedLong::from_raw(rem_long((&a.data, a.sign), (&b.data, b.sign))),
+    | SignedLong::from_raw(bit_long(&a.data, &b.data, |aop, bop| aop | bop)),
+    & SignedLong::from_raw(bit_long(&a.data, &b.data, |aop, bop| aop & bop)),
+    ^ SignedLong::from_raw(bit_long(&a.data, &b.data, |aop, bop| aop ^ bop)));
 
 ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
     + UnsignedLong::from_raw(add_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
     - UnsignedLong::from_raw(sub_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
     * UnsignedLong::from_raw(mul_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
     / UnsignedLong::from_raw(div_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
-    % UnsignedLong::from_raw(rem_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))));
+    % UnsignedLong::from_raw(rem_long((&a.data, get_sign(a.data.len(), Sign::POS)), (&b.data, get_sign(b.data.len(), Sign::POS)))),
+    | UnsignedLong::from_raw(bit_long(&a.data, &b.data, |aop, bop| aop | bop)),
+    & UnsignedLong::from_raw(bit_long(&a.data, &b.data, |aop, bop| aop & bop)),
+    ^ UnsignedLong::from_raw(bit_long(&a.data, &b.data, |aop, bop| aop ^ bop)));
+
+ops_impl!(@bin |a: &SignedLong, b: usize| -> SignedLong,
+    << SignedLong::from_raw(shl_long((&a.data, a.sign), b)),
+    >> SignedLong::from_raw(shr_long((&a.data, a.sign), b)));
+
+ops_impl!(@bin |a: &UnsignedLong, b: usize| -> UnsignedLong,
+    << UnsignedLong::from_raw(shl_long((&a.data, get_sign(a.data.len(), Sign::POS)), b)),
+    >> UnsignedLong::from_raw(shr_long((&a.data, get_sign(a.data.len(), Sign::POS)), b)));
 
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed { sign: -a.sign, data: a.data, len: a.len });
 
@@ -1656,14 +1829,28 @@ ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> Sign
     - SignedFixed::from_raw(sub_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
     * SignedFixed::from_raw(mul_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
     / SignedFixed::from_raw(div_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
-    % SignedFixed::from_raw(rem_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))));
+    % SignedFixed::from_raw(rem_fixed((&a.data, a.len, a.sign), (&b.data, b.len, b.sign))),
+    | SignedFixed::from_raw(bit_fixed(&a.data, &b.data, |aop, bop| aop | bop)),
+    & SignedFixed::from_raw(bit_fixed(&a.data, &b.data, |aop, bop| aop & bop)),
+    ^ SignedFixed::from_raw(bit_fixed(&a.data, &b.data, |aop, bop| aop ^ bop)));
 
 ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed<L>,
     + UnsignedFixed::from_raw(add_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
     - UnsignedFixed::from_raw(sub_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
     * UnsignedFixed::from_raw(mul_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
     / UnsignedFixed::from_raw(div_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
-    % UnsignedFixed::from_raw(rem_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))));
+    % UnsignedFixed::from_raw(rem_fixed((&a.data, a.len, get_sign(a.len, Sign::POS)), (&b.data, b.len, get_sign(b.len, Sign::POS)))),
+    | UnsignedFixed::from_raw(bit_fixed(&a.data, &b.data, |aop, bop| aop | bop)),
+    & UnsignedFixed::from_raw(bit_fixed(&a.data, &b.data, |aop, bop| aop & bop)),
+    ^ UnsignedFixed::from_raw(bit_fixed(&a.data, &b.data, |aop, bop| aop ^ bop)));
+
+ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: usize| -> SignedFixed<L>,
+    << SignedFixed::from_raw(shl_fixed((&a.data, a.len, a.sign), b)),
+    >> SignedFixed::from_raw(shr_fixed((&a.data, a.len, a.sign), b)));
+
+ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: usize| -> UnsignedFixed<L>,
+    << UnsignedFixed::from_raw(shl_fixed((&a.data, a.len, get_sign(a.data.len(), Sign::POS)), b)),
+    >> UnsignedFixed::from_raw(shr_fixed((&a.data, a.len, get_sign(a.data.len(), Sign::POS)), b)));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {
