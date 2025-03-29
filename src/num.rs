@@ -842,9 +842,7 @@ fn try_from_digits_fixed_bin<const L: usize>(
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
 
-    let radix = (1 << pow) as u16;
-
-    try_from_digits_validate(digits, radix)?;
+    try_from_digits_validate(digits, (1 << pow) as u16)?;
 
     let mut acc = 0;
     let mut shl = 0;
