@@ -311,8 +311,8 @@ mod digit {
     pub(super) type Single = u64;
     pub(super) type Double = u128;
 
-    pub(super) const OCT_MAX: Double = (1 << 63) - 1;
-    pub(super) const OCT_RADIX: Double = 1 << 63;
+    pub(super) const OCT_MAX: Double = ((1 as Double) << 63) - 1;
+    pub(super) const OCT_RADIX: Double = (1 as Double) << 63;
     pub(super) const OCT_WIDTH: u8 = 21;
 
     pub(super) const DEC_MAX: Double = 9_999_999_999_999_999_999;
@@ -325,8 +325,8 @@ mod digit {
     pub(super) type Single = u32;
     pub(super) type Double = u64;
 
-    pub(super) const OCT_MAX: Double = (1 << 30) - 1;
-    pub(super) const OCT_RADIX: Double = 1 << 30;
+    pub(super) const OCT_MAX: Double = ((1 as Double) << 30) - 1;
+    pub(super) const OCT_RADIX: Double = (1 as Double) << 30;
     pub(super) const OCT_WIDTH: u8 = 10;
 
     pub(super) const DEC_MAX: Double = 999_999_999;
@@ -339,8 +339,8 @@ mod digit {
     pub(super) type Single = u8;
     pub(super) type Double = u16;
 
-    pub(super) const OCT_MAX: Double = (1 << 6) - 1;
-    pub(super) const OCT_RADIX: Double = 1 << 6;
+    pub(super) const OCT_MAX: Double = ((1 as Double) << 6) - 1;
+    pub(super) const OCT_RADIX: Double = (1 as Double) << 6;
     pub(super) const OCT_WIDTH: u8 = 2;
 
     pub(super) const DEC_MAX: Double = 99;
@@ -754,11 +754,11 @@ fn try_from_digits_validate(digits: &[u8], radix: u16) -> Result<(), TryFromDigi
 }
 
 fn try_from_digits_long_bin(digits: &[u8], pow: u8) -> Result<Vec<Single>, TryFromDigitsError> {
-    if !(1..=u8::BITS).contains(&(pow as u32)) {
+    if !(1..=u8::BITS as u8).contains(&pow) {
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
 
-    try_from_digits_validate(digits, (1 << pow) as u16)?;
+    try_from_digits_validate(digits, 1 << pow)?;
 
     let sbits = Single::BITS as usize;
     let rbits = pow as usize;
@@ -838,11 +838,11 @@ fn try_from_digits_fixed_bin<const L: usize>(
     digits: &[u8],
     pow: u8,
 ) -> Result<([Single; L], usize), TryFromDigitsError> {
-    if !(1..=u8::BITS).contains(&(pow as u32)) {
+    if !(1..=u8::BITS as u8).contains(&pow) {
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
 
-    try_from_digits_validate(digits, (1 << pow) as u16)?;
+    try_from_digits_validate(digits, 1 << pow)?;
 
     let mut acc = 0;
     let mut shl = 0;
@@ -924,11 +924,15 @@ fn try_from_digits_fixed<const L: usize>(
 }
 
 fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-    if !(1..=Single::BITS).contains(&(pow as u32)) {
+    if pow == Single::BITS as u8 {
+        return Ok(digits.to_vec());
+    }
+
+    if !(1..Single::BITS as u8).contains(&pow) {
         return Err(IntoRadixError::InvalidPow { pow });
     }
 
-    let radix = (1 << pow) as Double;
+    let radix = (1 as Double) << pow;
     let mask = radix - 1;
     let pow = pow as Double;
 
