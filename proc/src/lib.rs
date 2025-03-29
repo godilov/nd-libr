@@ -483,7 +483,7 @@ impl ToTokens for OpsImplUnary {
 
 #[proc_macro]
 pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
-    const ERROR: &str = "You must specify one of the identifiers: `@mut`, `@bin`, `@un`";
+    const ERROR: &str = "You must specify one of the identifiers: '@mut', '@bin', '@un'";
 
     let raw = parse_macro_input!(stream as OpsRaw);
 
@@ -521,7 +521,7 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro]
 pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
-    const ERROR: &str = "You must specify one of the identifiers: `@mut`, `@bin`, `@un`";
+    const ERROR: &str = "You must specify one of the identifiers: '@mut', '@bin', '@un'";
 
     let raw = parse_macro_input!(stream as OpsRaw);
 
@@ -622,7 +622,7 @@ fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
         | _ => Err(Error::new(
             Span::call_site(),
             format!(
-                "Invalid `op` for operation: `{:?}`. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",
+                "Invalid 'op' for operation: '{:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",
                 op
             ),
         )),
@@ -646,7 +646,7 @@ fn get_std_path_binary(op: &BinOp) -> Result<(Ident, Path)> {
         | _ => Err(Error::new(
             Span::call_site(),
             format!(
-                "Invalid `op` for operation: `{:?}`. Expected: +, -, *, /, %, |, &, ^, <<, >>",
+                "Invalid 'op' for operation: '{:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",
                 op
             ),
         )),
@@ -661,7 +661,7 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
         | UnOp::Neg(_) => Ok(("neg", "std::ops::Neg")),
         | _ => Err(Error::new(
             Span::call_site(),
-            format!("Invalid `op` for operation: `{:?}`. Expected: -, !", op),
+            format!("Invalid 'op' for operation: '{:?}'. Expected: -, !", op),
         )),
     }?;
 

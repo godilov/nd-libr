@@ -1,13 +1,14 @@
 #![allow(clippy::manual_div_ceil)]
 
-use self::{
-    digit::{Double, Single},
-    radix::RADIX_VAL,
-};
 use crate::ops::{AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAssign, OpsChecked, SubChecked};
+use digit::{Double, Single};
 use proc::ops_impl;
-use radix::RADIX_MASK;
-use std::{cmp::Ordering, fmt::Display, str::FromStr};
+use radix::RADIX;
+use std::{
+    cmp::Ordering,
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 use thiserror::Error;
 
 #[macro_export]
@@ -214,8 +215,8 @@ pub type U4096 = unsigned_fixed!(4096);
 pub enum TryFromStrError {
     #[error("Found empty during parsing from string")]
     InvalidLength,
-    #[error("Found invalid symbol '{0}' during parsing from string of radix `{1}`")]
-    InvalidSymbol(char, u8),
+    #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
+    InvalidSymbol { ch: char, radix: u16 },
     #[error("Found negative number during parsing from string for unsigned")]
     UnsignedNegative,
     #[error(transparent)]
@@ -239,11 +240,11 @@ pub enum TryFromDigitsError {
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RadixError {
     #[error("Found invalid radix '{radix}'")]
-    Invalid { radix: u8 },
+    Invalid { radix: u16 },
     #[error("Found invalid radix '{radix}' for binary impl")]
-    InvalidBin { radix: u8 },
+    InvalidBin { radix: u16 },
     #[error("Found invalid value '{digit}' for radix '{radix}'")]
-    InvalidDigit { digit: u8, radix: u8 },
+    InvalidDigit { digit: u8, radix: u16 },
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -308,11 +309,11 @@ mod digit {
     pub(super) type Single = u64;
     pub(super) type Double = u128;
 
-    pub(super) const OCT_MAX: Single = (1 << 63) - 1;
+    pub(super) const OCT_MAX: Double = (1 << 63) - 1;
     pub(super) const OCT_RADIX: Double = 1 << 63;
     pub(super) const OCT_WIDTH: u8 = 21;
 
-    pub(super) const DEC_MAX: Single = 9_999_999_999_999_999_999;
+    pub(super) const DEC_MAX: Double = 9_999_999_999_999_999_999;
     pub(super) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 19;
 }
@@ -322,11 +323,11 @@ mod digit {
     pub(super) type Single = u32;
     pub(super) type Double = u64;
 
-    pub(super) const OCT_MAX: Single = (1 << 30) - 1;
+    pub(super) const OCT_MAX: Double = (1 << 30) - 1;
     pub(super) const OCT_RADIX: Double = 1 << 30;
     pub(super) const OCT_WIDTH: u8 = 10;
 
-    pub(super) const DEC_MAX: Single = 999_999_999;
+    pub(super) const DEC_MAX: Double = 999_999_999;
     pub(super) const DEC_RADIX: Double = 1_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 9;
 }
@@ -336,28 +337,26 @@ mod digit {
     pub(super) type Single = u8;
     pub(super) type Double = u16;
 
-    pub(super) const OCT_MAX: Single = (1 << 6) - 1;
+    pub(super) const OCT_MAX: Double = (1 << 6) - 1;
     pub(super) const OCT_RADIX: Double = 1 << 6;
     pub(super) const OCT_WIDTH: u8 = 2;
 
-    pub(super) const DEC_MAX: Single = 99;
+    pub(super) const DEC_MAX: Double = 99;
     pub(super) const DEC_RADIX: Double = 100;
     pub(super) const DEC_WIDTH: u8 = 2;
 }
 
-#[allow(unused)]
 mod radix {
     use super::{
         Double, Single,
         digit::{DEC_MAX, DEC_RADIX, DEC_WIDTH, OCT_MAX, OCT_RADIX, OCT_WIDTH},
     };
 
-    pub(super) const RADIX_VAL: Double = Single::MAX as Double + 1;
-    pub(super) const RADIX_MASK: Double = Single::MAX as Double;
+    pub(super) const RADIX: Double = Single::MAX as Double + 1;
 
-    pub trait Constants {
-        const MAX: Single = Single::MAX;
-        const RADIX: Double = (1 as Double) << Single::BITS;
+    pub trait Radix {
+        const MAX: Double = Single::MAX as Double;
+        const RADIX: Double = Single::MAX as Double + 1;
         const WIDTH: u8;
         const PREFIX: &str;
         const ALPHABET: &str;
@@ -368,29 +367,29 @@ mod radix {
     pub struct Dec;
     pub struct Hex;
 
-    impl Constants for Bin {
+    impl Radix for Bin {
         const WIDTH: u8 = Single::BITS as u8;
         const PREFIX: &str = "0b";
         const ALPHABET: &str = "01";
     }
 
-    impl Constants for Oct {
-        const MAX: Single = OCT_MAX;
+    impl Radix for Oct {
+        const MAX: Double = OCT_MAX;
         const RADIX: Double = OCT_RADIX;
         const WIDTH: u8 = OCT_WIDTH;
         const PREFIX: &str = "0o";
         const ALPHABET: &str = "01234567";
     }
 
-    impl Constants for Dec {
-        const MAX: Single = DEC_MAX;
+    impl Radix for Dec {
+        const MAX: Double = DEC_MAX;
         const RADIX: Double = DEC_RADIX;
         const WIDTH: u8 = DEC_WIDTH;
         const PREFIX: &str = "";
         const ALPHABET: &str = "0123456789";
     }
 
-    impl Constants for Hex {
+    impl Radix for Hex {
         const WIDTH: u8 = Single::BITS as u8 / 4;
         const PREFIX: &str = "0x";
         const ALPHABET: &str = "0123456789ABCDEF";
@@ -475,7 +474,6 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
 }
 
 impl SignedLong {
-    #[allow(dead_code)]
     fn from_raw((data, sign): (Vec<Single>, Sign)) -> Self {
         Self { data, sign }
     }
@@ -487,26 +485,29 @@ impl SignedLong {
         Self { sign, data }
     }
 
-    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+    pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         let data = try_from_digits_long(digits, radix)?;
         let sign = get_sign(data.len(), Sign::POS);
 
         Ok(Self { sign, data })
     }
 
-    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
         into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
         self.clone().into_radix(radix)
     }
 }
 
 impl UnsignedLong {
-    #[allow(dead_code)]
-    fn from_raw((data, _): (Vec<Single>, Sign)) -> Self {
-        Self { data }
+    fn from_raw((data, sign): (Vec<Single>, Sign)) -> Self {
+        if sign != Sign::NEG {
+            Self { data }
+        } else {
+            Default::default()
+        }
     }
 
     pub fn from_slice(slice: &[u8]) -> Self {
@@ -515,23 +516,22 @@ impl UnsignedLong {
         Self { data }
     }
 
-    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+    pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         let data = try_from_digits_long(digits, radix)?;
 
         Ok(Self { data })
     }
 
-    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
         into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
         self.clone().into_radix(radix)
     }
 }
 
 impl<const L: usize> SignedFixed<L> {
-    #[allow(dead_code)]
     fn from_raw((data, len, sign): ([Single; L], usize, Sign)) -> Self {
         Self { data, sign, len }
     }
@@ -550,26 +550,29 @@ impl<const L: usize> SignedFixed<L> {
         Ok(Self { sign, data, len })
     }
 
-    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+    pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         let (data, len) = try_from_digits_fixed(digits, radix)?;
         let sign = get_sign(len, Sign::POS);
 
         Ok(Self { sign, data, len })
     }
 
-    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
         into_radix(&mut self.data[..self.len], radix)
     }
 
-    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
         (*self).into_radix(radix)
     }
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    #[allow(dead_code)]
-    fn from_raw((data, len, _): ([Single; L], usize, Sign)) -> Self {
-        Self { data, len }
+    fn from_raw((data, len, sign): ([Single; L], usize, Sign)) -> Self {
+        if sign != Sign::NEG {
+            Self { data, len }
+        } else {
+            Default::default()
+        }
     }
 
     pub fn from_slice(slice: &[u8]) -> Self {
@@ -584,18 +587,42 @@ impl<const L: usize> UnsignedFixed<L> {
         Ok(Self { data, len })
     }
 
-    pub fn try_from_digits(digits: &[u8], radix: u8) -> Result<Self, TryFromDigitsError> {
+    pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         let (data, len) = try_from_digits_fixed(digits, radix)?;
 
         Ok(Self { data, len })
     }
 
-    pub fn into_radix(mut self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
         into_radix(&mut self.data[..self.len], radix)
     }
 
-    pub fn to_radix(&self, radix: u8) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
         (*self).into_radix(radix)
+    }
+}
+
+impl Display for SignedLong {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Display for UnsignedLong {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<const L: usize> Display for SignedFixed<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<const L: usize> Display for UnsignedFixed<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }
 
@@ -678,13 +705,13 @@ fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usi
     Ok((sign, res, len))
 }
 
-fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFromDigitsError> {
-    fn binary_impl(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFromDigitsError> {
+fn try_from_digits_long(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
+    fn binary_impl(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
         if radix < 2 {
             return Err(RadixError::Invalid { radix }.into());
         }
 
-        if let Some(&digit) = digits.iter().find(|&&digit| digit >= radix) {
+        if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
             return Err(RadixError::InvalidDigit { digit, radix }.into());
         }
 
@@ -705,8 +732,8 @@ fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFrom
             acc += pow * digit as Double;
             pow *= radix as Double;
 
-            if pow >= RADIX_VAL {
-                res[idx] = (acc & RADIX_MASK) as Single;
+            if pow >= RADIX {
+                res[idx] = acc as Single;
                 idx += 1;
 
                 acc >>= Single::BITS;
@@ -746,7 +773,7 @@ fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFrom
         for res in res.iter_mut().take(idx + 1) {
             acc += *res as Double * radix as Double;
 
-            *res = (acc & RADIX_MASK) as Single;
+            *res = acc as Single;
 
             acc >>= Single::BITS;
         }
@@ -765,13 +792,16 @@ fn try_from_digits_long(digits: &[u8], radix: u8) -> Result<Vec<Single>, TryFrom
     Ok(res)
 }
 
-fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([Single; L], usize), TryFromDigitsError> {
-    fn binary_impl<const L: usize>(digits: &[u8], radix: u8) -> Result<([Single; L], usize), TryFromDigitsError> {
+fn try_from_digits_fixed<const L: usize>(
+    digits: &[u8],
+    radix: u16,
+) -> Result<([Single; L], usize), TryFromDigitsError> {
+    fn binary_impl<const L: usize>(digits: &[u8], radix: u16) -> Result<([Single; L], usize), TryFromDigitsError> {
         if radix < 2 {
             return Err(RadixError::Invalid { radix }.into());
         }
 
-        if let Some(&digit) = digits.iter().find(|&&digit| digit >= radix) {
+        if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
             return Err(RadixError::InvalidDigit { digit, radix }.into());
         }
 
@@ -788,13 +818,13 @@ fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([S
             acc += pow * digit as Double;
             pow *= radix as Double;
 
-            if pow >= RADIX_VAL {
+            if pow >= RADIX {
                 if idx == L && acc > 0 {
                     return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
                 }
 
                 if idx < L {
-                    res[idx] = (acc & RADIX_MASK) as Single;
+                    res[idx] = acc as Single;
                     idx += 1;
                 }
 
@@ -833,7 +863,7 @@ fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([S
         for (i, res) in res.iter_mut().enumerate().take(idx + 1) {
             acc += *res as Double * radix as Double;
 
-            *res = (acc & RADIX_MASK) as Single;
+            *res = acc as Single;
 
             acc >>= Single::BITS;
 
@@ -854,8 +884,8 @@ fn try_from_digits_fixed<const L: usize>(digits: &[u8], radix: u8) -> Result<([S
     Ok((res, get_len(&res)))
 }
 
-fn into_radix(digits: &mut [Single], radix: u8) -> Result<Vec<u8>, RadixError> {
-    fn binary_impl(digits: &[Single], radix: u8) -> Result<Vec<u8>, RadixError> {
+fn into_radix(digits: &mut [Single], radix: u16) -> Result<Vec<u8>, RadixError> {
+    fn binary_impl(digits: &[Single], radix: u16) -> Result<Vec<u8>, RadixError> {
         if radix < 2 {
             return Err(RadixError::Invalid { radix });
         }
@@ -979,7 +1009,7 @@ fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
 
         acc += aop + bop;
 
-        res[i] = (acc & RADIX_MASK) as Single;
+        res[i] = acc as Single;
         acc >>= Single::BITS;
     }
 
@@ -1015,9 +1045,7 @@ fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
         let aop = if i < a.len() { a[i] } else { 0 } as Double;
         let bop = if i < b.len() { b[i] } else { 0 } as Double;
 
-        let diff = (RADIX_VAL + aop - bop - acc) & RADIX_MASK;
-
-        res[i] = diff as Single;
+        res[i] = (RADIX + aop - bop - acc) as Single;
 
         if aop < bop + acc {
             acc = 1;
@@ -1054,14 +1082,14 @@ fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
 
             acc += rop + aop * bop;
 
-            res[i + j] = (acc & RADIX_MASK) as Single;
+            res[i + j] = acc as Single;
             acc >>= Single::BITS;
         }
 
         let idx = i + b.len();
         let val = acc + res[idx] as Double;
 
-        res[idx] = (val & RADIX_MASK) as Single;
+        res[idx] = val as Single;
     }
 
     res.truncate(get_len(&res));
@@ -1113,7 +1141,7 @@ fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> 
         }
 
         let mut l = 0 as Double;
-        let mut r = RADIX_VAL;
+        let mut r = RADIX;
 
         while l < r {
             let m = l + (r - l) / 2;
@@ -1179,7 +1207,7 @@ fn add_fixed<const L: usize>(
 
         acc += aop + bop;
 
-        res[i] = (acc & RADIX_MASK) as Single;
+        res[i] = acc as Single;
         acc >>= Single::BITS;
     }
 
@@ -1221,9 +1249,7 @@ fn sub_fixed<const L: usize>(
         let aop = a[i] as Double;
         let bop = b[i] as Double;
 
-        let diff = (RADIX_VAL + aop - bop - acc) & RADIX_MASK;
-
-        res[i] = diff as Single;
+        res[i] = (RADIX + aop - bop - acc) as Single;
 
         if aop < bop + acc {
             acc = 1;
@@ -1260,7 +1286,7 @@ fn mul_fixed<const L: usize>(
 
             acc += rop + aop * bop;
 
-            res[i + j] = (acc & RADIX_MASK) as Single;
+            res[i + j] = acc as Single;
             acc >>= Single::BITS;
         }
 
@@ -1268,7 +1294,7 @@ fn mul_fixed<const L: usize>(
             let idx = i + blen;
             let val = acc + res[idx] as Double;
 
-            res[idx] = (val & RADIX_MASK) as Single;
+            res[idx] = val as Single;
         }
     }
 
@@ -1332,7 +1358,7 @@ fn divrem_fixed<const L: usize>(
         }
 
         let mut l = 0 as Double;
-        let mut r = RADIX_VAL;
+        let mut r = RADIX;
 
         while l < r {
             let m = l + (r - l) / 2;
@@ -1447,7 +1473,7 @@ fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     Ok(val)
 }
 
-fn get_radix_from_str(s: &str) -> Result<(&str, u8), TryFromStrError> {
+fn get_radix_from_str(s: &str) -> Result<(&str, u16), TryFromStrError> {
     if s.is_empty() {
         return Err(TryFromStrError::InvalidLength);
     }
@@ -1468,17 +1494,19 @@ fn get_radix_from_str(s: &str) -> Result<(&str, u8), TryFromStrError> {
     Ok(val)
 }
 
-fn get_digits_from_str(s: &str, radix: u8) -> Result<Vec<u8>, TryFromStrError> {
+fn get_digits_from_str(s: &str, radix: u16) -> Result<Vec<u8>, TryFromStrError> {
+    let r = radix as u8;
+
     let mut res = s
         .as_bytes()
         .iter()
         .rev()
         .filter_map(|&ch| match ch {
-            | b'0'..=b'9' if ch - b'0' < radix => Some(Ok(ch - b'0')),
-            | b'a'..=b'f' if ch - b'a' + 10 < radix => Some(Ok(ch - b'a' + 10)),
-            | b'A'..=b'F' if ch - b'A' + 10 < radix => Some(Ok(ch - b'A' + 10)),
+            | b'0'..=b'9' if ch - b'0' < r => Some(Ok(ch - b'0')),
+            | b'a'..=b'f' if ch - b'a' + 10 < r => Some(Ok(ch - b'a' + 10)),
+            | b'A'..=b'F' if ch - b'A' + 10 < r => Some(Ok(ch - b'A' + 10)),
             | b'_' => None,
-            | _ => Some(Err(TryFromStrError::InvalidSymbol(ch as char, radix))),
+            | _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
         })
         .collect::<Result<Vec<u8>, TryFromStrError>>()?;
 
@@ -1850,8 +1878,8 @@ mod tests {
 
         for &radix in &radixes {
             for entry in &entries {
-                assert_long_into_radix!(@signed entry, radix as u8);
-                assert_long_into_radix!(@unsigned entry, radix as u8);
+                assert_long_into_radix!(@signed entry, radix as u16);
+                assert_long_into_radix!(@unsigned entry, radix as u16);
             }
         }
 
@@ -1868,8 +1896,8 @@ mod tests {
 
         for &radix in &radixes {
             for entry in &entries {
-                assert_fixed_into_radix!(@signed entry, get_len(entry), radix as u8);
-                assert_fixed_into_radix!(@unsigned entry, get_len(entry), radix as u8);
+                assert_fixed_into_radix!(@signed entry, get_len(entry), radix as u16);
+                assert_fixed_into_radix!(@unsigned entry, get_len(entry), radix as u16);
             }
         }
 
