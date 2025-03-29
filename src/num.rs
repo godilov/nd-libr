@@ -240,11 +240,11 @@ pub enum TryFromDigitsError {
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RadixError {
     #[error("Found invalid radix '{radix}'")]
-    Invalid { radix: u16 },
+    Invalid { radix: Double },
     #[error("Found invalid radix '{radix}' for binary impl")]
-    InvalidBin { radix: u16 },
+    InvalidBin { radix: Double },
     #[error("Found invalid value '{digit}' for radix '{radix}'")]
-    InvalidDigit { digit: u8, radix: u16 },
+    InvalidDigit { digit: Single, radix: Double },
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -492,12 +492,16 @@ impl SignedLong {
         Ok(Self { sign, data })
     }
 
-    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
         into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
         self.clone().into_radix(radix)
+    }
+
+    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+        into_radix_bin(&self.data, radix)
     }
 }
 
@@ -522,12 +526,16 @@ impl UnsignedLong {
         Ok(Self { data })
     }
 
-    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
         into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
         self.clone().into_radix(radix)
+    }
+
+    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+        into_radix_bin(&self.data, radix)
     }
 }
 
@@ -557,12 +565,16 @@ impl<const L: usize> SignedFixed<L> {
         Ok(Self { sign, data, len })
     }
 
-    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
         into_radix(&mut self.data[..self.len], radix)
     }
 
-    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
         (*self).into_radix(radix)
+    }
+
+    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+        into_radix_bin(&self.data[..self.len], radix)
     }
 }
 
@@ -593,12 +605,16 @@ impl<const L: usize> UnsignedFixed<L> {
         Ok(Self { data, len })
     }
 
-    pub fn into_radix(mut self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
         into_radix(&mut self.data[..self.len], radix)
     }
 
-    pub fn to_radix(&self, radix: u16) -> Result<Vec<u8>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
         (*self).into_radix(radix)
+    }
+
+    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+        into_radix_bin(&self.data[..self.len], radix)
     }
 }
 
@@ -707,16 +723,20 @@ fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usi
 
 fn try_from_digits_long(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
     fn binary_impl(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
-        if radix < 2 {
-            return Err(RadixError::Invalid { radix }.into());
+        if !(2..=u8::MAX as u16 + 1).contains(&radix) {
+            return Err(RadixError::Invalid { radix: radix as Double }.into());
         }
 
         if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
-            return Err(RadixError::InvalidDigit { digit, radix }.into());
+            return Err(RadixError::InvalidDigit {
+                digit: digit as Single,
+                radix: radix as Double,
+            }
+            .into());
         }
 
         if radix & (radix - 1) > 0 {
-            return Err(RadixError::InvalidBin { radix }.into());
+            return Err(RadixError::InvalidBin { radix: radix as Double }.into());
         }
 
         let sbits = Single::BITS as usize;
@@ -797,16 +817,20 @@ fn try_from_digits_fixed<const L: usize>(
     radix: u16,
 ) -> Result<([Single; L], usize), TryFromDigitsError> {
     fn binary_impl<const L: usize>(digits: &[u8], radix: u16) -> Result<([Single; L], usize), TryFromDigitsError> {
-        if radix < 2 {
-            return Err(RadixError::Invalid { radix }.into());
+        if !(2..=u8::MAX as u16 + 1).contains(&radix) {
+            return Err(RadixError::Invalid { radix: radix as Double }.into());
         }
 
         if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
-            return Err(RadixError::InvalidDigit { digit, radix }.into());
+            return Err(RadixError::InvalidDigit {
+                digit: digit as Single,
+                radix: radix as Double,
+            }
+            .into());
         }
 
         if radix & (radix - 1) > 0 {
-            return Err(RadixError::InvalidBin { radix }.into());
+            return Err(RadixError::InvalidBin { radix: radix as Double }.into());
         }
 
         let mut acc = 0;
@@ -884,51 +908,51 @@ fn try_from_digits_fixed<const L: usize>(
     Ok((res, get_len(&res)))
 }
 
-fn into_radix(digits: &mut [Single], radix: u16) -> Result<Vec<u8>, RadixError> {
-    fn binary_impl(digits: &[Single], radix: u16) -> Result<Vec<u8>, RadixError> {
-        if radix < 2 {
-            return Err(RadixError::Invalid { radix });
-        }
-
-        if radix & (radix - 1) > 0 {
-            return Err(RadixError::InvalidBin { radix });
-        }
-
-        let mask = (radix - 1) as Double;
-        let shift = radix.ilog2() as Double;
-
-        let sbits = Single::BITS as usize;
-        let rbits = shift as usize;
-        let len = (digits.len() * sbits + rbits - 1) / rbits;
-
-        let mut acc = 0;
-        let mut rem = 0;
-        let mut idx = 0;
-        let mut res = vec![0; len];
-
-        for &digit in digits {
-            acc |= (digit as Double) << rem;
-            rem += sbits as Double;
-
-            while acc >= radix as Double {
-                res[idx] = (acc & mask) as u8;
-                idx += 1;
-
-                acc >>= shift;
-                rem -= shift;
-            }
-        }
-
-        if acc > 0 {
-            res[idx] = acc as u8;
-        }
-
-        res.truncate(get_len(&res));
-
-        Ok(res)
+fn into_radix_bin(digits: &[Single], radix: Double) -> Result<Vec<Single>, RadixError> {
+    if !(2..=RADIX).contains(&radix) {
+        return Err(RadixError::Invalid { radix });
     }
 
-    match binary_impl(digits, radix) {
+    if radix & (radix - 1) > 0 {
+        return Err(RadixError::InvalidBin { radix });
+    }
+
+    let mask = radix - 1;
+    let shift = radix.ilog2() as Double;
+
+    let sbits = Single::BITS as usize;
+    let rbits = shift as usize;
+    let len = (digits.len() * sbits + rbits - 1) / rbits;
+
+    let mut acc = 0;
+    let mut rem = 0;
+    let mut idx = 0;
+    let mut res = vec![0; len];
+
+    for &digit in digits {
+        acc |= (digit as Double) << rem;
+        rem += sbits as Double;
+
+        while acc >= radix as Double {
+            res[idx] = (acc & mask) as Single;
+            idx += 1;
+
+            acc >>= shift;
+            rem -= shift;
+        }
+    }
+
+    if acc > 0 {
+        res[idx] = acc as Single;
+    }
+
+    res.truncate(get_len(&res));
+
+    Ok(res)
+}
+
+fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, RadixError> {
+    match into_radix_bin(digits, radix) {
         | Ok(val) => return Ok(val),
         | Err(err) => match err {
             | RadixError::Invalid { radix: _ } => return Err(err),
@@ -953,16 +977,16 @@ fn into_radix(digits: &mut [Single], radix: u16) -> Result<Vec<u8>, RadixError> 
             any |= *digit;
             acc = (acc << Single::BITS) | *digit as Double;
 
-            *digit = (acc / radix as Double) as Single;
+            *digit = (acc / radix) as Single;
 
-            acc %= radix as Double;
+            acc %= radix;
         }
 
         if any == 0 {
             break;
         }
 
-        res[idx] = acc as u8;
+        res[idx] = acc as Single;
         idx += 1;
         len -= digits.iter().take(len).rev().position(|&digit| digit > 0).unwrap_or(len);
     }
