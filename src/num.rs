@@ -673,14 +673,14 @@ impl<const L: usize> Display for UnsignedFixed<L> {
 fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
-    let mut shift = 0;
+    let mut shl = 0;
     let mut res = vec![0; (slice.len() + RATIO - 1) / RATIO];
 
     for (i, &byte) in slice.iter().enumerate() {
         let idx = i / RATIO;
 
-        res[idx] |= ((byte as Single) << shift) as Single;
-        shift = (shift + u8::BITS) & (Single::BITS - 1);
+        res[idx] |= ((byte as Single) << shl) as Single;
+        shl = (shl + u8::BITS) & (Single::BITS - 1);
     }
 
     res.truncate(get_len(&res));
@@ -690,14 +690,14 @@ fn from_slice_long(slice: &[u8]) -> Vec<Single> {
 fn from_slice_fixed<const L: usize>(slice: &[u8]) -> ([Single; L], usize) {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
-    let mut shift = 0;
+    let mut shl = 0;
     let mut res = [0; L];
 
     for (i, &byte) in slice.iter().enumerate().take(RATIO * L) {
         let idx = i / RATIO;
 
-        res[idx] |= ((byte as Single) << shift) as Single;
-        shift = (shift + u8::BITS) & (Single::BITS - 1);
+        res[idx] |= ((byte as Single) << shl) as Single;
+        shl = (shl + u8::BITS) & (Single::BITS - 1);
     }
 
     (res, get_len(&res))
@@ -712,14 +712,14 @@ fn try_from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], us
         return Err(TryFromSliceError::ExceedLength { len, max: L });
     }
 
-    let mut shift = 0;
+    let mut shl = 0;
     let mut res = [0; L];
 
     for (i, &byte) in slice.iter().enumerate() {
         let idx = i / RATIO;
 
-        res[idx] |= ((byte as Single) << shift) as Single;
-        shift = (shift + u8::BITS) & (Single::BITS - 1);
+        res[idx] |= ((byte as Single) << shl) as Single;
+        shl = (shl + u8::BITS) & (Single::BITS - 1);
     }
 
     Ok((res, get_len(&res)))
@@ -765,29 +765,27 @@ fn try_from_digits_long_bin(digits: &[u8], pow: u8) -> Result<Vec<Single>, TryFr
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
 
-    let radix = (1 << pow) as u16;
-
-    try_from_digits_validate(digits, radix)?;
+    try_from_digits_validate(digits, (1 << pow) as u16)?;
 
     let sbits = Single::BITS as usize;
     let rbits = pow as usize;
     let len = (digits.len() * rbits + sbits - 1) / sbits;
 
     let mut acc = 0;
-    let mut pow = 1;
+    let mut shl = 0;
     let mut idx = 0;
     let mut res = vec![0; len];
 
     for &digit in digits.iter() {
-        acc += pow * digit as Double;
-        pow *= radix as Double;
+        acc |= (digit as Double) << shl;
+        shl += pow;
 
-        if pow >= RADIX {
+        if shl >= Single::BITS as u8 {
             res[idx] = acc as Single;
             idx += 1;
 
             acc >>= Single::BITS;
-            pow >>= Single::BITS;
+            shl -= Single::BITS as u8;
         }
     }
 
@@ -856,15 +854,15 @@ fn try_from_digits_fixed_bin<const L: usize>(
     try_from_digits_validate(digits, radix)?;
 
     let mut acc = 0;
-    let mut pow = 1;
+    let mut shl = 0;
     let mut idx = 0;
     let mut res = [0; L];
 
     for &digit in digits.iter() {
-        acc += pow * digit as Double;
-        pow *= radix as Double;
+        acc |= (digit as Double) << shl;
+        shl += pow;
 
-        if pow >= RADIX {
+        if shl >= Single::BITS as u8 {
             if idx == L && acc > 0 {
                 return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
             }
@@ -875,7 +873,7 @@ fn try_from_digits_fixed_bin<const L: usize>(
             }
 
             acc >>= Single::BITS;
-            pow >>= Single::BITS;
+            shl -= Single::BITS as u8;
         }
     }
 
