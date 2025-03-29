@@ -233,18 +233,20 @@ pub enum TryFromSliceError {
 pub enum TryFromDigitsError {
     #[error("Exceeded maximum length of {max} with {len}")]
     ExceedLength { len: usize, max: usize },
-    #[error(transparent)]
-    InvalidRadix(#[from] RadixError),
+    #[error("Found invalid radix '{radix}'")]
+    InvalidRadix { radix: Double },
+    #[error("Found invalid radix pow '{pow}'")]
+    InvalidPow { pow: u8 },
+    #[error("Found invalid value '{digit}' for radix '{radix}'")]
+    InvalidDigit { digit: Single, radix: Double },
 }
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RadixError {
+pub enum IntoRadixError {
     #[error("Found invalid radix '{radix}'")]
-    Invalid { radix: Double },
-    #[error("Found invalid radix '{radix}' for binary impl")]
-    InvalidBin { radix: Double },
-    #[error("Found invalid value '{digit}' for radix '{radix}'")]
-    InvalidDigit { digit: Single, radix: Double },
+    InvalidRadix { radix: Double },
+    #[error("Found invalid radix pow '{pow}'")]
+    InvalidPow { pow: u8 },
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -492,16 +494,23 @@ impl SignedLong {
         Ok(Self { sign, data })
     }
 
-    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
+        let data = try_from_digits_long_bin(digits, pow)?;
+        let sign = get_sign(data.len(), Sign::POS);
+
+        Ok(Self { sign, data })
+    }
+
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         self.clone().into_radix(radix)
     }
 
-    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
-        into_radix_bin(&self.data, radix)
+    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+        into_radix_bin(&self.data, pow)
     }
 }
 
@@ -526,16 +535,22 @@ impl UnsignedLong {
         Ok(Self { data })
     }
 
-    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
+        let data = try_from_digits_long_bin(digits, pow)?;
+
+        Ok(Self { data })
+    }
+
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         into_radix(&mut self.data, radix)
     }
 
-    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         self.clone().into_radix(radix)
     }
 
-    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
-        into_radix_bin(&self.data, radix)
+    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+        into_radix_bin(&self.data, pow)
     }
 }
 
@@ -565,16 +580,23 @@ impl<const L: usize> SignedFixed<L> {
         Ok(Self { sign, data, len })
     }
 
-    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
+        let (data, len) = try_from_digits_fixed_bin(digits, pow)?;
+        let sign = get_sign(data.len(), Sign::POS);
+
+        Ok(Self { sign, data, len })
+    }
+
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         into_radix(&mut self.data[..self.len], radix)
     }
 
-    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         (*self).into_radix(radix)
     }
 
-    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
-        into_radix_bin(&self.data[..self.len], radix)
+    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+        into_radix_bin(&self.data[..self.len], pow)
     }
 }
 
@@ -605,16 +627,22 @@ impl<const L: usize> UnsignedFixed<L> {
         Ok(Self { data, len })
     }
 
-    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
+        let (data, len) = try_from_digits_fixed_bin(digits, pow)?;
+
+        Ok(Self { data, len })
+    }
+
+    pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         into_radix(&mut self.data[..self.len], radix)
     }
 
-    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         (*self).into_radix(radix)
     }
 
-    pub fn to_radix_bin(&self, radix: Double) -> Result<Vec<Single>, RadixError> {
-        into_radix_bin(&self.data[..self.len], radix)
+    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+        into_radix_bin(&self.data[..self.len], pow)
     }
 }
 
@@ -721,64 +749,67 @@ fn try_from_str_fixed<const L: usize>(s: &str) -> Result<(Sign, [Single; L], usi
     Ok((sign, res, len))
 }
 
-fn try_from_digits_long(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
-    fn binary_impl(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
-        if !(2..=u8::MAX as u16 + 1).contains(&radix) {
-            return Err(RadixError::Invalid { radix: radix as Double }.into());
-        }
+fn try_from_digits_validate(digits: &[u8], radix: u16) -> Result<(), TryFromDigitsError> {
+    if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
+        return Err(TryFromDigitsError::InvalidDigit {
+            digit: digit as Single,
+            radix: radix as Double,
+        });
+    }
 
-        if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
-            return Err(RadixError::InvalidDigit {
-                digit: digit as Single,
-                radix: radix as Double,
-            }
-            .into());
-        }
+    Ok(())
+}
 
-        if radix & (radix - 1) > 0 {
-            return Err(RadixError::InvalidBin { radix: radix as Double }.into());
-        }
+fn try_from_digits_long_bin(digits: &[u8], pow: u8) -> Result<Vec<Single>, TryFromDigitsError> {
+    if !(1..=u8::BITS).contains(&(pow as u32)) {
+        return Err(TryFromDigitsError::InvalidPow { pow });
+    }
 
-        let sbits = Single::BITS as usize;
-        let rbits = radix.ilog2() as usize;
-        let len = (digits.len() * rbits + sbits - 1) / sbits;
+    let radix = (1 << pow) as u16;
 
-        let mut acc = 0;
-        let mut pow = 1;
-        let mut idx = 0;
-        let mut res = vec![0; len];
+    try_from_digits_validate(digits, radix)?;
 
-        for &digit in digits.iter() {
-            acc += pow * digit as Double;
-            pow *= radix as Double;
+    let sbits = Single::BITS as usize;
+    let rbits = pow as usize;
+    let len = (digits.len() * rbits + sbits - 1) / sbits;
 
-            if pow >= RADIX {
-                res[idx] = acc as Single;
-                idx += 1;
+    let mut acc = 0;
+    let mut pow = 1;
+    let mut idx = 0;
+    let mut res = vec![0; len];
 
-                acc >>= Single::BITS;
-                pow >>= Single::BITS;
-            }
-        }
+    for &digit in digits.iter() {
+        acc += pow * digit as Double;
+        pow *= radix as Double;
 
-        if acc > 0 {
+        if pow >= RADIX {
             res[idx] = acc as Single;
+            idx += 1;
+
+            acc >>= Single::BITS;
+            pow >>= Single::BITS;
         }
-
-        res.truncate(get_len(&res));
-
-        Ok(res)
     }
 
-    match binary_impl(digits, radix) {
-        | Ok(val) => return Ok(val),
-        | Err(err) => match err {
-            | TryFromDigitsError::ExceedLength { len: _, max: _ } => return Err(err),
-            | TryFromDigitsError::InvalidRadix(RadixError::Invalid { radix: _ }) => return Err(err),
-            | TryFromDigitsError::InvalidRadix(RadixError::InvalidBin { radix: _ }) => (),
-            | TryFromDigitsError::InvalidRadix(RadixError::InvalidDigit { digit: _, radix: _ }) => return Err(err),
-        },
+    if acc > 0 {
+        res[idx] = acc as Single;
     }
+
+    res.truncate(get_len(&res));
+
+    Ok(res)
+}
+
+fn try_from_digits_long(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
+    if !(2..=u8::MAX as u16 + 1).contains(&radix) {
+        return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
+    }
+
+    if radix & (radix - 1) == 0 {
+        return try_from_digits_long_bin(digits, radix.ilog2() as u8);
+    }
+
+    try_from_digits_validate(digits, radix)?;
 
     let sbits = Single::BITS as usize;
     let rbits = 1 + radix.ilog2() as usize;
@@ -812,71 +843,66 @@ fn try_from_digits_long(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFro
     Ok(res)
 }
 
+fn try_from_digits_fixed_bin<const L: usize>(
+    digits: &[u8],
+    pow: u8,
+) -> Result<([Single; L], usize), TryFromDigitsError> {
+    if !(1..=u8::BITS).contains(&(pow as u32)) {
+        return Err(TryFromDigitsError::InvalidPow { pow });
+    }
+
+    let radix = (1 << pow) as u16;
+
+    try_from_digits_validate(digits, radix)?;
+
+    let mut acc = 0;
+    let mut pow = 1;
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for &digit in digits.iter() {
+        acc += pow * digit as Double;
+        pow *= radix as Double;
+
+        if pow >= RADIX {
+            if idx == L && acc > 0 {
+                return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
+            }
+
+            if idx < L {
+                res[idx] = acc as Single;
+                idx += 1;
+            }
+
+            acc >>= Single::BITS;
+            pow >>= Single::BITS;
+        }
+    }
+
+    if idx == L && acc > 0 {
+        return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
+    }
+
+    if idx < L && acc > 0 {
+        res[idx] = acc as Single;
+    }
+
+    Ok((res, get_len(&res)))
+}
+
 fn try_from_digits_fixed<const L: usize>(
     digits: &[u8],
     radix: u16,
 ) -> Result<([Single; L], usize), TryFromDigitsError> {
-    fn binary_impl<const L: usize>(digits: &[u8], radix: u16) -> Result<([Single; L], usize), TryFromDigitsError> {
-        if !(2..=u8::MAX as u16 + 1).contains(&radix) {
-            return Err(RadixError::Invalid { radix: radix as Double }.into());
-        }
-
-        if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
-            return Err(RadixError::InvalidDigit {
-                digit: digit as Single,
-                radix: radix as Double,
-            }
-            .into());
-        }
-
-        if radix & (radix - 1) > 0 {
-            return Err(RadixError::InvalidBin { radix: radix as Double }.into());
-        }
-
-        let mut acc = 0;
-        let mut pow = 1;
-        let mut idx = 0;
-        let mut res = [0; L];
-
-        for &digit in digits.iter() {
-            acc += pow * digit as Double;
-            pow *= radix as Double;
-
-            if pow >= RADIX {
-                if idx == L && acc > 0 {
-                    return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
-                }
-
-                if idx < L {
-                    res[idx] = acc as Single;
-                    idx += 1;
-                }
-
-                acc >>= Single::BITS;
-                pow >>= Single::BITS;
-            }
-        }
-
-        if idx == L && acc > 0 {
-            return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
-        }
-
-        if idx < L && acc > 0 {
-            res[idx] = acc as Single;
-        }
-
-        Ok((res, get_len(&res)))
+    if !(2..=u8::MAX as u16 + 1).contains(&radix) {
+        return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
     }
 
-    match binary_impl(digits, radix) {
-        | Ok(val) => return Ok(val),
-        | Err(err) => match err {
-            | TryFromDigitsError::ExceedLength { len: _, max: _ } => return Err(err),
-            | TryFromDigitsError::InvalidRadix(RadixError::Invalid { radix: _ }) => return Err(err),
-            | TryFromDigitsError::InvalidRadix(RadixError::InvalidBin { radix: _ }) => (),
-            | TryFromDigitsError::InvalidRadix(RadixError::InvalidDigit { digit: _, radix: _ }) => return Err(err),
-        },
+    if radix & (radix - 1) == 0 {
+        return try_from_digits_fixed_bin(digits, radix.ilog2() as u8);
     }
+
+    try_from_digits_validate(digits, radix)?;
 
     let mut idx = 0;
     let mut res = [0; L];
@@ -908,20 +934,17 @@ fn try_from_digits_fixed<const L: usize>(
     Ok((res, get_len(&res)))
 }
 
-fn into_radix_bin(digits: &[Single], radix: Double) -> Result<Vec<Single>, RadixError> {
-    if !(2..=RADIX).contains(&radix) {
-        return Err(RadixError::Invalid { radix });
+fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+    if !(1..=Single::BITS).contains(&(pow as u32)) {
+        return Err(IntoRadixError::InvalidPow { pow });
     }
 
-    if radix & (radix - 1) > 0 {
-        return Err(RadixError::InvalidBin { radix });
-    }
-
+    let radix = (1 << pow) as Double;
     let mask = radix - 1;
-    let shift = radix.ilog2() as Double;
+    let pow = pow as Double;
 
     let sbits = Single::BITS as usize;
-    let rbits = shift as usize;
+    let rbits = pow as usize;
     let len = (digits.len() * sbits + rbits - 1) / rbits;
 
     let mut acc = 0;
@@ -933,12 +956,12 @@ fn into_radix_bin(digits: &[Single], radix: Double) -> Result<Vec<Single>, Radix
         acc |= (digit as Double) << rem;
         rem += sbits as Double;
 
-        while acc >= radix as Double {
+        while acc >= radix {
             res[idx] = (acc & mask) as Single;
             idx += 1;
 
-            acc >>= shift;
-            rem -= shift;
+            acc >>= pow;
+            rem -= pow;
         }
     }
 
@@ -951,14 +974,13 @@ fn into_radix_bin(digits: &[Single], radix: Double) -> Result<Vec<Single>, Radix
     Ok(res)
 }
 
-fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, RadixError> {
-    match into_radix_bin(digits, radix) {
-        | Ok(val) => return Ok(val),
-        | Err(err) => match err {
-            | RadixError::Invalid { radix: _ } => return Err(err),
-            | RadixError::InvalidBin { radix: _ } => (),
-            | RadixError::InvalidDigit { digit: _, radix: _ } => return Err(err),
-        },
+fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoRadixError> {
+    if !(2..=RADIX).contains(&radix) {
+        return Err(IntoRadixError::InvalidRadix { radix });
+    }
+
+    if radix & (radix - 1) == 0 {
+        return into_radix_bin(digits, radix.ilog2() as u8);
     }
 
     let sbits = Single::BITS as usize;
