@@ -480,8 +480,8 @@ impl SignedLong {
         Self { data, sign }
     }
 
-    pub fn from_slice(slice: &[u8]) -> Self {
-        let data = from_slice_long(slice);
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let data = from_bytes_long(bytes);
         let sign = get_sign(data.len(), Sign::POS);
 
         Self { sign, data }
@@ -523,8 +523,8 @@ impl UnsignedLong {
         }
     }
 
-    pub fn from_slice(slice: &[u8]) -> Self {
-        let data = from_slice_long(slice);
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let data = from_bytes_long(bytes);
 
         Self { data }
     }
@@ -559,15 +559,18 @@ impl<const L: usize> SignedFixed<L> {
         Self { data, sign, len }
     }
 
-    pub fn from_slice(slice: &[u8]) -> Self {
-        let (data, len) = from_slice_fixed(slice);
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let (data, len) = match try_from_bytes_fixed(bytes, false) {
+            | Ok(val) => val,
+            | Err(_) => ([0; L], 0),
+        };
         let sign = get_sign(len, Sign::POS);
 
         Self { sign, data, len }
     }
 
-    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
-        let (data, len) = try_from_slice_fixed(slice)?;
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, TryFromSliceError> {
+        let (data, len) = try_from_bytes_fixed(bytes, true)?;
         let sign = get_sign(len, Sign::POS);
 
         Ok(Self { sign, data, len })
@@ -609,14 +612,17 @@ impl<const L: usize> UnsignedFixed<L> {
         }
     }
 
-    pub fn from_slice(slice: &[u8]) -> Self {
-        let (data, len) = from_slice_fixed(slice);
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let (data, len) = match try_from_bytes_fixed(bytes, false) {
+            | Ok(val) => val,
+            | Err(_) => ([0; L], 0),
+        };
 
         Self { data, len }
     }
 
-    pub fn try_from_slice(slice: &[u8]) -> Result<Self, TryFromSliceError> {
-        let (data, len) = try_from_slice_fixed(slice)?;
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, TryFromSliceError> {
+        let (data, len) = try_from_bytes_fixed(bytes, true)?;
 
         Ok(Self { data, len })
     }
@@ -670,16 +676,16 @@ impl<const L: usize> Display for UnsignedFixed<L> {
     }
 }
 
-fn from_slice_long(slice: &[u8]) -> Vec<Single> {
+fn from_bytes_long(bytes: &[u8]) -> Vec<Single> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
     let mut shl = 0;
-    let mut res = vec![0; (slice.len() + RATIO - 1) / RATIO];
+    let mut res = vec![0; (bytes.len() + RATIO - 1) / RATIO];
 
-    for (i, &byte) in slice.iter().enumerate() {
+    for (i, &byte) in bytes.iter().enumerate() {
         let idx = i / RATIO;
 
-        res[idx] |= ((byte as Single) << shl) as Single;
+        res[idx] |= (byte as Single) << shl;
         shl = (shl + u8::BITS) & (Single::BITS - 1);
     }
 
@@ -687,38 +693,25 @@ fn from_slice_long(slice: &[u8]) -> Vec<Single> {
     res
 }
 
-fn from_slice_fixed<const L: usize>(slice: &[u8]) -> ([Single; L], usize) {
+fn try_from_bytes_fixed<const L: usize>(
+    bytes: &[u8],
+    validate: bool,
+) -> Result<([Single; L], usize), TryFromSliceError> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
-    let mut shl = 0;
-    let mut res = [0; L];
+    let len = (bytes.len() + RATIO - 1) / RATIO;
 
-    for (i, &byte) in slice.iter().enumerate().take(RATIO * L) {
-        let idx = i / RATIO;
-
-        res[idx] |= ((byte as Single) << shl) as Single;
-        shl = (shl + u8::BITS) & (Single::BITS - 1);
-    }
-
-    (res, get_len(&res))
-}
-
-fn try_from_slice_fixed<const L: usize>(slice: &[u8]) -> Result<([Single; L], usize), TryFromSliceError> {
-    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
-
-    let len = (slice.len() + RATIO - 1) / RATIO;
-
-    if len > L {
+    if validate && len > L {
         return Err(TryFromSliceError::ExceedLength { len, max: L });
     }
 
     let mut shl = 0;
     let mut res = [0; L];
 
-    for (i, &byte) in slice.iter().enumerate() {
+    for (i, &byte) in bytes.iter().enumerate().take(RATIO * L) {
         let idx = i / RATIO;
 
-        res[idx] |= ((byte as Single) << shl) as Single;
+        res[idx] |= (byte as Single) << shl;
         shl = (shl + u8::BITS) & (Single::BITS - 1);
     }
 
@@ -1626,19 +1619,19 @@ mod tests {
         };
     }
 
-    macro_rules! assert_long_from_slice {
+    macro_rules! assert_long_from_bytes {
         (@signed $expr:expr, $data:expr, $sign:expr) => {
-            assert_eq!(SignedLong::from_slice($expr), SignedLong { sign: $sign, data: $data });
+            assert_eq!(SignedLong::from_bytes($expr), SignedLong { sign: $sign, data: $data });
         };
         (@unsigned $expr:expr, $data:expr) => {
-            assert_eq!(UnsignedLong::from_slice($expr), UnsignedLong { data: $data });
+            assert_eq!(UnsignedLong::from_bytes($expr), UnsignedLong { data: $data });
         };
     }
 
-    macro_rules! assert_fixed_from_slice {
+    macro_rules! assert_fixed_from_bytes {
         (@signed $expr:expr, $data:expr, $len:expr, $sign:expr) => {
             assert_eq!(
-                S32::from_slice($expr),
+                S32::from_bytes($expr),
                 S32 {
                     sign: $sign,
                     data: $data,
@@ -1647,7 +1640,7 @@ mod tests {
             );
         };
         (@unsigned $expr:expr, $data:expr, $len:expr) => {
-            assert_eq!(U32::from_slice($expr), U32 { data: $data, len: $len });
+            assert_eq!(U32::from_bytes($expr), U32 { data: $data, len: $len });
         };
     }
 
@@ -1775,28 +1768,28 @@ mod tests {
     }
 
     #[test]
-    fn from_slice_long() {
-        assert_eq!(SignedLong::from_slice(&[]), SignedLong::default());
-        assert_eq!(UnsignedLong::from_slice(&[]), UnsignedLong::default());
+    fn from_bytes_long() {
+        assert_eq!(SignedLong::from_bytes(&[]), SignedLong::default());
+        assert_eq!(UnsignedLong::from_bytes(&[]), UnsignedLong::default());
 
         for val in u16::MIN..=u16::MAX {
             let bytes = (val as u32).to_le_bytes();
 
-            assert_long_from_slice!(@signed &bytes, normalized(&bytes), Sign::from(val));
-            assert_long_from_slice!(@unsigned &bytes, normalized(&bytes));
+            assert_long_from_bytes!(@signed &bytes, normalized(&bytes), Sign::from(val));
+            assert_long_from_bytes!(@unsigned &bytes, normalized(&bytes));
         }
     }
 
     #[test]
-    fn from_slice_fixed() {
-        assert_eq!(S32::from_slice(&[]), S32::default());
-        assert_eq!(U32::from_slice(&[]), U32::default());
+    fn from_bytes_fixed() {
+        assert_eq!(S32::from_bytes(&[]), S32::default());
+        assert_eq!(U32::from_bytes(&[]), U32::default());
 
         for val in u16::MIN..=u16::MAX {
             let bytes = (val as u32).to_le_bytes();
 
-            assert_fixed_from_slice!(@signed &bytes, bytes, get_len(&bytes), Sign::from(val));
-            assert_fixed_from_slice!(@unsigned &bytes, bytes, get_len(&bytes));
+            assert_fixed_from_bytes!(@signed &bytes, bytes, get_len(&bytes), Sign::from(val));
+            assert_fixed_from_bytes!(@unsigned &bytes, bytes, get_len(&bytes));
         }
     }
 
