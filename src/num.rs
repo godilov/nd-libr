@@ -3,10 +3,10 @@
 use crate::ops::{AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAssign, OpsChecked, SubChecked};
 use digit::{Double, Single};
 use proc::ops_impl;
-use radix::RADIX;
+use radix::{Bin, Dec, Hex, Oct, RADIX, Radix};
 use std::{
     cmp::Ordering,
-    fmt::{Display, Formatter},
+    fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
     str::FromStr,
 };
 use thiserror::Error;
@@ -107,6 +107,19 @@ macro_rules! float_impl {
         number_impl!($type, 0.0, 1.0);
 
         impl $trait for $type {}
+    };
+}
+
+macro_rules! radix_impl {
+    ([$($type:ty),+]) => {
+        $(radix_impl!($type);)+
+    };
+    ($type:ty) => {
+        impl Radix for $type {
+            const VAL: Double = Self::RADIX;
+            const POW: u8 = Self::POW;
+            const PREFIX: &str = Self::PREFIX;
+        }
     };
 }
 
@@ -311,13 +324,11 @@ mod digit {
     pub(super) type Single = u64;
     pub(super) type Double = u128;
 
-    pub(super) const OCT_MAX: Double = ((1 as Double) << 63) - 1;
-    pub(super) const OCT_RADIX: Double = (1 as Double) << 63;
-    pub(super) const OCT_WIDTH: u8 = 21;
+    pub(super) const OCT_VAL: Double = (1 as Double) << 63;
+    pub(super) const OCT_POW: u8 = 21;
 
-    pub(super) const DEC_MAX: Double = 9_999_999_999_999_999_999;
-    pub(super) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
-    pub(super) const DEC_WIDTH: u8 = 19;
+    pub(super) const DEC_VAL: Double = 10_000_000_000_000_000_000;
+    pub(super) const DEC_POW: u8 = 19;
 }
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
@@ -325,13 +336,11 @@ mod digit {
     pub(super) type Single = u32;
     pub(super) type Double = u64;
 
-    pub(super) const OCT_MAX: Double = ((1 as Double) << 30) - 1;
-    pub(super) const OCT_RADIX: Double = (1 as Double) << 30;
-    pub(super) const OCT_WIDTH: u8 = 10;
+    pub(super) const OCT_VAL: Double = (1 as Double) << 30;
+    pub(super) const OCT_POW: u8 = 10;
 
-    pub(super) const DEC_MAX: Double = 999_999_999;
-    pub(super) const DEC_RADIX: Double = 1_000_000_000;
-    pub(super) const DEC_WIDTH: u8 = 9;
+    pub(super) const DEC_VAL: Double = 1_000_000_000;
+    pub(super) const DEC_POW: u8 = 9;
 }
 
 #[cfg(test)]
@@ -339,29 +348,25 @@ mod digit {
     pub(super) type Single = u8;
     pub(super) type Double = u16;
 
-    pub(super) const OCT_MAX: Double = ((1 as Double) << 6) - 1;
-    pub(super) const OCT_RADIX: Double = (1 as Double) << 6;
-    pub(super) const OCT_WIDTH: u8 = 2;
+    pub(super) const OCT_VAL: Double = (1 as Double) << 6;
+    pub(super) const OCT_POW: u8 = 2;
 
-    pub(super) const DEC_MAX: Double = 99;
-    pub(super) const DEC_RADIX: Double = 100;
-    pub(super) const DEC_WIDTH: u8 = 2;
+    pub(super) const DEC_VAL: Double = 100;
+    pub(super) const DEC_POW: u8 = 2;
 }
 
 mod radix {
     use super::{
         Double, Single,
-        digit::{DEC_MAX, DEC_RADIX, DEC_WIDTH, OCT_MAX, OCT_RADIX, OCT_WIDTH},
+        digit::{DEC_POW, DEC_VAL, OCT_POW, OCT_VAL},
     };
 
     pub(super) const RADIX: Double = Single::MAX as Double + 1;
 
     pub trait Radix {
-        const MAX: Double = Single::MAX as Double;
-        const RADIX: Double = Single::MAX as Double + 1;
-        const WIDTH: u8;
+        const VAL: Double = Single::MAX as Double + 1;
+        const POW: u8;
         const PREFIX: &str;
-        const ALPHABET: &str;
     }
 
     pub struct Bin;
@@ -369,33 +374,31 @@ mod radix {
     pub struct Dec;
     pub struct Hex;
 
-    impl Radix for Bin {
-        const WIDTH: u8 = Single::BITS as u8;
-        const PREFIX: &str = "0b";
-        const ALPHABET: &str = "01";
+    impl Bin {
+        pub const RADIX: Double = Single::MAX as Double + 1;
+        pub const POW: u8 = Single::BITS as u8;
+        pub const PREFIX: &str = "0b";
     }
 
-    impl Radix for Oct {
-        const MAX: Double = OCT_MAX;
-        const RADIX: Double = OCT_RADIX;
-        const WIDTH: u8 = OCT_WIDTH;
-        const PREFIX: &str = "0o";
-        const ALPHABET: &str = "01234567";
+    impl Oct {
+        pub const RADIX: Double = OCT_VAL;
+        pub const POW: u8 = OCT_POW;
+        pub const PREFIX: &str = "0o";
     }
 
-    impl Radix for Dec {
-        const MAX: Double = DEC_MAX;
-        const RADIX: Double = DEC_RADIX;
-        const WIDTH: u8 = DEC_WIDTH;
-        const PREFIX: &str = "";
-        const ALPHABET: &str = "0123456789";
+    impl Dec {
+        pub const RADIX: Double = DEC_VAL;
+        pub const POW: u8 = DEC_POW;
+        pub const PREFIX: &str = "";
     }
 
-    impl Radix for Hex {
-        const WIDTH: u8 = Single::BITS as u8 / 4;
-        const PREFIX: &str = "0x";
-        const ALPHABET: &str = "0123456789ABCDEF";
+    impl Hex {
+        pub const RADIX: Double = Single::MAX as Double + 1;
+        pub const POW: u8 = Single::BITS as u8 / 4;
+        pub const PREFIX: &str = "0x";
     }
+
+    radix_impl!([Bin, Oct, Dec, Hex]);
 }
 
 impl<const L: usize> Default for SignedFixed<L> {
@@ -652,27 +655,143 @@ impl<const L: usize> UnsignedFixed<L> {
     }
 }
 
+impl Binary for SignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Bin, fmt, &self.data, self.sign, write_num_bin)
+    }
+}
+
+impl Binary for UnsignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Bin, fmt, &self.data, sign, write_num_bin)
+    }
+}
+
+impl<const L: usize> Binary for SignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Bin, fmt, &self.data[..self.len], self.sign, write_num_bin)
+    }
+}
+
+impl<const L: usize> Binary for UnsignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Bin, fmt, &self.data[..self.len], sign, write_num_bin)
+    }
+}
+
+impl Octal for SignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Oct, fmt, &self.data, self.sign, write_num_oct)
+    }
+}
+
+impl Octal for UnsignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Oct, fmt, &self.data, sign, write_num_oct)
+    }
+}
+
+impl<const L: usize> Octal for SignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Oct, fmt, &self.data[..self.len], self.sign, write_num_oct)
+    }
+}
+
+impl<const L: usize> Octal for UnsignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Oct, fmt, &self.data[..self.len], sign, write_num_oct)
+    }
+}
+
 impl Display for SignedLong {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Dec, fmt, &self.data, self.sign, write_num_dec)
     }
 }
 
 impl Display for UnsignedLong {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Dec, fmt, &self.data, sign, write_num_dec)
     }
 }
 
 impl<const L: usize> Display for SignedFixed<L> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Dec, fmt, &self.data[..self.len], self.sign, write_num_dec)
     }
 }
 
 impl<const L: usize> Display for UnsignedFixed<L> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Dec, fmt, &self.data[..self.len], sign, write_num_dec)
+    }
+}
+
+impl LowerHex for SignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Hex, fmt, &self.data, self.sign, write_num_lhex)
+    }
+}
+
+impl LowerHex for UnsignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Hex, fmt, &self.data, sign, write_num_lhex)
+    }
+}
+
+impl<const L: usize> LowerHex for SignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Hex, fmt, &self.data[..self.len], self.sign, write_num_lhex)
+    }
+}
+
+impl<const L: usize> LowerHex for UnsignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Hex, fmt, &self.data[..self.len], sign, write_num_lhex)
+    }
+}
+
+impl UpperHex for SignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Hex, fmt, &self.data, self.sign, write_num_uhex)
+    }
+}
+
+impl UpperHex for UnsignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Hex, fmt, &self.data, sign, write_num_uhex)
+    }
+}
+
+impl<const L: usize> UpperHex for SignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write_num(Hex, fmt, &self.data[..self.len], self.sign, write_num_uhex)
+    }
+}
+
+impl<const L: usize> UpperHex for UnsignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = get_sign(self.data.len(), Sign::POS);
+
+        write_num(Hex, fmt, &self.data[..self.len], sign, write_num_uhex)
     }
 }
 
@@ -1009,6 +1128,52 @@ fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoR
     res.truncate(get_len(&res));
 
     Ok(res)
+}
+
+fn write_num_bin(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
+    write!(buf, "{:01$b}", digit, pow)
+}
+
+fn write_num_oct(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
+    write!(buf, "{:01$o}", digit, pow)
+}
+
+fn write_num_dec(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
+    write!(buf, "{:01$}", digit, pow)
+}
+
+fn write_num_lhex(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
+    write!(buf, "{:01$x}", digit, pow)
+}
+
+fn write_num_uhex(buf: &mut String, digit: Single, pow: usize) -> std::fmt::Result {
+    write!(buf, "{:01$X}", digit, pow)
+}
+
+fn write_num<R: Radix, F>(_: R, fmt: &mut Formatter<'_>, digits: &[Single], sign: Sign, func: F) -> std::fmt::Result
+where
+    F: Fn(&mut String, Single, usize) -> std::fmt::Result,
+{
+    let (sign, prefix) = match sign {
+        | Sign::ZERO => {
+            return write!(fmt, "{}0", R::PREFIX);
+        },
+        | Sign::NEG => ("-", R::PREFIX),
+        | Sign::POS => ("", R::PREFIX),
+    };
+
+    let len = digits.len();
+    let pow = R::POW as usize;
+
+    let mut buf = String::with_capacity(len * pow);
+
+    for &digit in digits.iter().rev() {
+        func(&mut buf, digit, pow)?;
+    }
+
+    let len = get_len_rev(buf.as_bytes());
+
+    write!(fmt, "{}{}{}", sign, prefix, &buf[len..])
 }
 
 fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {
@@ -1568,6 +1733,20 @@ fn get_len<T: Constants + PartialEq + Eq>(data: &[T]) -> usize {
     let mut len = data.len();
 
     for digit in data.iter().rev() {
+        if digit != &T::ZERO {
+            return len;
+        }
+
+        len -= 1;
+    }
+
+    0
+}
+
+fn get_len_rev<T: Constants + PartialEq + Eq>(data: &[T]) -> usize {
+    let mut len = data.len();
+
+    for digit in data.iter() {
         if digit != &T::ZERO {
             return len;
         }
