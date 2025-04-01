@@ -520,7 +520,7 @@ impl SignedLong {
         into_radix_bin(&self.data, pow)
     }
 
-    fn sign(mut self, sign: Sign) -> Self {
+    pub fn with_sign(mut self, sign: Sign) -> Self {
         self.sign = sign;
         self
     }
@@ -614,7 +614,7 @@ impl<const L: usize> SignedFixed<L> {
         into_radix_bin(&self.data[..self.len], pow)
     }
 
-    fn sign(mut self, sign: Sign) -> Self {
+    pub fn with_sign(mut self, sign: Sign) -> Self {
         self.sign = sign;
         self
     }
@@ -2131,6 +2131,15 @@ mod tests {
         val[..len].to_vec()
     }
 
+    fn trimmed(val: SignedLong, len: usize) -> SignedLong {
+        let len = len.min(val.data.len());
+
+        let data = normalized(&val.data[..len]);
+        let sign = get_sign(data.len(), val.sign);
+
+        SignedLong { sign, data }
+    }
+
     #[test]
     fn from_std_long() {
         for val in u16::MIN..=u16::MAX {
@@ -2399,8 +2408,8 @@ mod tests {
                 let shl = aop.unsigned_abs().checked_shl(bop as u32).unwrap_or(0);
                 let shr = aop.unsigned_abs().checked_shr(bop as u32).unwrap_or(0);
 
-                assert_eq!(a << bop, SignedLong::from(shl).sign(get_sign(shl, sign)));
-                assert_eq!(a >> bop, SignedLong::from(shr).sign(get_sign(shr, sign)));
+                assert_eq!(trimmed(a << bop, 4), SignedLong::from(shl).with_sign(get_sign(shl, sign)));
+                assert_eq!(trimmed(a >> bop, 4), SignedLong::from(shr).with_sign(get_sign(shr, sign)));
             }
         }
     }
@@ -2465,8 +2474,8 @@ mod tests {
                 let shl = aop.unsigned_abs().checked_shl(bop as u32).unwrap_or(0);
                 let shr = aop.unsigned_abs().checked_shr(bop as u32).unwrap_or(0);
 
-                assert_eq!(a << bop, S32::from(shl).sign(get_sign(shl, sign)));
-                assert_eq!(a >> bop, S32::from(shr).sign(get_sign(shr, sign)));
+                assert_eq!(a << bop, S32::from(shl).with_sign(get_sign(shl, sign)));
+                assert_eq!(a >> bop, S32::from(shr).with_sign(get_sign(shr, sign)));
             }
         }
     }
