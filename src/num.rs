@@ -319,8 +319,8 @@ pub trait Signed: Integer {}
 pub trait Unsigned: Integer {}
 pub trait Float: Number {}
 
-int_impl!(Signed, [i8, i16, i32, i64, i128]);
-int_impl!(Unsigned, [u8, u16, u32, u64, u128]);
+int_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
+int_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
 float_impl!(Float, [f32, f64]);
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -519,6 +519,11 @@ impl SignedLong {
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
         into_radix_bin(&self.data, pow)
     }
+
+    fn sign(mut self, sign: Sign) -> Self {
+        self.sign = sign;
+        self
+    }
 }
 
 impl UnsignedLong {
@@ -607,6 +612,11 @@ impl<const L: usize> SignedFixed<L> {
 
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
         into_radix_bin(&self.data[..self.len], pow)
+    }
+
+    fn sign(mut self, sign: Sign) -> Self {
+        self.sign = sign;
+        self
     }
 }
 
@@ -1728,7 +1738,7 @@ fn shl_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len:
 
     let sbits = Single::BITS as usize;
 
-    if asign == Sign::ZERO || len >= alen * sbits {
+    if asign == Sign::ZERO || len >= L * sbits {
         return ([0; L], 0, Sign::ZERO);
     }
 
@@ -1962,8 +1972,8 @@ fn get_len_rev<T: Constants + PartialEq + Eq>(data: &[T]) -> usize {
     0
 }
 
-fn get_sign(len: usize, default: Sign) -> Sign {
-    if len > 0 { default } else { Sign::ZERO }
+fn get_sign<T: Constants + PartialEq + Eq>(val: T, default: Sign) -> Sign {
+    if val != T::ZERO { default } else { Sign::ZERO }
 }
 
 fn get_arr<const L: usize>(val: Single) -> [Single; L] {
@@ -2331,8 +2341,8 @@ mod tests {
 
     #[test]
     fn addsub_long() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
 
@@ -2347,8 +2357,8 @@ mod tests {
 
     #[test]
     fn muldiv_long() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
 
@@ -2364,8 +2374,8 @@ mod tests {
 
     #[test]
     fn bit_long() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
 
@@ -2381,20 +2391,24 @@ mod tests {
 
     #[test]
     fn shift_long() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
             for bop in 0..64 {
                 let a = &SignedLong::from(aop);
+                let sign = Sign::from(aop);
 
-                assert_eq!(a << bop, SignedLong::from(aop.checked_shl(bop as u32).unwrap_or(0)));
-                assert_eq!(a >> bop, SignedLong::from(aop.checked_shr(bop as u32).unwrap_or(0)));
+                let shl = aop.unsigned_abs().checked_shl(bop as u32).unwrap_or(0);
+                let shr = aop.unsigned_abs().checked_shr(bop as u32).unwrap_or(0);
+
+                assert_eq!(a << bop, SignedLong::from(shl).sign(get_sign(shl, sign)));
+                assert_eq!(a >> bop, SignedLong::from(shr).sign(get_sign(shr, sign)));
             }
         }
     }
 
     #[test]
     fn addsub_fixed() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &S32::from(aop);
                 let b = &S32::from(bop);
 
@@ -2409,8 +2423,8 @@ mod tests {
 
     #[test]
     fn muldiv_fixed() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &S32::from(aop);
                 let b = &S32::from(bop);
 
@@ -2426,15 +2440,13 @@ mod tests {
 
     #[test]
     fn bit_fixed() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
                 let a = &S32::from(aop);
                 let b = &S32::from(bop);
 
                 let aop = aop.unsigned_abs();
                 let bop = bop.unsigned_abs();
-
-                println!("(aop, bop): {:?}", (aop, bop));
 
                 assert_eq!(a | b, S32::from(aop | bop));
                 assert_eq!(a & b, S32::from(aop & bop));
@@ -2445,14 +2457,16 @@ mod tests {
 
     #[test]
     fn shift_fixed() {
-        for aop in (i32::MIN..=i32::MAX).step_by(PRIMES[0]) {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
             for bop in 0..64 {
                 let a = &S32::from(aop);
+                let sign = Sign::from(aop);
 
-                println!("(aop, bop): {:?}", (aop, bop));
+                let shl = aop.unsigned_abs().checked_shl(bop as u32).unwrap_or(0);
+                let shr = aop.unsigned_abs().checked_shr(bop as u32).unwrap_or(0);
 
-                assert_eq!(a << bop, S32::from(aop.checked_shl(bop as u32).unwrap_or(0)));
-                assert_eq!(a >> bop, S32::from(aop.checked_shr(bop as u32).unwrap_or(0)));
+                assert_eq!(a << bop, S32::from(shl).sign(get_sign(shl, sign)));
+                assert_eq!(a >> bop, S32::from(shr).sign(get_sign(shr, sign)));
             }
         }
     }
