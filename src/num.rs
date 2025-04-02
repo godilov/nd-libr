@@ -228,89 +228,6 @@ pub type U2048 = unsigned_fixed!(2048);
 pub type U3072 = unsigned_fixed!(3072);
 pub type U4096 = unsigned_fixed!(4096);
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TryFromStrError {
-    #[error("Found empty during parsing from string")]
-    InvalidLength,
-    #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
-    InvalidSymbol { ch: char, radix: u16 },
-    #[error("Found negative number during parsing from string for unsigned")]
-    UnsignedNegative,
-    #[error(transparent)]
-    FromDigits(#[from] TryFromDigitsError),
-}
-
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TryFromSliceError {
-    #[error("Exceeded maximum length of {max} with {len}")]
-    ExceedLength { len: usize, max: usize },
-}
-
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TryFromDigitsError {
-    #[error("Exceeded maximum length of {max} with {len}")]
-    ExceedLength { len: usize, max: usize },
-    #[error("Found invalid radix '{radix}'")]
-    InvalidRadix { radix: Double },
-    #[error("Found invalid radix pow '{pow}'")]
-    InvalidPow { pow: u8 },
-    #[error("Found invalid value '{digit}' for radix '{radix}'")]
-    InvalidDigit { digit: Single, radix: Double },
-}
-
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IntoRadixError {
-    #[error("Found invalid radix '{radix}'")]
-    InvalidRadix { radix: Double },
-    #[error("Found invalid radix pow '{pow}'")]
-    InvalidPow { pow: u8 },
-}
-
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Sign {
-    #[default]
-    ZERO = 0,
-    NEG = -1,
-    POS = 1,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SignedLong(Vec<Single>, Sign);
-
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UnsignedLong(Vec<Single>);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SignedFixed<const L: usize>([Single; L], usize, Sign);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UnsignedFixed<const L: usize>([Single; L], usize);
-
-pub trait Constants {
-    const ZERO: Self;
-    const ONE: Self;
-    const MIN: Self;
-    const MAX: Self;
-}
-
-pub trait Number: Sized + Default + Display + Clone + PartialEq + PartialOrd + Constants + Ops + OpsAssign {
-    type Type;
-
-    fn val(&self) -> &Self::Type;
-}
-
-pub trait Integer: Eq + Ord + Number + OpsChecked + OpsAll + OpsAllAssign {
-    const BITS: u32;
-}
-
-pub trait Signed: Integer {}
-pub trait Unsigned: Integer {}
-pub trait Float: Number {}
-
-int_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
-int_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
-float_impl!(Float, [f32, f64]);
-
 #[cfg(all(target_pointer_width = "64", not(test)))]
 mod digit {
     pub(super) type Single = u64;
@@ -393,15 +310,128 @@ mod radix {
     radix_impl!([Bin, Oct, Dec, Hex]);
 }
 
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TryFromStrError {
+    #[error("Found empty during parsing from string")]
+    InvalidLength,
+    #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
+    InvalidSymbol { ch: char, radix: u16 },
+    #[error("Found negative number during parsing from string for unsigned")]
+    UnsignedNegative,
+    #[error(transparent)]
+    FromDigits(#[from] TryFromDigitsError),
+}
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TryFromDigitsError {
+    #[error("Exceeded maximum length of {max} with {len}")]
+    ExceedLength { len: usize, max: usize },
+    #[error("Found invalid radix '{radix}'")]
+    InvalidRadix { radix: Double },
+    #[error("Found invalid radix pow '{pow}'")]
+    InvalidPow { pow: u8 },
+    #[error("Found invalid value '{digit}' for radix '{radix}'")]
+    InvalidDigit { digit: Single, radix: Double },
+}
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IntoRadixError {
+    #[error("Found invalid radix '{radix}'")]
+    InvalidRadix { radix: Double },
+    #[error("Found invalid radix pow '{pow}'")]
+    InvalidPow { pow: u8 },
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Sign {
+    #[default]
+    ZERO = 0,
+    NEG = -1,
+    POS = 1,
+}
+
+type LongOperand<'digits> = (&'digits [Single], Sign);
+type FixedOperand<'digits, const L: usize> = (&'digits [Single; L], usize, Sign);
+
+type LongRepr = (Vec<Single>, Sign);
+type FixedRepr<const L: usize> = ([Single; L], usize, Sign, bool);
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SignedLong(Vec<Single>, Sign);
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnsignedLong(Vec<Single>);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SignedFixed<const L: usize>([Single; L], usize, Sign);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnsignedFixed<const L: usize>([Single; L], usize);
+
+pub trait Constants {
+    const ZERO: Self;
+    const ONE: Self;
+    const MIN: Self;
+    const MAX: Self;
+}
+
+pub trait Number: Sized + Default + Display + Clone + PartialEq + PartialOrd + Constants + Ops + OpsAssign {
+    type Type;
+
+    fn val(&self) -> &Self::Type;
+}
+
+pub trait Integer: Eq + Ord + Number + OpsChecked + OpsAll + OpsAllAssign {
+    const BITS: u32;
+}
+
+pub trait Signed: Integer {}
+pub trait Unsigned: Integer {}
+pub trait Float: Number {}
+
+int_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
+int_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
+float_impl!(Float, [f32, f64]);
+
 impl<const L: usize> Default for SignedFixed<L> {
     fn default() -> Self {
         Self([0; L], 0, Sign::ZERO)
     }
 }
 
+impl From<LongRepr> for SignedLong {
+    fn from(value: LongRepr) -> Self {
+        Self(value.0, value.1)
+    }
+}
+
+impl From<LongRepr> for UnsignedLong {
+    fn from(value: LongRepr) -> Self {
+        match () {
+            | _ if value.1 != Sign::NEG => Self(value.0),
+            | _ => Default::default(),
+        }
+    }
+}
+
 impl<const L: usize> Default for UnsignedFixed<L> {
     fn default() -> Self {
         Self([0; L], 0)
+    }
+}
+
+impl<const L: usize> From<FixedRepr<L>> for SignedFixed<L> {
+    fn from(value: FixedRepr<L>) -> Self {
+        Self(value.0, value.1, value.2)
+    }
+}
+
+impl<const L: usize> From<FixedRepr<L>> for UnsignedFixed<L> {
+    fn from(value: FixedRepr<L>) -> Self {
+        match () {
+            | _ if value.2 != Sign::NEG => Self(value.0, value.1),
+            | _ => Default::default(),
+        }
     }
 }
 
@@ -426,9 +456,7 @@ impl FromStr for SignedLong {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (digits, sign) = try_from_str_long(s)?;
-
-        Ok(Self(digits, sign))
+        Ok(try_from_str_long(s)?.into())
     }
 }
 
@@ -436,10 +464,10 @@ impl FromStr for UnsignedLong {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (digits, sign) = try_from_str_long(s)?;
+        let val = try_from_str_long(s)?;
 
-        (sign != Sign::NEG)
-            .then_some(Self(digits))
+        (val.1 != Sign::NEG)
+            .then_some(val.into())
             .ok_or(TryFromStrError::UnsignedNegative)
     }
 }
@@ -448,9 +476,7 @@ impl<const L: usize> FromStr for SignedFixed<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (digits, len, sign) = try_from_str_fixed(s)?;
-
-        Ok(Self(digits, len, sign))
+        Ok(try_from_str_fixed(s)?.into())
     }
 }
 
@@ -458,7 +484,7 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (digits, len, sign) = try_from_str_fixed(s)?;
+        let (digits, len, sign, _) = try_from_str_fixed(s)?;
 
         (sign != Sign::NEG)
             .then_some(Self(digits, len))
@@ -467,10 +493,6 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
 }
 
 impl SignedLong {
-    fn from_raw((digits, sign): (Vec<Single>, Sign)) -> Self {
-        Self(digits, sign)
-    }
-
     pub fn digits(&self) -> &[Single] {
         &self.0
     }
@@ -480,24 +502,15 @@ impl SignedLong {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        let digits = from_bytes_long(bytes);
-        let sign = get_sign(digits.len(), Sign::POS);
-
-        Self(digits, sign)
+        from_bytes_long(bytes).into()
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
-        let digits = try_from_digits_long(digits, radix)?;
-        let sign = get_sign(digits.len(), Sign::POS);
-
-        Ok(Self(digits, sign))
+        Ok(try_from_digits_long(digits, radix, Sign::POS)?.into())
     }
 
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
-        let digits = try_from_digits_long_bin(digits, pow)?;
-        let sign = get_sign(digits.len(), Sign::POS);
-
-        Ok(Self(digits, sign))
+        Ok(try_from_digits_long_bin(digits, pow, Sign::POS)?.into())
     }
 
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
@@ -519,33 +532,20 @@ impl SignedLong {
 }
 
 impl UnsignedLong {
-    fn from_raw((digits, sign): (Vec<Single>, Sign)) -> Self {
-        match () {
-            | _ if sign != Sign::NEG => Self(digits),
-            | _ => Default::default(),
-        }
-    }
-
     pub fn digits(&self) -> &[Single] {
         &self.0
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        let digits = from_bytes_long(bytes);
-
-        Self(digits)
+        from_bytes_long(bytes).into()
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
-        let digits = try_from_digits_long(digits, radix)?;
-
-        Ok(Self(digits))
+        Ok(try_from_digits_long(digits, radix, Sign::POS)?.into())
     }
 
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
-        let digits = try_from_digits_long_bin(digits, pow)?;
-
-        Ok(Self(digits))
+        Ok(try_from_digits_long_bin(digits, pow, Sign::POS)?.into())
     }
 
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
@@ -562,10 +562,6 @@ impl UnsignedLong {
 }
 
 impl<const L: usize> SignedFixed<L> {
-    fn from_raw((digits, len, sign, _): ([Single; L], usize, Sign, bool)) -> Self {
-        Self(digits, len, sign)
-    }
-
     pub fn digits(&self) -> &[Single; L] {
         &self.0
     }
@@ -579,34 +575,21 @@ impl<const L: usize> SignedFixed<L> {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        let (digits, len) = match try_from_bytes_fixed(bytes, false) {
-            | Ok(val) => val,
-            | Err(_) => ([0; L], 0),
-        };
-        let sign = get_sign(len, Sign::POS);
-
-        Self(digits, len, sign)
+        from_bytes_fixed(bytes).into()
     }
 
-    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, TryFromSliceError> {
-        let (digits, len) = try_from_bytes_fixed(bytes, true)?;
-        let sign = get_sign(len, Sign::POS);
+    pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
+        let val = from_bytes_fixed(bytes);
 
-        Ok(Self(digits, len, sign))
+        (val.into(), val.3)
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
-        let (digits, len) = try_from_digits_fixed(digits, radix)?;
-        let sign = get_sign(len, Sign::POS);
-
-        Ok(Self(digits, len, sign))
+        Ok(try_from_digits_fixed(digits, radix, Sign::POS)?.into())
     }
 
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
-        let (digits, len) = try_from_digits_fixed_bin(digits, pow)?;
-        let sign = get_sign(digits.len(), Sign::POS);
-
-        Ok(Self(digits, len, sign))
+        Ok(try_from_digits_fixed_bin(digits, pow, Sign::POS)?.into())
     }
 
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
@@ -628,13 +611,6 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    fn from_raw((digits, len, sign, _): ([Single; L], usize, Sign, bool)) -> Self {
-        match () {
-            | _ if sign != Sign::NEG => Self(digits, len),
-            | _ => Default::default(),
-        }
-    }
-
     pub fn digits(&self) -> &[Single; L] {
         &self.0
     }
@@ -644,30 +620,21 @@ impl<const L: usize> UnsignedFixed<L> {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        let (digits, len) = match try_from_bytes_fixed(bytes, false) {
-            | Ok(val) => val,
-            | Err(_) => ([0; L], 0),
-        };
-
-        Self(digits, len)
+        from_bytes_fixed(bytes).into()
     }
 
-    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, TryFromSliceError> {
-        let (digits, len) = try_from_bytes_fixed(bytes, true)?;
+    pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
+        let val = from_bytes_fixed(bytes);
 
-        Ok(Self(digits, len))
+        (val.into(), val.3)
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
-        let (digits, len) = try_from_digits_fixed(digits, radix)?;
-
-        Ok(Self(digits, len))
+        Ok(try_from_digits_fixed(digits, radix, Sign::POS)?.into())
     }
 
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
-        let (digits, len) = try_from_digits_fixed_bin(digits, pow)?;
-
-        Ok(Self(digits, len))
+        Ok(try_from_digits_fixed_bin(digits, pow, Sign::POS)?.into())
     }
 
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
@@ -823,7 +790,7 @@ impl<const L: usize> UpperHex for UnsignedFixed<L> {
     }
 }
 
-fn from_bytes_long(bytes: &[u8]) -> Vec<Single> {
+fn from_bytes_long(bytes: &[u8]) -> LongRepr {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
 
     let mut shl = 0;
@@ -836,21 +803,16 @@ fn from_bytes_long(bytes: &[u8]) -> Vec<Single> {
         shl = (shl + u8::BITS) & (Single::BITS - 1);
     }
 
-    res.truncate(get_len(&res));
-    res
+    let len = get_len(&res);
+    let sign = get_sign(len, Sign::POS);
+
+    res.truncate(len);
+
+    (res, sign)
 }
 
-fn try_from_bytes_fixed<const L: usize>(
-    bytes: &[u8],
-    validate: bool,
-) -> Result<([Single; L], usize), TryFromSliceError> {
+fn from_bytes_fixed<const L: usize>(bytes: &[u8]) -> FixedRepr<L> {
     const RATIO: usize = (Single::BITS / u8::BITS) as usize;
-
-    let len = (bytes.len() + RATIO - 1) / RATIO;
-
-    if validate && len > L {
-        return Err(TryFromSliceError::ExceedLength { len, max: L });
-    }
 
     let mut shl = 0;
     let mut res = [0; L];
@@ -862,29 +824,27 @@ fn try_from_bytes_fixed<const L: usize>(
         shl = (shl + u8::BITS) & (Single::BITS - 1);
     }
 
-    Ok((res, get_len(&res)))
+    let len = get_len(&res);
+    let sign = get_sign(len, Sign::POS);
+    let full = (bytes.len() + RATIO - 1) / RATIO;
+
+    (res, len, sign, full > L)
 }
 
-fn try_from_str_long(s: &str) -> Result<(Vec<Single>, Sign), TryFromStrError> {
+fn try_from_str_long(s: &str) -> Result<LongRepr, TryFromStrError> {
     let (s, sign) = get_sign_from_str(s)?;
     let (s, radix) = get_radix_from_str(s)?;
     let digits = get_digits_from_str(s, radix)?;
 
-    let res = try_from_digits_long(&digits, radix)?;
-    let sign = get_sign(res.len(), sign);
-
-    Ok((res, sign))
+    Ok(try_from_digits_long(&digits, radix, sign)?)
 }
 
-fn try_from_str_fixed<const L: usize>(s: &str) -> Result<([Single; L], usize, Sign), TryFromStrError> {
+fn try_from_str_fixed<const L: usize>(s: &str) -> Result<FixedRepr<L>, TryFromStrError> {
     let (s, sign) = get_sign_from_str(s)?;
     let (s, radix) = get_radix_from_str(s)?;
     let digits = get_digits_from_str(s, radix)?;
 
-    let (res, len) = try_from_digits_fixed(&digits, radix)?;
-    let sign = get_sign(len, sign);
-
-    Ok((res, len, sign))
+    Ok(try_from_digits_fixed(&digits, radix, sign)?)
 }
 
 fn try_from_digits_validate(digits: &[u8], radix: u16) -> Result<(), TryFromDigitsError> {
@@ -898,7 +858,7 @@ fn try_from_digits_validate(digits: &[u8], radix: u16) -> Result<(), TryFromDigi
     Ok(())
 }
 
-fn try_from_digits_long_bin(digits: &[u8], pow: u8) -> Result<Vec<Single>, TryFromDigitsError> {
+fn try_from_digits_long_bin(digits: &[u8], pow: u8, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
     if !(1..=u8::BITS as u8).contains(&pow) {
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
@@ -931,18 +891,21 @@ fn try_from_digits_long_bin(digits: &[u8], pow: u8) -> Result<Vec<Single>, TryFr
         res[idx] = acc as Single;
     }
 
-    res.truncate(get_len(&res));
+    let len = get_len(&res);
+    let sign = get_sign(len, sign);
 
-    Ok(res)
+    res.truncate(len);
+
+    Ok((res, sign))
 }
 
-fn try_from_digits_long(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFromDigitsError> {
+fn try_from_digits_long(digits: &[u8], radix: u16, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
     if !(2..=u8::MAX as u16 + 1).contains(&radix) {
         return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
     }
 
     if radix & (radix - 1) == 0 {
-        return try_from_digits_long_bin(digits, radix.ilog2() as u8);
+        return try_from_digits_long_bin(digits, radix.ilog2() as u8, sign);
     }
 
     try_from_digits_validate(digits, radix)?;
@@ -974,15 +937,19 @@ fn try_from_digits_long(digits: &[u8], radix: u16) -> Result<Vec<Single>, TryFro
         }
     }
 
-    res.truncate(get_len(&res));
+    let len = get_len(&res);
+    let sign = get_sign(len, sign);
 
-    Ok(res)
+    res.truncate(len);
+
+    Ok((res, sign))
 }
 
 fn try_from_digits_fixed_bin<const L: usize>(
     digits: &[u8],
     pow: u8,
-) -> Result<([Single; L], usize), TryFromDigitsError> {
+    sign: Sign,
+) -> Result<FixedRepr<L>, TryFromDigitsError> {
     if !(1..=u8::BITS as u8).contains(&pow) {
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
@@ -1021,19 +988,23 @@ fn try_from_digits_fixed_bin<const L: usize>(
         res[idx] = acc as Single;
     }
 
-    Ok((res, get_len(&res)))
+    let len = get_len(&res);
+    let sign = get_sign(len, sign);
+
+    Ok((res, len, sign, false))
 }
 
 fn try_from_digits_fixed<const L: usize>(
     digits: &[u8],
     radix: u16,
-) -> Result<([Single; L], usize), TryFromDigitsError> {
+    sign: Sign,
+) -> Result<FixedRepr<L>, TryFromDigitsError> {
     if !(2..=u8::MAX as u16 + 1).contains(&radix) {
         return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
     }
 
     if radix & (radix - 1) == 0 {
-        return try_from_digits_fixed_bin(digits, radix.ilog2() as u8);
+        return try_from_digits_fixed_bin(digits, radix.ilog2() as u8, sign);
     }
 
     try_from_digits_validate(digits, radix)?;
@@ -1065,7 +1036,10 @@ fn try_from_digits_fixed<const L: usize>(
         }
     }
 
-    Ok((res, get_len(&res)))
+    let len = get_len(&res);
+    let sign = get_sign(len, sign);
+
+    Ok((res, len, sign, false))
 }
 
 fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
@@ -1216,7 +1190,7 @@ fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {
     }
 }
 
-fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
     match (asign, bsign) {
         | (Sign::ZERO, Sign::ZERO) => return Default::default(),
         | (Sign::ZERO, _) => return (b.to_vec(), bsign),
@@ -1250,7 +1224,7 @@ fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
     (res, sign)
 }
 
-fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
     match (asign, bsign) {
         | (Sign::ZERO, Sign::ZERO) => return Default::default(),
         | (Sign::ZERO, _) => return (b.to_vec(), Sign::NEG * bsign),
@@ -1291,7 +1265,7 @@ fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
     (res, sign)
 }
 
-fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
     match (asign, bsign) {
         | (Sign::ZERO, _) => return Default::default(),
         | (_, Sign::ZERO) => return Default::default(),
@@ -1329,13 +1303,13 @@ fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Ve
     (res, sign)
 }
 
-fn div_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+fn div_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
     let (div, _, sign, _) = divrem_long((a, asign), (b, bsign));
 
     (div, sign)
 }
 
-fn rem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Sign) {
+fn rem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
     let (_, rem, _, sign) = divrem_long((a, asign), (b, bsign));
 
     (rem, sign)
@@ -1411,7 +1385,7 @@ fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> 
     (div, rem, div_sign, rem_sign)
 }
 
-fn bit_long<F>(a: &[Single], b: &[Single], func: F) -> (Vec<Single>, Sign)
+fn bit_long<F>(a: &[Single], b: &[Single], func: F) -> LongRepr
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -1434,7 +1408,7 @@ where
     (res, sign)
 }
 
-fn shl_long((a, asign): (&[Single], Sign), len: usize) -> (Vec<Single>, Sign) {
+fn shl_long((a, asign): (&[Single], Sign), len: usize) -> LongRepr {
     if len == 0 {
         return (a.to_vec(), asign);
     }
@@ -1471,7 +1445,7 @@ fn shl_long((a, asign): (&[Single], Sign), len: usize) -> (Vec<Single>, Sign) {
     (res, sign)
 }
 
-fn shr_long((a, asign): (&[Single], Sign), len: usize) -> (Vec<Single>, Sign) {
+fn shr_long((a, asign): (&[Single], Sign), len: usize) -> LongRepr {
     if len == 0 {
         return (a.to_vec(), asign);
     }
@@ -1507,7 +1481,7 @@ fn shr_long((a, asign): (&[Single], Sign), len: usize) -> (Vec<Single>, Sign) {
 fn add_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign, bool) {
+) -> FixedRepr<L> {
     match (asign, bsign) {
         | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
         | (Sign::ZERO, _) => return (*b, blen, bsign, false),
@@ -1549,7 +1523,7 @@ fn add_fixed<const L: usize>(
 fn sub_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign, bool) {
+) -> FixedRepr<L> {
     match (asign, bsign) {
         | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
         | (Sign::ZERO, _) => return (*b, blen, Sign::NEG * bsign, false),
@@ -1628,7 +1602,7 @@ fn avg_fixed<const L: usize>(
 fn mul_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign, bool) {
+) -> FixedRepr<L> {
     match (asign, bsign) {
         | (Sign::ZERO, _) => return ([0; L], 0, Sign::ZERO, false),
         | (_, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
@@ -1672,7 +1646,7 @@ fn mul_fixed<const L: usize>(
 fn div_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign, bool) {
+) -> FixedRepr<L> {
     let (div, _, len, _, sign, _, _, _) = divrem_fixed((a, alen, asign), (b, blen, bsign));
 
     (div, len, sign, false)
@@ -1681,7 +1655,7 @@ fn div_fixed<const L: usize>(
 fn rem_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign, bool) {
+) -> FixedRepr<L> {
     let (_, rem, _, len, _, sign, _, _) = divrem_fixed((a, alen, asign), (b, blen, bsign));
 
     (rem, len, sign, false)
@@ -1751,7 +1725,7 @@ fn divrem_fixed<const L: usize>(
     (div, rem, div_len, rem_len, div_sign, rem_sign, false, false)
 }
 
-fn bit_fixed<const L: usize, F>(a: &[Single; L], b: &[Single; L], func: F) -> ([Single; L], usize, Sign, bool)
+fn bit_fixed<const L: usize, F>(a: &[Single; L], b: &[Single; L], func: F) -> FixedRepr<L>
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -1767,10 +1741,7 @@ where
     (res, len, sign, false)
 }
 
-fn shl_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    len: usize,
-) -> ([Single; L], usize, Sign, bool) {
+fn shl_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> FixedRepr<L> {
     if len == 0 {
         return (*a, alen, asign, false);
     }
@@ -1804,10 +1775,7 @@ fn shl_fixed<const L: usize>(
     (res, len, sign, false)
 }
 
-fn shr_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    len: usize,
-) -> ([Single; L], usize, Sign, bool) {
+fn shr_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> FixedRepr<L> {
     if len == 0 {
         return (*a, alen, asign, false);
     }
@@ -1861,62 +1829,62 @@ ops_impl!(@un |a: Sign| -> Sign,
 ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong(a.0.clone(), -a.1));
 
 ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
-    + SignedLong::from_raw(add_long((&a.0, a.1), (&b.0, b.1))),
-    - SignedLong::from_raw(sub_long((&a.0, a.1), (&b.0, b.1))),
-    * SignedLong::from_raw(mul_long((&a.0, a.1), (&b.0, b.1))),
-    / SignedLong::from_raw(div_long((&a.0, a.1), (&b.0, b.1))),
-    % SignedLong::from_raw(rem_long((&a.0, a.1), (&b.0, b.1))),
-    | SignedLong::from_raw(bit_long(&a.0, &b.0, |aop, bop| aop | bop)),
-    & SignedLong::from_raw(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
-    ^ SignedLong::from_raw(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
+    + add_long((&a.0, a.1), (&b.0, b.1)),
+    - sub_long((&a.0, a.1), (&b.0, b.1)),
+    * mul_long((&a.0, a.1), (&b.0, b.1)),
+    / div_long((&a.0, a.1), (&b.0, b.1)),
+    % rem_long((&a.0, a.1), (&b.0, b.1)),
+    | bit_long(&a.0, &b.0, |aop, bop| aop | bop),
+    & bit_long(&a.0, &b.0, |aop, bop| aop & bop),
+    ^ bit_long(&a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
-    + UnsignedLong::from_raw(add_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS)))),
-    - UnsignedLong::from_raw(sub_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS)))),
-    * UnsignedLong::from_raw(mul_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS)))),
-    / UnsignedLong::from_raw(div_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS)))),
-    % UnsignedLong::from_raw(rem_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS)))),
-    | UnsignedLong::from_raw(bit_long(&a.0, &b.0, |aop, bop| aop | bop)),
-    & UnsignedLong::from_raw(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
-    ^ UnsignedLong::from_raw(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
+    + add_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
+    - sub_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
+    * mul_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
+    / div_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
+    % rem_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
+    | bit_long(&a.0, &b.0, |aop, bop| aop | bop),
+    & bit_long(&a.0, &b.0, |aop, bop| aop & bop),
+    ^ bit_long(&a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: &SignedLong, b: usize| -> SignedLong,
-    << SignedLong::from_raw(shl_long((&a.0, a.1), b)),
-    >> SignedLong::from_raw(shr_long((&a.0, a.1), b)));
+    << shl_long((&a.0, a.1), b),
+    >> shr_long((&a.0, a.1), b));
 
 ops_impl!(@bin |a: &UnsignedLong, b: usize| -> UnsignedLong,
-    << UnsignedLong::from_raw(shl_long((&a.0, get_sign(a.0.len(), Sign::POS)), b)),
-    >> UnsignedLong::from_raw(shr_long((&a.0, get_sign(a.0.len(), Sign::POS)), b)));
+    << shl_long((&a.0, get_sign(a.0.len(), Sign::POS)), b),
+    >> shr_long((&a.0, get_sign(a.0.len(), Sign::POS)), b));
 
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed(a.0, a.1, -a.2));
 
-ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed<L>,
-    + SignedFixed::from_raw(add_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2))),
-    - SignedFixed::from_raw(sub_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2))),
-    * SignedFixed::from_raw(mul_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2))),
-    / SignedFixed::from_raw(div_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2))),
-    % SignedFixed::from_raw(rem_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2))),
-    | SignedFixed::from_raw(bit_fixed(&a.0, &b.0, |aop, bop| aop | bop)),
-    & SignedFixed::from_raw(bit_fixed(&a.0, &b.0, |aop, bop| aop & bop)),
-    ^ SignedFixed::from_raw(bit_fixed(&a.0, &b.0, |aop, bop| aop ^ bop)));
+ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed::<L>,
+    + add_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
+    - sub_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
+    * mul_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
+    / div_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
+    % rem_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
+    | bit_fixed(&a.0, &b.0, |aop, bop| aop | bop),
+    & bit_fixed(&a.0, &b.0, |aop, bop| aop & bop),
+    ^ bit_fixed(&a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed<L>,
-    + UnsignedFixed::from_raw(add_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS)))),
-    - UnsignedFixed::from_raw(sub_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS)))),
-    * UnsignedFixed::from_raw(mul_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS)))),
-    / UnsignedFixed::from_raw(div_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS)))),
-    % UnsignedFixed::from_raw(rem_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS)))),
-    | UnsignedFixed::from_raw(bit_fixed(&a.0, &b.0, |aop, bop| aop | bop)),
-    & UnsignedFixed::from_raw(bit_fixed(&a.0, &b.0, |aop, bop| aop & bop)),
-    ^ UnsignedFixed::from_raw(bit_fixed(&a.0, &b.0, |aop, bop| aop ^ bop)));
+ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
+    + add_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
+    - sub_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
+    * mul_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
+    / div_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
+    % rem_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
+    | bit_fixed(&a.0, &b.0, |aop, bop| aop | bop),
+    & bit_fixed(&a.0, &b.0, |aop, bop| aop & bop),
+    ^ bit_fixed(&a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: usize| -> SignedFixed<L>,
-    << SignedFixed::from_raw(shl_fixed((&a.0, a.1, a.2), b)),
-    >> SignedFixed::from_raw(shr_fixed((&a.0, a.1, a.2), b)));
+ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
+    << shl_fixed((&a.0, a.1, a.2), b),
+    >> shr_fixed((&a.0, a.1, a.2), b));
 
-ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: usize| -> UnsignedFixed<L>,
-    << UnsignedFixed::from_raw(shl_fixed((&a.0, a.1, get_sign(a.0.len(), Sign::POS)), b)),
-    >> UnsignedFixed::from_raw(shr_fixed((&a.0, a.1, get_sign(a.0.len(), Sign::POS)), b)));
+ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: usize| -> UnsignedFixed::<L>,
+    << shl_fixed((&a.0, a.1, get_sign(a.0.len(), Sign::POS)), b),
+    >> shr_fixed((&a.0, a.1, get_sign(a.0.len(), Sign::POS)), b));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {

@@ -373,7 +373,7 @@ impl ToTokens for OpsImplBinary {
 
                     fn #ident(self, rhs: #rhs_ref #rhs_type) -> Self::Output {
                         #[allow(clippy::redundant_closure_call)]
-                        (|#lhs_ident: #lhs_ref #lhs_type, #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs)
+                        (|#lhs_ident: #lhs_ref #lhs_type, #rhs_ident: #rhs_ref #rhs_type| { #op_type::from(#expr) })(self, rhs)
                     }
                 }
             }
@@ -450,7 +450,7 @@ impl ToTokens for OpsImplUnary {
 
                     fn #ident(self) -> Self::Output {
                         #[allow(clippy::redundant_closure_call)]
-                        (|#lhs_ident: #lhs_ref #lhs_type| { #expr })(self)
+                        (|#lhs_ident: #lhs_ref #lhs_type| { (#expr).into() })(self)
                     }
                 }
             }
@@ -567,7 +567,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
                         OpsImplEntry::<BinOp> {
                             op,
-                            expr: parse_quote! {{ (#lhs #op #rhs).into() }},
+                            expr: parse_quote! {{ #lhs #op #rhs }},
                         }
                     })
                     .collect::<Punctuated<OpsImplEntry<BinOp>, Token![,]>>(),
@@ -592,7 +592,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
                         OpsImplEntry::<UnOp> {
                             op,
-                            expr: parse_quote! {{ (#op #lhs).into() }},
+                            expr: parse_quote! {{ #op #lhs }},
                         }
                     })
                     .collect::<Punctuated<OpsImplEntry<UnOp>, Token![,]>>(),

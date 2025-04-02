@@ -142,14 +142,14 @@ mod tests {
     ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X3<N>, b:  Y3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
     ops_impl_auto!(@mut <N: Sized + Copy + OpsAllAssign> |a:  mut X3<N>, b:  X3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &Y0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &X0<N>| -> X0<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  Y1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  X1<N>| -> X1<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &Y2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &X2<N>| -> X2<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  Y3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  X3<N>| -> X3<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &Y0<N>| -> X0::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X0<N>: OpsAllFrom<N> |a: &X0<N>, b: &X0<N>| -> X0::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  Y1<N>| -> X1::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X1<N>: OpsAllFrom<N> |a: &X1<N>, b:  X1<N>| -> X1::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &Y2<N>| -> X2::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X2<N>: OpsAllFrom<N> |a:  X2<N>, b: &X2<N>| -> X2::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  Y3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + OpsAll> where X3<N>: OpsAllFrom<N> |a:  X3<N>, b:  X3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
     ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X0<N>: OpsNegFrom<N> + OpsNotFrom<N> |a: &X0<N>| -> X0<N>, (a.0) [-, !]);
     ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X1<N>: OpsNegFrom<N> + OpsNotFrom<N> |a:  X1<N>| -> X1<N>, (a.0) [-, !]);
