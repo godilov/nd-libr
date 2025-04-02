@@ -348,11 +348,11 @@ pub enum Sign {
     POS = 1,
 }
 
-type LongOperand<'digits> = (&'digits [Single], Sign);
-type FixedOperand<'digits, const L: usize> = (&'digits [Single; L], usize, Sign);
-
 type LongRepr = (Vec<Single>, Sign);
 type FixedRepr<const L: usize> = ([Single; L], usize, Sign, bool);
+
+type LongOperand<'digits> = (&'digits [Single], Sign);
+type FixedOperand<'digits, const L: usize> = (&'digits [Single; L], usize, Sign);
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SignedLong(Vec<Single>, Sign);
@@ -391,12 +391,6 @@ int_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
 int_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
 float_impl!(Float, [f32, f64]);
 
-impl<const L: usize> Default for SignedFixed<L> {
-    fn default() -> Self {
-        Self([0; L], 0, Sign::ZERO)
-    }
-}
-
 impl From<LongRepr> for SignedLong {
     fn from(value: LongRepr) -> Self {
         Self(value.0, value.1)
@@ -409,6 +403,36 @@ impl From<LongRepr> for UnsignedLong {
             | _ if value.1 != Sign::NEG => Self(value.0),
             | _ => Default::default(),
         }
+    }
+}
+
+impl<'digits> From<&'digits SignedLong> for LongOperand<'digits> {
+    fn from(value: &'digits SignedLong) -> Self {
+        (&value.0, value.1)
+    }
+}
+
+impl<'digits> From<&'digits UnsignedLong> for LongOperand<'digits> {
+    fn from(value: &'digits UnsignedLong) -> Self {
+        (&value.0, get_sign(value.0.len(), Sign::POS))
+    }
+}
+
+impl<'digits> From<&&'digits SignedLong> for LongOperand<'digits> {
+    fn from(value: &&'digits SignedLong) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl<'digits> From<&&'digits UnsignedLong> for LongOperand<'digits> {
+    fn from(value: &&'digits UnsignedLong) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl<const L: usize> Default for SignedFixed<L> {
+    fn default() -> Self {
+        Self([0; L], 0, Sign::ZERO)
     }
 }
 
@@ -430,6 +454,30 @@ impl<const L: usize> From<FixedRepr<L>> for UnsignedFixed<L> {
             | _ if value.2 != Sign::NEG => Self(value.0, value.1),
             | _ => Default::default(),
         }
+    }
+}
+
+impl<'digits, const L: usize> From<&'digits SignedFixed<L>> for FixedOperand<'digits, L> {
+    fn from(value: &'digits SignedFixed<L>) -> Self {
+        (&value.0, value.1, value.2)
+    }
+}
+
+impl<'digits, const L: usize> From<&'digits UnsignedFixed<L>> for FixedOperand<'digits, L> {
+    fn from(value: &'digits UnsignedFixed<L>) -> Self {
+        (&value.0, value.1, get_sign(value.0.len(), Sign::POS))
+    }
+}
+
+impl<'digits, const L: usize> From<&&'digits SignedFixed<L>> for FixedOperand<'digits, L> {
+    fn from(value: &&'digits SignedFixed<L>) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl<'digits, const L: usize> From<&&'digits UnsignedFixed<L>> for FixedOperand<'digits, L> {
+    fn from(value: &&'digits UnsignedFixed<L>) -> Self {
+        Self::from(*value)
     }
 }
 
@@ -1817,28 +1865,28 @@ ops_impl!(@un |a: Sign| -> Sign,
 ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong(a.0.clone(), -a.1));
 
 ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
-    + add_long((&a.0, a.1), (&b.0, b.1)),
-    - sub_long((&a.0, a.1), (&b.0, b.1)),
-    * mul_long((&a.0, a.1), (&b.0, b.1)),
-    / div_long((&a.0, a.1), (&b.0, b.1)),
-    % rem_long((&a.0, a.1), (&b.0, b.1)),
+    + add_long((&a).into(), (&b).into()),
+    - sub_long((&a).into(), (&b).into()),
+    * mul_long((&a).into(), (&b).into()),
+    / div_long((&a).into(), (&b).into()),
+    % rem_long((&a).into(), (&b).into()),
     | bit_long(&a.0, &b.0, |aop, bop| aop | bop),
     & bit_long(&a.0, &b.0, |aop, bop| aop & bop),
     ^ bit_long(&a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
-    + add_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
-    - sub_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
-    * mul_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
-    / div_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
-    % rem_long((&a.0, get_sign(a.0.len(), Sign::POS)), (&b.0, get_sign(b.0.len(), Sign::POS))),
+    + add_long((&a).into(), (&b).into()),
+    - sub_long((&a).into(), (&b).into()),
+    * mul_long((&a).into(), (&b).into()),
+    / div_long((&a).into(), (&b).into()),
+    % rem_long((&a).into(), (&b).into()),
     | bit_long(&a.0, &b.0, |aop, bop| aop | bop),
     & bit_long(&a.0, &b.0, |aop, bop| aop & bop),
     ^ bit_long(&a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: &SignedLong, b: usize| -> SignedLong,
-    << shl_long((&a.0, a.1), b),
-    >> shr_long((&a.0, a.1), b));
+    << shl_long((&a).into(), b),
+    >> shr_long((&a).into(), b));
 
 ops_impl!(@bin |a: &UnsignedLong, b: usize| -> UnsignedLong,
     << shl_long((&a.0, get_sign(a.0.len(), Sign::POS)), b),
@@ -1847,32 +1895,32 @@ ops_impl!(@bin |a: &UnsignedLong, b: usize| -> UnsignedLong,
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed(a.0, a.1, -a.2));
 
 ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed::<L>,
-    + add_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
-    - sub_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
-    * mul_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
-    / div_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
-    % rem_fixed((&a.0, a.1, a.2), (&b.0, b.1, b.2)),
+    + add_fixed((&a).into(), (&b).into()),
+    - sub_fixed((&a).into(), (&b).into()),
+    * mul_fixed((&a).into(), (&b).into()),
+    / div_fixed((&a).into(), (&b).into()),
+    % rem_fixed((&a).into(), (&b).into()),
     | bit_fixed(&a.0, &b.0, |aop, bop| aop | bop),
     & bit_fixed(&a.0, &b.0, |aop, bop| aop & bop),
     ^ bit_fixed(&a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
-    + add_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
-    - sub_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
-    * mul_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
-    / div_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
-    % rem_fixed((&a.0, a.1, get_sign(a.1, Sign::POS)), (&b.0, b.1, get_sign(b.1, Sign::POS))),
+    + add_fixed((&a).into(), (&b).into()),
+    - sub_fixed((&a).into(), (&b).into()),
+    * mul_fixed((&a).into(), (&b).into()),
+    / div_fixed((&a).into(), (&b).into()),
+    % rem_fixed((&a).into(), (&b).into()),
     | bit_fixed(&a.0, &b.0, |aop, bop| aop | bop),
     & bit_fixed(&a.0, &b.0, |aop, bop| aop & bop),
     ^ bit_fixed(&a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
-    << shl_fixed((&a.0, a.1, a.2), b),
-    >> shr_fixed((&a.0, a.1, a.2), b));
+    << shl_fixed((&a).into(), b),
+    >> shr_fixed((&a).into(), b));
 
 ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: usize| -> UnsignedFixed::<L>,
-    << shl_fixed((&a.0, a.1, get_sign(a.0.len(), Sign::POS)), b),
-    >> shr_fixed((&a.0, a.1, get_sign(a.0.len(), Sign::POS)), b));
+    << shl_fixed((&a).into(), b),
+    >> shr_fixed((&a).into(), b));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {
