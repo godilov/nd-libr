@@ -348,12 +348,6 @@ pub enum Sign {
     POS = 1,
 }
 
-type LongRepr = (Vec<Single>, Sign);
-type FixedRepr<const L: usize> = ([Single; L], usize, Sign, bool);
-
-type LongOperand<'digits> = (&'digits [Single], Sign);
-type FixedOperand<'digits, const L: usize> = (&'digits [Single; L], usize, Sign);
-
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SignedLong(Vec<Single>, Sign);
 
@@ -365,6 +359,14 @@ pub struct SignedFixed<const L: usize>([Single; L], usize, Sign);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnsignedFixed<const L: usize>([Single; L], usize);
+
+#[derive(Default)]
+struct LongRepr(Vec<Single>, Sign);
+struct FixedRepr<const L: usize>([Single; L], usize, Sign, bool);
+
+#[derive(Default)]
+struct LongOperand<'digits>(&'digits [Single], Sign);
+struct FixedOperand<'digits, const L: usize>(&'digits [Single; L], usize, Sign);
 
 pub trait Constants {
     const ZERO: Self;
@@ -406,15 +408,21 @@ impl From<LongRepr> for UnsignedLong {
     }
 }
 
+impl From<LongOperand<'_>> for LongRepr {
+    fn from(value: LongOperand<'_>) -> Self {
+        Self(value.0.to_vec(), value.1)
+    }
+}
+
 impl<'digits> From<&'digits SignedLong> for LongOperand<'digits> {
     fn from(value: &'digits SignedLong) -> Self {
-        (&value.0, value.1)
+        Self(&value.0, value.1)
     }
 }
 
 impl<'digits> From<&'digits UnsignedLong> for LongOperand<'digits> {
     fn from(value: &'digits UnsignedLong) -> Self {
-        (&value.0, get_sign(value.0.len(), Sign::POS))
+        Self(&value.0, get_sign(value.0.len(), Sign::POS))
     }
 }
 
@@ -457,15 +465,21 @@ impl<const L: usize> From<FixedRepr<L>> for UnsignedFixed<L> {
     }
 }
 
+impl<const L: usize> From<FixedOperand<'_, L>> for FixedRepr<L> {
+    fn from(value: FixedOperand<'_, L>) -> Self {
+        Self(*value.0, value.1, value.2, false)
+    }
+}
+
 impl<'digits, const L: usize> From<&'digits SignedFixed<L>> for FixedOperand<'digits, L> {
     fn from(value: &'digits SignedFixed<L>) -> Self {
-        (&value.0, value.1, value.2)
+        Self(&value.0, value.1, value.2)
     }
 }
 
 impl<'digits, const L: usize> From<&'digits UnsignedFixed<L>> for FixedOperand<'digits, L> {
     fn from(value: &'digits UnsignedFixed<L>) -> Self {
-        (&value.0, value.1, get_sign(value.0.len(), Sign::POS))
+        Self(&value.0, value.1, get_sign(value.0.len(), Sign::POS))
     }
 }
 
@@ -530,10 +544,10 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (digits, len, sign, _) = try_from_str_fixed(s)?;
+        let repr = try_from_str_fixed(s)?;
 
-        (sign != Sign::NEG)
-            .then_some(Self(digits, len))
+        (repr.2 != Sign::NEG)
+            .then_some(repr.into())
             .ok_or(TryFromStrError::UnsignedNegative)
     }
 }
@@ -625,9 +639,10 @@ impl<const L: usize> SignedFixed<L> {
     }
 
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
-        let val = from_bytes_fixed(bytes);
+        let repr = from_bytes_fixed(bytes);
+        let flag = repr.3;
 
-        (val.into(), val.3)
+        (repr.into(), flag)
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
@@ -670,9 +685,10 @@ impl<const L: usize> UnsignedFixed<L> {
     }
 
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
-        let val = from_bytes_fixed(bytes);
+        let repr = from_bytes_fixed(bytes);
+        let flag = repr.3;
 
-        (val.into(), val.3)
+        (repr.into(), flag)
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
@@ -854,7 +870,7 @@ fn from_bytes_long(bytes: &[u8]) -> LongRepr {
 
     res.truncate(len);
 
-    (res, sign)
+    LongRepr(res, sign)
 }
 
 fn from_bytes_fixed<const L: usize>(bytes: &[u8]) -> FixedRepr<L> {
@@ -874,7 +890,7 @@ fn from_bytes_fixed<const L: usize>(bytes: &[u8]) -> FixedRepr<L> {
     let sign = get_sign(len, Sign::POS);
     let full = (bytes.len() + RATIO - 1) / RATIO;
 
-    (res, len, sign, full > L)
+    FixedRepr(res, len, sign, full > L)
 }
 
 fn try_from_str_long(s: &str) -> Result<LongRepr, TryFromStrError> {
@@ -942,7 +958,7 @@ fn try_from_digits_long_bin(digits: &[u8], pow: u8, sign: Sign) -> Result<LongRe
 
     res.truncate(len);
 
-    Ok((res, sign))
+    Ok(LongRepr(res, sign))
 }
 
 fn try_from_digits_long(digits: &[u8], radix: u16, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
@@ -988,7 +1004,7 @@ fn try_from_digits_long(digits: &[u8], radix: u16, sign: Sign) -> Result<LongRep
 
     res.truncate(len);
 
-    Ok((res, sign))
+    Ok(LongRepr(res, sign))
 }
 
 fn try_from_digits_fixed_bin<const L: usize>(
@@ -1031,7 +1047,7 @@ fn try_from_digits_fixed_bin<const L: usize>(
     let len = get_len(&res);
     let sign = get_sign(len, sign);
 
-    Ok((res, len, sign, idx == L && acc > 0))
+    Ok(FixedRepr(res, len, sign, idx == L && acc > 0))
 }
 
 fn try_from_digits_fixed<const L: usize>(
@@ -1075,7 +1091,7 @@ fn try_from_digits_fixed<const L: usize>(
     let len = get_len(&res);
     let sign = get_sign(len, sign);
 
-    Ok((res, len, sign, idx == L))
+    Ok(FixedRepr(res, len, sign, idx == L))
 }
 
 fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
@@ -1226,11 +1242,11 @@ fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {
     }
 }
 
-fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
+fn add_long((a, asign): LongOperand<'_>, (b, bsign): LongOperand<'_>) -> LongRepr {
     match (asign, bsign) {
         | (Sign::ZERO, Sign::ZERO) => return Default::default(),
-        | (Sign::ZERO, _) => return (b.to_vec(), bsign),
-        | (_, Sign::ZERO) => return (a.to_vec(), asign),
+        | (Sign::ZERO, _) => return LongRepr(b.to_vec(), bsign),
+        | (_, Sign::ZERO) => return LongRepr(a.to_vec(), asign),
         | _ => (),
     }
 
@@ -1257,14 +1273,14 @@ fn add_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> Lon
 
     let sign = get_sign(res.len(), asign);
 
-    (res, sign)
+    LongRepr(res, sign)
 }
 
-fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
+fn sub_long((a, asign): LongOperand<'_>, (b, bsign): LongOperand<'_>) -> LongRepr {
     match (asign, bsign) {
         | (Sign::ZERO, Sign::ZERO) => return Default::default(),
-        | (Sign::ZERO, _) => return (b.to_vec(), Sign::NEG * bsign),
-        | (_, Sign::ZERO) => return (a.to_vec(), Sign::POS * asign),
+        | (Sign::ZERO, _) => return LongRepr(b.to_vec(), Sign::NEG * bsign),
+        | (_, Sign::ZERO) => return LongRepr(a.to_vec(), Sign::POS * asign),
         | _ => (),
     }
 
@@ -1298,10 +1314,10 @@ fn sub_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> Lon
 
     let sign = get_sign(res.len(), sign);
 
-    (res, sign)
+    LongRepr(res, sign)
 }
 
-fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
+fn mul_long((a, asign): LongOperand<'_>, (b, bsign): LongOperand<'_>) -> LongRepr {
     match (asign, bsign) {
         | (Sign::ZERO, _) => return Default::default(),
         | (_, Sign::ZERO) => return Default::default(),
@@ -1336,22 +1352,22 @@ fn mul_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> Lon
 
     let sign = get_sign(res.len(), asign * bsign);
 
-    (res, sign)
+    LongRepr(res, sign)
 }
 
-fn div_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
+fn div_long((a, asign): LongOperand<'_>, (b, bsign): LongOperand<'_>) -> LongRepr {
     let (div, _, sign, _) = divrem_long((a, asign), (b, bsign));
 
-    (div, sign)
+    LongRepr(div, sign)
 }
 
-fn rem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> LongRepr {
+fn rem_long((a, asign): LongOperand<'_>, (b, bsign): LongOperand<'_>) -> LongRepr {
     let (_, rem, _, sign) = divrem_long((a, asign), (b, bsign));
 
-    (rem, sign)
+    LongRepr(rem, sign)
 }
 
-fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> (Vec<Single>, Vec<Single>, Sign, Sign) {
+fn divrem_long((a, asign): LongOperand<'_>, (b, bsign): LongOperand<'_>) -> (Vec<Single>, Vec<Single>, Sign, Sign) {
     match (asign, bsign) {
         | (Sign::ZERO, _) => return Default::default(),
         | (_, Sign::ZERO) => panic!("Division by zero"),
@@ -1387,7 +1403,7 @@ fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> 
             let m = l + (r - l) / 2;
             let s = Sign::from(m);
 
-            let (val, _) = mul_long((b, Sign::POS), (&[m as Single], s));
+            let LongRepr(val, _) = mul_long((b, Sign::POS), (&[m as Single], s));
 
             match cmp_nums(&val, &rem[..len]) {
                 | Ordering::Less => l = m + 1,
@@ -1398,8 +1414,8 @@ fn divrem_long((a, asign): (&[Single], Sign), (b, bsign): (&[Single], Sign)) -> 
 
         let digit = l.saturating_sub(1) as Single;
         if digit > 0 {
-            let (val, _) = mul_long((b, Sign::POS), (&[digit], Sign::POS));
-            let (sub, _) = sub_long((&rem[..len], Sign::POS), (&val, Sign::POS));
+            let LongRepr(val, _) = mul_long((b, Sign::POS), (&[digit], Sign::POS));
+            let LongRepr(sub, _) = sub_long((&rem[..len], Sign::POS), (&val, Sign::POS));
 
             div[i] = digit;
             len = sub.len();
@@ -1441,18 +1457,18 @@ where
 
     res.truncate(len);
 
-    (res, sign)
+    LongRepr(res, sign)
 }
 
-fn shl_long((a, asign): (&[Single], Sign), len: usize) -> LongRepr {
+fn shl_long((a, asign): LongOperand<'_>, len: usize) -> LongRepr {
     if len == 0 {
-        return (a.to_vec(), asign);
+        return LongRepr(a.to_vec(), asign);
     }
 
     let sbits = Single::BITS as usize;
 
     if asign == Sign::ZERO {
-        return (vec![], Sign::ZERO);
+        return Default::default();
     }
 
     let offset = len / sbits;
@@ -1478,18 +1494,18 @@ fn shl_long((a, asign): (&[Single], Sign), len: usize) -> LongRepr {
 
     res.truncate(len);
 
-    (res, sign)
+    LongRepr(res, sign)
 }
 
-fn shr_long((a, asign): (&[Single], Sign), len: usize) -> LongRepr {
+fn shr_long((a, asign): LongOperand<'_>, len: usize) -> LongRepr {
     if len == 0 {
-        return (a.to_vec(), asign);
+        return LongRepr(a.to_vec(), asign);
     }
 
     let sbits = Single::BITS as usize;
 
     if asign == Sign::ZERO || len >= a.len() * sbits {
-        return (vec![], Sign::ZERO);
+        return Default::default();
     }
 
     let offset = len / sbits;
@@ -1511,17 +1527,17 @@ fn shr_long((a, asign): (&[Single], Sign), len: usize) -> LongRepr {
 
     res.truncate(len);
 
-    (res, sign)
+    LongRepr(res, sign)
 }
 
 fn add_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    (b, blen, bsign): (&[Single; L], usize, Sign),
+    (a, alen, asign): FixedOperand<'_, L>,
+    (b, blen, bsign): FixedOperand<'_, L>,
 ) -> FixedRepr<L> {
     match (asign, bsign) {
-        | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
-        | (Sign::ZERO, _) => return (*b, blen, bsign, false),
-        | (_, Sign::ZERO) => return (*a, alen, asign, false),
+        | (Sign::ZERO, Sign::ZERO) => return FixedRepr([0; L], 0, Sign::ZERO, false),
+        | (Sign::ZERO, _) => return FixedRepr(*b, blen, bsign, false),
+        | (_, Sign::ZERO) => return FixedRepr(*a, alen, asign, false),
         | _ => (),
     }
 
@@ -1553,17 +1569,17 @@ fn add_fixed<const L: usize>(
     let sign = get_sign(len, asign);
     let over = len == L && acc > 0;
 
-    (res, len, sign, over)
+    FixedRepr(res, len, sign, over)
 }
 
 fn sub_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    (b, blen, bsign): (&[Single; L], usize, Sign),
+    (a, alen, asign): FixedOperand<'_, L>,
+    (b, blen, bsign): FixedOperand<'_, L>,
 ) -> FixedRepr<L> {
     match (asign, bsign) {
-        | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
-        | (Sign::ZERO, _) => return (*b, blen, Sign::NEG * bsign, false),
-        | (_, Sign::ZERO) => return (*a, alen, Sign::POS * asign, false),
+        | (Sign::ZERO, Sign::ZERO) => return FixedRepr([0; L], 0, Sign::ZERO, false),
+        | (Sign::ZERO, _) => return FixedRepr(*b, blen, Sign::NEG * bsign, false),
+        | (_, Sign::ZERO) => return FixedRepr(*a, alen, Sign::POS * asign, false),
         | _ => (),
     }
 
@@ -1573,7 +1589,7 @@ fn sub_fixed<const L: usize>(
 
     let (a, alen, b, _, sign) = match cmp_nums(&a[..alen], &b[..blen]) {
         | Ordering::Less => (b, blen, a, alen, asign * Sign::NEG),
-        | Ordering::Equal => return ([0; L], 0, Sign::ZERO, false),
+        | Ordering::Equal => return FixedRepr([0; L], 0, Sign::ZERO, false),
         | Ordering::Greater => (a, alen, b, blen, asign * Sign::POS),
     };
 
@@ -1596,7 +1612,7 @@ fn sub_fixed<const L: usize>(
     let len = get_len(&res);
     let sign = get_sign(res.len(), sign);
 
-    (res, len, sign, false)
+    FixedRepr(res, len, sign, false)
 }
 
 fn avg_fixed<const L: usize>(
@@ -1636,12 +1652,12 @@ fn avg_fixed<const L: usize>(
 }
 
 fn mul_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    (b, blen, bsign): (&[Single; L], usize, Sign),
+    (a, alen, asign): FixedOperand<'_, L>,
+    (b, blen, bsign): FixedOperand<'_, L>,
 ) -> FixedRepr<L> {
     match (asign, bsign) {
-        | (Sign::ZERO, _) => return ([0; L], 0, Sign::ZERO, false),
-        | (_, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
+        | (Sign::ZERO, _) => return FixedRepr([0; L], 0, Sign::ZERO, false),
+        | (_, Sign::ZERO) => return FixedRepr([0; L], 0, Sign::ZERO, false),
         | _ => (),
     }
 
@@ -1676,30 +1692,30 @@ fn mul_fixed<const L: usize>(
     let len = get_len(&res);
     let sign = get_sign(len, asign * bsign);
 
-    (res, len, sign, over)
+    FixedRepr(res, len, sign, over)
 }
 
 fn div_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    (b, blen, bsign): (&[Single; L], usize, Sign),
+    (a, alen, asign): FixedOperand<'_, L>,
+    (b, blen, bsign): FixedOperand<'_, L>,
 ) -> FixedRepr<L> {
     let (div, _, len, _, sign, _, _, _) = divrem_fixed((a, alen, asign), (b, blen, bsign));
 
-    (div, len, sign, false)
+    FixedRepr(div, len, sign, false)
 }
 
 fn rem_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    (b, blen, bsign): (&[Single; L], usize, Sign),
+    (a, alen, asign): FixedOperand<'_, L>,
+    (b, blen, bsign): FixedOperand<'_, L>,
 ) -> FixedRepr<L> {
     let (_, rem, _, len, _, sign, _, _) = divrem_fixed((a, alen, asign), (b, blen, bsign));
 
-    (rem, len, sign, false)
+    FixedRepr(rem, len, sign, false)
 }
 
 fn divrem_fixed<const L: usize>(
-    (a, alen, asign): (&[Single; L], usize, Sign),
-    (b, blen, bsign): (&[Single; L], usize, Sign),
+    (a, alen, asign): FixedOperand<'_, L>,
+    (b, blen, bsign): FixedOperand<'_, L>,
 ) -> ([Single; L], [Single; L], usize, usize, Sign, Sign, bool, bool) {
     let one = get_arr(1);
 
@@ -1728,7 +1744,8 @@ fn divrem_fixed<const L: usize>(
 
     while cmp_nums(&l[..llen], &r[..rlen]) == Ordering::Less {
         let (m, mlen) = avg_fixed((&l, llen), (&r, rlen));
-        let (val, len, _, over) = mul_fixed((b, blen, Sign::POS), (&m, mlen, Sign::POS));
+
+        let FixedRepr(val, len, _, over) = mul_fixed((b, blen, Sign::POS), (&m, mlen, Sign::POS));
 
         if over {
             r = m;
@@ -1751,9 +1768,9 @@ fn divrem_fixed<const L: usize>(
         }
     }
 
-    let (div, div_len, _, _) = sub_fixed((&l, llen, Sign::POS), (&one, 1, Sign::POS));
-    let (mul, mul_len, _, _) = mul_fixed((&div, div_len, Sign::POS), (b, blen, Sign::POS));
-    let (rem, rem_len, _, _) = sub_fixed((&mul, mul_len, Sign::POS), (a, alen, Sign::POS));
+    let FixedRepr(div, div_len, _, _) = sub_fixed((&l, llen, Sign::POS), (&one, 1, Sign::POS));
+    let FixedRepr(mul, mul_len, _, _) = mul_fixed((&div, div_len, Sign::POS), (b, blen, Sign::POS));
+    let FixedRepr(rem, rem_len, _, _) = sub_fixed((&mul, mul_len, Sign::POS), (a, alen, Sign::POS));
 
     let div_sign = if div.is_empty() { Sign::ZERO } else { asign * bsign };
     let rem_sign = if rem.is_empty() { Sign::ZERO } else { asign };
@@ -1774,18 +1791,18 @@ where
     let len = get_len(&res);
     let sign = get_sign(len, Sign::POS);
 
-    (res, len, sign, false)
+    FixedRepr(res, len, sign, false)
 }
 
-fn shl_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> FixedRepr<L> {
+fn shl_fixed<const L: usize>((a, alen, asign): FixedOperand<'_, L>, len: usize) -> FixedRepr<L> {
     if len == 0 {
-        return (*a, alen, asign, false);
+        return FixedRepr(*a, alen, asign, false);
     }
 
     let sbits = Single::BITS as usize;
 
     if asign == Sign::ZERO || len >= L * sbits {
-        return ([0; L], 0, Sign::ZERO, len >= L * sbits);
+        return FixedRepr([0; L], 0, Sign::ZERO, len >= L * sbits);
     }
 
     let offset = len / sbits;
@@ -1808,18 +1825,18 @@ fn shl_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len:
     let len = get_len(&res);
     let sign = get_sign(len, asign);
 
-    (res, len, sign, false)
+    FixedRepr(res, len, sign, false)
 }
 
-fn shr_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> FixedRepr<L> {
+fn shr_fixed<const L: usize>((a, alen, asign): FixedOperand<'_, L>, len: usize) -> FixedRepr<L> {
     if len == 0 {
-        return (*a, alen, asign, false);
+        return FixedRepr(*a, alen, asign, false);
     }
 
     let sbits = Single::BITS as usize;
 
     if asign == Sign::ZERO || len >= alen * sbits {
-        return ([0; L], 0, Sign::ZERO, len >= alen * sbits);
+        return FixedRepr([0; L], 0, Sign::ZERO, len >= alen * sbits);
     }
 
     let offset = len / sbits;
@@ -1838,7 +1855,7 @@ fn shr_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len:
     let len = get_len(&res);
     let sign = get_sign(len, asign);
 
-    (res, len, sign, false)
+    FixedRepr(res, len, sign, false)
 }
 
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
@@ -1889,8 +1906,8 @@ ops_impl!(@bin |a: &SignedLong, b: usize| -> SignedLong,
     >> shr_long((&a).into(), b));
 
 ops_impl!(@bin |a: &UnsignedLong, b: usize| -> UnsignedLong,
-    << shl_long((&a.0, get_sign(a.0.len(), Sign::POS)), b),
-    >> shr_long((&a.0, get_sign(a.0.len(), Sign::POS)), b));
+    << shl_long((&a).into(), b),
+    >> shr_long((&a).into(), b));
 
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed(a.0, a.1, -a.2));
 
