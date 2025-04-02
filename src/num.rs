@@ -471,6 +471,14 @@ impl SignedLong {
         Self(digits, sign)
     }
 
+    pub fn digits(&self) -> &[Single] {
+        &self.0
+    }
+
+    pub fn sign(&self) -> Sign {
+        self.1
+    }
+
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let digits = from_bytes_long(bytes);
         let sign = get_sign(digits.len(), Sign::POS);
@@ -518,6 +526,10 @@ impl UnsignedLong {
         }
     }
 
+    pub fn digits(&self) -> &[Single] {
+        &self.0
+    }
+
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let digits = from_bytes_long(bytes);
 
@@ -552,6 +564,18 @@ impl UnsignedLong {
 impl<const L: usize> SignedFixed<L> {
     fn from_raw((digits, len, sign, _): ([Single; L], usize, Sign, bool)) -> Self {
         Self(digits, len, sign)
+    }
+
+    pub fn digits(&self) -> &[Single; L] {
+        &self.0
+    }
+
+    pub fn slice(&self) -> &[Single] {
+        &self.0[..self.1]
+    }
+
+    pub fn sign(&self) -> Sign {
+        self.2
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
@@ -609,6 +633,14 @@ impl<const L: usize> UnsignedFixed<L> {
             | _ if sign != Sign::NEG => Self(digits, len),
             | _ => Default::default(),
         }
+    }
+
+    pub fn digits(&self) -> &[Single; L] {
+        &self.0
+    }
+
+    pub fn slice(&self) -> &[Single] {
+        &self.0[..self.1]
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
