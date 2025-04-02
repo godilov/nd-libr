@@ -528,10 +528,9 @@ impl SignedLong {
 
 impl UnsignedLong {
     fn from_raw((data, sign): (Vec<Single>, Sign)) -> Self {
-        if sign != Sign::NEG {
-            Self { data }
-        } else {
-            Default::default()
+        match () {
+            | _ if sign != Sign::NEG => Self { data },
+            | _ => Default::default(),
         }
     }
 
@@ -567,7 +566,7 @@ impl UnsignedLong {
 }
 
 impl<const L: usize> SignedFixed<L> {
-    fn from_raw((data, len, sign): ([Single; L], usize, Sign)) -> Self {
+    fn from_raw((data, len, sign, _): ([Single; L], usize, Sign, bool)) -> Self {
         Self { data, sign, len }
     }
 
@@ -621,11 +620,10 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    fn from_raw((data, len, sign): ([Single; L], usize, Sign)) -> Self {
-        if sign != Sign::NEG {
-            Self { data, len }
-        } else {
-            Default::default()
+    fn from_raw((data, len, sign, _): ([Single; L], usize, Sign, bool)) -> Self {
+        match () {
+            | _ if sign != Sign::NEG => Self { data, len },
+            | _ => Default::default(),
         }
     }
 
@@ -1495,11 +1493,11 @@ fn shr_long((a, asign): (&[Single], Sign), len: usize) -> (Vec<Single>, Sign) {
 fn add_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign) {
+) -> ([Single; L], usize, Sign, bool) {
     match (asign, bsign) {
-        | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO),
-        | (Sign::ZERO, _) => return (*b, blen, bsign),
-        | (_, Sign::ZERO) => return (*a, alen, asign),
+        | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
+        | (Sign::ZERO, _) => return (*b, blen, bsign, false),
+        | (_, Sign::ZERO) => return (*a, alen, asign, false),
         | _ => (),
     }
 
@@ -1524,22 +1522,24 @@ fn add_fixed<const L: usize>(
 
     if len < L {
         res[len] = acc as Single;
+        acc >>= Single::BITS;
     }
 
     let len = get_len(&res);
     let sign = get_sign(len, asign);
+    let over = len == L && acc > 0;
 
-    (res, len, sign)
+    (res, len, sign, over)
 }
 
 fn sub_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign) {
+) -> ([Single; L], usize, Sign, bool) {
     match (asign, bsign) {
-        | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO),
-        | (Sign::ZERO, _) => return (*b, blen, Sign::NEG * bsign),
-        | (_, Sign::ZERO) => return (*a, alen, Sign::POS * asign),
+        | (Sign::ZERO, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
+        | (Sign::ZERO, _) => return (*b, blen, Sign::NEG * bsign, false),
+        | (_, Sign::ZERO) => return (*a, alen, Sign::POS * asign, false),
         | _ => (),
     }
 
@@ -1547,9 +1547,9 @@ fn sub_fixed<const L: usize>(
         return add_fixed((a, alen, asign), (b, blen, -bsign));
     }
 
-    let (a, alen, b, _, sign) = match cmp_nums(a, b) {
+    let (a, alen, b, _, sign) = match cmp_nums(&a[..alen], &b[..blen]) {
         | Ordering::Less => (b, blen, a, alen, asign * Sign::NEG),
-        | Ordering::Equal => return ([0; L], 0, Sign::ZERO),
+        | Ordering::Equal => return ([0; L], 0, Sign::ZERO, false),
         | Ordering::Greater => (a, alen, b, blen, asign * Sign::POS),
     };
 
@@ -1572,20 +1572,57 @@ fn sub_fixed<const L: usize>(
     let len = get_len(&res);
     let sign = get_sign(res.len(), sign);
 
-    (res, len, sign)
+    (res, len, sign, false)
+}
+
+fn avg_fixed<const L: usize>(
+    (a, alen): (&[Single; L], usize),
+    (b, blen): (&[Single; L], usize),
+) -> ([Single; L], usize) {
+    let len = alen.max(blen);
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    for i in 0..len {
+        let aop = a[i] as Double;
+        let bop = b[i] as Double;
+        let val = aop + bop;
+
+        acc += val >> 1;
+
+        if i > 0 {
+            let r = res[i - 1] as Double + ((val as Single) << (Single::BITS - 1)) as Double;
+
+            res[i - 1] = r as Single;
+            acc += r >> Single::BITS;
+        }
+
+        res[i] = acc as Single;
+        acc >>= Single::BITS;
+    }
+
+    if len < L {
+        res[len] = acc as Single;
+    }
+
+    let len = get_len(&res);
+
+    (res, len)
 }
 
 fn mul_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign) {
+) -> ([Single; L], usize, Sign, bool) {
     match (asign, bsign) {
-        | (Sign::ZERO, _) => return ([0; L], 0, Sign::ZERO),
-        | (_, Sign::ZERO) => return ([0; L], 0, Sign::ZERO),
+        | (Sign::ZERO, _) => return ([0; L], 0, Sign::ZERO, false),
+        | (_, Sign::ZERO) => return ([0; L], 0, Sign::ZERO, false),
         | _ => (),
     }
 
     let mut res = [0; L];
+    let mut over = false;
 
     for i in 0..alen {
         let mut acc = 0;
@@ -1606,116 +1643,101 @@ fn mul_fixed<const L: usize>(
             let val = acc + res[idx] as Double;
 
             res[idx] = val as Single;
+            acc >>= Single::BITS;
         }
+
+        over |= i + blen == L && acc > 0 || i + blen > L;
     }
 
     let len = get_len(&res);
     let sign = get_sign(len, asign * bsign);
 
-    (res, len, sign)
+    (res, len, sign, over)
 }
 
 fn div_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign) {
-    let (div, _, len, _, sign, _) = divrem_fixed((a, alen, asign), (b, blen, bsign));
+) -> ([Single; L], usize, Sign, bool) {
+    let (div, _, len, _, sign, _, _, _) = divrem_fixed((a, alen, asign), (b, blen, bsign));
 
-    (div, len, sign)
+    (div, len, sign, false)
 }
 
 fn rem_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], usize, Sign) {
-    let (_, rem, _, len, _, sign) = divrem_fixed((a, alen, asign), (b, blen, bsign));
+) -> ([Single; L], usize, Sign, bool) {
+    let (_, rem, _, len, _, sign, _, _) = divrem_fixed((a, alen, asign), (b, blen, bsign));
 
-    (rem, len, sign)
+    (rem, len, sign, false)
 }
 
 fn divrem_fixed<const L: usize>(
     (a, alen, asign): (&[Single; L], usize, Sign),
     (b, blen, bsign): (&[Single; L], usize, Sign),
-) -> ([Single; L], [Single; L], usize, usize, Sign, Sign) {
+) -> ([Single; L], [Single; L], usize, usize, Sign, Sign, bool, bool) {
+    let one = get_arr(1);
+
     match (asign, bsign) {
         | (Sign::ZERO, _) => {
-            return ([0; L], [0; L], 0, 0, Sign::ZERO, Sign::ZERO);
+            return ([0; L], [0; L], 0, 0, Sign::ZERO, Sign::ZERO, false, false);
         },
         | (_, Sign::ZERO) => panic!("Division by zero"),
         | _ => (),
     }
 
-    match cmp_nums(a, b) {
-        | Ordering::Less => return ([0; L], *a, 0, alen, Sign::ZERO, asign),
-        | Ordering::Equal => return (get_arr(1), [0; L], 1, 0, asign * bsign, Sign::ZERO),
+    if b == &one {
+        return (*a, [0; L], alen, 0, asign, Sign::ZERO, false, false);
+    }
+
+    match cmp_nums(&a[..alen], &b[..blen]) {
+        | Ordering::Less => return ([0; L], *a, 0, alen, Sign::ZERO, asign, false, false),
+        | Ordering::Equal => return (one, [0; L], 1, 0, asign * bsign, Sign::ZERO, false, false),
         | Ordering::Greater => (),
     }
 
-    // TODO: Find a way to make this static array
-    let mut div = vec![0; L];
-    let mut rem = vec![0; L + 1];
-    let mut len = 0;
+    let mut l = get_arr(2);
+    let mut r = *a;
+    let mut llen = 1;
+    let mut rlen = alen;
 
-    for i in (0..alen).rev() {
-        for j in (1..len + 1).rev() {
-            rem[j] = rem[j - 1];
-        }
+    while cmp_nums(&l[..llen], &r[..rlen]) == Ordering::Less {
+        let (m, mlen) = avg_fixed((&l, llen), (&r, rlen));
+        let (val, len, _, over) = mul_fixed((b, blen, Sign::POS), (&m, mlen, Sign::POS));
 
-        rem[0] = a[i];
-        len += 1;
+        if over {
+            r = m;
+            rlen = mlen;
 
-        if len < blen {
             continue;
         }
 
-        let mut l = 0 as Double;
-        let mut r = RADIX;
+        match cmp_nums(&val[..len], &a[..alen]) {
+            | Ordering::Less | Ordering::Equal => {
+                let val = add_fixed((&m, mlen, Sign::POS), (&one, 1, Sign::POS));
 
-        while l < r {
-            let m = l + (r - l) / 2;
-            let s = Sign::from(m);
-
-            let (val, _, _) = mul_fixed((b, blen, Sign::POS), (&get_arr(m as Single), 1, s));
-            let remop = rem.first_chunk().unwrap_or(&[0; L]);
-
-            match cmp_nums(&val, remop) {
-                | Ordering::Less => l = m + 1,
-                | Ordering::Equal => l = m + 1,
-                | Ordering::Greater => r = m,
-            }
+                l = val.0;
+                llen = val.1;
+            },
+            | Ordering::Greater => {
+                r = m;
+                rlen = mlen;
+            },
         }
-
-        let digit = l.saturating_sub(1) as Single;
-        if digit > 0 {
-            let remop = rem.first_chunk().unwrap_or(&[0; L]);
-
-            let (val, val_len, _) = mul_fixed((b, blen, Sign::POS), (&get_arr(digit), 1, Sign::POS));
-            let (sub, sub_len, _) = sub_fixed((remop, len, Sign::POS), (&val, val_len, Sign::POS));
-
-            div[i] = digit;
-            len = sub_len;
-
-            rem.fill(0);
-
-            for (j, d) in sub.iter().copied().enumerate() {
-                rem[j] = d;
-            }
-        };
     }
 
-    let div = *div.first_chunk().unwrap_or(&[0; L]);
-    let rem = *rem.first_chunk().unwrap_or(&[0; L]);
+    let (div, div_len, _, _) = sub_fixed((&l, llen, Sign::POS), (&one, 1, Sign::POS));
+    let (mul, mul_len, _, _) = mul_fixed((&div, div_len, Sign::POS), (b, blen, Sign::POS));
+    let (rem, rem_len, _, _) = sub_fixed((&mul, mul_len, Sign::POS), (a, alen, Sign::POS));
 
-    let div_len = get_len(&div);
-    let rem_len = get_len(&rem);
+    let div_sign = if div.is_empty() { Sign::ZERO } else { asign * bsign };
+    let rem_sign = if rem.is_empty() { Sign::ZERO } else { asign };
 
-    let div_sign = if div_len == 0 { Sign::ZERO } else { asign * bsign };
-    let rem_sign = if rem_len == 0 { Sign::ZERO } else { asign };
-
-    (div, rem, div_len, rem_len, div_sign, rem_sign)
+    (div, rem, div_len, rem_len, div_sign, rem_sign, false, false)
 }
 
-fn bit_fixed<const L: usize, F>(a: &[Single; L], b: &[Single; L], func: F) -> ([Single; L], usize, Sign)
+fn bit_fixed<const L: usize, F>(a: &[Single; L], b: &[Single; L], func: F) -> ([Single; L], usize, Sign, bool)
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -1728,18 +1750,21 @@ where
     let len = get_len(&res);
     let sign = get_sign(len, Sign::POS);
 
-    (res, len, sign)
+    (res, len, sign, false)
 }
 
-fn shl_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> ([Single; L], usize, Sign) {
+fn shl_fixed<const L: usize>(
+    (a, alen, asign): (&[Single; L], usize, Sign),
+    len: usize,
+) -> ([Single; L], usize, Sign, bool) {
     if len == 0 {
-        return (*a, alen, asign);
+        return (*a, alen, asign, false);
     }
 
     let sbits = Single::BITS as usize;
 
     if asign == Sign::ZERO || len >= L * sbits {
-        return ([0; L], 0, Sign::ZERO);
+        return ([0; L], 0, Sign::ZERO, len >= L * sbits);
     }
 
     let offset = len / sbits;
@@ -1762,18 +1787,21 @@ fn shl_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len:
     let len = get_len(&res);
     let sign = get_sign(len, asign);
 
-    (res, len, sign)
+    (res, len, sign, false)
 }
 
-fn shr_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len: usize) -> ([Single; L], usize, Sign) {
+fn shr_fixed<const L: usize>(
+    (a, alen, asign): (&[Single; L], usize, Sign),
+    len: usize,
+) -> ([Single; L], usize, Sign, bool) {
     if len == 0 {
-        return (*a, alen, asign);
+        return (*a, alen, asign, false);
     }
 
     let sbits = Single::BITS as usize;
 
     if asign == Sign::ZERO || len >= alen * sbits {
-        return ([0; L], 0, Sign::ZERO);
+        return ([0; L], 0, Sign::ZERO, len >= alen * sbits);
     }
 
     let offset = len / sbits;
@@ -1792,7 +1820,7 @@ fn shr_fixed<const L: usize>((a, alen, asign): (&[Single; L], usize, Sign), len:
     let len = get_len(&res);
     let sign = get_sign(len, asign);
 
-    (res, len, sign)
+    (res, len, sign, false)
 }
 
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
@@ -1987,7 +2015,7 @@ fn get_arr<const L: usize>(val: Single) -> [Single; L] {
 mod tests {
     use super::*;
 
-    const PRIMES: [usize; 2] = [10_570_841, 10_570_849];
+    const PRIMES: [usize; 4] = [10_570_841, 10_570_849, 31, 33];
 
     type S32 = signed_fixed!(32);
     type U32 = unsigned_fixed!(32);
@@ -2426,6 +2454,14 @@ mod tests {
 
                 assert_eq!(a + b, S32::from(aop + bop));
                 assert_eq!(a - b, S32::from(aop - bop));
+
+                let aop = aop.abs();
+                let bop = bop.abs();
+                let val = S32::from((aop + bop) / 2);
+
+                let avg = avg_fixed((&a.data, a.len), (&b.data, b.len));
+
+                assert_eq!((&avg.0, avg.1), (&val.data, val.len));
             }
         }
     }
