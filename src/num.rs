@@ -324,8 +324,6 @@ pub enum TryFromStrError {
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryFromDigitsError {
-    #[error("Exceeded maximum length of {max} with {len}")]
-    ExceedLength { len: usize, max: usize },
     #[error("Found invalid radix '{radix}'")]
     InvalidRadix { radix: Double },
     #[error("Found invalid radix pow '{pow}'")]
@@ -966,22 +964,16 @@ fn try_from_digits_fixed_bin<const L: usize>(
         shl += pow;
 
         if shl >= Single::BITS as u8 {
-            if idx == L && acc > 0 {
-                return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
-            }
-
             if idx < L {
                 res[idx] = acc as Single;
                 idx += 1;
+            } else if acc > 0 {
+                break;
             }
 
             acc >>= Single::BITS;
             shl -= Single::BITS as u8;
         }
-    }
-
-    if idx == L && acc > 0 {
-        return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
     }
 
     if idx < L && acc > 0 {
@@ -991,7 +983,7 @@ fn try_from_digits_fixed_bin<const L: usize>(
     let len = get_len(&res);
     let sign = get_sign(len, sign);
 
-    Ok((res, len, sign, false))
+    Ok((res, len, sign, idx == L && acc > 0))
 }
 
 fn try_from_digits_fixed<const L: usize>(
@@ -1015,16 +1007,12 @@ fn try_from_digits_fixed<const L: usize>(
     for &digit in digits.iter().rev() {
         let mut acc = digit as Double;
 
-        for (i, res) in res.iter_mut().enumerate().take(idx + 1) {
+        for res in res.iter_mut().take(idx + 1) {
             acc += *res as Double * radix as Double;
 
             *res = acc as Single;
 
             acc >>= Single::BITS;
-
-            if i + 1 == L && acc > 0 {
-                return Err(TryFromDigitsError::ExceedLength { len: idx + 1, max: L });
-            }
         }
 
         if idx < L && acc > 0 {
@@ -1039,7 +1027,7 @@ fn try_from_digits_fixed<const L: usize>(
     let len = get_len(&res);
     let sign = get_sign(len, sign);
 
-    Ok((res, len, sign, false))
+    Ok((res, len, sign, idx == L))
 }
 
 fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
