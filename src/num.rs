@@ -310,7 +310,7 @@ mod radix {
     radix_impl!([Bin, Oct, Dec, Hex]);
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromStrError {
     #[error("Found empty during parsing from string")]
     InvalidLength,
@@ -322,7 +322,7 @@ pub enum TryFromStrError {
     FromDigits(#[from] TryFromDigitsError),
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromDigitsError {
     #[error("Found invalid radix '{radix}'")]
     InvalidRadix { radix: Double },
@@ -332,7 +332,7 @@ pub enum TryFromDigitsError {
     InvalidDigit { digit: Single, radix: Double },
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum IntoRadixError {
     #[error("Found invalid radix '{radix}'")]
     InvalidRadix { radix: Double },
@@ -340,7 +340,7 @@ pub enum IntoRadixError {
     InvalidPow { pow: u8 },
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
     #[default]
     ZERO = 0,
@@ -348,10 +348,10 @@ pub enum Sign {
     POS = 1,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SignedLong(Vec<Single>, Sign);
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnsignedLong(Vec<Single>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -360,7 +360,7 @@ pub struct SignedFixed<const L: usize>([Single; L], usize, Sign);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnsignedFixed<const L: usize>([Single; L], usize);
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct LongRepr(Vec<Single>, Sign);
 
 #[derive(Debug)]
@@ -405,9 +405,10 @@ impl From<LongRepr> for SignedLong {
 
 impl From<LongRepr> for UnsignedLong {
     fn from(value: LongRepr) -> Self {
-        match () {
-            | _ if value.1 != Sign::NEG => Self(value.0),
-            | _ => Default::default(),
+        match value.1 {
+            | Sign::ZERO => Default::default(),
+            | Sign::NEG => Default::default(),
+            | Sign::POS => Self(value.0),
         }
     }
 }
@@ -468,9 +469,10 @@ impl<const L: usize> From<FixedRepr<L>> for SignedFixed<L> {
 
 impl<const L: usize> From<FixedRepr<L>> for UnsignedFixed<L> {
     fn from(value: FixedRepr<L>) -> Self {
-        match () {
-            | _ if value.2 != Sign::NEG => Self(value.0, value.1),
-            | _ => Default::default(),
+        match value.2 {
+            | Sign::ZERO => Default::default(),
+            | Sign::NEG => Default::default(),
+            | Sign::POS => Self(value.0, value.1),
         }
     }
 }
@@ -729,6 +731,8 @@ impl<const L: usize> UnsignedFixed<L> {
 }
 
 impl LongRepr {
+    const ZERO: Self = LongRepr(vec![], Sign::ZERO);
+
     fn from_raw(mut digits: Vec<Single>, sign: Sign) -> Self {
         let len = get_len(&digits);
         let sign = get_sign(len, sign);
@@ -738,9 +742,13 @@ impl LongRepr {
         Self(digits, sign)
     }
 
+    fn slice(&self) -> &[Single] {
+        &self.0
+    }
+
     fn single(digit: Single) -> Self {
         match digit {
-            | 0 => Default::default(),
+            | 0 => LongRepr::ZERO,
             | x => Self(vec![x], Sign::POS),
         }
     }
@@ -752,6 +760,10 @@ impl LongRepr {
 }
 
 impl LongOperand<'_> {
+    fn slice(&self) -> &[Single] {
+        self.0
+    }
+
     fn with_sign(mut self, sign: Sign) -> Self {
         self.1 = sign;
         self
@@ -786,10 +798,6 @@ impl<const L: usize> FixedRepr<L> {
 }
 
 impl<const L: usize> FixedOperand<'_, L> {
-    const ZERO: Self = FixedOperand::<'static, L>(&get_arr(0), 0, Sign::ZERO);
-    const ONE: Self = FixedOperand::<'static, L>(&get_arr(1), 1, Sign::POS);
-    const TWO: Self = FixedOperand::<'static, L>(&get_arr(2), 1, Sign::POS);
-
     fn slice(&self) -> &[Single] {
         &self.0[..self.1]
     }
@@ -1309,7 +1317,7 @@ fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {
 
 fn add_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
     match (a.1, b.1) {
-        | (Sign::ZERO, Sign::ZERO) => return Default::default(),
+        | (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         | (Sign::ZERO, _) => return b.into(),
         | (_, Sign::ZERO) => return a.into(),
         | _ => (),
@@ -1341,7 +1349,7 @@ fn add_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
 
 fn sub_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
     match (a.1, b.1) {
-        | (Sign::ZERO, Sign::ZERO) => return Default::default(),
+        | (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         | (Sign::ZERO, _) => return (-b).into(),
         | (_, Sign::ZERO) => return a.into(),
         | _ => (),
@@ -1353,7 +1361,7 @@ fn sub_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
 
     let (a, b, sign) = match cmp_nums(a.0, b.0) {
         | Ordering::Less => (b, a, -a.1),
-        | Ordering::Equal => return Default::default(),
+        | Ordering::Equal => return LongRepr::ZERO,
         | Ordering::Greater => (a, b, a.1),
     };
 
@@ -1376,8 +1384,8 @@ fn sub_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
 
 fn mul_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
     match (a.1, b.1) {
-        | (Sign::ZERO, _) => return Default::default(),
-        | (_, Sign::ZERO) => return Default::default(),
+        | (Sign::ZERO, _) => return LongRepr::ZERO,
+        | (_, Sign::ZERO) => return LongRepr::ZERO,
         | _ => (),
     }
 
@@ -1412,14 +1420,18 @@ fn mul_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
 
 fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
     match (a.1, b.1) {
-        | (Sign::ZERO, _) => return Default::default(),
+        | (Sign::ZERO, _) => return (LongRepr::ZERO, LongRepr::ZERO),
         | (_, Sign::ZERO) => panic!("Division by zero"),
         | _ => (),
     }
 
+    if b == (&LongRepr::single(1)).into() {
+        return (a.into(), LongRepr::ZERO);
+    }
+
     match cmp_nums(a.0, b.0) {
-        | Ordering::Less => return (Default::default(), a.into()),
-        | Ordering::Equal => return (LongRepr::single(1).with_sign(a.1 * b.1), Default::default()),
+        | Ordering::Less => return (LongRepr::ZERO, a.into()),
+        | Ordering::Equal => return (LongRepr::single(1).with_sign(a.1 * b.1), LongRepr::ZERO),
         | Ordering::Greater => (),
     }
 
@@ -1427,8 +1439,8 @@ fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
     let len_b = b.0.len();
     let sign_a = a.1;
     let sign_b = b.1;
-    let a = a.with_sign(Sign::POS);
-    let b = b.with_sign(Sign::POS);
+    let apos = a.with_sign(Sign::POS);
+    let bpos = b.with_sign(Sign::POS);
 
     let mut div = vec![0; len_a];
     let mut rem = vec![0; len_b + 1];
@@ -1439,7 +1451,7 @@ fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
             rem[j] = rem[j - 1];
         }
 
-        rem[0] = a.0[i];
+        rem[0] = apos.0[i];
         len += 1;
 
         if len < len_b {
@@ -1454,7 +1466,7 @@ fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
 
             let mul = LongRepr::single(m as Single);
 
-            let val = mul_long(b, (&mul).into());
+            let val = mul_long(bpos, (&mul).into());
 
             match cmp_nums(&val.0, &rem[..len]) {
                 | Ordering::Less => l = m + 1,
@@ -1467,7 +1479,7 @@ fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
         if digit > 0 {
             let repr = LongRepr::single(digit);
 
-            let val = mul_long(b, (&repr).into());
+            let val = mul_long(bpos, (&repr).into());
             let sub = sub_long(LongOperand(&rem[..len], Sign::POS), (&val).into());
 
             div[i] = digit;
@@ -1510,7 +1522,7 @@ fn shl_long(a: LongOperand<'_>, len: usize) -> LongRepr {
     let sbits = Single::BITS as usize;
 
     if a.1 == Sign::ZERO {
-        return Default::default();
+        return LongRepr::ZERO;
     }
 
     let offset = len / sbits;
@@ -1544,7 +1556,7 @@ fn shr_long(a: LongOperand<'_>, len: usize) -> LongRepr {
     let sbits = Single::BITS as usize;
 
     if a.1 == Sign::ZERO || len >= a.0.len() * sbits {
-        return Default::default();
+        return LongRepr::ZERO;
     }
 
     let offset = len / sbits;
@@ -1593,7 +1605,7 @@ fn add_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
         acc >>= Single::BITS;
     }
 
-    FixedRepr::from_raw(res, a.2, len == L && acc > 0 || len > L)
+    FixedRepr::from_raw(res, a.2, len == L && acc > 0)
 }
 
 fn sub_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
@@ -1629,7 +1641,26 @@ fn sub_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
     FixedRepr::from_raw(res, sign, false)
 }
 
-fn avg_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
+fn addshr_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, shr: usize) -> FixedRepr<L> {
+    if shr == 0 {
+        return add_fixed(a, b);
+    }
+
+    if shr >= Single::BITS as usize {
+        return FixedRepr::ZERO;
+    }
+
+    match (a.2, b.2) {
+        | (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        | (Sign::ZERO, _) => return shr_fixed(b, 1),
+        | (_, Sign::ZERO) => return shr_fixed(a, 1),
+        | _ => (),
+    }
+
+    if a.2 != b.2 {
+        return subshr_fixed(a, -b, shr);
+    }
+
     let len = a.1.max(b.1);
 
     let mut acc = 0;
@@ -1640,10 +1671,10 @@ fn avg_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
         let bop = b.0[i] as Double;
         let val = aop + bop;
 
-        acc += val >> 1;
+        acc += val >> shr;
 
         if i > 0 {
-            let r = res[i - 1] as Double + ((val as Single) << (Single::BITS - 1)) as Double;
+            let r = res[i - 1] as Double + ((val as Single) << (Single::BITS - shr as u32)) as Double;
 
             res[i - 1] = r as Single;
             acc += r >> Single::BITS;
@@ -1659,6 +1690,53 @@ fn avg_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
     }
 
     FixedRepr::from_raw(res, a.2, len == L && acc > 0)
+}
+
+fn subshr_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, shr: usize) -> FixedRepr<L> {
+    if shr == 0 {
+        return sub_fixed(a, b);
+    }
+
+    if shr >= Single::BITS as usize {
+        return FixedRepr::ZERO;
+    }
+
+    match (a.2, b.2) {
+        | (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        | (Sign::ZERO, _) => return shr_fixed(-b, 1),
+        | (_, Sign::ZERO) => return shr_fixed(a, 1),
+        | _ => (),
+    }
+
+    if a.2 != b.2 {
+        return addshr_fixed(a, -b, shr);
+    }
+
+    let (a, b, sign) = match cmp_nums(a.slice(), b.slice()) {
+        | Ordering::Less => (b, a, -a.2),
+        | Ordering::Equal => return FixedRepr::ZERO,
+        | Ordering::Greater => (a, b, a.2),
+    };
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    for i in 0..a.1 {
+        let aop = a.0[i] as Double;
+        let bop = b.0[i] as Double;
+        let val = RADIX + aop - bop - acc;
+
+        if i > 0 {
+            let r = res[i - 1] as Double + ((val as Single) << (Single::BITS - shr as u32)) as Double;
+
+            res[i - 1] = r as Single;
+        }
+
+        res[i] = (val as Single) >> shr;
+        acc = (aop < bop + acc) as Double;
+    }
+
+    FixedRepr::from_raw(res, sign, false)
 }
 
 fn mul_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
@@ -1709,7 +1787,7 @@ fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
         | _ => (),
     }
 
-    if b == FixedOperand::ONE {
+    if b == (&FixedRepr::ONE).into() {
         return (a.into(), FixedRepr::ZERO);
     }
 
@@ -1721,16 +1799,16 @@ fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
 
     let sign_a = a.2;
     let sign_b = b.2;
-    let a = a.with_sign(Sign::POS);
-    let b = b.with_sign(Sign::POS);
+    let apos = a.with_sign(Sign::POS);
+    let bpos = b.with_sign(Sign::POS);
 
     let mut l = FixedRepr::TWO;
-    let mut r = FixedRepr::from(a);
+    let mut r = FixedRepr::from(apos);
 
     while cmp_nums(l.slice(), r.slice()) == Ordering::Less {
-        let m = avg_fixed((&l).into(), (&r).into());
+        let m = addshr_fixed((&l).into(), (&r).into(), 1);
 
-        let val = mul_fixed(b, (&m).into());
+        let val = mul_fixed(bpos, (&m).into());
 
         if val.3 {
             r = m;
@@ -1738,9 +1816,9 @@ fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
             continue;
         }
 
-        match cmp_nums(val.slice(), a.slice()) {
+        match cmp_nums(val.slice(), apos.slice()) {
             | Ordering::Less | Ordering::Equal => {
-                l = add_fixed((&m).into(), FixedOperand::ONE);
+                l = add_fixed((&m).into(), (&FixedRepr::ONE).into());
             },
             | Ordering::Greater => {
                 r = m;
@@ -1748,10 +1826,10 @@ fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
         }
     }
 
-    let div = sub_fixed((&l).into(), FixedOperand::ONE);
-    let mul = mul_fixed((&div).into(), b);
+    let div = sub_fixed((&l).into(), (&FixedRepr::ONE).into());
+    let mul = mul_fixed((&div).into(), bpos);
 
-    let rem = sub_fixed((&mul).into(), a);
+    let rem = sub_fixed((&mul).into(), apos);
 
     (div.with_sign(sign_a * sign_b), rem.with_sign(sign_a))
 }
@@ -2433,14 +2511,25 @@ mod tests {
 
                 assert_eq!(a + b, S32::from(aop + bop));
                 assert_eq!(a - b, S32::from(aop - bop));
+            }
+        }
+    }
 
-                let aop = aop.abs();
-                let bop = bop.abs();
-                let val = S32::from((aop + bop) / 2);
+    #[test]
+    fn addsubshr_fixed() {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+                let aop = aop as i64;
+                let bop = bop as i64;
 
-                let avg = avg_fixed((&a).into(), (&b).into());
+                let a = &S32::from(aop);
+                let b = &S32::from(bop);
 
-                assert_eq!((&avg.0, avg.1), (&val.0, val.1));
+                let add = S32::from(addshr_fixed((&a).into(), (&b).into(), 1));
+                let sub = S32::from(subshr_fixed((&a).into(), (&b).into(), 1));
+
+                assert_eq!(add, S32::from((aop + bop) / 2));
+                assert_eq!(sub, S32::from((aop - bop) / 2));
             }
         }
     }
