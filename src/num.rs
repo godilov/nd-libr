@@ -117,7 +117,7 @@ macro_rules! radix_impl {
     ($type:ty) => {
         impl Radix for $type {
             const VAL: Double = Self::RADIX;
-            const POWER: u8 = Self::POWER;
+            const WIDTH: u8 = Self::WIDTH;
             const PREFIX: &str = Self::PREFIX;
         }
     };
@@ -234,10 +234,10 @@ mod digit {
     pub(super) type Double = u128;
 
     pub(super) const OCT_VAL: Double = (1 as Double) << 63;
-    pub(super) const OCT_POW: u8 = 21;
+    pub(super) const OCT_WIDTH: u8 = 21;
 
     pub(super) const DEC_VAL: Double = 10_000_000_000_000_000_000;
-    pub(super) const DEC_POW: u8 = 19;
+    pub(super) const DEC_WIDTH: u8 = 19;
 }
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
@@ -246,10 +246,10 @@ mod digit {
     pub(super) type Double = u64;
 
     pub(super) const OCT_VAL: Double = (1 as Double) << 30;
-    pub(super) const OCT_POW: u8 = 10;
+    pub(super) const OCT_WIDTH: u8 = 10;
 
     pub(super) const DEC_VAL: Double = 1_000_000_000;
-    pub(super) const DEC_POW: u8 = 9;
+    pub(super) const DEC_WIDTH: u8 = 9;
 }
 
 #[cfg(test)]
@@ -258,23 +258,23 @@ mod digit {
     pub(super) type Double = u16;
 
     pub(super) const OCT_VAL: Double = (1 as Double) << 6;
-    pub(super) const OCT_POW: u8 = 2;
+    pub(super) const OCT_WIDTH: u8 = 2;
 
     pub(super) const DEC_VAL: Double = 100;
-    pub(super) const DEC_POW: u8 = 2;
+    pub(super) const DEC_WIDTH: u8 = 2;
 }
 
 mod radix {
     use super::{
         Double, Single,
-        digit::{DEC_POW, DEC_VAL, OCT_POW, OCT_VAL},
+        digit::{DEC_VAL, DEC_WIDTH, OCT_VAL, OCT_WIDTH},
     };
 
     pub(super) const RADIX: Double = Single::MAX as Double + 1;
 
     pub trait Radix {
         const VAL: Double = Single::MAX as Double + 1;
-        const POWER: u8;
+        const WIDTH: u8;
         const PREFIX: &str;
     }
 
@@ -285,25 +285,25 @@ mod radix {
 
     impl Bin {
         pub const RADIX: Double = Single::MAX as Double + 1;
-        pub const POWER: u8 = Single::BITS as u8;
+        pub const WIDTH: u8 = Single::BITS as u8;
         pub const PREFIX: &str = "0b";
     }
 
     impl Oct {
         pub const RADIX: Double = OCT_VAL;
-        pub const POWER: u8 = OCT_POW;
+        pub const WIDTH: u8 = OCT_WIDTH;
         pub const PREFIX: &str = "0o";
     }
 
     impl Dec {
         pub const RADIX: Double = DEC_VAL;
-        pub const POWER: u8 = DEC_POW;
+        pub const WIDTH: u8 = DEC_WIDTH;
         pub const PREFIX: &str = "";
     }
 
     impl Hex {
         pub const RADIX: Double = Single::MAX as Double + 1;
-        pub const POWER: u8 = Single::BITS as u8 / 4;
+        pub const WIDTH: u8 = Single::BITS as u8 / 4;
         pub const PREFIX: &str = "0x";
     }
 
@@ -808,143 +808,163 @@ impl<const L: usize> FixedOperand<'_, L> {
     }
 }
 
-impl Binary for SignedLong {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Bin, fmt, &self.0, self.1, write_num_bin)
-    }
-}
-
-impl Binary for UnsignedLong {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
-
-        write_num(Bin, fmt, &self.0, sign, write_num_bin)
-    }
-}
-
-impl<const L: usize> Binary for SignedFixed<L> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Bin, fmt, &self.0[..self.1], self.2, write_num_bin)
-    }
-}
-
-impl<const L: usize> Binary for UnsignedFixed<L> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
-
-        write_num(Bin, fmt, &self.0[..self.1], sign, write_num_bin)
-    }
-}
-
-impl Octal for SignedLong {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Oct, fmt, &self.0, self.1, write_num_oct)
-    }
-}
-
-impl Octal for UnsignedLong {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
-
-        write_num(Oct, fmt, &self.0, sign, write_num_oct)
-    }
-}
-
-impl<const L: usize> Octal for SignedFixed<L> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Oct, fmt, &self.0[..self.1], self.2, write_num_oct)
-    }
-}
-
-impl<const L: usize> Octal for UnsignedFixed<L> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
-
-        write_num(Oct, fmt, &self.0[..self.1], sign, write_num_oct)
-    }
-}
-
 impl Display for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Dec, fmt, &self.0, self.1, write_num_dec)
+        let digits = self.to_radix(Dec::RADIX).unwrap_or_default();
+
+        write_num(Dec, fmt, &digits, self.1, write_num_dec)
     }
 }
 
 impl Display for UnsignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
+        let digits = self.to_radix(Dec::RADIX).unwrap_or_default();
 
-        write_num(Dec, fmt, &self.0, sign, write_num_dec)
+        write_num(Dec, fmt, &digits, Sign::POS, write_num_dec)
     }
 }
 
 impl<const L: usize> Display for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Dec, fmt, &self.0[..self.1], self.2, write_num_dec)
+        let digits = self.to_radix(Dec::RADIX).unwrap_or_default();
+
+        write_num(Dec, fmt, &digits, self.2, write_num_dec)
     }
 }
 
 impl<const L: usize> Display for UnsignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
+        let digits = self.to_radix(Dec::RADIX).unwrap_or_default();
 
-        write_num(Dec, fmt, &self.0[..self.1], sign, write_num_dec)
+        write_num(Dec, fmt, &digits, Sign::POS, write_num_dec)
+    }
+}
+
+impl Binary for SignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Bin::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Bin, fmt, &digits, self.1, write_num_bin)
+    }
+}
+
+impl Binary for UnsignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Bin::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Bin, fmt, &digits, Sign::POS, write_num_bin)
+    }
+}
+
+impl<const L: usize> Binary for SignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Bin::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Bin, fmt, &digits, self.2, write_num_bin)
+    }
+}
+
+impl<const L: usize> Binary for UnsignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Bin::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Bin, fmt, &digits, Sign::POS, write_num_bin)
+    }
+}
+
+impl Octal for SignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Oct::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Oct, fmt, &digits, self.1, write_num_oct)
+    }
+}
+
+impl Octal for UnsignedLong {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Oct::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Oct, fmt, &digits, Sign::POS, write_num_oct)
+    }
+}
+
+impl<const L: usize> Octal for SignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Oct::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Oct, fmt, &digits, self.2, write_num_oct)
+    }
+}
+
+impl<const L: usize> Octal for UnsignedFixed<L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        let digits = self.to_radix_bin(Oct::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Oct, fmt, &digits, Sign::POS, write_num_oct)
     }
 }
 
 impl LowerHex for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Hex, fmt, &self.0, self.1, write_num_lhex)
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Hex, fmt, &digits, self.1, write_num_lhex)
     }
 }
 
 impl LowerHex for UnsignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &self.0, sign, write_num_lhex)
+        write_num(Hex, fmt, &digits, Sign::POS, write_num_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Hex, fmt, &self.0[..self.1], self.2, write_num_lhex)
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Hex, fmt, &digits, self.2, write_num_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for UnsignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &self.0[..self.1], sign, write_num_lhex)
+        write_num(Hex, fmt, &digits, Sign::POS, write_num_lhex)
     }
 }
 
 impl UpperHex for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Hex, fmt, &self.0, self.1, write_num_uhex)
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Hex, fmt, &digits, self.1, write_num_uhex)
     }
 }
 
 impl UpperHex for UnsignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &self.0, sign, write_num_uhex)
+        write_num(Hex, fmt, &digits, Sign::POS, write_num_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write_num(Hex, fmt, &self.0[..self.1], self.2, write_num_uhex)
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
+
+        write_num(Hex, fmt, &digits, self.2, write_num_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for UnsignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = get_sign(self.0.len(), Sign::POS);
+        let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &self.0[..self.1], sign, write_num_uhex)
+        write_num(Hex, fmt, &digits, Sign::POS, write_num_uhex)
     }
 }
 
@@ -1193,7 +1213,7 @@ fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixEr
         acc |= (digit as Double) << rem;
         rem += sbits as Double;
 
-        while acc >= radix {
+        while rem >= pow {
             res[idx] = (acc & mask) as Single;
             idx += 1;
 
@@ -1279,24 +1299,30 @@ fn write_num<R: Radix, F>(_: R, fmt: &mut Formatter<'_>, digits: &[Single], sign
 where
     F: Fn(&mut String, Single, usize) -> std::fmt::Result,
 {
-    let (sign, prefix) = match sign {
+    println!("dig: {:?}", digits);
+
+    let sign = get_sign(digits.len(), sign);
+
+    let prefix = if fmt.alternate() { R::PREFIX } else { "" };
+
+    let sign = match sign {
         | Sign::ZERO => {
-            return write!(fmt, "{}0", R::PREFIX);
+            return write!(fmt, "{}0", prefix);
         },
-        | Sign::NEG => ("-", R::PREFIX),
-        | Sign::POS => ("", R::PREFIX),
+        | Sign::NEG => "-",
+        | Sign::POS => "",
     };
 
     let len = digits.len();
-    let pow = R::POWER as usize;
+    let width = R::WIDTH as usize;
 
-    let mut buf = String::with_capacity(len * pow);
+    let mut buf = String::with_capacity(len * width);
 
     for &digit in digits.iter().rev() {
-        func(&mut buf, digit, pow)?;
+        func(&mut buf, digit, width)?;
     }
 
-    let len = get_len_rev(buf.as_bytes());
+    let len = get_len_rev(buf.as_bytes(), b'0');
 
     write!(fmt, "{}{}{}", sign, prefix, &buf[len..])
 }
@@ -2262,15 +2288,11 @@ fn get_len<T: Constants + PartialEq + Eq>(digits: &[T]) -> usize {
     0
 }
 
-fn get_len_rev<T: Constants + PartialEq + Eq>(digits: &[T]) -> usize {
-    let mut len = digits.len();
-
-    for digit in digits.iter() {
-        if digit != &T::ZERO {
-            return len;
+fn get_len_rev<T: Constants + PartialEq + Eq>(digits: &[T], val: T) -> usize {
+    for (idx, digit) in digits.iter().enumerate() {
+        if digit != &val {
+            return idx;
         }
-
-        len -= 1;
     }
 
     0
@@ -2586,7 +2608,50 @@ mod tests {
     }
 
     #[test]
+    fn to_str_long() {
+        for val in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            let x = SignedLong::from(val);
+
+            let (sign, abs) = if val >= 0 { ("", val) } else { ("-", -val) };
+
+            println!("val: {}", val);
+
+            assert_eq!(format!("{:#}", &x), format!("{}{:#}", sign, abs));
+            assert_eq!(format!("{:#b}", &x), format!("{}{:#b}", sign, abs));
+            assert_eq!(format!("{:#o}", &x), format!("{}{:#o}", sign, abs));
+            assert_eq!(format!("{:#x}", &x), format!("{}{:#x}", sign, abs));
+
+            assert_eq!(format!("{:}", &x), format!("{}{:}", sign, abs));
+            assert_eq!(format!("{:b}", &x), format!("{}{:b}", sign, abs));
+            assert_eq!(format!("{:o}", &x), format!("{}{:o}", sign, abs));
+            assert_eq!(format!("{:x}", &x), format!("{}{:x}", sign, abs));
+        }
+    }
+
+    #[test]
+    fn to_str_fixed() {
+        for val in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            let x = S32::from(val);
+
+            let (sign, abs) = if val >= 0 { ("", val) } else { ("-", -val) };
+
+            println!("val: {}", val);
+
+            assert_eq!(format!("{:#}", &x), format!("{}{:#}", sign, abs));
+            assert_eq!(format!("{:#b}", &x), format!("{}{:#b}", sign, abs));
+            assert_eq!(format!("{:#o}", &x), format!("{}{:#o}", sign, abs));
+            assert_eq!(format!("{:#x}", &x), format!("{}{:#x}", sign, abs));
+
+            assert_eq!(format!("{:}", &x), format!("{}{:}", sign, abs));
+            assert_eq!(format!("{:b}", &x), format!("{}{:b}", sign, abs));
+            assert_eq!(format!("{:o}", &x), format!("{}{:o}", sign, abs));
+            assert_eq!(format!("{:x}", &x), format!("{}{:x}", sign, abs));
+        }
+    }
+
+    #[test]
     fn into_radix_long() -> anyhow::Result<()> {
+        // TODO: Make better test
         assert_eq!(SignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
         assert_eq!(UnsignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
 
@@ -2605,6 +2670,7 @@ mod tests {
 
     #[test]
     fn into_radix_fixed() -> anyhow::Result<()> {
+        // TODO: Make better test
         assert_eq!(S32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
         assert_eq!(U32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
 
