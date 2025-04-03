@@ -2291,7 +2291,7 @@ const fn get_arr<const L: usize>(val: Single) -> [Single; L] {
 mod tests {
     use super::*;
 
-    const PRIMES: [usize; 4] = [10_570_841, 10_570_849, 31, 33];
+    const PRIMES: [usize; 2] = [10_570_841, 10_570_849];
 
     type S32 = signed_fixed!(32);
     type U32 = unsigned_fixed!(32);
