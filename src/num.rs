@@ -2497,6 +2497,7 @@ mod tests {
 
     #[test]
     fn from_digits_long() {
+        // TODO: Make better test
         assert_eq!(SignedLong::try_from_digits(&[], 31), Ok(SignedLong::default()));
         assert_eq!(UnsignedLong::try_from_digits(&[], 31), Ok(UnsignedLong::default()));
 
@@ -2515,6 +2516,7 @@ mod tests {
 
     #[test]
     fn from_digits_fixed() {
+        // TODO: Make better test
         assert_eq!(S32::try_from_digits(&[], 31), Ok(S32::default()));
         assert_eq!(U32::try_from_digits(&[], 31), Ok(U32::default()));
 
@@ -2608,6 +2610,44 @@ mod tests {
     }
 
     #[test]
+    fn into_radix_long() -> anyhow::Result<()> {
+        // TODO: Make better test
+        assert_eq!(SignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
+        assert_eq!(UnsignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
+
+        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
+        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
+
+        for &radix in &radixes {
+            for entry in &entries {
+                assert_long_into_radix!(@signed entry, radix as u16);
+                assert_long_into_radix!(@unsigned entry, radix as u16);
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn into_radix_fixed() -> anyhow::Result<()> {
+        // TODO: Make better test
+        assert_eq!(S32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
+        assert_eq!(U32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
+
+        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
+        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
+
+        for &radix in &radixes {
+            for entry in &entries {
+                assert_fixed_into_radix!(@signed entry, get_len(entry), radix as u16);
+                assert_fixed_into_radix!(@unsigned entry, get_len(entry), radix as u16);
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
     fn to_str_long() {
         for val in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
             let x = SignedLong::from(val);
@@ -2647,44 +2687,6 @@ mod tests {
             assert_eq!(format!("{:o}", &x), format!("{}{:o}", sign, abs));
             assert_eq!(format!("{:x}", &x), format!("{}{:x}", sign, abs));
         }
-    }
-
-    #[test]
-    fn into_radix_long() -> anyhow::Result<()> {
-        // TODO: Make better test
-        assert_eq!(SignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
-        assert_eq!(UnsignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
-
-        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
-        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
-
-        for &radix in &radixes {
-            for entry in &entries {
-                assert_long_into_radix!(@signed entry, radix as u16);
-                assert_long_into_radix!(@unsigned entry, radix as u16);
-            }
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn into_radix_fixed() -> anyhow::Result<()> {
-        // TODO: Make better test
-        assert_eq!(S32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
-        assert_eq!(U32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
-
-        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
-        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
-
-        for &radix in &radixes {
-            for entry in &entries {
-                assert_fixed_into_radix!(@signed entry, get_len(entry), radix as u16);
-                assert_fixed_into_radix!(@unsigned entry, get_len(entry), radix as u16);
-            }
-        }
-
-        Ok(())
     }
 
     #[test]

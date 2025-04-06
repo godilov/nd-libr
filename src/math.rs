@@ -5,59 +5,23 @@ pub type Prime = u64;
 pub struct Primes {}
 
 impl Primes {
-    pub fn iter(count: usize) -> impl Iterator<Item = Prime> {
-        PrimesIter {
-            data: Vec::with_capacity(count),
+    pub fn by_count(val: usize) -> impl Iterator<Item = Prime> {
+        PrimesCountIter {
+            primes: Vec::with_capacity(val),
             next: 2,
             idx: 0,
-            len: count,
+            len: val,
+        }
+    }
+
+    pub fn by_limit(val: usize) -> impl Iterator<Item = Prime> {
+        PrimesLimitIter {
+            primes: Vec::with_capacity(val.isqrt() + 1),
+            next: 2,
+            limit: val as Prime,
         }
     }
 }
-
-struct PrimesIter {
-    data: Vec<Prime>,
-    next: Prime,
-    idx: usize,
-    len: usize,
-}
-
-impl Iterator for PrimesIter {
-    type Item = Prime;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.len == self.idx {
-            return None;
-        }
-
-        self.data.push(self.next);
-
-        for n in self.next + 1..Prime::MAX {
-            let mut is_prime = true;
-            let mut idx = 0;
-
-            while is_prime && self.data[idx] * self.data[idx] <= n {
-                is_prime &= (n % self.data[idx]) != 0;
-                idx += 1;
-            }
-
-            if is_prime {
-                self.next = n;
-                self.idx += 1;
-
-                break;
-            }
-        }
-
-        self.data.last().copied()
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
-}
-
-impl ExactSizeIterator for PrimesIter {}
 
 pub fn gcd_ext<I: Integer + OpsAllFrom>(a: I, b: I) -> (I, I, I) {
     if b == I::ZERO {
@@ -96,3 +60,62 @@ pub fn lcm<I: Integer + OpsAllFrom>(a: I, b: I) -> I {
 
     I::from(I::from(a / gop) * b)
 }
+
+fn get_next_prime(primes: &[Prime], limit: Prime) -> Option<Prime> {
+    let last = *primes.last().unwrap_or(&0);
+
+    (last + 1..=limit).find(|&val| primes.iter().filter(|&p| p * p <= val).all(|&p| val % p != 0))
+}
+
+struct PrimesCountIter {
+    primes: Vec<Prime>,
+    next: Prime,
+    idx: usize,
+    len: usize,
+}
+
+struct PrimesLimitIter {
+    primes: Vec<Prime>,
+    next: Prime,
+    limit: Prime,
+}
+
+impl Iterator for PrimesCountIter {
+    type Item = Prime;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.len == self.idx {
+            return None;
+        }
+
+        self.primes.push(self.next);
+
+        self.next = get_next_prime(&self.primes, Prime::MAX)?;
+        self.idx += 1;
+
+        self.primes.last().copied()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.primes.capacity(), Some(self.primes.capacity()))
+    }
+}
+
+impl Iterator for PrimesLimitIter {
+    type Item = Prime;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.primes.push(self.next);
+
+        self.next = get_next_prime(&self.primes, self.limit)?;
+
+        self.primes.last().copied()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.primes.capacity(), Some(self.primes.capacity()))
+    }
+}
+
+impl ExactSizeIterator for PrimesCountIter {}
+impl ExactSizeIterator for PrimesLimitIter {}
