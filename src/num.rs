@@ -360,7 +360,7 @@ pub struct SignedFixed<const L: usize>([Single; L], usize, Sign);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnsignedFixed<const L: usize>([Single; L], usize);
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct LongRepr(Vec<Single>, Sign);
 
 #[derive(Debug)]
@@ -406,9 +406,9 @@ impl From<LongRepr> for SignedLong {
 impl From<LongRepr> for UnsignedLong {
     fn from(value: LongRepr) -> Self {
         match value.1 {
-            | Sign::ZERO => Default::default(),
-            | Sign::NEG => Default::default(),
-            | Sign::POS => Self(value.0),
+            Sign::ZERO => Default::default(),
+            Sign::NEG => Default::default(),
+            Sign::POS => Self(value.0),
         }
     }
 }
@@ -470,9 +470,9 @@ impl<const L: usize> From<FixedRepr<L>> for SignedFixed<L> {
 impl<const L: usize> From<FixedRepr<L>> for UnsignedFixed<L> {
     fn from(value: FixedRepr<L>) -> Self {
         match value.2 {
-            | Sign::ZERO => Default::default(),
-            | Sign::NEG => Default::default(),
-            | Sign::POS => Self(value.0, value.1),
+            Sign::ZERO => Default::default(),
+            Sign::NEG => Default::default(),
+            Sign::POS => Self(value.0, value.1),
         }
     }
 }
@@ -595,16 +595,28 @@ impl SignedLong {
         into_radix(&mut self.0, radix)
     }
 
-    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
-        self.clone().into_radix(radix)
-    }
-
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
         into_radix_bin(&self.0, pow)
     }
 
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
+        if radix > 0 && radix & (radix - 1) == 0 {
+            return self.to_radix_bin(radix.ilog2() as u8);
+        }
+
+        self.clone().into_radix(radix)
+    }
+
+    pub fn into_unsigned(self) -> UnsignedLong {
+        UnsignedLong(self.0)
+    }
+
+    pub fn to_fixed<const L: usize>(&self) -> SignedFixed<L> {
+        fixed_from_long(&self.0).with_sign(self.1).into()
+    }
+
     pub fn with_sign(mut self, sign: Sign) -> Self {
-        self.1 = sign;
+        self.1 = if self.1 != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
 }
@@ -630,12 +642,26 @@ impl UnsignedLong {
         into_radix(&mut self.0, radix)
     }
 
+    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+        into_radix_bin(&self.0, pow)
+    }
+
     pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
+        if radix > 0 && radix & (radix - 1) == 0 {
+            return self.to_radix_bin(radix.ilog2() as u8);
+        }
+
         self.clone().into_radix(radix)
     }
 
-    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix_bin(&self.0, pow)
+    pub fn into_signed(self, sign: Sign) -> SignedLong {
+        let len = self.0.len();
+
+        SignedLong(self.0, get_sign(len, sign))
+    }
+
+    pub fn to_fixed<const L: usize>(&self) -> UnsignedFixed<L> {
+        fixed_from_long(&self.0).into()
     }
 }
 
@@ -675,16 +701,28 @@ impl<const L: usize> SignedFixed<L> {
         into_radix(&mut self.0[..self.1], radix)
     }
 
-    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
-        (*self).into_radix(radix)
-    }
-
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
         into_radix_bin(&self.0[..self.1], pow)
     }
 
+    pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
+        if radix > 0 && radix & (radix - 1) == 0 {
+            return self.to_radix_bin(radix.ilog2() as u8);
+        }
+
+        (*self).into_radix(radix)
+    }
+
+    pub fn into_unsigned(self) -> UnsignedFixed<L> {
+        UnsignedFixed::<L>(self.0, self.1)
+    }
+
+    pub fn to_long(&self) -> SignedLong {
+        long_from_fixed(&self.0, self.1).with_sign(self.2).into()
+    }
+
     pub fn with_sign(mut self, sign: Sign) -> Self {
-        self.2 = sign;
+        self.2 = if self.2 != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
 }
@@ -721,12 +759,26 @@ impl<const L: usize> UnsignedFixed<L> {
         into_radix(&mut self.0[..self.1], radix)
     }
 
+    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+        into_radix_bin(&self.0[..self.1], pow)
+    }
+
     pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
+        if radix > 0 && radix & (radix - 1) == 0 {
+            return self.to_radix_bin(radix.ilog2() as u8);
+        }
+
         (*self).into_radix(radix)
     }
 
-    pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix_bin(&self.0[..self.1], pow)
+    pub fn into_signed(self, sign: Sign) -> SignedFixed<L> {
+        let len = self.1;
+
+        SignedFixed::<L>(self.0, self.1, get_sign(len, sign))
+    }
+
+    pub fn to_long(&self) -> SignedLong {
+        long_from_fixed(&self.0, self.1).into()
     }
 }
 
@@ -748,8 +800,8 @@ impl LongRepr {
 
     fn single(digit: Single) -> Self {
         match digit {
-            | 0 => LongRepr::ZERO,
-            | x => Self(vec![x], Sign::POS),
+            0 => LongRepr::ZERO,
+            x => Self(vec![x], Sign::POS),
         }
     }
 
@@ -1275,6 +1327,24 @@ fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoR
     Ok(res)
 }
 
+fn fixed_from_long<const L: usize>(digits: &[Single]) -> FixedRepr<L> {
+    let mut res = [0; L];
+
+    let len = digits.len().min(L);
+
+    res[..len].copy_from_slice(&digits[..len]);
+
+    FixedRepr::from_raw(res, Sign::POS, digits.len() > L)
+}
+
+fn long_from_fixed<const L: usize>(digits: &[Single; L], len: usize) -> LongRepr {
+    let mut res = vec![0; len];
+
+    res.copy_from_slice(&digits[..len]);
+
+    LongRepr::from_raw(res, Sign::POS)
+}
+
 fn write_num_bin(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
     write!(buf, "{:01$b}", digit, width)
 }
@@ -1306,11 +1376,11 @@ where
     let prefix = if fmt.alternate() { R::PREFIX } else { "" };
 
     let sign = match sign {
-        | Sign::ZERO => {
+        Sign::ZERO => {
             return write!(fmt, "{}0", prefix);
         },
-        | Sign::NEG => "-",
-        | Sign::POS => "",
+        Sign::NEG => "-",
+        Sign::POS => "",
     };
 
     let len = digits.len();
@@ -1329,15 +1399,15 @@ where
 
 fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {
     match a.len().cmp(&b.len()) {
-        | Ordering::Less => Ordering::Less,
-        | Ordering::Equal => a
+        Ordering::Less => Ordering::Less,
+        Ordering::Equal => a
             .iter()
             .rev()
             .zip(b.iter().rev())
             .map(|(&a, &b)| a.cmp(&b))
             .find(|&x| x != Ordering::Equal)
             .unwrap_or(Ordering::Equal),
-        | Ordering::Greater => Ordering::Greater,
+        Ordering::Greater => Ordering::Greater,
     }
 }
 
@@ -1350,10 +1420,10 @@ where
     let b = LongOperand::from(b);
 
     match (a.1, b.1) {
-        | (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
-        | (Sign::ZERO, _) => return b.into(),
-        | (_, Sign::ZERO) => return a.into(),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
+        (Sign::ZERO, _) => return b.into(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
     }
 
     if a.1 != b.1 {
@@ -1389,10 +1459,10 @@ where
     let b = LongOperand::from(b);
 
     match (a.1, b.1) {
-        | (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
-        | (Sign::ZERO, _) => return (-b).into(),
-        | (_, Sign::ZERO) => return a.into(),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
+        (Sign::ZERO, _) => return (-b).into(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
     }
 
     if a.1 != b.1 {
@@ -1400,9 +1470,9 @@ where
     }
 
     let (a, b, sign) = match cmp_nums(a.0, b.0) {
-        | Ordering::Less => (b, a, -a.1),
-        | Ordering::Equal => return LongRepr::ZERO,
-        | Ordering::Greater => (a, b, a.1),
+        Ordering::Less => (b, a, -a.1),
+        Ordering::Equal => return LongRepr::ZERO,
+        Ordering::Greater => (a, b, a.1),
     };
 
     let len = a.0.len();
@@ -1439,10 +1509,10 @@ where
     }
 
     match (a.1, b.1) {
-        | (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
-        | (Sign::ZERO, _) => return shr_long(b, shr),
-        | (_, Sign::ZERO) => return shr_long(a, shr),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
+        (Sign::ZERO, _) => return shr_long(b, shr),
+        (_, Sign::ZERO) => return shr_long(a, shr),
+        _ => (),
     }
 
     if a.1 != b.1 {
@@ -1494,10 +1564,10 @@ where
     }
 
     match (a.1, b.1) {
-        | (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
-        | (Sign::ZERO, _) => return shr_long(-b, shr),
-        | (_, Sign::ZERO) => return shr_long(a, shr),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
+        (Sign::ZERO, _) => return shr_long(-b, shr),
+        (_, Sign::ZERO) => return shr_long(a, shr),
+        _ => (),
     }
 
     if a.1 != b.1 {
@@ -1505,9 +1575,9 @@ where
     }
 
     let (a, b, sign) = match cmp_nums(a.slice(), b.slice()) {
-        | Ordering::Less => (b, a, -a.1),
-        | Ordering::Equal => return LongRepr::ZERO,
-        | Ordering::Greater => (a, b, a.1),
+        Ordering::Less => (b, a, -a.1),
+        Ordering::Equal => return LongRepr::ZERO,
+        Ordering::Greater => (a, b, a.1),
     };
 
     let len = a.0.len();
@@ -1542,9 +1612,9 @@ where
     let b = LongOperand::from(b);
 
     match (a.1, b.1) {
-        | (Sign::ZERO, _) => return LongRepr::ZERO,
-        | (_, Sign::ZERO) => return LongRepr::ZERO,
-        | _ => (),
+        (Sign::ZERO, _) => return LongRepr::ZERO,
+        (_, Sign::ZERO) => return LongRepr::ZERO,
+        _ => (),
     }
 
     let len_a = a.0.len();
@@ -1585,9 +1655,9 @@ where
     let b = LongOperand::from(b);
 
     match (a.1, b.1) {
-        | (Sign::ZERO, _) => return (LongRepr::ZERO, LongRepr::ZERO),
-        | (_, Sign::ZERO) => panic!("Division by zero"),
-        | _ => (),
+        (Sign::ZERO, _) => return (LongRepr::ZERO, LongRepr::ZERO),
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
     }
 
     if b == (&LongRepr::single(1)).into() {
@@ -1595,9 +1665,9 @@ where
     }
 
     match cmp_nums(a.0, b.0) {
-        | Ordering::Less => return (LongRepr::ZERO, a.into()),
-        | Ordering::Equal => return (LongRepr::single(1).with_sign(a.1 * b.1), LongRepr::ZERO),
-        | Ordering::Greater => (),
+        Ordering::Less => return (LongRepr::ZERO, a.into()),
+        Ordering::Equal => return (LongRepr::single(1).with_sign(a.1 * b.1), LongRepr::ZERO),
+        Ordering::Greater => (),
     }
 
     let sign_a = a.1;
@@ -1614,10 +1684,10 @@ where
         let val = mul_long(bpos, &m);
 
         match cmp_nums(val.slice(), apos.slice()) {
-            | Ordering::Less | Ordering::Equal => {
+            Ordering::Less | Ordering::Equal => {
                 l = add_long(&m, &LongRepr::single(1));
             },
-            | Ordering::Greater => {
+            Ordering::Greater => {
                 r = m;
             },
         }
@@ -1653,13 +1723,13 @@ where
     LongRepr::from_raw(res, Sign::POS)
 }
 
-fn shl_long<'digits, A>(a: A, len: usize) -> LongRepr
+fn shl_long<'digits, A>(a: A, val: usize) -> LongRepr
 where
     LongOperand<'digits>: From<A>,
 {
     let a = LongOperand::from(a);
 
-    if len == 0 {
+    if val == 0 {
         return a.into();
     }
 
@@ -1669,11 +1739,11 @@ where
         return LongRepr::ZERO;
     }
 
-    let offset = len / sbits;
-    let shift = len & (sbits - 1);
+    let offset = val / sbits;
+    let shift = val & (sbits - 1);
 
     let len_a = a.0.len();
-    let len = len_a + (len + sbits - 1) / sbits;
+    let len = len_a + (val + sbits - 1) / sbits;
     let shl = shift as u32;
     let shr = (sbits - shift) as u32;
 
@@ -1692,7 +1762,7 @@ where
     LongRepr::from_raw(res, a.1)
 }
 
-fn shr_long<'digits, A>(a: A, len: usize) -> LongRepr
+fn shr_long<'digits, A>(a: A, val: usize) -> LongRepr
 where
     LongOperand<'digits>: From<A>,
 {
@@ -1700,15 +1770,15 @@ where
 
     let sbits = Single::BITS as usize;
 
-    if a.1 == Sign::ZERO || len >= a.0.len() * sbits {
+    if a.1 == Sign::ZERO || val >= a.0.len() * sbits {
         return LongRepr::ZERO;
     }
 
-    let offset = len / sbits;
-    let shift = len & (sbits - 1);
+    let offset = val / sbits;
+    let shift = val & (sbits - 1);
 
     let len_a = a.0.len();
-    let len = len_a - len / sbits;
+    let len = len_a - val / sbits;
     let shr = shift as u32;
     let shl = (sbits - shift) as u32;
 
@@ -1732,10 +1802,10 @@ where
     let b = FixedOperand::from(b);
 
     match (a.2, b.2) {
-        | (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        | (Sign::ZERO, _) => return b.into(),
-        | (_, Sign::ZERO) => return a.into(),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return b.into(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
     }
 
     if a.2 != b.2 {
@@ -1769,10 +1839,10 @@ where
     let b = FixedOperand::from(b);
 
     match (a.2, b.2) {
-        | (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        | (Sign::ZERO, _) => return (-b).into(),
-        | (_, Sign::ZERO) => return a.into(),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return (-b).into(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
     }
 
     if a.2 != b.2 {
@@ -1780,9 +1850,9 @@ where
     }
 
     let (a, b, sign) = match cmp_nums(a.slice(), b.slice()) {
-        | Ordering::Less => (b, a, -a.2),
-        | Ordering::Equal => return FixedRepr::ZERO,
-        | Ordering::Greater => (a, b, a.2),
+        Ordering::Less => (b, a, -a.2),
+        Ordering::Equal => return FixedRepr::ZERO,
+        Ordering::Greater => (a, b, a.2),
     };
 
     let len = a.1;
@@ -1819,10 +1889,10 @@ where
     }
 
     match (a.2, b.2) {
-        | (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        | (Sign::ZERO, _) => return shr_fixed(b, shr),
-        | (_, Sign::ZERO) => return shr_fixed(a, shr),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return shr_fixed(b, shr),
+        (_, Sign::ZERO) => return shr_fixed(a, shr),
+        _ => (),
     }
 
     if a.2 != b.2 {
@@ -1877,10 +1947,10 @@ where
     }
 
     match (a.2, b.2) {
-        | (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        | (Sign::ZERO, _) => return shr_fixed(-b, shr),
-        | (_, Sign::ZERO) => return shr_fixed(a, shr),
-        | _ => (),
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return shr_fixed(-b, shr),
+        (_, Sign::ZERO) => return shr_fixed(a, shr),
+        _ => (),
     }
 
     if a.2 != b.2 {
@@ -1888,9 +1958,9 @@ where
     }
 
     let (a, b, sign) = match cmp_nums(a.slice(), b.slice()) {
-        | Ordering::Less => (b, a, -a.2),
-        | Ordering::Equal => return FixedRepr::ZERO,
-        | Ordering::Greater => (a, b, a.2),
+        Ordering::Less => (b, a, -a.2),
+        Ordering::Equal => return FixedRepr::ZERO,
+        Ordering::Greater => (a, b, a.2),
     };
 
     let len = a.1;
@@ -1925,9 +1995,9 @@ where
     let b = FixedOperand::from(b);
 
     match (a.2, b.2) {
-        | (Sign::ZERO, _) => return FixedRepr::ZERO,
-        | (_, Sign::ZERO) => return FixedRepr::ZERO,
-        | _ => (),
+        (Sign::ZERO, _) => return FixedRepr::ZERO,
+        (_, Sign::ZERO) => return FixedRepr::ZERO,
+        _ => (),
     }
 
     let len_a = a.1;
@@ -1974,11 +2044,11 @@ where
     let b = FixedOperand::from(b);
 
     match (a.2, b.2) {
-        | (Sign::ZERO, _) => {
+        (Sign::ZERO, _) => {
             return (FixedRepr::ZERO, FixedRepr::ZERO);
         },
-        | (_, Sign::ZERO) => panic!("Division by zero"),
-        | _ => (),
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
     }
 
     if b == (&FixedRepr::ONE).into() {
@@ -1986,9 +2056,9 @@ where
     }
 
     match cmp_nums(a.slice(), b.slice()) {
-        | Ordering::Less => return (FixedRepr::ZERO, a.into()),
-        | Ordering::Equal => return (FixedRepr::ONE.with_sign(a.2 * b.2), FixedRepr::ZERO),
-        | Ordering::Greater => (),
+        Ordering::Less => return (FixedRepr::ZERO, a.into()),
+        Ordering::Equal => return (FixedRepr::ONE.with_sign(a.2 * b.2), FixedRepr::ZERO),
+        Ordering::Greater => (),
     }
 
     let sign_a = a.2;
@@ -2011,10 +2081,10 @@ where
         }
 
         match cmp_nums(val.slice(), apos.slice()) {
-            | Ordering::Less | Ordering::Equal => {
+            Ordering::Less | Ordering::Equal => {
                 l = add_fixed(&m, &FixedRepr::ONE);
             },
-            | Ordering::Greater => {
+            Ordering::Greater => {
                 r = m;
             },
         }
@@ -2047,24 +2117,24 @@ where
     FixedRepr::from_raw(res, Sign::POS, false)
 }
 
-fn shl_fixed<'digits, A, const L: usize>(a: A, len: usize) -> FixedRepr<L>
+fn shl_fixed<'digits, A, const L: usize>(a: A, val: usize) -> FixedRepr<L>
 where
     FixedOperand<'digits, L>: From<A>,
 {
     let a = FixedOperand::from(a);
 
-    if len == 0 {
+    if val == 0 {
         return a.into();
     }
 
     let sbits = Single::BITS as usize;
 
-    if a.2 == Sign::ZERO || len >= L * sbits {
-        return FixedRepr::ZERO.with_overflow(len >= L * sbits);
+    if a.2 == Sign::ZERO || val >= L * sbits {
+        return FixedRepr::ZERO.with_overflow(val >= L * sbits);
     }
 
-    let offset = len / sbits;
-    let shift = len & (sbits - 1);
+    let offset = val / sbits;
+    let shift = val & (sbits - 1);
 
     let len_a = a.1;
     let shl = shift as u32;
@@ -2087,24 +2157,24 @@ where
     FixedRepr::from_raw(res, a.2, false)
 }
 
-fn shr_fixed<'digits, A, const L: usize>(a: A, len: usize) -> FixedRepr<L>
+fn shr_fixed<'digits, A, const L: usize>(a: A, val: usize) -> FixedRepr<L>
 where
     FixedOperand<'digits, L>: From<A>,
 {
     let a = FixedOperand::from(a);
 
-    if len == 0 {
+    if val == 0 {
         return a.into();
     }
 
     let sbits = Single::BITS as usize;
 
-    if a.2 == Sign::ZERO || len >= a.1 * sbits {
-        return FixedRepr([0; L], 0, Sign::ZERO, len >= a.1 * sbits);
+    if a.2 == Sign::ZERO || val >= a.1 * sbits {
+        return FixedRepr::ZERO.with_overflow(val >= a.1 * sbits);
     }
 
-    let offset = len / sbits;
-    let shift = len & (sbits - 1);
+    let offset = val / sbits;
+    let shift = val & (sbits - 1);
 
     let len_a = a.1;
     let shr = shift as u32;
@@ -2214,9 +2284,9 @@ fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     let bytes = s.as_bytes();
 
     let val = match bytes[0] {
-        | b'+' => (&s[1..], Sign::POS),
-        | b'-' => (&s[1..], Sign::NEG),
-        | _ => (s, Sign::POS),
+        b'+' => (&s[1..], Sign::POS),
+        b'-' => (&s[1..], Sign::NEG),
+        _ => (s, Sign::POS),
     };
 
     Ok(val)
@@ -2234,10 +2304,10 @@ fn get_radix_from_str(s: &str) -> Result<(&str, u16), TryFromStrError> {
     let bytes = s.as_bytes();
 
     let val = match &bytes[..2] {
-        | b"0x" | b"0X" => (&s[2..], 16),
-        | b"0o" | b"0O" => (&s[2..], 8),
-        | b"0b" | b"0B" => (&s[2..], 2),
-        | _ => (s, 10),
+        b"0x" | b"0X" => (&s[2..], 16),
+        b"0o" | b"0O" => (&s[2..], 8),
+        b"0b" | b"0B" => (&s[2..], 2),
+        _ => (s, 10),
     };
 
     Ok(val)
@@ -2251,11 +2321,11 @@ fn get_digits_from_str(s: &str, radix: u16) -> Result<Vec<u8>, TryFromStrError> 
         .iter()
         .rev()
         .filter_map(|&ch| match ch {
-            | b'0'..=b'9' if ch - b'0' < r => Some(Ok(ch - b'0')),
-            | b'a'..=b'f' if ch - b'a' + 10 < r => Some(Ok(ch - b'a' + 10)),
-            | b'A'..=b'F' if ch - b'A' + 10 < r => Some(Ok(ch - b'A' + 10)),
-            | b'_' => None,
-            | _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
+            b'0'..=b'9' if ch - b'0' < r => Some(Ok(ch - b'0')),
+            b'a'..=b'f' if ch - b'a' + 10 < r => Some(Ok(ch - b'a' + 10)),
+            b'A'..=b'F' if ch - b'A' + 10 < r => Some(Ok(ch - b'A' + 10)),
+            b'_' => None,
+            _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
         })
         .collect::<Result<Vec<u8>, TryFromStrError>>()?;
 
