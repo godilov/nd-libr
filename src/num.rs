@@ -2142,62 +2142,62 @@ ops_impl!(@un |a: Sign| -> Sign,
 ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong(a.0.clone(), -a.1));
 
 ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
-    + add_long(LongOperand::from(&a), LongOperand::from(&b)),
-    - sub_long(LongOperand::from(&a), LongOperand::from(&b)),
-    * mul_long(LongOperand::from(&a), LongOperand::from(&b)),
-    / div_long(LongOperand::from(&a), LongOperand::from(&b)).0,
-    % div_long(LongOperand::from(&a), LongOperand::from(&b)).1,
-    | bit_long(LongOperand::from(&a), LongOperand::from(&b), |aop, bop| aop | bop),
-    & bit_long(LongOperand::from(&a), LongOperand::from(&b), |aop, bop| aop & bop),
-    ^ bit_long(LongOperand::from(&a), LongOperand::from(&b), |aop, bop| aop ^ bop));
+    + add_long((&a).into(), (&b).into()),
+    - sub_long((&a).into(), (&b).into()),
+    * mul_long((&a).into(), (&b).into()),
+    / div_long((&a).into(), (&b).into()).0,
+    % div_long((&a).into(), (&b).into()).1,
+    | bit_long((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_long((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_long((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
-    + add_long(LongOperand::from(&a), LongOperand::from(&b)),
-    - sub_long(LongOperand::from(&a), LongOperand::from(&b)),
-    * mul_long(LongOperand::from(&a), LongOperand::from(&b)),
-    / div_long(LongOperand::from(&a), LongOperand::from(&b)).0,
-    % div_long(LongOperand::from(&a), LongOperand::from(&b)).1,
-    | bit_long(LongOperand::from(&a), LongOperand::from(&b), |aop, bop| aop | bop),
-    & bit_long(LongOperand::from(&a), LongOperand::from(&b), |aop, bop| aop & bop),
-    ^ bit_long(LongOperand::from(&a), LongOperand::from(&b), |aop, bop| aop ^ bop));
+    + add_long((&a).into(), (&b).into()),
+    - sub_long((&a).into(), (&b).into()),
+    * mul_long((&a).into(), (&b).into()),
+    / div_long((&a).into(), (&b).into()).0,
+    % div_long((&a).into(), (&b).into()).1,
+    | bit_long((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_long((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_long((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: &SignedLong, b: usize| -> SignedLong,
-    << shl_long(LongOperand::from(&a), b),
-    >> shr_long(LongOperand::from(&a), b));
+    << shl_long((&a).into(), b),
+    >> shr_long((&a).into(), b));
 
 ops_impl!(@bin |a: &UnsignedLong, b: usize| -> UnsignedLong,
-    << shl_long(LongOperand::from(&a), b),
-    >> shr_long(LongOperand::from(&a), b));
+    << shl_long((&a).into(), b),
+    >> shr_long((&a).into(), b));
 
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed(a.0, a.1, -a.2));
 
 ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed::<L>,
-    + add_fixed(FixedOperand::from(&a), FixedOperand::from(&b)),
-    - sub_fixed(FixedOperand::from(&a), FixedOperand::from(&b)),
-    * mul_fixed(FixedOperand::from(&a), FixedOperand::from(&b)),
-    / div_fixed(FixedOperand::from(&a), FixedOperand::from(&b)).0,
-    % div_fixed(FixedOperand::from(&a), FixedOperand::from(&b)).1,
-    | bit_fixed(FixedOperand::from(&a), FixedOperand::from(&b), |aop, bop| aop | bop),
-    & bit_fixed(FixedOperand::from(&a), FixedOperand::from(&b), |aop, bop| aop & bop),
-    ^ bit_fixed(FixedOperand::from(&a), FixedOperand::from(&b), |aop, bop| aop ^ bop));
+    + add_fixed((&a).into(), (&b).into()),
+    - sub_fixed((&a).into(), (&b).into()),
+    * mul_fixed((&a).into(), (&b).into()),
+    / div_fixed((&a).into(), (&b).into()).0,
+    % div_fixed((&a).into(), (&b).into()).1,
+    | bit_fixed((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_fixed((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_fixed((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
-    + add_fixed(FixedOperand::from(&a), FixedOperand::from(&b)),
-    - sub_fixed(FixedOperand::from(&a), FixedOperand::from(&b)),
-    * mul_fixed(FixedOperand::from(&a), FixedOperand::from(&b)),
-    / div_fixed(FixedOperand::from(&a), FixedOperand::from(&b)).0,
-    % div_fixed(FixedOperand::from(&a), FixedOperand::from(&b)).1,
-    | bit_fixed(FixedOperand::from(&a), FixedOperand::from(&b), |aop, bop| aop | bop),
-    & bit_fixed(FixedOperand::from(&a), FixedOperand::from(&b), |aop, bop| aop & bop),
-    ^ bit_fixed(FixedOperand::from(&a), FixedOperand::from(&b), |aop, bop| aop ^ bop));
+    + add_fixed((&a).into(), (&b).into()),
+    - sub_fixed((&a).into(), (&b).into()),
+    * mul_fixed((&a).into(), (&b).into()),
+    / div_fixed((&a).into(), (&b).into()).0,
+    % div_fixed((&a).into(), (&b).into()).1,
+    | bit_fixed((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_fixed((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_fixed((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
-    << shl_fixed(FixedOperand::from(&a), b),
-    >> shr_fixed(FixedOperand::from(&a), b));
+    << shl_fixed((&a).into(), b),
+    >> shr_fixed((&a).into(), b));
 
 ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: usize| -> UnsignedFixed::<L>,
-    << shl_fixed(FixedOperand::from(&a), b),
-    >> shr_fixed(FixedOperand::from(&a), b));
+    << shl_fixed((&a).into(), b),
+    >> shr_fixed((&a).into(), b));
 
 ops_impl!(@un <'digits> |a: &LongOperand<'digits>| -> LongOperand<'digits>, - LongOperand(a.0, -a.1));
 
