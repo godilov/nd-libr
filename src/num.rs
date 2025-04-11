@@ -821,6 +821,14 @@ impl LongOperand<'_> {
         self.0
     }
 
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn sign(&self) -> Sign {
+        self.1
+    }
+
     fn with_sign(mut self, sign: Sign) -> Self {
         self.1 = sign;
         self
@@ -832,11 +840,11 @@ impl<const L: usize> FixedRepr<L> {
     const ONE: Self = FixedRepr::<L>(get_arr(1), 1, Sign::POS, false);
     const TWO: Self = FixedRepr::<L>(get_arr(2), 1, Sign::POS, false);
 
-    fn from_raw(digits: [Single; L], sign: Sign, over: bool) -> Self {
+    fn from_raw(digits: [Single; L], sign: Sign) -> Self {
         let len = get_len(&digits);
         let sign = get_sign(len, sign);
 
-        Self(digits, len, sign, over)
+        Self(digits, len, sign, false)
     }
 
     fn digits(&self) -> &[Single] {
@@ -855,8 +863,20 @@ impl<const L: usize> FixedRepr<L> {
 }
 
 impl<const L: usize> FixedOperand<'_, L> {
+    fn raw(&self) -> &[Single; L] {
+        self.0
+    }
+
     fn digits(&self) -> &[Single] {
         &self.0[..self.1]
+    }
+
+    fn len(&self) -> usize {
+        self.1
+    }
+
+    fn sign(&self) -> Sign {
+        self.2
     }
 
     fn with_sign(mut self, sign: Sign) -> Self {
@@ -1056,7 +1076,7 @@ fn from_bytes_fixed<const L: usize>(bytes: &[u8]) -> FixedRepr<L> {
 
     let len = (bytes.len() + RATIO - 1) / RATIO;
 
-    FixedRepr::from_raw(res, Sign::POS, len > L)
+    FixedRepr::from_raw(res, Sign::POS).with_overflow(len > L)
 }
 
 fn try_from_str_long(s: &str) -> Result<LongRepr, TryFromStrError> {
@@ -1200,7 +1220,7 @@ fn try_from_digits_fixed_bin<const L: usize>(
         res[idx] = acc as Single;
     }
 
-    Ok(FixedRepr::from_raw(res, sign, idx == L && acc > 0))
+    Ok(FixedRepr::from_raw(res, sign).with_overflow(idx == L && acc > 0))
 }
 
 fn try_from_digits_fixed<const L: usize>(
@@ -1241,7 +1261,7 @@ fn try_from_digits_fixed<const L: usize>(
         }
     }
 
-    Ok(FixedRepr::from_raw(res, sign, idx == L))
+    Ok(FixedRepr::from_raw(res, sign).with_overflow(idx == L))
 }
 
 fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
@@ -1339,7 +1359,7 @@ fn fixed_from_long<const L: usize>(digits: &[Single]) -> FixedRepr<L> {
 
     res[..len].copy_from_slice(&digits[..len]);
 
-    FixedRepr::from_raw(res, Sign::POS, digits.len() > L)
+    FixedRepr::from_raw(res, Sign::POS).with_overflow(digits.len() > L)
 }
 
 fn long_from_fixed<const L: usize>(digits: &[Single; L], len: usize) -> LongRepr {
@@ -1402,13 +1422,13 @@ where
     write!(fmt, "{}{}{}", sign, prefix, &buf[len..])
 }
 
-fn zip_nums(a: &[Single], b: &[Single]) -> impl Iterator<Item = (Single, Single)> {
+fn zip_nums(a: &[Single], b: &[Single], zeros: usize) -> impl Iterator<Item = (Double, Double)> {
     let len_a = a.len();
     let len_b = b.len();
     let len = len_a.max(len_b);
 
-    let iter_a = a.iter().chain(repeat_n(&0, len - len_a + 1)).copied();
-    let iter_b = b.iter().chain(repeat_n(&0, len - len_b + 1)).copied();
+    let iter_a = a.iter().chain(repeat_n(&0, len - len_a + zeros)).map(|&x| x as Double);
+    let iter_b = b.iter().chain(repeat_n(&0, len - len_b + zeros)).map(|&x| x as Double);
 
     iter_a.zip(iter_b)
 }
@@ -1428,70 +1448,127 @@ fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {
 }
 
 fn add_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
-    match (a.1, b.1) {
+    match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return b.into(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
 
-    if a.1 != b.1 {
+    if a.sign() != b.sign() {
         return sub_long(a, -b);
     }
 
-    let len_a = a.0.len();
-    let len_b = b.0.len();
+    let len_a = a.len();
+    let len_b = b.len();
     let len = len_a.max(len_b) + 1;
 
     let mut acc = 0;
     let mut res = vec![0; len];
 
-    for (i, r) in res.iter_mut().enumerate() {
-        let aop = *a.0.get(i).unwrap_or(&0) as Double;
-        let bop = *b.0.get(i).unwrap_or(&0) as Double;
+    let iter = zip_nums(a.digits(), b.digits(), 1);
 
+    for (r, (aop, bop)) in res.iter_mut().zip(iter) {
         acc += aop + bop;
 
         *r = acc as Single;
         acc >>= Single::BITS;
     }
 
-    LongRepr::from_raw(res, a.1)
+    LongRepr::from_raw(res, a.sign())
+}
+
+fn add_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
+    match (a.sign(), b.sign()) {
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return b.into(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() != b.sign() {
+        return sub_fixed(a, -b);
+    }
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    let iter = zip_nums(a.digits(), b.digits(), 1);
+
+    for (r, (aop, bop)) in res.iter_mut().zip(iter) {
+        acc += aop + bop;
+
+        *r = acc as Single;
+        acc >>= Single::BITS;
+    }
+
+    FixedRepr::from_raw(res, a.sign()).with_overflow(acc > 0)
 }
 
 fn sub_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
-    match (a.1, b.1) {
+    match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return (-b).into(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
 
-    if a.1 != b.1 {
+    if a.sign() != b.sign() {
         return add_long(a, -b);
     }
 
-    let (a, b, sign) = match cmp_nums(a.0, b.0) {
-        Ordering::Less => (b, a, -a.1),
+    let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
+        Ordering::Less => (b, a, -a.sign()),
         Ordering::Equal => return LongRepr::ZERO,
-        Ordering::Greater => (a, b, a.1),
+        Ordering::Greater => (a, b, a.sign()),
     };
 
-    let len = a.0.len();
+    let len = a.len();
 
     let mut acc = 0;
     let mut res = vec![0; len];
 
-    for (i, r) in res.iter_mut().enumerate() {
-        let aop = *a.0.get(i).unwrap_or(&0) as Double;
-        let bop = *b.0.get(i).unwrap_or(&0) as Double;
+    let iter = zip_nums(a.digits(), b.digits(), 0);
 
+    for (r, (aop, bop)) in res.iter_mut().zip(iter) {
         *r = (RADIX + aop - bop - acc) as Single;
 
         acc = (aop < bop + acc) as Double;
     }
 
     LongRepr::from_raw(res, sign)
+}
+
+fn sub_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
+    match (a.sign(), b.sign()) {
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return (-b).into(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() != b.sign() {
+        return add_fixed(a, -b);
+    }
+
+    let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
+        Ordering::Less => (b, a, -a.sign()),
+        Ordering::Equal => return FixedRepr::ZERO,
+        Ordering::Greater => (a, b, a.sign()),
+    };
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    let iter = zip_nums(a.digits(), b.digits(), 0);
+
+    for (r, (aop, bop)) in res.iter_mut().zip(iter) {
+        *r = (RADIX + aop - bop - acc) as Single;
+
+        acc = (aop < bop + acc) as Double;
+    }
+
+    FixedRepr::from_raw(res, sign)
 }
 
 fn addshr_long(a: LongOperand<'_>, b: LongOperand<'_>, shr: usize) -> LongRepr {
@@ -1503,19 +1580,19 @@ fn addshr_long(a: LongOperand<'_>, b: LongOperand<'_>, shr: usize) -> LongRepr {
         return LongRepr::ZERO;
     }
 
-    match (a.1, b.1) {
+    match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return shr_long(b, shr),
         (_, Sign::ZERO) => return shr_long(a, shr),
         _ => (),
     }
 
-    if a.1 != b.1 {
+    if a.sign() != b.sign() {
         return subshr_long(a, -b, shr);
     }
 
-    let len_a = a.0.len();
-    let len_b = b.0.len();
+    let len_a = a.len();
+    let len_b = b.len();
     let len = len_a.max(len_b) + 1;
     let shl = Single::BITS as usize - shr;
 
@@ -1523,24 +1600,75 @@ fn addshr_long(a: LongOperand<'_>, b: LongOperand<'_>, shr: usize) -> LongRepr {
     let mut res = vec![0; len];
 
     for i in 0..len {
-        let aop = *a.0.get(i).unwrap_or(&0) as Double;
-        let bop = *b.0.get(i).unwrap_or(&0) as Double;
-        let val = aop + bop;
+        let aop = *a.digits().get(i).unwrap_or(&0) as Double;
+        let bop = *b.digits().get(i).unwrap_or(&0) as Double;
+        let vop = aop + bop;
 
-        acc += val >> shr;
+        acc += vop >> shr;
 
         if i > 0 {
-            let r = res[i - 1] as Double + ((val as Single) << shl) as Double;
+            let vop = vop as Single;
+            let val = res[i - 1] as Double + (vop << shl) as Double;
 
-            res[i - 1] = r as Single;
-            acc += r >> Single::BITS;
+            res[i - 1] = val as Single;
+            acc += val >> Single::BITS;
         }
 
         res[i] = acc as Single;
         acc >>= Single::BITS;
     }
 
-    LongRepr::from_raw(res, a.1)
+    LongRepr::from_raw(res, a.sign())
+}
+
+fn addshr_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, shr: usize) -> FixedRepr<L> {
+    if shr == 0 {
+        return add_fixed(a, b);
+    }
+
+    if shr >= Single::BITS as usize {
+        return FixedRepr::ZERO;
+    }
+
+    match (a.sign(), b.sign()) {
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return shr_fixed(b, shr),
+        (_, Sign::ZERO) => return shr_fixed(a, shr),
+        _ => (),
+    }
+
+    if a.sign() != b.sign() {
+        return subshr_fixed(a, -b, shr);
+    }
+
+    let len_a = a.len();
+    let len_b = b.len();
+    let len = len_a.max(len_b) + 1;
+    let shl = Single::BITS as usize - shr;
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    for i in 0..len.min(L) {
+        let aop = *a.raw().get(i).unwrap_or(&0) as Double;
+        let bop = *b.raw().get(i).unwrap_or(&0) as Double;
+        let vop = aop + bop;
+
+        acc += vop >> shr;
+
+        if i > 0 {
+            let vop = vop as Single;
+            let val = res[i - 1] as Double + (vop << shl) as Double;
+
+            res[i - 1] = val as Single;
+            acc += val >> Single::BITS;
+        }
+
+        res[i] = acc as Single;
+        acc >>= Single::BITS;
+    }
+
+    FixedRepr::from_raw(res, a.sign()).with_overflow(acc > 0)
 }
 
 fn subshr_long(a: LongOperand<'_>, b: LongOperand<'_>, shr: usize) -> LongRepr {
@@ -1552,66 +1680,119 @@ fn subshr_long(a: LongOperand<'_>, b: LongOperand<'_>, shr: usize) -> LongRepr {
         return LongRepr::ZERO;
     }
 
-    match (a.1, b.1) {
+    match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return shr_long(-b, shr),
         (_, Sign::ZERO) => return shr_long(a, shr),
         _ => (),
     }
 
-    if a.1 != b.1 {
+    if a.sign() != b.sign() {
         return addshr_long(a, -b, shr);
     }
 
     let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
-        Ordering::Less => (b, a, -a.1),
+        Ordering::Less => (b, a, -a.sign()),
         Ordering::Equal => return LongRepr::ZERO,
-        Ordering::Greater => (a, b, a.1),
+        Ordering::Greater => (a, b, a.sign()),
     };
 
-    let len = a.0.len();
+    let len = a.len();
     let shl = Single::BITS as usize - shr;
 
     let mut acc = 0;
     let mut res = vec![0; len];
 
     for i in 0..len {
-        let aop = *a.0.get(i).unwrap_or(&0) as Double;
-        let bop = *b.0.get(i).unwrap_or(&0) as Double;
-        let val = RADIX + aop - bop - acc;
+        let aop = *a.digits().get(i).unwrap_or(&0) as Double;
+        let bop = *b.digits().get(i).unwrap_or(&0) as Double;
+        let vop = RADIX + aop - bop - acc;
 
         if i > 0 {
-            let r = res[i - 1] as Double + ((val as Single) << shl) as Double;
+            let vop = vop as Single;
+            let val = res[i - 1] as Double + (vop << shl) as Double;
 
-            res[i - 1] = r as Single;
+            res[i - 1] = val as Single;
         }
 
-        res[i] = (val as Single) >> shr;
+        res[i] = (vop as Single) >> shr;
         acc = (aop < bop + acc) as Double;
     }
 
     LongRepr::from_raw(res, sign)
 }
 
+fn subshr_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, shr: usize) -> FixedRepr<L> {
+    if shr == 0 {
+        return sub_fixed(a, b);
+    }
+
+    if shr >= Single::BITS as usize {
+        return FixedRepr::ZERO;
+    }
+
+    match (a.sign(), b.sign()) {
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return shr_fixed(-b, shr),
+        (_, Sign::ZERO) => return shr_fixed(a, shr),
+        _ => (),
+    }
+
+    if a.sign() != b.sign() {
+        return addshr_fixed(a, -b, shr);
+    }
+
+    let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
+        Ordering::Less => (b, a, -a.sign()),
+        Ordering::Equal => return FixedRepr::ZERO,
+        Ordering::Greater => (a, b, a.sign()),
+    };
+
+    let len = a.len();
+    let shl = Single::BITS as usize - shr;
+
+    let mut acc = 0;
+    let mut res = [0; L];
+
+    for i in 0..len {
+        let aop = *a.raw().get(i).unwrap_or(&0) as Double;
+        let bop = *b.raw().get(i).unwrap_or(&0) as Double;
+        let vop = RADIX + aop - bop - acc;
+
+        if i > 0 {
+            let vop = vop as Single;
+            let val = res[i - 1] as Double + (vop << shl) as Double;
+
+            res[i - 1] = val as Single;
+        }
+
+        res[i] = (vop as Single) >> shr;
+        acc = (aop < bop + acc) as Double;
+    }
+
+    FixedRepr::from_raw(res, sign)
+}
+
 fn mul_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
-    match (a.1, b.1) {
+    match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return LongRepr::ZERO,
         (_, Sign::ZERO) => return LongRepr::ZERO,
         _ => (),
     }
 
-    let len_a = a.0.len();
-    let len_b = b.0.len();
+    let len_a = a.len();
+    let len_b = b.len();
     let len = len_a + len_b;
 
     let mut res = vec![0; len];
 
     for i in 0..len_a {
+        let aop = *a.digits().get(i).unwrap_or(&0) as Double;
+
         let mut acc = 0;
 
         for j in 0..(len_b + 1) {
-            let aop = *a.0.get(i).unwrap_or(&0) as Double;
-            let bop = *b.0.get(j).unwrap_or(&0) as Double;
+            let bop = *b.digits().get(j).unwrap_or(&0) as Double;
             let rop = res[i + j] as Double;
 
             acc += rop + aop * bop;
@@ -1621,11 +1802,45 @@ fn mul_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
         }
     }
 
-    LongRepr::from_raw(res, a.1 * b.1)
+    LongRepr::from_raw(res, a.sign() * b.sign())
+}
+
+fn mul_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
+    match (a.sign(), b.sign()) {
+        (Sign::ZERO, _) => return FixedRepr::ZERO,
+        (_, Sign::ZERO) => return FixedRepr::ZERO,
+        _ => (),
+    }
+
+    let len_a = a.len();
+    let len_b = b.len();
+
+    let mut res = [0; L];
+    let mut over = false;
+
+    for i in 0..len_a {
+        let aop = *a.raw().get(i).unwrap_or(&0) as Double;
+
+        let mut acc = 0;
+
+        for j in 0..(len_b + 1).min(L - i) {
+            let bop = *b.raw().get(j).unwrap_or(&0) as Double;
+            let rop = res[i + j] as Double;
+
+            acc += rop + aop * bop;
+
+            res[i + j] = acc as Single;
+            acc >>= Single::BITS;
+        }
+
+        over |= acc > 0 || i + len_b > L;
+    }
+
+    FixedRepr::from_raw(res, a.sign() * b.sign()).with_overflow(over)
 }
 
 fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
-    match (a.1, b.1) {
+    match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return (LongRepr::ZERO, LongRepr::ZERO),
         (_, Sign::ZERO) => panic!("Division by zero"),
         _ => (),
@@ -1635,14 +1850,14 @@ fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
         return (a.into(), LongRepr::ZERO);
     }
 
-    match cmp_nums(a.0, b.0) {
+    match cmp_nums(a.digits(), b.digits()) {
         Ordering::Less => return (LongRepr::ZERO, a.into()),
-        Ordering::Equal => return (LongRepr::single(1).with_sign(a.1 * b.1), LongRepr::ZERO),
+        Ordering::Equal => return (LongRepr::single(1).with_sign(a.sign() * b.sign()), LongRepr::ZERO),
         Ordering::Greater => (),
     }
 
-    let sign_a = a.1;
-    let sign_b = b.1;
+    let sign_a = a.sign();
+    let sign_b = b.sign();
     let apos = a.with_sign(Sign::POS);
     let bpos = b.with_sign(Sign::POS);
 
@@ -1674,281 +1889,8 @@ fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
     (div.with_sign(sign_a * sign_b), rem.with_sign(sign_a))
 }
 
-fn bit_long<F>(a: LongOperand<'_>, b: LongOperand<'_>, func: F) -> LongRepr
-where
-    F: Fn(Single, Single) -> Single,
-{
-    let len = a.0.len().max(b.0.len());
-
-    let mut res = vec![0; len];
-
-    for (i, r) in res.iter_mut().enumerate() {
-        let aop = *a.0.get(i).unwrap_or(&0);
-        let bop = *b.0.get(i).unwrap_or(&0);
-
-        *r = func(aop, bop);
-    }
-
-    LongRepr::from_raw(res, Sign::POS)
-}
-
-fn shl_long(a: LongOperand<'_>, val: usize) -> LongRepr {
-    if val == 0 {
-        return a.into();
-    }
-
-    let sbits = Single::BITS as usize;
-
-    if a.1 == Sign::ZERO {
-        return LongRepr::ZERO;
-    }
-
-    let offset = val / sbits;
-    let shift = val & (sbits - 1);
-
-    let len_a = a.0.len();
-    let len = len_a + (val + sbits - 1) / sbits;
-    let shl = shift as u32;
-    let shr = (sbits - shift) as u32;
-
-    let mut acc = 0;
-    let mut res = vec![0; len];
-
-    for i in 0..len_a {
-        res[i + offset] = (a.0[i] << shl) | acc;
-        acc = a.0[i].checked_shr(shr).unwrap_or(0);
-    }
-
-    if shift > 0 {
-        res[len_a + offset] = acc;
-    }
-
-    LongRepr::from_raw(res, a.1)
-}
-
-fn shr_long(a: LongOperand<'_>, val: usize) -> LongRepr {
-    let sbits = Single::BITS as usize;
-
-    if a.1 == Sign::ZERO || val >= a.0.len() * sbits {
-        return LongRepr::ZERO;
-    }
-
-    let offset = val / sbits;
-    let shift = val & (sbits - 1);
-
-    let len_a = a.0.len();
-    let len = len_a - val / sbits;
-    let shr = shift as u32;
-    let shl = (sbits - shift) as u32;
-
-    let mut acc = 0;
-    let mut res = vec![0; len];
-
-    for i in (offset..len_a).rev() {
-        res[i - offset] = (a.0[i] >> shr) | acc;
-        acc = a.0[i].checked_shl(shl).unwrap_or(0);
-    }
-
-    LongRepr::from_raw(res, a.1)
-}
-
-fn add_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
-    match (a.2, b.2) {
-        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        (Sign::ZERO, _) => return b.into(),
-        (_, Sign::ZERO) => return a.into(),
-        _ => (),
-    }
-
-    if a.2 != b.2 {
-        return sub_fixed(a, -b);
-    }
-
-    let len = a.1.max(b.1) + 1;
-
-    let mut acc = 0;
-    let mut res = [0; L];
-
-    for (i, r) in res.iter_mut().enumerate().take(len) {
-        let aop = a.0[i] as Double;
-        let bop = b.0[i] as Double;
-
-        acc += aop + bop;
-
-        *r = acc as Single;
-        acc >>= Single::BITS;
-    }
-
-    FixedRepr::from_raw(res, a.2, acc > 0)
-}
-
-fn sub_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
-    match (a.2, b.2) {
-        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        (Sign::ZERO, _) => return (-b).into(),
-        (_, Sign::ZERO) => return a.into(),
-        _ => (),
-    }
-
-    if a.2 != b.2 {
-        return add_fixed(a, -b);
-    }
-
-    let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
-        Ordering::Less => (b, a, -a.2),
-        Ordering::Equal => return FixedRepr::ZERO,
-        Ordering::Greater => (a, b, a.2),
-    };
-
-    let len = a.1;
-
-    let mut acc = 0;
-    let mut res = [0; L];
-
-    for (i, r) in res.iter_mut().enumerate().take(len) {
-        let aop = a.0[i] as Double;
-        let bop = b.0[i] as Double;
-
-        *r = (RADIX + aop - bop - acc) as Single;
-
-        acc = (aop < bop + acc) as Double;
-    }
-
-    FixedRepr::from_raw(res, sign, false)
-}
-
-fn addshr_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, shr: usize) -> FixedRepr<L> {
-    if shr == 0 {
-        return add_fixed(a, b);
-    }
-
-    if shr >= Single::BITS as usize {
-        return FixedRepr::ZERO;
-    }
-
-    match (a.2, b.2) {
-        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        (Sign::ZERO, _) => return shr_fixed(b, shr),
-        (_, Sign::ZERO) => return shr_fixed(a, shr),
-        _ => (),
-    }
-
-    if a.2 != b.2 {
-        return subshr_fixed(a, -b, shr);
-    }
-
-    let len = a.1.max(b.1) + 1;
-    let shl = Single::BITS as usize - shr;
-
-    let mut acc = 0;
-    let mut res = [0; L];
-
-    for i in 0..len.min(L) {
-        let aop = a.0[i] as Double;
-        let bop = b.0[i] as Double;
-        let val = aop + bop;
-
-        acc += val >> shr;
-
-        if i > 0 {
-            let r = res[i - 1] as Double + ((val as Single) << shl) as Double;
-
-            res[i - 1] = r as Single;
-            acc += r >> Single::BITS;
-        }
-
-        res[i] = acc as Single;
-        acc >>= Single::BITS;
-    }
-
-    FixedRepr::from_raw(res, a.2, acc > 0)
-}
-
-fn subshr_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, shr: usize) -> FixedRepr<L> {
-    if shr == 0 {
-        return sub_fixed(a, b);
-    }
-
-    if shr >= Single::BITS as usize {
-        return FixedRepr::ZERO;
-    }
-
-    match (a.2, b.2) {
-        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
-        (Sign::ZERO, _) => return shr_fixed(-b, shr),
-        (_, Sign::ZERO) => return shr_fixed(a, shr),
-        _ => (),
-    }
-
-    if a.2 != b.2 {
-        return addshr_fixed(a, -b, shr);
-    }
-
-    let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
-        Ordering::Less => (b, a, -a.2),
-        Ordering::Equal => return FixedRepr::ZERO,
-        Ordering::Greater => (a, b, a.2),
-    };
-
-    let len = a.1;
-    let shl = Single::BITS as usize - shr;
-
-    let mut acc = 0;
-    let mut res = [0; L];
-
-    for i in 0..len {
-        let aop = a.0[i] as Double;
-        let bop = b.0[i] as Double;
-        let val = RADIX + aop - bop - acc;
-
-        if i > 0 {
-            let r = res[i - 1] as Double + ((val as Single) << shl) as Double;
-
-            res[i - 1] = r as Single;
-        }
-
-        res[i] = (val as Single) >> shr;
-        acc = (aop < bop + acc) as Double;
-    }
-
-    FixedRepr::from_raw(res, sign, false)
-}
-
-fn mul_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> FixedRepr<L> {
-    match (a.2, b.2) {
-        (Sign::ZERO, _) => return FixedRepr::ZERO,
-        (_, Sign::ZERO) => return FixedRepr::ZERO,
-        _ => (),
-    }
-
-    let len_a = a.1;
-    let len_b = b.1;
-
-    let mut res = [0; L];
-    let mut over = false;
-
-    for i in 0..len_a {
-        let mut acc = 0;
-
-        for j in 0..(len_b + 1).min(L - i) {
-            let aop = a.0[i] as Double;
-            let bop = b.0[j] as Double;
-            let rop = res[i + j] as Double;
-
-            acc += rop + aop * bop;
-
-            res[i + j] = acc as Single;
-            acc >>= Single::BITS;
-        }
-
-        over |= acc > 0 || i + len_b > L;
-    }
-
-    FixedRepr::from_raw(res, a.2 * b.2, over)
-}
-
 fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> (FixedRepr<L>, FixedRepr<L>) {
-    match (a.2, b.2) {
+    match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => {
             return (FixedRepr::ZERO, FixedRepr::ZERO);
         },
@@ -1962,12 +1904,12 @@ fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
 
     match cmp_nums(a.digits(), b.digits()) {
         Ordering::Less => return (FixedRepr::ZERO, a.into()),
-        Ordering::Equal => return (FixedRepr::ONE.with_sign(a.2 * b.2), FixedRepr::ZERO),
+        Ordering::Equal => return (FixedRepr::ONE.with_sign(a.sign() * b.sign()), FixedRepr::ZERO),
         Ordering::Greater => (),
     }
 
-    let sign_a = a.2;
-    let sign_b = b.2;
+    let sign_a = a.sign();
+    let sign_b = b.sign();
     let apos = a.with_sign(Sign::POS);
     let bpos = b.with_sign(Sign::POS);
 
@@ -2004,19 +1946,80 @@ fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
     (div.with_sign(sign_a * sign_b), rem.with_sign(sign_a))
 }
 
+fn bit_long<F>(a: LongOperand<'_>, b: LongOperand<'_>, func: F) -> LongRepr
+where
+    F: Fn(Single, Single) -> Single,
+{
+    let len_a = a.len();
+    let len_b = b.len();
+    let len = len_a.max(len_b);
+
+    let mut res = vec![0; len];
+
+    for (i, r) in res.iter_mut().enumerate() {
+        let aop = *a.digits().get(i).unwrap_or(&0);
+        let bop = *b.digits().get(i).unwrap_or(&0);
+
+        *r = func(aop, bop);
+    }
+
+    LongRepr::from_raw(res, Sign::POS)
+}
+
 fn bit_fixed<const L: usize, F>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, func: F) -> FixedRepr<L>
 where
     F: Fn(Single, Single) -> Single,
 {
-    let len = a.1.max(b.1);
+    let len_a = a.len();
+    let len_b = b.len();
+    let len = len_a.max(len_b);
 
     let mut res = [0; L];
 
     for (i, r) in res.iter_mut().enumerate().take(len) {
-        *r = func(a.0[i], b.0[i]);
+        let aop = *a.raw().get(i).unwrap_or(&0);
+        let bop = *b.raw().get(i).unwrap_or(&0);
+
+        *r = func(aop, bop);
     }
 
-    FixedRepr::from_raw(res, Sign::POS, false)
+    FixedRepr::from_raw(res, Sign::POS)
+}
+
+fn shl_long(a: LongOperand<'_>, val: usize) -> LongRepr {
+    if val == 0 {
+        return a.into();
+    }
+
+    let sbits = Single::BITS as usize;
+
+    if a.sign() == Sign::ZERO {
+        return LongRepr::ZERO;
+    }
+
+    let offset = val / sbits;
+    let shift = val & (sbits - 1);
+
+    let len_a = a.len();
+    let len = len_a + (val + sbits - 1) / sbits;
+    let shl = shift as u32;
+    let shr = (sbits - shift) as u32;
+
+    let mut acc = 0;
+    let mut res = vec![0; len];
+
+    for i in 0..len_a {
+        let val = *a.digits().get(i).unwrap_or(&0);
+
+        res[i + offset] = (val << shl) | acc;
+        acc = val.checked_shr(shr).unwrap_or(0);
+    }
+
+    if shift > 0 {
+        res[len_a + offset] = acc;
+    }
+
+    LongRepr::from_raw(res, a.sign())
 }
 
 fn shl_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L> {
@@ -2026,14 +2029,14 @@ fn shl_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L>
 
     let sbits = Single::BITS as usize;
 
-    if a.2 == Sign::ZERO || val >= L * sbits {
+    if a.sign() == Sign::ZERO || val >= L * sbits {
         return FixedRepr::ZERO.with_overflow(val >= L * sbits);
     }
 
     let offset = val / sbits;
     let shift = val & (sbits - 1);
 
-    let len_a = a.1;
+    let len_a = a.len();
     let shl = shift as u32;
     let shr = (sbits - shift) as u32;
 
@@ -2041,8 +2044,10 @@ fn shl_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L>
     let mut res = [0; L];
 
     for i in 0..len_a.min(L - offset) {
-        res[i + offset] = (a.0[i] << shl) | acc;
-        acc = a.0[i].checked_shr(shr).unwrap_or(0);
+        let val = *a.raw().get(i).unwrap_or(&0);
+
+        res[i + offset] = (val << shl) | acc;
+        acc = val.checked_shr(shr).unwrap_or(0);
     }
 
     let len = len_a + offset;
@@ -2051,7 +2056,35 @@ fn shl_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L>
         res[len] = acc;
     }
 
-    FixedRepr::from_raw(res, a.2, false)
+    FixedRepr::from_raw(res, a.sign())
+}
+
+fn shr_long(a: LongOperand<'_>, val: usize) -> LongRepr {
+    let sbits = Single::BITS as usize;
+
+    if a.sign() == Sign::ZERO || val >= a.len() * sbits {
+        return LongRepr::ZERO;
+    }
+
+    let offset = val / sbits;
+    let shift = val & (sbits - 1);
+
+    let len_a = a.len();
+    let len = len_a - val / sbits;
+    let shr = shift as u32;
+    let shl = (sbits - shift) as u32;
+
+    let mut acc = 0;
+    let mut res = vec![0; len];
+
+    for i in (offset..len_a).rev() {
+        let val = *a.digits().get(i).unwrap_or(&0);
+
+        res[i - offset] = (val >> shr) | acc;
+        acc = val.checked_shl(shl).unwrap_or(0);
+    }
+
+    LongRepr::from_raw(res, a.sign())
 }
 
 fn shr_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L> {
@@ -2061,14 +2094,14 @@ fn shr_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L>
 
     let sbits = Single::BITS as usize;
 
-    if a.2 == Sign::ZERO || val >= a.1 * sbits {
-        return FixedRepr::ZERO.with_overflow(val >= a.1 * sbits);
+    if a.sign() == Sign::ZERO || val >= a.len() * sbits {
+        return FixedRepr::ZERO.with_overflow(val >= a.len() * sbits);
     }
 
     let offset = val / sbits;
     let shift = val & (sbits - 1);
 
-    let len_a = a.1;
+    let len_a = a.len();
     let shr = shift as u32;
     let shl = (sbits - shift) as u32;
 
@@ -2076,11 +2109,13 @@ fn shr_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L>
     let mut res = [0; L];
 
     for i in (offset..len_a).rev() {
-        res[i - offset] = (a.0[i] >> shr) | acc;
-        acc = a.0[i].checked_shl(shl).unwrap_or(0);
+        let val = *a.raw().get(i).unwrap_or(&0);
+
+        res[i - offset] = (val >> shr) | acc;
+        acc = val.checked_shl(shl).unwrap_or(0);
     }
 
-    FixedRepr::from_raw(res, a.2, false)
+    FixedRepr::from_raw(res, a.sign())
 }
 
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
@@ -2748,6 +2783,8 @@ mod tests {
 
                 assert_eq!(a + b, S32::from(aop + bop));
                 assert_eq!(a - b, S32::from(aop - bop));
+
+                println!();
             }
         }
     }
