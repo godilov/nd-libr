@@ -1009,6 +1009,389 @@ impl<const L: usize> FixedOperand<'_, L> {
 //     }
 // }
 
+fn from_bytes_long(bytes: &[u8]) -> LongRepr {
+    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
+
+    let len = (bytes.len() + RATIO - 1) / RATIO;
+
+    let mut shl = 0;
+    let mut res = vec![0; len];
+
+    for (i, &byte) in bytes.iter().enumerate() {
+        let idx = i / RATIO;
+
+        res[idx] |= (byte as Single) << shl;
+        shl = (shl + u8::BITS) % Single::BITS;
+    }
+
+    LongRepr::from_raw(res, Sign::POS)
+}
+
+fn from_bytes_fixed<const L: usize>(bytes: &[u8]) -> FixedRepr<L> {
+    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
+
+    let len = (bytes.len() + RATIO - 1) / RATIO;
+
+    let mut shl = 0;
+    let mut res = [0; L];
+
+    for (i, &byte) in bytes.iter().enumerate().take(RATIO * L) {
+        let idx = i / RATIO;
+
+        res[idx] |= (byte as Single) << shl;
+        shl = (shl + u8::BITS) % Single::BITS;
+    }
+
+    FixedRepr::from_raw(res, Sign::POS).with_overflow(len > L)
+}
+
+fn try_from_str_long(s: &str) -> Result<LongRepr, TryFromStrError> {
+    let (s, sign) = get_sign_from_str(s)?;
+    let (s, radix) = get_radix_from_str(s)?;
+    let digits = get_digits_from_str(s, radix)?;
+
+    Ok(try_from_digits_long(&digits, radix, sign)?)
+}
+
+fn try_from_str_fixed<const L: usize>(s: &str) -> Result<FixedRepr<L>, TryFromStrError> {
+    let (s, sign) = get_sign_from_str(s)?;
+    let (s, radix) = get_radix_from_str(s)?;
+    let digits = get_digits_from_str(s, radix)?;
+
+    Ok(try_from_digits_fixed(&digits, radix, sign)?)
+}
+
+fn try_from_digits_validate(digits: &[u8], radix: u16) -> Result<(), TryFromDigitsError> {
+    if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
+        return Err(TryFromDigitsError::InvalidDigit {
+            digit: digit as Single,
+            radix: radix as Double,
+        });
+    }
+
+    Ok(())
+}
+
+fn try_from_digits_long_bin(digits: &[u8], pow: u8, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
+    const BITS: usize = Single::BITS as usize;
+
+    if !(1..=u8::BITS as u8).contains(&pow) {
+        return Err(TryFromDigitsError::InvalidPow { pow });
+    }
+
+    try_from_digits_validate(digits, 1 << pow)?;
+
+    let bits = pow as usize;
+    let len = (digits.len() * bits + BITS - 1) / BITS;
+
+    let mut acc = 0;
+    let mut shl = 0;
+    let mut idx = 0;
+    let mut res = vec![0; len];
+
+    for &digit in digits.iter() {
+        acc |= (digit as Double) << shl;
+        shl += pow as u32;
+
+        if shl >= Single::BITS {
+            res[idx] = acc as Single;
+            idx += 1;
+
+            acc >>= Single::BITS;
+            shl -= Single::BITS;
+        }
+    }
+
+    if acc > 0 {
+        res[idx] = acc as Single;
+    }
+
+    Ok(LongRepr::from_raw(res, sign))
+}
+
+fn try_from_digits_fixed_bin<const L: usize>(
+    digits: &[u8],
+    pow: u8,
+    sign: Sign,
+) -> Result<FixedRepr<L>, TryFromDigitsError> {
+    if !(1..=u8::BITS as u8).contains(&pow) {
+        return Err(TryFromDigitsError::InvalidPow { pow });
+    }
+
+    try_from_digits_validate(digits, 1 << pow)?;
+
+    let mut acc = 0;
+    let mut shl = 0;
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for &digit in digits.iter() {
+        acc |= (digit as Double) << shl;
+        shl += pow as u32;
+
+        if shl >= Single::BITS {
+            if idx < L {
+                res[idx] = acc as Single;
+                idx += 1;
+            } else if acc > 0 {
+                break;
+            }
+
+            acc >>= Single::BITS;
+            shl -= Single::BITS;
+        }
+    }
+
+    if idx < L && acc > 0 {
+        res[idx] = acc as Single;
+    }
+
+    Ok(FixedRepr::from_raw(res, sign).with_overflow(idx == L && acc > 0))
+}
+
+fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
+    const BITS: usize = Single::BITS as usize;
+
+    if pow == Single::BITS as u8 {
+        return Ok(digits.to_vec());
+    }
+
+    if !(1..Single::BITS as u8).contains(&pow) {
+        return Err(IntoRadixError::InvalidPow { pow });
+    }
+
+    let radix = (1 as Double) << pow;
+    let mask = radix - 1;
+    let pow = pow as Double;
+
+    let bits = pow as usize;
+    let len = (digits.len() * BITS + bits - 1) / bits;
+
+    let mut acc = 0;
+    let mut rem = 0;
+    let mut idx = 0;
+    let mut res = vec![0; len];
+
+    for &digit in digits {
+        acc |= (digit as Double) << rem;
+        rem += BITS as Double;
+
+        while rem >= pow {
+            res[idx] = (acc & mask) as Single;
+            idx += 1;
+
+            acc >>= pow;
+            rem -= pow;
+        }
+    }
+
+    if acc > 0 {
+        res[idx] = acc as Single;
+    }
+
+    res.truncate(get_len(&res));
+
+    Ok(res)
+}
+
+fn try_from_digits_long(digits: &[u8], radix: u16, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
+    const BITS: usize = Single::BITS as usize;
+
+    if !(2..=u8::MAX as u16 + 1).contains(&radix) {
+        return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
+    }
+
+    if radix & (radix - 1) == 0 {
+        return try_from_digits_long_bin(digits, radix.ilog2() as u8, sign);
+    }
+
+    try_from_digits_validate(digits, radix)?;
+
+    let bits = 1 + radix.ilog2() as usize;
+    let len = (digits.len() * bits + BITS - 1) / BITS;
+
+    let mut idx = 0;
+    let mut res = vec![0; len];
+
+    for &digit in digits.iter().rev() {
+        let mut acc = digit as Double;
+
+        for res in res.iter_mut().take(idx + 1) {
+            acc += *res as Double * radix as Double;
+
+            *res = acc as Single;
+
+            acc >>= Single::BITS;
+        }
+
+        if idx < len && acc > 0 {
+            res[idx] += acc as Single;
+        }
+
+        if idx < len && res[idx] > 0 {
+            idx += 1;
+        }
+    }
+
+    Ok(LongRepr::from_raw(res, sign))
+}
+
+fn try_from_digits_fixed<const L: usize>(
+    digits: &[u8],
+    radix: u16,
+    sign: Sign,
+) -> Result<FixedRepr<L>, TryFromDigitsError> {
+    if !(2..=u8::MAX as u16 + 1).contains(&radix) {
+        return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
+    }
+
+    if radix & (radix - 1) == 0 {
+        return try_from_digits_fixed_bin(digits, radix.ilog2() as u8, sign);
+    }
+
+    try_from_digits_validate(digits, radix)?;
+
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for &digit in digits.iter().rev() {
+        let mut acc = digit as Double;
+
+        for res in res.iter_mut().take(idx + 1) {
+            acc += *res as Double * radix as Double;
+
+            *res = acc as Single;
+
+            acc >>= Single::BITS;
+        }
+
+        if idx < L && acc > 0 {
+            res[idx] += acc as Single;
+        }
+
+        if idx < L && res[idx] > 0 {
+            idx += 1;
+        }
+    }
+
+    Ok(FixedRepr::from_raw(res, sign).with_overflow(idx == L))
+}
+
+fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoRadixError> {
+    const BITS: usize = Single::BITS as usize;
+
+    if !(2..=RADIX).contains(&radix) {
+        return Err(IntoRadixError::InvalidRadix { radix });
+    }
+
+    if radix & (radix - 1) == 0 {
+        return into_radix_bin(digits, radix.ilog2() as u8);
+    }
+
+    let bits = 1 + radix.ilog2() as usize;
+    let len = (digits.len() * BITS + bits - 1) / bits;
+
+    let mut idx = 0;
+    let mut res = vec![0; len];
+    let mut len = digits.len();
+
+    loop {
+        let mut any = 0;
+        let mut acc = 0;
+
+        for digit in digits.iter_mut().take(len).rev() {
+            any |= *digit;
+            acc = (acc << Single::BITS) | *digit as Double;
+
+            *digit = (acc / radix) as Single;
+
+            acc %= radix;
+        }
+
+        if any == 0 {
+            break;
+        }
+
+        res[idx] = acc as Single;
+        idx += 1;
+        len -= digits.iter().take(len).rev().position(|&digit| digit > 0).unwrap_or(len);
+    }
+
+    res.truncate(get_len(&res));
+
+    Ok(res)
+}
+
+fn fixed_from_long<const L: usize>(digits: &[Single]) -> FixedRepr<L> {
+    let mut res = [0; L];
+
+    let len = digits.len().min(L);
+
+    res[..len].copy_from_slice(&digits[..len]);
+
+    FixedRepr::from_raw(res, Sign::POS).with_overflow(digits.len() > L)
+}
+
+fn long_from_fixed<const L: usize>(digits: &[Single; L], len: usize) -> LongRepr {
+    let mut res = vec![0; len];
+
+    res.copy_from_slice(&digits[..len]);
+
+    LongRepr::from_raw(res, Sign::POS)
+}
+
+fn write_num_bin(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$b}", digit, width)
+}
+
+fn write_num_oct(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$o}", digit, width)
+}
+
+fn write_num_dec(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$}", digit, width)
+}
+
+fn write_num_lhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$x}", digit, width)
+}
+
+fn write_num_uhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{:01$X}", digit, width)
+}
+
+fn write_num<R: Radix, F>(_: R, fmt: &mut Formatter<'_>, digits: &[Single], sign: Sign, func: F) -> std::fmt::Result
+where
+    F: Fn(&mut String, Single, usize) -> std::fmt::Result,
+{
+    println!("dig: {:?}", digits);
+
+    let sign = get_sign(digits.len(), sign);
+
+    let prefix = if fmt.alternate() { R::PREFIX } else { "" };
+
+    let sign = match sign {
+        Sign::ZERO => {
+            return write!(fmt, "{}0", prefix);
+        },
+        Sign::NEG => "-",
+        Sign::POS => "",
+    };
+
+    let len = digits.len();
+    let width = R::WIDTH as usize;
+
+    let mut buf = String::with_capacity(len * width);
+
+    for &digit in digits.iter().rev() {
+        func(&mut buf, digit, width)?;
+    }
+
+    let len = get_len_rev(buf.as_bytes(), b'0');
+
+    write!(fmt, "{}{}{}", sign, prefix, &buf[len..])
+}
+
 impl Display for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix(Dec::RADIX).unwrap_or_default();
@@ -1169,383 +1552,6 @@ impl<const L: usize> UpperHex for UnsignedFixed<L> {
     }
 }
 
-fn from_bytes_long(bytes: &[u8]) -> LongRepr {
-    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
-
-    let mut shl = 0;
-    let mut res = vec![0; (bytes.len() + RATIO - 1) / RATIO];
-
-    for (i, &byte) in bytes.iter().enumerate() {
-        let idx = i / RATIO;
-
-        res[idx] |= (byte as Single) << shl;
-        shl = (shl + u8::BITS) & (Single::BITS - 1);
-    }
-
-    LongRepr::from_raw(res, Sign::POS)
-}
-
-fn from_bytes_fixed<const L: usize>(bytes: &[u8]) -> FixedRepr<L> {
-    const RATIO: usize = (Single::BITS / u8::BITS) as usize;
-
-    let mut shl = 0;
-    let mut res = [0; L];
-
-    for (i, &byte) in bytes.iter().enumerate().take(RATIO * L) {
-        let idx = i / RATIO;
-
-        res[idx] |= (byte as Single) << shl;
-        shl = (shl + u8::BITS) & (Single::BITS - 1);
-    }
-
-    let len = (bytes.len() + RATIO - 1) / RATIO;
-
-    FixedRepr::from_raw(res, Sign::POS).with_overflow(len > L)
-}
-
-fn try_from_str_long(s: &str) -> Result<LongRepr, TryFromStrError> {
-    let (s, sign) = get_sign_from_str(s)?;
-    let (s, radix) = get_radix_from_str(s)?;
-    let digits = get_digits_from_str(s, radix)?;
-
-    Ok(try_from_digits_long(&digits, radix, sign)?)
-}
-
-fn try_from_str_fixed<const L: usize>(s: &str) -> Result<FixedRepr<L>, TryFromStrError> {
-    let (s, sign) = get_sign_from_str(s)?;
-    let (s, radix) = get_radix_from_str(s)?;
-    let digits = get_digits_from_str(s, radix)?;
-
-    Ok(try_from_digits_fixed(&digits, radix, sign)?)
-}
-
-fn try_from_digits_validate(digits: &[u8], radix: u16) -> Result<(), TryFromDigitsError> {
-    if let Some(&digit) = digits.iter().find(|&&digit| digit as u16 >= radix) {
-        return Err(TryFromDigitsError::InvalidDigit {
-            digit: digit as Single,
-            radix: radix as Double,
-        });
-    }
-
-    Ok(())
-}
-
-fn try_from_digits_long_bin(digits: &[u8], pow: u8, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
-    if !(1..=u8::BITS as u8).contains(&pow) {
-        return Err(TryFromDigitsError::InvalidPow { pow });
-    }
-
-    try_from_digits_validate(digits, 1 << pow)?;
-
-    let sbits = Single::BITS as usize;
-    let rbits = pow as usize;
-    let len = (digits.len() * rbits + sbits - 1) / sbits;
-
-    let mut acc = 0;
-    let mut shl = 0;
-    let mut idx = 0;
-    let mut res = vec![0; len];
-
-    for &digit in digits.iter() {
-        acc |= (digit as Double) << shl;
-        shl += pow;
-
-        if shl >= Single::BITS as u8 {
-            res[idx] = acc as Single;
-            idx += 1;
-
-            acc >>= Single::BITS;
-            shl -= Single::BITS as u8;
-        }
-    }
-
-    if acc > 0 {
-        res[idx] = acc as Single;
-    }
-
-    Ok(LongRepr::from_raw(res, sign))
-}
-
-fn try_from_digits_long(digits: &[u8], radix: u16, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
-    if !(2..=u8::MAX as u16 + 1).contains(&radix) {
-        return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
-    }
-
-    if radix & (radix - 1) == 0 {
-        return try_from_digits_long_bin(digits, radix.ilog2() as u8, sign);
-    }
-
-    try_from_digits_validate(digits, radix)?;
-
-    let sbits = Single::BITS as usize;
-    let rbits = 1 + radix.ilog2() as usize;
-    let len = (digits.len() * rbits + sbits - 1) / sbits;
-
-    let mut idx = 0;
-    let mut res = vec![0; len];
-
-    for &digit in digits.iter().rev() {
-        let mut acc = digit as Double;
-
-        for res in res.iter_mut().take(idx + 1) {
-            acc += *res as Double * radix as Double;
-
-            *res = acc as Single;
-
-            acc >>= Single::BITS;
-        }
-
-        if idx < len && acc > 0 {
-            res[idx] += acc as Single;
-        }
-
-        if idx < len && res[idx] > 0 {
-            idx += 1;
-        }
-    }
-
-    Ok(LongRepr::from_raw(res, sign))
-}
-
-fn try_from_digits_fixed_bin<const L: usize>(
-    digits: &[u8],
-    pow: u8,
-    sign: Sign,
-) -> Result<FixedRepr<L>, TryFromDigitsError> {
-    if !(1..=u8::BITS as u8).contains(&pow) {
-        return Err(TryFromDigitsError::InvalidPow { pow });
-    }
-
-    try_from_digits_validate(digits, 1 << pow)?;
-
-    let mut acc = 0;
-    let mut shl = 0;
-    let mut idx = 0;
-    let mut res = [0; L];
-
-    for &digit in digits.iter() {
-        acc |= (digit as Double) << shl;
-        shl += pow;
-
-        if shl >= Single::BITS as u8 {
-            if idx < L {
-                res[idx] = acc as Single;
-                idx += 1;
-            } else if acc > 0 {
-                break;
-            }
-
-            acc >>= Single::BITS;
-            shl -= Single::BITS as u8;
-        }
-    }
-
-    if idx < L && acc > 0 {
-        res[idx] = acc as Single;
-    }
-
-    Ok(FixedRepr::from_raw(res, sign).with_overflow(idx == L && acc > 0))
-}
-
-fn try_from_digits_fixed<const L: usize>(
-    digits: &[u8],
-    radix: u16,
-    sign: Sign,
-) -> Result<FixedRepr<L>, TryFromDigitsError> {
-    if !(2..=u8::MAX as u16 + 1).contains(&radix) {
-        return Err(TryFromDigitsError::InvalidRadix { radix: radix as Double });
-    }
-
-    if radix & (radix - 1) == 0 {
-        return try_from_digits_fixed_bin(digits, radix.ilog2() as u8, sign);
-    }
-
-    try_from_digits_validate(digits, radix)?;
-
-    let mut idx = 0;
-    let mut res = [0; L];
-
-    for &digit in digits.iter().rev() {
-        let mut acc = digit as Double;
-
-        for res in res.iter_mut().take(idx + 1) {
-            acc += *res as Double * radix as Double;
-
-            *res = acc as Single;
-
-            acc >>= Single::BITS;
-        }
-
-        if idx < L && acc > 0 {
-            res[idx] += acc as Single;
-        }
-
-        if idx < L && res[idx] > 0 {
-            idx += 1;
-        }
-    }
-
-    Ok(FixedRepr::from_raw(res, sign).with_overflow(idx == L))
-}
-
-fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-    if pow == Single::BITS as u8 {
-        return Ok(digits.to_vec());
-    }
-
-    if !(1..Single::BITS as u8).contains(&pow) {
-        return Err(IntoRadixError::InvalidPow { pow });
-    }
-
-    let radix = (1 as Double) << pow;
-    let mask = radix - 1;
-    let pow = pow as Double;
-
-    let sbits = Single::BITS as usize;
-    let rbits = pow as usize;
-    let len = (digits.len() * sbits + rbits - 1) / rbits;
-
-    let mut acc = 0;
-    let mut rem = 0;
-    let mut idx = 0;
-    let mut res = vec![0; len];
-
-    for &digit in digits {
-        acc |= (digit as Double) << rem;
-        rem += sbits as Double;
-
-        while rem >= pow {
-            res[idx] = (acc & mask) as Single;
-            idx += 1;
-
-            acc >>= pow;
-            rem -= pow;
-        }
-    }
-
-    if acc > 0 {
-        res[idx] = acc as Single;
-    }
-
-    res.truncate(get_len(&res));
-
-    Ok(res)
-}
-
-fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoRadixError> {
-    if !(2..=RADIX).contains(&radix) {
-        return Err(IntoRadixError::InvalidRadix { radix });
-    }
-
-    if radix & (radix - 1) == 0 {
-        return into_radix_bin(digits, radix.ilog2() as u8);
-    }
-
-    let sbits = Single::BITS as usize;
-    let rbits = 1 + radix.ilog2() as usize;
-    let len = (digits.len() * sbits + rbits - 1) / rbits;
-
-    let mut idx = 0;
-    let mut res = vec![0; len];
-    let mut len = digits.len();
-
-    loop {
-        let mut any = 0;
-        let mut acc = 0;
-
-        for digit in digits.iter_mut().take(len).rev() {
-            any |= *digit;
-            acc = (acc << Single::BITS) | *digit as Double;
-
-            *digit = (acc / radix) as Single;
-
-            acc %= radix;
-        }
-
-        if any == 0 {
-            break;
-        }
-
-        res[idx] = acc as Single;
-        idx += 1;
-        len -= digits.iter().take(len).rev().position(|&digit| digit > 0).unwrap_or(len);
-    }
-
-    res.truncate(get_len(&res));
-
-    Ok(res)
-}
-
-fn fixed_from_long<const L: usize>(digits: &[Single]) -> FixedRepr<L> {
-    let mut res = [0; L];
-
-    let len = digits.len().min(L);
-
-    res[..len].copy_from_slice(&digits[..len]);
-
-    FixedRepr::from_raw(res, Sign::POS).with_overflow(digits.len() > L)
-}
-
-fn long_from_fixed<const L: usize>(digits: &[Single; L], len: usize) -> LongRepr {
-    let mut res = vec![0; len];
-
-    res.copy_from_slice(&digits[..len]);
-
-    LongRepr::from_raw(res, Sign::POS)
-}
-
-fn write_num_bin(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{:01$b}", digit, width)
-}
-
-fn write_num_oct(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{:01$o}", digit, width)
-}
-
-fn write_num_dec(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{:01$}", digit, width)
-}
-
-fn write_num_lhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{:01$x}", digit, width)
-}
-
-fn write_num_uhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{:01$X}", digit, width)
-}
-
-fn write_num<R: Radix, F>(_: R, fmt: &mut Formatter<'_>, digits: &[Single], sign: Sign, func: F) -> std::fmt::Result
-where
-    F: Fn(&mut String, Single, usize) -> std::fmt::Result,
-{
-    println!("dig: {:?}", digits);
-
-    let sign = get_sign(digits.len(), sign);
-
-    let prefix = if fmt.alternate() { R::PREFIX } else { "" };
-
-    let sign = match sign {
-        Sign::ZERO => {
-            return write!(fmt, "{}0", prefix);
-        },
-        Sign::NEG => "-",
-        Sign::POS => "",
-    };
-
-    let len = digits.len();
-    let width = R::WIDTH as usize;
-
-    let mut buf = String::with_capacity(len * width);
-
-    for &digit in digits.iter().rev() {
-        func(&mut buf, digit, width)?;
-    }
-
-    let len = get_len_rev(buf.as_bytes(), b'0');
-
-    write!(fmt, "{}{}{}", sign, prefix, &buf[len..])
-}
-
 fn zip_nums<T: From<Single>>(a: &[Single], b: &[Single], zeros: usize) -> impl Iterator<Item = (T, T)> {
     let len_a = a.len();
     let len_b = b.len();
@@ -1567,6 +1573,24 @@ fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {
             .map(|(&a, &b)| a.cmp(&b))
             .find(|&x| x != Ordering::Equal)
             .unwrap_or(Ordering::Equal),
+        Ordering::Greater => Ordering::Greater,
+    }
+}
+
+fn cmp_nums_ext(a: &[Single], b: &[Single], ax: Single, bx: Single) -> Ordering {
+    match a.len().cmp(&b.len()) {
+        Ordering::Less => Ordering::Less,
+        Ordering::Equal => match ax.cmp(&bx) {
+            Ordering::Less => Ordering::Less,
+            Ordering::Equal => a
+                .iter()
+                .rev()
+                .zip(b.iter().rev())
+                .map(|(&a, &b)| a.cmp(&b))
+                .find(|&x| x != Ordering::Equal)
+                .unwrap_or(Ordering::Equal),
+            Ordering::Greater => Ordering::Greater,
+        },
         Ordering::Greater => Ordering::Greater,
     }
 }
@@ -2099,21 +2123,20 @@ where
 fn shl_long(a: LongOperand<'_>, val: usize) -> LongRepr {
     const BITS: usize = Single::BITS as usize;
 
-    let len_a = a.len();
-    let sign_a = a.sign();
+    let sign = a.sign();
 
     if val == 0 {
         return a.into();
     }
 
-    if sign_a == Sign::ZERO {
+    if sign == Sign::ZERO {
         return LongRepr::ZERO;
     }
 
     let offset = val / BITS;
     let shl = val % BITS;
     let shr = BITS - shl;
-    let len = len_a + (val + BITS - 1) / BITS;
+    let len = a.len() + (val + BITS - 1) / BITS;
 
     let mut res = vec![0; len];
 
@@ -2127,27 +2150,25 @@ fn shl_long(a: LongOperand<'_>, val: usize) -> LongRepr {
         *r = val_h | val_l;
     }
 
-    LongRepr::from_raw(res, sign_a)
+    LongRepr::from_raw(res, sign)
 }
 
 fn shl_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L> {
     const BITS: usize = Single::BITS as usize;
 
-    let len_a = a.len();
-    let sign_a = a.sign();
+    let sign = a.sign();
 
     if val == 0 {
         return a.into();
     }
 
-    if sign_a == Sign::ZERO {
+    if sign == Sign::ZERO {
         return FixedRepr::ZERO;
     }
 
     let offset = val / BITS;
     let shl = val % BITS;
     let shr = BITS - shl;
-    let len = len_a + (val + BITS - 1) / BITS;
 
     let mut res = [0; L];
 
@@ -2161,27 +2182,26 @@ fn shl_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L>
         *r = val_h | val_l;
     }
 
-    FixedRepr::from_raw(res, sign_a)
+    FixedRepr::from_raw(res, sign)
 }
 
 fn shr_long(a: LongOperand<'_>, val: usize) -> LongRepr {
     const BITS: usize = Single::BITS as usize;
 
-    let len_a = a.len();
-    let sign_a = a.sign();
+    let sign = a.sign();
 
     if val == 0 {
         return a.into();
     }
 
-    if val >= len_a * BITS {
+    if val >= a.len() * BITS {
         return LongRepr::ZERO;
     }
 
     let offset = val / BITS;
     let shr = val % BITS;
     let shl = BITS - shr;
-    let len = len_a - offset;
+    let len = a.len() - offset;
 
     let mut res = vec![0; len];
 
@@ -2195,27 +2215,26 @@ fn shr_long(a: LongOperand<'_>, val: usize) -> LongRepr {
         *r = val_h | val_l;
     }
 
-    LongRepr::from_raw(res, sign_a)
+    LongRepr::from_raw(res, sign)
 }
 
 fn shr_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L> {
     const BITS: usize = Single::BITS as usize;
 
-    let len_a = a.len();
-    let sign_a = a.sign();
+    let sign = a.sign();
 
     if val == 0 {
         return a.into();
     }
 
-    if val >= len_a * BITS {
+    if val >= a.len() * BITS {
         return FixedRepr::ZERO;
     }
 
     let offset = val / BITS;
     let shr = val % BITS;
     let shl = BITS - shr;
-    let len = len_a - offset;
+    let len = a.len() - offset;
 
     let mut res = [0; L];
 
@@ -2229,7 +2248,7 @@ fn shr_fixed<const L: usize>(a: FixedOperand<'_, L>, val: usize) -> FixedRepr<L>
         *r = val_h | val_l;
     }
 
-    FixedRepr::from_raw(res, sign_a)
+    FixedRepr::from_raw(res, sign)
 }
 
 fn shr_long_mut(a: LongRepr, val: usize) -> LongRepr {
@@ -2238,7 +2257,7 @@ fn shr_long_mut(a: LongRepr, val: usize) -> LongRepr {
     let len = a.len();
     let sign = a.sign();
 
-    if val >= len * BITS {
+    if val >= a.len() * BITS {
         return LongRepr::ZERO;
     }
 
@@ -2267,7 +2286,7 @@ fn shr_fixed_mut<const L: usize>(a: FixedRepr<L>, val: usize) -> FixedRepr<L> {
     let len = a.len();
     let sign = a.sign();
 
-    if val >= len * BITS {
+    if val >= a.len() * BITS {
         return FixedRepr::ZERO;
     }
 
