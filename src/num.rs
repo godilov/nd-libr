@@ -1222,7 +1222,7 @@ fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoR
     let len = (digits.len() * BITS + bits - 1) / bits;
 
     let mut idx = 0;
-    let mut res = vec![0; len];
+    let mut res = vec![0; len + 1];
     let mut len = digits.len();
 
     loop {
@@ -2389,12 +2389,30 @@ mod tests {
     }
 
     fn trimmed(val: SignedLong, len: usize) -> SignedLong {
-        let len = len.min(val.0.len());
+        let len = len.min(val.len());
 
-        let digits = normalized(&val.0[..len]);
+        let digits = normalized(&val.digits()[..len]);
         let sign = get_sign(digits.len(), val.1);
 
         SignedLong(digits, sign)
+    }
+
+    fn value(digits: &[u8], radix: u16) -> u32 {
+        digits.iter().rev().fold(0, |acc, &x| acc * radix as u32 + x as u32)
+    }
+
+    fn add(digits: &mut [u8], radix: u16, val: u16) -> bool {
+        let mut acc = val;
+
+        for digit in digits {
+            acc += *digit as u16;
+
+            *digit = (acc % radix) as Single;
+
+            acc /= radix;
+        }
+
+        acc > 0
     }
 
     #[test]
@@ -2459,40 +2477,39 @@ mod tests {
 
     #[test]
     fn from_digits_long() {
-        // TODO: Make better test
         assert_eq!(SignedLong::try_from_digits(&[], 31), Ok(SignedLong::default()));
         assert_eq!(UnsignedLong::try_from_digits(&[], 31), Ok(UnsignedLong::default()));
 
-        assert_long_from_digits!(@signed &[30, 30, 0, 0], 31, vec![192, 3], Sign::POS);
-        assert_long_from_digits!(@unsigned &[30, 30, 0, 0], 31, vec![192, 3]);
+        for radix in 8..=40 {
+            let mut digits = [0; 4];
 
-        assert_long_from_digits!(@signed &[30, 30, 30, 30], 31, vec![128, 23, 14], Sign::POS);
-        assert_long_from_digits!(@unsigned &[30, 30, 30, 30], 31, vec![128, 23, 14]);
+            while !add(&mut digits, radix, radix - 5) {
+                let val = value(&digits, radix);
+                let sign = Sign::from(val);
 
-        assert_long_from_digits!(@signed &[30, 30, 0, 0], 32, vec![222, 3], Sign::POS);
-        assert_long_from_digits!(@unsigned &[30, 30, 0, 0], 32, vec![222, 3]);
-
-        assert_long_from_digits!(@signed &[30, 30, 30, 30], 32, vec![222, 123, 15], Sign::POS);
-        assert_long_from_digits!(@unsigned &[30, 30, 30, 30], 32, vec![222, 123, 15]);
+                assert_long_from_digits!(@signed &digits, radix, normalized(&val.to_le_bytes()), sign);
+                assert_long_from_digits!(@unsigned &digits, radix, normalized(&val.to_le_bytes()));
+            }
+        }
     }
 
     #[test]
     fn from_digits_fixed() {
-        // TODO: Make better test
         assert_eq!(S32::try_from_digits(&[], 31), Ok(S32::default()));
         assert_eq!(U32::try_from_digits(&[], 31), Ok(U32::default()));
 
-        assert_fixed_from_digits!(@signed &[30, 30, 0, 0], 31, [192, 3, 0, 0], 2, Sign::POS);
-        assert_fixed_from_digits!(@unsigned &[30, 30, 0, 0], 31, [192, 3, 0, 0], 2);
+        for radix in 8..=40 {
+            let mut digits = [0; 4];
 
-        assert_fixed_from_digits!(@signed &[30, 30, 30, 30], 31, [128, 23, 14, 0], 3, Sign::POS);
-        assert_fixed_from_digits!(@unsigned &[30, 30, 30, 30], 31, [128, 23, 14, 0], 3);
+            while !add(&mut digits, radix, radix - 5) {
+                let val = value(&digits, radix);
+                let len = get_len(&val.to_le_bytes());
+                let sign = Sign::from(val);
 
-        assert_fixed_from_digits!(@signed &[30, 30, 0, 0], 32, [222, 3, 0, 0], 2, Sign::POS);
-        assert_fixed_from_digits!(@unsigned &[30, 30, 0, 0], 32, [222, 3, 0, 0], 2);
-
-        assert_fixed_from_digits!(@signed &[30, 30, 30, 30], 32, [222, 123, 15, 0], 3, Sign::POS);
-        assert_fixed_from_digits!(@unsigned &[30, 30, 30, 30], 32, [222, 123, 15, 0], 3);
+                assert_fixed_from_digits!(@signed &digits, radix, val.to_le_bytes(), len, sign);
+                assert_fixed_from_digits!(@unsigned &digits, radix, val.to_le_bytes(), len);
+            }
+        }
     }
 
     #[test]
@@ -2510,11 +2527,8 @@ mod tests {
 
             let bytes = val.to_le_bytes();
 
-            let (sign_pos, sign_neg) = if val > 0 {
-                (Sign::POS, Sign::NEG)
-            } else {
-                (Sign::ZERO, Sign::ZERO)
-            };
+            let sign_pos = Sign::from(val);
+            let sign_neg = Sign::NEG * sign_pos;
 
             assert_long_from_str!(@signed &dec_pos, normalized(&bytes), sign_pos);
             assert_long_from_str!(@signed &bin_pos, normalized(&bytes), sign_pos);
@@ -2548,11 +2562,8 @@ mod tests {
 
             let bytes = (val as u32).to_le_bytes();
 
-            let (sign_pos, sign_neg) = if val > 0 {
-                (Sign::POS, Sign::NEG)
-            } else {
-                (Sign::ZERO, Sign::ZERO)
-            };
+            let sign_pos = Sign::from(val);
+            let sign_neg = Sign::NEG * sign_pos;
 
             assert_fixed_from_str!(@signed &dec_pos, bytes, get_len(&bytes), sign_pos);
             assert_fixed_from_str!(@signed &bin_pos, bytes, get_len(&bytes), sign_pos);
@@ -2573,17 +2584,15 @@ mod tests {
 
     #[test]
     fn into_radix_long() -> anyhow::Result<()> {
-        // TODO: Make better test
         assert_eq!(SignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
         assert_eq!(UnsignedLong::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
 
-        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
-        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
+        for radix in 8..=40 {
+            let mut digits = [0; 4];
 
-        for &radix in &radixes {
-            for entry in &entries {
-                assert_long_into_radix!(@signed entry, radix as u16);
-                assert_long_into_radix!(@unsigned entry, radix as u16);
+            while !add(&mut digits, radix, radix - 5) {
+                assert_long_into_radix!(@signed &digits, radix);
+                assert_long_into_radix!(@unsigned &digits, radix);
             }
         }
 
@@ -2592,17 +2601,15 @@ mod tests {
 
     #[test]
     fn into_radix_fixed() -> anyhow::Result<()> {
-        // TODO: Make better test
         assert_eq!(S32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
         assert_eq!(U32::try_from_digits(&[], 31)?.into_radix(31)?, Vec::<Single>::new());
 
-        let radixes = [31, 32, 33, 127, 128, 129, 101, 103];
-        let entries = [[0, 0, 0, 0], [7, 11, 0, 0], [7, 11, 13, 19], [0, 0, 13, 19]];
+        for radix in 8..=40 {
+            let mut digits = [0; 4];
 
-        for &radix in &radixes {
-            for entry in &entries {
-                assert_fixed_into_radix!(@signed entry, get_len(entry), radix as u16);
-                assert_fixed_into_radix!(@unsigned entry, get_len(entry), radix as u16);
+            while !add(&mut digits, radix, radix - 5) {
+                assert_fixed_into_radix!(@signed &digits, get_len(&digits), radix);
+                assert_fixed_into_radix!(@unsigned &digits, get_len(&digits), radix);
             }
         }
 
