@@ -7,7 +7,7 @@ use radix::{Bin, Dec, Hex, Oct, RADIX, Radix};
 use std::{
     cmp::Ordering,
     fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
-    iter::repeat_n,
+    iter::{once, repeat_n},
     str::FromStr,
 };
 use thiserror::Error;
@@ -369,7 +369,7 @@ pub struct UnsignedFixed<const L: usize>([Single; L], usize);
 struct LongRepr(Vec<Single>, Sign);
 
 #[derive(Debug)]
-struct FixedRepr<const L: usize>([Single; L], usize, Sign, bool);
+struct FixedRepr<const L: usize>([Single; L], usize, Sign, Single, bool);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct LongOperand<'digits>(&'digits [Single], Sign);
@@ -554,7 +554,7 @@ impl<'digits, const L: usize> From<&&'digits UnsignedFixed<L>> for FixedOperand<
 
 impl<const L: usize> From<FixedOperand<'_, L>> for FixedRepr<L> {
     fn from(value: FixedOperand<'_, L>) -> Self {
-        Self(*value.0, value.1, value.2, false)
+        Self(*value.0, value.1, value.2, 0, false)
     }
 }
 
@@ -751,9 +751,9 @@ impl<const L: usize> SignedFixed<L> {
 
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
         let repr = from_bytes_fixed(bytes);
-        let flag = repr.3;
+        let over = repr.4;
 
-        (repr.into(), flag)
+        (repr.into(), over)
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
@@ -809,9 +809,9 @@ impl<const L: usize> UnsignedFixed<L> {
 
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
         let repr = from_bytes_fixed(bytes);
-        let flag = repr.3;
+        let over = repr.4;
 
-        (repr.into(), flag)
+        (repr.into(), over)
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
@@ -887,9 +887,9 @@ impl LongRepr {
 }
 
 impl<const L: usize> FixedRepr<L> {
-    const ZERO: Self = FixedRepr::<L>(get_arr(0), 0, Sign::ZERO, false);
-    const ONE: Self = FixedRepr::<L>(get_arr(1), 1, Sign::POS, false);
-    const TWO: Self = FixedRepr::<L>(get_arr(2), 1, Sign::POS, false);
+    const ZERO: Self = FixedRepr::<L>(get_arr(0), 0, Sign::ZERO, 0, false);
+    const ONE: Self = FixedRepr::<L>(get_arr(1), 1, Sign::POS, 0, false);
+    const TWO: Self = FixedRepr::<L>(get_arr(2), 1, Sign::POS, 0, false);
 
     fn raw(&self) -> &[Single; L] {
         &self.0
@@ -911,7 +911,7 @@ impl<const L: usize> FixedRepr<L> {
         let len = get_len(&digits);
         let sign = get_sign(len, sign);
 
-        Self(digits, len, sign, false)
+        Self(digits, len, sign, 0, false)
     }
 
     fn with_sign(mut self, sign: Sign) -> Self {
@@ -919,13 +919,22 @@ impl<const L: usize> FixedRepr<L> {
         self
     }
 
+    fn with_next(mut self, digit: Single) -> Self {
+        self.3 = digit;
+        self
+    }
+
     fn with_overflow(mut self, over: bool) -> Self {
-        self.3 = over;
+        self.4 = over;
         self
     }
 }
 
 impl LongOperand<'_> {
+    fn iter<T: From<Single>>(&self) -> impl Iterator<Item = T> {
+        self.digits().iter().map(|&x| T::from(x))
+    }
+
     fn digits(&self) -> &[Single] {
         self.0
     }
@@ -945,6 +954,10 @@ impl LongOperand<'_> {
 }
 
 impl<const L: usize> FixedOperand<'_, L> {
+    fn iter<T: From<Single>>(&self) -> impl Iterator<Item = T> {
+        self.digits().iter().map(|&x| T::from(x))
+    }
+
     fn raw(&self) -> &[Single; L] {
         self.0
     }
@@ -1075,6 +1088,10 @@ fn try_from_digits_validate(digits: &[u8], radix: u16) -> Result<(), TryFromDigi
 fn try_from_digits_long_bin(digits: &[u8], pow: u8, sign: Sign) -> Result<LongRepr, TryFromDigitsError> {
     const BITS: usize = Single::BITS as usize;
 
+    if digits.is_empty() {
+        return Ok(LongRepr::ZERO);
+    }
+
     if !(1..=u8::BITS as u8).contains(&pow) {
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
@@ -1088,22 +1105,24 @@ fn try_from_digits_long_bin(digits: &[u8], pow: u8, sign: Sign) -> Result<LongRe
     let mut shl = 0;
     let mut idx = 0;
     let mut res = vec![0; len];
+    let mut ptr = &mut res[idx];
 
     for &digit in digits.iter() {
         acc |= (digit as Double) << shl;
         shl += pow as u32;
+        *ptr = acc as Single;
 
         if shl >= Single::BITS {
-            res[idx] = acc as Single;
-            idx += 1;
+            if idx + 1 == len {
+                break;
+            }
 
             acc >>= Single::BITS;
             shl -= Single::BITS;
+            idx += 1;
+            ptr = &mut res[idx];
+            *ptr = acc as Single;
         }
-    }
-
-    if acc > 0 {
-        res[idx] = acc as Single;
     }
 
     Ok(LongRepr::from_raw(res, sign))
@@ -1114,39 +1133,46 @@ fn try_from_digits_fixed_bin<const L: usize>(
     pow: u8,
     sign: Sign,
 ) -> Result<FixedRepr<L>, TryFromDigitsError> {
+    const BITS: usize = Single::BITS as usize;
+
+    if digits.is_empty() {
+        return Ok(FixedRepr::ZERO);
+    }
+
     if !(1..=u8::BITS as u8).contains(&pow) {
         return Err(TryFromDigitsError::InvalidPow { pow });
     }
 
     try_from_digits_validate(digits, 1 << pow)?;
 
+    let bits = pow as usize;
+    let len = (digits.len() * bits + BITS - 1) / BITS;
+
     let mut acc = 0;
     let mut shl = 0;
     let mut idx = 0;
     let mut res = [0; L];
+    let mut ptr = &mut res[idx];
 
     for &digit in digits.iter() {
         acc |= (digit as Double) << shl;
         shl += pow as u32;
+        *ptr = acc as Single;
 
         if shl >= Single::BITS {
-            if idx < L {
-                res[idx] = acc as Single;
-                idx += 1;
-            } else if acc > 0 {
+            if idx + 1 == L {
                 break;
             }
 
             acc >>= Single::BITS;
             shl -= Single::BITS;
+            idx += 1;
+            ptr = &mut res[idx];
+            *ptr = acc as Single;
         }
     }
 
-    if idx < L && acc > 0 {
-        res[idx] = acc as Single;
-    }
-
-    Ok(FixedRepr::from_raw(res, sign).with_overflow(idx == L && acc > 0))
+    Ok(FixedRepr::from_raw(res, sign).with_overflow(len > L))
 }
 
 fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixError> {
@@ -1161,27 +1187,27 @@ fn into_radix_bin(digits: &[Single], pow: u8) -> Result<Vec<Single>, IntoRadixEr
     }
 
     let radix = (1 as Double) << pow;
-    let mask = radix - 1;
+    let rem = radix - 1;
     let pow = pow as Double;
 
     let bits = pow as usize;
     let len = (digits.len() * BITS + bits - 1) / bits;
 
     let mut acc = 0;
-    let mut rem = 0;
+    let mut shl = 0;
     let mut idx = 0;
     let mut res = vec![0; len];
 
     for &digit in digits {
-        acc |= (digit as Double) << rem;
-        rem += BITS as Double;
+        acc |= (digit as Double) << shl;
+        shl += BITS as Double;
 
-        while rem >= pow {
-            res[idx] = (acc & mask) as Single;
+        while shl >= pow {
+            res[idx] = (acc & rem) as Single;
             idx += 1;
 
             acc >>= pow;
-            rem -= pow;
+            shl -= pow;
         }
     }
 
@@ -1216,16 +1242,12 @@ fn try_from_digits_long(digits: &[u8], radix: u16, sign: Sign) -> Result<LongRep
     for &digit in digits.iter().rev() {
         let mut acc = digit as Double;
 
-        for res in res.iter_mut().take(idx + 1) {
-            acc += *res as Double * radix as Double;
+        for ptr in res.iter_mut().take(idx + 1) {
+            acc += *ptr as Double * radix as Double;
 
-            *res = acc as Single;
+            *ptr = acc as Single;
 
             acc >>= Single::BITS;
-        }
-
-        if idx < len && acc > 0 {
-            res[idx] += acc as Single;
         }
 
         if idx < len && res[idx] > 0 {
@@ -1257,16 +1279,12 @@ fn try_from_digits_fixed<const L: usize>(
     for &digit in digits.iter().rev() {
         let mut acc = digit as Double;
 
-        for res in res.iter_mut().take(idx + 1) {
-            acc += *res as Double * radix as Double;
+        for ptr in res.iter_mut().take(idx + 1) {
+            acc += *ptr as Double * radix as Double;
 
-            *res = acc as Single;
+            *ptr = acc as Single;
 
             acc >>= Single::BITS;
-        }
-
-        if idx < L && acc > 0 {
-            res[idx] += acc as Single;
         }
 
         if idx < L && res[idx] > 0 {
@@ -1364,8 +1382,6 @@ fn write_num<R: Radix, F>(_: R, fmt: &mut Formatter<'_>, digits: &[Single], sign
 where
     F: Fn(&mut String, Single, usize) -> std::fmt::Result,
 {
-    println!("dig: {:?}", digits);
-
     let sign = get_sign(digits.len(), sign);
 
     let prefix = if fmt.alternate() { R::PREFIX } else { "" };
@@ -1650,7 +1666,9 @@ fn add_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
         acc >>= Single::BITS;
     }
 
-    FixedRepr::from_raw(res, a.sign()).with_overflow(acc > 0)
+    FixedRepr::from_raw(res, a.sign())
+        .with_next(acc as Single)
+        .with_overflow(acc > 0)
 }
 
 fn sub_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
@@ -1816,7 +1834,9 @@ fn addshr_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>, 
         acc >>= Single::BITS;
     }
 
-    FixedRepr::from_raw(res, a.sign()).with_overflow(acc > 0)
+    FixedRepr::from_raw(res, a.sign())
+        .with_next(acc as Single)
+        .with_overflow(acc > 0)
 }
 
 fn subshr_long(a: LongOperand<'_>, b: LongOperand<'_>, shr: usize) -> LongRepr {
@@ -1934,13 +1954,10 @@ fn mul_long(a: LongOperand<'_>, b: LongOperand<'_>) -> LongRepr {
 
     let mut res = vec![0; len];
 
-    for i in 0..len_a {
-        let aop = *a.digits().get(i).unwrap_or(&0) as Double;
-
+    for (i, aop) in a.iter::<Double>().enumerate() {
         let mut acc = 0;
 
-        for j in 0..(len_b + 1) {
-            let bop = *b.digits().get(j).unwrap_or(&0) as Double;
+        for (j, bop) in b.iter::<Double>().chain(once(0)).enumerate() {
             let rop = res[i + j] as Double;
 
             acc += rop + aop * bop;
@@ -1960,19 +1977,14 @@ fn mul_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
         _ => (),
     }
 
-    let len_a = a.len();
-    let len_b = b.len();
-
     let mut res = [0; L];
     let mut over = false;
+    let mut next = 0;
 
-    for i in 0..len_a {
-        let aop = *a.raw().get(i).unwrap_or(&0) as Double;
-
+    for (i, aop) in a.iter::<Double>().enumerate() {
         let mut acc = 0;
 
-        for j in 0..(len_b + 1).min(L - i) {
-            let bop = *b.raw().get(j).unwrap_or(&0) as Double;
+        for (j, bop) in b.iter::<Double>().chain(once(0)).enumerate().take(L - i) {
             let rop = res[i + j] as Double;
 
             acc += rop + aop * bop;
@@ -1981,10 +1993,13 @@ fn mul_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
             acc >>= Single::BITS;
         }
 
-        over |= acc > 0 || i + len_b > L;
+        over |= acc > 0 || i + b.len() > L;
+        next = (next + acc) % RADIX;
     }
 
-    FixedRepr::from_raw(res, a.sign() * b.sign()).with_overflow(over)
+    FixedRepr::from_raw(res, a.sign() * b.sign())
+        .with_next(next as Single)
+        .with_overflow(over)
 }
 
 fn div_long(a: LongOperand<'_>, b: LongOperand<'_>) -> (LongRepr, LongRepr) {
@@ -2071,7 +2086,7 @@ fn div_fixed<const L: usize>(a: FixedOperand<'_, L>, b: FixedOperand<'_, L>) -> 
 
         let val = mul_fixed(bpos, (&m).into());
 
-        if val.3 {
+        if val.4 {
             r = m;
 
             continue;
@@ -2842,8 +2857,6 @@ mod tests {
 
             let (sign, abs) = if val >= 0 { ("", val) } else { ("-", -val) };
 
-            println!("val: {}", val);
-
             assert_eq!(format!("{:#}", &x), format!("{}{:#}", sign, abs));
             assert_eq!(format!("{:#b}", &x), format!("{}{:#b}", sign, abs));
             assert_eq!(format!("{:#o}", &x), format!("{}{:#o}", sign, abs));
@@ -2862,8 +2875,6 @@ mod tests {
             let x = S32::from(val);
 
             let (sign, abs) = if val >= 0 { ("", val) } else { ("-", -val) };
-
-            println!("val: {}", val);
 
             assert_eq!(format!("{:#}", &x), format!("{}{:#}", sign, abs));
             assert_eq!(format!("{:#b}", &x), format!("{}{:#b}", sign, abs));
@@ -2894,6 +2905,22 @@ mod tests {
     }
 
     #[test]
+    fn addsub_fixed() {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+                let a = &S32::from(aop);
+                let b = &S32::from(bop);
+
+                let aop = aop as i64;
+                let bop = bop as i64;
+
+                assert_eq!(a + b, S32::from(aop + bop));
+                assert_eq!(a - b, S32::from(aop - bop));
+            }
+        }
+    }
+
+    #[test]
     fn addsubshr_long() {
         for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
             for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
@@ -2908,74 +2935,6 @@ mod tests {
 
                 assert_eq!(add, SignedLong::from((aop + bop) / 2));
                 assert_eq!(sub, SignedLong::from((aop - bop) / 2));
-            }
-        }
-    }
-
-    #[test]
-    fn muldiv_long() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
-                let a = &SignedLong::from(aop);
-                let b = &SignedLong::from(bop);
-
-                let aop = aop as i64;
-                let bop = bop as i64;
-
-                assert_eq!(a * b, SignedLong::from(aop * bop));
-                assert_eq!(a / b, SignedLong::from(aop / bop));
-                assert_eq!(a % b, SignedLong::from(aop % bop));
-            }
-        }
-    }
-
-    #[test]
-    fn bit_long() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
-                let a = &SignedLong::from(aop);
-                let b = &SignedLong::from(bop);
-
-                let aop = aop.unsigned_abs();
-                let bop = bop.unsigned_abs();
-
-                assert_eq!(a | b, SignedLong::from(aop | bop));
-                assert_eq!(a & b, SignedLong::from(aop & bop));
-                assert_eq!(a ^ b, SignedLong::from(aop ^ bop));
-            }
-        }
-    }
-
-    #[test]
-    fn shift_long() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in 0..64 {
-                let a = &SignedLong::from(aop);
-                let sign = Sign::from(aop);
-
-                let shl = aop.unsigned_abs().checked_shl(bop as u32).unwrap_or(0);
-                let shr = aop.unsigned_abs().checked_shr(bop as u32).unwrap_or(0);
-
-                assert_eq!(trimmed(a << bop, 4), SignedLong::from(shl).with_sign(get_sign(shl, sign)));
-                assert_eq!(trimmed(a >> bop, 4), SignedLong::from(shr).with_sign(get_sign(shr, sign)));
-            }
-        }
-    }
-
-    #[test]
-    fn addsub_fixed() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
-                let a = &S32::from(aop);
-                let b = &S32::from(bop);
-
-                let aop = aop as i64;
-                let bop = bop as i64;
-
-                assert_eq!(a + b, S32::from(aop + bop));
-                assert_eq!(a - b, S32::from(aop - bop));
-
-                println!();
             }
         }
     }
@@ -3000,6 +2959,23 @@ mod tests {
     }
 
     #[test]
+    fn muldiv_long() {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+                let a = &SignedLong::from(aop);
+                let b = &SignedLong::from(bop);
+
+                let aop = aop as i64;
+                let bop = bop as i64;
+
+                assert_eq!(a * b, SignedLong::from(aop * bop));
+                assert_eq!(a / b, SignedLong::from(aop / bop));
+                assert_eq!(a % b, SignedLong::from(aop % bop));
+            }
+        }
+    }
+
+    #[test]
     fn muldiv_fixed() {
         for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
             for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
@@ -3017,6 +2993,23 @@ mod tests {
     }
 
     #[test]
+    fn bit_long() {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+                let a = &SignedLong::from(aop);
+                let b = &SignedLong::from(bop);
+
+                let aop = aop.unsigned_abs();
+                let bop = bop.unsigned_abs();
+
+                assert_eq!(a | b, SignedLong::from(aop | bop));
+                assert_eq!(a & b, SignedLong::from(aop & bop));
+                assert_eq!(a ^ b, SignedLong::from(aop ^ bop));
+            }
+        }
+    }
+
+    #[test]
     fn bit_fixed() {
         for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
             for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
@@ -3029,6 +3022,22 @@ mod tests {
                 assert_eq!(a | b, S32::from(aop | bop));
                 assert_eq!(a & b, S32::from(aop & bop));
                 assert_eq!(a ^ b, S32::from(aop ^ bop));
+            }
+        }
+    }
+
+    #[test]
+    fn shift_long() {
+        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
+            for bop in 0..64 {
+                let a = &SignedLong::from(aop);
+                let sign = Sign::from(aop);
+
+                let shl = aop.unsigned_abs().checked_shl(bop as u32).unwrap_or(0);
+                let shr = aop.unsigned_abs().checked_shr(bop as u32).unwrap_or(0);
+
+                assert_eq!(trimmed(a << bop, 4), SignedLong::from(shl).with_sign(get_sign(shl, sign)));
+                assert_eq!(trimmed(a >> bop, 4), SignedLong::from(shr).with_sign(get_sign(shr, sign)));
             }
         }
     }
