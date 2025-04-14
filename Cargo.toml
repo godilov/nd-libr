@@ -14,4 +14,13 @@ tracing = "0"
 proc = { path = "./proc" }
 
 [dev-dependencies]
+ndlibr = { path = ".", features = ["bytes"] }
 criterion = "0"
+
+[features]
+default = []
+bytes = []
+
+[[bench]]
+name = "num"
+harness = false

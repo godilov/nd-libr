@@ -15,14 +15,14 @@ use thiserror::Error;
 #[macro_export]
 macro_rules! signed_fixed {
     ($bits:expr) => {
-        SignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
+        $crate::num::SignedFixed<{ ($bits as usize).div_ceil($crate::num::digit::Single::BITS as usize) }>
     };
 }
 
 #[macro_export]
 macro_rules! unsigned_fixed {
     ($bits:expr) => {
-        UnsignedFixed<{ (($bits + Single::BITS - 1) / Single::BITS) as usize }>
+        $crate::num::UnsignedFixed<{ ($bits as usize).div_ceil($crate::num::digit::Single::BITS as usize) }>
     };
 }
 
@@ -233,7 +233,7 @@ pub type U4096 = unsigned_fixed!(4096);
 pub type U6144 = unsigned_fixed!(6144);
 pub type U8192 = unsigned_fixed!(8192);
 
-#[cfg(all(target_pointer_width = "64", not(test)))]
+#[cfg(all(target_pointer_width = "64", not(test), not(feature = "bytes")))]
 pub mod digit {
     pub type Single = u64;
     pub type Double = u128;
@@ -245,7 +245,7 @@ pub mod digit {
     pub(super) const DEC_WIDTH: u8 = 19;
 }
 
-#[cfg(all(target_pointer_width = "32", not(test)))]
+#[cfg(all(target_pointer_width = "32", not(test), not(feature = "bytes")))]
 pub mod digit {
     pub type Single = u32;
     pub type Double = u64;
@@ -257,7 +257,7 @@ pub mod digit {
     pub(super) const DEC_WIDTH: u8 = 9;
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "bytes"))]
 pub mod digit {
     pub type Single = u8;
     pub type Double = u16;
@@ -2656,13 +2656,10 @@ mod tests {
 
     #[test]
     fn addsub_long() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[0]) {
+            for bop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
-
-                let aop = aop as i64;
-                let bop = bop as i64;
 
                 assert_eq!(a + b, SignedLong::from(aop + bop));
                 assert_eq!(a - b, SignedLong::from(aop - bop));
@@ -2672,13 +2669,10 @@ mod tests {
 
     #[test]
     fn addsub_fixed() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[0]) {
+            for bop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[1]) {
                 let a = &S32::from(aop);
                 let b = &S32::from(bop);
-
-                let aop = aop as i64;
-                let bop = bop as i64;
 
                 assert_eq!(a + b, S32::from(aop + bop));
                 assert_eq!(a - b, S32::from(aop - bop));
@@ -2688,13 +2682,10 @@ mod tests {
 
     #[test]
     fn muldiv_long() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[0]) {
+            for bop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
-
-                let aop = aop as i64;
-                let bop = bop as i64;
 
                 assert_eq!(a * b, SignedLong::from(aop * bop));
                 assert_eq!(a / b, SignedLong::from(aop / bop));
@@ -2705,13 +2696,10 @@ mod tests {
 
     #[test]
     fn muldiv_fixed() {
-        for aop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[0]) {
-            for bop in (i32::MIN + 1..=i32::MAX).step_by(PRIMES[1]) {
+        for aop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[0]) {
+            for bop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES[1]) {
                 let a = &S32::from(aop);
                 let b = &S32::from(bop);
-
-                let aop = aop as i64;
-                let bop = bop as i64;
 
                 assert_eq!(a * b, S32::from(aop * bop));
                 assert_eq!(a / b, S32::from(aop / bop));
