@@ -5,8 +5,8 @@ use crate::ops::{
     SubChecked,
 };
 use digit::{Double, Single};
-use proc::ops_impl;
-use radix::{Bin, Dec, Hex, Oct, RADIX, Radix};
+use ndproc::ops_impl;
+use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
 use std::{
     cmp::Ordering,
     fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
@@ -268,8 +268,8 @@ pub mod digit {
 
 mod radix {
     use super::{
-        Double, Single,
         digit::{DEC_VAL, DEC_WIDTH, OCT_VAL, OCT_WIDTH},
+        Double, Single,
     };
 
     pub(super) const RADIX: Double = Single::MAX as Double + 1;
@@ -2257,7 +2257,11 @@ fn get_len_rev<T: Fixed>(digits: &[T], val: T) -> usize {
 }
 
 fn get_sign<T: Fixed>(val: T, default: Sign) -> Sign {
-    if val != T::ZERO { default } else { Sign::ZERO }
+    if val != T::ZERO {
+        default
+    } else {
+        Sign::ZERO
+    }
 }
 
 fn cycle(digits: &mut [Single], val: Single) {

@@ -1,5 +1,5 @@
 use crate::num::Fixed;
-use proc::ops_impl;
+use ndproc::ops_impl;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Vec<N: Fixed, const L: usize>(pub [N; L]);

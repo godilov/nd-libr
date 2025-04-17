@@ -1,5 +1,5 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use ndlibr::{num::*, signed_fixed, unsigned_fixed};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use ndlib::{num::*, signed_fixed, unsigned_fixed};
 
 const PRIMES: [u64; 5] = [
     29_996_224_275_833,
@@ -40,8 +40,6 @@ impl_case!(sub_fixed, "Sub", "Fixed", S64, U64, [0, 1, 2, 3], [-]);
 impl_case!(mul_fixed, "Mul", "Fixed", S64, U64, [0, 1, 2, 3], [*]);
 impl_case!(div_fixed, "Div", "Fixed", S64, U64, [0, 1, 4, 4], [/]);
 
-criterion_group!(
-    group, add_long, add_fixed, sub_long, sub_fixed, mul_long, mul_fixed, div_long, div_fixed
-);
+criterion_group!(group, add_long, add_fixed, sub_long, sub_fixed, mul_long, mul_fixed, div_long, div_fixed);
 
 criterion_main!(group);

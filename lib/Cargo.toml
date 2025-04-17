@@ -1,0 +1,30 @@
+[package]
+name = "ndlib"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+rayon = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+ndproc = { workspace = true }
+
+[dev-dependencies]
+ndlib = { workspace = true, features = ["bytes"] }
+criterion = { workspace = true }
+
+[features]
+default = []
+bytes = []
+
+[[bench]]
+name = "num"
+harness = false

@@ -28,7 +28,7 @@ pub mod vec;
 #[cfg(test)]
 mod tests {
     use crate::ops::{OpsAll, OpsAllAssign, OpsAllFrom, OpsNegFrom, OpsNotFrom};
-    use proc::ops_impl_auto;
+    use ndproc::ops_impl_auto;
     use std::ops::{Neg, Not};
 
     macro_rules! ops_struct_def {

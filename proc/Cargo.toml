@@ -1,13 +1,16 @@
 [package]
-name = "proc"
-version = "0.1.0"
-edition = "2024"
+name = "ndproc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+syn = { workspace = true, features = ["full", "extra-traits", "fold"] }
+quote = { workspace = true }
+proc-macro2 = { workspace = true }
 
 [lib]
 proc-macro = true
-
-[dependencies]
-syn = { version = "2", features = ["full", "extra-traits", "fold"] }
-quote = "1"
-proc-macro2 = "1"
-trybuild = "1"
