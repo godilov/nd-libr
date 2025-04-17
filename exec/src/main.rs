@@ -31,6 +31,10 @@ enum PrimeCommands {
     Count {
         /// Count value
         val: usize,
+
+        /// Use fast test
+        #[arg(short, long)]
+        fast: bool,
     },
 
     /// Generate primes by limit
@@ -38,6 +42,10 @@ enum PrimeCommands {
     Limit {
         /// Limit value
         val: u64,
+
+        /// Use fast test
+        #[arg(short, long)]
+        fast: bool,
     },
 }
 
@@ -49,8 +57,14 @@ fn main() -> anyhow::Result<()> {
     match cli.cmd {
         Commands::Primes { cmd, output } => {
             let primes = match cmd {
-                PrimeCommands::Count { val } => Primes::by_count(val).collect::<Vec<Prime>>(),
-                PrimeCommands::Limit { val } => Primes::by_limit(val).collect::<Vec<Prime>>(),
+                PrimeCommands::Count { val, fast } => match fast {
+                    false => Primes::by_count(val).collect::<Vec<Prime>>(),
+                    true => Primes::by_count_fast(val).collect::<Vec<Prime>>(),
+                },
+                PrimeCommands::Limit { val, fast } => match fast {
+                    false => Primes::by_limit(val).collect::<Vec<Prime>>(),
+                    true => Primes::by_limit_fast(val).collect::<Vec<Prime>>(),
+                },
             };
 
             serde_json::to_writer(File::create(output)?, &primes)?;

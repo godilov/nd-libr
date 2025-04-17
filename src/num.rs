@@ -1,6 +1,9 @@
 #![allow(clippy::manual_div_ceil)]
 
-use crate::ops::{AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAssign, OpsChecked, SubChecked};
+use crate::ops::{
+    AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAllFrom, OpsAssign, OpsChecked, OpsFrom,
+    SubChecked,
+};
 use digit::{Double, Single};
 use proc::ops_impl;
 use radix::{Bin, Dec, Hex, Oct, RADIX, Radix};
@@ -28,19 +31,13 @@ macro_rules! unsigned_fixed {
 
 macro_rules! number_impl {
     ($type:ty, $zero:expr, $one:expr $(,)?) => {
-        impl Constants for $type {
+        impl Fixed for $type {
             const MAX: Self = <$type>::MAX;
             const MIN: Self = <$type>::MIN;
             const ONE: Self = $one;
             const ZERO: Self = $zero;
-        }
 
-        impl Number for $type {
             type Type = $type;
-
-            fn val(&self) -> &Self::Type {
-                self
-            }
         }
     };
 }
@@ -90,7 +87,7 @@ macro_rules! int_impl {
     ($trait:ty, $type:ty $(,)?) => {
         number_impl!($type, 0, 1);
 
-        impl Integer for $type {
+        impl FixedInt for $type {
             const BITS: u32 = <$type>::BITS;
         }
 
@@ -374,30 +371,37 @@ struct FixedRepr<const L: usize>([Single; L], usize, Sign, Single, bool);
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Operand<'digits>(&'digits [Single], Sign);
 
-pub trait Constants {
+pub trait Long: Sized + Default + Display + Clone + PartialEq + PartialOrd + Ops + OpsAssign + OpsFrom {
+    const ZERO: Self;
+    const ONE: Self;
+
+    type Type;
+}
+
+pub trait Fixed: Sized + Default + Display + Copy + PartialEq + PartialOrd + Ops + OpsAssign + OpsFrom {
     const ZERO: Self;
     const ONE: Self;
     const MIN: Self;
     const MAX: Self;
-}
 
-pub trait Number: Sized + Default + Display + Clone + PartialEq + PartialOrd + Constants + Ops + OpsAssign {
     type Type;
-
-    fn val(&self) -> &Self::Type;
 }
 
-pub trait Integer: Eq + Ord + Number + OpsChecked + OpsAll + OpsAllAssign {
+pub trait LongInt: Eq + Ord + Long + OpsChecked + OpsAll + OpsAllAssign + OpsAllFrom {
+    fn bits(&self) -> usize;
+}
+
+pub trait FixedInt: Eq + Ord + Fixed + OpsChecked + OpsAll + OpsAllAssign + OpsAllFrom {
     const BITS: u32;
 }
 
-pub trait Signed: Integer {}
-pub trait Unsigned: Integer {}
-pub trait Float: Number {}
+pub trait FixedSigned: FixedInt {}
+pub trait FixedUnsigned: FixedInt {}
+pub trait FixedFloat: Fixed {}
 
-int_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
-int_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
-float_impl!(Float, [f32, f64]);
+int_impl!(FixedSigned, [i8, i16, i32, i64, i128, isize]);
+int_impl!(FixedUnsigned, [u8, u16, u32, u64, u128, usize]);
+float_impl!(FixedFloat, [f32, f64]);
 
 impl<'digits> From<&'digits SignedLong> for Operand<'digits> {
     fn from(value: &'digits SignedLong) -> Self {
@@ -2228,7 +2232,7 @@ fn get_digits_from_str(s: &str, radix: u16) -> Result<Vec<u8>, TryFromStrError> 
     Ok(res)
 }
 
-fn get_len<T: Constants + PartialEq + Eq>(digits: &[T]) -> usize {
+fn get_len<T: Fixed>(digits: &[T]) -> usize {
     let mut len = digits.len();
 
     for digit in digits.iter().rev() {
@@ -2242,7 +2246,7 @@ fn get_len<T: Constants + PartialEq + Eq>(digits: &[T]) -> usize {
     0
 }
 
-fn get_len_rev<T: Constants + PartialEq + Eq>(digits: &[T], val: T) -> usize {
+fn get_len_rev<T: Fixed>(digits: &[T], val: T) -> usize {
     for (idx, digit) in digits.iter().enumerate() {
         if digit != &val {
             return idx;
@@ -2252,7 +2256,7 @@ fn get_len_rev<T: Constants + PartialEq + Eq>(digits: &[T], val: T) -> usize {
     0
 }
 
-fn get_sign<T: Constants + PartialEq + Eq>(val: T, default: Sign) -> Sign {
+fn get_sign<T: Fixed>(val: T, default: Sign) -> Sign {
     if val != T::ZERO { default } else { Sign::ZERO }
 }
 

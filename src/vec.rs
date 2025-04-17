@@ -1,16 +1,16 @@
-use crate::num::Number;
+use crate::num::Fixed;
 use proc::ops_impl;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Vec<N: Copy + Number, const L: usize>(pub [N; L]);
+pub struct Vec<N: Fixed, const L: usize>(pub [N; L]);
 
-impl<N: Copy + Number, const L: usize> Default for Vec<N, L> {
+impl<N: Fixed, const L: usize> Default for Vec<N, L> {
     fn default() -> Self {
         Vec::<N, L>([N::default(); L])
     }
 }
 
-impl<N: Copy + Number, const L: usize> From<[N; L]> for Vec<N, L> {
+impl<N: Fixed, const L: usize> From<[N; L]> for Vec<N, L> {
     fn from(value: [N; L]) -> Self {
         Vec::<N, L>(value)
     }
