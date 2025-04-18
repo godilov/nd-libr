@@ -1,9 +1,6 @@
 #![allow(clippy::manual_div_ceil)]
 
-use crate::ops::{
-    AddChecked, DivChecked, MulChecked, Ops, OpsAll, OpsAllAssign, OpsAllFrom, OpsAssign, OpsChecked, OpsFrom,
-    SubChecked,
-};
+use crate::ops::{Ops, OpsAll, OpsAllAssign, OpsAllFrom, OpsAssign, OpsFrom};
 use digit::{Double, Single};
 use ndproc::ops_impl;
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
@@ -42,44 +39,6 @@ macro_rules! number_impl {
     };
 }
 
-macro_rules! int_impl_checked {
-    ($type:ty $(,)?) => {
-        impl AddChecked for $type {
-            type Output = $type;
-
-            fn checked_add(self, rhs: Self) -> Option<Self::Output> {
-                self.checked_add(rhs)
-            }
-        }
-
-        impl SubChecked for $type {
-            type Output = $type;
-
-            fn checked_sub(self, rhs: Self) -> Option<Self::Output> {
-                self.checked_sub(rhs)
-            }
-        }
-
-        impl MulChecked for $type {
-            type Output = $type;
-
-            fn checked_mul(self, rhs: Self) -> Option<Self::Output> {
-                self.checked_mul(rhs)
-            }
-        }
-
-        impl DivChecked for $type {
-            type Output = $type;
-
-            fn checked_div(self, rhs: Self) -> Option<Self::Output> {
-                self.checked_div(rhs)
-            }
-        }
-
-        impl OpsChecked for $type {}
-    };
-}
-
 macro_rules! int_impl {
     ($trait:ty, [$($type:ty),+] $(,)?) => {
         $(int_impl!($trait, $type,);)+
@@ -92,8 +51,6 @@ macro_rules! int_impl {
         }
 
         impl $trait for $type {}
-
-        int_impl_checked!($type);
     };
 }
 
@@ -387,11 +344,11 @@ pub trait Fixed: Sized + Default + Display + Copy + PartialEq + PartialOrd + Ops
     type Type;
 }
 
-pub trait LongInt: Eq + Ord + Long + OpsChecked + OpsAll + OpsAllAssign + OpsAllFrom {
+pub trait LongInt: Eq + Ord + Long + OpsAll + OpsAllAssign + OpsAllFrom {
     fn bits(&self) -> usize;
 }
 
-pub trait FixedInt: Eq + Ord + Fixed + OpsChecked + OpsAll + OpsAllAssign + OpsAllFrom {
+pub trait FixedInt: Eq + Ord + Fixed + OpsAll + OpsAllAssign + OpsAllFrom {
     const BITS: u32;
 }
 

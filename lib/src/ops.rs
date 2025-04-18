@@ -46,32 +46,6 @@ pub trait OpsAllFrom<Lhs: OpsAll<Rhs> = Self, Rhs = Lhs>:
 {
 }
 
-pub trait AddChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_add(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait SubChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait MulChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_mul(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait DivChecked<Rhs = Self> {
-    type Output;
-
-    fn checked_div(self, rhs: Rhs) -> Option<Self::Output>;
-}
-
-pub trait OpsChecked<Rhs = Self>: AddChecked<Rhs> + SubChecked<Rhs> + MulChecked<Rhs> + DivChecked<Rhs> {}
-
 impl<Lhs, Rhs> Ops<Rhs> for Lhs where Lhs: Sized + Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs> {}
 impl<Lhs, Rhs> OpsRem<Rhs> for Lhs where Self: Sized + Rem<Rhs> {}
 impl<Lhs, Rhs> OpsBit<Rhs> for Lhs where Self: Sized + BitOr<Rhs> + BitAnd<Rhs> + BitXor<Rhs> {}
