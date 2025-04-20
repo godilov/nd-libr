@@ -1,6 +1,6 @@
 #![allow(clippy::manual_div_ceil)]
 
-use crate::ops::{Ops, OpsAll, OpsAllAssign, OpsAllFrom, OpsAssign, OpsFrom};
+use crate::ops::{OpsAll, OpsAllAssign, OpsAllFrom};
 use digit::{Double, Single};
 use ndproc::ops_impl;
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
@@ -26,40 +26,16 @@ macro_rules! unsigned_fixed {
     };
 }
 
-macro_rules! number_impl {
-    ($type:ty, $zero:expr, $one:expr $(,)?) => {
+macro_rules! num_impl {
+    ($trait:ty, [$($type:ty),+] $(,)?) => {
+        $(num_impl!($trait, $type,);)+
+    };
+    ($trait:ty, $type:ty $(,)?) => {
         impl Fixed for $type {
-            const MAX: Self = <$type>::MAX;
-            const MIN: Self = <$type>::MIN;
-            const ONE: Self = $one;
-            const ZERO: Self = $zero;
-
-            type Type = $type;
+            const BITS: usize = <$type>::BITS as usize;
+            const ZERO: Self = 0;
+            const ONE: Self = 1;
         }
-    };
-}
-
-macro_rules! int_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(int_impl!($trait, $type,);)+
-    };
-    ($trait:ty, $type:ty $(,)?) => {
-        number_impl!($type, 0, 1);
-
-        impl FixedInt for $type {
-            const BITS: u32 = <$type>::BITS;
-        }
-
-        impl $trait for $type {}
-    };
-}
-
-macro_rules! float_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(float_impl!($trait, $type);)+
-    };
-    ($trait:ty, $type:ty $(,)?) => {
-        number_impl!($type, 0.0, 1.0);
 
         impl $trait for $type {}
     };
@@ -90,6 +66,32 @@ macro_rules! sign_from {
                     Ordering::Equal => Sign::ZERO,
                     Ordering::Greater => Sign::POS,
                 }
+            }
+        }
+    };
+}
+
+macro_rules! long_from_bool {
+    ([$($type:ident),+] $(,)?) => {
+        $(long_from_bool!($type);)+
+    };
+    ($type:ident) => {
+        impl From<bool> for $type {
+            fn from(value: bool) -> Self {
+                Self::from(value as u8)
+            }
+        }
+    };
+}
+
+macro_rules! fixed_from_bool {
+    ([$($type:ident),+] $(,)?) => {
+        $(fixed_from_bool!($type);)+
+    };
+    ($type:ident) => {
+        impl<const L: usize> From<bool> for $type<L> {
+            fn from(value: bool) -> Self {
+                Self::from(value as u8)
             }
         }
     };
@@ -223,6 +225,19 @@ pub mod digit {
     pub(super) const DEC_WIDTH: u8 = 2;
 }
 
+#[allow(unused)]
+pub mod prime {
+    #[cfg(target_pointer_width = "64")]
+    pub type Prime = u64;
+    #[cfg(target_pointer_width = "32")]
+    pub type Prime = u32;
+
+    const PRIMES: [Prime; 50] = [
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
+        109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229,
+    ];
+}
+
 mod radix {
     use super::{
         digit::{DEC_VAL, DEC_WIDTH, OCT_VAL, OCT_WIDTH},
@@ -243,27 +258,27 @@ mod radix {
     pub struct Hex;
 
     impl Bin {
-        pub const RADIX: Double = Single::MAX as Double + 1;
-        pub const WIDTH: u8 = Single::BITS as u8;
-        pub const PREFIX: &str = "0b";
+        pub(super) const RADIX: Double = Single::MAX as Double + 1;
+        pub(super) const WIDTH: u8 = Single::BITS as u8;
+        pub(super) const PREFIX: &str = "0b";
     }
 
     impl Oct {
-        pub const RADIX: Double = OCT_VAL;
-        pub const WIDTH: u8 = OCT_WIDTH;
-        pub const PREFIX: &str = "0o";
+        pub(super) const RADIX: Double = OCT_VAL;
+        pub(super) const WIDTH: u8 = OCT_WIDTH;
+        pub(super) const PREFIX: &str = "0o";
     }
 
     impl Dec {
-        pub const RADIX: Double = DEC_VAL;
-        pub const WIDTH: u8 = DEC_WIDTH;
-        pub const PREFIX: &str = "";
+        pub(super) const RADIX: Double = DEC_VAL;
+        pub(super) const WIDTH: u8 = DEC_WIDTH;
+        pub(super) const PREFIX: &str = "";
     }
 
     impl Hex {
-        pub const RADIX: Double = Single::MAX as Double + 1;
-        pub const WIDTH: u8 = Single::BITS as u8 / 4;
-        pub const PREFIX: &str = "0x";
+        pub(super) const RADIX: Double = Single::MAX as Double + 1;
+        pub(super) const WIDTH: u8 = Single::BITS as u8 / 4;
+        pub(super) const PREFIX: &str = "0x";
     }
 
     radix_impl!([Bin, Oct, Dec, Hex]);
@@ -328,37 +343,134 @@ struct FixedRepr<const L: usize>([Single; L], usize, Sign, Single, bool);
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Operand<'digits>(&'digits [Single], Sign);
 
-pub trait Long: Sized + Default + Display + Clone + PartialEq + PartialOrd + Ops + OpsAssign + OpsFrom {
+pub trait Long: Sized + Default + Display + Clone + Eq + Ord + OpsAll + OpsAllAssign + OpsAllFrom + From<bool> {
+    fn bits() -> usize;
+
+    fn zero() -> Self {
+        false.into()
+    }
+
+    fn one() -> Self {
+        true.into()
+    }
+
+    // fn gcd(mut a: Self, mut b: Self) -> Self {
+    //     while b > Self::zero() {
+    //         let x = b.clone();
+
+    //         b = Self::from(a % b);
+    //         a = x;
+    //     }
+
+    //     a
+    // }
+
+    // fn lcm(a: Self, b: Self) -> Self {
+    //     let g = Self::gcd(a.clone(), b.clone());
+
+    //     Self::from(Self::from(a / g) * b)
+    // }
+}
+
+pub trait Fixed: Sized + Default + Display + Copy + Eq + Ord + OpsAll + OpsAllAssign + OpsAllFrom + From<bool> {
+    const BITS: usize;
     const ZERO: Self;
     const ONE: Self;
 
-    type Type;
+    fn zero() -> Self {
+        false.into()
+    }
+
+    fn one() -> Self {
+        true.into()
+    }
+
+    // fn gcd(&self, val: Self) -> Self {
+    //     let mut a = *self;
+    //     let mut b = val;
+
+    //     while b > Self::zero() {
+    //         let x = b;
+
+    //         b = (a % b).into();
+    //         a = x;
+    //     }
+
+    //     a
+    // }
+
+    // fn lcm(&self, val: Self) -> Self {
+    //     let g = Self::gcd(self, val);
+
+    //     (Self::from(*self / g) * val).into()
+    // }
+
+    // fn pow_mod(&self, mut pow: Self, modulus: Self) -> Self {
+    //     let zero = Self::zero();
+    //     let one = Self::one();
+
+    //     if pow == zero {
+    //         return one;
+    //     }
+
+    //     let mut acc = *self;
+    //     let mut res = one;
+
+    //     while pow > one {
+    //         if Self::from(pow & one) == one {
+    //             res = (Self::from(acc * res) % modulus).into();
+    //         }
+
+    //         acc = (Self::from(acc * acc) % modulus).into();
+    //         pow >>= 2;
+    //     }
+
+    //     (Self::from(acc * res) % modulus).into()
+    // }
 }
 
-pub trait Fixed: Sized + Default + Display + Copy + PartialEq + PartialOrd + Ops + OpsAssign + OpsFrom {
-    const ZERO: Self;
-    const ONE: Self;
-    const MIN: Self;
-    const MAX: Self;
+pub trait LongUnsigned: Long + From<u8> {}
+pub trait LongSigned: Long + From<i8> {
+    // fn gcde(a: Self, b: Self) -> (Self, Self, Self) {
+    //     if b == Self::zero() {
+    //         return (a, Self::one(), Self::zero());
+    //     }
 
-    type Type;
+    //     let rem = a.clone() % b.clone();
+
+    //     let (g, x, y) = Self::gcde(b.clone(), rem.into());
+
+    //     let xval = y.clone();
+    //     let yval = Self::from(a / b);
+    //     let yval = Self::from(yval * y);
+    //     let yval = Self::from(x - yval);
+
+    //     (g, xval, yval)
+    // }
 }
 
-pub trait LongInt: Eq + Ord + Long + OpsAll + OpsAllAssign + OpsAllFrom {
-    fn bits(&self) -> usize;
+pub trait FixedUnsigned: Fixed + From<u8> {}
+pub trait FixedSigned: Fixed + From<i8> {
+    fn gcde(a: Self, b: Self) -> (Self, Self, Self) {
+        if b == Self::zero() {
+            return (a, Self::one(), Self::zero());
+        }
+
+        let rem = a % b;
+
+        let (g, x, y) = Self::gcde(b, rem.into());
+
+        let xval = y;
+        let yval = Self::from(a / b);
+        let yval = Self::from(yval * y);
+        let yval = Self::from(x - yval);
+
+        (g, xval, yval)
+    }
 }
 
-pub trait FixedInt: Eq + Ord + Fixed + OpsAll + OpsAllAssign + OpsAllFrom {
-    const BITS: u32;
-}
-
-pub trait FixedSigned: FixedInt {}
-pub trait FixedUnsigned: FixedInt {}
-pub trait FixedFloat: Fixed {}
-
-int_impl!(FixedSigned, [i8, i16, i32, i64, i128, isize]);
-int_impl!(FixedUnsigned, [u8, u16, u32, u64, u128, usize]);
-float_impl!(FixedFloat, [f32, f64]);
+num_impl!(FixedSigned, [i8, i16, i32, i64, i128, isize]);
+num_impl!(FixedUnsigned, [u8, u16, u32, u64, u128, usize]);
 
 impl<'digits> From<&'digits SignedLong> for Operand<'digits> {
     fn from(value: &'digits SignedLong) -> Self {
@@ -502,6 +614,9 @@ fixed_from!(
 
 long_from!(UnsignedLong, [u8, u16, u32, u64, u128, usize]);
 fixed_from!(UnsignedFixed, [u8, u16, u32, u64, u128, usize]);
+
+long_from_bool!([SignedLong, UnsignedLong]);
+fixed_from_bool!([SignedFixed, UnsignedFixed]);
 
 impl FromStr for SignedLong {
     type Err = TryFromStrError;
@@ -2193,7 +2308,7 @@ fn get_len<T: Fixed>(digits: &[T]) -> usize {
     let mut len = digits.len();
 
     for digit in digits.iter().rev() {
-        if digit != &T::ZERO {
+        if digit != &T::zero() {
             return len;
         }
 
@@ -2214,7 +2329,7 @@ fn get_len_rev<T: Fixed>(digits: &[T], val: T) -> usize {
 }
 
 fn get_sign<T: Fixed>(val: T, default: Sign) -> Sign {
-    if val != T::ZERO {
+    if val != T::zero() {
         default
     } else {
         Sign::ZERO

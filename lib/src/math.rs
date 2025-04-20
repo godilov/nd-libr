@@ -1,4 +1,4 @@
-use crate::{num::FixedInt, ops::OpsAllFrom};
+use crate::num::Fixed;
 
 const PRIMES: [Prime; 50] = [
     2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109,
@@ -38,9 +38,9 @@ impl Primes {
     }
 }
 
-pub fn gcd_ext<I: FixedInt>(a: I, b: I) -> (I, I, I) {
-    if b == I::ZERO {
-        return (a, I::ONE, I::ZERO);
+pub fn gcd_ext<T: Fixed>(a: T, b: T) -> (T, T, T) {
+    if b == T::zero() {
+        return (a, T::one(), T::zero());
     }
 
     let rem = a % b;
@@ -48,28 +48,28 @@ pub fn gcd_ext<I: FixedInt>(a: I, b: I) -> (I, I, I) {
     let (g, x, y) = gcd_ext(b, rem.into());
 
     let xval = y;
-    let yval = I::from(a / b);
-    let yval = I::from(yval * y);
-    let yval = I::from(x - yval);
+    let yval = T::from(a / b);
+    let yval = T::from(yval * y);
+    let yval = T::from(x - yval);
 
     (g, xval, yval)
 }
 
-pub fn gcd<I: FixedInt>(mut a: I, mut b: I) -> I {
-    while b > I::ZERO {
+pub fn gcd<T: Fixed>(mut a: T, mut b: T) -> T {
+    while b > T::zero() {
         let x = b;
 
-        b = I::from(a % b);
+        b = T::from(a % b);
         a = x;
     }
 
     a
 }
 
-pub fn lcm<I: FixedInt + OpsAllFrom>(a: I, b: I) -> I {
+pub fn lcm<T: Fixed>(a: T, b: T) -> T {
     let g = gcd(a, b);
 
-    I::from(I::from(a / g) * b)
+    T::from(T::from(a / g) * b)
 }
 
 fn is_prime(val: u64) -> bool {

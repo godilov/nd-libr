@@ -23,7 +23,6 @@ macro_rules! if_all {
 pub mod math;
 pub mod num;
 pub mod ops;
-pub mod vec;
 
 #[cfg(test)]
 mod tests {
