@@ -1,6 +1,6 @@
 #![allow(clippy::manual_div_ceil)]
 
-use crate::ops::{OpsAll, OpsAllAssign, OpsAllFrom};
+use crate::ops::{Ops, OpsAssign, OpsFrom};
 use digit::{Double, Single};
 use ndproc::ops_impl;
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
@@ -343,7 +343,7 @@ struct FixedRepr<const L: usize>([Single; L], usize, Sign, Single, bool);
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Operand<'digits>(&'digits [Single], Sign);
 
-pub trait Long: Sized + Default + Display + Clone + Eq + Ord + OpsAll + OpsAllAssign + OpsAllFrom + From<bool> {
+pub trait Long: Sized + Default + Display + Clone + Eq + Ord + Ops + OpsAssign + OpsFrom + From<bool> {
     fn bits() -> usize;
 
     fn zero() -> Self {
@@ -372,7 +372,7 @@ pub trait Long: Sized + Default + Display + Clone + Eq + Ord + OpsAll + OpsAllAs
     // }
 }
 
-pub trait Fixed: Sized + Default + Display + Copy + Eq + Ord + OpsAll + OpsAllAssign + OpsAllFrom + From<bool> {
+pub trait Fixed: Sized + Default + Display + Copy + Eq + Ord + Ops + OpsAssign + OpsFrom + From<bool> {
     const BITS: usize;
     const ZERO: Self;
     const ONE: Self;

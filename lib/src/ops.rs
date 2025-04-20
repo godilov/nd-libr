@@ -3,92 +3,131 @@ use std::ops::{
     Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
-pub trait Ops<Rhs = Self>: Sized + Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs> {}
-pub trait OpsRem<Rhs = Self>: Sized + Rem<Rhs> {}
-pub trait OpsBit<Rhs = Self>: Sized + BitOr<Rhs> + BitAnd<Rhs> + BitXor<Rhs> {}
-pub trait OpsShift<Rhs = Self>: Sized + Shl<Rhs> + Shr<Rhs> {}
-pub trait OpsAll<Rhs = Self>: Ops<Rhs> + OpsRem<Rhs> + OpsBit<Rhs> + OpsShift<Rhs> {}
-
-pub trait OpsAssign<Rhs = Self>: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> {}
-pub trait OpsRemAssign<Rhs = Self>: RemAssign<Rhs> {}
-pub trait OpsBitAssign<Rhs = Self>: BitOrAssign<Rhs> + BitAndAssign<Rhs> + BitXorAssign<Rhs> {}
-pub trait OpsShiftAssign<Rhs = Self>: ShlAssign<Rhs> + ShrAssign<Rhs> {}
-pub trait OpsAllAssign<Rhs = Self>:
-    OpsAssign<Rhs> + OpsRemAssign<Rhs> + OpsShiftAssign<Rhs> + OpsBitAssign<Rhs>
+pub trait Ops<Rhs = Self, ShiftRhs = usize>
+where
+    Self: Sized
+        + Add<Rhs>
+        + Sub<Rhs>
+        + Mul<Rhs>
+        + Div<Rhs>
+        + Rem<Rhs>
+        + BitOr<Rhs>
+        + BitAnd<Rhs>
+        + BitXor<Rhs>
+        + Shl<ShiftRhs>
+        + Shr<ShiftRhs>,
 {
 }
 
-pub trait OpsFrom<Lhs: Ops<Rhs> = Self, Rhs = Lhs>:
-    From<<Lhs as Add<Rhs>>::Output>
-    + From<<Lhs as Sub<Rhs>>::Output>
-    + From<<Lhs as Mul<Rhs>>::Output>
-    + From<<Lhs as Div<Rhs>>::Output>
+pub trait OpsRef<'s, Rhs = &'s Self, ShiftRhs = &'s usize>
+where
+    Self: 's,
+    &'s Self: Sized
+        + Add<Rhs>
+        + Sub<Rhs>
+        + Mul<Rhs>
+        + Div<Rhs>
+        + Rem<Rhs>
+        + BitOr<Rhs>
+        + BitAnd<Rhs>
+        + BitXor<Rhs>
+        + Shl<ShiftRhs>
+        + Shr<ShiftRhs>,
 {
 }
 
-pub trait OpsRemFrom<Lhs: OpsRem<Rhs> = Self, Rhs = Lhs>: From<<Lhs as Rem<Rhs>>::Output> {}
-
-pub trait OpsBitFrom<Lhs: OpsBit<Rhs> = Self, Rhs = Lhs>:
-    From<<Lhs as BitOr<Rhs>>::Output> + From<<Lhs as BitAnd<Rhs>>::Output> + From<<Lhs as BitXor<Rhs>>::Output>
+pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>
+where
+    Self: AddAssign<Rhs>
+        + SubAssign<Rhs>
+        + MulAssign<Rhs>
+        + DivAssign<Rhs>
+        + RemAssign<Rhs>
+        + BitOrAssign<Rhs>
+        + BitAndAssign<Rhs>
+        + BitXorAssign<Rhs>
+        + ShlAssign<ShiftRhs>
+        + ShrAssign<ShiftRhs>,
 {
 }
 
-pub trait OpsShiftFrom<Lhs: OpsShift<Rhs> = Self, Rhs = Lhs>:
-    From<<Lhs as Shl<Rhs>>::Output> + From<<Lhs as Shr<Rhs>>::Output>
+pub trait OpsFrom<Lhs: Ops<Rhs, ShiftRhs> = Self, Rhs = Lhs, ShiftRhs = usize>
+where
+    Self: From<<Lhs as Add<Rhs>>::Output>
+        + From<<Lhs as Sub<Rhs>>::Output>
+        + From<<Lhs as Mul<Rhs>>::Output>
+        + From<<Lhs as Div<Rhs>>::Output>
+        + From<<Lhs as Rem<Rhs>>::Output>
+        + From<<Lhs as BitOr<Rhs>>::Output>
+        + From<<Lhs as BitAnd<Rhs>>::Output>
+        + From<<Lhs as BitXor<Rhs>>::Output>
+        + From<<Lhs as Shl<ShiftRhs>>::Output>
+        + From<<Lhs as Shr<ShiftRhs>>::Output>,
 {
 }
 
 pub trait OpsNegFrom<Lhs: Neg = Self>: From<<Lhs as Neg>::Output> {}
 pub trait OpsNotFrom<Lhs: Not = Self>: From<<Lhs as Not>::Output> {}
 
-pub trait OpsAllFrom<Lhs: OpsAll<Rhs> = Self, Rhs = Lhs>:
-    OpsFrom<Lhs, Rhs> + OpsRemFrom<Lhs, Rhs> + OpsBitFrom<Lhs, Rhs> + OpsShiftFrom<Lhs, Rhs>
+impl<Lhs, Rhs, ShiftRhs> Ops<Rhs, ShiftRhs> for Lhs where
+    Self: Sized
+        + Add<Rhs>
+        + Sub<Rhs>
+        + Mul<Rhs>
+        + Div<Rhs>
+        + Rem<Rhs>
+        + BitOr<Rhs>
+        + BitAnd<Rhs>
+        + BitXor<Rhs>
+        + Shl<ShiftRhs>
+        + Shr<ShiftRhs>
 {
 }
 
-impl<Lhs, Rhs> Ops<Rhs> for Lhs where Lhs: Sized + Add<Rhs> + Sub<Rhs> + Mul<Rhs> + Div<Rhs> {}
-impl<Lhs, Rhs> OpsRem<Rhs> for Lhs where Self: Sized + Rem<Rhs> {}
-impl<Lhs, Rhs> OpsBit<Rhs> for Lhs where Self: Sized + BitOr<Rhs> + BitAnd<Rhs> + BitXor<Rhs> {}
-impl<Lhs, Rhs> OpsShift<Rhs> for Lhs where Self: Sized + Shl<Rhs> + Shr<Rhs> {}
-impl<Lhs, Rhs> OpsAll<Rhs> for Lhs where Self: Sized + Ops<Rhs> + OpsRem<Rhs> + OpsBit<Rhs> + OpsShift<Rhs> {}
-
-impl<Lhs, Rhs> OpsAssign<Rhs> for Lhs where
-    Self: Sized + AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs>
+impl<'s, Lhs, Rhs, ShiftRhs> OpsRef<'s, Rhs, ShiftRhs> for Lhs
+where
+    Self: 's,
+    &'s Self: Sized
+        + Add<Rhs>
+        + Sub<Rhs>
+        + Mul<Rhs>
+        + Div<Rhs>
+        + Rem<Rhs>
+        + BitOr<Rhs>
+        + BitAnd<Rhs>
+        + BitXor<Rhs>
+        + Shl<ShiftRhs>
+        + Shr<ShiftRhs>,
 {
 }
 
-impl<Lhs, Rhs> OpsRemAssign<Rhs> for Lhs where Self: Sized + RemAssign<Rhs> {}
-impl<Lhs, Rhs> OpsBitAssign<Rhs> for Lhs where Self: Sized + BitOrAssign<Rhs> + BitAndAssign<Rhs> + BitXorAssign<Rhs> {}
-impl<Lhs, Rhs> OpsShiftAssign<Rhs> for Lhs where Self: Sized + ShlAssign<Rhs> + ShrAssign<Rhs> {}
-impl<Lhs, Rhs> OpsAllAssign<Rhs> for Lhs where
-    Self: Sized + OpsAssign<Rhs> + OpsRemAssign<Rhs> + OpsBitAssign<Rhs> + OpsShiftAssign<Rhs>
+impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
+    Self: AddAssign<Rhs>
+        + SubAssign<Rhs>
+        + MulAssign<Rhs>
+        + DivAssign<Rhs>
+        + RemAssign<Rhs>
+        + BitOrAssign<Rhs>
+        + BitAndAssign<Rhs>
+        + BitXorAssign<Rhs>
+        + ShlAssign<ShiftRhs>
+        + ShrAssign<ShiftRhs>
 {
 }
 
-impl<Any, Lhs: Ops<Rhs>, Rhs> OpsFrom<Lhs, Rhs> for Any where
-    Self: From<<Lhs as Add<Rhs>>::Output>
+impl<Any, Lhs: Ops<Rhs, ShiftRhs>, Rhs, ShiftRhs> OpsFrom<Lhs, Rhs, ShiftRhs> for Any where
+    Any: From<<Lhs as Add<Rhs>>::Output>
         + From<<Lhs as Sub<Rhs>>::Output>
         + From<<Lhs as Mul<Rhs>>::Output>
         + From<<Lhs as Div<Rhs>>::Output>
-{
-}
-
-impl<Any, Lhs: OpsRem<Rhs>, Rhs> OpsRemFrom<Lhs, Rhs> for Any where Self: From<<Lhs as Rem<Rhs>>::Output> {}
-
-impl<Any, Lhs: OpsBit<Rhs>, Rhs> OpsBitFrom<Lhs, Rhs> for Any where
-    Self: From<<Lhs as BitOr<Rhs>>::Output> + From<<Lhs as BitAnd<Rhs>>::Output> + From<<Lhs as BitXor<Rhs>>::Output>
-{
-}
-
-impl<Any, Lhs: OpsShift<Rhs>, Rhs> OpsShiftFrom<Lhs, Rhs> for Any where
-    Self: From<<Lhs as Shl<Rhs>>::Output> + From<<Lhs as Shr<Rhs>>::Output>
+        + From<<Lhs as Rem<Rhs>>::Output>
+        + From<<Lhs as BitOr<Rhs>>::Output>
+        + From<<Lhs as BitAnd<Rhs>>::Output>
+        + From<<Lhs as BitXor<Rhs>>::Output>
+        + From<<Lhs as Shl<ShiftRhs>>::Output>
+        + From<<Lhs as Shr<ShiftRhs>>::Output>
 {
 }
 
 impl<Any, Lhs: Neg> OpsNegFrom<Lhs> for Any where Self: From<<Lhs as Neg>::Output> {}
 impl<Any, Lhs: Not> OpsNotFrom<Lhs> for Any where Self: From<<Lhs as Not>::Output> {}
-
-impl<Any, Lhs: OpsAll<Rhs>, Rhs> OpsAllFrom<Lhs, Rhs> for Any where
-    Self: OpsFrom<Lhs, Rhs> + OpsRemFrom<Lhs, Rhs> + OpsBitFrom<Lhs, Rhs> + OpsShiftFrom<Lhs, Rhs>
-{
-}
