@@ -19,23 +19,6 @@ where
 {
 }
 
-pub trait OpsRef<'s, Rhs = &'s Self, ShiftRhs = &'s usize>
-where
-    Self: 's,
-    &'s Self: Sized
-        + Add<Rhs>
-        + Sub<Rhs>
-        + Mul<Rhs>
-        + Div<Rhs>
-        + Rem<Rhs>
-        + BitOr<Rhs>
-        + BitAnd<Rhs>
-        + BitXor<Rhs>
-        + Shl<ShiftRhs>
-        + Shr<ShiftRhs>,
-{
-}
-
 pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>
 where
     Self: AddAssign<Rhs>
@@ -81,23 +64,6 @@ impl<Lhs, Rhs, ShiftRhs> Ops<Rhs, ShiftRhs> for Lhs where
         + BitXor<Rhs>
         + Shl<ShiftRhs>
         + Shr<ShiftRhs>
-{
-}
-
-impl<'s, Lhs, Rhs, ShiftRhs> OpsRef<'s, Rhs, ShiftRhs> for Lhs
-where
-    Self: 's,
-    &'s Self: Sized
-        + Add<Rhs>
-        + Sub<Rhs>
-        + Mul<Rhs>
-        + Div<Rhs>
-        + Rem<Rhs>
-        + BitOr<Rhs>
-        + BitAnd<Rhs>
-        + BitXor<Rhs>
-        + Shl<ShiftRhs>
-        + Shr<ShiftRhs>,
 {
 }
 

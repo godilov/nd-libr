@@ -3,6 +3,7 @@
 use crate::ops::{Ops, OpsAssign, OpsFrom};
 use digit::{Double, Single};
 use ndproc::ops_impl;
+use prime::{PrimeRel, PRIMES};
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
 use std::{
     cmp::Ordering,
@@ -31,6 +32,16 @@ macro_rules! num_impl {
         $(num_impl!($trait, $type,);)+
     };
     ($trait:ty, $type:ty $(,)?) => {
+        impl Num for $type {
+            fn bits(&self) -> usize {
+                <$type>::BITS as usize
+            }
+
+            fn order(&self) -> usize {
+                self.ilog2() as usize
+            }
+        }
+
         impl Fixed for $type {
             const BITS: usize = <$type>::BITS as usize;
             const ZERO: Self = 0;
@@ -38,6 +49,19 @@ macro_rules! num_impl {
         }
 
         impl $trait for $type {}
+    };
+}
+
+macro_rules! prime_impl {
+    ($([$type:ty, $count:expr]),+) => {
+        $(prime_impl!($type, $count,);)+
+    };
+    ($type:ty, $count:expr $(,)?) => {
+        impl PrimeRel for $type {
+            fn primes() -> impl Iterator<Item = Self> {
+                PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p < Self::MAX.isqrt())
+            }
+        }
     };
 }
 
@@ -227,15 +251,113 @@ pub mod digit {
 
 #[allow(unused)]
 pub mod prime {
+    use std::fmt::{Debug, Display};
+
+    use super::Num;
+    use crate::ops::Ops;
+
+    pub(super) const PRIMES: [u16; 128] = [
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
+        109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229,
+        233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359,
+        367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491,
+        499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641,
+        643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719,
+    ];
+
     #[cfg(target_pointer_width = "64")]
     pub type Prime = u64;
     #[cfg(target_pointer_width = "32")]
     pub type Prime = u32;
 
-    const PRIMES: [Prime; 50] = [
-        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
-        109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229,
-    ];
+    pub struct Primes;
+
+    impl Primes {
+        pub fn by_count(len: usize) -> impl Iterator<Item = Prime> {
+            PrimesIter {
+                primes: Vec::with_capacity(len),
+                next: 2,
+            }
+            .take(len)
+        }
+
+        pub fn by_limit(val: u64) -> impl Iterator<Item = Prime> {
+            let len = val as usize;
+            let len = len / len.isqrt() + 1;
+
+            PrimesIter {
+                primes: Vec::with_capacity(len),
+                next: 2,
+            }
+            .take_while(move |&x| x < val)
+        }
+
+        pub fn by_count_fast(len: usize) -> impl Iterator<Item = Prime> {
+            (2..).filter(|&val| val.is_prime()).take(len)
+        }
+
+        pub fn by_limit_fast(val: u64) -> impl Iterator<Item = Prime> {
+            (2..val).filter(|&val| val.is_prime())
+        }
+    }
+
+    pub trait PrimeRel: Num + Display + Debug
+    where
+        for<'s> &'s Self: Ops,
+    {
+        fn primes() -> impl Iterator<Item = Self>;
+
+        fn is_prime(&self) -> bool {
+            Self::primes().take_while(|p| p < self).all(|p| {
+                let one = Self::one();
+
+                let x = Self::from(self - &one);
+
+                let shr = Self::from(&x - &one);
+                let shr = Self::from(&x ^ &shr);
+                let shr = shr.order();
+
+                let mut idx = 0;
+                let mut pow = Self::from(&x >> shr);
+                let mut exp = p.clone().pow_mod(pow.clone(), self);
+
+                while pow < x && one < exp && exp < x {
+                    let val = Self::from(&exp * &exp);
+                    let val = Self::from(&val % self);
+
+                    idx += 1;
+                    pow <<= 1;
+                    exp = val;
+                }
+
+                idx == 0 && exp == one || exp == x
+            })
+        }
+    }
+
+    struct PrimesIter {
+        primes: Vec<Prime>,
+        next: Prime,
+    }
+
+    impl ExactSizeIterator for PrimesIter {}
+    impl Iterator for PrimesIter {
+        type Item = Prime;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.primes.push(self.next);
+
+            self.next = (self.next + 1 + self.next % 2..)
+                .step_by(2)
+                .find(|&val| self.primes.iter().take_while(|&p| p * p <= val).all(|&p| val % p != 0))?;
+
+            self.primes.last().copied()
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            (self.primes.capacity(), Some(self.primes.capacity()))
+        }
+    }
 }
 
 mod radix {
@@ -343,8 +465,14 @@ struct FixedRepr<const L: usize>([Single; L], usize, Sign, Single, bool);
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Operand<'digits>(&'digits [Single], Sign);
 
-pub trait Long: Sized + Default + Display + Clone + Eq + Ord + Ops + OpsAssign + OpsFrom + From<bool> {
-    fn bits() -> usize;
+pub trait Num: Sized + Default + Display + Clone + Eq + Ord + From<bool>
+where
+    for<'s> Self: Ops + OpsAssign + OpsFrom + OpsFrom<&'s Self, &'s Self>,
+    for<'s> &'s Self: Ops,
+{
+    fn bits(&self) -> usize;
+
+    fn order(&self) -> usize;
 
     fn zero() -> Self {
         false.into()
@@ -354,123 +482,103 @@ pub trait Long: Sized + Default + Display + Clone + Eq + Ord + Ops + OpsAssign +
         true.into()
     }
 
-    // fn gcd(mut a: Self, mut b: Self) -> Self {
-    //     while b > Self::zero() {
-    //         let x = b.clone();
+    fn gcd(self, val: Self) -> Self {
+        let mut a = self;
+        let mut b = val;
 
-    //         b = Self::from(a % b);
-    //         a = x;
-    //     }
+        while b > Self::zero() {
+            let x = b.clone();
 
-    //     a
-    // }
+            b = Self::from(a % b);
+            a = x;
+        }
 
-    // fn lcm(a: Self, b: Self) -> Self {
-    //     let g = Self::gcd(a.clone(), b.clone());
+        a
+    }
 
-    //     Self::from(Self::from(a / g) * b)
-    // }
+    fn lcm(self, val: Self) -> Self {
+        let g = Self::gcd(self.clone(), val.clone());
+
+        Self::from(Self::from(self / g) * val)
+    }
+
+    fn pow_mod(self, mut pow: Self, modulus: &Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one.clone();
+
+        while pow > zero {
+            if Self::from(&pow & &one) == one {
+                let val = Self::from(&res * &acc);
+                let val = Self::from(&val % modulus);
+
+                res = val;
+            }
+
+            let val = Self::from(&acc * &acc);
+            let val = Self::from(&val % modulus);
+
+            acc = val;
+            pow >>= 1;
+        }
+
+        res
+    }
 }
 
-pub trait Fixed: Sized + Default + Display + Copy + Eq + Ord + Ops + OpsAssign + OpsFrom + From<bool> {
+pub trait Signed: Num + From<i8>
+where
+    for<'s> &'s Self: Ops,
+{
+    fn gcde(&self, val: &Self) -> (Self, Self, Self) {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let a = self;
+        let b = val;
+
+        if b == &zero {
+            return (a.clone(), one, zero);
+        }
+
+        let rem = Self::from(a % b);
+
+        let (g, x, y) = Self::gcde(b, &rem);
+
+        let val = Self::from(a / b);
+        let val = Self::from(&val * &y);
+        let val = Self::from(&x - &val);
+
+        (g, y, val)
+    }
+}
+
+pub trait Unsigned: Num + From<u8> + PrimeRel
+where
+    for<'s> &'s Self: Ops,
+{
+}
+
+pub trait Long: Num
+where
+    for<'s> &'s Self: Ops,
+{
+}
+
+pub trait Fixed: Num + Copy
+where
+    for<'s> &'s Self: Ops,
+{
     const BITS: usize;
     const ZERO: Self;
     const ONE: Self;
-
-    fn zero() -> Self {
-        false.into()
-    }
-
-    fn one() -> Self {
-        true.into()
-    }
-
-    // fn gcd(&self, val: Self) -> Self {
-    //     let mut a = *self;
-    //     let mut b = val;
-
-    //     while b > Self::zero() {
-    //         let x = b;
-
-    //         b = (a % b).into();
-    //         a = x;
-    //     }
-
-    //     a
-    // }
-
-    // fn lcm(&self, val: Self) -> Self {
-    //     let g = Self::gcd(self, val);
-
-    //     (Self::from(*self / g) * val).into()
-    // }
-
-    // fn pow_mod(&self, mut pow: Self, modulus: Self) -> Self {
-    //     let zero = Self::zero();
-    //     let one = Self::one();
-
-    //     if pow == zero {
-    //         return one;
-    //     }
-
-    //     let mut acc = *self;
-    //     let mut res = one;
-
-    //     while pow > one {
-    //         if Self::from(pow & one) == one {
-    //             res = (Self::from(acc * res) % modulus).into();
-    //         }
-
-    //         acc = (Self::from(acc * acc) % modulus).into();
-    //         pow >>= 2;
-    //     }
-
-    //     (Self::from(acc * res) % modulus).into()
-    // }
 }
 
-pub trait LongUnsigned: Long + From<u8> {}
-pub trait LongSigned: Long + From<i8> {
-    // fn gcde(a: Self, b: Self) -> (Self, Self, Self) {
-    //     if b == Self::zero() {
-    //         return (a, Self::one(), Self::zero());
-    //     }
-
-    //     let rem = a.clone() % b.clone();
-
-    //     let (g, x, y) = Self::gcde(b.clone(), rem.into());
-
-    //     let xval = y.clone();
-    //     let yval = Self::from(a / b);
-    //     let yval = Self::from(yval * y);
-    //     let yval = Self::from(x - yval);
-
-    //     (g, xval, yval)
-    // }
-}
-
-pub trait FixedUnsigned: Fixed + From<u8> {}
-pub trait FixedSigned: Fixed + From<i8> {
-    fn gcde(a: Self, b: Self) -> (Self, Self, Self) {
-        if b == Self::zero() {
-            return (a, Self::one(), Self::zero());
-        }
-
-        let rem = a % b;
-
-        let (g, x, y) = Self::gcde(b, rem.into());
-
-        let xval = y;
-        let yval = Self::from(a / b);
-        let yval = Self::from(yval * y);
-        let yval = Self::from(x - yval);
-
-        (g, xval, yval)
-    }
-}
-
-num_impl!(FixedSigned, [i8, i16, i32, i64, i128, isize]);
-num_impl!(FixedUnsigned, [u8, u16, u32, u64, u128, usize]);
+num_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
+num_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
+prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
 
 impl<'digits> From<&'digits SignedLong> for Operand<'digits> {
     fn from(value: &'digits SignedLong) -> Self {
@@ -2304,11 +2412,25 @@ fn get_digits_from_str(s: &str, radix: u16) -> Result<Vec<u8>, TryFromStrError> 
     Ok(res)
 }
 
-fn get_len<T: Fixed>(digits: &[T]) -> usize {
+fn get_sign<F: Fixed>(val: F, default: Sign) -> Sign
+where
+    for<'f> &'f F: Ops,
+{
+    if val != F::zero() {
+        default
+    } else {
+        Sign::ZERO
+    }
+}
+
+fn get_len<F: Fixed>(digits: &[F]) -> usize
+where
+    for<'f> &'f F: Ops,
+{
     let mut len = digits.len();
 
     for digit in digits.iter().rev() {
-        if digit != &T::zero() {
+        if digit != &F::zero() {
             return len;
         }
 
@@ -2318,7 +2440,10 @@ fn get_len<T: Fixed>(digits: &[T]) -> usize {
     0
 }
 
-fn get_len_rev<T: Fixed>(digits: &[T], val: T) -> usize {
+fn get_len_rev<F: Fixed>(digits: &[F], val: F) -> usize
+where
+    for<'f> &'f F: Ops,
+{
     for (idx, digit) in digits.iter().enumerate() {
         if digit != &val {
             return idx;
@@ -2326,14 +2451,6 @@ fn get_len_rev<T: Fixed>(digits: &[T], val: T) -> usize {
     }
 
     0
-}
-
-fn get_sign<T: Fixed>(val: T, default: Sign) -> Sign {
-    if val != T::zero() {
-        default
-    } else {
-        Sign::ZERO
-    }
 }
 
 fn cycle(digits: &mut [Single], val: Single) {

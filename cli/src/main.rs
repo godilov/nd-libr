@@ -3,7 +3,7 @@ use std::{fs::File, path::PathBuf};
 use anyhow::Error;
 use clap::{Parser, Subcommand};
 
-use ndlib::math::{Prime, Primes};
+use ndlib::num::prime::{Prime, Primes};
 
 #[derive(Parser)]
 #[command(version, about, long_about)]
