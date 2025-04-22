@@ -1,14 +1,15 @@
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use syn::{
-    BinOp, Error, Expr, Generics, Ident, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
+    bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     token::{Bracket, Paren},
+    BinOp, Error, Expr, Generics, Ident, Path, Result, Token, Type, UnOp,
 };
-use syn::{parse_str, parse2};
+use syn::{parse2, parse_str};
 
 #[allow(dead_code)]
 struct OpsRaw {
@@ -269,16 +270,16 @@ impl ToTokens for OpsImplMutable {
 
         fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
             let (ident, path) = match get_std_path_mut(val.op) {
-                | Ok(val) => val,
-                | Err(err) => {
+                Ok(val) => val,
+                Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
             let generics = val.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
-                | Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
-                | None => (None, None),
+                Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
+                None => (None, None),
             };
 
             let lhs_ident = &val.signature.lhs_ident;
@@ -314,21 +315,21 @@ impl ToTokens for OpsImplMutable {
             };
 
             match (lhs, rhs) {
-                | (true, true) => {
+                (true, true) => {
                     tokens.extend(get_impl(val, some, some));
                     tokens.extend(get_impl(val, some, none));
                     tokens.extend(get_impl(val, none, some));
                     tokens.extend(get_impl(val, none, none));
                 },
-                | (true, false) => {
+                (true, false) => {
                     tokens.extend(get_impl(val, some, none));
                     tokens.extend(get_impl(val, none, none));
                 },
-                | (false, true) => {
+                (false, true) => {
                     tokens.extend(get_impl(val, none, some));
                     tokens.extend(get_impl(val, none, none));
                 },
-                | (false, false) => {
+                (false, false) => {
                     tokens.extend(get_impl(val, none, none));
                 },
             }
@@ -347,16 +348,16 @@ impl ToTokens for OpsImplBinary {
 
         fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
             let (ident, path) = match get_std_path_binary(val.op) {
-                | Ok(val) => val,
-                | Err(err) => {
+                Ok(val) => val,
+                Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
             let generics = val.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
-                | Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
-                | None => (None, None),
+                Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
+                None => (None, None),
             };
 
             let lhs_ident = &val.signature.lhs_ident;
@@ -393,21 +394,21 @@ impl ToTokens for OpsImplBinary {
             };
 
             match (lhs, rhs) {
-                | (true, true) => {
+                (true, true) => {
                     tokens.extend(get_impl(val, some, some));
                     tokens.extend(get_impl(val, some, none));
                     tokens.extend(get_impl(val, none, some));
                     tokens.extend(get_impl(val, none, none));
                 },
-                | (true, false) => {
+                (true, false) => {
                     tokens.extend(get_impl(val, some, none));
                     tokens.extend(get_impl(val, none, none));
                 },
-                | (false, true) => {
+                (false, true) => {
                     tokens.extend(get_impl(val, none, some));
                     tokens.extend(get_impl(val, none, none));
                 },
-                | (false, false) => {
+                (false, false) => {
                     tokens.extend(get_impl(val, none, none));
                 },
             }
@@ -426,16 +427,16 @@ impl ToTokens for OpsImplUnary {
 
         fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>) -> TokenStream {
             let (ident, path) = match get_std_path_unary(val.op) {
-                | Ok(val) => val,
-                | Err(err) => {
+                Ok(val) => val,
+                Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
             let generics = val.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
-                | Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
-                | None => (None, None),
+                Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
+                None => (None, None),
             };
 
             let lhs_ident = &val.signature.lhs_ident;
@@ -469,11 +470,11 @@ impl ToTokens for OpsImplUnary {
             };
 
             match lhs {
-                | true => {
+                true => {
                     tokens.extend(get_impl(val, some));
                     tokens.extend(get_impl(val, none));
                 },
-                | false => {
+                false => {
                     tokens.extend(get_impl(val, none));
                 },
             }
@@ -488,34 +489,34 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
     let raw = parse_macro_input!(stream as OpsRaw);
 
     match raw.id.as_str() {
-        | "@mut" => {
+        "@mut" => {
             let body = raw.body;
             let ops = parse2::<OpsImplMutable>(body);
 
             match ops {
-                | Ok(val) => quote! { #val }.into(),
-                | Err(err) => err.to_compile_error().into(),
+                Ok(val) => quote! { #val }.into(),
+                Err(err) => err.to_compile_error().into(),
             }
         },
-        | "@bin" => {
+        "@bin" => {
             let body = raw.body;
             let ops = parse2::<OpsImplBinary>(body);
 
             match ops {
-                | Ok(val) => quote! { #val }.into(),
-                | Err(err) => err.to_compile_error().into(),
+                Ok(val) => quote! { #val }.into(),
+                Err(err) => err.to_compile_error().into(),
             }
         },
-        | "@un" => {
+        "@un" => {
             let body = raw.body;
             let ops = parse2::<OpsImplUnary>(body);
 
             match ops {
-                | Ok(val) => quote! { #val }.into(),
-                | Err(err) => err.to_compile_error().into(),
+                Ok(val) => quote! { #val }.into(),
+                Err(err) => err.to_compile_error().into(),
             }
         },
-        | _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
+        _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
     }
 }
 
@@ -526,7 +527,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
     let raw = parse_macro_input!(stream as OpsRaw);
 
     match raw.id.as_str() {
-        | "@mut" => {
+        "@mut" => {
             let body = raw.body;
             let ops = parse2::<OpsImplAutoMutable>(body).map(|val| OpsImplMutable {
                 generics: val.generics,
@@ -548,11 +549,11 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             });
 
             match ops {
-                | Ok(val) => quote! { #val }.into(),
-                | Err(err) => err.to_compile_error().into(),
+                Ok(val) => quote! { #val }.into(),
+                Err(err) => err.to_compile_error().into(),
             }
         },
-        | "@bin" => {
+        "@bin" => {
             let body = raw.body;
             let ops = parse2::<OpsImplAutoBinary>(body).map(|val| OpsImplBinary {
                 generics: val.generics,
@@ -574,11 +575,11 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             });
 
             match ops {
-                | Ok(val) => quote! { #val }.into(),
-                | Err(err) => err.to_compile_error().into(),
+                Ok(val) => quote! { #val }.into(),
+                Err(err) => err.to_compile_error().into(),
             }
         },
-        | "@un" => {
+        "@un" => {
             let body = raw.body;
             let ops = parse2::<OpsImplAutoUnary>(body).map(|val| OpsImplUnary {
                 generics: val.generics,
@@ -599,27 +600,27 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             });
 
             match ops {
-                | Ok(val) => quote! { #val }.into(),
-                | Err(err) => err.to_compile_error().into(),
+                Ok(val) => quote! { #val }.into(),
+                Err(err) => err.to_compile_error().into(),
             }
         },
-        | _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
+        _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
     }
 }
 
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
-        | BinOp::AddAssign(_) => Ok(("add_assign", "std::ops::AddAssign")),
-        | BinOp::SubAssign(_) => Ok(("sub_assign", "std::ops::SubAssign")),
-        | BinOp::MulAssign(_) => Ok(("mul_assign", "std::ops::MulAssign")),
-        | BinOp::DivAssign(_) => Ok(("div_assign", "std::ops::DivAssign")),
-        | BinOp::RemAssign(_) => Ok(("rem_assign", "std::ops::RemAssign")),
-        | BinOp::BitOrAssign(_) => Ok(("bitor_assign", "std::ops::BitOrAssign")),
-        | BinOp::BitAndAssign(_) => Ok(("bitand_assign", "std::ops::BitAndAssign")),
-        | BinOp::BitXorAssign(_) => Ok(("bitxor_assign", "std::ops::BitXorAssign")),
-        | BinOp::ShlAssign(_) => Ok(("shl_assign", "std::ops::ShlAssign")),
-        | BinOp::ShrAssign(_) => Ok(("shr_assign", "std::ops::ShrAssign")),
-        | _ => Err(Error::new(
+        BinOp::AddAssign(_) => Ok(("add_assign", "std::ops::AddAssign")),
+        BinOp::SubAssign(_) => Ok(("sub_assign", "std::ops::SubAssign")),
+        BinOp::MulAssign(_) => Ok(("mul_assign", "std::ops::MulAssign")),
+        BinOp::DivAssign(_) => Ok(("div_assign", "std::ops::DivAssign")),
+        BinOp::RemAssign(_) => Ok(("rem_assign", "std::ops::RemAssign")),
+        BinOp::BitOrAssign(_) => Ok(("bitor_assign", "std::ops::BitOrAssign")),
+        BinOp::BitAndAssign(_) => Ok(("bitand_assign", "std::ops::BitAndAssign")),
+        BinOp::BitXorAssign(_) => Ok(("bitxor_assign", "std::ops::BitXorAssign")),
+        BinOp::ShlAssign(_) => Ok(("shl_assign", "std::ops::ShlAssign")),
+        BinOp::ShrAssign(_) => Ok(("shr_assign", "std::ops::ShrAssign")),
+        _ => Err(Error::new(
             Span::call_site(),
             format!(
                 "Invalid 'op' for operation: '{:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",
@@ -633,17 +634,17 @@ fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
 
 fn get_std_path_binary(op: &BinOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
-        | BinOp::Add(_) => Ok(("add", "std::ops::Add")),
-        | BinOp::Sub(_) => Ok(("sub", "std::ops::Sub")),
-        | BinOp::Mul(_) => Ok(("mul", "std::ops::Mul")),
-        | BinOp::Div(_) => Ok(("div", "std::ops::Div")),
-        | BinOp::Rem(_) => Ok(("rem", "std::ops::Rem")),
-        | BinOp::BitOr(_) => Ok(("bitor", "std::ops::BitOr")),
-        | BinOp::BitAnd(_) => Ok(("bitand", "std::ops::BitAnd")),
-        | BinOp::BitXor(_) => Ok(("bitxor", "std::ops::BitXor")),
-        | BinOp::Shl(_) => Ok(("shl", "std::ops::Shl")),
-        | BinOp::Shr(_) => Ok(("shr", "std::ops::Shr")),
-        | _ => Err(Error::new(
+        BinOp::Add(_) => Ok(("add", "std::ops::Add")),
+        BinOp::Sub(_) => Ok(("sub", "std::ops::Sub")),
+        BinOp::Mul(_) => Ok(("mul", "std::ops::Mul")),
+        BinOp::Div(_) => Ok(("div", "std::ops::Div")),
+        BinOp::Rem(_) => Ok(("rem", "std::ops::Rem")),
+        BinOp::BitOr(_) => Ok(("bitor", "std::ops::BitOr")),
+        BinOp::BitAnd(_) => Ok(("bitand", "std::ops::BitAnd")),
+        BinOp::BitXor(_) => Ok(("bitxor", "std::ops::BitXor")),
+        BinOp::Shl(_) => Ok(("shl", "std::ops::Shl")),
+        BinOp::Shr(_) => Ok(("shr", "std::ops::Shr")),
+        _ => Err(Error::new(
             Span::call_site(),
             format!(
                 "Invalid 'op' for operation: '{:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",
@@ -657,9 +658,9 @@ fn get_std_path_binary(op: &BinOp) -> Result<(Ident, Path)> {
 
 fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
-        | UnOp::Not(_) => Ok(("not", "std::ops::Not")),
-        | UnOp::Neg(_) => Ok(("neg", "std::ops::Neg")),
-        | _ => Err(Error::new(
+        UnOp::Not(_) => Ok(("not", "std::ops::Not")),
+        UnOp::Neg(_) => Ok(("neg", "std::ops::Neg")),
+        _ => Err(Error::new(
             Span::call_site(),
             format!("Invalid 'op' for operation: '{:?}'. Expected: -, !", op),
         )),

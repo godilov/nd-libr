@@ -1,17 +1,19 @@
 #![allow(clippy::manual_div_ceil)]
 
-use crate::ops::{Ops, OpsAssign, OpsFrom};
-use digit::{Double, Single};
-use ndproc::ops_impl;
-use prime::{PrimeRel, PRIMES};
-use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
 use std::{
     cmp::Ordering,
     fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
     iter::{once, repeat_n},
     str::FromStr,
 };
+
+use digit::{Double, Single};
+use ndproc::ops_impl;
+use prime::{PrimeRel, PRIMES};
+use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
 use thiserror::Error;
+
+use crate::ops::{Ops, OpsAssign, OpsFrom};
 
 #[macro_export]
 macro_rules! signed_fixed {
@@ -40,6 +42,14 @@ macro_rules! num_impl {
             fn order(&self) -> usize {
                 self.ilog2() as usize
             }
+
+            fn sqrt(&self) -> Self {
+                self.isqrt()
+            }
+
+            fn log(&self) -> Self {
+                self.ilog2() as $type
+            }
         }
 
         impl Fixed for $type {
@@ -60,6 +70,12 @@ macro_rules! prime_impl {
         impl PrimeRel for $type {
             fn primes() -> impl Iterator<Item = Self> {
                 PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p < Self::MAX.isqrt())
+            }
+
+            fn capacity(&self) -> usize {
+                let val = *self as f64;
+
+                (1.3 * val / val.log(std::f64::consts::E)).ceil() as usize + 1
             }
         }
     };
@@ -249,11 +265,10 @@ pub mod digit {
     pub(super) const DEC_WIDTH: u8 = 2;
 }
 
-#[allow(unused)]
 pub mod prime {
-    use std::fmt::{Debug, Display};
+    use std::mem::replace;
 
-    use super::Num;
+    use super::{Num, Unsigned};
     use crate::ops::Ops;
 
     pub(super) const PRIMES: [u16; 128] = [
@@ -265,50 +280,66 @@ pub mod prime {
         643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719,
     ];
 
-    #[cfg(target_pointer_width = "64")]
-    pub type Prime = u64;
-    #[cfg(target_pointer_width = "32")]
-    pub type Prime = u32;
-
     pub struct Primes;
 
     impl Primes {
-        pub fn by_count(len: usize) -> impl Iterator<Item = Prime> {
-            PrimesIter {
+        pub fn by_count<Prime: Unsigned>(len: usize) -> impl Iterator<Item = Prime>
+        where
+            for<'s> &'s Prime: Ops,
+        {
+            PrimesFullIter {
                 primes: Vec::with_capacity(len),
-                next: 2,
+                next: Prime::from(2),
             }
             .take(len)
         }
 
-        pub fn by_limit(val: u64) -> impl Iterator<Item = Prime> {
-            let len = val as usize;
-            let len = len / len.isqrt() + 1;
-
-            PrimesIter {
-                primes: Vec::with_capacity(len),
-                next: 2,
+        pub fn by_limit<Prime: Unsigned>(val: Prime) -> impl Iterator<Item = Prime>
+        where
+            for<'s> &'s Prime: Ops,
+        {
+            PrimesFullIter {
+                primes: Vec::with_capacity(val.capacity()),
+                next: Prime::from(2),
             }
-            .take_while(move |&x| x < val)
+            .take_while(move |x| x < &val)
         }
 
-        pub fn by_count_fast(len: usize) -> impl Iterator<Item = Prime> {
-            (2..).filter(|&val| val.is_prime()).take(len)
+        pub fn by_count_fast<Prime: Unsigned>(len: usize) -> impl Iterator<Item = Prime>
+        where
+            for<'s> &'s Prime: Ops,
+        {
+            PrimesFastIter {
+                next: Prime::from(2),
+                capacity: len,
+            }
+            .take(len)
         }
 
-        pub fn by_limit_fast(val: u64) -> impl Iterator<Item = Prime> {
-            (2..val).filter(|&val| val.is_prime())
+        pub fn by_limit_fast<Prime: Unsigned>(val: Prime) -> impl Iterator<Item = Prime>
+        where
+            for<'s> &'s Prime: Ops,
+        {
+            PrimesFastIter {
+                next: Prime::from(2),
+                capacity: val.capacity(),
+            }
+            .take_while(move |p| p < &val)
         }
     }
 
-    pub trait PrimeRel: Num + Display + Debug
+    pub trait PrimeRel: Num
     where
         for<'s> &'s Self: Ops,
     {
         fn primes() -> impl Iterator<Item = Self>;
 
+        fn capacity(&self) -> usize;
+
         fn is_prime(&self) -> bool {
-            Self::primes().take_while(|p| p < self).all(|p| {
+            let sqrt = self.sqrt();
+
+            Self::primes().take_while(|p| p <= &sqrt).all(|p| {
                 let one = Self::one();
 
                 let x = Self::from(self - &one);
@@ -335,29 +366,82 @@ pub mod prime {
         }
     }
 
-    struct PrimesIter {
+    struct PrimesFullIter<Prime: Unsigned>
+    where
+        for<'s> &'s Prime: Ops,
+    {
         primes: Vec<Prime>,
         next: Prime,
     }
 
-    impl ExactSizeIterator for PrimesIter {}
-    impl Iterator for PrimesIter {
+    struct PrimesFastIter<Prime: Unsigned>
+    where
+        for<'s> &'s Prime: Ops,
+    {
+        next: Prime,
+        capacity: usize,
+    }
+
+    impl<Prime: Unsigned> Iterator for PrimesFullIter<Prime>
+    where
+        for<'s> &'s Prime: Ops,
+    {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
-            self.primes.push(self.next);
+            self.primes.push(self.next.clone());
 
-            self.next = (self.next + 1 + self.next % 2..)
-                .step_by(2)
-                .find(|&val| self.primes.iter().take_while(|&p| p * p <= val).all(|&p| val % p != 0))?;
+            let zero = Prime::from(0);
+            let one = Prime::from(1);
+            let two = Prime::from(2);
 
-            self.primes.last().copied()
+            let offset = Prime::from(&self.next & &one);
+            let offset = Prime::from(&offset + &one);
+
+            let mut val = Prime::from(&self.next + &offset);
+
+            while self.primes.iter().any(|p| Prime::from(&val % p) == zero) {
+                val += &two;
+            }
+
+            self.next = val;
+            self.primes.last().cloned()
         }
 
         fn size_hint(&self) -> (usize, Option<usize>) {
             (self.primes.capacity(), Some(self.primes.capacity()))
         }
     }
+
+    impl<Prime: Unsigned> Iterator for PrimesFastIter<Prime>
+    where
+        for<'s> &'s Prime: Ops,
+    {
+        type Item = Prime;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let one = Prime::from(1);
+            let two = Prime::from(2);
+
+            let offset = Prime::from(&self.next & &one);
+            let offset = Prime::from(&offset + &one);
+
+            let mut val = Prime::from(&self.next + &offset);
+
+            while !val.is_prime() {
+                val += &two;
+            }
+
+            Some(replace(&mut self.next, val))
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            (self.capacity, (self.capacity > 0).then_some(self.capacity))
+        }
+    }
+
+    impl<Prime: Unsigned> ExactSizeIterator for PrimesFullIter<Prime> where for<'s> &'s Prime: Ops {}
+    impl<Prime: Unsigned> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
 mod radix {
@@ -467,12 +551,16 @@ struct Operand<'digits>(&'digits [Single], Sign);
 
 pub trait Num: Sized + Default + Display + Clone + Eq + Ord + From<bool>
 where
-    for<'s> Self: Ops + OpsAssign + OpsFrom + OpsFrom<&'s Self, &'s Self>,
+    for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self> + OpsFrom + OpsFrom<&'s Self, &'s Self>,
     for<'s> &'s Self: Ops,
 {
     fn bits(&self) -> usize;
 
     fn order(&self) -> usize;
+
+    fn sqrt(&self) -> Self;
+
+    fn log(&self) -> Self;
 
     fn zero() -> Self {
         false.into()
@@ -533,8 +621,8 @@ where
     for<'s> &'s Self: Ops,
 {
     fn gcde(&self, val: &Self) -> (Self, Self, Self) {
-        let zero = Self::zero();
-        let one = Self::one();
+        let zero = Self::from(0);
+        let one = Self::from(1);
 
         let a = self;
         let b = val;
@@ -2416,7 +2504,9 @@ fn get_sign<F: Fixed>(val: F, default: Sign) -> Sign
 where
     for<'f> &'f F: Ops,
 {
-    if val != F::zero() {
+    let zero = F::zero();
+
+    if val != zero {
         default
     } else {
         Sign::ZERO
@@ -2427,10 +2517,12 @@ fn get_len<F: Fixed>(digits: &[F]) -> usize
 where
     for<'f> &'f F: Ops,
 {
+    let zero = F::zero();
+
     let mut len = digits.len();
 
     for digit in digits.iter().rev() {
-        if digit != &F::zero() {
+        if digit != &zero {
             return len;
         }
 

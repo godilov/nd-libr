@@ -2,8 +2,7 @@ use std::{fs::File, path::PathBuf};
 
 use anyhow::Error;
 use clap::{Parser, Subcommand};
-
-use ndlib::num::prime::{Prime, Primes};
+use ndlib::num::prime::Primes;
 
 #[derive(Parser)]
 #[command(version, about, long_about)]
@@ -58,12 +57,12 @@ fn main() -> anyhow::Result<()> {
         Commands::Primes { cmd, output } => {
             let primes = match cmd {
                 PrimeCommands::Count { val, fast } => match fast {
-                    false => Primes::by_count(val).collect::<Vec<Prime>>(),
-                    true => Primes::by_count_fast(val).collect::<Vec<Prime>>(),
+                    false => Primes::by_count(val).collect::<Vec<u64>>(),
+                    true => Primes::by_count_fast(val).collect::<Vec<u64>>(),
                 },
                 PrimeCommands::Limit { val, fast } => match fast {
-                    false => Primes::by_limit(val).collect::<Vec<Prime>>(),
-                    true => Primes::by_limit_fast(val).collect::<Vec<Prime>>(),
+                    false => Primes::by_limit(val).collect::<Vec<u64>>(),
+                    true => Primes::by_limit_fast(val).collect::<Vec<u64>>(),
                 },
             };
 

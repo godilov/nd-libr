@@ -25,9 +25,11 @@ pub mod ops;
 
 #[cfg(test)]
 mod tests {
-    use crate::ops::{Ops, OpsAssign, OpsFrom, OpsNegFrom, OpsNotFrom};
-    use ndproc::ops_impl_auto;
     use std::ops::{Neg, Not};
+
+    use ndproc::ops_impl_auto;
+
+    use crate::ops::{Ops, OpsAssign, OpsFrom, OpsNegFrom, OpsNotFrom};
 
     macro_rules! ops_struct_def {
         ($([$($gen:tt)+][$($generics:tt)+] $(where [$($where:tt)+])?)? $type1:ident, $type2:ident, $type:ty $(,)?) => {
