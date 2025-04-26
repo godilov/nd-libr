@@ -52,6 +52,17 @@ where
 pub trait OpsNegFrom<Lhs: Neg = Self>: From<<Lhs as Neg>::Output> {}
 pub trait OpsNotFrom<Lhs: Not = Self>: From<<Lhs as Not>::Output> {}
 
+pub trait IteratorExt: Iterator {
+    fn collect_with<Iter>(self, mut iter: Iter) -> Iter
+    where
+        Self: Sized,
+        for<'i> &'i mut Iter: IntoIterator<Item = &'i mut Self::Item>,
+    {
+        iter.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
+        iter
+    }
+}
+
 impl<Lhs, Rhs, ShiftRhs> Ops<Rhs, ShiftRhs> for Lhs where
     Self: Sized
         + Add<Rhs>
@@ -97,3 +108,5 @@ impl<Any, Lhs: Ops<Rhs, ShiftRhs>, Rhs, ShiftRhs> OpsFrom<Lhs, Rhs, ShiftRhs> fo
 
 impl<Any, Lhs: Neg> OpsNegFrom<Lhs> for Any where Self: From<<Lhs as Neg>::Output> {}
 impl<Any, Lhs: Not> OpsNotFrom<Lhs> for Any where Self: From<<Lhs as Not>::Output> {}
+
+impl<Iter: Iterator> IteratorExt for Iter {}
