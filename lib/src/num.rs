@@ -167,7 +167,7 @@ macro_rules! long_from {
 
                 res.truncate(len);
 
-                Self(res $(, $pos * Sign::from(value))?)
+                Self { digits: res $(, sign: $pos * Sign::from(value))? }
             }
         }
     };
@@ -199,7 +199,7 @@ macro_rules! fixed_from {
 
                 let len = get_len(&res);
 
-                Self(res, len $(, if len > 0 { $pos * Sign::from(value) } else { Sign::ZERO })?)
+                Self { raw: res, len $(, sign: if len > 0 { $pos * Sign::from(value) } else { Sign::ZERO })? }
             }
         }
     };
@@ -537,34 +537,68 @@ pub enum Sign {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SignedLong(Vec<Single>, Sign);
+pub struct SignedLong {
+    digits: Vec<Single>,
+    sign: Sign,
+}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UnsignedLong(Vec<Single>);
+pub struct UnsignedLong {
+    digits: Vec<Single>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SignedFixed<const L: usize>([Single; L], usize, Sign);
+pub struct SignedFixed<const L: usize> {
+    raw: [Single; L],
+    len: usize,
+    sign: Sign,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UnsignedFixed<const L: usize>([Single; L], usize);
+pub struct UnsignedFixed<const L: usize> {
+    raw: [Single; L],
+    len: usize,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+struct Operand<'load> {
+    digits: &'load [Single],
+    sign: Sign,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct LongMutOperand<'load> {
+    digits: &'load mut Vec<Single>,
+    sign: Sign,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct FixedMutOperand<'load, const L: usize> {
+    raw: &'load mut [Single; L],
+    len: usize,
+    sign: Sign,
+}
 
 #[derive(Debug, Default)]
-struct LongRepr(Vec<Single>, Sign);
+struct LongRepr {
+    digits: Vec<Single>,
+    sign: Sign,
+}
 
 #[derive(Debug)]
-struct FixedRepr<const L: usize>([Single; L], usize, Sign, Single, bool);
+struct FixedRepr<const L: usize> {
+    raw: [Single; L],
+    len: usize,
+    sign: Sign,
+    overflow_val: Single,
+    overflow: bool,
+}
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-struct Operand<'digits>(&'digits [Single], Sign);
-
-#[derive(Debug, PartialEq, Eq)]
-struct LongMutOperand<'digits>(&'digits mut Vec<Single>, Sign);
-
-#[derive(Debug, PartialEq, Eq)]
-struct FixedMutOperand<'digits, const L: usize>(&'digits mut [Single; L], usize, Sign);
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-struct MutRepr(usize, Sign);
+struct MutRepr {
+    len: usize,
+    sign: Sign,
+}
 
 pub trait Num: Sized + Default + Display + Clone + Eq + Ord + From<bool>
 where
@@ -687,176 +721,212 @@ num_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
 num_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
 prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
 
-impl<'digits> From<&'digits SignedLong> for Operand<'digits> {
-    fn from(value: &'digits SignedLong) -> Self {
-        let sign = value.sign();
-
-        Self(value.digits(), sign)
-    }
-}
-
-impl<'digits> From<&'digits UnsignedLong> for Operand<'digits> {
-    fn from(value: &'digits UnsignedLong) -> Self {
-        let sign = get_sign(value.len(), Sign::POS);
-
-        Self(value.digits(), sign)
-    }
-}
-
-impl<'digits> From<&&'digits SignedLong> for Operand<'digits> {
-    fn from(value: &&'digits SignedLong) -> Self {
-        Self::from(*value)
-    }
-}
-
-impl<'digits> From<&&'digits UnsignedLong> for Operand<'digits> {
-    fn from(value: &&'digits UnsignedLong) -> Self {
-        Self::from(*value)
-    }
-}
-
-impl<'digits> From<&'digits mut SignedLong> for LongMutOperand<'digits> {
-    fn from(value: &'digits mut SignedLong) -> Self {
-        let sign = value.sign();
-
-        Self(&mut value.0, sign)
-    }
-}
-
-impl<'digits> From<&'digits mut UnsignedLong> for LongMutOperand<'digits> {
-    fn from(value: &'digits mut UnsignedLong) -> Self {
-        let sign = get_sign(value.len(), Sign::POS);
-
-        Self(&mut value.0, sign)
-    }
-}
-
-impl From<Operand<'_>> for LongRepr {
-    fn from(value: Operand<'_>) -> Self {
-        Self(value.digits().to_vec(), value.sign())
-    }
-}
-
-impl<'digits> From<&'digits LongRepr> for Operand<'digits> {
-    fn from(value: &'digits LongRepr) -> Self {
-        Self(value.digits(), value.sign())
-    }
-}
-
-impl<'digits> From<LongMutOperand<'digits>> for MutRepr {
-    fn from(value: LongMutOperand<'digits>) -> Self {
-        Self(value.len(), value.sign())
-    }
-}
-
-impl From<LongRepr> for SignedLong {
-    fn from(value: LongRepr) -> Self {
-        Self(value.0, value.1)
-    }
-}
-
-impl From<LongRepr> for UnsignedLong {
-    fn from(value: LongRepr) -> Self {
-        match value.1 {
-            Sign::ZERO => Default::default(),
-            Sign::NEG => Default::default(),
-            Sign::POS => Self(value.0),
-        }
-    }
-}
-
 impl<const L: usize> Default for SignedFixed<L> {
     fn default() -> Self {
-        Self([0; L], 0, Sign::ZERO)
+        Self {
+            raw: [0; L],
+            len: 0,
+            sign: Sign::ZERO,
+        }
     }
 }
 
 impl<const L: usize> Default for UnsignedFixed<L> {
     fn default() -> Self {
-        Self([0; L], 0)
+        Self { raw: [0; L], len: 0 }
     }
 }
 
-impl<'digits, const L: usize> From<&'digits SignedFixed<L>> for Operand<'digits> {
-    fn from(value: &'digits SignedFixed<L>) -> Self {
-        Self(value.digits(), value.sign())
+impl<'load> From<&'load SignedLong> for Operand<'load> {
+    fn from(value: &'load SignedLong) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
     }
 }
 
-impl<'digits, const L: usize> From<&'digits UnsignedFixed<L>> for Operand<'digits> {
-    fn from(value: &'digits UnsignedFixed<L>) -> Self {
-        let sign = get_sign(value.len(), Sign::POS);
-
-        Self(value.digits(), sign)
+impl<'load> From<&'load UnsignedLong> for Operand<'load> {
+    fn from(value: &'load UnsignedLong) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
     }
 }
 
-impl<'digits, const L: usize> From<&&'digits SignedFixed<L>> for Operand<'digits> {
-    fn from(value: &&'digits SignedFixed<L>) -> Self {
+impl<'load> From<&&'load SignedLong> for Operand<'load> {
+    fn from(value: &&'load SignedLong) -> Self {
         Self::from(*value)
     }
 }
 
-impl<'digits, const L: usize> From<&&'digits UnsignedFixed<L>> for Operand<'digits> {
-    fn from(value: &&'digits UnsignedFixed<L>) -> Self {
+impl<'load> From<&&'load UnsignedLong> for Operand<'load> {
+    fn from(value: &&'load UnsignedLong) -> Self {
         Self::from(*value)
     }
 }
 
-impl<'digits, const L: usize> From<&'digits mut SignedFixed<L>> for FixedMutOperand<'digits, L> {
-    fn from(value: &'digits mut SignedFixed<L>) -> Self {
-        let len = value.len();
-        let sign = value.sign();
-
-        Self(&mut value.0, len, sign)
+impl<'load> From<&'load mut SignedLong> for LongMutOperand<'load> {
+    fn from(value: &'load mut SignedLong) -> Self {
+        Self {
+            sign: value.sign(),
+            digits: value.raw_mut(),
+        }
     }
 }
 
-impl<'digits, const L: usize> From<&'digits mut UnsignedFixed<L>> for FixedMutOperand<'digits, L> {
-    fn from(value: &'digits mut UnsignedFixed<L>) -> Self {
-        let len = value.len();
-        let sign = get_sign(value.len(), Sign::POS);
+impl<'load> From<&'load mut UnsignedLong> for LongMutOperand<'load> {
+    fn from(value: &'load mut UnsignedLong) -> Self {
+        Self {
+            sign: value.sign(),
+            digits: value.raw_mut(),
+        }
+    }
+}
 
-        Self(&mut value.0, len, sign)
+impl From<Operand<'_>> for LongRepr {
+    fn from(value: Operand<'_>) -> Self {
+        Self {
+            digits: value.digits().to_vec(),
+            sign: value.sign(),
+        }
+    }
+}
+
+impl<'load> From<&'load LongRepr> for Operand<'load> {
+    fn from(value: &'load LongRepr) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
+    }
+}
+
+impl<'load> From<LongMutOperand<'load>> for MutRepr {
+    fn from(value: LongMutOperand<'load>) -> Self {
+        Self {
+            len: value.len(),
+            sign: value.sign(),
+        }
+    }
+}
+
+impl From<LongRepr> for SignedLong {
+    fn from(value: LongRepr) -> Self {
+        Self {
+            digits: value.digits,
+            sign: value.sign,
+        }
+    }
+}
+
+impl From<LongRepr> for UnsignedLong {
+    fn from(value: LongRepr) -> Self {
+        match value.sign() {
+            Sign::ZERO => Default::default(),
+            Sign::NEG => Default::default(),
+            Sign::POS => Self { digits: value.digits },
+        }
+    }
+}
+
+impl<'load, const L: usize> From<&'load SignedFixed<L>> for Operand<'load> {
+    fn from(value: &'load SignedFixed<L>) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
+    }
+}
+
+impl<'load, const L: usize> From<&'load UnsignedFixed<L>> for Operand<'load> {
+    fn from(value: &'load UnsignedFixed<L>) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
+    }
+}
+
+impl<'load, const L: usize> From<&&'load SignedFixed<L>> for Operand<'load> {
+    fn from(value: &&'load SignedFixed<L>) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl<'load, const L: usize> From<&&'load UnsignedFixed<L>> for Operand<'load> {
+    fn from(value: &&'load UnsignedFixed<L>) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl<'load, const L: usize> From<&'load mut SignedFixed<L>> for FixedMutOperand<'load, L> {
+    fn from(value: &'load mut SignedFixed<L>) -> Self {
+        Self {
+            len: value.len(),
+            sign: value.sign(),
+            raw: value.raw_mut(),
+        }
+    }
+}
+
+impl<'load, const L: usize> From<&'load mut UnsignedFixed<L>> for FixedMutOperand<'load, L> {
+    fn from(value: &'load mut UnsignedFixed<L>) -> Self {
+        Self {
+            len: value.len(),
+            sign: value.sign(),
+            raw: value.raw_mut(),
+        }
     }
 }
 
 impl<const L: usize> From<Operand<'_>> for FixedRepr<L> {
     fn from(value: Operand<'_>) -> Self {
-        let mut res = [0; L];
-
-        let len = value.len().min(L);
-
-        res[..len].copy_from_slice(&value.digits()[..len]);
-
-        Self(res, value.len(), value.sign(), 0, false)
+        Self {
+            raw: value.digits().iter().copied().collect_with([0; L]),
+            len: value.len().min(L),
+            sign: value.sign(),
+            overflow_val: 0,
+            overflow: false,
+        }
     }
 }
 
-impl<'digits, const L: usize> From<&'digits FixedRepr<L>> for Operand<'digits> {
-    fn from(value: &'digits FixedRepr<L>) -> Self {
-        Self(value.digits(), value.sign())
+impl<'load, const L: usize> From<&'load FixedRepr<L>> for Operand<'load> {
+    fn from(value: &'load FixedRepr<L>) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
     }
 }
 
-impl<'digits, const L: usize> From<FixedMutOperand<'digits, L>> for MutRepr {
-    fn from(value: FixedMutOperand<'digits, L>) -> Self {
-        Self(value.len(), value.sign())
+impl<'load, const L: usize> From<FixedMutOperand<'load, L>> for MutRepr {
+    fn from(value: FixedMutOperand<'load, L>) -> Self {
+        Self {
+            len: value.len(),
+            sign: value.sign(),
+        }
     }
 }
 
 impl<const L: usize> From<FixedRepr<L>> for SignedFixed<L> {
     fn from(value: FixedRepr<L>) -> Self {
-        Self(value.0, value.1, value.2)
+        Self {
+            raw: value.raw,
+            len: value.len,
+            sign: value.sign,
+        }
     }
 }
 
 impl<const L: usize> From<FixedRepr<L>> for UnsignedFixed<L> {
     fn from(value: FixedRepr<L>) -> Self {
-        match value.2 {
+        match value.sign() {
             Sign::ZERO => Default::default(),
             Sign::NEG => Default::default(),
-            Sign::POS => Self(value.0, value.1),
+            Sign::POS => Self { raw: value.raw, len: value.len },
         }
     }
 }
@@ -895,7 +965,7 @@ impl FromStr for UnsignedLong {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let val = try_from_str_long(s)?;
 
-        (val.1 != Sign::NEG)
+        (val.sign() != Sign::NEG)
             .then_some(val.into())
             .ok_or(TryFromStrError::UnsignedNegative)
     }
@@ -913,35 +983,41 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let repr = try_from_str_fixed(s)?;
+        let val = try_from_str_fixed(s)?;
 
-        (repr.2 != Sign::NEG)
-            .then_some(repr.into())
+        (val.sign() != Sign::NEG)
+            .then_some(val.into())
             .ok_or(TryFromStrError::UnsignedNegative)
     }
 }
 
 impl SignedLong {
+    #[inline(always)]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         from_bytes_long(bytes).into()
     }
 
+    #[inline(always)]
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_long(digits, radix, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_long_bin(digits, pow, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix(&mut self.0, radix)
+        into_radix(self.digits_mut(), radix)
     }
 
+    #[inline(always)]
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix_bin(&self.0, pow)
+        into_radix_bin(self.digits(), pow)
     }
 
+    #[inline(always)]
     pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         if radix > 0 && radix & (radix - 1) == 0 {
             return self.to_radix_bin(radix.ilog2() as u8);
@@ -950,67 +1026,85 @@ impl SignedLong {
         self.clone().into_radix(radix)
     }
 
+    #[inline(always)]
     pub fn into_unsigned(self) -> UnsignedLong {
-        UnsignedLong(self.0)
+        UnsignedLong { digits: self.digits }
     }
 
+    #[inline(always)]
     pub fn to_fixed<const L: usize>(&self) -> SignedFixed<L> {
-        fixed_from_long(&self.0).with_sign(self.1).into()
+        fixed_from_long(self.digits()).with_sign(self.sign()).into()
     }
 
+    #[inline(always)]
     pub fn digits(&self) -> &[Single] {
-        &self.0
+        &self.digits
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.digits.len()
     }
 
     pub fn sign(&self) -> Sign {
-        self.1
+        self.sign
     }
 
     pub fn with_sign(mut self, sign: Sign) -> Self {
-        self.1 = if self.1 != Sign::ZERO { sign } else { Sign::ZERO };
+        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
 
+    #[inline(always)]
     pub fn with_neg(mut self) -> Self {
-        self.1 = -self.1;
+        self.sign = -self.sign;
         self
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
+    #[inline(always)]
+    fn raw_mut(&mut self) -> &mut Vec<Single> {
+        &mut self.digits
     }
 
+    #[inline(always)]
+    fn digits_mut(&mut self) -> &mut [Single] {
+        &mut self.digits
+    }
+
+    #[inline(always)]
     fn apply_mut_repr(&mut self, repr: MutRepr) {
-        self.0.truncate(repr.0);
-        self.1 = repr.1;
+        self.digits.truncate(repr.len);
+        self.sign = repr.sign;
     }
 }
 
 impl UnsignedLong {
+    #[inline(always)]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         from_bytes_long(bytes).into()
     }
 
+    #[inline(always)]
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_long(digits, radix, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_long_bin(digits, pow, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix(&mut self.0, radix)
+        into_radix(self.digits_mut(), radix)
     }
 
+    #[inline(always)]
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix_bin(&self.0, pow)
+        into_radix_bin(self.digits(), pow)
     }
 
+    #[inline(always)]
     pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         if radix > 0 && radix & (radix - 1) == 0 {
             return self.to_radix_bin(radix.ilog2() as u8);
@@ -1019,61 +1113,90 @@ impl UnsignedLong {
         self.clone().into_radix(radix)
     }
 
+    #[inline(always)]
     pub fn into_signed(self, sign: Sign) -> SignedLong {
-        let len = self.0.len();
+        let len = self.len();
+        let sign = get_sign(len, sign);
 
-        SignedLong(self.0, get_sign(len, sign))
+        SignedLong { digits: self.digits, sign }
     }
 
+    #[inline(always)]
     pub fn to_fixed<const L: usize>(&self) -> UnsignedFixed<L> {
-        fixed_from_long(&self.0).into()
+        fixed_from_long(self.digits()).into()
     }
 
+    #[inline(always)]
     pub fn digits(&self) -> &[Single] {
-        &self.0
+        &self.digits
     }
 
+    #[allow(clippy::len_without_is_empty)]
+    #[inline(always)]
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.digits.len()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
+    #[inline(always)]
+    pub fn sign(&self) -> Sign {
+        Sign::from(self.len())
     }
 
+    #[inline(always)]
+    fn raw_mut(&mut self) -> &mut Vec<Single> {
+        &mut self.digits
+    }
+
+    #[inline(always)]
+    fn digits_mut(&mut self) -> &mut [Single] {
+        &mut self.digits
+    }
+
+    #[inline(always)]
     fn apply_mut_repr(&mut self, repr: MutRepr) {
-        self.0.truncate(repr.0);
+        match repr.sign {
+            Sign::ZERO => *self = Default::default(),
+            Sign::NEG => *self = Default::default(),
+            Sign::POS => self.digits.truncate(repr.len),
+        }
     }
 }
 
 impl<const L: usize> SignedFixed<L> {
+    #[inline(always)]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         from_bytes_fixed(bytes).into()
     }
 
+    #[inline(always)]
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
         let repr = from_bytes_fixed(bytes);
-        let over = repr.4;
+        let over = repr.overflow;
 
         (repr.into(), over)
     }
 
+    #[inline(always)]
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_fixed(digits, radix, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_fixed_bin(digits, pow, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix(&mut self.0[..self.1], radix)
+        into_radix(self.digits_mut(), radix)
     }
 
+    #[inline(always)]
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix_bin(&self.0[..self.1], pow)
+        into_radix_bin(self.digits(), pow)
     }
 
+    #[inline(always)]
     pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         if radix > 0 && radix & (radix - 1) == 0 {
             return self.to_radix_bin(radix.ilog2() as u8);
@@ -1082,75 +1205,97 @@ impl<const L: usize> SignedFixed<L> {
         (*self).into_radix(radix)
     }
 
+    #[inline(always)]
     pub fn into_unsigned(self) -> UnsignedFixed<L> {
-        UnsignedFixed::<L>(self.0, self.1)
+        UnsignedFixed::<L> { raw: self.raw, len: self.len }
     }
 
+    #[inline(always)]
     pub fn to_long(&self) -> SignedLong {
-        long_from_fixed(&self.0, self.1).with_sign(self.2).into()
+        long_from_fixed::<L>(self.digits()).with_sign(self.sign()).into()
     }
 
+    #[inline(always)]
     pub fn digits(&self) -> &[Single] {
-        &self.0[..self.len()]
+        &self.raw[..self.len]
     }
 
+    #[allow(clippy::len_without_is_empty)]
+    #[inline(always)]
     pub fn len(&self) -> usize {
-        self.1
+        self.len
     }
 
+    #[inline(always)]
     pub fn sign(&self) -> Sign {
-        self.2
+        self.sign
     }
 
+    #[inline(always)]
     pub fn with_sign(mut self, sign: Sign) -> Self {
-        self.2 = if self.2 != Sign::ZERO { sign } else { Sign::ZERO };
+        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
 
+    #[inline(always)]
     pub fn with_neg(mut self) -> Self {
-        self.2 = -self.2;
+        self.sign = -self.sign;
         self
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
+    #[inline(always)]
+    fn raw_mut(&mut self) -> &mut [Single; L] {
+        &mut self.raw
     }
 
+    #[inline(always)]
+    fn digits_mut(&mut self) -> &mut [Single] {
+        &mut self.raw[..self.len]
+    }
+
+    #[inline(always)]
     fn apply_mut_repr(&mut self, repr: MutRepr) {
-        self.0[repr.0..].iter_mut().for_each(|val| *val = 0);
-        self.1 = repr.0;
-        self.2 = repr.1;
+        self.digits_mut().iter_mut().for_each(|val| *val = 0);
+        self.len = repr.len;
+        self.sign = repr.sign;
     }
 }
 
 impl<const L: usize> UnsignedFixed<L> {
+    #[inline(always)]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         from_bytes_fixed(bytes).into()
     }
 
+    #[inline(always)]
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
         let repr = from_bytes_fixed(bytes);
-        let over = repr.4;
+        let over = repr.overflow;
 
         (repr.into(), over)
     }
 
+    #[inline(always)]
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_fixed(digits, radix, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn try_from_digits_bin(digits: &[u8], pow: u8) -> Result<Self, TryFromDigitsError> {
         Ok(try_from_digits_fixed_bin(digits, pow, Sign::POS)?.into())
     }
 
+    #[inline(always)]
     pub fn into_radix(mut self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix(&mut self.0[..self.1], radix)
+        into_radix(self.digits_mut(), radix)
     }
 
+    #[inline(always)]
     pub fn to_radix_bin(&self, pow: u8) -> Result<Vec<Single>, IntoRadixError> {
-        into_radix_bin(&self.0[..self.1], pow)
+        into_radix_bin(self.digits(), pow)
     }
 
+    #[inline(always)]
     pub fn to_radix(&self, radix: Double) -> Result<Vec<Single>, IntoRadixError> {
         if radix > 0 && radix & (radix - 1) == 0 {
             return self.to_radix_bin(radix.ilog2() as u8);
@@ -1159,67 +1304,103 @@ impl<const L: usize> UnsignedFixed<L> {
         (*self).into_radix(radix)
     }
 
+    #[inline(always)]
     pub fn into_signed(self, sign: Sign) -> SignedFixed<L> {
-        let len = self.1;
+        let len = self.len();
+        let sign = get_sign(len, sign);
 
-        SignedFixed::<L>(self.0, self.1, get_sign(len, sign))
+        SignedFixed::<L> { raw: self.raw, len, sign }
     }
 
+    #[inline(always)]
     pub fn to_long(&self) -> SignedLong {
-        long_from_fixed(&self.0, self.1).into()
+        long_from_fixed::<L>(self.digits()).into()
     }
 
+    #[inline(always)]
     pub fn digits(&self) -> &[Single] {
-        &self.0[..self.len()]
+        &self.raw[..self.len]
     }
 
+    #[allow(clippy::len_without_is_empty)]
+    #[inline(always)]
     pub fn len(&self) -> usize {
-        self.1
+        self.len
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
+    #[inline(always)]
+    pub fn sign(&self) -> Sign {
+        Sign::from(self.len())
     }
 
+    #[inline(always)]
+    fn raw_mut(&mut self) -> &mut [Single; L] {
+        &mut self.raw
+    }
+
+    #[inline(always)]
+    fn digits_mut(&mut self) -> &mut [Single] {
+        &mut self.raw[..self.len]
+    }
+
+    #[inline(always)]
     fn apply_mut_repr(&mut self, repr: MutRepr) {
-        self.0[repr.0..].iter_mut().for_each(|val| *val = 0);
-        self.1 = repr.0;
+        match repr.sign {
+            Sign::ZERO => *self = Default::default(),
+            Sign::NEG => *self = Default::default(),
+            Sign::POS => {
+                self.digits_mut().iter_mut().for_each(|val| *val = 0);
+                self.len = repr.len;
+            },
+        }
     }
 }
 
 impl LongRepr {
-    const ZERO: Self = LongRepr(vec![], Sign::ZERO);
+    const ZERO: Self = LongRepr {
+        digits: vec![],
+        sign: Sign::ZERO,
+    };
 
+    #[inline(always)]
     fn from_single(digit: Single) -> Self {
         match digit {
             0 => LongRepr::ZERO,
-            x => Self(vec![x], Sign::POS),
+            x => Self {
+                digits: vec![x],
+                sign: Sign::POS,
+            },
         }
     }
 
+    #[inline(always)]
     fn from_raw(mut digits: Vec<Single>, sign: Sign) -> Self {
         let len = get_len(&digits);
         let sign = get_sign(len, sign);
 
         digits.truncate(len);
 
-        Self(digits, sign)
+        Self { digits, sign }
     }
 
+    #[inline(always)]
     fn digits(&self) -> &[Single] {
-        &self.0
+        &self.digits
     }
 
+    #[inline(always)]
     fn len(&self) -> usize {
-        self.0.len()
+        self.digits.len()
     }
 
+    #[inline(always)]
     fn sign(&self) -> Sign {
-        self.1
+        self.sign
     }
 
+    #[inline(always)]
     fn with_sign(mut self, sign: Sign) -> Self {
-        self.1 = if self.1 != Sign::ZERO { sign } else { Sign::ZERO };
+        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
 }
@@ -1236,90 +1417,109 @@ impl<const L: usize> FixedRepr<L> {
         let len = if digit > 0 { 1 } else { 0 };
         let sign = if digit > 0 { Sign::POS } else { Sign::ZERO };
 
-        Self(res, len, sign, 0, false)
+        Self {
+            raw: res,
+            len,
+            sign,
+            overflow_val: 0,
+            overflow: false,
+        }
     }
 
+    #[inline(always)]
     fn from_raw(digits: [Single; L], sign: Sign) -> Self {
         let len = get_len(&digits);
         let sign = get_sign(len, sign);
 
-        Self(digits, len, sign, 0, false)
+        Self {
+            raw: digits,
+            len,
+            sign,
+            overflow_val: 0,
+            overflow: false,
+        }
     }
 
-    fn raw(&self) -> &[Single; L] {
-        &self.0
-    }
-
+    #[inline(always)]
     fn digits(&self) -> &[Single] {
-        &self.0[..self.len()]
+        &self.raw[..self.len]
     }
 
+    #[inline(always)]
     fn len(&self) -> usize {
-        self.1
+        self.len
     }
 
+    #[inline(always)]
     fn sign(&self) -> Sign {
-        self.2
+        self.sign
     }
 
-    fn overflow_val(&self) -> Single {
-        self.3
-    }
-
+    #[inline(always)]
     fn with_sign(mut self, sign: Sign) -> Self {
-        self.2 = if self.2 != Sign::ZERO { sign } else { Sign::ZERO };
+        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
 
+    #[inline(always)]
     fn with_overflow_val(mut self, val: Single) -> Self {
-        self.3 = val;
+        self.overflow_val = val;
         self
     }
 
+    #[inline(always)]
     fn with_overflow(mut self, over: bool) -> Self {
-        self.4 = over;
+        self.overflow = over;
         self
     }
 }
 
 impl<'digits> Operand<'digits> {
-    const ONE: Self = Operand(&[1], Sign::POS);
+    const ONE: Self = Operand { digits: &[1], sign: Sign::POS };
 
-    fn from_raw(slice: &'digits [Single]) -> Self {
-        let len = slice.len();
+    #[inline(always)]
+    fn from_raw(digits: &'digits [Single]) -> Self {
+        let len = get_len(digits);
         let sign = get_sign(len, Sign::POS);
 
-        Self(slice, sign)
+        Self { digits: &digits[..len], sign }
     }
 
+    #[inline(always)]
     fn iter<T: From<Single>>(&self) -> impl DoubleEndedIterator<Item = T> + ExactSizeIterator {
         self.digits().iter().map(|&x| T::from(x))
     }
 
+    #[inline(always)]
     fn digits(&self) -> &[Single] {
-        self.0
+        self.digits
     }
 
+    #[inline(always)]
     fn len(&self) -> usize {
-        self.0.len()
+        self.digits.len()
     }
 
+    #[inline(always)]
     fn sign(&self) -> Sign {
-        self.1
+        self.sign
     }
 
+    #[inline(always)]
     fn with_sign(mut self, sign: Sign) -> Self {
-        self.1 = if self.1 != Sign::ZERO { sign } else { Sign::ZERO };
+        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
 
+    #[inline(always)]
     fn with_neg(mut self) -> Self {
-        self.1 = -self.1;
+        self.sign = -self.sign;
         self
     }
 }
 
 impl LongMutOperand<'_> {
+    #[inline(always)]
     fn copy_from(&mut self, val: Operand<'_>) -> MutRepr {
         self.resize(val.len());
 
@@ -1328,67 +1528,80 @@ impl LongMutOperand<'_> {
         MutRepr::from_raw(val.digits(), val.sign())
     }
 
+    #[inline(always)]
     fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut Single> + ExactSizeIterator {
         self.raw_mut().iter_mut()
     }
 
+    #[inline(always)]
     fn raw_mut(&mut self) -> &mut [Single] {
-        self.0
+        self.digits
     }
 
+    #[inline(always)]
     fn raw(&self) -> &[Single] {
-        self.0
+        self.digits
     }
 
+    #[inline(always)]
     fn len(&self) -> usize {
-        self.0.len()
+        self.digits.len()
     }
 
+    #[inline(always)]
     fn sign(&self) -> Sign {
-        self.1
+        self.sign
     }
 
+    #[inline(always)]
     fn resize(&mut self, len: usize) {
-        self.0.resize(len, 0);
+        self.digits.resize(len, 0);
     }
 }
 
 impl<const L: usize> FixedMutOperand<'_, L> {
+    #[inline(always)]
     fn copy_from(&mut self, val: Operand<'_>) -> MutRepr {
         self.iter_mut().zip(val.iter()).for_each(|(val, op)| *val = op);
 
         MutRepr::from_raw(val.digits(), val.sign())
     }
 
+    #[inline(always)]
     fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut Single> + ExactSizeIterator {
         self.raw_mut().iter_mut()
     }
 
+    #[inline(always)]
     fn raw_mut(&mut self) -> &mut [Single; L] {
-        self.0
+        self.raw
     }
 
+    #[inline(always)]
     fn raw(&self) -> &[Single; L] {
-        self.0
+        self.raw
     }
 
+    #[inline(always)]
     fn len(&self) -> usize {
-        self.1
+        self.len
     }
 
+    #[inline(always)]
     fn sign(&self) -> Sign {
-        self.2
+        self.sign
     }
 }
 
 impl MutRepr {
-    const ZERO: Self = MutRepr(0, Sign::ZERO);
+    const ZERO: Self = MutRepr { len: 0, sign: Sign::ZERO };
 
+    #[inline(always)]
     fn from_raw(slice: &[Single], sign: Sign) -> Self {
         let len = get_len(slice);
         let sign = get_sign(len, sign);
 
-        Self(len, sign)
+        Self { len, sign }
     }
 }
 
@@ -1710,22 +1923,14 @@ fn into_radix(digits: &mut [Single], radix: Double) -> Result<Vec<Single>, IntoR
     Ok(res)
 }
 
+#[inline(always)]
 fn fixed_from_long<const L: usize>(digits: &[Single]) -> FixedRepr<L> {
-    let mut res = [0; L];
-
-    let len = digits.len().min(L);
-
-    res[..len].copy_from_slice(&digits[..len]);
-
-    FixedRepr::from_raw(res, Sign::POS).with_overflow(digits.len() > L)
+    FixedRepr::from_raw(digits.iter().copied().collect_with([0; L]), Sign::POS).with_overflow(digits.len() > L)
 }
 
-fn long_from_fixed<const L: usize>(digits: &[Single; L], len: usize) -> LongRepr {
-    let mut res = vec![0; len];
-
-    res.copy_from_slice(&digits[..len]);
-
-    LongRepr::from_raw(res, Sign::POS)
+#[inline(always)]
+fn long_from_fixed<const L: usize>(digits: &[Single]) -> LongRepr {
+    LongRepr::from_raw(digits.iter().copied().collect_with(vec![0; digits.len()]), Sign::POS)
 }
 
 fn write_num_bin(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
@@ -1782,7 +1987,7 @@ impl Display for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix(Dec::RADIX).unwrap_or_default();
 
-        write_num(Dec, fmt, &digits, self.1, write_num_dec)
+        write_num(Dec, fmt, &digits, self.sign, write_num_dec)
     }
 }
 
@@ -1798,7 +2003,7 @@ impl<const L: usize> Display for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix(Dec::RADIX).unwrap_or_default();
 
-        write_num(Dec, fmt, &digits, self.2, write_num_dec)
+        write_num(Dec, fmt, &digits, self.sign, write_num_dec)
     }
 }
 
@@ -1814,7 +2019,7 @@ impl Binary for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Bin::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Bin, fmt, &digits, self.1, write_num_bin)
+        write_num(Bin, fmt, &digits, self.sign, write_num_bin)
     }
 }
 
@@ -1830,7 +2035,7 @@ impl<const L: usize> Binary for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Bin::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Bin, fmt, &digits, self.2, write_num_bin)
+        write_num(Bin, fmt, &digits, self.sign, write_num_bin)
     }
 }
 
@@ -1846,7 +2051,7 @@ impl Octal for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Oct::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Oct, fmt, &digits, self.1, write_num_oct)
+        write_num(Oct, fmt, &digits, self.sign, write_num_oct)
     }
 }
 
@@ -1862,7 +2067,7 @@ impl<const L: usize> Octal for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Oct::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Oct, fmt, &digits, self.2, write_num_oct)
+        write_num(Oct, fmt, &digits, self.sign, write_num_oct)
     }
 }
 
@@ -1878,7 +2083,7 @@ impl LowerHex for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &digits, self.1, write_num_lhex)
+        write_num(Hex, fmt, &digits, self.sign, write_num_lhex)
     }
 }
 
@@ -1894,7 +2099,7 @@ impl<const L: usize> LowerHex for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &digits, self.2, write_num_lhex)
+        write_num(Hex, fmt, &digits, self.sign, write_num_lhex)
     }
 }
 
@@ -1910,7 +2115,7 @@ impl UpperHex for SignedLong {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &digits, self.1, write_num_uhex)
+        write_num(Hex, fmt, &digits, self.sign, write_num_uhex)
     }
 }
 
@@ -1926,7 +2131,7 @@ impl<const L: usize> UpperHex for SignedFixed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let digits = self.to_radix_bin(Hex::RADIX.ilog2() as u8).unwrap_or_default();
 
-        write_num(Hex, fmt, &digits, self.2, write_num_uhex)
+        write_num(Hex, fmt, &digits, self.sign, write_num_uhex)
     }
 }
 
@@ -2460,7 +2665,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
 
             let val = mul_single_fixed::<L>(bpos, m as Single);
 
-            match cmp_nums_ext(val.raw(), val.overflow_val(), &rem, remx) {
+            match cmp_nums_ext(&val.raw, val.overflow_val, &rem, remx) {
                 Ordering::Less => l = m + 1,
                 Ordering::Equal => l = m + 1,
                 Ordering::Greater => r = m,
@@ -3085,73 +3290,110 @@ mod tests {
 
     macro_rules! assert_long_from {
         (@signed $expr:expr, $digits:expr, $sign:expr) => {
-            assert_eq!(SignedLong::from($expr), SignedLong($digits, $sign));
+            assert_eq!(SignedLong::from($expr), SignedLong { digits: $digits, sign: $sign });
         };
         (@unsigned $expr:expr, $digits:expr) => {
-            assert_eq!(UnsignedLong::from($expr), UnsignedLong($digits));
+            assert_eq!(UnsignedLong::from($expr), UnsignedLong { digits: $digits });
         };
     }
 
     macro_rules! assert_fixed_from {
         (@signed $expr:expr, $digits:expr, $len:expr, $sign:expr) => {
-            assert_eq!(S32::from($expr), SignedFixed($digits, $len, $sign));
+            assert_eq!(
+                S32::from($expr),
+                SignedFixed {
+                    raw: $digits,
+                    len: $len,
+                    sign: $sign
+                }
+            );
         };
         (@unsigned $expr:expr, $digits:expr, $len:expr) => {
-            assert_eq!(U32::from($expr), UnsignedFixed($digits, $len));
+            assert_eq!(U32::from($expr), UnsignedFixed { raw: $digits, len: $len });
         };
     }
 
     macro_rules! assert_long_from_bytes {
         (@signed $expr:expr, $digits:expr, $sign:expr) => {
-            assert_eq!(SignedLong::from_bytes($expr), SignedLong($digits, $sign));
+            assert_eq!(SignedLong::from_bytes($expr), SignedLong { digits: $digits, sign: $sign });
         };
         (@unsigned $expr:expr, $digits:expr) => {
-            assert_eq!(UnsignedLong::from_bytes($expr), UnsignedLong($digits));
+            assert_eq!(UnsignedLong::from_bytes($expr), UnsignedLong { digits: $digits });
         };
     }
 
     macro_rules! assert_fixed_from_bytes {
         (@signed $expr:expr, $digits:expr, $len:expr, $sign:expr) => {
-            assert_eq!(S32::from_bytes($expr), SignedFixed($digits, $len, $sign));
+            assert_eq!(
+                S32::from_bytes($expr),
+                SignedFixed {
+                    raw: $digits,
+                    len: $len,
+                    sign: $sign
+                }
+            );
         };
         (@unsigned $expr:expr, $digits:expr, $len:expr) => {
-            assert_eq!(U32::from_bytes($expr), UnsignedFixed($digits, $len));
+            assert_eq!(U32::from_bytes($expr), UnsignedFixed { raw: $digits, len: $len });
         };
     }
 
     macro_rules! assert_long_from_digits {
         (@signed $expr:expr, $radix:expr, $digits:expr, $sign:expr) => {
-            assert_eq!(SignedLong::try_from_digits($expr, $radix), Ok(SignedLong($digits, $sign)));
+            assert_eq!(
+                SignedLong::try_from_digits($expr, $radix),
+                Ok(SignedLong { digits: $digits, sign: $sign })
+            );
         };
         (@unsigned $expr:expr, $radix:expr, $digits:expr) => {
-            assert_eq!(UnsignedLong::try_from_digits($expr, $radix), Ok(UnsignedLong($digits)));
+            assert_eq!(
+                UnsignedLong::try_from_digits($expr, $radix),
+                Ok(UnsignedLong { digits: $digits })
+            );
         };
     }
 
     macro_rules! assert_fixed_from_digits {
         (@signed $expr:expr, $radix:expr, $digits:expr, $len:expr, $sign:expr) => {
-            assert_eq!(S32::try_from_digits($expr, $radix), Ok(SignedFixed($digits, $len, $sign)));
+            assert_eq!(
+                S32::try_from_digits($expr, $radix),
+                Ok(SignedFixed {
+                    raw: $digits,
+                    len: $len,
+                    sign: $sign
+                })
+            );
         };
         (@unsigned $expr:expr, $radix:expr, $digits:expr, $len:expr) => {
-            assert_eq!(U32::try_from_digits($expr, $radix), Ok(UnsignedFixed($digits, $len)));
+            assert_eq!(
+                U32::try_from_digits($expr, $radix),
+                Ok(UnsignedFixed { raw: $digits, len: $len })
+            );
         };
     }
 
     macro_rules! assert_long_from_str {
         (@signed $expr:expr, $digits:expr, $sign:expr) => {
-            assert_eq!(SignedLong::from_str($expr), Ok(SignedLong($digits, $sign)));
+            assert_eq!(SignedLong::from_str($expr), Ok(SignedLong { digits: $digits, sign: $sign }));
         };
         (@unsigned $expr:expr, $digits:expr) => {
-            assert_eq!(UnsignedLong::from_str($expr), Ok(UnsignedLong($digits)));
+            assert_eq!(UnsignedLong::from_str($expr), Ok(UnsignedLong { digits: $digits }));
         };
     }
 
     macro_rules! assert_fixed_from_str {
         (@signed $expr:expr, $digits:expr, $len:expr, $sign:expr) => {
-            assert_eq!(S32::from_str($expr), Ok(SignedFixed($digits, $len, $sign,)));
+            assert_eq!(
+                S32::from_str($expr),
+                Ok(SignedFixed {
+                    raw: $digits,
+                    len: $len,
+                    sign: $sign
+                })
+            );
         };
         (@unsigned $expr:expr, $digits:expr, $len:expr) => {
-            assert_eq!(U32::from_str($expr), Ok(UnsignedFixed($digits, $len)));
+            assert_eq!(U32::from_str($expr), Ok(UnsignedFixed { raw: $digits, len: $len }));
         };
     }
 
@@ -3195,9 +3437,9 @@ mod tests {
         let len = len.min(val.len());
 
         let digits = normalized(&val.digits()[..len]);
-        let sign = get_sign(digits.len(), val.1);
+        let sign = get_sign(digits.len(), val.sign());
 
-        SignedLong(digits, sign)
+        SignedLong { digits, sign }
     }
 
     fn value(digits: &[u8], radix: u16) -> u32 {
