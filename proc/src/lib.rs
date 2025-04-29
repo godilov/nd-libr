@@ -11,7 +11,6 @@ use syn::{
 };
 use syn::{parse2, parse_str};
 
-#[allow(dead_code)]
 struct OpsRaw {
     id: String,
     body: TokenStream,
@@ -20,12 +19,14 @@ struct OpsRaw {
 #[allow(dead_code)]
 struct OpsSignatureMutable {
     lhs_token: Token![|],
+    lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
     lhs_mut: Token![mut],
     lhs_type: Type,
     delim: Token![,],
+    rhs_star: Option<Token![*]>,
     rhs_ident: Ident,
     rhs_colon: Token![:],
     rhs_ref: Option<Token![&]>,
@@ -36,11 +37,13 @@ struct OpsSignatureMutable {
 #[allow(dead_code)]
 struct OpsSignatureBinary {
     lhs_token: Token![|],
+    lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
     lhs_type: Type,
     delim: Token![,],
+    rhs_star: Option<Token![*]>,
     rhs_ident: Ident,
     rhs_colon: Token![:],
     rhs_ref: Option<Token![&]>,
@@ -53,6 +56,7 @@ struct OpsSignatureBinary {
 #[allow(dead_code)]
 struct OpsSignatureUnary {
     lhs_token: Token![|],
+    lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
@@ -131,12 +135,14 @@ impl Parse for OpsSignatureMutable {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
+            lhs_star: input.parse().ok(),
             lhs_ident: input.parse()?,
             lhs_colon: input.parse()?,
             lhs_ref: input.parse().ok(),
             lhs_mut: input.parse()?,
             lhs_type: input.parse()?,
             delim: input.parse()?,
+            rhs_star: input.parse().ok(),
             rhs_ident: input.parse()?,
             rhs_colon: input.parse()?,
             rhs_ref: input.parse().ok(),
@@ -150,11 +156,13 @@ impl Parse for OpsSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
+            lhs_star: input.parse().ok(),
             lhs_ident: input.parse()?,
             lhs_colon: input.parse()?,
             lhs_ref: input.parse().ok(),
             lhs_type: input.parse()?,
             delim: input.parse()?,
+            rhs_star: input.parse().ok(),
             rhs_ident: input.parse()?,
             rhs_colon: input.parse()?,
             rhs_ref: input.parse().ok(),
@@ -170,6 +178,7 @@ impl Parse for OpsSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
+            lhs_star: input.parse().ok(),
             lhs_ident: input.parse()?,
             lhs_colon: input.parse()?,
             lhs_ref: input.parse().ok(),
@@ -261,6 +270,7 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
 
 impl ToTokens for OpsImplMutable {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        #[derive(Clone, Copy)]
         struct OpsImpl<'ops> {
             op: &'ops BinOp,
             generics: Option<&'ops Generics>,
@@ -268,7 +278,7 @@ impl ToTokens for OpsImplMutable {
             expr: &'ops Expr,
         }
 
-        fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
+        fn get_impl(val: OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
             let (ident, path) = match get_std_path_mut(val.op) {
                 Ok(val) => val,
                 Err(err) => {
@@ -301,13 +311,17 @@ impl ToTokens for OpsImplMutable {
             }
         }
 
+        let lstar = self.signature.lhs_star.is_some();
+        let rstar = self.signature.lhs_star.is_some();
+
         let lhs = self.signature.lhs_ref.is_some();
         let rhs = self.signature.rhs_ref.is_some();
+
         let some = Some(Default::default());
         let none = None;
 
         for entry in &self.entries {
-            let val = &OpsImpl {
+            let val = OpsImpl {
                 op: &entry.op,
                 generics: self.generics.as_ref(),
                 signature: &self.signature,
@@ -315,19 +329,42 @@ impl ToTokens for OpsImplMutable {
             };
 
             match (lhs, rhs) {
-                (true, true) => {
-                    tokens.extend(get_impl(val, some, some));
-                    tokens.extend(get_impl(val, some, none));
-                    tokens.extend(get_impl(val, none, some));
-                    tokens.extend(get_impl(val, none, none));
+                (true, true) => match (lstar, rstar) {
+                    (true, true) => {
+                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(val, none, none));
+                    },
+                    (true, false) => {
+                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(val, none, some));
+                    },
+                    (false, true) => {
+                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(val, some, none));
+                    },
+                    (false, false) => {
+                        tokens.extend(get_impl(val, some, some));
+                    },
                 },
-                (true, false) => {
-                    tokens.extend(get_impl(val, some, none));
-                    tokens.extend(get_impl(val, none, none));
+                (true, false) => match lstar {
+                    true => {
+                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(val, none, none));
+                    },
+                    false => {
+                        tokens.extend(get_impl(val, some, none));
+                    },
                 },
-                (false, true) => {
-                    tokens.extend(get_impl(val, none, some));
-                    tokens.extend(get_impl(val, none, none));
+                (false, true) => match rstar {
+                    true => {
+                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(val, none, none));
+                    },
+                    false => {
+                        tokens.extend(get_impl(val, none, some));
+                    },
                 },
                 (false, false) => {
                     tokens.extend(get_impl(val, none, none));
@@ -339,6 +376,7 @@ impl ToTokens for OpsImplMutable {
 
 impl ToTokens for OpsImplBinary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        #[derive(Clone, Copy)]
         struct OpsImpl<'ops> {
             op: &'ops BinOp,
             generics: Option<&'ops Generics>,
@@ -346,7 +384,7 @@ impl ToTokens for OpsImplBinary {
             expr: &'ops Expr,
         }
 
-        fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
+        fn get_impl(val: OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
             let (ident, path) = match get_std_path_binary(val.op) {
                 Ok(val) => val,
                 Err(err) => {
@@ -380,13 +418,17 @@ impl ToTokens for OpsImplBinary {
             }
         }
 
+        let lstar = self.signature.lhs_star.is_some();
+        let rstar = self.signature.lhs_star.is_some();
+
         let lhs = self.signature.lhs_ref.is_some();
         let rhs = self.signature.rhs_ref.is_some();
+
         let some = Some(Default::default());
         let none = None;
 
         for entry in &self.entries {
-            let val = &OpsImpl {
+            let val = OpsImpl {
                 op: &entry.op,
                 generics: self.generics.as_ref(),
                 signature: &self.signature,
@@ -394,19 +436,42 @@ impl ToTokens for OpsImplBinary {
             };
 
             match (lhs, rhs) {
-                (true, true) => {
-                    tokens.extend(get_impl(val, some, some));
-                    tokens.extend(get_impl(val, some, none));
-                    tokens.extend(get_impl(val, none, some));
-                    tokens.extend(get_impl(val, none, none));
+                (true, true) => match (lstar, rstar) {
+                    (true, true) => {
+                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(val, none, none));
+                    },
+                    (true, false) => {
+                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(val, none, some));
+                    },
+                    (false, true) => {
+                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(val, some, none));
+                    },
+                    (false, false) => {
+                        tokens.extend(get_impl(val, some, some));
+                    },
                 },
-                (true, false) => {
-                    tokens.extend(get_impl(val, some, none));
-                    tokens.extend(get_impl(val, none, none));
+                (true, false) => match lstar {
+                    true => {
+                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(val, none, none));
+                    },
+                    false => {
+                        tokens.extend(get_impl(val, some, none));
+                    },
                 },
-                (false, true) => {
-                    tokens.extend(get_impl(val, none, some));
-                    tokens.extend(get_impl(val, none, none));
+                (false, true) => match rstar {
+                    true => {
+                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(val, none, none));
+                    },
+                    false => {
+                        tokens.extend(get_impl(val, none, some));
+                    },
                 },
                 (false, false) => {
                     tokens.extend(get_impl(val, none, none));
@@ -418,6 +483,7 @@ impl ToTokens for OpsImplBinary {
 
 impl ToTokens for OpsImplUnary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        #[derive(Clone, Copy)]
         struct OpsImpl<'ops> {
             op: &'ops UnOp,
             generics: Option<&'ops Generics>,
@@ -425,7 +491,7 @@ impl ToTokens for OpsImplUnary {
             expr: &'ops Expr,
         }
 
-        fn get_impl(val: &OpsImpl, lhs_ref: Option<Token![&]>) -> TokenStream {
+        fn get_impl(val: OpsImpl, lhs_ref: Option<Token![&]>) -> TokenStream {
             let (ident, path) = match get_std_path_unary(val.op) {
                 Ok(val) => val,
                 Err(err) => {
@@ -457,12 +523,14 @@ impl ToTokens for OpsImplUnary {
             }
         }
 
+        let lstar = self.signature.lhs_star.is_some();
         let lhs = self.signature.lhs_ref.is_some();
+
         let some = Some(Default::default());
         let none = None;
 
         for entry in &self.entries {
-            let val = &OpsImpl {
+            let val = OpsImpl {
                 op: &entry.op,
                 generics: self.generics.as_ref(),
                 signature: &self.signature,
@@ -470,9 +538,14 @@ impl ToTokens for OpsImplUnary {
             };
 
             match lhs {
-                true => {
-                    tokens.extend(get_impl(val, some));
-                    tokens.extend(get_impl(val, none));
+                true => match lstar {
+                    true => {
+                        tokens.extend(get_impl(val, some));
+                        tokens.extend(get_impl(val, none));
+                    },
+                    false => {
+                        tokens.extend(get_impl(val, some));
+                    },
                 },
                 false => {
                     tokens.extend(get_impl(val, none));
@@ -528,8 +601,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
     match raw.id.as_str() {
         "@mut" => {
-            let body = raw.body;
-            let ops = parse2::<OpsImplAutoMutable>(body).map(|val| OpsImplMutable {
+            let ops = parse2::<OpsImplAutoMutable>(raw.body).map(|val| OpsImplMutable {
                 generics: val.generics,
                 signature: val.signature,
                 colon: Default::default(),
@@ -554,8 +626,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             }
         },
         "@bin" => {
-            let body = raw.body;
-            let ops = parse2::<OpsImplAutoBinary>(body).map(|val| OpsImplBinary {
+            let ops = parse2::<OpsImplAutoBinary>(raw.body).map(|val| OpsImplBinary {
                 generics: val.generics,
                 signature: val.signature,
                 colon: Default::default(),
@@ -580,8 +651,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             }
         },
         "@un" => {
-            let body = raw.body;
-            let ops = parse2::<OpsImplAutoUnary>(body).map(|val| OpsImplUnary {
+            let ops = parse2::<OpsImplAutoUnary>(raw.body).map(|val| OpsImplUnary {
                 generics: val.generics,
                 signature: val.signature,
                 colon: Default::default(),

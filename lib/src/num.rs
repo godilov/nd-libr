@@ -975,6 +975,11 @@ impl SignedLong {
         self
     }
 
+    pub fn with_neg(mut self) -> Self {
+        self.1 = -self.1;
+        self
+    }
+
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -1102,6 +1107,11 @@ impl<const L: usize> SignedFixed<L> {
         self
     }
 
+    pub fn with_neg(mut self) -> Self {
+        self.2 = -self.2;
+        self
+    }
+
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -1180,7 +1190,7 @@ impl<const L: usize> UnsignedFixed<L> {
 impl LongRepr {
     const ZERO: Self = LongRepr(vec![], Sign::ZERO);
 
-    fn single(digit: Single) -> Self {
+    fn from_single(digit: Single) -> Self {
         match digit {
             0 => LongRepr::ZERO,
             x => Self(vec![x], Sign::POS),
@@ -1215,10 +1225,10 @@ impl LongRepr {
 }
 
 impl<const L: usize> FixedRepr<L> {
-    const ZERO: Self = Self::single(0);
-    const ONE: Self = Self::single(1);
+    const ZERO: Self = Self::from_single(0);
+    const ONE: Self = Self::from_single(1);
 
-    const fn single(digit: Single) -> Self {
+    const fn from_single(digit: Single) -> Self {
         let mut res = [0; L];
 
         res[0] = digit;
@@ -1300,6 +1310,11 @@ impl<'digits> Operand<'digits> {
 
     fn with_sign(mut self, sign: Sign) -> Self {
         self.1 = if self.1 != Sign::ZERO { sign } else { Sign::ZERO };
+        self
+    }
+
+    fn with_neg(mut self) -> Self {
+        self.1 = -self.1;
         self
     }
 }
@@ -1964,6 +1979,36 @@ fn cmp_nums_ext(a: &[Single], ax: Single, b: &[Single], bx: Single) -> Ordering 
     }
 }
 
+#[allow(dead_code)]
+fn add_single_long(a: Operand<'_>, b: Single) -> LongRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
+        (Sign::ZERO, _) => return LongRepr::from_single(b),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    todo!()
+
+    // LongRepr::from_raw(res, a.sign())
+}
+
+#[allow(dead_code)]
+fn add_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return FixedRepr::from_single(b),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    todo!()
+
+    // FixedRepr::from_raw(res, a.sign())
+    //     .with_overflow_val(acc as Single)
+    //     .with_overflow(acc > 0)
+}
+
 fn add_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
@@ -2308,7 +2353,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
 
     match cmp_nums(a.digits(), b.digits()) {
         Ordering::Less => return (LongRepr::ZERO, a.into()),
-        Ordering::Equal => return (LongRepr::single(1).with_sign(a.sign() * b.sign()), LongRepr::ZERO),
+        Ordering::Equal => return (LongRepr::from_single(1).with_sign(a.sign() * b.sign()), LongRepr::ZERO),
         Ordering::Greater => (),
     }
 
@@ -2788,13 +2833,15 @@ ops_impl!(@un |a: Sign| -> Sign,
     }
 });
 
-ops_impl!(@un |a: &SignedLong| -> SignedLong, - SignedLong(a.0.clone(), -a.1));
+ops_impl!(@un |a: SignedLong| -> SignedLong, - a.with_neg());
+ops_impl!(@un |a: &SignedLong| -> SignedLong, - a.clone().with_neg());
 
-ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - SignedFixed(a.0, a.1, -a.2));
+ops_impl!(@un <const L: usize> |a: SignedFixed<L>| -> SignedFixed<L>, - a.with_neg());
+ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - (*a).with_neg());
 
-ops_impl!(@un <'digits> |a: &Operand<'digits>| -> Operand<'digits>, - Operand(a.0, -a.1));
+ops_impl!(@un <'digits> |*a: &Operand<'digits>| -> Operand<'digits>, - a.with_neg());
 
-ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
+ops_impl!(@bin |*a: &SignedLong, *b: &SignedLong| -> SignedLong,
     + add_long((&a).into(), (&b).into()),
     - sub_long((&a).into(), (&b).into()),
     * mul_long((&a).into(), (&b).into()),
@@ -2804,7 +2851,7 @@ ops_impl!(@bin |a: &SignedLong, b: &SignedLong| -> SignedLong,
     & bit_long((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_long((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
-ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
+ops_impl!(@bin |*a: &UnsignedLong, *b: &UnsignedLong| -> UnsignedLong,
     + add_long((&a).into(), (&b).into()),
     - sub_long((&a).into(), (&b).into()),
     * mul_long((&a).into(), (&b).into()),
@@ -2814,15 +2861,15 @@ ops_impl!(@bin |a: &UnsignedLong, b: &UnsignedLong| -> UnsignedLong,
     & bit_long((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_long((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
-ops_impl!(@bin |a: &SignedLong, b: usize| -> SignedLong,
+ops_impl!(@bin |*a: &SignedLong, *b: usize| -> SignedLong,
     << shl_long((&a).into(), b),
     >> shr_long((&a).into(), b));
 
-ops_impl!(@bin |a: &UnsignedLong, b: usize| -> UnsignedLong,
+ops_impl!(@bin |*a: &UnsignedLong, *b: usize| -> UnsignedLong,
     << shl_long((&a).into(), b),
     >> shr_long((&a).into(), b));
 
-ops_impl!(@mut |a: mut SignedLong, b: &SignedLong|,
+ops_impl!(@mut |a: mut SignedLong, *b: &SignedLong|,
     += ops_impl_mut_fn!(add_long_mut, a, b),
     -= ops_impl_mut_fn!(sub_long_mut, a, b),
     *= ops_impl_mut_fn!(mul_long_mut, a, b),
@@ -2832,7 +2879,7 @@ ops_impl!(@mut |a: mut SignedLong, b: &SignedLong|,
     &= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
     ^= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
-ops_impl!(@mut |a: mut UnsignedLong, b: &UnsignedLong|,
+ops_impl!(@mut |a: mut UnsignedLong, *b: &UnsignedLong|,
     += ops_impl_mut_fn!(add_long_mut, a, b),
     -= ops_impl_mut_fn!(sub_long_mut, a, b),
     *= ops_impl_mut_fn!(mul_long_mut, a, b),
@@ -2850,7 +2897,7 @@ ops_impl!(@mut |a: mut UnsignedLong, b: usize|,
     <<= shl_long_mut(a.into(), b),
     >>= shr_long_mut(a.into(), b));
 
-ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> SignedFixed::<L>,
+ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, *b: &SignedFixed<L>| -> SignedFixed::<L>,
     + add_fixed((&a).into(), (&b).into()),
     - sub_fixed((&a).into(), (&b).into()),
     * mul_fixed((&a).into(), (&b).into()),
@@ -2860,7 +2907,7 @@ ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: &SignedFixed<L>| -> Sign
     & bit_fixed((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_fixed((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
-ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
+ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, *b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
     + add_fixed((&a).into(), (&b).into()),
     - sub_fixed((&a).into(), (&b).into()),
     * mul_fixed((&a).into(), (&b).into()),
@@ -2870,15 +2917,15 @@ ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: &UnsignedFixed<L>| -> 
     & bit_fixed((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_fixed((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
-ops_impl!(@bin <const L: usize> |a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
+ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
     << shl_fixed((&a).into(), b),
     >> shr_fixed((&a).into(), b));
 
-ops_impl!(@bin <const L: usize> |a: &UnsignedFixed<L>, b: usize| -> UnsignedFixed::<L>,
+ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, b: usize| -> UnsignedFixed::<L>,
     << shl_fixed((&a).into(), b),
     >> shr_fixed((&a).into(), b));
 
-ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, b: &SignedFixed<L>|,
+ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, *b: &SignedFixed<L>|,
     += ops_impl_mut_fn!(add_fixed_mut, a, b),
     -= ops_impl_mut_fn!(sub_fixed_mut, a, b),
     *= ops_impl_mut_fn!(mul_fixed_mut, a, b),
@@ -2888,7 +2935,7 @@ ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, b: &SignedFixed<L>|,
     &= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
     ^= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
-ops_impl!(@mut <const L: usize> |a: mut UnsignedFixed<L>, b: &UnsignedFixed<L>|,
+ops_impl!(@mut <const L: usize> |a: mut UnsignedFixed<L>, *b: &UnsignedFixed<L>|,
     += ops_impl_mut_fn!(add_fixed_mut, a, b),
     -= ops_impl_mut_fn!(sub_fixed_mut, a, b),
     *= ops_impl_mut_fn!(mul_fixed_mut, a, b),
