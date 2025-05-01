@@ -23,6 +23,8 @@ macro_rules! if_all {
 pub mod num;
 pub mod ops;
 
+pub use ndproc::{ops_impl, ops_impl_auto};
+
 #[cfg(test)]
 mod tests {
     use std::ops::{Neg, Not};

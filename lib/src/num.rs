@@ -1403,6 +1403,12 @@ impl LongRepr {
         self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
         self
     }
+
+    #[inline(always)]
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
+    }
 }
 
 impl<const L: usize> FixedRepr<L> {
@@ -1462,6 +1468,12 @@ impl<const L: usize> FixedRepr<L> {
     }
 
     #[inline(always)]
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
+    }
+
+    #[inline(always)]
     fn with_overflow_val(mut self, val: Single) -> Self {
         self.overflow_val = val;
         self
@@ -1483,11 +1495,6 @@ impl<'digits> Operand<'digits> {
         let sign = get_sign(len, Sign::POS);
 
         Self { digits: &digits[..len], sign }
-    }
-
-    #[inline(always)]
-    fn iter<T: From<Single>>(&self) -> impl DoubleEndedIterator<Item = T> + ExactSizeIterator {
-        self.digits().iter().map(|&x| T::from(x))
     }
 
     #[inline(always)]
@@ -1521,25 +1528,20 @@ impl<'digits> Operand<'digits> {
 impl LongMutOperand<'_> {
     #[inline(always)]
     fn copy_from(&mut self, val: Operand<'_>) -> MutRepr {
-        self.resize(val.len());
+        self.raw_mut().resize(val.len(), 0);
 
-        self.iter_mut().zip(val.iter()).for_each(|(val, op)| *val = op);
+        self.raw_mut().iter_mut().zip(val.digits()).for_each(|(val, op)| *val = *op);
 
         MutRepr::from_raw(val.digits(), val.sign())
     }
 
     #[inline(always)]
-    fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut Single> + ExactSizeIterator {
-        self.raw_mut().iter_mut()
-    }
-
-    #[inline(always)]
-    fn raw_mut(&mut self) -> &mut [Single] {
+    fn raw_mut(&mut self) -> &mut Vec<Single> {
         self.digits
     }
 
     #[inline(always)]
-    fn raw(&self) -> &[Single] {
+    fn raw(&self) -> &Vec<Single> {
         self.digits
     }
 
@@ -1552,24 +1554,14 @@ impl LongMutOperand<'_> {
     fn sign(&self) -> Sign {
         self.sign
     }
-
-    #[inline(always)]
-    fn resize(&mut self, len: usize) {
-        self.digits.resize(len, 0);
-    }
 }
 
 impl<const L: usize> FixedMutOperand<'_, L> {
     #[inline(always)]
     fn copy_from(&mut self, val: Operand<'_>) -> MutRepr {
-        self.iter_mut().zip(val.iter()).for_each(|(val, op)| *val = op);
+        self.raw_mut().iter_mut().zip(val.digits()).for_each(|(val, op)| *val = *op);
 
         MutRepr::from_raw(val.digits(), val.sign())
-    }
-
-    #[inline(always)]
-    fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut Single> + ExactSizeIterator {
-        self.raw_mut().iter_mut()
     }
 
     #[inline(always)]
@@ -2143,11 +2135,11 @@ impl<const L: usize> UpperHex for UnsignedFixed<L> {
     }
 }
 
-fn zip_nums<T: From<Single>>(a: &[Single], b: &[Single], zeros: usize) -> impl Iterator<Item = (T, T)> {
+fn zip_nums<'a, 'b>(a: &'a [Single], b: &'b [Single], zeros: usize) -> impl Iterator<Item = (&'a Single, &'b Single)> {
     let len = a.len().max(b.len());
 
-    let iter_a = a.iter().chain(repeat_n(&0, len - a.len() + zeros)).map(|&x| T::from(x));
-    let iter_b = b.iter().chain(repeat_n(&0, len - b.len() + zeros)).map(|&x| T::from(x));
+    let iter_a = a.iter().chain(repeat_n(&0, len - a.len() + zeros));
+    let iter_b = b.iter().chain(repeat_n(&0, len - b.len() + zeros));
 
     iter_a.zip(iter_b)
 }
@@ -2184,7 +2176,6 @@ fn cmp_nums_ext(a: &[Single], ax: Single, b: &[Single], bx: Single) -> Ordering 
     }
 }
 
-#[allow(dead_code)]
 fn add_single_long(a: Operand<'_>, b: Single) -> LongRepr {
     match (a.sign(), Sign::from(b)) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
@@ -2193,12 +2184,30 @@ fn add_single_long(a: Operand<'_>, b: Single) -> LongRepr {
         _ => (),
     }
 
-    todo!()
+    if a.sign() == Sign::NEG {
+        return sub_single_long(-a, b);
+    }
 
-    // LongRepr::from_raw(res, a.sign())
+    let mut acc = b as Double;
+    let mut res = vec![0; a.len() + 1];
+
+    res[..a.len()].copy_from_slice(a.digits());
+
+    for ptr in res.iter_mut() {
+        acc += *ptr as Double;
+
+        *ptr = acc as Single;
+
+        acc >>= Single::BITS;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    LongRepr::from_raw(res, a.sign())
 }
 
-#[allow(dead_code)]
 fn add_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
     match (a.sign(), Sign::from(b)) {
         (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
@@ -2207,11 +2216,30 @@ fn add_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
         _ => (),
     }
 
-    todo!()
+    if a.sign() == Sign::NEG {
+        return sub_single_fixed(-a, b);
+    }
 
-    // FixedRepr::from_raw(res, a.sign())
-    //     .with_overflow_val(acc as Single)
-    //     .with_overflow(acc > 0)
+    let mut acc = b as Double;
+    let mut res = [0; L];
+
+    res[..a.len()].copy_from_slice(a.digits());
+
+    for ptr in res.iter_mut() {
+        acc += *ptr as Double;
+
+        *ptr = acc as Single;
+
+        acc >>= Single::BITS;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    FixedRepr::from_raw(res, a.sign())
+        .with_overflow_val(acc as Single)
+        .with_overflow(acc > 0)
 }
 
 fn add_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
@@ -2228,9 +2256,9 @@ fn add_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
 
     let mut acc = 0;
 
-    let res = zip_nums::<Double>(a.digits(), b.digits(), 1)
-        .scan(0, |_, (aop, bop)| {
-            let digit = acc + aop + bop;
+    let res = zip_nums(a.digits(), b.digits(), 1)
+        .scan(0, |_, (&aop, &bop)| {
+            let digit = acc + aop as Double + bop as Double;
 
             acc = digit >> Single::BITS;
 
@@ -2255,9 +2283,9 @@ fn add_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
 
     let mut acc = 0;
 
-    let res = zip_nums::<Double>(a.digits(), b.digits(), 1)
-        .scan(0, |_, (aop, bop)| {
-            let digit = acc + aop + bop;
+    let res = zip_nums(a.digits(), b.digits(), 1)
+        .scan(0, |_, (&aop, &bop)| {
+            let digit = acc + aop as Double + bop as Double;
 
             acc = digit >> Single::BITS;
 
@@ -2283,17 +2311,14 @@ fn add_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     }
 
     let len = a.len().max(b.len()) + 1;
+    let res = a.raw_mut();
 
-    a.resize(len);
+    res.resize(len, 0);
 
     let mut acc = 0;
 
-    let res = a.raw_mut();
-
-    for (i, bop) in b.iter::<Double>().enumerate() {
-        let aop = res[i] as Double;
-
-        acc += aop + bop;
+    for (i, &bop) in b.digits().iter().enumerate() {
+        acc += res[i] as Double + bop as Double;
 
         res[i] = acc as Single;
 
@@ -2318,15 +2343,12 @@ fn add_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
     }
 
     let len = (a.len().max(b.len()) + 1).min(L);
+    let res = a.raw_mut();
 
     let mut acc = 0;
 
-    let res = a.raw_mut();
-
-    for (i, bop) in b.iter::<Double>().take(len).enumerate() {
-        let aop = res[i] as Double;
-
-        acc += aop + bop;
+    for (i, &bop) in b.digits().iter().take(len).enumerate() {
+        acc += res[i] as Double + bop as Double;
 
         res[i] = acc as Single;
 
@@ -2338,6 +2360,78 @@ fn add_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
     }
 
     MutRepr::from_raw(a.raw(), a.sign())
+}
+
+fn sub_single_long(a: Operand<'_>, b: Single) -> LongRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
+        (Sign::ZERO, _) => return LongRepr::from_single(b).with_neg(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() == Sign::NEG {
+        return sub_single_long(-a, b);
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return LongRepr::from_single(b - a.digits()[0]).with_neg(),
+        Ordering::Equal => return LongRepr::ZERO,
+        Ordering::Greater => (),
+    };
+
+    let mut acc = b;
+    let mut res = vec![0; a.len()];
+
+    res[..a.len()].copy_from_slice(a.digits());
+
+    for ptr in res.iter_mut() {
+        *ptr = (RADIX + *ptr as Double - acc as Double) as Single;
+
+        acc = (*ptr < b + acc as Single) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    LongRepr::from_raw(res, a.sign())
+}
+
+fn sub_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
+        (Sign::ZERO, _) => return FixedRepr::from_single(b).with_neg(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() == Sign::NEG {
+        return sub_single_fixed(-a, b);
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return FixedRepr::from_single(b - a.digits()[0]).with_neg(),
+        Ordering::Equal => return FixedRepr::ZERO,
+        Ordering::Greater => (),
+    };
+
+    let mut acc = b;
+    let mut res = [0; L];
+
+    res[..a.len()].copy_from_slice(a.digits());
+
+    for ptr in res.iter_mut() {
+        *ptr = (RADIX + *ptr as Double - acc as Double) as Single;
+
+        acc = (*ptr < b + acc as Single) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    FixedRepr::from_raw(res, a.sign())
 }
 
 fn sub_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
@@ -2358,13 +2452,13 @@ fn sub_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
         Ordering::Greater => (a, b, a.sign()),
     };
 
-    let mut acc = 0;
+    let mut acc = false;
 
-    let res = zip_nums::<Double>(a.digits(), b.digits(), 0)
-        .scan(0, |_, (aop, bop)| {
-            let digit = (RADIX + aop - bop - acc) as Single;
+    let res = zip_nums(a.digits(), b.digits(), 0)
+        .scan(0, |_, (&aop, &bop)| {
+            let digit = (RADIX + aop as Double - bop as Double - acc as Double) as Single;
 
-            acc = (aop < bop + acc) as Double;
+            acc = aop < bop + acc as Single;
 
             Some(digit)
         })
@@ -2391,13 +2485,13 @@ fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         Ordering::Greater => (a, b, a.sign()),
     };
 
-    let mut acc = 0;
+    let mut acc = false;
 
-    let res = zip_nums::<Double>(a.digits(), b.digits(), 0)
-        .scan(0, |_, (aop, bop)| {
-            let digit = (RADIX + aop - bop - acc) as Single;
+    let res = zip_nums(a.digits(), b.digits(), 0)
+        .scan(0, |_, (&aop, &bop)| {
+            let digit = (RADIX + aop as Double - bop as Double - acc as Double) as Single;
 
-            acc = (aop < bop + acc) as Double;
+            acc = aop < bop + acc as Single;
 
             Some(digit)
         })
@@ -2406,12 +2500,10 @@ fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     FixedRepr::from_raw(res, sign)
 }
 
-#[allow(unused_variables)]
 fn sub_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
 
-#[allow(unused_variables)]
 fn sub_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
@@ -2428,8 +2520,8 @@ fn mul_single_long(a: Operand<'_>, bop: Single) -> LongRepr {
     let mut acc = 0;
     let mut res = vec![0; len];
 
-    for (ptr, aop) in res.iter_mut().zip(a.iter::<Double>()) {
-        acc += aop * bop as Double;
+    for (ptr, &aop) in res.iter_mut().zip(a.digits()) {
+        acc += aop as Double * bop as Double;
 
         *ptr = acc as Single;
 
@@ -2451,8 +2543,8 @@ fn mul_single_fixed<const L: usize>(a: Operand<'_>, bop: Single) -> FixedRepr<L>
     let mut acc = 0;
     let mut res = [0; L];
 
-    for (ptr, aop) in res.iter_mut().zip(a.iter::<Double>()) {
-        acc += aop * bop as Double;
+    for (ptr, &aop) in res.iter_mut().zip(a.digits()) {
+        acc += aop as Double * bop as Double;
 
         *ptr = acc as Single;
 
@@ -2480,11 +2572,11 @@ fn mul_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
 
     let mut res = vec![0; a.len() + b.len()];
 
-    for (i, aop) in a.iter::<Double>().enumerate() {
+    for (i, &aop) in a.digits().iter().enumerate() {
         let mut acc = 0;
 
-        for (j, bop) in b.iter::<Double>().enumerate() {
-            acc += res[i + j] as Double + aop * bop;
+        for (j, &bop) in b.digits().iter().enumerate() {
+            acc += res[i + j] as Double + aop as Double * bop as Double;
 
             res[i + j] = acc as Single;
 
@@ -2508,11 +2600,11 @@ fn mul_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     let mut over = false;
     let mut next = 0;
 
-    for (i, aop) in a.iter::<Double>().enumerate() {
+    for (i, &aop) in a.digits().iter().enumerate() {
         let mut acc = 0;
 
-        for (j, bop) in b.iter::<Double>().take(L - i).enumerate() {
-            acc += res[i + j] as Double + aop * bop;
+        for (j, &bop) in b.digits().iter().take(L - i).enumerate() {
+            acc += res[i + j] as Double + aop as Double * bop as Double;
 
             res[i + j] = acc as Single;
 
@@ -2535,12 +2627,10 @@ fn mul_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         .with_overflow(over)
 }
 
-#[allow(unused_variables)]
 fn mul_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
 
-#[allow(unused_variables)]
 fn mul_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
@@ -2571,7 +2661,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
     let apos = a.with_sign(Sign::POS);
     let bpos = b.with_sign(Sign::POS);
 
-    for (i, aop) in apos.iter::<Single>().enumerate().rev() {
+    for (i, &aop) in apos.digits().iter().enumerate().rev() {
         cycle(&mut rem[..len + 1], aop);
 
         len += 1;
@@ -2646,7 +2736,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
     let apos = a.with_sign(Sign::POS);
     let bpos = b.with_sign(Sign::POS);
 
-    for (i, aop) in apos.iter::<Single>().enumerate().rev() {
+    for (i, &aop) in apos.digits().iter().enumerate().rev() {
         remx = rem[L - 1];
 
         cycle(&mut rem[..len + 1], aop);
@@ -2693,22 +2783,18 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
     (FixedRepr::from_raw(div, sign_a * sign_b), FixedRepr::from_raw(rem, sign_a))
 }
 
-#[allow(unused_variables)]
 fn div_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
 
-#[allow(unused_variables)]
 fn div_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
 
-#[allow(unused_variables)]
 fn rem_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
 
-#[allow(unused_variables)]
 fn rem_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
@@ -2717,8 +2803,8 @@ fn bit_long<F>(a: Operand<'_>, b: Operand<'_>, func: F) -> LongRepr
 where
     F: Fn(Single, Single) -> Single,
 {
-    let res = zip_nums::<Single>(a.digits(), b.digits(), 0)
-        .map(|(aop, bop)| func(aop, bop))
+    let res = zip_nums(a.digits(), b.digits(), 0)
+        .map(|(&aop, &bop)| func(aop, bop))
         .collect_with(vec![0; a.len().max(b.len())]);
 
     LongRepr::from_raw(res, Sign::POS)
@@ -2728,8 +2814,8 @@ fn bit_fixed<const L: usize, F>(a: Operand<'_>, b: Operand<'_>, func: F) -> Fixe
 where
     F: Fn(Single, Single) -> Single,
 {
-    let res = zip_nums::<Single>(a.digits(), b.digits(), 0)
-        .map(|(aop, bop)| func(aop, bop))
+    let res = zip_nums(a.digits(), b.digits(), 0)
+        .map(|(&aop, &bop)| func(aop, bop))
         .collect_with([0; L]);
 
     FixedRepr::from_raw(res, Sign::POS)
@@ -2739,7 +2825,9 @@ fn bit_long_mut<F>(mut a: LongMutOperand<'_>, b: Operand<'_>, func: F)
 where
     F: Fn(Single, Single) -> Single,
 {
-    a.resize(a.len().max(b.len()));
+    let len = a.len().max(b.len());
+
+    a.raw_mut().resize(len, 0);
 
     for (i, ptr) in &mut a.raw_mut().iter_mut().enumerate() {
         let bop = *b.digits().get(i).unwrap_or(&0);
@@ -2841,10 +2929,9 @@ fn shl_long_mut(mut a: LongMutOperand<'_>, val: usize) -> MutRepr {
     let shl = val % BITS;
     let shr = BITS - shl;
     let len = a.len() + (val + BITS - 1) / BITS;
-
-    a.resize(len);
-
     let res = a.raw_mut();
+
+    res.resize(len, 0);
 
     for i in offset..len {
         let val_h = res.get(i - offset).unwrap_or(&0);
@@ -2877,7 +2964,6 @@ fn shl_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, val: usize) -> M
     let shr = BITS - shl;
     let len = a.len() + (val + BITS - 1) / BITS;
     let len = len.min(L);
-
     let res = a.raw_mut();
 
     for i in offset..len {
