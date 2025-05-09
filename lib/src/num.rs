@@ -205,6 +205,35 @@ macro_rules! fixed_from {
     };
 }
 
+macro_rules! div_cycle {
+    ($rem:expr, $len:expr, $val:expr) => {
+        for i in (1..$rem.len()).rev() {
+            $rem[i] = $rem[i - 1];
+        }
+
+        $rem[0] = $val;
+        $len += 1;
+    };
+}
+
+macro_rules! div_apply {
+    ($fn_mul:path, $fn_sub:path, $div:expr, $rem:expr, $len:expr, $bpos:expr, $val:expr, $idx:expr) => {
+        let digit = $val.saturating_sub(1) as Single;
+
+        if digit > 0 {
+            $div[$idx] = digit;
+
+            let dop = [digit];
+            let mul = $fn_mul($bpos, Operand::from_raw(&dop));
+            let sub = $fn_sub(Operand::from_raw(&$rem[..$len]), (&mul).into());
+
+            $rem.fill(0);
+            $rem[..sub.len()].copy_from_slice(sub.digits());
+            $len = sub.len();
+        };
+    };
+}
+
 macro_rules! ops_impl_mut_fn {
     ($id:ident, $a:expr, $b:expr) => {{
         let repr = $id($a.into(), (&$b).into());
@@ -2298,6 +2327,14 @@ fn add_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         .with_overflow(acc > 0)
 }
 
+fn add_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    todo!()
+}
+
+fn add_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    todo!()
+}
+
 fn add_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
@@ -2456,11 +2493,11 @@ fn sub_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
 
     let res = zip_nums(a.digits(), b.digits(), 0)
         .scan(0, |_, (&aop, &bop)| {
-            let digit = (RADIX + aop as Double - bop as Double - acc as Double) as Single;
+            let digit = RADIX + aop as Double - bop as Double - acc as Double;
 
-            acc = aop < bop + acc as Single;
+            acc = digit < RADIX;
 
-            Some(digit)
+            Some(digit as Single)
         })
         .collect_with(vec![0; a.len()]);
 
@@ -2489,15 +2526,23 @@ fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
 
     let res = zip_nums(a.digits(), b.digits(), 0)
         .scan(0, |_, (&aop, &bop)| {
-            let digit = (RADIX + aop as Double - bop as Double - acc as Double) as Single;
+            let digit = RADIX + aop as Double - bop as Double - acc as Double;
 
-            acc = aop < bop + acc as Single;
+            acc = digit < RADIX;
 
-            Some(digit)
+            Some(digit as Single)
         })
         .collect_with([0; L]);
 
     FixedRepr::from_raw(res, sign)
+}
+
+fn sub_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    todo!()
+}
+
+fn sub_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    todo!()
 }
 
 fn sub_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
@@ -2515,15 +2560,13 @@ fn mul_single_long(a: Operand<'_>, bop: Single) -> LongRepr {
         _ => (),
     }
 
-    let len = a.len() + 1;
-
     let mut acc = 0;
-    let mut res = vec![0; len];
+    let mut res = vec![0; a.len() + 1];
 
-    for (ptr, &aop) in res.iter_mut().zip(a.digits()) {
+    for (i, &aop) in a.digits().iter().enumerate() {
         acc += aop as Double * bop as Double;
 
-        *ptr = acc as Single;
+        res[i] = acc as Single;
 
         acc >>= Single::BITS;
     }
@@ -2543,10 +2586,10 @@ fn mul_single_fixed<const L: usize>(a: Operand<'_>, bop: Single) -> FixedRepr<L>
     let mut acc = 0;
     let mut res = [0; L];
 
-    for (ptr, &aop) in res.iter_mut().zip(a.digits()) {
+    for (i, &aop) in a.digits().iter().enumerate() {
         acc += aop as Double * bop as Double;
 
-        *ptr = acc as Single;
+        res[i] = acc as Single;
 
         acc >>= Single::BITS;
     }
@@ -2627,6 +2670,14 @@ fn mul_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         .with_overflow(over)
 }
 
+fn mul_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    todo!()
+}
+
+fn mul_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    todo!()
+}
+
 fn mul_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     todo!()
 }
@@ -2662,9 +2713,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
     let bpos = b.with_sign(Sign::POS);
 
     for (i, &aop) in apos.digits().iter().enumerate().rev() {
-        cycle(&mut rem[..len + 1], aop);
-
-        len += 1;
+        div_cycle!(rem, len, aop);
 
         if len < b.len() {
             continue;
@@ -2685,22 +2734,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
             }
         }
 
-        let digit = l.saturating_sub(1) as Single;
-
-        if digit > 0 {
-            div[i] = digit;
-
-            let dop = [digit];
-            let dop = Operand::from_raw(&dop);
-            let rop = Operand::from_raw(&rem[..len]);
-
-            let mul = mul_long(bpos, dop);
-            let sub = sub_long(rop, (&mul).into());
-
-            rem.fill(0);
-            rem[..sub.len()].copy_from_slice(sub.digits());
-            len = sub.len();
-        };
+        div_apply!(mul_long, sub_long, div, rem, len, bpos, l, i);
     }
 
     (LongRepr::from_raw(div, sign_a * sign_b), LongRepr::from_raw(rem, sign_a))
@@ -2739,9 +2773,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
     for (i, &aop) in apos.digits().iter().enumerate().rev() {
         remx = rem[L - 1];
 
-        cycle(&mut rem[..len + 1], aop);
-
-        len += 1;
+        div_cycle!(rem, len, aop);
 
         if len < b.len() {
             continue;
@@ -2762,25 +2794,18 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
             }
         }
 
-        let digit = l.saturating_sub(1) as Single;
-
-        if digit > 0 {
-            div[i] = digit;
-
-            let dop = [digit];
-            let dop = Operand::from_raw(&dop);
-            let rop = Operand::from_raw(&rem[..len]);
-
-            let mul = mul_fixed::<L>(bpos, dop);
-            let sub = sub_fixed::<L>(rop, (&mul).into());
-
-            rem.fill(0);
-            rem[..sub.len()].copy_from_slice(sub.digits());
-            len = sub.len();
-        };
+        div_apply!(mul_fixed::<L>, sub_fixed::<L>, div, rem, len, bpos, l, i);
     }
 
     (FixedRepr::from_raw(div, sign_a * sign_b), FixedRepr::from_raw(rem, sign_a))
+}
+
+fn div_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    todo!()
+}
+
+fn div_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    todo!()
 }
 
 fn div_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
@@ -2788,6 +2813,14 @@ fn div_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
 }
 
 fn div_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
+    todo!()
+}
+
+fn rem_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    todo!()
+}
+
+fn rem_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
     todo!()
 }
 
@@ -3355,14 +3388,6 @@ where
     }
 
     0
-}
-
-fn cycle(digits: &mut [Single], val: Single) {
-    for i in (1..digits.len()).rev() {
-        digits[i] = digits[i - 1];
-    }
-
-    digits[0] = val;
 }
 
 #[cfg(test)]
