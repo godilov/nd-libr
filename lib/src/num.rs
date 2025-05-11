@@ -9,7 +9,7 @@ use std::{
 
 use digit::{Double, Single};
 use ndproc::ops_impl;
-use prime::{PrimeRel, PRIMES};
+use prime::{Primality, PRIMES};
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
 use thiserror::Error;
 
@@ -50,6 +50,10 @@ macro_rules! num_impl {
             fn log(&self) -> Self {
                 self.ilog2() as $type
             }
+
+            fn is_even(&self) -> bool {
+                *self % 2 == 0
+            }
         }
 
         impl Fixed for $type {
@@ -67,15 +71,45 @@ macro_rules! prime_impl {
         $(prime_impl!($type, $count,);)+
     };
     ($type:ty, $count:expr $(,)?) => {
-        impl PrimeRel for $type {
+        impl Primality for $type {
             fn primes() -> impl Iterator<Item = Self> {
                 PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p < Self::MAX.isqrt())
             }
 
-            fn capacity(&self) -> usize {
-                let val = *self as f64;
+            fn as_count_estimate(&self) -> usize {
+                *self as usize
+            }
 
-                (1.3 * val / val.log(std::f64::consts::E)).ceil() as usize + 1
+            fn as_limit_estimate(&self) -> usize {
+                let val = *self as f64;
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+
+            fn as_count_check_estimate(&self) -> usize {
+                let val = *self as f64;
+                let val = val * (val.ln() + val.ln().ln());
+                let val = val.max(6.0).sqrt();
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+
+            fn as_limit_check_estimate(&self) -> usize {
+                let val = (*self as f64).sqrt();
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
             }
         }
     };
@@ -351,7 +385,7 @@ mod radix {
 pub mod prime {
     use std::mem::replace;
 
-    use super::{Num, Unsigned};
+    use super::Unsigned;
     use crate::ops::Ops;
 
     pub(super) const PRIMES: [u16; 128] = [
@@ -366,58 +400,68 @@ pub mod prime {
     pub struct Primes;
 
     impl Primes {
-        pub fn by_count<Prime: Unsigned>(len: usize) -> impl Iterator<Item = Prime>
+        pub fn by_count<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
         where
             for<'s> &'s Prime: Ops,
         {
             PrimesFullIter {
-                primes: Vec::with_capacity(len),
                 next: Prime::from(2),
+                primes: Vec::with_capacity(count.as_count_check_estimate()),
+                count: count.as_count_estimate(),
+                limit: None,
             }
-            .take(len)
         }
 
-        pub fn by_limit<Prime: Unsigned>(val: Prime) -> impl Iterator<Item = Prime>
+        pub fn by_limit<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
         where
             for<'s> &'s Prime: Ops,
         {
             PrimesFullIter {
-                primes: Vec::with_capacity(val.capacity()),
                 next: Prime::from(2),
+                primes: Vec::with_capacity(limit.as_limit_check_estimate()),
+                count: limit.as_limit_estimate(),
+                limit: Some(limit),
             }
-            .take_while(move |x| x < &val)
         }
 
-        pub fn by_count_fast<Prime: Unsigned>(len: usize) -> impl Iterator<Item = Prime>
+        pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
         where
             for<'s> &'s Prime: Ops,
         {
             PrimesFastIter {
                 next: Prime::from(2),
-                capacity: len,
+                index: 0,
+                count: count.as_count_estimate(),
+                limit: None,
             }
-            .take(len)
         }
 
-        pub fn by_limit_fast<Prime: Unsigned>(val: Prime) -> impl Iterator<Item = Prime>
+        pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
         where
             for<'s> &'s Prime: Ops,
         {
             PrimesFastIter {
                 next: Prime::from(2),
-                capacity: val.capacity(),
+                index: 0,
+                count: limit.as_limit_estimate(),
+                limit: Some(limit),
             }
-            .take_while(move |p| p < &val)
         }
     }
 
-    pub trait PrimeRel: Num
+    pub trait Primality: Unsigned
     where
         for<'s> &'s Self: Ops,
     {
         fn primes() -> impl Iterator<Item = Self>;
 
-        fn capacity(&self) -> usize;
+        fn as_count_estimate(&self) -> usize;
+
+        fn as_limit_estimate(&self) -> usize;
+
+        fn as_count_check_estimate(&self) -> usize;
+
+        fn as_limit_check_estimate(&self) -> usize;
 
         fn is_prime(&self) -> bool {
             let sqrt = self.sqrt();
@@ -433,15 +477,13 @@ pub mod prime {
 
                 let mut idx = 0;
                 let mut pow = Self::from(&x >> shr);
-                let mut exp = p.clone().pow_mod(pow.clone(), self);
+                let mut exp = p.pow_rem(pow.clone(), self);
 
                 while pow < x && one < exp && exp < x {
-                    let val = Self::from(&exp * &exp);
-                    let val = Self::from(&val % self);
-
                     idx += 1;
                     pow <<= 1;
-                    exp = val;
+                    exp *= &exp.clone();
+                    exp %= self;
                 }
 
                 idx == 0 && exp == one || exp == x
@@ -449,30 +491,40 @@ pub mod prime {
         }
     }
 
-    struct PrimesFullIter<Prime: Unsigned>
+    struct PrimesFullIter<Prime: Primality>
     where
         for<'s> &'s Prime: Ops,
     {
+        next: Prime,
         primes: Vec<Prime>,
-        next: Prime,
+        count: usize,
+        limit: Option<Prime>,
     }
 
-    struct PrimesFastIter<Prime: Unsigned>
+    struct PrimesFastIter<Prime: Primality>
     where
         for<'s> &'s Prime: Ops,
     {
         next: Prime,
-        capacity: usize,
+        index: usize,
+        count: usize,
+        limit: Option<Prime>,
     }
 
-    impl<Prime: Unsigned> Iterator for PrimesFullIter<Prime>
+    impl<Prime: Primality> Iterator for PrimesFullIter<Prime>
     where
         for<'s> &'s Prime: Ops,
     {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
-            self.primes.push(self.next.clone());
+            if self.primes.len() == self.count {
+                return None;
+            }
+
+            if self.primes.len() < self.primes.capacity() {
+                self.primes.push(self.next.clone());
+            }
 
             let zero = Prime::from(0);
             let one = Prime::from(1);
@@ -483,8 +535,17 @@ pub mod prime {
 
             let mut val = Prime::from(&self.next + &offset);
 
-            while self.primes.iter().any(|p| Prime::from(&val % p) == zero) {
+            while self
+                .primes
+                .iter()
+                .take_while(|&p| Prime::from(p * p) <= val)
+                .any(|p| Prime::from(&val % p) == zero)
+            {
                 val += &two;
+
+                if Some(&val) > self.limit.as_ref() {
+                    return None;
+                }
             }
 
             self.next = val;
@@ -492,17 +553,23 @@ pub mod prime {
         }
 
         fn size_hint(&self) -> (usize, Option<usize>) {
-            (self.primes.capacity(), Some(self.primes.capacity()))
+            let diff = self.count - self.primes.len();
+
+            (diff, Some(diff))
         }
     }
 
-    impl<Prime: Unsigned> Iterator for PrimesFastIter<Prime>
+    impl<Prime: Primality> Iterator for PrimesFastIter<Prime>
     where
         for<'s> &'s Prime: Ops,
     {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
+            if self.index == self.count {
+                return None;
+            }
+
             let one = Prime::from(1);
             let two = Prime::from(2);
 
@@ -513,18 +580,26 @@ pub mod prime {
 
             while !val.is_prime() {
                 val += &two;
+
+                if Some(&val) > self.limit.as_ref() {
+                    return None;
+                }
             }
+
+            self.index += 1;
 
             Some(replace(&mut self.next, val))
         }
 
         fn size_hint(&self) -> (usize, Option<usize>) {
-            (self.capacity, (self.capacity > 0).then_some(self.capacity))
+            let diff = self.count - self.index;
+
+            (diff, Some(diff))
         }
     }
 
-    impl<Prime: Unsigned> ExactSizeIterator for PrimesFullIter<Prime> where for<'s> &'s Prime: Ops {}
-    impl<Prime: Unsigned> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
+    impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> where for<'s> &'s Prime: Ops {}
+    impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
@@ -642,6 +717,8 @@ where
 
     fn log(&self) -> Self;
 
+    fn is_even(&self) -> bool;
+
     fn zero() -> Self {
         false.into()
     }
@@ -653,44 +730,45 @@ where
     fn gcd(self, val: Self) -> Self {
         let zero = Self::zero();
 
-        let mut a = self;
-        let mut b = val;
+        let (mut a, mut b) = match self.cmp(&val) {
+            Ordering::Less => (val, self),
+            Ordering::Equal => (self, val),
+            Ordering::Greater => (self, val),
+        };
 
         while b > zero {
-            let x = b.clone();
+            let rem = Self::from(&a % &b);
 
-            b = Self::from(a % b);
-            a = x;
+            a = b;
+            b = rem;
         }
 
         a
     }
 
-    fn lcm(self, val: Self) -> Self {
-        let g = Self::gcd(self.clone(), val.clone());
+    fn lcm(mut self, val: Self) -> Self {
+        let gcd = Self::gcd(self.clone(), val.clone());
 
-        Self::from(Self::from(self / g) * val)
+        self /= &gcd;
+        self *= &val;
+        self
     }
 
-    fn pow_mod(self, mut pow: Self, modulus: &Self) -> Self {
+    fn pow_rem(self, mut pow: Self, rem: &Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
 
         let mut acc = self;
-        let mut res = one.clone();
+        let mut res = one;
 
         while pow > zero {
-            if Self::from(&pow & &one) == one {
-                let val = Self::from(&res * &acc);
-                let val = Self::from(&val % modulus);
-
-                res = val;
+            if !pow.is_even() {
+                res *= &acc;
+                res %= rem;
             }
 
-            let val = Self::from(&acc * &acc);
-            let val = Self::from(&val % modulus);
-
-            acc = val;
+            acc = (&acc * &acc).into();
+            acc %= rem;
             pow >>= 1;
         }
 
@@ -725,7 +803,7 @@ where
     }
 }
 
-pub trait Unsigned: Num + From<u8> + PrimeRel
+pub trait Unsigned: Num + From<u8>
 where
     for<'s> &'s Self: Ops,
 {
