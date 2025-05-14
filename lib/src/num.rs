@@ -1,4 +1,5 @@
 #![allow(clippy::manual_div_ceil)]
+#![allow(unused)]
 
 use std::{
     cmp::Ordering,
@@ -268,9 +269,14 @@ macro_rules! div_apply {
     };
 }
 
-macro_rules! ops_impl_mut_fn {
-    ($id:ident, $a:expr, $b:expr) => {{
+macro_rules! ops_mut_fn {
+    (@ref $id:ident, $a:expr, $b:expr) => {{
         let repr = $id($a.into(), (&$b).into());
+
+        $a.apply_mut_repr(repr);
+    }};
+    (@val $id:ident, $a:expr, $b:expr) => {{
+        let repr = $id($a.into(), $b);
 
         $a.apply_mut_repr(repr);
     }};
@@ -400,7 +406,7 @@ pub mod prime {
     pub struct Primes;
 
     impl Primes {
-        pub fn by_count<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
+        pub fn by_count_full<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
         where
             for<'s> &'s Prime: Ops,
         {
@@ -412,7 +418,7 @@ pub mod prime {
             }
         }
 
-        pub fn by_limit<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
+        pub fn by_limit_full<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
         where
             for<'s> &'s Prime: Ops,
         {
@@ -430,7 +436,6 @@ pub mod prime {
         {
             PrimesFastIter {
                 next: Prime::from(2),
-                index: 0,
                 count: count.as_count_estimate(),
                 limit: None,
             }
@@ -442,7 +447,6 @@ pub mod prime {
         {
             PrimesFastIter {
                 next: Prime::from(2),
-                index: 0,
                 count: limit.as_limit_estimate(),
                 limit: Some(limit),
             }
@@ -475,18 +479,18 @@ pub mod prime {
                 let shr = Self::from(&x ^ &shr);
                 let shr = shr.order();
 
-                let mut idx = 0;
+                let mut any = false;
                 let mut pow = Self::from(&x >> shr);
                 let mut exp = p.pow_rem(pow.clone(), self);
 
                 while pow < x && one < exp && exp < x {
-                    idx += 1;
+                    any |= true;
                     pow <<= 1;
                     exp *= &exp.clone();
                     exp %= self;
                 }
 
-                idx == 0 && exp == one || exp == x
+                !any && exp == one || exp == x
             })
         }
     }
@@ -506,7 +510,6 @@ pub mod prime {
         for<'s> &'s Prime: Ops,
     {
         next: Prime,
-        index: usize,
         count: usize,
         limit: Option<Prime>,
     }
@@ -518,7 +521,7 @@ pub mod prime {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
-            if self.primes.len() == self.count {
+            if self.count == 0 {
                 return None;
             }
 
@@ -548,14 +551,13 @@ pub mod prime {
                 }
             }
 
-            self.next = val;
-            self.primes.last().cloned()
+            self.count -= 1;
+
+            Some(replace(&mut self.next, val))
         }
 
         fn size_hint(&self) -> (usize, Option<usize>) {
-            let diff = self.count - self.primes.len();
-
-            (diff, Some(diff))
+            (self.count, Some(self.count))
         }
     }
 
@@ -566,7 +568,7 @@ pub mod prime {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
-            if self.index == self.count {
+            if self.count == 0 {
                 return None;
             }
 
@@ -586,15 +588,13 @@ pub mod prime {
                 }
             }
 
-            self.index += 1;
+            self.count -= 1;
 
             Some(replace(&mut self.next, val))
         }
 
         fn size_hint(&self) -> (usize, Option<usize>) {
-            let diff = self.count - self.index;
-
-            (diff, Some(diff))
+            (self.count, Some(self.count))
         }
     }
 
@@ -1584,12 +1584,21 @@ impl LongMutOperand<'_> {
         self.digits
     }
 
+    fn digits(&self) -> &[Single] {
+        &self.digits
+    }
+
     fn len(&self) -> usize {
         self.digits.len()
     }
 
     fn sign(&self) -> Sign {
         self.sign
+    }
+
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
     }
 }
 
@@ -1614,12 +1623,21 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         self.raw
     }
 
+    fn digits(&self) -> &[Single] {
+        &self.raw[..self.len]
+    }
+
     fn len(&self) -> usize {
         self.len
     }
 
     fn sign(&self) -> Sign {
         self.sign
+    }
+
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
     }
 }
 
@@ -1631,6 +1649,11 @@ impl MutRepr {
         let sign = get_sign(len, sign);
 
         Self { len, sign }
+    }
+
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
     }
 }
 
@@ -2211,7 +2234,7 @@ fn cmp_nums_ext(a: &[Single], ax: Single, b: &[Single], bx: Single) -> Ordering 
     }
 }
 
-fn add_single_long(a: Operand<'_>, b: Single) -> LongRepr {
+fn add_long_single(a: Operand<'_>, b: Single) -> LongRepr {
     match (a.sign(), Sign::from(b)) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return LongRepr::from_single(b),
@@ -2220,7 +2243,7 @@ fn add_single_long(a: Operand<'_>, b: Single) -> LongRepr {
     }
 
     if a.sign() == Sign::NEG {
-        return sub_single_long(-a, b);
+        return sub_long_single(-a, b);
     }
 
     let mut acc = b as Double;
@@ -2243,7 +2266,7 @@ fn add_single_long(a: Operand<'_>, b: Single) -> LongRepr {
     LongRepr::from_raw(res, a.sign())
 }
 
-fn add_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
+fn add_fixed_single<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
     match (a.sign(), Sign::from(b)) {
         (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
         (Sign::ZERO, _) => return FixedRepr::from_single(b),
@@ -2252,7 +2275,7 @@ fn add_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
     }
 
     if a.sign() == Sign::NEG {
-        return sub_single_fixed(-a, b);
+        return sub_fixed_single(-a, b);
     }
 
     let mut acc = b as Double;
@@ -2333,12 +2356,70 @@ fn add_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         .with_overflow(acc > 0)
 }
 
-fn add_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
-    todo!()
+fn add_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
+        (Sign::ZERO, _) => return a.copy_from_single(b),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() == Sign::NEG {
+        return sub_long_single_mut(-a, b);
+    }
+
+    let res = a.raw_mut();
+
+    let mut acc = b as Double;
+
+    for ptr in res.iter_mut() {
+        acc += *ptr as Double;
+
+        *ptr = acc as Single;
+
+        acc >>= Single::BITS;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    if acc > 0 {
+        res.push(acc as Single);
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn add_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
-    todo!()
+fn add_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
+        (Sign::ZERO, _) => return a.copy_from_single(b),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() == Sign::NEG {
+        return sub_fixed_single_mut(-a, b);
+    }
+
+    let res = a.raw_mut();
+
+    let mut acc = b as Double;
+
+    for ptr in res.iter_mut() {
+        acc += *ptr as Double;
+
+        *ptr = acc as Single;
+
+        acc >>= Single::BITS;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
 fn add_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
@@ -2405,7 +2486,7 @@ fn add_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn sub_single_long(a: Operand<'_>, b: Single) -> LongRepr {
+fn sub_long_single(a: Operand<'_>, b: Single) -> LongRepr {
     match (a.sign(), Sign::from(b)) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return LongRepr::from_single(b).with_neg(),
@@ -2414,11 +2495,11 @@ fn sub_single_long(a: Operand<'_>, b: Single) -> LongRepr {
     }
 
     if a.sign() == Sign::NEG {
-        return sub_single_long(-a, b);
+        return add_long_single(-a, b);
     }
 
     match cmp_nums(a.digits(), &[b]) {
-        Ordering::Less => return LongRepr::from_single(b - a.digits()[0]).with_neg(),
+        Ordering::Less => return LongRepr::from_single(b - *a.digits().get(0).unwrap_or(&0)).with_neg(),
         Ordering::Equal => return LongRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -2441,7 +2522,7 @@ fn sub_single_long(a: Operand<'_>, b: Single) -> LongRepr {
     LongRepr::from_raw(res, a.sign())
 }
 
-fn sub_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
+fn sub_fixed_single<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
     match (a.sign(), Sign::from(b)) {
         (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
         (Sign::ZERO, _) => return FixedRepr::from_single(b).with_neg(),
@@ -2450,11 +2531,11 @@ fn sub_single_fixed<const L: usize>(a: Operand<'_>, b: Single) -> FixedRepr<L> {
     }
 
     if a.sign() == Sign::NEG {
-        return sub_single_fixed(-a, b);
+        return add_fixed_single(-a, b);
     }
 
     match cmp_nums(a.digits(), &[b]) {
-        Ordering::Less => return FixedRepr::from_single(b - a.digits()[0]).with_neg(),
+        Ordering::Less => return FixedRepr::from_single(b - *a.digits().get(0).unwrap_or(&0)).with_neg(),
         Ordering::Equal => return FixedRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -2543,12 +2624,74 @@ fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     FixedRepr::from_raw(res, sign)
 }
 
-fn sub_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
-    todo!()
+fn sub_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
+        (Sign::ZERO, _) => return a.copy_from_single(b).with_neg(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() == Sign::NEG {
+        return add_long_single_mut(-a, b);
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return a.copy_from_single(b - *a.digits().get(0).unwrap_or(&0)).with_neg(),
+        Ordering::Equal => return MutRepr::ZERO,
+        Ordering::Greater => (),
+    };
+
+    let res = a.raw_mut();
+
+    let mut acc = b;
+
+    for ptr in res.iter_mut() {
+        *ptr = (RADIX + *ptr as Double - acc as Double) as Single;
+
+        acc = (*ptr < b + acc as Single) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn sub_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
-    todo!()
+fn sub_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
+        (Sign::ZERO, _) => return a.copy_from_single(b).with_neg(),
+        (_, Sign::ZERO) => return a.into(),
+        _ => (),
+    }
+
+    if a.sign() == Sign::NEG {
+        return add_fixed_single_mut(-a, b);
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return a.copy_from_single(b - *a.digits().get(0).unwrap_or(&0)).with_neg(),
+        Ordering::Equal => return MutRepr::ZERO,
+        Ordering::Greater => (),
+    };
+
+    let res = a.raw_mut();
+
+    let mut acc = b;
+
+    for ptr in res.iter_mut() {
+        *ptr = (RADIX + *ptr as Double - acc as Double) as Single;
+
+        acc = (*ptr < b + acc as Single) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
 fn sub_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
@@ -2559,7 +2702,7 @@ fn sub_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> M
     todo!()
 }
 
-fn mul_single_long(a: Operand<'_>, bop: Single) -> LongRepr {
+fn mul_long_single(a: Operand<'_>, bop: Single) -> LongRepr {
     match (a.sign(), Sign::from(bop)) {
         (Sign::ZERO, _) => return LongRepr::ZERO,
         (_, Sign::ZERO) => return LongRepr::ZERO,
@@ -2582,7 +2725,7 @@ fn mul_single_long(a: Operand<'_>, bop: Single) -> LongRepr {
     LongRepr::from_raw(res, a.sign())
 }
 
-fn mul_single_fixed<const L: usize>(a: Operand<'_>, bop: Single) -> FixedRepr<L> {
+fn mul_fixed_single<const L: usize>(a: Operand<'_>, bop: Single) -> FixedRepr<L> {
     match (a.sign(), Sign::from(bop)) {
         (Sign::ZERO, _) => return FixedRepr::ZERO,
         (_, Sign::ZERO) => return FixedRepr::ZERO,
@@ -2676,12 +2819,12 @@ fn mul_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         .with_overflow(over)
 }
 
-fn mul_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
-    todo!()
+fn mul_long_single_mut(a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    mul_long_mut(a, Operand::from_raw(&[b]))
 }
 
-fn mul_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
-    todo!()
+fn mul_fixed_single_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    mul_fixed_mut(a, Operand::from_raw(&[b]))
 }
 
 fn mul_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
@@ -2690,6 +2833,14 @@ fn mul_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
 
 fn mul_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
     todo!()
+}
+
+fn div_long_single(a: Operand<'_>, b: Single) -> (LongRepr, LongRepr) {
+    div_long(a, Operand::from_raw(&[b]))
+}
+
+fn div_fixed_single<const L: usize>(a: Operand<'_>, b: Single) -> (FixedRepr<L>, FixedRepr<L>) {
+    div_fixed(a, Operand::from_raw(&[b]))
 }
 
 fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
@@ -2731,7 +2882,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
         while l < r {
             let m = l + (r - l) / 2;
 
-            let val = mul_single_long(bpos, m as Single);
+            let val = mul_long_single(bpos, m as Single);
 
             match cmp_nums(val.digits(), &rem[..len]) {
                 Ordering::Less => l = m + 1,
@@ -2791,7 +2942,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
         while l < r {
             let m = l + (r - l) / 2;
 
-            let val = mul_single_fixed::<L>(bpos, m as Single);
+            let val = mul_fixed_single::<L>(bpos, m as Single);
 
             match cmp_nums_ext(&val.raw, val.overflow_val, &rem, remx) {
                 Ordering::Less => l = m + 1,
@@ -2806,12 +2957,12 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
     (FixedRepr::from_raw(div, sign_a * sign_b), FixedRepr::from_raw(rem, sign_a))
 }
 
-fn div_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
-    todo!()
+fn div_long_single_mut(a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    div_long_mut(a, Operand::from_raw(&[b]))
 }
 
-fn div_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
-    todo!()
+fn div_fixed_single_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    div_fixed_mut(a, Operand::from_raw(&[b]))
 }
 
 fn div_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
@@ -2822,12 +2973,12 @@ fn div_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> M
     todo!()
 }
 
-fn rem_single_long_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
-    todo!()
+fn rem_long_single_mut(a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    rem_long_mut(a, Operand::from_raw(&[b]))
 }
 
-fn rem_single_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
-    todo!()
+fn rem_fixed_single_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    rem_fixed_mut(a, Operand::from_raw(&[b]))
 }
 
 fn rem_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
@@ -2836,6 +2987,20 @@ fn rem_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
 
 fn rem_fixed_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
     todo!()
+}
+
+fn bit_long_single<F>(a: Operand<'_>, b: Single, func: F) -> LongRepr
+where
+    F: Fn(Single, Single) -> Single,
+{
+    bit_long(a, Operand::from_raw(&[b]), func)
+}
+
+fn bit_fixed_single<const L: usize, F>(a: Operand<'_>, b: Single, func: F) -> FixedRepr<L>
+where
+    F: Fn(Single, Single) -> Single,
+{
+    bit_fixed(a, Operand::from_raw(&[b]), func)
 }
 
 fn bit_long<F>(a: Operand<'_>, b: Operand<'_>, func: F) -> LongRepr
@@ -2858,6 +3023,20 @@ where
         .collect_with([0; L]);
 
     FixedRepr::from_raw(res, Sign::POS)
+}
+
+fn bit_long_single_mut<F>(a: LongMutOperand<'_>, b: Single, func: F)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    bit_long_mut(a, Operand::from_raw(&[b]), func)
+}
+
+fn bit_fixed_single_mut<const L: usize, F>(a: FixedMutOperand<'_, L>, b: Single, func: F)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    bit_fixed_mut(a, Operand::from_raw(&[b]), func)
 }
 
 fn bit_long_mut<F>(mut a: LongMutOperand<'_>, b: Operand<'_>, func: F)
@@ -3170,6 +3349,8 @@ ops_impl!(@un <const L: usize> |a: SignedFixed<L>| -> SignedFixed<L>, - a.with_n
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - (*a).with_neg());
 
 ops_impl!(@un <'digits> |*a: &Operand<'digits>| -> Operand<'digits>, - a.with_neg());
+ops_impl!(@un <'digits> |a: LongMutOperand<'digits>| -> LongMutOperand<'digits>, - a.with_neg());
+ops_impl!(@un <'digits, const L: usize> |a: FixedMutOperand<'digits, L>| -> FixedMutOperand<'digits, L>, - a.with_neg());
 
 ops_impl!(@bin |*a: &SignedLong, *b: &SignedLong| -> SignedLong,
     + add_long((&a).into(), (&b).into()),
@@ -3191,6 +3372,46 @@ ops_impl!(@bin |*a: &UnsignedLong, *b: &UnsignedLong| -> UnsignedLong,
     & bit_long((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_long((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
+ops_impl!(@bin |*a: &SignedLong, b: Single| -> SignedLong,
+    + add_long_single((&a).into(), b),
+    - sub_long_single((&a).into(), b),
+    * mul_long_single((&a).into(), b),
+    / div_long_single((&a).into(), b).0,
+    % div_long_single((&a).into(), b).1,
+    | bit_long_single((&a).into(), b, |aop, bop| aop | bop),
+    & bit_long_single((&a).into(), b, |aop, bop| aop & bop),
+    ^ bit_long_single((&a).into(), b, |aop, bop| aop ^ bop));
+
+ops_impl!(@bin |*a: &UnsignedLong, b: Single| -> UnsignedLong,
+    + add_long_single((&a).into(), b),
+    - sub_long_single((&a).into(), b),
+    * mul_long_single((&a).into(), b),
+    / div_long_single((&a).into(), b).0,
+    % div_long_single((&a).into(), b).1,
+    | bit_long_single((&a).into(), b, |aop, bop| aop | bop),
+    & bit_long_single((&a).into(), b, |aop, bop| aop & bop),
+    ^ bit_long_single((&a).into(), b, |aop, bop| aop ^ bop));
+
+ops_impl!(@bin |a: Single, *b: &SignedLong| -> SignedLong,
+    + add_long_single((&b).into(), a),
+    - sub_long_single((&b).into(), a),
+    * mul_long_single((&b).into(), a),
+    / div_long_single((&b).into(), a).0,
+    % div_long_single((&b).into(), a).1,
+    | bit_long_single((&b).into(), a, |aop, bop| aop | bop),
+    & bit_long_single((&b).into(), a, |aop, bop| aop & bop),
+    ^ bit_long_single((&b).into(), a, |aop, bop| aop ^ bop));
+
+ops_impl!(@bin |a: Single, *b: &UnsignedLong| -> UnsignedLong,
+    + add_long_single((&b).into(), a),
+    - sub_long_single((&b).into(), a),
+    * mul_long_single((&b).into(), a),
+    / div_long_single((&b).into(), a).0,
+    % div_long_single((&b).into(), a).1,
+    | bit_long_single((&b).into(), a, |aop, bop| aop | bop),
+    & bit_long_single((&b).into(), a, |aop, bop| aop & bop),
+    ^ bit_long_single((&b).into(), a, |aop, bop| aop ^ bop));
+
 ops_impl!(@bin |*a: &SignedLong, *b: usize| -> SignedLong,
     << shl_long((&a).into(), b),
     >> shr_long((&a).into(), b));
@@ -3200,24 +3421,44 @@ ops_impl!(@bin |*a: &UnsignedLong, *b: usize| -> UnsignedLong,
     >> shr_long((&a).into(), b));
 
 ops_impl!(@mut |a: mut SignedLong, *b: &SignedLong|,
-    += ops_impl_mut_fn!(add_long_mut, a, b),
-    -= ops_impl_mut_fn!(sub_long_mut, a, b),
-    *= ops_impl_mut_fn!(mul_long_mut, a, b),
-    /= ops_impl_mut_fn!(div_long_mut, a, b),
-    %= ops_impl_mut_fn!(rem_long_mut, a, b),
+    += ops_mut_fn!(@ref add_long_mut, a, b),
+    -= ops_mut_fn!(@ref sub_long_mut, a, b),
+    *= ops_mut_fn!(@ref mul_long_mut, a, b),
+    /= ops_mut_fn!(@ref div_long_mut, a, b),
+    %= ops_mut_fn!(@ref rem_long_mut, a, b),
     |= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
     &= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
     ^= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut |a: mut UnsignedLong, *b: &UnsignedLong|,
-    += ops_impl_mut_fn!(add_long_mut, a, b),
-    -= ops_impl_mut_fn!(sub_long_mut, a, b),
-    *= ops_impl_mut_fn!(mul_long_mut, a, b),
-    /= ops_impl_mut_fn!(div_long_mut, a, b),
-    %= ops_impl_mut_fn!(rem_long_mut, a, b),
+    += ops_mut_fn!(@ref add_long_mut, a, b),
+    -= ops_mut_fn!(@ref sub_long_mut, a, b),
+    *= ops_mut_fn!(@ref mul_long_mut, a, b),
+    /= ops_mut_fn!(@ref div_long_mut, a, b),
+    %= ops_mut_fn!(@ref rem_long_mut, a, b),
     |= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
     &= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
     ^= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
+
+ops_impl!(@mut |a: mut SignedLong, b: Single|,
+    += ops_mut_fn!(@val add_long_single_mut, a, b),
+    -= ops_mut_fn!(@val sub_long_single_mut, a, b),
+    *= ops_mut_fn!(@val mul_long_single_mut, a, b),
+    /= ops_mut_fn!(@val div_long_single_mut, a, b),
+    %= ops_mut_fn!(@val rem_long_single_mut, a, b),
+    |= bit_long_single_mut(a.into(), b, |aop, bop| aop | bop),
+    &= bit_long_single_mut(a.into(), b, |aop, bop| aop & bop),
+    ^= bit_long_single_mut(a.into(), b, |aop, bop| aop ^ bop));
+
+ops_impl!(@mut |a: mut UnsignedLong, b: Single|,
+    += ops_mut_fn!(@val add_long_single_mut, a, b),
+    -= ops_mut_fn!(@val sub_long_single_mut, a, b),
+    *= ops_mut_fn!(@val mul_long_single_mut, a, b),
+    /= ops_mut_fn!(@val div_long_single_mut, a, b),
+    %= ops_mut_fn!(@val rem_long_single_mut, a, b),
+    |= bit_long_single_mut(a.into(), b, |aop, bop| aop | bop),
+    &= bit_long_single_mut(a.into(), b, |aop, bop| aop & bop),
+    ^= bit_long_single_mut(a.into(), b, |aop, bop| aop ^ bop));
 
 ops_impl!(@mut |a: mut SignedLong, b: usize|,
     <<= shl_long_mut(a.into(), b),
@@ -3247,6 +3488,46 @@ ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, *b: &UnsignedFixed<L>| -
     & bit_fixed((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_fixed((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
+ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, b: Single| -> SignedFixed::<L>,
+    + add_fixed_single((&a).into(), b),
+    - sub_fixed_single((&a).into(), b),
+    * mul_fixed_single((&a).into(), b),
+    / div_fixed_single((&a).into(), b).0,
+    % div_fixed_single((&a).into(), b).1,
+    | bit_fixed_single((&a).into(), b, |aop, bop| aop | bop),
+    & bit_fixed_single((&a).into(), b, |aop, bop| aop & bop),
+    ^ bit_fixed_single((&a).into(), b, |aop, bop| aop ^ bop));
+
+ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, b: Single| -> UnsignedFixed::<L>,
+    + add_fixed_single((&a).into(), b),
+    - sub_fixed_single((&a).into(), b),
+    * mul_fixed_single((&a).into(), b),
+    / div_fixed_single((&a).into(), b).0,
+    % div_fixed_single((&a).into(), b).1,
+    | bit_fixed_single((&a).into(), b, |aop, bop| aop | bop),
+    & bit_fixed_single((&a).into(), b, |aop, bop| aop & bop),
+    ^ bit_fixed_single((&a).into(), b, |aop, bop| aop ^ bop));
+
+ops_impl!(@bin <const L: usize> |a: Single, *b: &SignedFixed<L>| -> SignedFixed::<L>,
+    + add_fixed_single((&b).into(), a),
+    - sub_fixed_single((&b).into(), a),
+    * mul_fixed_single((&b).into(), a),
+    / div_fixed_single((&b).into(), a).0,
+    % div_fixed_single((&b).into(), a).1,
+    | bit_fixed_single((&b).into(), a, |aop, bop| aop | bop),
+    & bit_fixed_single((&b).into(), a, |aop, bop| aop & bop),
+    ^ bit_fixed_single((&b).into(), a, |aop, bop| aop ^ bop));
+
+ops_impl!(@bin <const L: usize> |a: Single, *b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
+    + add_fixed_single((&b).into(), a),
+    - sub_fixed_single((&b).into(), a),
+    * mul_fixed_single((&b).into(), a),
+    / div_fixed_single((&b).into(), a).0,
+    % div_fixed_single((&b).into(), a).1,
+    | bit_fixed_single((&b).into(), a, |aop, bop| aop | bop),
+    & bit_fixed_single((&b).into(), a, |aop, bop| aop & bop),
+    ^ bit_fixed_single((&b).into(), a, |aop, bop| aop ^ bop));
+
 ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
     << shl_fixed((&a).into(), b),
     >> shr_fixed((&a).into(), b));
@@ -3256,32 +3537,52 @@ ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, b: usize| -> UnsignedFix
     >> shr_fixed((&a).into(), b));
 
 ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, *b: &SignedFixed<L>|,
-    += ops_impl_mut_fn!(add_fixed_mut, a, b),
-    -= ops_impl_mut_fn!(sub_fixed_mut, a, b),
-    *= ops_impl_mut_fn!(mul_fixed_mut, a, b),
-    /= ops_impl_mut_fn!(div_fixed_mut, a, b),
-    %= ops_impl_mut_fn!(rem_fixed_mut, a, b),
+    += ops_mut_fn!(@ref add_fixed_mut, a, b),
+    -= ops_mut_fn!(@ref sub_fixed_mut, a, b),
+    *= ops_mut_fn!(@ref mul_fixed_mut, a, b),
+    /= ops_mut_fn!(@ref div_fixed_mut, a, b),
+    %= ops_mut_fn!(@ref rem_fixed_mut, a, b),
     |= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
     &= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
     ^= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut <const L: usize> |a: mut UnsignedFixed<L>, *b: &UnsignedFixed<L>|,
-    += ops_impl_mut_fn!(add_fixed_mut, a, b),
-    -= ops_impl_mut_fn!(sub_fixed_mut, a, b),
-    *= ops_impl_mut_fn!(mul_fixed_mut, a, b),
-    /= ops_impl_mut_fn!(div_fixed_mut, a, b),
-    %= ops_impl_mut_fn!(rem_fixed_mut, a, b),
+    += ops_mut_fn!(@ref add_fixed_mut, a, b),
+    -= ops_mut_fn!(@ref sub_fixed_mut, a, b),
+    *= ops_mut_fn!(@ref mul_fixed_mut, a, b),
+    /= ops_mut_fn!(@ref div_fixed_mut, a, b),
+    %= ops_mut_fn!(@ref rem_fixed_mut, a, b),
     |= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
     &= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
     ^= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
+ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, b: Single|,
+    += ops_mut_fn!(@val add_fixed_single_mut, a, b),
+    -= ops_mut_fn!(@val sub_fixed_single_mut, a, b),
+    *= ops_mut_fn!(@val mul_fixed_single_mut, a, b),
+    /= ops_mut_fn!(@val div_fixed_single_mut, a, b),
+    %= ops_mut_fn!(@val rem_fixed_single_mut, a, b),
+    |= bit_fixed_single_mut(a.into(), b, |aop, bop| aop | bop),
+    &= bit_fixed_single_mut(a.into(), b, |aop, bop| aop & bop),
+    ^= bit_fixed_single_mut(a.into(), b, |aop, bop| aop ^ bop));
+
+ops_impl!(@mut <const L: usize> |a: mut UnsignedFixed<L>, b: Single|,
+    += ops_mut_fn!(@val add_fixed_single_mut, a, b),
+    -= ops_mut_fn!(@val sub_fixed_single_mut, a, b),
+    *= ops_mut_fn!(@val mul_fixed_single_mut, a, b),
+    /= ops_mut_fn!(@val div_fixed_single_mut, a, b),
+    %= ops_mut_fn!(@val rem_fixed_single_mut, a, b),
+    |= bit_fixed_single_mut(a.into(), b, |aop, bop| aop | bop),
+    &= bit_fixed_single_mut(a.into(), b, |aop, bop| aop & bop),
+    ^= bit_fixed_single_mut(a.into(), b, |aop, bop| aop ^ bop));
+
 ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, b: usize|,
-    <<= shl_fixed_mut(a.into(), b),
-    >>= shr_fixed_mut(a.into(), b));
+    <<= ops_mut_fn!(@val shl_fixed_mut, a, b),
+    >>= ops_mut_fn!(@val shr_fixed_mut, a, b));
 
 ops_impl!(@mut <const L: usize> |a: mut UnsignedFixed<L>, b: usize|,
-    <<= shl_fixed_mut(a.into(), b),
-    >>= shr_fixed_mut(a.into(), b));
+    <<= ops_mut_fn!(@val shl_fixed_mut, a, b),
+    >>= ops_mut_fn!(@val shr_fixed_mut, a, b));
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
     if s.is_empty() {
