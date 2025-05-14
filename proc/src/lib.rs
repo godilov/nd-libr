@@ -19,6 +19,7 @@ struct OpsRaw {
 #[allow(dead_code)]
 struct OpsSignatureMutable {
     lhs_token: Token![|],
+    lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
     lhs_colon: Token![:],
@@ -26,6 +27,7 @@ struct OpsSignatureMutable {
     lhs_mut: Token![mut],
     lhs_type: Type,
     delim: Token![,],
+    rhs_vmut: Option<Token![mut]>,
     rhs_star: Option<Token![*]>,
     rhs_ident: Ident,
     rhs_colon: Token![:],
@@ -37,12 +39,14 @@ struct OpsSignatureMutable {
 #[allow(dead_code)]
 struct OpsSignatureBinary {
     lhs_token: Token![|],
+    lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
     lhs_type: Type,
     delim: Token![,],
+    rhs_vmut: Option<Token![mut]>,
     rhs_star: Option<Token![*]>,
     rhs_ident: Ident,
     rhs_colon: Token![:],
@@ -56,6 +60,7 @@ struct OpsSignatureBinary {
 #[allow(dead_code)]
 struct OpsSignatureUnary {
     lhs_token: Token![|],
+    lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
     lhs_colon: Token![:],
@@ -135,6 +140,7 @@ impl Parse for OpsSignatureMutable {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
+            lhs_vmut: input.parse().ok(),
             lhs_star: input.parse().ok(),
             lhs_ident: input.parse()?,
             lhs_colon: input.parse()?,
@@ -142,6 +148,7 @@ impl Parse for OpsSignatureMutable {
             lhs_mut: input.parse()?,
             lhs_type: input.parse()?,
             delim: input.parse()?,
+            rhs_vmut: input.parse().ok(),
             rhs_star: input.parse().ok(),
             rhs_ident: input.parse()?,
             rhs_colon: input.parse()?,
@@ -156,12 +163,14 @@ impl Parse for OpsSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
+            lhs_vmut: input.parse().ok(),
             lhs_star: input.parse().ok(),
             lhs_ident: input.parse()?,
             lhs_colon: input.parse()?,
             lhs_ref: input.parse().ok(),
             lhs_type: input.parse()?,
             delim: input.parse()?,
+            rhs_vmut: input.parse().ok(),
             rhs_star: input.parse().ok(),
             rhs_ident: input.parse()?,
             rhs_colon: input.parse()?,
@@ -178,6 +187,7 @@ impl Parse for OpsSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             lhs_token: input.parse()?,
+            lhs_vmut: input.parse().ok(),
             lhs_star: input.parse().ok(),
             lhs_ident: input.parse()?,
             lhs_colon: input.parse()?,
@@ -292,8 +302,10 @@ impl ToTokens for OpsImplMutable {
                 None => (None, None),
             };
 
+            let lhs_mut = &val.signature.lhs_vmut;
             let lhs_ident = &val.signature.lhs_ident;
             let lhs_type = &val.signature.lhs_type;
+            let rhs_mut = &val.signature.rhs_vmut;
             let rhs_ident = &val.signature.rhs_ident;
             let rhs_type = &val.signature.rhs_type;
 
@@ -305,7 +317,7 @@ impl ToTokens for OpsImplMutable {
                 impl #implgen #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #wheregen {
                     fn #ident(&mut self, rhs: #rhs_ref #rhs_type ) {
                         #[allow(clippy::redundant_closure_call)]
-                        (|#lhs_ident: &mut #lhs_type, #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs);
+                        (|#lhs_mut #lhs_ident: &mut #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs);
                     }
                 }
             }
@@ -398,8 +410,10 @@ impl ToTokens for OpsImplBinary {
                 None => (None, None),
             };
 
+            let lhs_mut = &val.signature.lhs_vmut;
             let lhs_ident = &val.signature.lhs_ident;
             let lhs_type = &val.signature.lhs_type;
+            let rhs_mut = &val.signature.rhs_vmut;
             let rhs_ident = &val.signature.rhs_ident;
             let rhs_type = &val.signature.rhs_type;
             let op_type = &val.signature.op_type;
@@ -412,7 +426,7 @@ impl ToTokens for OpsImplBinary {
 
                     fn #ident(self, rhs: #rhs_ref #rhs_type) -> Self::Output {
                         #[allow(clippy::redundant_closure_call)]
-                        (|#lhs_ident: #lhs_ref #lhs_type, #rhs_ident: #rhs_ref #rhs_type| { #op_type::from(#expr) })(self, rhs)
+                        (|#lhs_mut #lhs_ident: #lhs_ref #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #op_type::from(#expr) })(self, rhs)
                     }
                 }
             }
@@ -505,6 +519,7 @@ impl ToTokens for OpsImplUnary {
                 None => (None, None),
             };
 
+            let lhs_mut = &val.signature.lhs_vmut;
             let lhs_ident = &val.signature.lhs_ident;
             let lhs_type = &val.signature.lhs_type;
             let op_type = &val.signature.op_type;
@@ -517,7 +532,7 @@ impl ToTokens for OpsImplUnary {
 
                     fn #ident(self) -> Self::Output {
                         #[allow(clippy::redundant_closure_call)]
-                        (|#lhs_ident: #lhs_ref #lhs_type| { (#expr).into() })(self)
+                        (|#lhs_mut #lhs_ident: #lhs_ref #lhs_type| { (#expr).into() })(self)
                     }
                 }
             }
