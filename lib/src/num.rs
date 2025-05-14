@@ -12,6 +12,7 @@ use digit::{Double, Single};
 use ndproc::ops_impl;
 use prime::{Primality, PRIMES};
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
+use rand::{CryptoRng, Rng};
 use thiserror::Error;
 
 use crate::ops::{IteratorExt, Ops, OpsAssign, OpsFrom};
@@ -736,7 +737,7 @@ where
             Ordering::Greater => (self, val),
         };
 
-        while b > zero {
+        while b != zero {
             let rem = Self::from(&a % &b);
 
             a = b;
@@ -761,7 +762,7 @@ where
         let mut acc = self;
         let mut res = one;
 
-        while pow > zero {
+        while pow != zero {
             if !pow.is_even() {
                 res *= &acc;
                 res %= rem;
@@ -773,6 +774,42 @@ where
         }
 
         res
+    }
+}
+
+pub trait NumRand: Num
+where
+    for<'s> &'s Self: Ops,
+{
+    const MAX_ORDER: usize;
+
+    fn bitor_offset(&mut self, mask: u64, offset: usize);
+
+    fn bitand_offset(&mut self, mask: u64, offset: usize);
+
+    fn rand<R: ?Sized + Rng + CryptoRng>(order: usize, odd: bool, rng: &mut R) -> Option<Self> {
+        if order >= Self::MAX_ORDER {
+            return None;
+        }
+
+        let div = order / u64::BITS as usize;
+        let rem = order % u64::BITS as usize;
+
+        let mut res = Self::zero();
+
+        res.bitor_offset((1 << rem) | rng.next_u64() & ((1 << rem) - 1), order - rem);
+
+        for idx in 0..div {
+            res.bitor_offset(rng.next_u64(), order - rem - idx * div);
+        }
+
+        if odd {
+            res.bitor_offset(1, 0);
+        } else {
+            res.bitand_offset(u64::MAX - 1, 0);
+        }
+
+        Some(res)
     }
 }
 

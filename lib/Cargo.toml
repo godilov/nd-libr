@@ -10,6 +10,7 @@ authors.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+rand = { workspace = true }
 
 rayon = { workspace = true }
 tokio = { workspace = true }
