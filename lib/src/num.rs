@@ -75,7 +75,7 @@ macro_rules! prime_impl {
     ($type:ty, $count:expr $(,)?) => {
         impl Primality for $type {
             fn primes() -> impl Iterator<Item = Self> {
-                PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p < Self::MAX.isqrt())
+                PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p <= Self::MAX.isqrt())
             }
 
             fn as_count_estimate(&self) -> usize {
@@ -392,7 +392,9 @@ mod radix {
 pub mod prime {
     use std::mem::replace;
 
-    use super::Unsigned;
+    use rand::{CryptoRng, Rng};
+
+    use super::{Num, NumBuilder, Unsigned};
     use crate::ops::Ops;
 
     pub(super) const PRIMES: [u16; 128] = [
@@ -467,33 +469,6 @@ pub mod prime {
         fn as_count_check_estimate(&self) -> usize;
 
         fn as_limit_check_estimate(&self) -> usize;
-
-        fn is_prime(&self) -> bool {
-            let sqrt = self.sqrt();
-
-            Self::primes().take_while(|p| p <= &sqrt).all(|p| {
-                let one = Self::one();
-
-                let x = Self::from(self - &one);
-
-                let shr = Self::from(&x - &one);
-                let shr = Self::from(&x ^ &shr);
-                let shr = shr.order();
-
-                let mut any = false;
-                let mut pow = Self::from(&x >> shr);
-                let mut exp = p.pow_rem(pow.clone(), self);
-
-                while pow < x && one < exp && exp < x {
-                    any |= true;
-                    pow <<= 1;
-                    exp *= &exp.clone();
-                    exp %= self;
-                }
-
-                !any && exp == one || exp == x
-            })
-        }
     }
 
     struct PrimesFullIter<Prime: Primality>
@@ -705,6 +680,25 @@ struct MutRepr {
     sign: Sign,
 }
 
+pub trait NumBuilder: Num
+where
+    for<'s> &'s Self: Ops,
+{
+    fn bitor_offset(&mut self, mask: u64, offset: usize);
+
+    fn bitand_offset(&mut self, mask: u64, offset: usize);
+
+    fn with_odd(mut self) -> Self {
+        self.bitor_offset(1, 0);
+        self
+    }
+
+    fn with_even(mut self) -> Self {
+        self.bitand_offset(u64::MAX - 1, 0);
+        self
+    }
+}
+
 pub trait Num: Sized + Default + Display + Clone + Eq + Ord + From<bool>
 where
     for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self> + OpsFrom + OpsFrom<&'s Self, &'s Self>,
@@ -775,23 +769,11 @@ where
 
         res
     }
-}
 
-pub trait NumRand: Num
-where
-    for<'s> &'s Self: Ops,
-{
-    const MAX_ORDER: usize;
-
-    fn bitor_offset(&mut self, mask: u64, offset: usize);
-
-    fn bitand_offset(&mut self, mask: u64, offset: usize);
-
-    fn rand<R: ?Sized + Rng + CryptoRng>(order: usize, odd: bool, rng: &mut R) -> Option<Self> {
-        if order >= Self::MAX_ORDER {
-            return None;
-        }
-
+    fn rand<R: ?Sized + Rng>(order: usize, rng: &mut R) -> Self
+    where
+        Self: NumBuilder,
+    {
         let div = order / u64::BITS as usize;
         let rem = order % u64::BITS as usize;
 
@@ -803,13 +785,50 @@ where
             res.bitor_offset(rng.next_u64(), order - rem - idx * div);
         }
 
-        if odd {
-            res.bitor_offset(1, 0);
-        } else {
-            res.bitand_offset(u64::MAX - 1, 0);
+        res
+    }
+
+    fn rand_prime<R: ?Sized + Rng + CryptoRng>(order: usize, rng: &mut R) -> Self
+    where
+        Self: NumBuilder + Primality,
+    {
+        let mut val = Self::rand(order, rng);
+
+        while !val.is_prime() {
+            val = Self::rand(order, rng);
         }
 
-        Some(res)
+        val
+    }
+
+    fn is_prime(&self) -> bool
+    where
+        Self: Primality,
+    {
+        let sqrt = self.sqrt();
+
+        Self::primes().take_while(|p| p <= &sqrt).all(|p| {
+            let one = Self::one();
+
+            let x = Self::from(self - &one);
+
+            let shr = Self::from(&x - &one);
+            let shr = Self::from(&x ^ &shr);
+            let shr = shr.order();
+
+            let mut any = false;
+            let mut pow = Self::from(&x >> shr);
+            let mut exp = p.pow_rem(pow.clone(), self);
+
+            while pow < x && one < exp && exp < x {
+                any |= true;
+                pow <<= 1;
+                exp *= &exp.clone();
+                exp %= self;
+            }
+
+            !any && exp == one || exp == x
+        })
     }
 }
 
