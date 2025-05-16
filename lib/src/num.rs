@@ -497,7 +497,7 @@ pub mod prime {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
-            if self.count == 0 {
+            if self.count == 0 || self.limit.as_ref().is_some_and(|limit| &self.next > limit) {
                 return None;
             }
 
@@ -522,8 +522,10 @@ pub mod prime {
             {
                 val += &two;
 
-                if Some(&val) > self.limit.as_ref() {
-                    return None;
+                if self.limit.as_ref().is_some_and(|limit| &val > limit) {
+                    self.count = 0;
+
+                    return Some(replace(&mut self.next, Default::default()));
                 }
             }
 
@@ -544,7 +546,7 @@ pub mod prime {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
-            if self.count == 0 {
+            if self.count == 0 || self.limit.as_ref().is_some_and(|limit| &self.next > limit) {
                 return None;
             }
 
@@ -559,8 +561,10 @@ pub mod prime {
             while !val.is_prime() {
                 val += &two;
 
-                if Some(&val) > self.limit.as_ref() {
-                    return None;
+                if self.limit.as_ref().is_some_and(|limit| &val > limit) {
+                    self.count = 0;
+
+                    return Some(replace(&mut self.next, Default::default()));
                 }
             }
 
