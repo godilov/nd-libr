@@ -18,11 +18,11 @@ enum Commands {
         cmd: PrimeCommands,
 
         /// Json filepath for prime array
-        #[arg(short, long, default_value = "./primes.json")]
-        output: PathBuf,
+        #[arg(short, long)]
+        filepath: Option<PathBuf>,
 
         /// Pretty Json file
-        #[arg(short, long)]
+        #[arg(long)]
         pretty: bool,
     },
 }
@@ -58,7 +58,7 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.cmd {
-        Commands::Primes { cmd, output, pretty } => {
+        Commands::Primes { cmd, filepath, pretty } => {
             let primes = match cmd {
                 PrimeCommands::Count { val, fast } => match fast {
                     false => Primes::by_count_full(val).collect::<Vec<u64>>(),
@@ -70,12 +70,17 @@ fn main() -> anyhow::Result<()> {
                 },
             };
 
-            let file = File::create(output)?;
+            if let Some(file) = filepath {
+                let file = File::create(file)?;
 
-            match pretty {
-                false => serde_json::to_writer(file, &primes)?,
-                true => serde_json::to_writer_pretty(file, &primes)?,
-            };
+                match pretty {
+                    false => serde_json::to_writer(file, &primes)?,
+                    true => serde_json::to_writer_pretty(file, &primes)?,
+                };
+            } else {
+                tracing::info!("Count: {}", primes.len());
+                tracing::info!("Primes: {:?}", &primes[primes.len().saturating_sub(30)..primes.len()]);
+            }
         },
     }
 
