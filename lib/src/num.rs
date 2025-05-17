@@ -5,6 +5,7 @@ use std::{
     cmp::Ordering,
     fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
     iter::repeat_n,
+    num::NonZero,
     str::FromStr,
 };
 
@@ -12,7 +13,8 @@ use digit::{Double, Single};
 use ndproc::ops_impl;
 use prime::{Primality, PRIMES};
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
-use rand::{CryptoRng, Rng};
+use rand::{rngs::StdRng, CryptoRng, Rng, SeedableRng};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
 use crate::ops::{IteratorExt, Ops, OpsAssign, OpsFrom};
@@ -36,6 +38,16 @@ macro_rules! num_impl {
         $(num_impl!($trait, $type,);)+
     };
     ($trait:ty, $type:ty $(,)?) => {
+        impl NumBuilder for $type {
+            fn bitor_offset(&mut self, mask: u64, offset: usize) {
+                *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
+            }
+
+            fn bitand_offset(&mut self, mask: u64, offset: usize) {
+                *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
+            }
+        }
+
         impl Num for $type {
             fn bits(&self) -> usize {
                 <$type>::BITS as usize
@@ -288,7 +300,9 @@ pub type S192 = signed_fixed!(192);
 pub type S256 = signed_fixed!(256);
 pub type S384 = signed_fixed!(384);
 pub type S512 = signed_fixed!(512);
+pub type S768 = signed_fixed!(768);
 pub type S1024 = signed_fixed!(1024);
+pub type S1536 = signed_fixed!(1536);
 pub type S2048 = signed_fixed!(2048);
 pub type S3072 = signed_fixed!(3072);
 pub type S4096 = signed_fixed!(4096);
@@ -300,14 +314,16 @@ pub type U192 = unsigned_fixed!(192);
 pub type U256 = unsigned_fixed!(256);
 pub type U384 = unsigned_fixed!(384);
 pub type U512 = unsigned_fixed!(512);
+pub type U768 = unsigned_fixed!(768);
 pub type U1024 = unsigned_fixed!(1024);
+pub type U1536 = unsigned_fixed!(1536);
 pub type U2048 = unsigned_fixed!(2048);
 pub type U3072 = unsigned_fixed!(3072);
 pub type U4096 = unsigned_fixed!(4096);
 pub type U6144 = unsigned_fixed!(6144);
 pub type U8192 = unsigned_fixed!(8192);
 
-#[cfg(all(target_pointer_width = "64", not(test), not(feature = "bytes")))]
+#[cfg(all(target_pointer_width = "64", not(test)))]
 pub mod digit {
     pub type Single = u64;
     pub type Double = u128;
@@ -319,7 +335,7 @@ pub mod digit {
     pub(super) const DEC_WIDTH: u8 = 19;
 }
 
-#[cfg(all(target_pointer_width = "32", not(test), not(feature = "bytes")))]
+#[cfg(all(target_pointer_width = "32", not(test)))]
 pub mod digit {
     pub type Single = u32;
     pub type Double = u64;
@@ -331,7 +347,7 @@ pub mod digit {
     pub(super) const DEC_WIDTH: u8 = 9;
 }
 
-#[cfg(any(test, feature = "bytes"))]
+#[cfg(test)]
 pub mod digit {
     pub type Single = u8;
     pub type Double = u16;
@@ -778,31 +794,62 @@ where
     where
         Self: NumBuilder,
     {
-        let div = order / u64::BITS as usize;
-        let rem = order % u64::BITS as usize;
+        let shift = order - 1;
+        let div = shift / u64::BITS as usize;
+        let rem = shift % u64::BITS as usize;
 
         let mut res = Self::zero();
 
-        res.bitor_offset((1 << rem) | rng.next_u64() & ((1 << rem) - 1), order - rem);
+        res.bitor_offset((1 << rem) | rng.next_u64() & ((1 << rem) - 1), shift - rem);
 
         for idx in 0..div {
-            res.bitor_offset(rng.next_u64(), order - rem - idx * div);
+            res.bitor_offset(rng.next_u64(), shift - rem - idx * div);
         }
 
         res
     }
 
-    fn rand_prime<R: ?Sized + Rng + CryptoRng>(order: usize, rng: &mut R) -> Self
+    fn rand_prime(order: usize) -> Self
     where
         Self: NumBuilder + Primality,
     {
-        let mut val = Self::rand(order, rng);
+        let mut rng = rand::rng();
+        let mut val = Self::rand(order, &mut rng).with_odd();
 
         while !val.is_prime() {
-            val = Self::rand(order, rng);
+            val = Self::rand(order, &mut rng).with_odd();
         }
 
         val
+    }
+
+    fn rand_primes(order: usize, count: usize) -> Vec<Self>
+    where
+        Self: NumBuilder + Primality,
+    {
+        (0..count).into_iter().map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
+    }
+
+    fn rand_par_prime(order: usize) -> Self
+    where
+        Self: Send + NumBuilder + Primality,
+    {
+        let threads = std::thread::available_parallelism().map(|val| val.get()).unwrap_or(1);
+
+        (0..threads)
+            .into_par_iter()
+            .find_map_first(|_| Some(Self::rand_prime(order)))
+            .unwrap_or_default()
+    }
+
+    fn rand_par_primes(order: usize, count: usize) -> Vec<Self>
+    where
+        Self: Send + NumBuilder + Primality,
+    {
+        (0..count)
+            .into_par_iter()
+            .map(|_| Self::rand_prime(order))
+            .collect::<Vec<Self>>()
     }
 
     fn is_prime(&self) -> bool
@@ -2375,12 +2422,12 @@ fn add_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     let mut acc = 0;
 
     let res = zip_nums(a.digits(), b.digits(), 1)
-        .scan(0, |_, (&aop, &bop)| {
+        .map(|(&aop, &bop)| {
             let digit = acc + aop as Double + bop as Double;
 
             acc = digit >> Single::BITS;
 
-            Some(digit as Single)
+            digit as Single
         })
         .collect_with(vec![0; a.len().max(b.len()) + 1]);
 
@@ -2402,12 +2449,12 @@ fn add_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     let mut acc = 0;
 
     let res = zip_nums(a.digits(), b.digits(), 1)
-        .scan(0, |_, (&aop, &bop)| {
+        .map(|(&aop, &bop)| {
             let digit = acc + aop as Double + bop as Double;
 
             acc = digit >> Single::BITS;
 
-            Some(digit as Single)
+            digit as Single
         })
         .collect_with([0; L]);
 
@@ -2639,12 +2686,12 @@ fn sub_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     let mut acc = false;
 
     let res = zip_nums(a.digits(), b.digits(), 0)
-        .scan(0, |_, (&aop, &bop)| {
+        .map(|(&aop, &bop)| {
             let digit = RADIX + aop as Double - bop as Double - acc as Double;
 
             acc = digit < RADIX;
 
-            Some(digit as Single)
+            digit as Single
         })
         .collect_with(vec![0; a.len()]);
 
@@ -2672,12 +2719,12 @@ fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     let mut acc = false;
 
     let res = zip_nums(a.digits(), b.digits(), 0)
-        .scan(0, |_, (&aop, &bop)| {
+        .map(|(&aop, &bop)| {
             let digit = RADIX + aop as Double - bop as Double - acc as Double;
 
             acc = digit < RADIX;
 
-            Some(digit as Single)
+            digit as Single
         })
         .collect_with([0; L]);
 
