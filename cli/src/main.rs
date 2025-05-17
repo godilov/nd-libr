@@ -2,7 +2,7 @@ use std::{fs::File, path::PathBuf};
 
 use anyhow::Error;
 use clap::{Parser, Subcommand};
-use ndlib::num::prime::Primes;
+use ndlib::num::{prime::Primes, Num};
 
 #[derive(Parser)]
 #[command(version, about, long_about)]
@@ -50,6 +50,16 @@ enum PrimeCommands {
         #[arg(short, long)]
         fast: bool,
     },
+
+    /// Generate prime
+    #[command(name = "rand")]
+    Rand {
+        /// Order
+        order: usize,
+
+        /// Count
+        count: usize,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -68,6 +78,13 @@ fn main() -> anyhow::Result<()> {
                     false => Primes::by_limit_full(val).collect::<Vec<u64>>(),
                     true => Primes::by_limit_fast(val).collect::<Vec<u64>>(),
                 },
+                PrimeCommands::Rand { order, count } => {
+                    let mut vec = u64::rand_par_primes(order, count);
+
+                    vec.sort_unstable();
+                    vec.reverse();
+                    vec
+                },
             };
 
             if let Some(file) = filepath {
@@ -79,7 +96,7 @@ fn main() -> anyhow::Result<()> {
                 };
             } else {
                 tracing::info!("Count: {}", primes.len());
-                tracing::info!("Primes: {:?}", &primes[primes.len().saturating_sub(30)..primes.len()]);
+                tracing::info!("Primes: {:?}", &primes);
             }
         },
     }
