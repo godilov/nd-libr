@@ -1,11 +1,9 @@
 #![allow(clippy::manual_div_ceil)]
-#![allow(unused)]
 
 use std::{
     cmp::Ordering,
     fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
-    iter::{repeat, repeat_n},
-    num::NonZero,
+    iter::repeat_n,
     str::FromStr,
 };
 
@@ -13,7 +11,7 @@ use digit::{Double, Single};
 use ndproc::ops_impl;
 use prime::{Primality, PRIMES};
 use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
-use rand::{rngs::StdRng, CryptoRng, Rng, SeedableRng};
+use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
@@ -408,9 +406,7 @@ mod radix {
 pub mod prime {
     use std::mem::replace;
 
-    use rand::{CryptoRng, Rng};
-
-    use super::{Num, NumBuilder, Unsigned};
+    use super::Unsigned;
     use crate::ops::Ops;
 
     pub(super) const PRIMES: [u16; 128] = [
@@ -1324,7 +1320,6 @@ impl UnsignedLong {
     }
 
     #[allow(clippy::len_without_is_empty)]
-
     pub fn len(&self) -> usize {
         self.digits.len()
     }
@@ -1399,7 +1394,6 @@ impl<const L: usize> SignedFixed<L> {
     }
 
     #[allow(clippy::len_without_is_empty)]
-
     pub fn len(&self) -> usize {
         self.len
     }
@@ -1485,7 +1479,6 @@ impl<const L: usize> UnsignedFixed<L> {
     }
 
     #[allow(clippy::len_without_is_empty)]
-
     pub fn len(&self) -> usize {
         self.len
     }
@@ -3219,20 +3212,6 @@ fn rem_fixed_single_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Single) ->
     rem_fixed_mut(a, Operand::from_raw(&[b]))
 }
 
-fn bit_long_single<F>(a: Operand<'_>, b: Single, func: F) -> LongRepr
-where
-    F: Fn(Single, Single) -> Single,
-{
-    bit_long(a, Operand::from_raw(&[b]), func)
-}
-
-fn bit_fixed_single<const L: usize, F>(a: Operand<'_>, b: Single, func: F) -> FixedRepr<L>
-where
-    F: Fn(Single, Single) -> Single,
-{
-    bit_fixed(a, Operand::from_raw(&[b]), func)
-}
-
 fn bit_long<F>(a: Operand<'_>, b: Operand<'_>, func: F) -> LongRepr
 where
     F: Fn(Single, Single) -> Single,
@@ -3255,18 +3234,18 @@ where
     FixedRepr::from_raw(res, Sign::POS)
 }
 
-fn bit_long_single_mut<F>(a: LongMutOperand<'_>, b: Single, func: F)
+fn bit_long_single<F>(a: Operand<'_>, b: Single, func: F) -> LongRepr
 where
     F: Fn(Single, Single) -> Single,
 {
-    bit_long_mut(a, Operand::from_raw(&[b]), func)
+    bit_long(a, Operand::from_raw(&[b]), func)
 }
 
-fn bit_fixed_single_mut<const L: usize, F>(a: FixedMutOperand<'_, L>, b: Single, func: F)
+fn bit_fixed_single<const L: usize, F>(a: Operand<'_>, b: Single, func: F) -> FixedRepr<L>
 where
     F: Fn(Single, Single) -> Single,
 {
-    bit_fixed_mut(a, Operand::from_raw(&[b]), func)
+    bit_fixed(a, Operand::from_raw(&[b]), func)
 }
 
 fn bit_long_mut<F>(mut a: LongMutOperand<'_>, b: Operand<'_>, func: F)
@@ -3293,6 +3272,20 @@ where
 
         *ptr = func(*ptr, bop);
     }
+}
+
+fn bit_long_single_mut<F>(a: LongMutOperand<'_>, b: Single, func: F)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    bit_long_mut(a, Operand::from_raw(&[b]), func)
+}
+
+fn bit_fixed_single_mut<const L: usize, F>(a: FixedMutOperand<'_, L>, b: Single, func: F)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    bit_fixed_mut(a, Operand::from_raw(&[b]), func)
 }
 
 fn shl_long(a: Operand<'_>, val: usize) -> LongRepr {

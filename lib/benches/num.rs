@@ -31,11 +31,11 @@ macro_rules! impl_case {
         fn $fn(c: &mut Criterion) {
             let mut group = c.benchmark_group($group);
 
-            group.sample_size(256);
+            group.sample_size(128);
 
             $({
-                let val1 = &composite(<$type>::from(1u64), $p1.clone());
-                let val2 = &composite(<$type>::from(1u64), $p2.clone());
+                let val1 = &composite(<$type>::from(1u64), $p1);
+                let val2 = &composite(<$type>::from(1u64), $p2);
 
                 group.bench_function(format!("{} {}", stringify!($type), $name), |b| b.iter_with_large_drop(|| black_box(val1 $op val2)));
             })+
