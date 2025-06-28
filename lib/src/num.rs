@@ -1694,6 +1694,12 @@ impl LongMutOperand<'_> {
         MutRepr::from_raw(val.digits(), val.sign())
     }
 
+    fn from_repr(&mut self, val: LongRepr) -> MutRepr {
+        *self.raw_mut() = val.digits;
+
+        MutRepr::from_raw(&self.digits(), val.sign)
+    }
+
     fn raw_mut(&mut self) -> &mut Vec<Single> {
         self.digits
     }
@@ -1742,6 +1748,12 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
 
         MutRepr::from_raw(val.digits(), val.sign())
+    }
+
+    fn from_repr(&mut self, val: FixedRepr<L>) -> MutRepr {
+        *self.raw_mut() = val.raw;
+
+        MutRepr::from_raw(&self.digits(), val.sign)
     }
 
     fn raw_mut(&mut self) -> &mut [Single; L] {
@@ -3027,19 +3039,19 @@ fn mul_fixed_single<const L: usize>(a: Operand<'_>, bop: Single) -> FixedRepr<L>
 }
 
 fn mul_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
-    match (a.sign(), b.sign()) {
-        (Sign::ZERO, _) => return MutRepr::ZERO,
-        (_, Sign::ZERO) => return MutRepr::ZERO,
-        _ => (),
-    }
+    let res = mul_long(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
 
-    let res = a.raw_mut();
-
-    todo!()
+    a.from_repr(res)
 }
 
 fn mul_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
-    match (a.sign(), b.sign()) {
+    let res = mul_fixed(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+
+    a.from_repr(res)
+}
+
+fn mul_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
         (Sign::ZERO, _) => return MutRepr::ZERO,
         (_, Sign::ZERO) => return MutRepr::ZERO,
         _ => (),
@@ -3047,15 +3059,51 @@ fn mul_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
 
     let res = a.raw_mut();
 
-    todo!()
+    let mut acc = 0;
+
+    for ptr in res.iter_mut() {
+        acc += *ptr as Double * b as Double;
+
+        *ptr = acc as Single;
+
+        acc >>= Single::BITS;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    if acc > 0 {
+        res.push(acc as Single);
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign() * Sign::from(b))
 }
 
-fn mul_long_single_mut(a: LongMutOperand<'_>, b: Single) -> MutRepr {
-    mul_long_mut(a, Operand::from_raw(&[b]))
-}
+fn mul_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, _) => return MutRepr::ZERO,
+        (_, Sign::ZERO) => return MutRepr::ZERO,
+        _ => (),
+    }
 
-fn mul_fixed_single_mut<const L: usize>(a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
-    mul_fixed_mut(a, Operand::from_raw(&[b]))
+    let res = a.raw_mut();
+
+    let mut acc = 0;
+
+    for ptr in res.iter_mut() {
+        acc += *ptr as Double * b as Double;
+
+        *ptr = acc as Single;
+
+        acc >>= Single::BITS;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign() * Sign::from(b))
 }
 
 fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
@@ -3216,9 +3264,10 @@ fn bit_long<F>(a: Operand<'_>, b: Operand<'_>, func: F) -> LongRepr
 where
     F: Fn(Single, Single) -> Single,
 {
+    let len = a.len().max(b.len());
     let res = zip_nums(a.digits(), b.digits(), 0)
         .map(|(&aop, &bop)| func(aop, bop))
-        .collect_with(vec![0; a.len().max(b.len())]);
+        .collect_with(vec![0; len]);
 
     LongRepr::from_raw(res, Sign::POS)
 }
