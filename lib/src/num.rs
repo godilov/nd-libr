@@ -270,7 +270,7 @@ macro_rules! div_apply {
             $div[$idx] = digit;
 
             let dop = [digit];
-            let mul = $fn_mul($bpos, Operand::from_raw(&dop));
+            let mul = $fn_mul(Operand::from_raw(&dop), $bpos);
             let sub = $fn_sub(Operand::from_raw(&$rem[..$len]), (&mul).into());
 
             $rem.fill(0);
@@ -3077,7 +3077,7 @@ fn mul_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
         res.push(acc as Single);
     }
 
-    MutRepr::from_raw(a.raw(), a.sign() * Sign::from(b))
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
 fn mul_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
@@ -3103,7 +3103,7 @@ fn mul_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single
         }
     }
 
-    MutRepr::from_raw(a.raw(), a.sign() * Sign::from(b))
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
 fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
@@ -3123,12 +3123,13 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
         Ordering::Greater => (),
     }
 
+    let sign_div = a.sign() * b.sign();
+    let sign_rem = b.sign();
+
     let mut div = vec![0; a.len()];
     let mut rem = vec![0; b.len() + 1];
     let mut len = 0;
 
-    let sign_a = a.sign();
-    let sign_b = b.sign();
     let apos = a.with_sign(Sign::POS);
     let bpos = b.with_sign(Sign::POS);
 
@@ -3157,7 +3158,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
         div_apply!(mul_long, sub_long, div, rem, len, bpos, l, i);
     }
 
-    (LongRepr::from_raw(div, sign_a * sign_b), LongRepr::from_raw(rem, sign_a))
+    (LongRepr::from_raw(div, sign_div), LongRepr::from_raw(rem, sign_rem))
 }
 
 fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, FixedRepr<L>) {
@@ -3179,14 +3180,15 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
         Ordering::Greater => (),
     }
 
+    let sign_div = a.sign() * b.sign();
+    let sign_rem = b.sign();
+
     let mut div = [0; L];
     let mut rem = [0; L];
     #[allow(unused_assignments)]
     let mut remx = 0;
     let mut len = 0;
 
-    let sign_a = a.sign();
-    let sign_b = b.sign();
     let apos = a.with_sign(Sign::POS);
     let bpos = b.with_sign(Sign::POS);
 
@@ -3217,15 +3219,99 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
         div_apply!(mul_fixed::<L>, sub_fixed::<L>, div, rem, len, bpos, l, i);
     }
 
-    (FixedRepr::from_raw(div, sign_a * sign_b), FixedRepr::from_raw(rem, sign_a))
+    (FixedRepr::from_raw(div, sign_div), FixedRepr::from_raw(rem, sign_rem))
 }
 
 fn div_long_single(a: Operand<'_>, b: Single) -> (LongRepr, LongRepr) {
-    div_long(a, Operand::from_raw(&[b]))
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, _) => return (LongRepr::ZERO, LongRepr::ZERO),
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
+    }
+
+    if b == 1 {
+        return (a.into(), LongRepr::ZERO);
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return (LongRepr::ZERO, a.into()),
+        Ordering::Equal => return (LongRepr::from_single(1).with_sign(a.sign()), LongRepr::ZERO),
+        Ordering::Greater => (),
+    }
+
+    let mut div = vec![0; a.len()];
+    let mut rem = vec![0; 2];
+    let mut len = 0;
+
+    for (i, &aop) in a.digits().iter().enumerate().rev() {
+        div_cycle!(rem, len, aop);
+
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            let val = b as Double * m;
+            let val = [val as Single, (val >> Single::BITS) as Single];
+
+            match cmp_nums(&val, &rem[..len]) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        div_apply!(mul_long_single, sub_long, div, rem, len, b, l, i);
+    }
+
+    (LongRepr::from_raw(div, a.sign()), LongRepr::from_raw(rem, Sign::POS))
 }
 
 fn div_fixed_single<const L: usize>(a: Operand<'_>, b: Single) -> (FixedRepr<L>, FixedRepr<L>) {
-    div_fixed(a, Operand::from_raw(&[b]))
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, _) => return (FixedRepr::ZERO, FixedRepr::ZERO),
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
+    }
+
+    if b == 1 {
+        return (a.into(), FixedRepr::ZERO);
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return (FixedRepr::ZERO, a.into()),
+        Ordering::Equal => return (FixedRepr::from_single(1).with_sign(a.sign()), FixedRepr::ZERO),
+        Ordering::Greater => (),
+    }
+
+    let mut div = [0; L];
+    let mut rem = [0; L];
+    let mut len = 0;
+
+    for (i, &aop) in a.digits().iter().enumerate().rev() {
+        div_cycle!(rem, len, aop);
+
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            let val = b as Double * m;
+            let val = [val as Single, (val >> Single::BITS) as Single];
+
+            match cmp_nums(&val, &rem[..len]) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        div_apply!(mul_long_single, sub_long, div, rem, len, b, l, i);
+    }
+
+    (FixedRepr::from_raw(div, a.sign()), FixedRepr::from_raw(rem, Sign::POS))
 }
 
 fn div_long_mut(a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
