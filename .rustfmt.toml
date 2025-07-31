@@ -9,6 +9,7 @@ struct_lit_width                    = 30
 struct_variant_width                = 40
 use_small_heuristics                = "Default"
 
+unstable_features          = true
 fn_params_layout           = "Tall"
 match_arm_leading_pipes    = "Never"
 match_block_trailing_comma = true
@@ -18,5 +19,5 @@ reorder_imports            = true
 reorder_modules            = true
 use_field_init_shorthand   = true
 use_try_shorthand          = true
-
-group_imports = "StdExternalCrate"
+group_imports              = "StdExternalCrate"
+imports_granularity        = "Crate"

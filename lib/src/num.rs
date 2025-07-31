@@ -9,8 +9,8 @@ use std::{
 
 use digit::{Double, Single};
 use ndproc::ops_impl;
-use prime::{Primality, PRIMES};
-use radix::{Bin, Dec, Hex, Oct, Radix, RADIX};
+use prime::{PRIMES, Primality};
+use radix::{Bin, Dec, Hex, Oct, RADIX, Radix};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
@@ -359,8 +359,8 @@ pub mod digit {
 
 mod radix {
     use super::{
-        digit::{DEC_VAL, DEC_WIDTH, OCT_VAL, OCT_WIDTH},
         Double, Single,
+        digit::{DEC_VAL, DEC_WIDTH, OCT_VAL, OCT_WIDTH},
     };
 
     pub(super) const RADIX: Double = Single::MAX as Double + 1;
@@ -4016,11 +4016,7 @@ where
 {
     let zero = F::zero();
 
-    if val != zero {
-        default
-    } else {
-        Sign::ZERO
-    }
+    if val != zero { default } else { Sign::ZERO }
 }
 
 fn get_len<F: Fixed>(digits: &[F]) -> usize

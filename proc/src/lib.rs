@@ -1,15 +1,13 @@
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    bracketed, parenthesized,
+    BinOp, Error, Expr, Generics, Ident, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
     parse::{Parse, ParseStream},
-    parse_macro_input, parse_quote,
+    parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
     token::{Bracket, Paren},
-    BinOp, Error, Expr, Generics, Ident, Path, Result, Token, Type, UnOp,
 };
-use syn::{parse2, parse_str};
 
 struct OpsRaw {
     id: String,
