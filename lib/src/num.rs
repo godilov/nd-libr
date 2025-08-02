@@ -1202,8 +1202,8 @@ impl<const L: usize> FromStr for UnsignedFixed<L> {
 }
 
 impl SignedLong {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        from_bytes_long(bytes).into()
+    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
+        from_bytes_long(bytes.as_ref()).into()
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
@@ -1276,8 +1276,8 @@ impl SignedLong {
 }
 
 impl UnsignedLong {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        from_bytes_long(bytes).into()
+    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
+        from_bytes_long(bytes.as_ref()).into()
     }
 
     pub fn try_from_digits(digits: &[u8], radix: u16) -> Result<Self, TryFromDigitsError> {
@@ -1346,8 +1346,8 @@ impl UnsignedLong {
 }
 
 impl<const L: usize> SignedFixed<L> {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        from_bytes_fixed(bytes).into()
+    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
+        from_bytes_fixed(bytes.as_ref()).into()
     }
 
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
@@ -1428,8 +1428,8 @@ impl<const L: usize> SignedFixed<L> {
 }
 
 impl<const L: usize> UnsignedFixed<L> {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        from_bytes_fixed(bytes).into()
+    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
+        from_bytes_fixed(bytes.as_ref()).into()
     }
 
     pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
@@ -4259,8 +4259,8 @@ mod tests {
 
     #[test]
     fn from_bytes_long() {
-        assert_eq!(SignedLong::from_bytes(&[]), SignedLong::default());
-        assert_eq!(UnsignedLong::from_bytes(&[]), UnsignedLong::default());
+        assert_eq!(SignedLong::from_bytes([]), SignedLong::default());
+        assert_eq!(UnsignedLong::from_bytes([]), UnsignedLong::default());
 
         for val in u16::MIN..=u16::MAX {
             let bytes = (val as u32).to_le_bytes();
@@ -4272,8 +4272,8 @@ mod tests {
 
     #[test]
     fn from_bytes_fixed() {
-        assert_eq!(S32::from_bytes(&[]), S32::default());
-        assert_eq!(U32::from_bytes(&[]), U32::default());
+        assert_eq!(S32::from_bytes([]), S32::default());
+        assert_eq!(U32::from_bytes([]), U32::default());
 
         for val in u16::MIN..=u16::MAX {
             let bytes = (val as u32).to_le_bytes();
