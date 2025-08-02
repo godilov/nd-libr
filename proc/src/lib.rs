@@ -127,10 +127,7 @@ impl Parse for OpsRaw {
 
         let body = input.parse::<TokenStream>()?;
 
-        Ok(Self {
-            id: format!("@{}", ident),
-            body,
-        })
+        Ok(Self { id: format!("@{ident}"), body })
     }
 }
 
@@ -705,10 +702,7 @@ fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
         BinOp::ShrAssign(_) => Ok(("shr_assign", "std::ops::ShrAssign")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!(
-                "Invalid 'op' for operation: '{:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",
-                op
-            ),
+            format!("Invalid 'op' for operation: '{op:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",),
         )),
     }?;
 
@@ -729,10 +723,7 @@ fn get_std_path_binary(op: &BinOp) -> Result<(Ident, Path)> {
         BinOp::Shr(_) => Ok(("shr", "std::ops::Shr")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!(
-                "Invalid 'op' for operation: '{:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",
-                op
-            ),
+            format!("Invalid 'op' for operation: '{op:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",),
         )),
     }?;
 
@@ -745,7 +736,7 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
         UnOp::Neg(_) => Ok(("neg", "std::ops::Neg")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!("Invalid 'op' for operation: '{:?}'. Expected: -, !", op),
+            format!("Invalid 'op' for operation: '{op:?}'. Expected: -, !"),
         )),
     }?;
 
