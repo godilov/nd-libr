@@ -1700,6 +1700,20 @@ impl LongMutOperand<'_> {
         MutRepr::from_raw(&[val], Sign::POS)
     }
 
+    fn clone_from_double(&mut self, val: Double) -> MutRepr {
+        if val == 0 {
+            self.raw_mut().clear();
+
+            return MutRepr::ZERO;
+        }
+
+        self.raw_mut().resize(2, 0);
+        self.raw_mut()[0] = val as Single;
+        self.raw_mut()[1] = (val >> Single::BITS) as Single;
+
+        MutRepr::from_raw(&[val as Single, (val >> Single::BITS) as Single], Sign::POS)
+    }
+
     fn clone_from_operand(&mut self, val: Operand<'_>) -> MutRepr {
         self.raw_mut().resize(val.len(), 0);
         self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
@@ -1755,6 +1769,13 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         self.raw_mut()[0] = val;
 
         MutRepr::from_raw(&[val], Sign::POS)
+    }
+
+    fn clone_from_double(&mut self, val: Double) -> MutRepr {
+        self.raw_mut()[0] = val as Single;
+        self.raw_mut()[1] = (val >> Single::BITS) as Single;
+
+        MutRepr::from_raw(&[val as Single, (val >> Single::BITS) as Single], Sign::POS)
     }
 
     fn clone_from_operand(&mut self, val: Operand<'_>) -> MutRepr {
@@ -3340,20 +3361,198 @@ fn rem_fixed_mut<const L: usize>(_a: FixedMutOperand<'_, L>, _b: Operand<'_>) ->
     todo!()
 }
 
-fn div_long_single_mut(mut _a: LongMutOperand<'_>, _b: Single) -> MutRepr {
-    todo!()
+fn div_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, _) => return MutRepr::ZERO,
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
+    }
+
+    if b == 1 {
+        return a.into();
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return MutRepr::ZERO,
+        Ordering::Equal => return a.clone_from_single(1),
+        Ordering::Greater => (),
+    }
+
+    let res = a.raw_mut();
+
+    let mut rem = 0 as Double;
+
+    for op in res.iter_mut().rev() {
+        rem <<= Single::BITS;
+        rem |= *op as Double;
+
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            let val = b as Double * m;
+
+            match val.cmp(&rem) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        let digit = l.saturating_sub(1) as Single;
+
+        *op = digit;
+        rem -= digit as Double * b as Double;
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn div_fixed_single_mut<const L: usize>(_a: FixedMutOperand<'_, L>, _b: Single) -> MutRepr {
-    todo!()
+fn div_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, _) => return MutRepr::ZERO,
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
+    }
+
+    if b == 1 {
+        return a.into();
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return MutRepr::ZERO,
+        Ordering::Equal => return a.clone_from_single(1),
+        Ordering::Greater => (),
+    }
+
+    let res = a.raw_mut();
+
+    let mut rem = 0 as Double;
+
+    for op in res.iter_mut().rev() {
+        rem <<= Single::BITS;
+        rem |= *op as Double;
+
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            let val = b as Double * m;
+
+            match val.cmp(&rem) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        let digit = l.saturating_sub(1) as Single;
+
+        *op = digit;
+        rem -= digit as Double * b as Double;
+    }
+
+    MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn rem_long_single_mut(_a: LongMutOperand<'_>, _b: Single) -> MutRepr {
-    todo!()
+fn rem_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, _) => return MutRepr::ZERO,
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
+    }
+
+    if b == 1 {
+        return a.into();
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return a.into(),
+        Ordering::Equal => return MutRepr::ZERO,
+        Ordering::Greater => (),
+    }
+
+    let res = a.raw_mut();
+
+    let mut rem = 0 as Double;
+
+    for op in res.iter().rev() {
+        rem <<= Single::BITS;
+        rem |= *op as Double;
+
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            let val = b as Double * m;
+
+            match val.cmp(&rem) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        let digit = l.saturating_sub(1) as Single;
+
+        rem -= digit as Double * b as Double;
+    }
+
+    a.clone_from_double(rem)
 }
 
-fn rem_fixed_single_mut<const L: usize>(_a: FixedMutOperand<'_, L>, _b: Single) -> MutRepr {
-    todo!()
+fn rem_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single) -> MutRepr {
+    match (a.sign(), Sign::from(b)) {
+        (Sign::ZERO, _) => return MutRepr::ZERO,
+        (_, Sign::ZERO) => panic!("Division by zero"),
+        _ => (),
+    }
+
+    if b == 1 {
+        return a.into();
+    }
+
+    match cmp_nums(a.digits(), &[b]) {
+        Ordering::Less => return a.into(),
+        Ordering::Equal => return MutRepr::ZERO,
+        Ordering::Greater => (),
+    }
+
+    let res = a.raw_mut();
+
+    let mut rem = 0 as Double;
+
+    for op in res.iter().rev() {
+        rem <<= Single::BITS;
+        rem |= *op as Double;
+
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            let val = b as Double * m;
+
+            match val.cmp(&rem) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        let digit = l.saturating_sub(1) as Single;
+
+        rem -= digit as Double * b as Double;
+    }
+
+    a.clone_from_double(rem)
 }
 
 fn bit_long<F>(a: Operand<'_>, b: Operand<'_>, func: F) -> LongRepr
