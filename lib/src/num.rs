@@ -1350,8 +1350,8 @@ impl<const L: usize> SignedFixed<L> {
         from_bytes_fixed(bytes.as_ref()).into()
     }
 
-    pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
-        let repr = from_bytes_fixed(bytes);
+    pub fn try_from_bytes(bytes: impl AsRef<[u8]>) -> (Self, bool) {
+        let repr = from_bytes_fixed(bytes.as_ref());
         let over = repr.overflow;
 
         (repr.into(), over)
@@ -1432,8 +1432,8 @@ impl<const L: usize> UnsignedFixed<L> {
         from_bytes_fixed(bytes.as_ref()).into()
     }
 
-    pub fn try_from_bytes(bytes: &[u8]) -> (Self, bool) {
-        let repr = from_bytes_fixed(bytes);
+    pub fn try_from_bytes(bytes: impl AsRef<[u8]>) -> (Self, bool) {
+        let repr = from_bytes_fixed(bytes.as_ref());
         let over = repr.overflow;
 
         (repr.into(), over)
@@ -3161,7 +3161,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
     for (i, &aop) in apos.digits().iter().enumerate().rev() {
         div_cycle!(rem, len, aop);
 
-        if len < b.len() {
+        if len < bpos.len() {
             continue;
         }
 
@@ -3222,7 +3222,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
 
         div_cycle!(rem, len, aop);
 
-        if len < b.len() {
+        if len < bpos.len() {
             continue;
         }
 
