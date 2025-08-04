@@ -298,13 +298,13 @@ macro_rules! div_digit {
 }
 
 macro_rules! ops_mut_fn {
-    (@ref $id:ident, $a:expr, $b:expr) => {{
-        let repr = $id($a.into(), (&$b).into());
+    (@ref $fn:ident, $a:expr, $b:expr) => {{
+        let repr = $fn($a.into(), (&$b).into());
 
         $a.apply_mut_repr(repr);
     }};
-    (@val $id:ident, $a:expr, $b:expr) => {{
-        let repr = $id($a.into(), $b);
+    (@val $fn:ident, $a:expr, $b:expr) => {{
+        let repr = $fn($a.into(), $b);
 
         $a.apply_mut_repr(repr);
     }};
