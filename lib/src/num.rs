@@ -252,32 +252,49 @@ macro_rules! fixed_from {
 }
 
 macro_rules! div_cycle {
-    ($rem:expr, $len:expr, $val:expr) => {
-        for i in (1..$rem.len()).rev() {
-            $rem[i] = $rem[i - 1];
+    ($arr:expr, $len:expr, $val:expr) => {
+        for i in (1..$arr.len()).rev() {
+            $arr[i] = $arr[i - 1];
         }
 
-        $rem[0] = $val;
+        $arr[0] = $val;
         $len += 1;
     };
 }
 
 macro_rules! div_apply {
-    ($fn_mul:path, $fn_sub:path, $div:expr, $rem:expr, $len:expr, $bpos:expr, $val:expr, $idx:expr) => {
-        let digit = $val.saturating_sub(1) as Single;
+    ($mul_fn:path, $sub_fn:path, $div:expr, $rem:expr, $len:expr, $bpos:expr, $digit:expr) => {
+        if $digit > 1 {
+            $div = ($digit - 1) as Single;
 
-        if digit > 0 {
-            $div[$idx] = digit;
-
-            let dop = [digit];
-            let mul = $fn_mul(Operand::from_raw(&dop), $bpos);
-            let sub = $fn_sub(Operand::from_raw(&$rem[..$len]), (&mul).into());
+            let dop = [$div];
+            let mul = $mul_fn(Operand::from_raw(&dop), $bpos);
+            let sub = $sub_fn(Operand::from_raw(&$rem[..$len]), (&mul).into());
 
             $rem.fill(0);
             $rem[..sub.len()].copy_from_slice(sub.digits());
             $len = sub.len();
         };
     };
+}
+
+macro_rules! div_digit {
+    ($mul:expr, $div:expr) => {{
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            match ($mul as Double * m).cmp(&$div) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        l
+    }};
 }
 
 macro_rules! ops_mut_fn {
@@ -3180,7 +3197,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
             }
         }
 
-        div_apply!(mul_long, sub_long, div, rem, len, bpos, l, i);
+        div_apply!(mul_long, sub_long, div[i], rem, len, bpos, l);
     }
 
     (LongRepr::from_raw(div, sign_div), LongRepr::from_raw(rem, sign_rem))
@@ -3241,7 +3258,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
             }
         }
 
-        div_apply!(mul_fixed::<L>, sub_fixed::<L>, div, rem, len, bpos, l, i);
+        div_apply!(mul_fixed::<L>, sub_fixed::<L>, div[i], rem, len, bpos, l);
     }
 
     (FixedRepr::from_raw(div, sign_div), FixedRepr::from_raw(rem, sign_rem))
@@ -3271,22 +3288,8 @@ fn div_long_single(a: Operand<'_>, b: Single) -> (LongRepr, LongRepr) {
         rem <<= Single::BITS;
         rem |= aop as Double;
 
-        let mut l = 0;
-        let mut r = RADIX;
+        let digit = div_digit!(b, rem).saturating_sub(1) as Single;
 
-        while l < r {
-            let m = l + (r - l) / 2;
-
-            let val = b as Double * m;
-
-            match val.cmp(&rem) {
-                Ordering::Less => l = m + 1,
-                Ordering::Equal => l = m + 1,
-                Ordering::Greater => r = m,
-            }
-        }
-
-        let digit = l.saturating_sub(1) as Single;
         if digit > 0 {
             div[i] = digit;
             rem -= digit as Double * b as Double;
@@ -3320,22 +3323,8 @@ fn div_fixed_single<const L: usize>(a: Operand<'_>, b: Single) -> (FixedRepr<L>,
         rem <<= Single::BITS;
         rem |= aop as Double;
 
-        let mut l = 0;
-        let mut r = RADIX;
+        let digit = div_digit!(b, rem).saturating_sub(1) as Single;
 
-        while l < r {
-            let m = l + (r - l) / 2;
-
-            let val = b as Double * m;
-
-            match val.cmp(&rem) {
-                Ordering::Less => l = m + 1,
-                Ordering::Equal => l = m + 1,
-                Ordering::Greater => r = m,
-            }
-        }
-
-        let digit = l.saturating_sub(1) as Single;
         if digit > 0 {
             div[i] = digit;
             rem -= digit as Double * b as Double;
@@ -3386,22 +3375,7 @@ fn div_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let mut l = 0;
-        let mut r = RADIX;
-
-        while l < r {
-            let m = l + (r - l) / 2;
-
-            let val = b as Double * m;
-
-            match val.cmp(&rem) {
-                Ordering::Less => l = m + 1,
-                Ordering::Equal => l = m + 1,
-                Ordering::Greater => r = m,
-            }
-        }
-
-        let digit = l.saturating_sub(1) as Single;
+        let digit = div_digit!(b, rem).saturating_sub(1) as Single;
 
         *op = digit;
         rem -= digit as Double * b as Double;
@@ -3435,22 +3409,7 @@ fn div_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let mut l = 0;
-        let mut r = RADIX;
-
-        while l < r {
-            let m = l + (r - l) / 2;
-
-            let val = b as Double * m;
-
-            match val.cmp(&rem) {
-                Ordering::Less => l = m + 1,
-                Ordering::Equal => l = m + 1,
-                Ordering::Greater => r = m,
-            }
-        }
-
-        let digit = l.saturating_sub(1) as Single;
+        let digit = div_digit!(b, rem).saturating_sub(1) as Single;
 
         *op = digit;
         rem -= digit as Double * b as Double;
@@ -3484,22 +3443,7 @@ fn rem_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let mut l = 0;
-        let mut r = RADIX;
-
-        while l < r {
-            let m = l + (r - l) / 2;
-
-            let val = b as Double * m;
-
-            match val.cmp(&rem) {
-                Ordering::Less => l = m + 1,
-                Ordering::Equal => l = m + 1,
-                Ordering::Greater => r = m,
-            }
-        }
-
-        let digit = l.saturating_sub(1) as Single;
+        let digit = div_digit!(b, rem).saturating_sub(1) as Single;
 
         rem -= digit as Double * b as Double;
     }
@@ -3532,22 +3476,7 @@ fn rem_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Single
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let mut l = 0;
-        let mut r = RADIX;
-
-        while l < r {
-            let m = l + (r - l) / 2;
-
-            let val = b as Double * m;
-
-            match val.cmp(&rem) {
-                Ordering::Less => l = m + 1,
-                Ordering::Equal => l = m + 1,
-                Ordering::Greater => r = m,
-            }
-        }
-
-        let digit = l.saturating_sub(1) as Single;
+        let digit = div_digit!(b, rem).saturating_sub(1) as Single;
 
         rem -= digit as Double * b as Double;
     }
