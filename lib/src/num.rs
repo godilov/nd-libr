@@ -734,6 +734,16 @@ where
 
     fn bitand_offset(&mut self, mask: u64, offset: usize);
 
+    fn with_bitor_offset(mut self, mask: u64, offset: usize) -> Self {
+        self.bitor_offset(mask, offset);
+        self
+    }
+
+    fn with_bitand_offset(mut self, mask: u64, offset: usize) -> Self {
+        self.bitand_offset(mask, offset);
+        self
+    }
+
     fn with_odd(mut self) -> Self {
         self.bitor_offset(1, 0);
         self
