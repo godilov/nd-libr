@@ -673,6 +673,19 @@ pub struct UnsignedFixed<const L: usize> {
     len: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SignedFixedVec<const L: usize, const N: usize> {
+    raws: [[Single; L]; N],
+    lens: [usize; N],
+    signs: [Sign; N],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnsignedFixedVec<const L: usize, const N: usize> {
+    raws: [[Single; L]; N],
+    lens: [usize; N],
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Operand<'load> {
     digits: &'load [Single],
