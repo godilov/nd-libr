@@ -133,7 +133,6 @@ macro_rules! radix_impl {
     };
     ($type:ty) => {
         impl Radix for $type {
-            const VAL: Double = Self::RADIX;
             const WIDTH: u8 = Self::WIDTH;
             const PREFIX: &str = Self::PREFIX;
         }
@@ -383,7 +382,6 @@ mod radix {
     pub(super) const RADIX: Double = Single::MAX as Double + 1;
 
     pub trait Radix {
-        const VAL: Double = Single::MAX as Double + 1;
         const WIDTH: u8;
         const PREFIX: &str;
     }
