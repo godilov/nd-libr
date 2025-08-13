@@ -276,35 +276,35 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
 impl ToTokens for OpsImplMutable {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
-        struct OpsImpl<'ops> {
+        struct OpsSpec<'ops> {
             op: &'ops BinOp,
             generics: Option<&'ops Generics>,
             signature: &'ops OpsSignatureMutable,
             expr: &'ops Expr,
         }
 
-        fn get_impl(val: OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
-            let (ident, path) = match get_std_path_mut(val.op) {
+        fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
+            let (ident, path) = match get_std_path_mut(spec.op) {
                 Ok(val) => val,
                 Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
-            let generics = val.generics.map(|val| val.split_for_impl());
+            let generics = spec.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
                 Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
                 None => (None, None),
             };
 
-            let lhs_mut = &val.signature.lhs_vmut;
-            let lhs_ident = &val.signature.lhs_ident;
-            let lhs_type = &val.signature.lhs_type;
-            let rhs_mut = &val.signature.rhs_vmut;
-            let rhs_ident = &val.signature.rhs_ident;
-            let rhs_type = &val.signature.rhs_type;
+            let lhs_mut = &spec.signature.lhs_vmut;
+            let lhs_ident = &spec.signature.lhs_ident;
+            let lhs_type = &spec.signature.lhs_type;
+            let rhs_mut = &spec.signature.rhs_vmut;
+            let rhs_ident = &spec.signature.rhs_ident;
+            let rhs_type = &spec.signature.rhs_type;
 
-            let expr = &val.expr;
+            let expr = &spec.expr;
 
             let lhs_ref = lhs_ref.map(|_| quote! { &mut });
 
@@ -328,7 +328,7 @@ impl ToTokens for OpsImplMutable {
         let none = None;
 
         for entry in &self.entries {
-            let val = OpsImpl {
+            let spec = OpsSpec {
                 op: &entry.op,
                 generics: self.generics.as_ref(),
                 signature: &self.signature,
@@ -338,43 +338,43 @@ impl ToTokens for OpsImplMutable {
             match (lhs, rhs) {
                 (true, true) => match (lstar, rstar) {
                     (true, true) => {
-                        tokens.extend(get_impl(val, some, some));
-                        tokens.extend(get_impl(val, some, none));
-                        tokens.extend(get_impl(val, none, some));
-                        tokens.extend(get_impl(val, none, none));
+                        tokens.extend(get_impl(spec, some, some));
+                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, none, some));
+                        tokens.extend(get_impl(spec, none, none));
                     },
                     (true, false) => {
-                        tokens.extend(get_impl(val, some, some));
-                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(spec, some, some));
+                        tokens.extend(get_impl(spec, none, some));
                     },
                     (false, true) => {
-                        tokens.extend(get_impl(val, some, some));
-                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(spec, some, some));
+                        tokens.extend(get_impl(spec, some, none));
                     },
                     (false, false) => {
-                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(spec, some, some));
                     },
                 },
                 (true, false) => match lstar {
                     true => {
-                        tokens.extend(get_impl(val, some, none));
-                        tokens.extend(get_impl(val, none, none));
+                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, none, none));
                     },
                     false => {
-                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(spec, some, none));
                     },
                 },
                 (false, true) => match rstar {
                     true => {
-                        tokens.extend(get_impl(val, none, some));
-                        tokens.extend(get_impl(val, none, none));
+                        tokens.extend(get_impl(spec, none, some));
+                        tokens.extend(get_impl(spec, none, none));
                     },
                     false => {
-                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(spec, none, some));
                     },
                 },
                 (false, false) => {
-                    tokens.extend(get_impl(val, none, none));
+                    tokens.extend(get_impl(spec, none, none));
                 },
             }
         }
@@ -384,36 +384,36 @@ impl ToTokens for OpsImplMutable {
 impl ToTokens for OpsImplBinary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
-        struct OpsImpl<'ops> {
+        struct OpsSpec<'ops> {
             op: &'ops BinOp,
             generics: Option<&'ops Generics>,
             signature: &'ops OpsSignatureBinary,
             expr: &'ops Expr,
         }
 
-        fn get_impl(val: OpsImpl, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
-            let (ident, path) = match get_std_path_binary(val.op) {
+        fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
+            let (ident, path) = match get_std_path_binary(spec.op) {
                 Ok(val) => val,
                 Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
-            let generics = val.generics.map(|val| val.split_for_impl());
+            let generics = spec.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
                 Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
                 None => (None, None),
             };
 
-            let lhs_mut = &val.signature.lhs_vmut;
-            let lhs_ident = &val.signature.lhs_ident;
-            let lhs_type = &val.signature.lhs_type;
-            let rhs_mut = &val.signature.rhs_vmut;
-            let rhs_ident = &val.signature.rhs_ident;
-            let rhs_type = &val.signature.rhs_type;
-            let op_type = &val.signature.op_type;
+            let lhs_mut = &spec.signature.lhs_vmut;
+            let lhs_ident = &spec.signature.lhs_ident;
+            let lhs_type = &spec.signature.lhs_type;
+            let rhs_mut = &spec.signature.rhs_vmut;
+            let rhs_ident = &spec.signature.rhs_ident;
+            let rhs_type = &spec.signature.rhs_type;
+            let op_type = &spec.signature.op_type;
 
-            let expr = &val.expr;
+            let expr = &spec.expr;
 
             quote! {
                 impl #implgen #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #wheregen {
@@ -437,7 +437,7 @@ impl ToTokens for OpsImplBinary {
         let none = None;
 
         for entry in &self.entries {
-            let val = OpsImpl {
+            let spec = OpsSpec {
                 op: &entry.op,
                 generics: self.generics.as_ref(),
                 signature: &self.signature,
@@ -447,43 +447,43 @@ impl ToTokens for OpsImplBinary {
             match (lhs, rhs) {
                 (true, true) => match (lstar, rstar) {
                     (true, true) => {
-                        tokens.extend(get_impl(val, some, some));
-                        tokens.extend(get_impl(val, some, none));
-                        tokens.extend(get_impl(val, none, some));
-                        tokens.extend(get_impl(val, none, none));
+                        tokens.extend(get_impl(spec, some, some));
+                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, none, some));
+                        tokens.extend(get_impl(spec, none, none));
                     },
                     (true, false) => {
-                        tokens.extend(get_impl(val, some, some));
-                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(spec, some, some));
+                        tokens.extend(get_impl(spec, none, some));
                     },
                     (false, true) => {
-                        tokens.extend(get_impl(val, some, some));
-                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(spec, some, some));
+                        tokens.extend(get_impl(spec, some, none));
                     },
                     (false, false) => {
-                        tokens.extend(get_impl(val, some, some));
+                        tokens.extend(get_impl(spec, some, some));
                     },
                 },
                 (true, false) => match lstar {
                     true => {
-                        tokens.extend(get_impl(val, some, none));
-                        tokens.extend(get_impl(val, none, none));
+                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, none, none));
                     },
                     false => {
-                        tokens.extend(get_impl(val, some, none));
+                        tokens.extend(get_impl(spec, some, none));
                     },
                 },
                 (false, true) => match rstar {
                     true => {
-                        tokens.extend(get_impl(val, none, some));
-                        tokens.extend(get_impl(val, none, none));
+                        tokens.extend(get_impl(spec, none, some));
+                        tokens.extend(get_impl(spec, none, none));
                     },
                     false => {
-                        tokens.extend(get_impl(val, none, some));
+                        tokens.extend(get_impl(spec, none, some));
                     },
                 },
                 (false, false) => {
-                    tokens.extend(get_impl(val, none, none));
+                    tokens.extend(get_impl(spec, none, none));
                 },
             }
         }
@@ -493,33 +493,33 @@ impl ToTokens for OpsImplBinary {
 impl ToTokens for OpsImplUnary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
-        struct OpsImpl<'ops> {
+        struct OpsSpec<'ops> {
             op: &'ops UnOp,
             generics: Option<&'ops Generics>,
             signature: &'ops OpsSignatureUnary,
             expr: &'ops Expr,
         }
 
-        fn get_impl(val: OpsImpl, lhs_ref: Option<Token![&]>) -> TokenStream {
-            let (ident, path) = match get_std_path_unary(val.op) {
+        fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>) -> TokenStream {
+            let (ident, path) = match get_std_path_unary(spec.op) {
                 Ok(val) => val,
                 Err(err) => {
                     return err.into_compile_error();
                 },
             };
 
-            let generics = val.generics.map(|val| val.split_for_impl());
+            let generics = spec.generics.map(|val| val.split_for_impl());
             let (implgen, wheregen) = match generics {
                 Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
                 None => (None, None),
             };
 
-            let lhs_mut = &val.signature.lhs_vmut;
-            let lhs_ident = &val.signature.lhs_ident;
-            let lhs_type = &val.signature.lhs_type;
-            let op_type = &val.signature.op_type;
+            let lhs_mut = &spec.signature.lhs_vmut;
+            let lhs_ident = &spec.signature.lhs_ident;
+            let lhs_type = &spec.signature.lhs_type;
+            let op_type = &spec.signature.op_type;
 
-            let expr = &val.expr;
+            let expr = &spec.expr;
 
             quote! {
                 impl #implgen #path for #lhs_ref #lhs_type #wheregen {
@@ -540,7 +540,7 @@ impl ToTokens for OpsImplUnary {
         let none = None;
 
         for entry in &self.entries {
-            let val = OpsImpl {
+            let spec = OpsSpec {
                 op: &entry.op,
                 generics: self.generics.as_ref(),
                 signature: &self.signature,
@@ -550,15 +550,15 @@ impl ToTokens for OpsImplUnary {
             match lhs {
                 true => match lstar {
                     true => {
-                        tokens.extend(get_impl(val, some));
-                        tokens.extend(get_impl(val, none));
+                        tokens.extend(get_impl(spec, some));
+                        tokens.extend(get_impl(spec, none));
                     },
                     false => {
-                        tokens.extend(get_impl(val, some));
+                        tokens.extend(get_impl(spec, some));
                     },
                 },
                 false => {
-                    tokens.extend(get_impl(val, none));
+                    tokens.extend(get_impl(spec, none));
                 },
             }
         }
