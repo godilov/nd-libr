@@ -2,11 +2,11 @@
 
 ### Tasks
 
-- [ ] feat(lib::num): simd-friendly ops
-- [ ] docs(lib::num): structs and reprs
-- [ ] test(lib::num): single ops
-- [ ] test(lib::num): single mut ops
-- [ ] test(lib::num): mut ops
-- [ ] bench(lib::num): single ops
-- [ ] bench(lib::num): single mut ops
-- [ ] bench(lib::num): mut ops
+- [ ] feat(num): simd-friendly ops
+- [ ] docs(num): structs and reprs
+- [ ] test(num): single ops
+- [ ] test(num): single mut ops
+- [ ] test(num): mut ops
+- [ ] bench(num): single ops
+- [ ] bench(num): single mut ops
+- [ ] bench(num): mut ops
