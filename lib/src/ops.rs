@@ -53,13 +53,13 @@ pub trait OpsNegFrom<Lhs: Neg = Self>: From<<Lhs as Neg>::Output> {}
 pub trait OpsNotFrom<Lhs: Not = Self>: From<<Lhs as Not>::Output> {}
 
 pub trait IteratorExt: Iterator {
-    fn collect_with<Iter>(self, mut iter: Iter) -> Iter
+    fn collect_with<Collection>(self, mut collection: Collection) -> Collection
     where
         Self: Sized,
-        for<'i> &'i mut Iter: IntoIterator<Item = &'i mut Self::Item>,
+        for<'i> &'i mut Collection: IntoIterator<Item = &'i mut Self::Item>,
     {
-        iter.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
-        iter
+        collection.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
+        collection
     }
 }
 

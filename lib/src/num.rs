@@ -3102,15 +3102,15 @@ fn mul_fixed_single<const L: usize>(a: Operand<'_>, bop: Single) -> FixedRepr<L>
 }
 
 fn mul_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
-    let res = mul_long(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+    let repr = mul_long(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
 
-    a.clone_from_repr(res)
+    a.clone_from_repr(repr)
 }
 
 fn mul_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
-    let res = mul_fixed(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+    let repr = mul_fixed(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
 
-    a.clone_from_repr(res)
+    a.clone_from_repr(repr)
 }
 
 fn mul_long_single_mut(mut a: LongMutOperand<'_>, b: Single) -> MutRepr {
@@ -4106,11 +4106,9 @@ fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
         return Err(TryFromStrError::InvalidLength);
     }
 
-    let bytes = s.as_bytes();
-
-    let val = match bytes[0] {
-        b'+' => (&s[1..], Sign::POS),
-        b'-' => (&s[1..], Sign::NEG),
+    let val = match &s[..1] {
+        "+" => (&s[1..], Sign::POS),
+        "-" => (&s[1..], Sign::NEG),
         _ => (s, Sign::POS),
     };
 
@@ -4126,12 +4124,10 @@ fn get_radix_from_str(s: &str) -> Result<(&str, u16), TryFromStrError> {
         return Ok((s, 10));
     }
 
-    let bytes = s.as_bytes();
-
-    let val = match &bytes[..2] {
-        b"0x" | b"0X" => (&s[2..], 16),
-        b"0o" | b"0O" => (&s[2..], 8),
-        b"0b" | b"0B" => (&s[2..], 2),
+    let val = match &s[..2] {
+        "0x" | "0X" => (&s[2..], 16),
+        "0o" | "0O" => (&s[2..], 8),
+        "0b" | "0B" => (&s[2..], 2),
         _ => (s, 10),
     };
 
@@ -4142,29 +4138,22 @@ fn get_digits_from_str(s: &str, radix: u16) -> Result<Vec<u8>, TryFromStrError> 
     let r = radix as u8;
 
     let mut res = s
-        .as_bytes()
-        .iter()
+        .chars()
         .rev()
-        .filter_map(|&ch| match ch {
-            b'0'..=b'9' if ch - b'0' < r => Some(Ok(ch - b'0')),
-            b'a'..=b'f' if ch - b'a' + 10 < r => Some(Ok(ch - b'a' + 10)),
-            b'A'..=b'F' if ch - b'A' + 10 < r => Some(Ok(ch - b'A' + 10)),
-            b'_' => None,
-            _ => Some(Err(TryFromStrError::InvalidSymbol { ch: ch as char, radix })),
+        .filter_map(|ch| {
+            let byte = ch as u8;
+
+            match ch {
+                '0'..='9' if byte - b'0' < r => Some(Ok(byte - b'0')),
+                'a'..='f' if byte - b'a' + 10 < r => Some(Ok(byte - b'a' + 10)),
+                'A'..='F' if byte - b'A' + 10 < r => Some(Ok(byte - b'A' + 10)),
+                '_' => None,
+                _ => Some(Err(TryFromStrError::InvalidSymbol { ch, radix })),
+            }
         })
         .collect::<Result<Vec<u8>, TryFromStrError>>()?;
 
-    let mut len = res.len();
-
-    for &digit in res.iter().rev() {
-        if digit > 0 {
-            break;
-        }
-
-        len -= 1;
-    }
-
-    res.truncate(len);
+    res.truncate(get_len(&res));
 
     Ok(res)
 }
