@@ -1885,15 +1885,18 @@ fn from_bytes_long(bytes: &[u8]) -> LongRepr {
 
     let len = (bytes.len() + RATIO - 1) / RATIO;
 
-    let mut shl = 0;
-    let mut res = vec![0; len];
-
-    for (i, &byte) in bytes.iter().enumerate() {
-        let idx = i / RATIO;
-
-        res[idx] |= (byte as Single) << shl;
-        shl = (shl + u8::BITS) % Single::BITS;
+    if len == 0 {
+        return LongRepr::ZERO;
     }
+
+    let (chunks, chunk) = bytes.as_chunks::<RATIO>();
+
+    let mut res = chunks
+        .iter()
+        .map(|&bytes| Single::from_le_bytes(bytes))
+        .collect_with(vec![0; len]);
+
+    res[len - 1] = Single::from_le_bytes(chunk.iter().copied().collect_with([0; RATIO]));
 
     LongRepr::from_raw(res, Sign::POS)
 }
@@ -1903,14 +1906,16 @@ fn from_bytes_fixed<const L: usize>(bytes: &[u8]) -> FixedRepr<L> {
 
     let len = (bytes.len() + RATIO - 1) / RATIO;
 
-    let mut shl = 0;
-    let mut res = [0; L];
+    if len == 0 {
+        return FixedRepr::ZERO;
+    }
 
-    for (i, &byte) in bytes.iter().take(RATIO * L).enumerate() {
-        let idx = i / RATIO;
+    let (chunks, chunk) = bytes.as_chunks::<RATIO>();
 
-        res[idx] |= (byte as Single) << shl;
-        shl = (shl + u8::BITS) % Single::BITS;
+    let mut res = chunks.iter().map(|&bytes| Single::from_le_bytes(bytes)).collect_with([0; L]);
+
+    if len < L {
+        res[len - 1] = Single::from_le_bytes(chunk.iter().copied().collect_with([0; RATIO]));
     }
 
     FixedRepr::from_raw(res, Sign::POS).with_overflow(len > L)
