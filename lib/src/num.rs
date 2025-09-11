@@ -864,7 +864,7 @@ where
         (0..count).map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
     }
 
-    fn rand_par_prime(order: usize) -> Self
+    fn rand_prime_par(order: usize) -> Self
     where
         Self: Send + NumBuilder + Primality,
     {
@@ -876,7 +876,7 @@ where
             .unwrap_or_default()
     }
 
-    fn rand_par_primes(order: usize, count: usize) -> Vec<Self>
+    fn rand_primes_par(order: usize, count: usize) -> Vec<Self>
     where
         Self: Send + NumBuilder + Primality,
     {
@@ -1289,6 +1289,10 @@ impl SignedLong {
         self.sign
     }
 
+    pub fn drain(self) -> (Vec<Single>, Sign) {
+        (self.digits, self.sign)
+    }
+
     pub fn with_sign(mut self, sign: Sign) -> Self {
         self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
         self
@@ -1366,6 +1370,10 @@ impl UnsignedLong {
         Sign::from(self.len())
     }
 
+    pub fn drain(self) -> Vec<Single> {
+        self.digits
+    }
+
     fn raw_mut(&mut self) -> &mut Vec<Single> {
         &mut self.digits
     }
@@ -1438,6 +1446,10 @@ impl<const L: usize> SignedFixed<L> {
 
     pub fn sign(&self) -> Sign {
         self.sign
+    }
+
+    pub fn drain(self) -> ([Single; L], usize, Sign) {
+        (self.raw, self.len, self.sign)
     }
 
     pub fn with_sign(mut self, sign: Sign) -> Self {
@@ -1523,6 +1535,10 @@ impl<const L: usize> UnsignedFixed<L> {
 
     pub fn sign(&self) -> Sign {
         Sign::from(self.len())
+    }
+
+    pub fn drain(self) -> ([Single; L], usize) {
+        (self.raw, self.len)
     }
 
     fn raw_mut(&mut self) -> &mut [Single; L] {
@@ -2428,12 +2444,6 @@ fn zip_nums<'a, 'b>(a: &'a [Single], b: &'b [Single], zeros: usize) -> impl Iter
     let iter_b = b.iter().chain(repeat_n(&0, len - b.len() + zeros));
 
     iter_a.zip(iter_b)
-}
-
-fn _zip_nums_mut<'a, 'b>(a: &'a mut [Single], b: &'b [Single]) -> impl Iterator<Item = (&'a mut Single, &'b Single)> {
-    let len = a.len().max(b.len());
-
-    a.iter_mut().zip(b.iter().chain(repeat_n(&0, len - b.len())))
 }
 
 fn cmp_nums(a: &[Single], b: &[Single]) -> Ordering {

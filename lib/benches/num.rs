@@ -1,8 +1,9 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use ndlib::{
     num::*,
     ops::{Ops, OpsFrom},
 };
+use std::hint::black_box;
 
 const PRIMES: [u64; 128] = [
     4292660621, 4292200421, 4274510453, 4273041679, 4268636153, 4199694749, 4187101291, 4172993729, 4132644721,
@@ -43,14 +44,13 @@ macro_rules! impl_case {
     };
 }
 
-impl_case!(add,     "Add", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [+]);
-impl_case!(sub,     "Sub", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [-]);
+impl_case!(bitor,   "Or",  "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [|]);
+impl_case!(bitand,  "And", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [&]);
+impl_case!(bitxor,  "Xor", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [^]);
+impl_case!(add,     "Add", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [+]);
+impl_case!(sub,     "Sub", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [-]);
 impl_case!(mul,     "Mul", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [*]);
-impl_case!(div,     "Div", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S4096, U4096], [/]);
-impl_case!(bitor,   "Or",  "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [|]);
-impl_case!(bitand,  "And", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [&]);
-impl_case!(bitxor,  "Xor", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [^]);
+impl_case!(div,     "Div", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [/]);
 
-criterion_group!(group, add, sub, mul, div, bitor, bitand, bitxor,);
-
+criterion_group!(group, bitor, bitand, bitxor, add, sub, mul, div);
 criterion_main!(group);

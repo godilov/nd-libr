@@ -20,6 +20,7 @@ macro_rules! if_all {
     };
 }
 
+pub mod alloc;
 pub mod num;
 pub mod ops;
 

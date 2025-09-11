@@ -79,7 +79,7 @@ fn main() -> anyhow::Result<()> {
                     true => Primes::by_limit_fast(val).collect::<Vec<u64>>(),
                 },
                 PrimeCommands::Rand { order, count } => {
-                    let mut vec = u64::rand_par_primes(order, count);
+                    let mut vec = u64::rand_primes_par(order, count);
 
                     vec.sort_unstable();
                     vec.reverse();
