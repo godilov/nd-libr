@@ -4527,6 +4527,19 @@ mod tests {
             assert_long_from_str!(@unsigned &bin_pos, normalized(&bytes));
             assert_long_from_str!(@unsigned &oct_pos, normalized(&bytes));
             assert_long_from_str!(@unsigned &hex_pos, normalized(&bytes));
+
+            assert!(
+                val == 0 || UnsignedLong::from_str(&dec_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative)
+            );
+            assert!(
+                val == 0 || UnsignedLong::from_str(&bin_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative)
+            );
+            assert!(
+                val == 0 || UnsignedLong::from_str(&oct_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative)
+            );
+            assert!(
+                val == 0 || UnsignedLong::from_str(&hex_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative)
+            );
         }
     }
 
@@ -4562,6 +4575,11 @@ mod tests {
             assert_fixed_from_str!(@unsigned &bin_pos, bytes, get_len(&bytes));
             assert_fixed_from_str!(@unsigned &oct_pos, bytes, get_len(&bytes));
             assert_fixed_from_str!(@unsigned &hex_pos, bytes, get_len(&bytes));
+
+            assert!(val == 0 || U32::from_str(&dec_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative));
+            assert!(val == 0 || U32::from_str(&bin_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative));
+            assert!(val == 0 || U32::from_str(&oct_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative));
+            assert!(val == 0 || U32::from_str(&hex_neg).is_err_and(|err| err == TryFromStrError::UnsignedNegative));
         }
     }
 
