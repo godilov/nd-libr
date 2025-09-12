@@ -3855,26 +3855,9 @@ fn shr_fixed_mut<const L: usize>(mut a: FixedMutOperand<L>, val: usize) -> MutRe
     MutRepr::from_raw(res, sign)
 }
 
-ops_impl!(@bin |a: Sign, b: Sign| -> Sign,
-* {
-    match (a, b) {
-        (Sign::ZERO, _) => Sign::ZERO,
-        (_, Sign::ZERO) => Sign::ZERO,
-        (Sign::NEG, Sign::NEG) => Sign::POS,
-        (Sign::NEG, Sign::POS) => Sign::NEG,
-        (Sign::POS, Sign::NEG) => Sign::NEG,
-        (Sign::POS, Sign::POS) => Sign::POS,
-    }
-});
+ops_impl!(@bin |a: Sign, b: Sign| -> Sign, * Sign::from((a as i8) * (b as i8)));
 
-ops_impl!(@un |a: Sign| -> Sign,
-- {
-    match a {
-        Sign::ZERO => Sign::ZERO,
-        Sign::NEG => Sign::POS,
-        Sign::POS => Sign::NEG,
-    }
-});
+ops_impl!(@un |a: Sign| -> Sign, - Sign::from(-(a as i8)));
 
 ops_impl!(@un |a: SignedLong| -> SignedLong, - a.with_neg());
 ops_impl!(@un |a: &SignedLong| -> SignedLong, - a.clone().with_neg());
@@ -4227,8 +4210,14 @@ mod tests {
     type U32 = unsigned_fixed!(32);
 
     macro_rules! assert_long_from_std {
-        (@signed $expr:expr, $digits:expr, $sign:expr) => {
-            assert_eq!(SignedLong::from($expr), SignedLong { digits: $digits, sign: $sign });
+        (@signed $expr:expr, $digits:expr) => {
+            assert_eq!(
+                SignedLong::from($expr),
+                SignedLong {
+                    digits: $digits,
+                    sign: Sign::from($expr),
+                }
+            );
         };
         (@unsigned $expr:expr, $digits:expr) => {
             assert_eq!(UnsignedLong::from($expr), UnsignedLong { digits: $digits });
@@ -4236,13 +4225,13 @@ mod tests {
     }
 
     macro_rules! assert_fixed_from_std {
-        (@signed $expr:expr, $digits:expr, $len:expr, $sign:expr) => {
+        (@signed $expr:expr, $digits:expr, $len:expr) => {
             assert_eq!(
                 S32::from($expr),
                 SignedFixed {
                     raw: $digits,
                     len: $len,
-                    sign: $sign
+                    sign: Sign::from($expr),
                 }
             );
         };
@@ -4406,11 +4395,8 @@ mod tests {
             let pval = val as i64;
             let nval = -pval;
 
-            let sign_pos = Sign::from(pval);
-            let sign_neg = Sign::from(nval);
-
-            assert_long_from_std!(@signed pval, normalized(&bytes), sign_pos);
-            assert_long_from_std!(@signed nval, normalized(&bytes), sign_neg);
+            assert_long_from_std!(@signed pval, normalized(&bytes));
+            assert_long_from_std!(@signed nval, normalized(&bytes));
             assert_long_from_std!(@unsigned val, normalized(&bytes));
         }
     }
@@ -4423,11 +4409,8 @@ mod tests {
             let pval = val as i64;
             let nval = -pval;
 
-            let sign_pos = Sign::from(pval);
-            let sign_neg = Sign::from(nval);
-
-            assert_fixed_from_std!(@signed pval, bytes, get_len(&bytes), sign_pos);
-            assert_fixed_from_std!(@signed nval, bytes, get_len(&bytes), sign_neg);
+            assert_fixed_from_std!(@signed pval, bytes, get_len(&bytes));
+            assert_fixed_from_std!(@signed nval, bytes, get_len(&bytes));
             assert_fixed_from_std!(@unsigned val, bytes, get_len(&bytes));
         }
     }
@@ -4619,46 +4602,56 @@ mod tests {
 
     #[test]
     fn to_str_long() {
-        for val in (i32::MIN + 1..=i32::MAX).step_by(PRIMES_16[0]) {
-            let x = SignedLong::from(val);
+        for val in (u32::MIN..=u32::MAX).step_by(PRIMES_16[0]) {
+            let pval = val as i64;
+            let nval = -pval;
+            let sign = if val > 0 { "-" } else { "" };
 
-            let (sign, abs) = if val >= 0 { ("", val) } else { ("-", -val) };
+            assert_eq!(format!("{:#}", SignedLong::from(pval)), format!("{:#}", val));
+            assert_eq!(format!("{:#b}", SignedLong::from(pval)), format!("{:#b}", val));
+            assert_eq!(format!("{:#o}", SignedLong::from(pval)), format!("{:#o}", val));
+            assert_eq!(format!("{:#x}", SignedLong::from(pval)), format!("{:#x}", val));
 
-            assert_eq!(format!("{:#}", &x), format!("{}{:#}", sign, abs));
-            assert_eq!(format!("{:#b}", &x), format!("{}{:#b}", sign, abs));
-            assert_eq!(format!("{:#o}", &x), format!("{}{:#o}", sign, abs));
-            assert_eq!(format!("{:#x}", &x), format!("{}{:#x}", sign, abs));
+            assert_eq!(format!("{:#}", SignedLong::from(nval)), format!("{}{:#}", sign, val));
+            assert_eq!(format!("{:#b}", SignedLong::from(nval)), format!("{}{:#b}", sign, val));
+            assert_eq!(format!("{:#o}", SignedLong::from(nval)), format!("{}{:#o}", sign, val));
+            assert_eq!(format!("{:#x}", SignedLong::from(nval)), format!("{}{:#x}", sign, val));
 
-            assert_eq!(format!("{:}", &x), format!("{}{:}", sign, abs));
-            assert_eq!(format!("{:b}", &x), format!("{}{:b}", sign, abs));
-            assert_eq!(format!("{:o}", &x), format!("{}{:o}", sign, abs));
-            assert_eq!(format!("{:x}", &x), format!("{}{:x}", sign, abs));
+            assert_eq!(format!("{:#}", UnsignedLong::from(val)), format!("{:#}", val));
+            assert_eq!(format!("{:#b}", UnsignedLong::from(val)), format!("{:#b}", val));
+            assert_eq!(format!("{:#o}", UnsignedLong::from(val)), format!("{:#o}", val));
+            assert_eq!(format!("{:#x}", UnsignedLong::from(val)), format!("{:#x}", val));
         }
     }
 
     #[test]
     fn to_str_fixed() {
-        for val in (i32::MIN + 1..=i32::MAX).step_by(PRIMES_16[0]) {
-            let x = S32::from(val);
+        for val in (u32::MIN..=u32::MAX).step_by(PRIMES_16[0]) {
+            let pval = val as i64;
+            let nval = -pval;
+            let sign = if val > 0 { "-" } else { "" };
 
-            let (sign, abs) = if val >= 0 { ("", val) } else { ("-", -val) };
+            assert_eq!(format!("{:#}", S32::from(pval)), format!("{:#}", val));
+            assert_eq!(format!("{:#b}", S32::from(pval)), format!("{:#b}", val));
+            assert_eq!(format!("{:#o}", S32::from(pval)), format!("{:#o}", val));
+            assert_eq!(format!("{:#x}", S32::from(pval)), format!("{:#x}", val));
 
-            assert_eq!(format!("{:#}", &x), format!("{}{:#}", sign, abs));
-            assert_eq!(format!("{:#b}", &x), format!("{}{:#b}", sign, abs));
-            assert_eq!(format!("{:#o}", &x), format!("{}{:#o}", sign, abs));
-            assert_eq!(format!("{:#x}", &x), format!("{}{:#x}", sign, abs));
+            assert_eq!(format!("{:#}", S32::from(nval)), format!("{}{:#}", sign, val));
+            assert_eq!(format!("{:#b}", S32::from(nval)), format!("{}{:#b}", sign, val));
+            assert_eq!(format!("{:#o}", S32::from(nval)), format!("{}{:#o}", sign, val));
+            assert_eq!(format!("{:#x}", S32::from(nval)), format!("{}{:#x}", sign, val));
 
-            assert_eq!(format!("{:}", &x), format!("{}{:}", sign, abs));
-            assert_eq!(format!("{:b}", &x), format!("{}{:b}", sign, abs));
-            assert_eq!(format!("{:o}", &x), format!("{}{:o}", sign, abs));
-            assert_eq!(format!("{:x}", &x), format!("{}{:x}", sign, abs));
+            assert_eq!(format!("{:#}", U32::from(val)), format!("{:#}", val));
+            assert_eq!(format!("{:#b}", U32::from(val)), format!("{:#b}", val));
+            assert_eq!(format!("{:#o}", U32::from(val)), format!("{:#o}", val));
+            assert_eq!(format!("{:#x}", U32::from(val)), format!("{:#x}", val));
         }
     }
 
     #[test]
     fn addsub_long() {
-        for aop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES_24[0]) {
-            for bop in (i32::MIN as i64 + 1..=i32::MAX as i64).step_by(PRIMES_24[1]) {
+        for aop in (i32::MIN as i64..=i32::MAX as i64).step_by(PRIMES_24[0]) {
+            for bop in (i32::MIN as i64..=i32::MAX as i64).step_by(PRIMES_24[1]) {
                 let a = &SignedLong::from(aop);
                 let b = &SignedLong::from(bop);
 
