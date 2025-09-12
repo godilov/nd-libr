@@ -319,7 +319,7 @@ impl ToTokens for OpsImplMutable {
         }
 
         let lstar = self.signature.lhs_star.is_some();
-        let rstar = self.signature.lhs_star.is_some();
+        let rstar = self.signature.rhs_star.is_some();
 
         let lhs = self.signature.lhs_ref.is_some();
         let rhs = self.signature.rhs_ref.is_some();

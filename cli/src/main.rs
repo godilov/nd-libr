@@ -87,13 +87,15 @@ fn main() -> anyhow::Result<()> {
                 },
             };
 
-            if let Some(file) = filepath {
-                let file = File::create(file)?;
+            if let Some(filepath) = filepath {
+                let file = File::create(&filepath)?;
 
                 match pretty {
                     false => serde_json::to_writer(file, &primes)?,
                     true => serde_json::to_writer_pretty(file, &primes)?,
                 };
+
+                tracing::info!("Filepath: {}", filepath.display());
             } else {
                 tracing::info!("Count: {}", primes.len());
                 tracing::info!("Primes: {:?}", &primes);

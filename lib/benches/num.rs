@@ -1,8 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use ndlib::{
-    num::*,
-    ops::{Ops, OpsFrom},
-};
+use ndlib::{num::*, ops::*};
 use std::hint::black_box;
 
 const PRIMES: [u64; 128] = [
@@ -27,30 +24,69 @@ fn composite<T: From<u64> + Ops + OpsFrom, Iter: IntoIterator<Item = u64>>(init:
     iter.into_iter().fold(init, |acc, x| T::from(acc * T::from(x)))
 }
 
-macro_rules! impl_case {
-    ($fn:ident, $name:literal, $group:literal, $p1:expr, $p2:expr, [$($type:ty),+], [$op:tt]) => {
+macro_rules! impl_fn {
+    ($fn:ident, $group:literal, $primes:expr, [$($type:ty),+], ($($args:tt)+)) => {
         fn $fn(c: &mut Criterion) {
             let mut group = c.benchmark_group($group);
 
-            group.sample_size(128);
-
             $({
-                let val1 = &composite(<$type>::from(1u64), $p1);
-                let val2 = &composite(<$type>::from(1u64), $p2);
-
-                group.bench_function(format!("{} {}", stringify!($type), $name), |b| b.iter_with_large_drop(|| black_box(val1 $op val2)));
+                group.bench_function(format!("{} {}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| $type::$fn($($args)+)));
             })+
         }
     };
 }
 
-impl_case!(bitor,   "Or",  "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [|]);
-impl_case!(bitand,  "And", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [&]);
-impl_case!(bitxor,  "Xor", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [^]);
-impl_case!(add,     "Add", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [+]);
-impl_case!(sub,     "Sub", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [-]);
-impl_case!(mul,     "Mul", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [*]);
-impl_case!(div,     "Div", "Num", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [/]);
+macro_rules! impl_ops {
+    ($fn:ident, $group:literal, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
+        fn $fn(c: &mut Criterion) {
+            let mut group = c.benchmark_group($group);
 
-criterion_group!(group, bitor, bitand, bitxor, add, sub, mul, div);
+            $({
+                let op1 = composite(<$type>::from(1u64), $primes1);
+                let op2 = composite(<$type>::from(1u64), $primes2);
+
+                group.bench_function(format!("{} {}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| black_box(&op1 $op &op2)));
+            })+
+        }
+    };
+}
+
+macro_rules! impl_ops_mut {
+    ($fn:ident, $group:literal, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
+        fn $fn(c: &mut Criterion) {
+            let mut group = c.benchmark_group($group);
+
+            $({
+                let mut val = composite(<$type>::from(1u64), $primes1);
+                let operand = composite(<$type>::from(1u64), $primes2);
+
+                group.bench_function(format!("{} {}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| black_box(val $op &operand)));
+            })+
+        }
+    };
+}
+
+impl_ops!(bitor,  "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [|]);
+impl_ops!(bitand, "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [&]);
+impl_ops!(bitxor, "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [^]);
+impl_ops!(add,    "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [+]);
+impl_ops!(sub,    "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [-]);
+impl_ops!(mul,    "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [*]);
+impl_ops!(div,    "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [/]);
+impl_ops!(rem,    "num::ops", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [%]);
+
+impl_ops_mut!(bitor_mut,  "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [|=]);
+impl_ops_mut!(bitand_mut, "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [&=]);
+impl_ops_mut!(bitxor_mut, "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [^=]);
+impl_ops_mut!(add_mut,    "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [+=]);
+impl_ops_mut!(sub_mut,    "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [-=]);
+impl_ops_mut!(mul_mut,    "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [*=]);
+impl_ops_mut!(div_mut,    "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [/=]);
+impl_ops_mut!(rem_mut,    "num::ops_mut", PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [%=]);
+
+criterion_group!(
+    group, bitor, bitand, bitxor, add, sub, mul, div, rem, bitor_mut, bitand_mut, bitxor_mut, add_mut, sub_mut,
+    mul_mut, div_mut, rem_mut,
+);
+
 criterion_main!(group);
