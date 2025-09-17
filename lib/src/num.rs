@@ -1025,6 +1025,27 @@ where
     const ONE: Self;
 }
 
+sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
+sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
+
+long_from!(
+    SignedLong,
+    [Sign::POS],
+    [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
+);
+
+fixed_from!(
+    SignedFixed,
+    [Sign::POS],
+    [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
+);
+
+long_from_bool!([SignedLong, UnsignedLong]);
+fixed_from_bool!([SignedFixed, UnsignedFixed]);
+
+long_from!(UnsignedLong, [u8, u16, u32, u64, u128, usize]);
+fixed_from!(UnsignedFixed, [u8, u16, u32, u64, u128, usize]);
+
 num_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
 num_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
 prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
@@ -1062,6 +1083,23 @@ impl<'load> From<&'load UnsignedLong> for VectorOperand<'load> {
         }
     }
 }
+impl<'load, const L: usize> From<&'load SignedFixed<L>> for VectorOperand<'load> {
+    fn from(value: &'load SignedFixed<L>) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
+    }
+}
+
+impl<'load, const L: usize> From<&'load UnsignedFixed<L>> for VectorOperand<'load> {
+    fn from(value: &'load UnsignedFixed<L>) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
+    }
+}
 
 impl<'load> From<&&'load SignedLong> for VectorOperand<'load> {
     fn from(value: &&'load SignedLong) -> Self {
@@ -1071,6 +1109,18 @@ impl<'load> From<&&'load SignedLong> for VectorOperand<'load> {
 
 impl<'load> From<&&'load UnsignedLong> for VectorOperand<'load> {
     fn from(value: &&'load UnsignedLong) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl<'load, const L: usize> From<&&'load SignedFixed<L>> for VectorOperand<'load> {
+    fn from(value: &&'load SignedFixed<L>) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl<'load, const L: usize> From<&&'load UnsignedFixed<L>> for VectorOperand<'load> {
+    fn from(value: &&'load UnsignedFixed<L>) -> Self {
         Self::from(*value)
     }
 }
@@ -1093,9 +1143,23 @@ impl<'load> From<&'load mut UnsignedLong> for LongMutOperand<'load> {
     }
 }
 
-impl From<ScalarOperand> for LongRepr {
-    fn from(value: ScalarOperand) -> Self {
-        Self::from_single(value.digit()).with_sign(value.sign())
+impl<'load, const L: usize> From<&'load mut SignedFixed<L>> for FixedMutOperand<'load, L> {
+    fn from(value: &'load mut SignedFixed<L>) -> Self {
+        Self {
+            len: value.len(),
+            sign: value.sign(),
+            raw: value.raw_mut(),
+        }
+    }
+}
+
+impl<'load, const L: usize> From<&'load mut UnsignedFixed<L>> for FixedMutOperand<'load, L> {
+    fn from(value: &'load mut UnsignedFixed<L>) -> Self {
+        Self {
+            len: value.len(),
+            sign: value.sign(),
+            raw: value.raw_mut(),
+        }
     }
 }
 
@@ -1108,6 +1172,30 @@ impl From<VectorOperand<'_>> for LongRepr {
     }
 }
 
+impl<const L: usize> From<VectorOperand<'_>> for FixedRepr<L> {
+    fn from(value: VectorOperand<'_>) -> Self {
+        Self {
+            raw: value.digits().iter().copied().collect_with([0; L]),
+            len: value.len().min(L),
+            sign: value.sign(),
+            overflow_val: 0,
+            overflow: false,
+        }
+    }
+}
+
+impl From<ScalarOperand> for LongRepr {
+    fn from(value: ScalarOperand) -> Self {
+        Self::from_single(value.digit()).with_sign(value.sign())
+    }
+}
+
+impl<const L: usize> From<ScalarOperand> for FixedRepr<L> {
+    fn from(value: ScalarOperand) -> Self {
+        Self::from_single(value.digit()).with_sign(value.sign())
+    }
+}
+
 impl<'load> From<&'load LongRepr> for VectorOperand<'load> {
     fn from(value: &'load LongRepr) -> Self {
         Self {
@@ -1117,8 +1205,26 @@ impl<'load> From<&'load LongRepr> for VectorOperand<'load> {
     }
 }
 
+impl<'load, const L: usize> From<&'load FixedRepr<L>> for VectorOperand<'load> {
+    fn from(value: &'load FixedRepr<L>) -> Self {
+        Self {
+            digits: value.digits(),
+            sign: value.sign(),
+        }
+    }
+}
+
 impl<'load> From<LongMutOperand<'load>> for MutRepr {
     fn from(value: LongMutOperand<'load>) -> Self {
+        Self {
+            len: value.len(),
+            sign: value.sign(),
+        }
+    }
+}
+
+impl<'load, const L: usize> From<FixedMutOperand<'load, L>> for MutRepr {
+    fn from(value: FixedMutOperand<'load, L>) -> Self {
         Self {
             len: value.len(),
             sign: value.sign(),
@@ -1145,92 +1251,6 @@ impl From<LongRepr> for UnsignedLong {
     }
 }
 
-impl<'load, const L: usize> From<&'load SignedFixed<L>> for VectorOperand<'load> {
-    fn from(value: &'load SignedFixed<L>) -> Self {
-        Self {
-            digits: value.digits(),
-            sign: value.sign(),
-        }
-    }
-}
-
-impl<'load, const L: usize> From<&'load UnsignedFixed<L>> for VectorOperand<'load> {
-    fn from(value: &'load UnsignedFixed<L>) -> Self {
-        Self {
-            digits: value.digits(),
-            sign: value.sign(),
-        }
-    }
-}
-
-impl<'load, const L: usize> From<&&'load SignedFixed<L>> for VectorOperand<'load> {
-    fn from(value: &&'load SignedFixed<L>) -> Self {
-        Self::from(*value)
-    }
-}
-
-impl<'load, const L: usize> From<&&'load UnsignedFixed<L>> for VectorOperand<'load> {
-    fn from(value: &&'load UnsignedFixed<L>) -> Self {
-        Self::from(*value)
-    }
-}
-
-impl<'load, const L: usize> From<&'load mut SignedFixed<L>> for FixedMutOperand<'load, L> {
-    fn from(value: &'load mut SignedFixed<L>) -> Self {
-        Self {
-            len: value.len(),
-            sign: value.sign(),
-            raw: value.raw_mut(),
-        }
-    }
-}
-
-impl<'load, const L: usize> From<&'load mut UnsignedFixed<L>> for FixedMutOperand<'load, L> {
-    fn from(value: &'load mut UnsignedFixed<L>) -> Self {
-        Self {
-            len: value.len(),
-            sign: value.sign(),
-            raw: value.raw_mut(),
-        }
-    }
-}
-
-impl<const L: usize> From<ScalarOperand> for FixedRepr<L> {
-    fn from(value: ScalarOperand) -> Self {
-        Self::from_single(value.digit()).with_sign(value.sign())
-    }
-}
-
-impl<const L: usize> From<VectorOperand<'_>> for FixedRepr<L> {
-    fn from(value: VectorOperand<'_>) -> Self {
-        Self {
-            raw: value.digits().iter().copied().collect_with([0; L]),
-            len: value.len().min(L),
-            sign: value.sign(),
-            overflow_val: 0,
-            overflow: false,
-        }
-    }
-}
-
-impl<'load, const L: usize> From<&'load FixedRepr<L>> for VectorOperand<'load> {
-    fn from(value: &'load FixedRepr<L>) -> Self {
-        Self {
-            digits: value.digits(),
-            sign: value.sign(),
-        }
-    }
-}
-
-impl<'load, const L: usize> From<FixedMutOperand<'load, L>> for MutRepr {
-    fn from(value: FixedMutOperand<'load, L>) -> Self {
-        Self {
-            len: value.len(),
-            sign: value.sign(),
-        }
-    }
-}
-
 impl<const L: usize> From<FixedRepr<L>> for SignedFixed<L> {
     fn from(value: FixedRepr<L>) -> Self {
         Self {
@@ -1250,27 +1270,6 @@ impl<const L: usize> From<FixedRepr<L>> for UnsignedFixed<L> {
         }
     }
 }
-
-sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
-sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
-
-long_from!(
-    SignedLong,
-    [Sign::POS],
-    [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
-);
-
-fixed_from!(
-    SignedFixed,
-    [Sign::POS],
-    [u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize],
-);
-
-long_from!(UnsignedLong, [u8, u16, u32, u64, u128, usize]);
-fixed_from!(UnsignedFixed, [u8, u16, u32, u64, u128, usize]);
-
-long_from_bool!([SignedLong, UnsignedLong]);
-fixed_from_bool!([SignedFixed, UnsignedFixed]);
 
 impl FromStr for SignedLong {
     type Err = TryFromStrError;
