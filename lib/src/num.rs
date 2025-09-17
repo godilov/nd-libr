@@ -739,14 +739,14 @@ pub struct UnsignedFixedVec<const L: usize, const N: usize> {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-struct ScalarOperand {
-    digit: Single,
+struct VectorOperand<'load> {
+    digits: &'load [Single],
     sign: Sign,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-struct VectorOperand<'load> {
-    digits: &'load [Single],
+struct ScalarOperand {
+    digit: Single,
     sign: Sign,
 }
 
@@ -1095,7 +1095,7 @@ impl<'load> From<&'load mut UnsignedLong> for LongMutOperand<'load> {
 
 impl From<ScalarOperand> for LongRepr {
     fn from(value: ScalarOperand) -> Self {
-        Self::from_scalar(value.digit()).with_sign(value.sign())
+        Self::from_single(value.digit()).with_sign(value.sign())
     }
 }
 
@@ -1197,7 +1197,7 @@ impl<'load, const L: usize> From<&'load mut UnsignedFixed<L>> for FixedMutOperan
 
 impl<const L: usize> From<ScalarOperand> for FixedRepr<L> {
     fn from(value: ScalarOperand) -> Self {
-        Self::from_scalar(value.digit()).with_sign(value.sign())
+        Self::from_single(value.digit()).with_sign(value.sign())
     }
 }
 
@@ -1640,7 +1640,7 @@ impl LongRepr {
         sign: Sign::ZERO,
     };
 
-    fn from_scalar(digit: Single) -> Self {
+    fn from_single(digit: Single) -> Self {
         match digit {
             0 => LongRepr::ZERO,
             x => Self {
@@ -1687,10 +1687,10 @@ impl LongRepr {
 }
 
 impl<const L: usize> FixedRepr<L> {
-    const ZERO: Self = Self::from_scalar(0);
-    const ONE: Self = Self::from_scalar(1);
+    const ZERO: Self = Self::from_single(0);
+    const ONE: Self = Self::from_single(1);
 
-    const fn from_scalar(digit: Single) -> Self {
+    const fn from_single(digit: Single) -> Self {
         let mut res = [0; L];
 
         res[0] = digit;
@@ -2897,7 +2897,7 @@ fn sub_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> LongRepr {
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return LongRepr::from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return LongRepr::from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return LongRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -2933,7 +2933,7 @@ fn sub_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> F
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return FixedRepr::from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return FixedRepr::from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return FixedRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -3295,7 +3295,7 @@ fn div_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (LongRepr, Lon
 
     match cmp_nums(a.digits(), b.digits()) {
         Ordering::Less => return (LongRepr::ZERO, a.into()),
-        Ordering::Equal => return (LongRepr::from_scalar(1).with_sign(a.sign() * b.sign()), LongRepr::ZERO),
+        Ordering::Equal => return (LongRepr::from_single(1).with_sign(a.sign() * b.sign()), LongRepr::ZERO),
         Ordering::Greater => (),
     }
 
@@ -3411,7 +3411,7 @@ fn div_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> (LongRepr, LongRep
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return (LongRepr::ZERO, a.into()),
-        Ordering::Equal => return (LongRepr::from_scalar(1).with_sign(a.sign()), LongRepr::ZERO),
+        Ordering::Equal => return (LongRepr::from_single(1).with_sign(a.sign()), LongRepr::ZERO),
         Ordering::Greater => (),
     }
 
@@ -3446,7 +3446,7 @@ fn div_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> (
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return (FixedRepr::ZERO, a.into()),
-        Ordering::Equal => return (FixedRepr::from_scalar(1).with_sign(a.sign()), FixedRepr::ZERO),
+        Ordering::Equal => return (FixedRepr::from_single(1).with_sign(a.sign()), FixedRepr::ZERO),
         Ordering::Greater => (),
     }
 
