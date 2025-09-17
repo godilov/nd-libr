@@ -306,8 +306,8 @@ macro_rules! div_apply {
             $div = ($digit - 1) as Single;
 
             let dop = [$div];
-            let mul = $mul_fn(Operand::from_raw(&dop), $bpos);
-            let sub = $sub_fn(Operand::from_raw(&$rem[..$len]), (&mul).into());
+            let mul = $mul_fn(VectorOperand::from_raw(&dop), $bpos);
+            let sub = $sub_fn(VectorOperand::from_raw(&$rem[..$len]), (&mul).into());
 
             $rem.fill(0);
             $rem[..sub.len()].copy_from_slice(sub.digits());
@@ -745,7 +745,7 @@ struct ScalarOperand {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-struct Operand<'load> {
+struct VectorOperand<'load> {
     digits: &'load [Single],
     sign: Sign,
 }
@@ -1045,7 +1045,7 @@ impl<const L: usize> Default for UnsignedFixed<L> {
     }
 }
 
-impl<'load> From<&'load SignedLong> for Operand<'load> {
+impl<'load> From<&'load SignedLong> for VectorOperand<'load> {
     fn from(value: &'load SignedLong) -> Self {
         Self {
             digits: value.digits(),
@@ -1054,7 +1054,7 @@ impl<'load> From<&'load SignedLong> for Operand<'load> {
     }
 }
 
-impl<'load> From<&'load UnsignedLong> for Operand<'load> {
+impl<'load> From<&'load UnsignedLong> for VectorOperand<'load> {
     fn from(value: &'load UnsignedLong) -> Self {
         Self {
             digits: value.digits(),
@@ -1063,13 +1063,13 @@ impl<'load> From<&'load UnsignedLong> for Operand<'load> {
     }
 }
 
-impl<'load> From<&&'load SignedLong> for Operand<'load> {
+impl<'load> From<&&'load SignedLong> for VectorOperand<'load> {
     fn from(value: &&'load SignedLong) -> Self {
         Self::from(*value)
     }
 }
 
-impl<'load> From<&&'load UnsignedLong> for Operand<'load> {
+impl<'load> From<&&'load UnsignedLong> for VectorOperand<'load> {
     fn from(value: &&'load UnsignedLong) -> Self {
         Self::from(*value)
     }
@@ -1095,12 +1095,12 @@ impl<'load> From<&'load mut UnsignedLong> for LongMutOperand<'load> {
 
 impl From<ScalarOperand> for LongRepr {
     fn from(value: ScalarOperand) -> Self {
-        Self::from_single(value.digit()).with_sign(value.sign())
+        Self::from_scalar(value.digit()).with_sign(value.sign())
     }
 }
 
-impl From<Operand<'_>> for LongRepr {
-    fn from(value: Operand<'_>) -> Self {
+impl From<VectorOperand<'_>> for LongRepr {
+    fn from(value: VectorOperand<'_>) -> Self {
         Self {
             digits: value.digits().to_vec(),
             sign: value.sign(),
@@ -1108,7 +1108,7 @@ impl From<Operand<'_>> for LongRepr {
     }
 }
 
-impl<'load> From<&'load LongRepr> for Operand<'load> {
+impl<'load> From<&'load LongRepr> for VectorOperand<'load> {
     fn from(value: &'load LongRepr) -> Self {
         Self {
             digits: value.digits(),
@@ -1145,7 +1145,7 @@ impl From<LongRepr> for UnsignedLong {
     }
 }
 
-impl<'load, const L: usize> From<&'load SignedFixed<L>> for Operand<'load> {
+impl<'load, const L: usize> From<&'load SignedFixed<L>> for VectorOperand<'load> {
     fn from(value: &'load SignedFixed<L>) -> Self {
         Self {
             digits: value.digits(),
@@ -1154,7 +1154,7 @@ impl<'load, const L: usize> From<&'load SignedFixed<L>> for Operand<'load> {
     }
 }
 
-impl<'load, const L: usize> From<&'load UnsignedFixed<L>> for Operand<'load> {
+impl<'load, const L: usize> From<&'load UnsignedFixed<L>> for VectorOperand<'load> {
     fn from(value: &'load UnsignedFixed<L>) -> Self {
         Self {
             digits: value.digits(),
@@ -1163,13 +1163,13 @@ impl<'load, const L: usize> From<&'load UnsignedFixed<L>> for Operand<'load> {
     }
 }
 
-impl<'load, const L: usize> From<&&'load SignedFixed<L>> for Operand<'load> {
+impl<'load, const L: usize> From<&&'load SignedFixed<L>> for VectorOperand<'load> {
     fn from(value: &&'load SignedFixed<L>) -> Self {
         Self::from(*value)
     }
 }
 
-impl<'load, const L: usize> From<&&'load UnsignedFixed<L>> for Operand<'load> {
+impl<'load, const L: usize> From<&&'load UnsignedFixed<L>> for VectorOperand<'load> {
     fn from(value: &&'load UnsignedFixed<L>) -> Self {
         Self::from(*value)
     }
@@ -1197,12 +1197,12 @@ impl<'load, const L: usize> From<&'load mut UnsignedFixed<L>> for FixedMutOperan
 
 impl<const L: usize> From<ScalarOperand> for FixedRepr<L> {
     fn from(value: ScalarOperand) -> Self {
-        Self::from_single(value.digit()).with_sign(value.sign())
+        Self::from_scalar(value.digit()).with_sign(value.sign())
     }
 }
 
-impl<const L: usize> From<Operand<'_>> for FixedRepr<L> {
-    fn from(value: Operand<'_>) -> Self {
+impl<const L: usize> From<VectorOperand<'_>> for FixedRepr<L> {
+    fn from(value: VectorOperand<'_>) -> Self {
         Self {
             raw: value.digits().iter().copied().collect_with([0; L]),
             len: value.len().min(L),
@@ -1213,7 +1213,7 @@ impl<const L: usize> From<Operand<'_>> for FixedRepr<L> {
     }
 }
 
-impl<'load, const L: usize> From<&'load FixedRepr<L>> for Operand<'load> {
+impl<'load, const L: usize> From<&'load FixedRepr<L>> for VectorOperand<'load> {
     fn from(value: &'load FixedRepr<L>) -> Self {
         Self {
             digits: value.digits(),
@@ -1640,7 +1640,7 @@ impl LongRepr {
         sign: Sign::ZERO,
     };
 
-    fn from_single(digit: Single) -> Self {
+    fn from_scalar(digit: Single) -> Self {
         match digit {
             0 => LongRepr::ZERO,
             x => Self {
@@ -1687,10 +1687,10 @@ impl LongRepr {
 }
 
 impl<const L: usize> FixedRepr<L> {
-    const ZERO: Self = Self::from_single(0);
-    const ONE: Self = Self::from_single(1);
+    const ZERO: Self = Self::from_scalar(0);
+    const ONE: Self = Self::from_scalar(1);
 
-    const fn from_single(digit: Single) -> Self {
+    const fn from_scalar(digit: Single) -> Self {
         let mut res = [0; L];
 
         res[0] = digit;
@@ -1762,8 +1762,23 @@ impl<const L: usize> FixedRepr<L> {
     }
 }
 
-impl<'digits> Operand<'digits> {
-    const ONE: Self = Operand { digits: &[1], sign: Sign::POS };
+impl ScalarOperand {
+    fn digit(&self) -> Single {
+        self.digit
+    }
+
+    fn sign(&self) -> Sign {
+        self.sign
+    }
+
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
+    }
+}
+
+impl<'digits> VectorOperand<'digits> {
+    const ONE: Self = VectorOperand { digits: &[1], sign: Sign::POS };
 
     fn from_raw(digits: &'digits [Single]) -> Self {
         let len = get_len(digits);
@@ -1813,23 +1828,8 @@ impl<'digits> Operand<'digits> {
     }
 }
 
-impl ScalarOperand {
-    fn digit(&self) -> Single {
-        self.digit
-    }
-
-    fn sign(&self) -> Sign {
-        self.sign
-    }
-
-    fn with_neg(mut self) -> Self {
-        self.sign = -self.sign;
-        self
-    }
-}
-
 impl LongMutOperand<'_> {
-    fn clone_from_single(&mut self, val: Single) -> MutRepr {
+    fn clone_from_scalar(&mut self, val: Single) -> MutRepr {
         if val == 0 {
             self.raw_mut().clear();
 
@@ -1856,7 +1856,7 @@ impl LongMutOperand<'_> {
         MutRepr::from_raw(&[val as Single, (val >> Single::BITS) as Single], Sign::POS)
     }
 
-    fn clone_from_operand(&mut self, val: Operand<'_>) -> MutRepr {
+    fn clone_from_operand(&mut self, val: VectorOperand<'_>) -> MutRepr {
         self.raw_mut().resize(val.len(), 0);
         self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
 
@@ -1889,7 +1889,7 @@ impl LongMutOperand<'_> {
         self.sign
     }
 
-    fn with_cloned_from(mut self, val: Operand<'_>) -> Self {
+    fn with_cloned_from(mut self, val: VectorOperand<'_>) -> Self {
         self.raw_mut().resize(val.len(), 0);
         self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
         self.with_sign(val.sign())
@@ -1907,7 +1907,7 @@ impl LongMutOperand<'_> {
 }
 
 impl<const L: usize> FixedMutOperand<'_, L> {
-    fn clone_from_single(&mut self, val: Single) -> MutRepr {
+    fn clone_from_scalar(&mut self, val: Single) -> MutRepr {
         self.raw_mut()[0] = val;
 
         MutRepr::from_raw(&[val], Sign::POS)
@@ -1920,7 +1920,7 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         MutRepr::from_raw(&[val as Single, (val >> Single::BITS) as Single], Sign::POS)
     }
 
-    fn clone_from_operand(&mut self, val: Operand<'_>) -> MutRepr {
+    fn clone_from_operand(&mut self, val: VectorOperand<'_>) -> MutRepr {
         self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
 
         MutRepr::from_raw(val.digits(), val.sign())
@@ -1952,7 +1952,7 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         self.sign
     }
 
-    fn with_cloned_from(mut self, val: Operand<'_>) -> Self {
+    fn with_cloned_from(mut self, val: VectorOperand<'_>) -> Self {
         self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
         self.with_sign(val.sign())
     }
@@ -2568,7 +2568,7 @@ fn cmp_nums_ext(a: &[Single], ax: Single, b: &[Single], bx: Single) -> Ordering 
     }
 }
 
-fn add_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
+fn add_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> LongRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return b.into(),
@@ -2577,7 +2577,7 @@ fn add_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     }
 
     if a.sign() != b.sign() {
-        return sub_long(a, -b);
+        return sub_long_vector(a, -b);
     }
 
     let len = a.len().max(b.len()) + 1;
@@ -2597,7 +2597,7 @@ fn add_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     LongRepr::from_raw(res, a.sign())
 }
 
-fn add_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
+fn add_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
         (Sign::ZERO, _) => return b.into(),
@@ -2606,7 +2606,7 @@ fn add_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     }
 
     if a.sign() != b.sign() {
-        return sub_fixed(a, -b);
+        return sub_fixed_vector(a, -b);
     }
 
     let mut acc = 0;
@@ -2626,7 +2626,7 @@ fn add_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         .with_overflow(acc > 0)
 }
 
-fn add_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
+fn add_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> LongRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return b.into(),
@@ -2635,7 +2635,7 @@ fn add_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
     }
 
     if a.sign() == Sign::NEG {
-        return sub_long_single(a, -b);
+        return sub_long_scalar(a, -b);
     }
 
     let mut acc = b.digit() as Double;
@@ -2656,7 +2656,7 @@ fn add_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
     LongRepr::from_raw(res, a.sign())
 }
 
-fn add_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+fn add_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
         (Sign::ZERO, _) => return b.into(),
@@ -2665,7 +2665,7 @@ fn add_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRe
     }
 
     if a.sign() == Sign::NEG {
-        return sub_fixed_single(a, -b);
+        return sub_fixed_scalar(a, -b);
     }
 
     let mut acc = b.digit() as Double;
@@ -2688,7 +2688,7 @@ fn add_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRe
         .with_overflow(acc > 0)
 }
 
-fn add_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
+fn add_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
         (Sign::ZERO, _) => return a.clone_from_operand(b),
@@ -2697,7 +2697,7 @@ fn add_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     }
 
     if a.sign() != b.sign() {
-        return sub_long_mut(a, -b);
+        return sub_long_vector_mut(a, -b);
     }
 
     let len = a.len().max(b.len()) + 1;
@@ -2720,7 +2720,7 @@ fn add_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn add_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
+fn add_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
         (Sign::ZERO, _) => return a.clone_from_operand(b),
@@ -2729,7 +2729,7 @@ fn add_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
     }
 
     if a.sign() != b.sign() {
-        return sub_fixed_mut(a, -b);
+        return sub_fixed_vector_mut(a, -b);
     }
 
     let len = (a.len().max(b.len()) + 1).min(L);
@@ -2752,16 +2752,16 @@ fn add_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn add_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
+fn add_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_single(b.digit()),
+        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
 
     if a.sign() == Sign::NEG {
-        return sub_long_single_mut(a, -b);
+        return sub_long_scalar_mut(a, -b);
     }
 
     let res = a.raw_mut();
@@ -2787,16 +2787,16 @@ fn add_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn add_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+fn add_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_single(b.digit()),
+        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
 
     if a.sign() == Sign::NEG {
-        return sub_fixed_single_mut(a, -b);
+        return sub_fixed_scalar_mut(a, -b);
     }
 
     let res = a.raw_mut();
@@ -2818,7 +2818,7 @@ fn add_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn sub_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
+fn sub_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> LongRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return (-b).into(),
@@ -2827,7 +2827,7 @@ fn sub_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     }
 
     if a.sign() != b.sign() {
-        return add_long(a, -b);
+        return add_long_vector(a, -b);
     }
 
     let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
@@ -2851,7 +2851,7 @@ fn sub_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     LongRepr::from_raw(res, sign)
 }
 
-fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
+fn sub_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
         (Sign::ZERO, _) => return (-b).into(),
@@ -2860,7 +2860,7 @@ fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     }
 
     if a.sign() != b.sign() {
-        return add_fixed(a, -b);
+        return add_fixed_vector(a, -b);
     }
 
     let (a, b, sign) = match cmp_nums(a.digits(), b.digits()) {
@@ -2884,7 +2884,7 @@ fn sub_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
     FixedRepr::from_raw(res, sign)
 }
 
-fn sub_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
+fn sub_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> LongRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return LongRepr::ZERO,
         (Sign::ZERO, _) => return b.with_neg().into(),
@@ -2893,11 +2893,11 @@ fn sub_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
     }
 
     if a.sign() == Sign::NEG {
-        return add_long_single(a, -b);
+        return add_long_scalar(a, -b);
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return LongRepr::from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return LongRepr::from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return LongRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -2920,7 +2920,7 @@ fn sub_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
     LongRepr::from_raw(res, a.sign())
 }
 
-fn sub_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+fn sub_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return FixedRepr::ZERO,
         (Sign::ZERO, _) => return b.with_neg().into(),
@@ -2929,11 +2929,11 @@ fn sub_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRe
     }
 
     if a.sign() == Sign::NEG {
-        return add_fixed_single(-a, b);
+        return add_fixed_scalar(-a, b);
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return FixedRepr::from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return FixedRepr::from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return FixedRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -2956,7 +2956,7 @@ fn sub_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRe
     FixedRepr::from_raw(res, a.sign())
 }
 
-fn sub_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
+fn sub_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
         (Sign::ZERO, _) => return a.clone_from_operand(b).with_neg(),
@@ -2965,7 +2965,7 @@ fn sub_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     }
 
     if a.sign() != b.sign() {
-        return add_long_mut(a, -b);
+        return add_long_vector_mut(a, -b);
     }
 
     match cmp_nums(a.digits(), b.digits()) {
@@ -2973,7 +2973,7 @@ fn sub_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
             let digits = a.digits().to_vec();
             let sign = a.sign();
 
-            return sub_long_mut(a.with_cloned_from(b), Operand::from_raw(&digits).with_sign(sign));
+            return sub_long_vector_mut(a.with_cloned_from(b), VectorOperand::from_raw(&digits).with_sign(sign));
         },
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
@@ -2994,7 +2994,7 @@ fn sub_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn sub_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
+fn sub_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
         (Sign::ZERO, _) => return a.clone_from_operand(b).with_neg(),
@@ -3003,7 +3003,7 @@ fn sub_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
     }
 
     if a.sign() != b.sign() {
-        return add_fixed_mut(a, -b);
+        return add_fixed_vector_mut(a, -b);
     }
 
     match cmp_nums(a.digits(), b.digits()) {
@@ -3011,7 +3011,7 @@ fn sub_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
             let digits = a.digits().to_vec();
             let sign = a.sign();
 
-            return sub_fixed_mut(a.with_cloned_from(b), Operand::from_raw(&digits).with_sign(sign));
+            return sub_fixed_vector_mut(a.with_cloned_from(b), VectorOperand::from_raw(&digits).with_sign(sign));
         },
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
@@ -3032,20 +3032,20 @@ fn sub_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) 
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn sub_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
+fn sub_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_single(b.digit()).with_neg(),
+        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()).with_neg(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
 
     if a.sign() == Sign::NEG {
-        return add_long_single_mut(-a, b);
+        return add_long_scalar_mut(-a, b);
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return a.clone_from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return a.clone_from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -3069,20 +3069,20 @@ fn sub_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn sub_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+fn sub_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_single(b.digit()).with_neg(),
+        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()).with_neg(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
 
     if a.sign() == Sign::NEG {
-        return add_fixed_single_mut(a, -b);
+        return add_fixed_scalar_mut(a, -b);
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return a.clone_from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return a.clone_from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -3106,7 +3106,7 @@ fn sub_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn mul_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
+fn mul_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> LongRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return LongRepr::ZERO,
         (_, Sign::ZERO) => return LongRepr::ZERO,
@@ -3132,7 +3132,7 @@ fn mul_long(a: Operand<'_>, b: Operand<'_>) -> LongRepr {
     LongRepr::from_raw(res, a.sign() * b.sign())
 }
 
-fn mul_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
+fn mul_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return FixedRepr::ZERO,
         (_, Sign::ZERO) => return FixedRepr::ZERO,
@@ -3170,7 +3170,7 @@ fn mul_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> FixedRepr<L> {
         .with_overflow(over)
 }
 
-fn mul_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
+fn mul_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> LongRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return LongRepr::ZERO,
         (_, Sign::ZERO) => return LongRepr::ZERO,
@@ -3191,7 +3191,7 @@ fn mul_long_single(a: Operand<'_>, b: ScalarOperand) -> LongRepr {
     LongRepr::from_raw(res, a.sign())
 }
 
-fn mul_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+fn mul_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return FixedRepr::ZERO,
         (_, Sign::ZERO) => return FixedRepr::ZERO,
@@ -3214,19 +3214,19 @@ fn mul_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> FixedRe
         .with_overflow(acc > 0)
 }
 
-fn mul_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
-    let repr = mul_long(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+fn mul_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRepr {
+    let repr = mul_long_vector(VectorOperand::from_raw(a.digits()).with_sign(a.sign()), b);
 
     a.clone_from_repr(repr)
 }
 
-fn mul_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
-    let repr = mul_fixed(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+fn mul_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+    let repr = mul_fixed_vector(VectorOperand::from_raw(a.digits()).with_sign(a.sign()), b);
 
     a.clone_from_repr(repr)
 }
 
-fn mul_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
+fn mul_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return MutRepr::ZERO,
         (_, Sign::ZERO) => return MutRepr::ZERO,
@@ -3256,7 +3256,7 @@ fn mul_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn mul_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+fn mul_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return MutRepr::ZERO,
         (_, Sign::ZERO) => return MutRepr::ZERO,
@@ -3282,20 +3282,20 @@ fn mul_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
+fn div_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (LongRepr, LongRepr) {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return (LongRepr::ZERO, LongRepr::ZERO),
         (_, Sign::ZERO) => panic!("Division by zero"),
         _ => (),
     }
 
-    if b == Operand::ONE {
+    if b == VectorOperand::ONE {
         return (a.into(), LongRepr::ZERO);
     }
 
     match cmp_nums(a.digits(), b.digits()) {
         Ordering::Less => return (LongRepr::ZERO, a.into()),
-        Ordering::Equal => return (LongRepr::from_single(1).with_sign(a.sign() * b.sign()), LongRepr::ZERO),
+        Ordering::Equal => return (LongRepr::from_scalar(1).with_sign(a.sign() * b.sign()), LongRepr::ZERO),
         Ordering::Greater => (),
     }
 
@@ -3322,7 +3322,7 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
         while l < r {
             let m = l + (r - l) / 2;
 
-            let val = mul_long_single(bpos, (m as Single).into());
+            let val = mul_long_scalar(bpos, (m as Single).into());
 
             match cmp_nums(val.digits(), &rem[..len]) {
                 Ordering::Less => l = m + 1,
@@ -3331,13 +3331,13 @@ fn div_long(a: Operand<'_>, b: Operand<'_>) -> (LongRepr, LongRepr) {
             }
         }
 
-        div_apply!(mul_long, sub_long, div[i], rem, len, bpos, l);
+        div_apply!(mul_long_vector, sub_long_vector, div[i], rem, len, bpos, l);
     }
 
     (LongRepr::from_raw(div, sign_div), LongRepr::from_raw(rem, sign_rem))
 }
 
-fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, FixedRepr<L>) {
+fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (FixedRepr<L>, FixedRepr<L>) {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => {
             return (FixedRepr::ZERO, FixedRepr::ZERO);
@@ -3346,7 +3346,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
         _ => (),
     }
 
-    if b == Operand::ONE {
+    if b == VectorOperand::ONE {
         return (a.into(), FixedRepr::ZERO);
     }
 
@@ -3383,7 +3383,7 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
         while l < r {
             let m = l + (r - l) / 2;
 
-            let val = mul_fixed_single::<L>(bpos, (m as Single).into());
+            let val = mul_fixed_scalar::<L>(bpos, (m as Single).into());
 
             match cmp_nums_ext(&val.raw, val.overflow_val, &rem, remx) {
                 Ordering::Less => l = m + 1,
@@ -3392,13 +3392,13 @@ fn div_fixed<const L: usize>(a: Operand<'_>, b: Operand<'_>) -> (FixedRepr<L>, F
             }
         }
 
-        div_apply!(mul_fixed::<L>, sub_fixed::<L>, div[i], rem, len, bpos, l);
+        div_apply!(mul_fixed_vector::<L>, sub_fixed_vector::<L>, div[i], rem, len, bpos, l);
     }
 
     (FixedRepr::from_raw(div, sign_div), FixedRepr::from_raw(rem, sign_rem))
 }
 
-fn div_long_single(a: Operand<'_>, b: ScalarOperand) -> (LongRepr, LongRepr) {
+fn div_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> (LongRepr, LongRepr) {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return (LongRepr::ZERO, LongRepr::ZERO),
         (_, Sign::ZERO) => panic!("Division by zero"),
@@ -3411,7 +3411,7 @@ fn div_long_single(a: Operand<'_>, b: ScalarOperand) -> (LongRepr, LongRepr) {
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return (LongRepr::ZERO, a.into()),
-        Ordering::Equal => return (LongRepr::from_single(1).with_sign(a.sign()), LongRepr::ZERO),
+        Ordering::Equal => return (LongRepr::from_scalar(1).with_sign(a.sign()), LongRepr::ZERO),
         Ordering::Greater => (),
     }
 
@@ -3433,7 +3433,7 @@ fn div_long_single(a: Operand<'_>, b: ScalarOperand) -> (LongRepr, LongRepr) {
     (LongRepr::from_raw(div, a.sign()), LongRepr::from_double(rem))
 }
 
-fn div_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> (FixedRepr<L>, FixedRepr<L>) {
+fn div_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> (FixedRepr<L>, FixedRepr<L>) {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return (FixedRepr::ZERO, FixedRepr::ZERO),
         (_, Sign::ZERO) => panic!("Division by zero"),
@@ -3446,7 +3446,7 @@ fn div_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> (FixedR
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return (FixedRepr::ZERO, a.into()),
-        Ordering::Equal => return (FixedRepr::from_single(1).with_sign(a.sign()), FixedRepr::ZERO),
+        Ordering::Equal => return (FixedRepr::from_scalar(1).with_sign(a.sign()), FixedRepr::ZERO),
         Ordering::Greater => (),
     }
 
@@ -3468,31 +3468,31 @@ fn div_fixed_single<const L: usize>(a: Operand<'_>, b: ScalarOperand) -> (FixedR
     (FixedRepr::from_raw(div, a.sign()), FixedRepr::from_double(rem))
 }
 
-fn div_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
-    let repr = div_long(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+fn div_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRepr {
+    let repr = div_long_vector(VectorOperand::from_raw(a.digits()).with_sign(a.sign()), b);
 
     a.clone_from_repr(repr.0)
 }
 
-fn div_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
-    let repr = div_fixed(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+fn div_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+    let repr = div_fixed_vector(VectorOperand::from_raw(a.digits()).with_sign(a.sign()), b);
 
     a.clone_from_repr(repr.0)
 }
 
-fn rem_long_mut(mut a: LongMutOperand<'_>, b: Operand<'_>) -> MutRepr {
-    let repr = div_long(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+fn rem_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRepr {
+    let repr = div_long_vector(VectorOperand::from_raw(a.digits()).with_sign(a.sign()), b);
 
     a.clone_from_repr(repr.1)
 }
 
-fn rem_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>) -> MutRepr {
-    let repr = div_fixed(Operand::from_raw(a.digits()).with_sign(a.sign()), b);
+fn rem_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+    let repr = div_fixed_vector(VectorOperand::from_raw(a.digits()).with_sign(a.sign()), b);
 
     a.clone_from_repr(repr.1)
 }
 
-fn div_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
+fn div_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return MutRepr::ZERO,
         (_, Sign::ZERO) => panic!("Division by zero"),
@@ -3505,7 +3505,7 @@ fn div_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return MutRepr::ZERO,
-        Ordering::Equal => return a.clone_from_single(1),
+        Ordering::Equal => return a.clone_from_scalar(1),
         Ordering::Greater => (),
     }
 
@@ -3526,7 +3526,7 @@ fn div_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn div_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+fn div_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return MutRepr::ZERO,
         (_, Sign::ZERO) => panic!("Division by zero"),
@@ -3539,7 +3539,7 @@ fn div_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return MutRepr::ZERO,
-        Ordering::Equal => return a.clone_from_single(1),
+        Ordering::Equal => return a.clone_from_scalar(1),
         Ordering::Greater => (),
     }
 
@@ -3560,7 +3560,7 @@ fn div_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
     MutRepr::from_raw(a.raw(), a.sign())
 }
 
-fn rem_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
+fn rem_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return MutRepr::ZERO,
         (_, Sign::ZERO) => panic!("Division by zero"),
@@ -3593,7 +3593,7 @@ fn rem_long_single_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     a.clone_from_double(rem)
 }
 
-fn rem_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+fn rem_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, _) => return MutRepr::ZERO,
         (_, Sign::ZERO) => panic!("Division by zero"),
@@ -3626,7 +3626,7 @@ fn rem_fixed_single_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
     a.clone_from_double(rem)
 }
 
-fn bit_long<F>(a: Operand<'_>, b: Operand<'_>, func: F) -> LongRepr
+fn bit_long_vector<F>(a: VectorOperand<'_>, b: VectorOperand<'_>, func: F) -> LongRepr
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -3638,7 +3638,7 @@ where
     LongRepr::from_raw(res, Sign::POS)
 }
 
-fn bit_fixed<const L: usize, F>(a: Operand<'_>, b: Operand<'_>, func: F) -> FixedRepr<L>
+fn bit_fixed_vector<const L: usize, F>(a: VectorOperand<'_>, b: VectorOperand<'_>, func: F) -> FixedRepr<L>
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -3649,21 +3649,21 @@ where
     FixedRepr::from_raw(res, Sign::POS)
 }
 
-fn bit_long_single<F>(a: Operand<'_>, b: ScalarOperand, func: F) -> LongRepr
+fn bit_long_scalar<F>(a: VectorOperand<'_>, b: ScalarOperand, func: F) -> LongRepr
 where
     F: Fn(Single, Single) -> Single,
 {
-    bit_long(a, Operand::from_raw(&[b.digit()]), func)
+    bit_long_vector(a, VectorOperand::from_raw(&[b.digit()]), func)
 }
 
-fn bit_fixed_single<const L: usize, F>(a: Operand<'_>, b: ScalarOperand, func: F) -> FixedRepr<L>
+fn bit_fixed_scalar<const L: usize, F>(a: VectorOperand<'_>, b: ScalarOperand, func: F) -> FixedRepr<L>
 where
     F: Fn(Single, Single) -> Single,
 {
-    bit_fixed(a, Operand::from_raw(&[b.digit()]), func)
+    bit_fixed_vector(a, VectorOperand::from_raw(&[b.digit()]), func)
 }
 
-fn bit_long_mut<F>(mut a: LongMutOperand<'_>, b: Operand<'_>, func: F)
+fn bit_long_vector_mut<F>(mut a: LongMutOperand<'_>, b: VectorOperand<'_>, func: F)
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -3678,7 +3678,7 @@ where
     }
 }
 
-fn bit_fixed_mut<const L: usize, F>(mut a: FixedMutOperand<'_, L>, b: Operand<'_>, func: F)
+fn bit_fixed_vector_mut<const L: usize, F>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>, func: F)
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -3689,21 +3689,21 @@ where
     }
 }
 
-fn bit_long_single_mut<F>(a: LongMutOperand<'_>, b: ScalarOperand, func: F)
+fn bit_long_scalar_mut<F>(a: LongMutOperand<'_>, b: ScalarOperand, func: F)
 where
     F: Fn(Single, Single) -> Single,
 {
-    bit_long_mut(a, Operand::from_raw(&[b.digit()]), func)
+    bit_long_vector_mut(a, VectorOperand::from_raw(&[b.digit()]), func)
 }
 
-fn bit_fixed_single_mut<const L: usize, F>(a: FixedMutOperand<'_, L>, b: ScalarOperand, func: F)
+fn bit_fixed_scalar_mut<const L: usize, F>(a: FixedMutOperand<'_, L>, b: ScalarOperand, func: F)
 where
     F: Fn(Single, Single) -> Single,
 {
-    bit_fixed_mut(a, Operand::from_raw(&[b.digit()]), func)
+    bit_fixed_vector_mut(a, VectorOperand::from_raw(&[b.digit()]), func)
 }
 
-fn shl_long(a: Operand<'_>, val: usize) -> LongRepr {
+fn shl_long(a: VectorOperand<'_>, val: usize) -> LongRepr {
     const BITS: usize = Single::BITS as usize;
 
     let sign = a.sign();
@@ -3736,7 +3736,7 @@ fn shl_long(a: Operand<'_>, val: usize) -> LongRepr {
     LongRepr::from_raw(res, sign)
 }
 
-fn shl_fixed<const L: usize>(a: Operand<'_>, val: usize) -> FixedRepr<L> {
+fn shl_fixed<const L: usize>(a: VectorOperand<'_>, val: usize) -> FixedRepr<L> {
     const BITS: usize = Single::BITS as usize;
 
     let sign = a.sign();
@@ -3835,7 +3835,7 @@ fn shl_fixed_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, val: usize) -> M
     MutRepr::from_raw(res, sign)
 }
 
-fn shr_long(a: Operand<'_>, val: usize) -> LongRepr {
+fn shr_long(a: VectorOperand<'_>, val: usize) -> LongRepr {
     const BITS: usize = Single::BITS as usize;
 
     let sign = a.sign();
@@ -3868,7 +3868,7 @@ fn shr_long(a: Operand<'_>, val: usize) -> LongRepr {
     LongRepr::from_raw(res, sign)
 }
 
-fn shr_fixed<const L: usize>(a: Operand<'_>, val: usize) -> FixedRepr<L> {
+fn shr_fixed<const L: usize>(a: VectorOperand<'_>, val: usize) -> FixedRepr<L> {
     const BITS: usize = Single::BITS as usize;
 
     let sign = a.sign();
@@ -3970,69 +3970,69 @@ ops_impl!(@un <const L: usize> |a: SignedFixed<L>| -> SignedFixed<L>, - a.with_n
 ops_impl!(@un <const L: usize> |a: &SignedFixed<L>| -> SignedFixed<L>, - (*a).with_neg());
 
 ops_impl!(@un |a: ScalarOperand| -> ScalarOperand, - a.with_neg());
-ops_impl!(@un <'digits> |*a: &Operand<'digits>| -> Operand<'digits>, - a.with_neg());
+ops_impl!(@un <'digits> |*a: &VectorOperand<'digits>| -> VectorOperand<'digits>, - a.with_neg());
 ops_impl!(@un <'digits> |a: LongMutOperand<'digits>| -> LongMutOperand<'digits>, - a.with_neg());
 ops_impl!(@un <'digits, const L: usize> |a: FixedMutOperand<'digits, L>| -> FixedMutOperand<'digits, L>, - a.with_neg());
 
 ops_impl!(@bin |*a: &SignedLong, *b: &SignedLong| -> SignedLong,
-    + add_long((&a).into(), (&b).into()),
-    - sub_long((&a).into(), (&b).into()),
-    * mul_long((&a).into(), (&b).into()),
-    / div_long((&a).into(), (&b).into()).0,
-    % div_long((&a).into(), (&b).into()).1,
-    | bit_long((&a).into(), (&b).into(), |aop, bop| aop | bop),
-    & bit_long((&a).into(), (&b).into(), |aop, bop| aop & bop),
-    ^ bit_long((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
+    + add_long_vector((&a).into(), (&b).into()),
+    - sub_long_vector((&a).into(), (&b).into()),
+    * mul_long_vector((&a).into(), (&b).into()),
+    / div_long_vector((&a).into(), (&b).into()).0,
+    % div_long_vector((&a).into(), (&b).into()).1,
+    | bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |*a: &UnsignedLong, *b: &UnsignedLong| -> UnsignedLong,
-    + add_long((&a).into(), (&b).into()),
-    - sub_long((&a).into(), (&b).into()),
-    * mul_long((&a).into(), (&b).into()),
-    / div_long((&a).into(), (&b).into()).0,
-    % div_long((&a).into(), (&b).into()).1,
-    | bit_long((&a).into(), (&b).into(), |aop, bop| aop | bop),
-    & bit_long((&a).into(), (&b).into(), |aop, bop| aop & bop),
-    ^ bit_long((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
+    + add_long_vector((&a).into(), (&b).into()),
+    - sub_long_vector((&a).into(), (&b).into()),
+    * mul_long_vector((&a).into(), (&b).into()),
+    / div_long_vector((&a).into(), (&b).into()).0,
+    % div_long_vector((&a).into(), (&b).into()).1,
+    | bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |*a: &SignedLong, b: Single| -> SignedLong,
-    + add_long_single((&a).into(), b.into()),
-    - sub_long_single((&a).into(), b.into()),
-    * mul_long_single((&a).into(), b.into()),
-    / div_long_single((&a).into(), b.into()).0,
-    % div_long_single((&a).into(), b.into()).1,
-    | bit_long_single((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_long_single((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_long_single((&a).into(), b.into(), |aop, bop| aop ^ bop));
+    + add_long_scalar((&a).into(), b.into()),
+    - sub_long_scalar((&a).into(), b.into()),
+    * mul_long_scalar((&a).into(), b.into()),
+    / div_long_scalar((&a).into(), b.into()).0,
+    % div_long_scalar((&a).into(), b.into()).1,
+    | bit_long_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
+    & bit_long_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
+    ^ bit_long_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |*a: &UnsignedLong, b: Single| -> UnsignedLong,
-    + add_long_single((&a).into(), b.into()),
-    - sub_long_single((&a).into(), b.into()),
-    * mul_long_single((&a).into(), b.into()),
-    / div_long_single((&a).into(), b.into()).0,
-    % div_long_single((&a).into(), b.into()).1,
-    | bit_long_single((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_long_single((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_long_single((&a).into(), b.into(), |aop, bop| aop ^ bop));
+    + add_long_scalar((&a).into(), b.into()),
+    - sub_long_scalar((&a).into(), b.into()),
+    * mul_long_scalar((&a).into(), b.into()),
+    / div_long_scalar((&a).into(), b.into()).0,
+    % div_long_scalar((&a).into(), b.into()).1,
+    | bit_long_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
+    & bit_long_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
+    ^ bit_long_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: Single, *b: &SignedLong| -> SignedLong,
-    + add_long_single((&b).into(), a.into()),
-    - sub_long_single((&b).into(), a.into()),
-    * mul_long_single((&b).into(), a.into()),
-    / div_long_single((&b).into(), a.into()).0,
-    % div_long_single((&b).into(), a.into()).1,
-    | bit_long_single((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_long_single((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_long_single((&b).into(), a.into(), |aop, bop| aop ^ bop));
+    + add_long_scalar((&b).into(), a.into()),
+    - sub_long_scalar((&b).into(), a.into()),
+    * mul_long_scalar((&b).into(), a.into()),
+    / div_long_scalar((&b).into(), a.into()).0,
+    % div_long_scalar((&b).into(), a.into()).1,
+    | bit_long_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
+    & bit_long_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
+    ^ bit_long_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |a: Single, *b: &UnsignedLong| -> UnsignedLong,
-    + add_long_single((&b).into(), a.into()),
-    - sub_long_single((&b).into(), a.into()),
-    * mul_long_single((&b).into(), a.into()),
-    / div_long_single((&b).into(), a.into()).0,
-    % div_long_single((&b).into(), a.into()).1,
-    | bit_long_single((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_long_single((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_long_single((&b).into(), a.into(), |aop, bop| aop ^ bop));
+    + add_long_scalar((&b).into(), a.into()),
+    - sub_long_scalar((&b).into(), a.into()),
+    * mul_long_scalar((&b).into(), a.into()),
+    / div_long_scalar((&b).into(), a.into()).0,
+    % div_long_scalar((&b).into(), a.into()).1,
+    | bit_long_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
+    & bit_long_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
+    ^ bit_long_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin |*a: &SignedLong, *b: usize| -> SignedLong,
     << shl_long((&a).into(), b),
@@ -4043,44 +4043,44 @@ ops_impl!(@bin |*a: &UnsignedLong, *b: usize| -> UnsignedLong,
     >> shr_long((&a).into(), b));
 
 ops_impl!(@mut |a: mut SignedLong, *b: &SignedLong|,
-    += ops_impl_mut!(@ref add_long_mut, a, b),
-    -= ops_impl_mut!(@ref sub_long_mut, a, b),
-    *= ops_impl_mut!(@ref mul_long_mut, a, b),
-    /= ops_impl_mut!(@ref div_long_mut, a, b),
-    %= ops_impl_mut!(@ref rem_long_mut, a, b),
-    |= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
-    &= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
-    ^= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@ref add_long_vector_mut, a, b),
+    -= ops_impl_mut!(@ref sub_long_vector_mut, a, b),
+    *= ops_impl_mut!(@ref mul_long_vector_mut, a, b),
+    /= ops_impl_mut!(@ref div_long_vector_mut, a, b),
+    %= ops_impl_mut!(@ref rem_long_vector_mut, a, b),
+    |= bit_long_vector_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
+    &= bit_long_vector_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
+    ^= bit_long_vector_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut |a: mut UnsignedLong, *b: &UnsignedLong|,
-    += ops_impl_mut!(@ref add_long_mut, a, b),
-    -= ops_impl_mut!(@ref sub_long_mut, a, b),
-    *= ops_impl_mut!(@ref mul_long_mut, a, b),
-    /= ops_impl_mut!(@ref div_long_mut, a, b),
-    %= ops_impl_mut!(@ref rem_long_mut, a, b),
-    |= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
-    &= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
-    ^= bit_long_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@ref add_long_vector_mut, a, b),
+    -= ops_impl_mut!(@ref sub_long_vector_mut, a, b),
+    *= ops_impl_mut!(@ref mul_long_vector_mut, a, b),
+    /= ops_impl_mut!(@ref div_long_vector_mut, a, b),
+    %= ops_impl_mut!(@ref rem_long_vector_mut, a, b),
+    |= bit_long_vector_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
+    &= bit_long_vector_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
+    ^= bit_long_vector_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut |a: mut SignedLong, b: Single|,
-    += ops_impl_mut!(@val add_long_single_mut, a, b.into()),
-    -= ops_impl_mut!(@val sub_long_single_mut, a, b.into()),
-    *= ops_impl_mut!(@val mul_long_single_mut, a, b.into()),
-    /= ops_impl_mut!(@val div_long_single_mut, a, b.into()),
-    %= ops_impl_mut!(@val rem_long_single_mut, a, b.into()),
-    |= bit_long_single_mut(a.into(), b.into(), |aop, bop| aop | bop),
-    &= bit_long_single_mut(a.into(), b.into(), |aop, bop| aop & bop),
-    ^= bit_long_single_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@val add_long_scalar_mut, a, b.into()),
+    -= ops_impl_mut!(@val sub_long_scalar_mut, a, b.into()),
+    *= ops_impl_mut!(@val mul_long_scalar_mut, a, b.into()),
+    /= ops_impl_mut!(@val div_long_scalar_mut, a, b.into()),
+    %= ops_impl_mut!(@val rem_long_scalar_mut, a, b.into()),
+    |= bit_long_scalar_mut(a.into(), b.into(), |aop, bop| aop | bop),
+    &= bit_long_scalar_mut(a.into(), b.into(), |aop, bop| aop & bop),
+    ^= bit_long_scalar_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut |a: mut UnsignedLong, b: Single|,
-    += ops_impl_mut!(@val add_long_single_mut, a, b.into()),
-    -= ops_impl_mut!(@val sub_long_single_mut, a, b.into()),
-    *= ops_impl_mut!(@val mul_long_single_mut, a, b.into()),
-    /= ops_impl_mut!(@val div_long_single_mut, a, b.into()),
-    %= ops_impl_mut!(@val rem_long_single_mut, a, b.into()),
-    |= bit_long_single_mut(a.into(), b.into(), |aop, bop| aop | bop),
-    &= bit_long_single_mut(a.into(), b.into(), |aop, bop| aop & bop),
-    ^= bit_long_single_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@val add_long_scalar_mut, a, b.into()),
+    -= ops_impl_mut!(@val sub_long_scalar_mut, a, b.into()),
+    *= ops_impl_mut!(@val mul_long_scalar_mut, a, b.into()),
+    /= ops_impl_mut!(@val div_long_scalar_mut, a, b.into()),
+    %= ops_impl_mut!(@val rem_long_scalar_mut, a, b.into()),
+    |= bit_long_scalar_mut(a.into(), b.into(), |aop, bop| aop | bop),
+    &= bit_long_scalar_mut(a.into(), b.into(), |aop, bop| aop & bop),
+    ^= bit_long_scalar_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut |a: mut SignedLong, b: usize|,
     <<= shl_long_mut(a.into(), b),
@@ -4091,64 +4091,64 @@ ops_impl!(@mut |a: mut UnsignedLong, b: usize|,
     >>= shr_long_mut(a.into(), b));
 
 ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, *b: &SignedFixed<L>| -> SignedFixed::<L>,
-    + add_fixed((&a).into(), (&b).into()),
-    - sub_fixed((&a).into(), (&b).into()),
-    * mul_fixed((&a).into(), (&b).into()),
-    / div_fixed((&a).into(), (&b).into()).0,
-    % div_fixed((&a).into(), (&b).into()).1,
-    | bit_fixed((&a).into(), (&b).into(), |aop, bop| aop | bop),
-    & bit_fixed((&a).into(), (&b).into(), |aop, bop| aop & bop),
-    ^ bit_fixed((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
+    + add_fixed_vector((&a).into(), (&b).into()),
+    - sub_fixed_vector((&a).into(), (&b).into()),
+    * mul_fixed_vector((&a).into(), (&b).into()),
+    / div_fixed_vector((&a).into(), (&b).into()).0,
+    % div_fixed_vector((&a).into(), (&b).into()).1,
+    | bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, *b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
-    + add_fixed((&a).into(), (&b).into()),
-    - sub_fixed((&a).into(), (&b).into()),
-    * mul_fixed((&a).into(), (&b).into()),
-    / div_fixed((&a).into(), (&b).into()).0,
-    % div_fixed((&a).into(), (&b).into()).1,
-    | bit_fixed((&a).into(), (&b).into(), |aop, bop| aop | bop),
-    & bit_fixed((&a).into(), (&b).into(), |aop, bop| aop & bop),
-    ^ bit_fixed((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
+    + add_fixed_vector((&a).into(), (&b).into()),
+    - sub_fixed_vector((&a).into(), (&b).into()),
+    * mul_fixed_vector((&a).into(), (&b).into()),
+    / div_fixed_vector((&a).into(), (&b).into()).0,
+    % div_fixed_vector((&a).into(), (&b).into()).1,
+    | bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop | bop),
+    & bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop & bop),
+    ^ bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, b: Single| -> SignedFixed::<L>,
-    + add_fixed_single((&a).into(), b.into()),
-    - sub_fixed_single((&a).into(), b.into()),
-    * mul_fixed_single((&a).into(), b.into()),
-    / div_fixed_single((&a).into(), b.into()).0,
-    % div_fixed_single((&a).into(), b.into()).1,
-    | bit_fixed_single((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_fixed_single((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_single((&a).into(), b.into(), |aop, bop| aop ^ bop));
+    + add_fixed_scalar((&a).into(), b.into()),
+    - sub_fixed_scalar((&a).into(), b.into()),
+    * mul_fixed_scalar((&a).into(), b.into()),
+    / div_fixed_scalar((&a).into(), b.into()).0,
+    % div_fixed_scalar((&a).into(), b.into()).1,
+    | bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
+    & bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
+    ^ bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, b: Single| -> UnsignedFixed::<L>,
-    + add_fixed_single((&a).into(), b.into()),
-    - sub_fixed_single((&a).into(), b.into()),
-    * mul_fixed_single((&a).into(), b.into()),
-    / div_fixed_single((&a).into(), b.into()).0,
-    % div_fixed_single((&a).into(), b.into()).1,
-    | bit_fixed_single((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_fixed_single((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_single((&a).into(), b.into(), |aop, bop| aop ^ bop));
+    + add_fixed_scalar((&a).into(), b.into()),
+    - sub_fixed_scalar((&a).into(), b.into()),
+    * mul_fixed_scalar((&a).into(), b.into()),
+    / div_fixed_scalar((&a).into(), b.into()).0,
+    % div_fixed_scalar((&a).into(), b.into()).1,
+    | bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
+    & bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
+    ^ bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |a: Single, *b: &SignedFixed<L>| -> SignedFixed::<L>,
-    + add_fixed_single((&b).into(), a.into()),
-    - sub_fixed_single((&b).into(), a.into()),
-    * mul_fixed_single((&b).into(), a.into()),
-    / div_fixed_single((&b).into(), a.into()).0,
-    % div_fixed_single((&b).into(), a.into()).1,
-    | bit_fixed_single((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_fixed_single((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_single((&b).into(), a.into(), |aop, bop| aop ^ bop));
+    + add_fixed_scalar((&b).into(), a.into()),
+    - sub_fixed_scalar((&b).into(), a.into()),
+    * mul_fixed_scalar((&b).into(), a.into()),
+    / div_fixed_scalar((&b).into(), a.into()).0,
+    % div_fixed_scalar((&b).into(), a.into()).1,
+    | bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
+    & bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
+    ^ bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |a: Single, *b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
-    + add_fixed_single((&b).into(), a.into()),
-    - sub_fixed_single((&b).into(), a.into()),
-    * mul_fixed_single((&b).into(), a.into()),
-    / div_fixed_single((&b).into(), a.into()).0,
-    % div_fixed_single((&b).into(), a.into()).1,
-    | bit_fixed_single((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_fixed_single((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_single((&b).into(), a.into(), |aop, bop| aop ^ bop));
+    + add_fixed_scalar((&b).into(), a.into()),
+    - sub_fixed_scalar((&b).into(), a.into()),
+    * mul_fixed_scalar((&b).into(), a.into()),
+    / div_fixed_scalar((&b).into(), a.into()).0,
+    % div_fixed_scalar((&b).into(), a.into()).1,
+    | bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
+    & bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
+    ^ bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
     << shl_fixed((&a).into(), b),
@@ -4159,44 +4159,44 @@ ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, b: usize| -> UnsignedFix
     >> shr_fixed((&a).into(), b));
 
 ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, *b: &SignedFixed<L>|,
-    += ops_impl_mut!(@ref add_fixed_mut, a, b),
-    -= ops_impl_mut!(@ref sub_fixed_mut, a, b),
-    *= ops_impl_mut!(@ref mul_fixed_mut, a, b),
-    /= ops_impl_mut!(@ref div_fixed_mut, a, b),
-    %= ops_impl_mut!(@ref rem_fixed_mut, a, b),
-    |= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
-    &= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
-    ^= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@ref add_fixed_vector_mut, a, b),
+    -= ops_impl_mut!(@ref sub_fixed_vector_mut, a, b),
+    *= ops_impl_mut!(@ref mul_fixed_vector_mut, a, b),
+    /= ops_impl_mut!(@ref div_fixed_vector_mut, a, b),
+    %= ops_impl_mut!(@ref rem_fixed_vector_mut, a, b),
+    |= bit_fixed_vector_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
+    &= bit_fixed_vector_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
+    ^= bit_fixed_vector_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut <const L: usize> |a: mut UnsignedFixed<L>, *b: &UnsignedFixed<L>|,
-    += ops_impl_mut!(@ref add_fixed_mut, a, b),
-    -= ops_impl_mut!(@ref sub_fixed_mut, a, b),
-    *= ops_impl_mut!(@ref mul_fixed_mut, a, b),
-    /= ops_impl_mut!(@ref div_fixed_mut, a, b),
-    %= ops_impl_mut!(@ref rem_fixed_mut, a, b),
-    |= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
-    &= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
-    ^= bit_fixed_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@ref add_fixed_vector_mut, a, b),
+    -= ops_impl_mut!(@ref sub_fixed_vector_mut, a, b),
+    *= ops_impl_mut!(@ref mul_fixed_vector_mut, a, b),
+    /= ops_impl_mut!(@ref div_fixed_vector_mut, a, b),
+    %= ops_impl_mut!(@ref rem_fixed_vector_mut, a, b),
+    |= bit_fixed_vector_mut(a.into(), (&b).into(), |aop, bop| aop | bop),
+    &= bit_fixed_vector_mut(a.into(), (&b).into(), |aop, bop| aop & bop),
+    ^= bit_fixed_vector_mut(a.into(), (&b).into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, b: Single|,
-    += ops_impl_mut!(@val add_fixed_single_mut, a, b.into()),
-    -= ops_impl_mut!(@val sub_fixed_single_mut, a, b.into()),
-    *= ops_impl_mut!(@val mul_fixed_single_mut, a, b.into()),
-    /= ops_impl_mut!(@val div_fixed_single_mut, a, b.into()),
-    %= ops_impl_mut!(@val rem_fixed_single_mut, a, b.into()),
-    |= bit_fixed_single_mut(a.into(), b.into(), |aop, bop| aop | bop),
-    &= bit_fixed_single_mut(a.into(), b.into(), |aop, bop| aop & bop),
-    ^= bit_fixed_single_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@val add_fixed_scalar_mut, a, b.into()),
+    -= ops_impl_mut!(@val sub_fixed_scalar_mut, a, b.into()),
+    *= ops_impl_mut!(@val mul_fixed_scalar_mut, a, b.into()),
+    /= ops_impl_mut!(@val div_fixed_scalar_mut, a, b.into()),
+    %= ops_impl_mut!(@val rem_fixed_scalar_mut, a, b.into()),
+    |= bit_fixed_scalar_mut(a.into(), b.into(), |aop, bop| aop | bop),
+    &= bit_fixed_scalar_mut(a.into(), b.into(), |aop, bop| aop & bop),
+    ^= bit_fixed_scalar_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut <const L: usize> |a: mut UnsignedFixed<L>, b: Single|,
-    += ops_impl_mut!(@val add_fixed_single_mut, a, b.into()),
-    -= ops_impl_mut!(@val sub_fixed_single_mut, a, b.into()),
-    *= ops_impl_mut!(@val mul_fixed_single_mut, a, b.into()),
-    /= ops_impl_mut!(@val div_fixed_single_mut, a, b.into()),
-    %= ops_impl_mut!(@val rem_fixed_single_mut, a, b.into()),
-    |= bit_fixed_single_mut(a.into(), b.into(), |aop, bop| aop | bop),
-    &= bit_fixed_single_mut(a.into(), b.into(), |aop, bop| aop & bop),
-    ^= bit_fixed_single_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
+    += ops_impl_mut!(@val add_fixed_scalar_mut, a, b.into()),
+    -= ops_impl_mut!(@val sub_fixed_scalar_mut, a, b.into()),
+    *= ops_impl_mut!(@val mul_fixed_scalar_mut, a, b.into()),
+    /= ops_impl_mut!(@val div_fixed_scalar_mut, a, b.into()),
+    %= ops_impl_mut!(@val rem_fixed_scalar_mut, a, b.into()),
+    |= bit_fixed_scalar_mut(a.into(), b.into(), |aop, bop| aop | bop),
+    &= bit_fixed_scalar_mut(a.into(), b.into(), |aop, bop| aop & bop),
+    ^= bit_fixed_scalar_mut(a.into(), b.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@mut <const L: usize> |a: mut SignedFixed<L>, b: usize|,
     <<= ops_impl_mut!(@val shl_fixed_mut, a, b),
