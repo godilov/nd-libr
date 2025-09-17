@@ -30,7 +30,7 @@ macro_rules! impl_fn {
             let mut group = c.benchmark_group($group);
 
             $({
-                group.bench_function(format!("{} {}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| $type::$fn($($args)+)));
+                group.bench_function(format!("{}::{}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| $type::$fn($($args)+)));
             })+
         }
     };
@@ -45,7 +45,7 @@ macro_rules! impl_ops {
                 let op1 = composite(<$type>::from(1u64), $primes1);
                 let op2 = composite(<$type>::from(1u64), $primes2);
 
-                group.bench_function(format!("{} {}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| black_box(&op1 $op &op2)));
+                group.bench_function(format!("{}::{}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| black_box(&op1 $op &op2)));
             })+
         }
     };
@@ -60,7 +60,7 @@ macro_rules! impl_ops_mut {
                 let mut val = composite(<$type>::from(1u64), $primes1);
                 let operand = composite(<$type>::from(1u64), $primes2);
 
-                group.bench_function(format!("{} {}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| black_box(val $op &operand)));
+                group.bench_function(format!("{}::{}", stringify!($type), stringify!($fn)), |b| b.iter_with_large_drop(|| black_box(val $op &operand)));
             })+
         }
     };
