@@ -31,114 +31,6 @@ macro_rules! unsigned_fixed {
     };
 }
 
-macro_rules! num_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(num_impl!($trait, $type,);)+
-    };
-    ($trait:ty, $type:ty $(,)?) => {
-        impl NumBuilder for $type {
-            fn bitor_offset(&mut self, mask: u64, offset: usize) {
-                *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
-            }
-
-            fn bitand_offset(&mut self, mask: u64, offset: usize) {
-                *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
-            }
-        }
-
-        impl Num for $type {
-            fn bits(&self) -> usize {
-                <$type>::BITS as usize
-            }
-
-            fn order(&self) -> usize {
-                self.ilog2() as usize
-            }
-
-            fn sqrt(&self) -> Self {
-                self.isqrt()
-            }
-
-            fn log(&self) -> Self {
-                self.ilog2() as $type
-            }
-
-            fn is_even(&self) -> bool {
-                *self % 2 == 0
-            }
-        }
-
-        impl Fixed for $type {
-            const BITS: usize = <$type>::BITS as usize;
-            const ZERO: Self = 0;
-            const ONE: Self = 1;
-        }
-
-        impl $trait for $type {}
-    };
-}
-
-macro_rules! prime_impl {
-    ($([$type:ty, $count:expr]),+) => {
-        $(prime_impl!($type, $count,);)+
-    };
-    ($type:ty, $count:expr $(,)?) => {
-        impl Primality for $type {
-            fn primes() -> impl Iterator<Item = Self> {
-                PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p <= Self::MAX.isqrt())
-            }
-
-            fn as_count_estimate(&self) -> usize {
-                *self as usize
-            }
-
-            fn as_limit_estimate(&self) -> usize {
-                let val = *self as f64;
-                let inv = 1.0 / val.ln();
-
-                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
-
-                est.ceil() as usize
-            }
-
-            fn as_count_check_estimate(&self) -> usize {
-                let val = *self as f64;
-                let val = val * (val.ln() + val.ln().ln());
-                let val = val.max(6.0).sqrt();
-                let inv = 1.0 / val.ln();
-
-                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
-
-                est.ceil() as usize
-            }
-
-            fn as_limit_check_estimate(&self) -> usize {
-                let val = (*self as f64).sqrt();
-                let inv = 1.0 / val.ln();
-
-                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
-
-                est.ceil() as usize
-            }
-        }
-    };
-}
-
-macro_rules! radix_impl {
-    ([$($type:ty),+]) => {
-        $(radix_impl!($type);)+
-    };
-    ($type:ty) => {
-        impl Radix for $type {
-            const WIDTH: u8 = Self::WIDTH;
-            const PREFIX: &str = Self::PREFIX;
-        }
-    };
-}
-
 macro_rules! sign_from {
     (@unsigned [$($type:ty),+]) => {
         $(sign_from!(@unsigned $type);)+
@@ -285,6 +177,114 @@ macro_rules! fixed_from {
 
                 Self { raw: res, len $(, sign: if len > 0 { $pos * Sign::from(value) } else { Sign::ZERO })? }
             }
+        }
+    };
+}
+
+macro_rules! num_impl {
+    ($trait:ty, [$($type:ty),+] $(,)?) => {
+        $(num_impl!($trait, $type,);)+
+    };
+    ($trait:ty, $type:ty $(,)?) => {
+        impl NumBuilder for $type {
+            fn bitor_offset(&mut self, mask: u64, offset: usize) {
+                *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
+            }
+
+            fn bitand_offset(&mut self, mask: u64, offset: usize) {
+                *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
+            }
+        }
+
+        impl Num for $type {
+            fn bits(&self) -> usize {
+                <$type>::BITS as usize
+            }
+
+            fn order(&self) -> usize {
+                self.ilog2() as usize
+            }
+
+            fn sqrt(&self) -> Self {
+                self.isqrt()
+            }
+
+            fn log(&self) -> Self {
+                self.ilog2() as $type
+            }
+
+            fn is_even(&self) -> bool {
+                *self % 2 == 0
+            }
+        }
+
+        impl Fixed for $type {
+            const BITS: usize = <$type>::BITS as usize;
+            const ZERO: Self = 0;
+            const ONE: Self = 1;
+        }
+
+        impl $trait for $type {}
+    };
+}
+
+macro_rules! prime_impl {
+    ($([$type:ty, $count:expr]),+) => {
+        $(prime_impl!($type, $count,);)+
+    };
+    ($type:ty, $count:expr $(,)?) => {
+        impl Primality for $type {
+            fn primes() -> impl Iterator<Item = Self> {
+                PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p <= Self::MAX.isqrt())
+            }
+
+            fn as_count_estimate(&self) -> usize {
+                *self as usize
+            }
+
+            fn as_limit_estimate(&self) -> usize {
+                let val = *self as f64;
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+
+            fn as_count_check_estimate(&self) -> usize {
+                let val = *self as f64;
+                let val = val * (val.ln() + val.ln().ln());
+                let val = val.max(6.0).sqrt();
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+
+            fn as_limit_check_estimate(&self) -> usize {
+                let val = (*self as f64).sqrt();
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+        }
+    };
+}
+
+macro_rules! radix_impl {
+    ([$($type:ty),+]) => {
+        $(radix_impl!($type);)+
+    };
+    ($type:ty) => {
+        impl Radix for $type {
+            const WIDTH: u8 = Self::WIDTH;
+            const PREFIX: &str = Self::PREFIX;
         }
     };
 }
@@ -1633,134 +1633,6 @@ impl<const L: usize> UnsignedFixed<L> {
     }
 }
 
-impl LongRepr {
-    const ZERO: Self = LongRepr {
-        digits: vec![],
-        sign: Sign::ZERO,
-    };
-
-    fn from_single(digit: Single) -> Self {
-        match digit {
-            0 => LongRepr::ZERO,
-            x => Self {
-                digits: vec![x],
-                sign: Sign::POS,
-            },
-        }
-    }
-
-    fn from_double(digits: Double) -> Self {
-        Self::from_raw(vec![digits as Single, (digits >> Single::BITS) as Single], Sign::POS)
-    }
-
-    fn from_raw(mut digits: Vec<Single>, sign: Sign) -> Self {
-        let len = get_len(&digits);
-        let sign = get_sign(len, sign);
-
-        digits.truncate(len);
-
-        Self { digits, sign }
-    }
-
-    fn digits(&self) -> &[Single] {
-        &self.digits
-    }
-
-    fn len(&self) -> usize {
-        self.digits.len()
-    }
-
-    fn sign(&self) -> Sign {
-        self.sign
-    }
-
-    fn with_sign(mut self, sign: Sign) -> Self {
-        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
-        self
-    }
-
-    fn with_neg(mut self) -> Self {
-        self.sign = -self.sign;
-        self
-    }
-}
-
-impl<const L: usize> FixedRepr<L> {
-    const ZERO: Self = Self::from_single(0);
-    const ONE: Self = Self::from_single(1);
-
-    const fn from_single(digit: Single) -> Self {
-        let mut res = [0; L];
-
-        res[0] = digit;
-
-        let len = if digit > 0 { 1 } else { 0 };
-        let sign = if digit > 0 { Sign::POS } else { Sign::ZERO };
-
-        Self {
-            raw: res,
-            len,
-            sign,
-            overflow_val: 0,
-            overflow: false,
-        }
-    }
-
-    fn from_double(digits: Double) -> Self {
-        let mut res = [0; L];
-
-        res[0] = digits as Single;
-        res[1] = (digits >> Single::BITS) as Single;
-
-        Self::from_raw(res, Sign::POS)
-    }
-
-    fn from_raw(digits: [Single; L], sign: Sign) -> Self {
-        let len = get_len(&digits);
-        let sign = get_sign(len, sign);
-
-        Self {
-            raw: digits,
-            len,
-            sign,
-            overflow_val: 0,
-            overflow: false,
-        }
-    }
-
-    fn digits(&self) -> &[Single] {
-        &self.raw[..self.len]
-    }
-
-    fn len(&self) -> usize {
-        self.len
-    }
-
-    fn sign(&self) -> Sign {
-        self.sign
-    }
-
-    fn with_sign(mut self, sign: Sign) -> Self {
-        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
-        self
-    }
-
-    fn with_neg(mut self) -> Self {
-        self.sign = -self.sign;
-        self
-    }
-
-    fn with_overflow_val(mut self, val: Single) -> Self {
-        self.overflow_val = val;
-        self
-    }
-
-    fn with_overflow(mut self, over: bool) -> Self {
-        self.overflow = over;
-        self
-    }
-}
-
 impl ScalarOperand {
     fn digit(&self) -> Single {
         self.digit
@@ -1963,6 +1835,134 @@ impl<const L: usize> FixedMutOperand<'_, L> {
 
     fn with_neg(mut self) -> Self {
         self.sign = -self.sign;
+        self
+    }
+}
+
+impl LongRepr {
+    const ZERO: Self = LongRepr {
+        digits: vec![],
+        sign: Sign::ZERO,
+    };
+
+    fn from_single(digit: Single) -> Self {
+        match digit {
+            0 => LongRepr::ZERO,
+            x => Self {
+                digits: vec![x],
+                sign: Sign::POS,
+            },
+        }
+    }
+
+    fn from_double(digits: Double) -> Self {
+        Self::from_raw(vec![digits as Single, (digits >> Single::BITS) as Single], Sign::POS)
+    }
+
+    fn from_raw(mut digits: Vec<Single>, sign: Sign) -> Self {
+        let len = get_len(&digits);
+        let sign = get_sign(len, sign);
+
+        digits.truncate(len);
+
+        Self { digits, sign }
+    }
+
+    fn digits(&self) -> &[Single] {
+        &self.digits
+    }
+
+    fn len(&self) -> usize {
+        self.digits.len()
+    }
+
+    fn sign(&self) -> Sign {
+        self.sign
+    }
+
+    fn with_sign(mut self, sign: Sign) -> Self {
+        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
+        self
+    }
+
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
+    }
+}
+
+impl<const L: usize> FixedRepr<L> {
+    const ZERO: Self = Self::from_single(0);
+    const ONE: Self = Self::from_single(1);
+
+    const fn from_single(digit: Single) -> Self {
+        let mut res = [0; L];
+
+        res[0] = digit;
+
+        let len = if digit > 0 { 1 } else { 0 };
+        let sign = if digit > 0 { Sign::POS } else { Sign::ZERO };
+
+        Self {
+            raw: res,
+            len,
+            sign,
+            overflow_val: 0,
+            overflow: false,
+        }
+    }
+
+    fn from_double(digits: Double) -> Self {
+        let mut res = [0; L];
+
+        res[0] = digits as Single;
+        res[1] = (digits >> Single::BITS) as Single;
+
+        Self::from_raw(res, Sign::POS)
+    }
+
+    fn from_raw(digits: [Single; L], sign: Sign) -> Self {
+        let len = get_len(&digits);
+        let sign = get_sign(len, sign);
+
+        Self {
+            raw: digits,
+            len,
+            sign,
+            overflow_val: 0,
+            overflow: false,
+        }
+    }
+
+    fn digits(&self) -> &[Single] {
+        &self.raw[..self.len]
+    }
+
+    fn len(&self) -> usize {
+        self.len
+    }
+
+    fn sign(&self) -> Sign {
+        self.sign
+    }
+
+    fn with_sign(mut self, sign: Sign) -> Self {
+        self.sign = if self.sign != Sign::ZERO { sign } else { Sign::ZERO };
+        self
+    }
+
+    fn with_neg(mut self) -> Self {
+        self.sign = -self.sign;
+        self
+    }
+
+    fn with_overflow_val(mut self, val: Single) -> Self {
+        self.overflow_val = val;
+        self
+    }
+
+    fn with_overflow(mut self, over: bool) -> Self {
+        self.overflow = over;
         self
     }
 }
