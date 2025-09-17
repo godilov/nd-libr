@@ -1700,7 +1700,7 @@ impl<'digits> VectorOperand<'digits> {
 }
 
 impl LongMutOperand<'_> {
-    fn clone_from_scalar(&mut self, val: Single) -> MutRepr {
+    fn clone_from_single(&mut self, val: Single) -> MutRepr {
         if val == 0 {
             self.raw_mut().clear();
 
@@ -1724,7 +1724,7 @@ impl LongMutOperand<'_> {
         self.raw_mut()[0] = val as Single;
         self.raw_mut()[1] = (val >> Single::BITS) as Single;
 
-        MutRepr::from_raw(&[val as Single, (val >> Single::BITS) as Single], Sign::POS)
+        MutRepr::from_raw(self.digits(), Sign::POS)
     }
 
     fn clone_from_operand(&mut self, val: VectorOperand<'_>) -> MutRepr {
@@ -1778,7 +1778,7 @@ impl LongMutOperand<'_> {
 }
 
 impl<const L: usize> FixedMutOperand<'_, L> {
-    fn clone_from_scalar(&mut self, val: Single) -> MutRepr {
+    fn clone_from_single(&mut self, val: Single) -> MutRepr {
         self.raw_mut()[0] = val;
 
         MutRepr::from_raw(&[val], Sign::POS)
@@ -1788,7 +1788,7 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         self.raw_mut()[0] = val as Single;
         self.raw_mut()[1] = (val >> Single::BITS) as Single;
 
-        MutRepr::from_raw(&[val as Single, (val >> Single::BITS) as Single], Sign::POS)
+        MutRepr::from_raw(self.digits(), Sign::POS)
     }
 
     fn clone_from_operand(&mut self, val: VectorOperand<'_>) -> MutRepr {
@@ -2754,7 +2754,7 @@ fn add_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Vector
 fn add_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()),
+        (Sign::ZERO, _) => return a.clone_from_single(b.digit()),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -2789,7 +2789,7 @@ fn add_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
 fn add_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()),
+        (Sign::ZERO, _) => return a.clone_from_single(b.digit()),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -3034,7 +3034,7 @@ fn sub_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Vector
 fn sub_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()).with_neg(),
+        (Sign::ZERO, _) => return a.clone_from_single(b.digit()).with_neg(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -3044,7 +3044,7 @@ fn sub_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return a.clone_from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return a.clone_from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -3071,7 +3071,7 @@ fn sub_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
 fn sub_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_scalar(b.digit()).with_neg(),
+        (Sign::ZERO, _) => return a.clone_from_single(b.digit()).with_neg(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -3081,7 +3081,7 @@ fn sub_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
     }
 
     match cmp_nums(a.digits(), &[b.digit()]) {
-        Ordering::Less => return a.clone_from_scalar(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
+        Ordering::Less => return a.clone_from_single(b.digit() - *a.digits().first().unwrap_or(&0)).with_neg(),
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
     };
@@ -3504,7 +3504,7 @@ fn div_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return MutRepr::ZERO,
-        Ordering::Equal => return a.clone_from_scalar(1),
+        Ordering::Equal => return a.clone_from_single(1),
         Ordering::Greater => (),
     }
 
@@ -3538,7 +3538,7 @@ fn div_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
 
     match cmp_nums(a.digits(), &[b.digit()]) {
         Ordering::Less => return MutRepr::ZERO,
-        Ordering::Equal => return a.clone_from_scalar(1),
+        Ordering::Equal => return a.clone_from_single(1),
         Ordering::Greater => (),
     }
 
