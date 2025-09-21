@@ -1894,7 +1894,6 @@ impl LongRepr {
 
 impl<const L: usize> FixedRepr<L> {
     const ZERO: Self = Self::from_single(0);
-    const ONE: Self = Self::from_single(1);
 
     const fn from_single(digit: Single) -> Self {
         let mut res = [0; L];
@@ -3206,7 +3205,7 @@ fn mul_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> F
     let mut res = a.clone_into_arr();
 
     for ptr in res.iter_mut() {
-        acc += *ptr as Double * b.sign() as Double;
+        acc += *ptr as Double * b.digit() as Double;
 
         *ptr = acc as Single;
 
@@ -3356,7 +3355,7 @@ fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) 
 
     match cmp_nums(a.digits(), b.digits()) {
         Ordering::Less => return (FixedRepr::ZERO, a.into()),
-        Ordering::Equal => return (FixedRepr::ONE.with_sign(a.sign() * b.sign()), FixedRepr::ZERO),
+        Ordering::Equal => return (FixedRepr::from_single(1).with_sign(a.sign() * b.sign()), FixedRepr::ZERO),
         Ordering::Greater => (),
     }
 
