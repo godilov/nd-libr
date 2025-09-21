@@ -4303,6 +4303,133 @@ where
     0
 }
 
+#[allow(dead_code, private_interfaces)]
+pub mod generics {
+    use crate::num::*;
+
+    const L: usize = 4096 / 8 / Single::BITS as usize;
+
+    #[inline(never)]
+    pub fn add_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
+        add_fixed_vector(a, b)
+    }
+
+    #[inline(never)]
+    pub fn add_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+        add_fixed_scalar(a, b)
+    }
+
+    #[inline(never)]
+    pub fn add_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+        add_fixed_vector_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn add_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+        add_fixed_scalar_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
+        sub_fixed_vector(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+        sub_fixed_scalar(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+        sub_fixed_vector_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+        sub_fixed_scalar_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
+        mul_fixed_vector(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+        mul_fixed_scalar(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+        mul_fixed_vector_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+        mul_fixed_scalar_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (FixedRepr<L>, FixedRepr<L>) {
+        div_fixed_vector(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> (FixedRepr<L>, FixedRepr<L>) {
+        div_fixed_scalar(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+        div_fixed_vector_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn rem_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
+        rem_fixed_vector_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+        div_fixed_scalar_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn rem_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) -> MutRepr {
+        rem_fixed_scalar_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn bitor_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
+        bit_fixed_vector(a, b, |aop, bop| aop | bop)
+    }
+
+    #[inline(never)]
+    pub fn bitand_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
+        bit_fixed_vector(a, b, |aop, bop| aop & bop)
+    }
+
+    #[inline(never)]
+    pub fn bitxor_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
+        bit_fixed_vector(a, b, |aop, bop| aop ^ bop)
+    }
+
+    #[inline(never)]
+    pub fn bitor_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+        bit_fixed_scalar(a, b, |aop, bop| aop | bop)
+    }
+
+    #[inline(never)]
+    pub fn bitand_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+        bit_fixed_scalar(a, b, |aop, bop| aop & bop)
+    }
+
+    #[inline(never)]
+    pub fn bitxor_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
+        bit_fixed_scalar(a, b, |aop, bop| aop ^ bop)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
