@@ -340,6 +340,51 @@ macro_rules! div_digit {
     }};
 }
 
+macro_rules! ops_impl_primitive {
+    (@long $long:ident [$($primitive:ty),+]) => {
+        $(ops_impl_primitive!(@long $long $primitive);)+
+    };
+    (@fixed $fixed:ident [$($primitive:ty),+]) => {
+        $(ops_impl_primitive!(@fixed $fixed $primitive);)+
+    };
+    (@long $long:ident $primitive:ty) => {
+        ops_impl!(@bin |*a: &$long, b: $primitive| -> $long,
+            + add_long_scalar((&a).into(), b.into()),
+            - sub_long_scalar((&a).into(), b.into()),
+            * mul_long_scalar((&a).into(), b.into()),
+            / div_long_scalar((&a).into(), b.into()).0,
+            % div_long_scalar((&a).into(), b.into()).1,
+            | bit_long_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
+            & bit_long_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
+            ^ bit_long_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
+
+        ops_impl!(@bin |a: $primitive, *b: &$long| -> $long,
+            + add_long_scalar((&b).into(), a.into()),
+            * mul_long_scalar((&b).into(), a.into()),
+            | bit_long_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
+            & bit_long_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
+            ^ bit_long_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
+    };
+    (@fixed $fixed:ident $primitive:ty) => {
+        ops_impl!(@bin <const L: usize> |*a: &$fixed::<L>, b: $primitive| -> $fixed::<L>,
+            + add_fixed_scalar((&a).into(), b.into()),
+            - sub_fixed_scalar((&a).into(), b.into()),
+            * mul_fixed_scalar((&a).into(), b.into()),
+            / div_fixed_scalar((&a).into(), b.into()).0,
+            % div_fixed_scalar((&a).into(), b.into()).1,
+            | bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
+            & bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
+            ^ bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
+
+        ops_impl!(@bin <const L: usize> |a: $primitive, *b: &$fixed::<L>| -> $fixed::<L>,
+            + add_fixed_scalar((&b).into(), a.into()),
+            * mul_fixed_scalar((&b).into(), a.into()),
+            | bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
+            & bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
+            ^ bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
+    };
+}
+
 macro_rules! ops_impl_mut {
     (@ref $fn:ident, $a:expr, $b:expr) => {{
         let repr = $fn($a.into(), (&$b).into());
@@ -383,7 +428,7 @@ pub type U8192 = unsigned_fixed!(8192);
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
 pub mod digit {
-    use super::{ScalarOperand, Sign};
+    use super::*;
 
     pub type Single = u64;
     pub type Double = u128;
@@ -396,11 +441,16 @@ pub mod digit {
 
     scalar_from!(@unsigned [u8, u16, u32, u64]);
     scalar_from!(@signed [i8, i16, i32, i64]);
+
+    ops_impl_primitive!(@long SignedLong [i8, i16, i32, i64, u8, u16, u32, u64]);
+    ops_impl_primitive!(@long UnsignedLong [i8, i16, i32, i64, u8, u16, u32, u64]);
+    ops_impl_primitive!(@fixed SignedFixed [i8, i16, i32, i64, u8, u16, u32, u64]);
+    ops_impl_primitive!(@fixed UnsignedFixed [i8, i16, i32, i64, u8, u16, u32, u64]);
 }
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
 pub mod digit {
-    use super::{ScalarOperand, Sign};
+    use super::*;
 
     pub type Single = u32;
     pub type Double = u64;
@@ -413,11 +463,16 @@ pub mod digit {
 
     scalar_from!(@unsigned [u8, u16, u32]);
     scalar_from!(@signed [i8, i16, i32]);
+
+    ops_impl_primitive!(@long SignedLong [i8, i16, i32, u8, u16, u32]);
+    ops_impl_primitive!(@long UnsignedLong [i8, i16, i32, u8, u16, u32]);
+    ops_impl_primitive!(@fixed SignedFixed [i8, i16, i32, u8, u16, u32]);
+    ops_impl_primitive!(@fixed UnsignedFixed [i8, i16, i32, u8, u16, u32]);
 }
 
 #[cfg(test)]
 pub mod digit {
-    use super::{ScalarOperand, Sign};
+    use super::*;
 
     pub type Single = u8;
     pub type Double = u16;
@@ -430,6 +485,11 @@ pub mod digit {
 
     scalar_from!(@unsigned [u8]);
     scalar_from!(@signed [i8]);
+
+    ops_impl_primitive!(@long SignedLong [i8, u8]);
+    ops_impl_primitive!(@long UnsignedLong [i8, u8]);
+    ops_impl_primitive!(@fixed SignedFixed [i8, u8]);
+    ops_impl_primitive!(@fixed UnsignedFixed [i8, u8]);
 }
 
 mod radix {
@@ -3993,46 +4053,6 @@ ops_impl!(@bin |*a: &UnsignedLong, *b: &UnsignedLong| -> UnsignedLong,
     & bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_long_vector((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
 
-ops_impl!(@bin |*a: &SignedLong, b: Single| -> SignedLong,
-    + add_long_scalar((&a).into(), b.into()),
-    - sub_long_scalar((&a).into(), b.into()),
-    * mul_long_scalar((&a).into(), b.into()),
-    / div_long_scalar((&a).into(), b.into()).0,
-    % div_long_scalar((&a).into(), b.into()).1,
-    | bit_long_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_long_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_long_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
-
-ops_impl!(@bin |*a: &UnsignedLong, b: Single| -> UnsignedLong,
-    + add_long_scalar((&a).into(), b.into()),
-    - sub_long_scalar((&a).into(), b.into()),
-    * mul_long_scalar((&a).into(), b.into()),
-    / div_long_scalar((&a).into(), b.into()).0,
-    % div_long_scalar((&a).into(), b.into()).1,
-    | bit_long_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_long_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_long_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
-
-ops_impl!(@bin |a: Single, *b: &SignedLong| -> SignedLong,
-    + add_long_scalar((&b).into(), a.into()),
-    - sub_long_scalar((&b).into(), a.into()),
-    * mul_long_scalar((&b).into(), a.into()),
-    / div_long_scalar((&b).into(), a.into()).0,
-    % div_long_scalar((&b).into(), a.into()).1,
-    | bit_long_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_long_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_long_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
-
-ops_impl!(@bin |a: Single, *b: &UnsignedLong| -> UnsignedLong,
-    + add_long_scalar((&b).into(), a.into()),
-    - sub_long_scalar((&b).into(), a.into()),
-    * mul_long_scalar((&b).into(), a.into()),
-    / div_long_scalar((&b).into(), a.into()).0,
-    % div_long_scalar((&b).into(), a.into()).1,
-    | bit_long_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_long_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_long_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
-
 ops_impl!(@bin |*a: &SignedLong, *b: usize| -> SignedLong,
     << shl_long((&a).into(), b),
     >> shr_long((&a).into(), b));
@@ -4108,46 +4128,6 @@ ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, *b: &UnsignedFixed<L>| -
     | bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop | bop),
     & bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop & bop),
     ^ bit_fixed_vector((&a).into(), (&b).into(), |aop, bop| aop ^ bop));
-
-ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, b: Single| -> SignedFixed::<L>,
-    + add_fixed_scalar((&a).into(), b.into()),
-    - sub_fixed_scalar((&a).into(), b.into()),
-    * mul_fixed_scalar((&a).into(), b.into()),
-    / div_fixed_scalar((&a).into(), b.into()).0,
-    % div_fixed_scalar((&a).into(), b.into()).1,
-    | bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
-
-ops_impl!(@bin <const L: usize> |*a: &UnsignedFixed<L>, b: Single| -> UnsignedFixed::<L>,
-    + add_fixed_scalar((&a).into(), b.into()),
-    - sub_fixed_scalar((&a).into(), b.into()),
-    * mul_fixed_scalar((&a).into(), b.into()),
-    / div_fixed_scalar((&a).into(), b.into()).0,
-    % div_fixed_scalar((&a).into(), b.into()).1,
-    | bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop | bop),
-    & bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_scalar((&a).into(), b.into(), |aop, bop| aop ^ bop));
-
-ops_impl!(@bin <const L: usize> |a: Single, *b: &SignedFixed<L>| -> SignedFixed::<L>,
-    + add_fixed_scalar((&b).into(), a.into()),
-    - sub_fixed_scalar((&b).into(), a.into()),
-    * mul_fixed_scalar((&b).into(), a.into()),
-    / div_fixed_scalar((&b).into(), a.into()).0,
-    % div_fixed_scalar((&b).into(), a.into()).1,
-    | bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
-
-ops_impl!(@bin <const L: usize> |a: Single, *b: &UnsignedFixed<L>| -> UnsignedFixed::<L>,
-    + add_fixed_scalar((&b).into(), a.into()),
-    - sub_fixed_scalar((&b).into(), a.into()),
-    * mul_fixed_scalar((&b).into(), a.into()),
-    / div_fixed_scalar((&b).into(), a.into()).0,
-    % div_fixed_scalar((&b).into(), a.into()).1,
-    | bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop | bop),
-    & bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop & bop),
-    ^ bit_fixed_scalar((&b).into(), a.into(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |*a: &SignedFixed<L>, b: usize| -> SignedFixed::<L>,
     << shl_fixed((&a).into(), b),
