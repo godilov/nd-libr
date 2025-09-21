@@ -317,7 +317,8 @@ macro_rules! div_apply {
 }
 
 macro_rules! div_digit {
-    ($mul:expr, $div:expr) => {{
+    (@vector $mul:expr, $div:expr) => {{}};
+    (@scalar $mul:expr, $div:expr) => {{
         let mut l = 0;
         let mut r = RADIX;
 
@@ -739,14 +740,14 @@ pub struct UnsignedFixedVec<const L: usize, const N: usize> {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-struct VectorOperand<'load> {
-    digits: &'load [Single],
+struct ScalarOperand {
+    digit: Single,
     sign: Sign,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-struct ScalarOperand {
-    digit: Single,
+struct VectorOperand<'load> {
+    digits: &'load [Single],
     sign: Sign,
 }
 
@@ -1727,17 +1728,17 @@ impl LongMutOperand<'_> {
         MutRepr::from_raw(self.digits(), Sign::POS)
     }
 
-    fn clone_from_operand(&mut self, val: VectorOperand<'_>) -> MutRepr {
-        self.raw_mut().resize(val.len(), 0);
-        self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
+    fn clone_from_vector(&mut self, vec: VectorOperand<'_>) -> MutRepr {
+        self.raw_mut().resize(vec.len(), 0);
+        self.raw_mut().iter_mut().zip(vec.digits()).for_each(|(ptr, op)| *ptr = *op);
 
-        MutRepr::from_raw(val.digits(), val.sign())
+        MutRepr::from_raw(vec.digits(), vec.sign())
     }
 
-    fn clone_from_repr(&mut self, val: LongRepr) -> MutRepr {
-        *self.raw_mut() = val.digits;
+    fn clone_from_repr(&mut self, repr: LongRepr) -> MutRepr {
+        *self.raw_mut() = repr.digits;
 
-        MutRepr::from_raw(self.digits(), val.sign)
+        MutRepr::from_raw(self.digits(), repr.sign)
     }
 
     fn raw_mut(&mut self) -> &mut Vec<Single> {
@@ -1760,10 +1761,10 @@ impl LongMutOperand<'_> {
         self.sign
     }
 
-    fn with_cloned_from(mut self, val: VectorOperand<'_>) -> Self {
-        self.raw_mut().resize(val.len(), 0);
-        self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
-        self.with_sign(val.sign())
+    fn with_cloned_from(mut self, vec: VectorOperand<'_>) -> Self {
+        self.raw_mut().resize(vec.len(), 0);
+        self.raw_mut().iter_mut().zip(vec.digits()).for_each(|(ptr, op)| *ptr = *op);
+        self.with_sign(vec.sign())
     }
 
     fn with_sign(mut self, sign: Sign) -> Self {
@@ -1791,16 +1792,16 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         MutRepr::from_raw(self.digits(), Sign::POS)
     }
 
-    fn clone_from_operand(&mut self, val: VectorOperand<'_>) -> MutRepr {
-        self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
+    fn clone_from_vector(&mut self, vec: VectorOperand<'_>) -> MutRepr {
+        self.raw_mut().iter_mut().zip(vec.digits()).for_each(|(ptr, op)| *ptr = *op);
 
-        MutRepr::from_raw(val.digits(), val.sign())
+        MutRepr::from_raw(vec.digits(), vec.sign())
     }
 
-    fn clone_from_repr(&mut self, val: FixedRepr<L>) -> MutRepr {
-        *self.raw_mut() = val.raw;
+    fn clone_from_repr(&mut self, repr: FixedRepr<L>) -> MutRepr {
+        *self.raw_mut() = repr.raw;
 
-        MutRepr::from_raw(self.digits(), val.sign)
+        MutRepr::from_raw(self.digits(), repr.sign)
     }
 
     fn raw_mut(&mut self) -> &mut [Single; L] {
@@ -1823,9 +1824,9 @@ impl<const L: usize> FixedMutOperand<'_, L> {
         self.sign
     }
 
-    fn with_cloned_from(mut self, val: VectorOperand<'_>) -> Self {
-        self.raw_mut().iter_mut().zip(val.digits()).for_each(|(ptr, op)| *ptr = *op);
-        self.with_sign(val.sign())
+    fn with_cloned_from(mut self, vec: VectorOperand<'_>) -> Self {
+        self.raw_mut().iter_mut().zip(vec.digits()).for_each(|(ptr, op)| *ptr = *op);
+        self.with_sign(vec.sign())
     }
 
     fn with_sign(mut self, sign: Sign) -> Self {
@@ -2690,7 +2691,7 @@ fn add_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> F
 fn add_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_operand(b),
+        (Sign::ZERO, _) => return a.clone_from_vector(b),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -2722,7 +2723,7 @@ fn add_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRe
 fn add_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_operand(b),
+        (Sign::ZERO, _) => return a.clone_from_vector(b),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -2958,7 +2959,7 @@ fn sub_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> F
 fn sub_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_operand(b).with_neg(),
+        (Sign::ZERO, _) => return a.clone_from_vector(b).with_neg(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -2972,7 +2973,9 @@ fn sub_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRe
             let digits = a.digits().to_vec();
             let sign = a.sign();
 
-            return sub_long_vector_mut(a.with_cloned_from(b), VectorOperand::from_raw(&digits).with_sign(sign));
+            let vop = VectorOperand::from_raw(&digits).with_sign(sign);
+
+            return sub_long_vector_mut(a.with_cloned_from(b), vop);
         },
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
@@ -2996,7 +2999,7 @@ fn sub_long_vector_mut(mut a: LongMutOperand<'_>, b: VectorOperand<'_>) -> MutRe
 fn sub_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) -> MutRepr {
     match (a.sign(), b.sign()) {
         (Sign::ZERO, Sign::ZERO) => return MutRepr::ZERO,
-        (Sign::ZERO, _) => return a.clone_from_operand(b).with_neg(),
+        (Sign::ZERO, _) => return a.clone_from_vector(b).with_neg(),
         (_, Sign::ZERO) => return a.into(),
         _ => (),
     }
@@ -3010,7 +3013,9 @@ fn sub_fixed_vector_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Vector
             let digits = a.digits().to_vec();
             let sign = a.sign();
 
-            return sub_fixed_vector_mut(a.with_cloned_from(b), VectorOperand::from_raw(&digits).with_sign(sign));
+            let vop = VectorOperand::from_raw(&digits).with_sign(sign);
+
+            return sub_fixed_vector_mut(a.with_cloned_from(b), vop);
         },
         Ordering::Equal => return MutRepr::ZERO,
         Ordering::Greater => (),
@@ -3305,13 +3310,13 @@ fn div_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (LongRepr, Lon
     let mut rem = vec![0; b.len() + 1];
     let mut len = 0;
 
-    let apos = a.with_sign(Sign::POS);
-    let bpos = b.with_sign(Sign::POS);
+    let a = a.with_sign(Sign::POS);
+    let b = b.with_sign(Sign::POS);
 
-    for (i, &aop) in apos.digits().iter().enumerate().rev() {
+    for (i, &aop) in a.digits().iter().enumerate().rev() {
         div_cycle!(rem, len, aop);
 
-        if len < bpos.len() {
+        if len < b.len() {
             continue;
         }
 
@@ -3321,7 +3326,7 @@ fn div_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (LongRepr, Lon
         while l < r {
             let m = l + (r - l) / 2;
 
-            let val = mul_long_scalar(bpos, (m as Single).into());
+            let val = mul_long_scalar(b, (m as Single).into());
 
             match cmp_nums(val.digits(), &rem[..len]) {
                 Ordering::Less => l = m + 1,
@@ -3330,7 +3335,7 @@ fn div_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (LongRepr, Lon
             }
         }
 
-        div_apply!(mul_long_vector, sub_long_vector, div[i], rem, len, bpos, l);
+        div_apply!(mul_long_vector, sub_long_vector, div[i], rem, len, b, l);
     }
 
     (LongRepr::from_raw(div, sign_div), LongRepr::from_raw(rem, sign_rem))
@@ -3364,15 +3369,15 @@ fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) 
     let mut remx = 0;
     let mut len = 0;
 
-    let apos = a.with_sign(Sign::POS);
-    let bpos = b.with_sign(Sign::POS);
+    let a = a.with_sign(Sign::POS);
+    let b = b.with_sign(Sign::POS);
 
-    for (i, &aop) in apos.digits().iter().enumerate().rev() {
+    for (i, &aop) in a.digits().iter().enumerate().rev() {
         remx = rem[L - 1];
 
         div_cycle!(rem, len, aop);
 
-        if len < bpos.len() {
+        if len < b.len() {
             continue;
         }
 
@@ -3382,7 +3387,7 @@ fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) 
         while l < r {
             let m = l + (r - l) / 2;
 
-            let val = mul_fixed_scalar::<L>(bpos, (m as Single).into());
+            let val = mul_fixed_scalar::<L>(b, (m as Single).into());
 
             match cmp_nums_ext(&val.raw, val.overflow_val, &rem, remx) {
                 Ordering::Less => l = m + 1,
@@ -3391,7 +3396,7 @@ fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) 
             }
         }
 
-        div_apply!(mul_fixed_vector::<L>, sub_fixed_vector::<L>, div[i], rem, len, bpos, l);
+        div_apply!(mul_fixed_vector::<L>, sub_fixed_vector::<L>, div[i], rem, len, b, l);
     }
 
     (FixedRepr::from_raw(div, sign_div), FixedRepr::from_raw(rem, sign_rem))
@@ -3421,7 +3426,7 @@ fn div_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> (LongRepr, LongRep
         rem <<= Single::BITS;
         rem |= aop as Double;
 
-        let digit = div_digit!(b.digit(), rem).saturating_sub(1) as Single;
+        let digit = div_digit!(@scalar b.digit(), rem).saturating_sub(1) as Single;
 
         if digit > 0 {
             div[i] = digit;
@@ -3456,7 +3461,7 @@ fn div_fixed_scalar<const L: usize>(a: VectorOperand<'_>, b: ScalarOperand) -> (
         rem <<= Single::BITS;
         rem |= aop as Double;
 
-        let digit = div_digit!(b.digit(), rem).saturating_sub(1) as Single;
+        let digit = div_digit!(@scalar b.digit(), rem).saturating_sub(1) as Single;
 
         if digit > 0 {
             div[i] = digit;
@@ -3516,7 +3521,7 @@ fn div_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let digit = div_digit!(b.digit(), rem).saturating_sub(1) as Single;
+        let digit = div_digit!(@scalar b.digit(), rem).saturating_sub(1) as Single;
 
         *op = digit;
         rem -= digit as Double * b.digit() as Double;
@@ -3550,7 +3555,7 @@ fn div_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let digit = div_digit!(b.digit(), rem).saturating_sub(1) as Single;
+        let digit = div_digit!(@scalar b.digit(), rem).saturating_sub(1) as Single;
 
         *op = digit;
         rem -= digit as Double * b.digit() as Double;
@@ -3584,7 +3589,7 @@ fn rem_long_scalar_mut(mut a: LongMutOperand<'_>, b: ScalarOperand) -> MutRepr {
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let digit = div_digit!(b.digit(), rem).saturating_sub(1) as Single;
+        let digit = div_digit!(@scalar b.digit(), rem).saturating_sub(1) as Single;
 
         rem -= digit as Double * b.digit() as Double;
     }
@@ -3617,7 +3622,7 @@ fn rem_fixed_scalar_mut<const L: usize>(mut a: FixedMutOperand<'_, L>, b: Scalar
         rem <<= Single::BITS;
         rem |= *op as Double;
 
-        let digit = div_digit!(b.digit(), rem).saturating_sub(1) as Single;
+        let digit = div_digit!(@scalar b.digit(), rem).saturating_sub(1) as Single;
 
         rem -= digit as Double * b.digit() as Double;
     }
