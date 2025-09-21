@@ -1,6 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use ndlib::{num::*, ops::*};
-use std::hint::black_box;
+use std::{hint::black_box, time::Duration};
 
 const PRIMES: [u64; 128] = [
     4292660621, 4292200421, 4274510453, 4273041679, 4268636153, 4199694749, 4187101291, 4172993729, 4132644721,
@@ -30,6 +30,10 @@ macro_rules! fn_impl {
         fn $fn(c: &mut Criterion) {
             let mut group = c.benchmark_group(format!("num::{}", stringify!($fn)));
 
+            group.sample_size(512);
+            group.measurement_time(Duration::from_secs(10));
+            group.warm_up_time(Duration::from_secs(5));
+
             $({
                 group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| $type::$fn($($args)+)));
             })+
@@ -41,6 +45,10 @@ macro_rules! ops_impl {
     ($fn:ident, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
         fn $fn(c: &mut Criterion) {
             let mut group = c.benchmark_group(format!("num::{}", stringify!($fn)));
+
+            group.sample_size(512);
+            group.measurement_time(Duration::from_secs(10));
+            group.warm_up_time(Duration::from_secs(5));
 
             $({
                 let op1 = composite(<$type>::from(1u64), $primes1);
@@ -56,6 +64,10 @@ macro_rules! ops_mut_impl {
     ($fn:ident, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
         fn $fn(c: &mut Criterion) {
             let mut group = c.benchmark_group(format!("num::{}", stringify!($fn)));
+
+            group.sample_size(512);
+            group.measurement_time(Duration::from_secs(10));
+            group.warm_up_time(Duration::from_secs(5));
 
             $({
                 let mut val = composite(<$type>::from(1u64), $primes1);
