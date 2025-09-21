@@ -27,6 +27,7 @@ pub mod ops;
 pub use ndproc::{ops_impl, ops_impl_auto};
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     use std::ops::{Neg, Not};
 
