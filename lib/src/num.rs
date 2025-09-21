@@ -290,13 +290,17 @@ macro_rules! radix_impl {
 }
 
 macro_rules! div_cycle {
-    ($arr:expr, $len:expr, $val:expr) => {
+    ($arr:expr, $len:expr, $len_n:expr, $val:expr) => {
         for i in (1..$arr.len()).rev() {
             $arr[i] = $arr[i - 1];
         }
 
         $arr[0] = $val;
         $len += 1;
+
+        if $len < $len_n {
+            continue;
+        }
     };
 }
 
@@ -3302,22 +3306,18 @@ fn div_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (LongRepr, Lon
         Ordering::Greater => (),
     }
 
-    let sign_div = a.sign() * b.sign();
-    let sign_rem = a.sign();
+    let div_sign = a.sign() * b.sign();
+    let rem_sign = a.sign();
+
+    let a = a.with_sign(Sign::POS);
+    let b = b.with_sign(Sign::POS);
 
     let mut div = vec![0; a.len()];
     let mut rem = vec![0; b.len() + 1];
     let mut len = 0;
 
-    let a = a.with_sign(Sign::POS);
-    let b = b.with_sign(Sign::POS);
-
     for (i, &aop) in a.digits().iter().enumerate().rev() {
-        div_cycle!(rem, len, aop);
-
-        if len < b.len() {
-            continue;
-        }
+        div_cycle!(rem, len, b.len(), aop);
 
         let mut l = 0;
         let mut r = RADIX;
@@ -3337,7 +3337,7 @@ fn div_long_vector(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (LongRepr, Lon
         div_apply!(mul_long_vector, sub_long_vector, div[i], rem, len, b, l);
     }
 
-    (LongRepr::from_raw(div, sign_div), LongRepr::from_raw(rem, sign_rem))
+    (LongRepr::from_raw(div, div_sign), LongRepr::from_raw(rem, rem_sign))
 }
 
 fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) -> (FixedRepr<L>, FixedRepr<L>) {
@@ -3359,8 +3359,11 @@ fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) 
         Ordering::Greater => (),
     }
 
-    let sign_div = a.sign() * b.sign();
-    let sign_rem = a.sign();
+    let div_sign = a.sign() * b.sign();
+    let rem_sign = a.sign();
+
+    let a = a.with_sign(Sign::POS);
+    let b = b.with_sign(Sign::POS);
 
     let mut div = [0; L];
     let mut rem = [0; L];
@@ -3368,17 +3371,10 @@ fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) 
     let mut remx = 0;
     let mut len = 0;
 
-    let a = a.with_sign(Sign::POS);
-    let b = b.with_sign(Sign::POS);
-
     for (i, &aop) in a.digits().iter().enumerate().rev() {
         remx = rem[L - 1];
 
-        div_cycle!(rem, len, aop);
-
-        if len < b.len() {
-            continue;
-        }
+        div_cycle!(rem, len, b.len(), aop);
 
         let mut l = 0;
         let mut r = RADIX;
@@ -3398,7 +3394,7 @@ fn div_fixed_vector<const L: usize>(a: VectorOperand<'_>, b: VectorOperand<'_>) 
         div_apply!(mul_fixed_vector::<L>, sub_fixed_vector::<L>, div[i], rem, len, b, l);
     }
 
-    (FixedRepr::from_raw(div, sign_div), FixedRepr::from_raw(rem, sign_rem))
+    (FixedRepr::from_raw(div, div_sign), FixedRepr::from_raw(rem, rem_sign))
 }
 
 fn div_long_scalar(a: VectorOperand<'_>, b: ScalarOperand) -> (LongRepr, LongRepr) {
