@@ -8,8 +8,12 @@ use prime::{PRIMES, Primality};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
+use zerocopy::IntoBytes;
 
-use crate::ops::{IteratorExt, Ops, OpsAssign, OpsFrom};
+use crate::{
+    num::radix::RADIX,
+    ops::{IteratorExt, Ops, OpsAssign, OpsFrom},
+};
 
 #[macro_export]
 macro_rules! signed {
@@ -691,7 +695,12 @@ sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum TryFromStrError {}
+pub enum TryFromStrError {
+    #[error("Found empty during parsing from string")]
+    InvalidLength,
+    #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
+    InvalidSymbol { ch: char, radix: u16 },
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromDigitsError {}
@@ -749,13 +758,13 @@ pub type U8192 = unsigned!(8192);
 
 impl<const L: usize> From<&[u8]> for Signed<L> {
     fn from(value: &[u8]) -> Self {
-        todo!()
+        Self::from_bytes(value)
     }
 }
 
 impl<const L: usize> From<&[u8]> for Unsigned<L> {
     fn from(value: &[u8]) -> Self {
-        todo!()
+        Self::from_bytes(value)
     }
 }
 
@@ -820,15 +829,7 @@ impl<const L: usize> Signed<L> {
         Self(from_bytes(bytes.as_ref()))
     }
 
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -836,11 +837,19 @@ impl<const L: usize> Signed<L> {
         todo!()
     }
 
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
+        todo!()
+    }
+
+    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -854,15 +863,7 @@ impl<const L: usize> Unsigned<L> {
         Self(from_bytes(bytes.as_ref()))
     }
 
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -870,11 +871,19 @@ impl<const L: usize> Unsigned<L> {
         todo!()
     }
 
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
+        todo!()
+    }
+
+    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -888,15 +897,7 @@ impl<const L: usize> SignedFixed<L> {
         Self(from_bytes(bytes.as_ref()), scale)
     }
 
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -904,11 +905,19 @@ impl<const L: usize> SignedFixed<L> {
         todo!()
     }
 
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
+        todo!()
+    }
+
+    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 }
@@ -918,15 +927,7 @@ impl<const L: usize> UnsignedFixed<L> {
         Self(from_bytes(bytes.as_ref()), scale)
     }
 
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -934,11 +935,19 @@ impl<const L: usize> UnsignedFixed<L> {
         todo!()
     }
 
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
+        todo!()
+    }
+
+    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 }
@@ -963,6 +972,115 @@ fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
             .map(|chunk| Single::from_le_bytes(chunk.iter().copied().collect_with([0; BYTES])))
             .collect_with([0; L]);
     }
+}
+
+fn try_from_str<const L: usize>(str: &str) -> Result<[Single; L], TryFromStrError> {
+    let (str, sign) = get_sign_from_str(str)?;
+    let (str, radix) = get_radix_from_str(str)?;
+
+    if radix & (radix - 1) == 0 {
+        return try_from_str_impl_bin(str, radix.ilog2() as u8, sign);
+    }
+
+    try_from_str_impl(str, radix, sign)
+}
+
+fn try_from_str_impl_bin<const L: usize>(str: &str, exp: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
+    todo!()
+}
+
+fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
+    todo!()
+}
+
+fn try_into_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
+    todo!()
+}
+
+fn try_from_str_impl<const L: usize>(str: &str, radix: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
+    todo!()
+}
+
+fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
+    todo!()
+}
+
+fn try_into_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
+    todo!()
+}
+
+fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
+    if s.is_empty() {
+        return Err(TryFromStrError::InvalidLength);
+    }
+
+    let val = match &s[..1] {
+        "+" => (&s[1..], Sign::POS),
+        "-" => (&s[1..], Sign::NEG),
+        _ => (s, Sign::POS),
+    };
+
+    Ok(val)
+}
+
+fn get_radix_from_str(s: &str) -> Result<(&str, u8), TryFromStrError> {
+    if s.is_empty() {
+        return Err(TryFromStrError::InvalidLength);
+    }
+
+    if s.len() < 2 {
+        return Ok((s, 10));
+    }
+
+    let val = match &s[..2] {
+        "0x" | "0X" => (&s[2..], 16),
+        "0o" | "0O" => (&s[2..], 8),
+        "0b" | "0B" => (&s[2..], 2),
+        _ => (s, 10),
+    };
+
+    Ok(val)
+}
+
+fn inv<const L: usize>(slice: &mut [Single; L]) -> &mut [Single; L] {
+    slice.iter_mut().for_each(|x| *x = !*x);
+    slice
+}
+
+fn inc<const L: usize>(slice: &mut [Single; L]) -> &mut [Single; L] {
+    let mut acc = 1;
+
+    for ptr in slice.iter_mut() {
+        let digit = *ptr as Double + acc as Double;
+
+        *ptr = digit as Single;
+
+        acc = (digit >> Single::BITS) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    slice
+}
+
+fn dec<const L: usize>(slice: &mut [Single; L]) -> &mut [Single; L] {
+    let mut acc = 1;
+
+    for ptr in slice.iter_mut() {
+        let digit = RADIX + *ptr as Double - acc as Double;
+
+        *ptr = digit as Single;
+
+        acc = (digit >> Single::BITS) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    slice
 }
 
 pub mod asm {
