@@ -1,15 +1,15 @@
 [package]
-name = "ndproc"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+name                 = "ndproc"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
 repository.workspace = true
-homepage.workspace = true
-authors.workspace = true
+homepage.workspace   = true
+authors.workspace    = true
 
 [dependencies]
-syn = { workspace = true, features = ["full", "extra-traits", "fold"] }
-quote = { workspace = true }
+syn         = { workspace = true, features = ["full", "extra-traits", "fold"] }
+quote       = { workspace = true }
 proc-macro2 = { workspace = true }
 
 [lib]

@@ -1,8 +1,6 @@
-use criterion::{Criterion, criterion_group, criterion_main};
-use ndlib::{num::*, ops::*};
-use std::{hint::black_box, time::Duration};
+use criterion::Criterion;
 
-const PRIMES: [u64; 128] = [
+const _PRIMES: [u64; 128] = [
     4292660621, 4292200421, 4274510453, 4273041679, 4268636153, 4199694749, 4187101291, 4172993729, 4132644721,
     4130742871, 4124827129, 4096342937, 4090601951, 4085747891, 4076510839, 4067541383, 4044350953, 3987288157,
     3985877521, 3984388871, 3977475763, 3974498197, 3974413831, 3962297863, 3941931089, 3931855493, 3930391987,
@@ -20,86 +18,6 @@ const PRIMES: [u64; 128] = [
     2179519291, 2179381573,
 ];
 
-fn composite<T: From<u64> + Ops + OpsFrom, Iter: IntoIterator<Item = u64>>(init: T, iter: Iter) -> T {
-    iter.into_iter().fold(init, |acc, x| T::from(acc * T::from(x)))
+fn main() {
+    Criterion::default().configure_from_args().final_summary();
 }
-
-#[allow(unused_macros)]
-macro_rules! fn_impl {
-    ($fn:ident, $primes:expr, [$($type:ty),+], ($($args:tt)+)) => {
-        fn $fn(c: &mut Criterion) {
-            let mut group = c.benchmark_group(format!("num::{}", stringify!($fn)));
-
-            group.sample_size(512);
-            group.measurement_time(Duration::from_secs(10));
-            group.warm_up_time(Duration::from_secs(5));
-
-            $({
-                group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| $type::$fn($($args)+)));
-            })+
-        }
-    };
-}
-
-macro_rules! ops_impl {
-    ($fn:ident, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
-        fn $fn(c: &mut Criterion) {
-            let mut group = c.benchmark_group(format!("num::{}", stringify!($fn)));
-
-            group.sample_size(512);
-            group.measurement_time(Duration::from_secs(10));
-            group.warm_up_time(Duration::from_secs(5));
-
-            $({
-                let op1 = composite(<$type>::from(1u64), $primes1);
-                let op2 = composite(<$type>::from(1u64), $primes2);
-
-                group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| black_box(&op1 $op &op2)));
-            })+
-        }
-    };
-}
-
-macro_rules! ops_mut_impl {
-    ($fn:ident, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
-        fn $fn(c: &mut Criterion) {
-            let mut group = c.benchmark_group(format!("num::{}", stringify!($fn)));
-
-            group.sample_size(512);
-            group.measurement_time(Duration::from_secs(10));
-            group.warm_up_time(Duration::from_secs(5));
-
-            $({
-                let mut val = composite(<$type>::from(1u64), $primes1);
-                let operand = composite(<$type>::from(1u64), $primes2);
-
-                group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| black_box(val $op &operand)));
-            })+
-        }
-    };
-}
-
-ops_impl!(bitor,  PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [|]);
-ops_impl!(bitand, PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [&]);
-ops_impl!(bitxor, PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [^]);
-ops_impl!(add,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [+]);
-ops_impl!(sub,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [-]);
-ops_impl!(mul,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [*]);
-ops_impl!(div,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [/]);
-ops_impl!(rem,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [%]);
-
-ops_mut_impl!(bitor_mut,  PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [|=]);
-ops_mut_impl!(bitand_mut, PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [&=]);
-ops_mut_impl!(bitxor_mut, PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [^=]);
-ops_mut_impl!(add_mut,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [+=]);
-ops_mut_impl!(sub_mut,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S2048, U2048], [-=]);
-ops_mut_impl!(mul_mut,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(2), [SignedLong, UnsignedLong, S4096, U4096], [*=]);
-ops_mut_impl!(div_mut,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [/=]);
-ops_mut_impl!(rem_mut,    PRIMES.iter().copied().step_by(2), PRIMES.iter().copied().skip(1).step_by(4), [SignedLong, UnsignedLong, S2048, U2048], [%=]);
-
-criterion_group!(
-    group, bitor, bitand, bitxor, add, sub, mul, div, rem, bitor_mut, bitand_mut, bitxor_mut, add_mut, sub_mut,
-    mul_mut, div_mut, rem_mut,
-);
-
-criterion_main!(group);
