@@ -3730,7 +3730,7 @@ where
 
     a.raw_mut().resize(len, 0);
 
-    for (i, ptr) in &mut a.raw_mut().iter_mut().enumerate() {
+    for (i, ptr) in a.raw_mut().iter_mut().enumerate() {
         let bop = *b.digits().get(i).unwrap_or(&0);
 
         *ptr = func(*ptr, bop);
@@ -3741,7 +3741,7 @@ fn bit_fixed_vector_mut<const L: usize, F>(mut a: FixedMutOperand<'_, L>, b: Vec
 where
     F: Fn(Single, Single) -> Single,
 {
-    for (i, ptr) in &mut a.raw_mut().iter_mut().enumerate() {
+    for (i, ptr) in a.raw_mut().iter_mut().enumerate() {
         let bop = *b.digits().get(i).unwrap_or(&0);
 
         *ptr = func(*ptr, bop);
@@ -4287,7 +4287,7 @@ where
 pub mod generics {
     use crate::num::*;
 
-    const L: usize = 4096 / 8 / Single::BITS as usize;
+    const L: usize = 16 * 1024 / 8 / Single::BITS as usize;
 
     #[inline(never)]
     pub fn add_fixed_vector_(a: VectorOperand<'_>, b: VectorOperand<'_>) -> FixedRepr<L> {
@@ -4395,6 +4395,21 @@ pub mod generics {
     }
 
     #[inline(never)]
+    pub fn bitor_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) {
+        bit_fixed_vector_mut(a, b, |aop, bop| aop | bop)
+    }
+
+    #[inline(never)]
+    pub fn bitand_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) {
+        bit_fixed_vector_mut(a, b, |aop, bop| aop & bop)
+    }
+
+    #[inline(never)]
+    pub fn bitxor_fixed_vector_mut_(a: FixedMutOperand<'_, L>, b: VectorOperand<'_>) {
+        bit_fixed_vector_mut(a, b, |aop, bop| aop ^ bop)
+    }
+
+    #[inline(never)]
     pub fn bitor_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
         bit_fixed_scalar(a, b, |aop, bop| aop | bop)
     }
@@ -4407,6 +4422,21 @@ pub mod generics {
     #[inline(never)]
     pub fn bitxor_fixed_scalar_(a: VectorOperand<'_>, b: ScalarOperand) -> FixedRepr<L> {
         bit_fixed_scalar(a, b, |aop, bop| aop ^ bop)
+    }
+
+    #[inline(never)]
+    pub fn bitor_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) {
+        bit_fixed_scalar_mut(a, b, |aop, bop| aop | bop)
+    }
+
+    #[inline(never)]
+    pub fn bitand_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) {
+        bit_fixed_scalar_mut(a, b, |aop, bop| aop & bop)
+    }
+
+    #[inline(never)]
+    pub fn bitxor_fixed_scalar_mut_(a: FixedMutOperand<'_, L>, b: ScalarOperand) {
+        bit_fixed_scalar_mut(a, b, |aop, bop| aop ^ bop)
     }
 }
 
