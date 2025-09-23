@@ -11,7 +11,7 @@ use thiserror::Error;
 use zerocopy::IntoBytes;
 
 use crate::{
-    num::radix::RADIX,
+    num::radix::{RADIX, Radix},
     ops::{IteratorExt, Ops, OpsAssign, OpsFrom},
 };
 
@@ -746,6 +746,26 @@ pub struct SignedFixed<const L: usize>(pub [Single; L], pub usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UnsignedFixed<const L: usize>(pub [Single; L], pub usize);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct DigitsIterBin<'digits, const L: usize> {
+    bits: usize,
+    mask: Double,
+    acc: Double,
+    shl: usize,
+    idx: usize,
+    len: usize,
+    digits: &'digits [Single; L],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct DigitsIter<'digits, const L: usize> {
+    acc: Double,
+    shl: usize,
+    idx: usize,
+    len: usize,
+    digits: &'digits [Single; L],
+}
+
 pub type S128 = signed!(128);
 pub type S192 = signed!(192);
 pub type S256 = signed!(256);
@@ -774,14 +794,26 @@ pub type U4096 = unsigned!(4096);
 pub type U6144 = unsigned!(6144);
 pub type U8192 = unsigned!(8192);
 
-impl<const L: usize> From<&[u8]> for Signed<L> {
-    fn from(value: &[u8]) -> Self {
+impl<const L: usize> Default for Signed<L> {
+    fn default() -> Self {
+        Self([0; L])
+    }
+}
+
+impl<const L: usize> Default for Unsigned<L> {
+    fn default() -> Self {
+        Self([0; L])
+    }
+}
+
+impl<const L: usize, Bytes: AsRef<[u8]>> From<Bytes> for Signed<L> {
+    fn from(value: Bytes) -> Self {
         Self::from_bytes(value)
     }
 }
 
-impl<const L: usize> From<&[u8]> for Unsigned<L> {
-    fn from(value: &[u8]) -> Self {
+impl<const L: usize, Bytes: AsRef<[u8]>> From<Bytes> for Unsigned<L> {
+    fn from(value: Bytes) -> Self {
         Self::from_bytes(value)
     }
 }
@@ -790,7 +822,7 @@ impl<const L: usize> FromStr for Signed<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        try_from_str(s).map(Self)
+        Self::try_from_str(s)
     }
 }
 
@@ -798,23 +830,7 @@ impl<const L: usize> FromStr for Unsigned<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        try_from_str(s).map(Self)
-    }
-}
-
-impl<const L: usize> FromStr for SignedFixed<L> {
-    type Err = TryFromStrError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
-    }
-}
-
-impl<const L: usize> FromStr for UnsignedFixed<L> {
-    type Err = TryFromStrError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        Self::try_from_str(s)
     }
 }
 
@@ -830,21 +846,13 @@ impl<const L: usize> From<Unsigned<L>> for Signed<L> {
     }
 }
 
-impl<const L: usize> From<SignedFixed<L>> for UnsignedFixed<L> {
-    fn from(value: SignedFixed<L>) -> Self {
-        Self(value.0, value.1)
-    }
-}
-
-impl<const L: usize> From<UnsignedFixed<L>> for SignedFixed<L> {
-    fn from(value: UnsignedFixed<L>) -> Self {
-        Self(value.0, value.1)
-    }
-}
-
 impl<const L: usize> Signed<L> {
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
         Self(from_bytes(bytes.as_ref()))
+    }
+
+    pub fn try_from_str(s: &str) -> Result<Self, TryFromStrError> {
+        try_from_str(s).map(Self)
     }
 
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
@@ -863,20 +871,48 @@ impl<const L: usize> Signed<L> {
         todo!()
     }
 
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
         todo!()
     }
 
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
         todo!()
     }
 
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
+    pub fn sign(&self) -> Sign {
+        if self.0 == [0; L] {
+            return Sign::ZERO;
+        }
+
+        if self.0[L - 1] >> (BITS - 1) == 0 {
+            Sign::POS
+        } else {
+            Sign::NEG
+        }
     }
 
-    pub fn into_fixed(self, scale: usize) -> SignedFixed<L> {
-        SignedFixed::<L>(self.0, scale)
+    pub fn with_neg(mut self) -> Self {
+        neg(&mut self.0);
+
+        self
+    }
+
+    pub fn with_sign(mut self, sign: Sign) -> Self {
+        let s = self.sign();
+
+        if s == Sign::ZERO {
+            return self;
+        }
+
+        if sign == Sign::ZERO {
+            return Self::default();
+        }
+
+        if sign != s {
+            neg(&mut self.0);
+        }
+
+        self
     }
 }
 
@@ -885,6 +921,10 @@ impl<const L: usize> Unsigned<L> {
         Self(from_bytes(bytes.as_ref()))
     }
 
+    pub fn try_from_str(s: &str) -> Result<Self, TryFromStrError> {
+        try_from_str(s).map(Self)
+    }
+
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
         todo!()
     }
@@ -901,87 +941,11 @@ impl<const L: usize> Unsigned<L> {
         todo!()
     }
 
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
         todo!()
     }
 
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn into_fixed(self, scale: usize) -> UnsignedFixed<L> {
-        UnsignedFixed::<L>(self.0, scale)
-    }
-}
-
-impl<const L: usize> SignedFixed<L> {
-    pub fn from_bytes(bytes: impl AsRef<[u8]>, scale: usize) -> Self {
-        Self(from_bytes(bytes.as_ref()), scale)
-    }
-
-    pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        todo!()
-    }
-
-    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        todo!()
-    }
-
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-}
-
-impl<const L: usize> UnsignedFixed<L> {
-    pub fn from_bytes(bytes: impl AsRef<[u8]>, scale: usize) -> Self {
-        Self(from_bytes(bytes.as_ref()), scale)
-    }
-
-    pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
-        todo!()
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        todo!()
-    }
-
-    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        todo!()
-    }
-
-    pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits(&self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
         todo!()
     }
 }
@@ -1272,7 +1236,7 @@ fn dec<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
 pub mod asm {
     use super::*;
 
-    const L: usize = 8 * 4 * 1024 / BITS as usize;
+    const L: usize = 8 * 4 * 1024 / BITS;
 
     #[inline(never)]
     pub fn from_bytes_(bytes: &[u8]) -> [Single; L] {
