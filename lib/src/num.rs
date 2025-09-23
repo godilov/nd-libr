@@ -3,7 +3,7 @@
 
 use std::{cmp::Ordering, fmt::Display, iter::once, str::FromStr};
 
-use digit::{BYTES, Double, Single};
+use digit::{BITS, BYTES, Double, Single};
 use prime::{PRIMES, Primality};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -18,14 +18,14 @@ use crate::{
 #[macro_export]
 macro_rules! signed {
     ($bits:expr) => {
-        $crate::num::Signed<{ ($bits as usize).div_ceil($crate::num::digit::Single::BITS as usize) }>
+        $crate::num::Signed<{ ($bits as usize).div_ceil($crate::num::digit::BITS as usize) }>
     };
 }
 
 #[macro_export]
 macro_rules! unsigned {
     ($bits:expr) => {
-        $crate::num::Unsigned<{ ($bits as usize).div_ceil($crate::num::digit::Single::BITS as usize) }>
+        $crate::num::Unsigned<{ ($bits as usize).div_ceil($crate::num::digit::BITS as usize) }>
     };
 }
 
@@ -159,7 +159,10 @@ pub mod digit {
     pub type Single = u64;
     pub type Double = u128;
 
-    pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub(super) const MAX: Single = Single::MAX;
+    pub(super) const MIN: Single = Single::MIN;
+    pub(super) const BITS: usize = Single::BITS as usize;
+    pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
 
     pub(super) const OCT_VAL: Double = (1 as Double) << 63;
     pub(super) const OCT_WIDTH: u8 = 21;
@@ -173,7 +176,10 @@ pub mod digit {
     pub type Single = u32;
     pub type Double = u64;
 
-    pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub(super) const MAX: Single = Single::MAX;
+    pub(super) const MIN: Single = Single::MIN;
+    pub(super) const BITS: usize = Single::BITS as usize;
+    pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
 
     pub(super) const OCT_VAL: Double = (1 as Double) << 30;
     pub(super) const OCT_WIDTH: u8 = 10;
@@ -187,7 +193,10 @@ pub mod digit {
     pub type Single = u8;
     pub type Double = u16;
 
-    pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub(super) const MAX: Single = Single::MAX;
+    pub(super) const MIN: Single = Single::MIN;
+    pub(super) const BITS: usize = Single::BITS as usize;
+    pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
 
     pub(super) const OCT_VAL: Double = (1 as Double) << 6;
     pub(super) const OCT_WIDTH: u8 = 2;
@@ -388,12 +397,9 @@ pub mod prime {
 }
 
 mod radix {
-    use super::{
-        Double, Single,
-        digit::{DEC_VAL, DEC_WIDTH, OCT_VAL, OCT_WIDTH},
-    };
+    use super::{digit::*, *};
 
-    pub(super) const RADIX: Double = Single::MAX as Double + 1;
+    pub(super) const RADIX: Double = MAX as Double + 1;
 
     pub trait Radix {
         const WIDTH: u8;
@@ -406,8 +412,8 @@ mod radix {
     pub struct Hex;
 
     impl Bin {
-        pub(super) const RADIX: Double = Single::MAX as Double + 1;
-        pub(super) const WIDTH: u8 = Single::BITS as u8;
+        pub(super) const RADIX: Double = MAX as Double + 1;
+        pub(super) const WIDTH: u8 = BITS as u8;
         pub(super) const PREFIX: &str = "0b";
     }
 
@@ -424,8 +430,8 @@ mod radix {
     }
 
     impl Hex {
-        pub(super) const RADIX: Double = Single::MAX as Double + 1;
-        pub(super) const WIDTH: u8 = Single::BITS as u8 / 4;
+        pub(super) const RADIX: Double = MAX as Double + 1;
+        pub(super) const WIDTH: u8 = BITS as u8 / 4;
         pub(super) const PREFIX: &str = "0x";
     }
 
@@ -699,14 +705,26 @@ pub enum TryFromStrError {
     #[error("Found empty during parsing from string")]
     InvalidLength,
     #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
-    InvalidSymbol { ch: char, radix: u16 },
+    InvalidSymbol { ch: char, radix: u8 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum TryFromDigitsError {}
+pub enum TryFromDigitsError {
+    #[error("Found invalid radix '{radix}'")]
+    InvalidRadix { radix: u8 },
+    #[error("Found invalid exp '{exp}'")]
+    InvalidExponent { exp: u8 },
+    #[error("Found invalid digit '{digit}' during parsing from slice of radix '{radix}'")]
+    InvalidDigits { digit: u8, radix: u8 },
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum TryIntoDigitsError {}
+pub enum TryIntoDigitsError {
+    #[error("Found invalid radix '{radix}'")]
+    InvalidRadix { radix: u8 },
+    #[error("Found invalid exp '{exp}'")]
+    InvalidExponent { exp: u8 },
+}
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -772,7 +790,7 @@ impl<const L: usize> FromStr for Signed<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        try_from_str(s).map(Self)
     }
 }
 
@@ -780,7 +798,7 @@ impl<const L: usize> FromStr for Unsigned<L> {
     type Err = TryFromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        try_from_str(s).map(Self)
     }
 }
 
@@ -833,19 +851,23 @@ impl<const L: usize> Signed<L> {
         todo!()
     }
 
-    pub fn try_into_digits_bin(mut self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
         todo!()
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        todo!()
+    }
+
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        todo!()
+    }
+
     pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -867,19 +889,23 @@ impl<const L: usize> Unsigned<L> {
         todo!()
     }
 
-    pub fn try_into_digits_bin(mut self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
         todo!()
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        todo!()
+    }
+
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        todo!()
+    }
+
     pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -901,19 +927,23 @@ impl<const L: usize> SignedFixed<L> {
         todo!()
     }
 
-    pub fn try_into_digits_bin(mut self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
         todo!()
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        todo!()
+    }
+
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        todo!()
+    }
+
     pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -931,19 +961,23 @@ impl<const L: usize> UnsignedFixed<L> {
         todo!()
     }
 
-    pub fn try_into_digits_bin(mut self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
-    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        todo!()
-    }
-
     pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8, scale: usize) -> Result<Self, TryFromDigitsError> {
         todo!()
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        todo!()
+    }
+
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        todo!()
+    }
+
     pub fn try_into_digits(mut self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         todo!()
     }
 
@@ -974,39 +1008,175 @@ fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     }
 }
 
-fn try_from_str<const L: usize>(str: &str) -> Result<[Single; L], TryFromStrError> {
-    let (str, sign) = get_sign_from_str(str)?;
-    let (str, radix) = get_radix_from_str(str)?;
+fn try_from_str_validate(s: &str, radix: u8) -> Result<(), TryFromStrError> {
+    if let Some(ch) = s.chars().find(|&ch| {
+        let byte = ch as u8;
 
-    if radix & (radix - 1) == 0 {
-        return try_from_str_impl_bin(str, radix.ilog2() as u8, sign);
+        match ch {
+            '0'..='9' => byte - b'0' >= radix,
+            'a'..='f' => byte - b'a' + 10 >= radix,
+            'A'..='F' => byte - b'A' + 10 >= radix,
+            '_' => false,
+            _ => false,
+        }
+    }) {
+        return Err(TryFromStrError::InvalidSymbol { ch, radix });
     }
 
-    try_from_str_impl(str, radix, sign)
+    Ok(())
 }
 
-fn try_from_str_impl_bin<const L: usize>(str: &str, exp: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
-    todo!()
+fn try_from_digits_validate(digits: &[u8], radix: u8) -> Result<(), TryFromDigitsError> {
+    if radix < 2 {
+        return Err(TryFromDigitsError::InvalidRadix { radix });
+    }
+
+    if let Some(&digit) = digits.iter().find(|&&digit| digit >= radix) {
+        return Err(TryFromDigitsError::InvalidDigits { digit, radix });
+    }
+
+    Ok(())
 }
 
-fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
-    todo!()
+fn try_into_digits_validate(radix: u8) -> Result<(), TryIntoDigitsError> {
+    if radix < 2 {
+        return Err(TryIntoDigitsError::InvalidRadix { radix });
+    }
+
+    Ok(())
 }
 
-fn try_into_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
-    todo!()
-}
+fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError> {
+    let (s, sign) = get_sign_from_str(s)?;
+    let (s, radix) = get_radix_from_str(s)?;
 
-fn try_from_str_impl<const L: usize>(str: &str, radix: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
+    if radix & (radix - 1) == 0 {
+        return try_from_str_bin(s, radix.ilog2() as u8);
+    }
+
+    try_from_str_validate(s, radix)?;
+
     todo!()
 }
 
 fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
+    if radix & (radix - 1) == 0 {
+        return try_from_digits_bin(digits, radix.ilog2() as u8);
+    }
+
+    try_from_digits_validate(digits, radix)?;
+
     todo!()
 }
 
-fn try_into_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
+fn try_into_digits<const L: usize>(digits: [Single; L], radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    if radix & (radix - 1) == 0 {
+        return try_into_digits_bin(&digits, radix.ilog2() as u8);
+    }
+
+    try_into_digits_validate(radix)?;
+
     todo!()
+}
+
+fn try_from_str_bin<const L: usize>(s: &str, exp: u8) -> Result<[Single; L], TryFromStrError> {
+    try_from_str_validate(s, 1 << exp)?;
+
+    let bits = exp as usize;
+    let mask = (1 << BITS) - 1;
+    let len = (s.len() * bits + BITS - 1) / BITS;
+
+    let mut acc = 0;
+    let mut shl = 0;
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for digit in s.bytes().rev().filter_map(get_digit_from_byte) {
+        acc |= (digit as Double) << shl;
+        shl += bits;
+        res[idx] = (acc & mask) as Single;
+
+        if shl >= BITS {
+            if idx + 1 == L {
+                break;
+            }
+
+            acc >>= BITS;
+            shl -= BITS;
+            idx += 1;
+            res[idx] = (acc & mask) as Single;
+        }
+    }
+
+    Ok(res)
+}
+
+fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
+    if exp >= u8::BITS as u8 {
+        return Err(TryFromDigitsError::InvalidExponent { exp });
+    }
+
+    try_from_digits_validate(digits, 1 << exp)?;
+
+    let bits = exp as usize;
+    let mask = (1 << BITS) - 1;
+    let len = (digits.len() * bits + BITS - 1) / BITS;
+
+    let mut acc = 0;
+    let mut shl = 0;
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for &digit in digits {
+        acc |= (digit as Double) << shl;
+        shl += bits;
+        res[idx] = (acc & mask) as Single;
+
+        if shl >= BITS {
+            if idx + 1 == L {
+                break;
+            }
+
+            acc >>= BITS;
+            shl -= BITS;
+            idx += 1;
+            res[idx] = (acc & mask) as Single;
+        }
+    }
+
+    Ok(res)
+}
+
+fn try_into_digits_bin<const L: usize>(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    if exp >= u8::BITS as u8 {
+        return Err(TryIntoDigitsError::InvalidExponent { exp });
+    }
+
+    try_into_digits_validate(1 << exp)?;
+
+    let bits = exp as usize;
+    let mask = (1 << bits) - 1;
+    let len = (digits.len() * BITS + bits - 1) / bits;
+
+    let mut acc = 0;
+    let mut shl = 0;
+    let mut idx = 0;
+    let mut res = vec![0; len];
+
+    for &digit in digits {
+        acc |= (digit as Double) << shl;
+        shl += BITS;
+        res[idx] = (acc & mask) as u8;
+
+        while shl >= bits {
+            acc >>= bits;
+            shl -= bits;
+            idx += 1;
+            res[idx] = (acc & mask) as u8;
+        }
+    }
+
+    Ok(res)
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
@@ -1042,54 +1212,85 @@ fn get_radix_from_str(s: &str) -> Result<(&str, u8), TryFromStrError> {
     Ok(val)
 }
 
-fn inv<const L: usize>(slice: &mut [Single; L]) -> &mut [Single; L] {
-    slice.iter_mut().for_each(|x| *x = !*x);
-    slice
+fn get_digit_from_byte(byte: u8) -> Option<Single> {
+    match byte {
+        b'0'..=b'9' => Some((byte - b'0') as Single),
+        b'a'..=b'f' => Some((byte - b'a' + 10) as Single),
+        b'A'..=b'F' => Some((byte - b'A' + 10) as Single),
+        _ => None,
+    }
 }
 
-fn inc<const L: usize>(slice: &mut [Single; L]) -> &mut [Single; L] {
+fn neg<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+    not(digits);
+    inc(digits);
+
+    digits
+}
+
+fn not<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+    digits.iter_mut().for_each(|x| *x = !*x);
+    digits
+}
+
+fn inc<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
     let mut acc = 1;
 
-    for ptr in slice.iter_mut() {
+    for ptr in digits.iter_mut() {
         let digit = *ptr as Double + acc as Double;
 
         *ptr = digit as Single;
 
-        acc = (digit >> Single::BITS) as Single;
+        acc = (digit >> BITS) as Single;
 
         if acc == 0 {
             break;
         }
     }
 
-    slice
+    digits
 }
 
-fn dec<const L: usize>(slice: &mut [Single; L]) -> &mut [Single; L] {
+fn dec<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
     let mut acc = 1;
 
-    for ptr in slice.iter_mut() {
+    for ptr in digits.iter_mut() {
         let digit = RADIX + *ptr as Double - acc as Double;
 
         *ptr = digit as Single;
 
-        acc = (digit >> Single::BITS) as Single;
+        acc = (digit >> BITS) as Single;
 
         if acc == 0 {
             break;
         }
     }
 
-    slice
+    digits
 }
 
 pub mod asm {
     use super::*;
 
-    const L: usize = 8 * 4 * 1024 / Single::BITS as usize;
+    const L: usize = 8 * 4 * 1024 / BITS as usize;
 
     #[inline(never)]
     pub fn from_bytes_(bytes: &[u8]) -> [Single; L] {
         from_bytes(bytes)
+    }
+
+    #[inline(never)]
+    pub fn inv_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        not(digits)
+    }
+
+    #[inline(never)]
+    pub fn inc_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        inc(digits)
+    }
+
+    #[inline(never)]
+    pub fn dec_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        dec(digits)
     }
 }
