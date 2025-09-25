@@ -953,8 +953,6 @@ impl<const L: usize> Unsigned<L> {
 fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     #[cfg(target_endian = "little")]
     {
-        use zerocopy::IntoBytes;
-
         let len = bytes.len().min(BYTES * L);
 
         let mut res = [0; L];
@@ -1020,7 +1018,26 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
 
     try_from_str_validate(s, radix)?;
 
-    todo!()
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for digit in s.bytes().filter_map(get_digit_from_byte) {
+        let mut acc = digit as Double;
+
+        for ptr in res.iter_mut().take(idx + 1) {
+            acc += *ptr as Double * radix as Double;
+
+            *ptr = acc as Single;
+
+            acc >>= BITS;
+        }
+
+        if idx < L && res[idx] > 0 {
+            idx += 1;
+        }
+    }
+
+    Ok(res)
 }
 
 fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
@@ -1030,17 +1047,63 @@ fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; 
 
     try_from_digits_validate(digits, radix)?;
 
-    todo!()
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for &digit in digits.iter().rev() {
+        let mut acc = digit as Double;
+
+        for ptr in res.iter_mut().take(idx + 1) {
+            acc += *ptr as Double * radix as Double;
+
+            *ptr = acc as Single;
+
+            acc >>= BITS;
+        }
+
+        if idx < L && res[idx] > 0 {
+            idx += 1;
+        }
+    }
+
+    Ok(res)
 }
 
-fn try_into_digits<const L: usize>(digits: [Single; L], radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
     if radix & (radix - 1) == 0 {
         return try_into_digits_bin(&digits, radix.ilog2() as u8);
     }
 
     try_into_digits_validate(radix)?;
 
-    todo!()
+    let bits = 1 + radix.ilog2() as usize;
+    let len = (digits.len() * BITS + bits - 1) / bits;
+
+    let mut idx = 0;
+    let mut res = vec![0; len + 1];
+
+    loop {
+        let mut any = 0;
+        let mut acc = 0;
+
+        for digit in digits.as_mut_bytes().iter_mut().rev() {
+            any |= *digit;
+            acc = (acc << u8::BITS) | *digit as u16;
+
+            *digit = (acc / radix as u16) as u8;
+
+            acc %= radix as u16;
+        }
+
+        if any == 0 {
+            break;
+        }
+
+        res[idx] = acc as u8;
+        idx += 1;
+    }
+
+    Ok(res)
 }
 
 fn try_from_str_bin<const L: usize>(s: &str, exp: u8) -> Result<[Single; L], TryFromStrError> {
@@ -1236,7 +1299,7 @@ fn dec<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
 pub mod asm {
     use super::*;
 
-    const L: usize = 8 * 4 * 1024 / BITS;
+    const L: usize = 4096 / BITS;
 
     #[inline(never)]
     pub fn from_bytes_(bytes: &[u8]) -> [Single; L] {
@@ -1244,7 +1307,42 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn inv_(digits: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn try_from_str_(s: &str) -> Result<[Single; L], TryFromStrError> {
+        try_from_str(s)
+    }
+
+    #[inline(never)]
+    pub fn try_from_digits_(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
+        try_from_digits(digits, radix)
+    }
+
+    #[inline(never)]
+    pub fn try_into_digits_(digits: [Single; L], radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits(digits, radix)
+    }
+
+    #[inline(never)]
+    pub fn try_from_str_bin_(s: &str, exp: u8) -> Result<[Single; L], TryFromStrError> {
+        try_from_str_bin(s, exp)
+    }
+
+    #[inline(never)]
+    pub fn try_from_digits_bin_(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
+        try_from_digits_bin(digits, exp)
+    }
+
+    #[inline(never)]
+    pub fn try_into_digits_bin_(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits_bin(digits, exp)
+    }
+
+    #[inline(never)]
+    pub fn neg_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        neg(digits)
+    }
+
+    #[inline(never)]
+    pub fn not_(digits: &mut [Single; L]) -> &mut [Single; L] {
         not(digits)
     }
 
