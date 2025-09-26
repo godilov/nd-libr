@@ -8,11 +8,11 @@ use prime::{PRIMES, Primality};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
-use zerocopy::IntoBytes;
+use zerocopy::{IntoBytes, transmute};
 
 use crate::{
-    num::radix::RADIX,
-    ops::{IteratorExt, Ops, OpsAssign, OpsFrom},
+    num::{radix::*, uops::*},
+    ops::*,
 };
 
 #[macro_export]
@@ -1059,7 +1059,7 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     let (s, radix) = get_radix_from_str(s)?;
 
     if radix & (radix - 1) == 0 {
-        return try_from_str_bin(s, radix.ilog2() as u8);
+        return try_from_str_bin(s, radix.ilog2() as u8, sign);
     }
 
     try_from_str_validate(s, radix)?;
@@ -1159,7 +1159,7 @@ fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result
 }
 
 // [!NOTE]: Try to implement with iterators after tests and benches
-fn try_from_str_bin<const L: usize>(s: &str, exp: u8) -> Result<[Single; L], TryFromStrError> {
+fn try_from_str_bin<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
     try_from_str_validate(s, 1 << exp)?;
 
     let bits = exp as usize;
@@ -1186,6 +1186,10 @@ fn try_from_str_bin<const L: usize>(s: &str, exp: u8) -> Result<[Single; L], Try
             idx += 1;
             res[idx] = (acc & mask) as Single;
         }
+    }
+
+    if sign == Sign::NEG {
+        neg_mut(&mut res);
     }
 
     Ok(res)
@@ -1303,104 +1307,108 @@ fn get_digit_from_byte(byte: u8) -> Option<Single> {
     }
 }
 
-fn pos<const L: usize>(digits: [Single; L]) -> [Single; L] {
-    digits
-}
+mod uops {
+    use super::*;
 
-fn neg<const L: usize>(digits: [Single; L]) -> [Single; L] {
-    inc(not(digits))
-}
-
-fn not<const L: usize>(digits: [Single; L]) -> [Single; L] {
-    digits.iter().map(|&x| !x).collect_with([0; L])
-}
-
-fn inc<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
-    let mut acc = 1;
-
-    for ptr in digits.iter_mut() {
-        let digit = *ptr as Double + acc as Double;
-
-        *ptr = digit as Single;
-
-        acc = (digit >> BITS) as Single;
-
-        if acc == 0 {
-            break;
-        }
+    pub(super) fn pos<const L: usize>(digits: [Single; L]) -> [Single; L] {
+        digits
     }
 
-    digits
-}
-
-fn dec<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
-    let mut acc = 1;
-
-    for ptr in digits.iter_mut() {
-        let digit = RADIX + *ptr as Double - acc as Double;
-
-        *ptr = digit as Single;
-
-        acc = (digit >> BITS) as Single;
-
-        if acc == 0 {
-            break;
-        }
+    pub(super) fn neg<const L: usize>(digits: [Single; L]) -> [Single; L] {
+        inc(not(digits))
     }
 
-    digits
-}
-
-fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-    digits
-}
-
-fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-    not_mut(digits);
-    inc_mut(digits);
-
-    digits
-}
-
-fn not_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-    digits.iter_mut().for_each(|x| *x = !*x);
-    digits
-}
-
-fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-    let mut acc = 1;
-
-    for ptr in digits.iter_mut() {
-        let digit = *ptr as Double + acc as Double;
-
-        *ptr = digit as Single;
-
-        acc = (digit >> BITS) as Single;
-
-        if acc == 0 {
-            break;
-        }
+    pub(super) fn not<const L: usize>(digits: [Single; L]) -> [Single; L] {
+        digits.iter().map(|&x| !x).collect_with([0; L])
     }
 
-    digits
-}
+    pub(super) fn inc<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+        let mut acc = 1;
 
-fn dec_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-    let mut acc = 1;
+        for ptr in digits.iter_mut() {
+            let digit = *ptr as Double + acc as Double;
 
-    for ptr in digits.iter_mut() {
-        let digit = RADIX + *ptr as Double - acc as Double;
+            *ptr = digit as Single;
 
-        *ptr = digit as Single;
+            acc = (digit >> BITS) as Single;
 
-        acc = (digit >> BITS) as Single;
-
-        if acc == 0 {
-            break;
+            if acc == 0 {
+                break;
+            }
         }
+
+        digits
     }
 
-    digits
+    pub(super) fn dec<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = RADIX + *ptr as Double - acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = (digit >> BITS) as Single;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }
+
+    pub(super) fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        digits
+    }
+
+    pub(super) fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        not_mut(digits);
+        inc_mut(digits);
+
+        digits
+    }
+
+    pub(super) fn not_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        digits.iter_mut().for_each(|x| *x = !*x);
+        digits
+    }
+
+    pub(super) fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = *ptr as Double + acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = (digit >> BITS) as Single;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }
+
+    pub(super) fn dec_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = RADIX + *ptr as Double - acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = (digit >> BITS) as Single;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }
 }
 
 pub mod asm {
@@ -1435,8 +1443,8 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn try_from_str_bin_(s: &str, exp: u8) -> Result<[Single; L], TryFromStrError> {
-        try_from_str_bin(s, exp)
+    pub fn try_from_str_bin_(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
+        try_from_str_bin(s, exp, sign)
     }
 
     #[inline(never)]
@@ -1492,14 +1500,30 @@ pub mod asm {
 
 #[cfg(test)]
 mod tests {
-    use zerocopy::transmute;
-
     use super::*;
 
     type S64 = signed!(64);
     type U64 = unsigned!(64);
 
     const PRIMES: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
+
+    fn add(digits: &mut [u8], radix: u8, val: u8) -> bool {
+        let mut acc = val as u16;
+
+        for digit in digits {
+            acc += *digit as u16;
+
+            *digit = (acc % radix as u16) as u8;
+
+            acc /= radix as u16;
+        }
+
+        acc > 0
+    }
+
+    fn value(digits: &[u8], radix: u8) -> u64 {
+        digits.iter().rev().fold(0, |acc, &x| acc * radix as u64 + x as u64)
+    }
 
     #[test]
     fn from_primitives() {
@@ -1517,6 +1541,9 @@ mod tests {
 
     #[test]
     fn from_bytes() {
+        assert_eq!(S64::from_bytes([]), S64::default());
+        assert_eq!(U64::from_bytes([]), U64::default());
+
         for val in (u64::MIN..u64::MAX).step_by(PRIMES[0]) {
             let bytes = val.to_le_bytes();
 
@@ -1526,10 +1553,63 @@ mod tests {
     }
 
     #[test]
-    fn try_from_str() {}
+    fn try_from_str() {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES[0]) {
+            let bytes = val.to_le_bytes();
+
+            let pos_dec = format!("{val:#064}");
+            let pos_bin = format!("{val:#064b}");
+            let pos_oct = format!("{val:#064o}");
+            let pos_hex = format!("{val:#064x}");
+
+            let neg_dec = format!("-{val:#064}");
+            let neg_bin = format!("-{val:#064b}");
+            let neg_oct = format!("-{val:#064o}");
+            let neg_hex = format!("-{val:#064x}");
+
+            assert_eq!(S64::try_from_str(&pos_dec), Ok(S64 { 0: pos(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&pos_bin), Ok(S64 { 0: pos(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&pos_oct), Ok(S64 { 0: pos(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&pos_hex), Ok(S64 { 0: pos(transmute!(bytes)) }));
+
+            assert_eq!(S64::try_from_str(&neg_dec), Ok(S64 { 0: neg(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&neg_bin), Ok(S64 { 0: neg(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&neg_oct), Ok(S64 { 0: neg(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&neg_hex), Ok(S64 { 0: neg(transmute!(bytes)) }));
+
+            assert_eq!(U64::try_from_str(&pos_dec), Ok(U64 { 0: pos(transmute!(bytes)) }));
+            assert_eq!(U64::try_from_str(&pos_bin), Ok(U64 { 0: pos(transmute!(bytes)) }));
+            assert_eq!(U64::try_from_str(&pos_oct), Ok(U64 { 0: pos(transmute!(bytes)) }));
+            assert_eq!(U64::try_from_str(&pos_hex), Ok(U64 { 0: pos(transmute!(bytes)) }));
+        }
+    }
 
     #[test]
-    fn try_from_digits() {}
+    fn try_from_digits() {
+        assert_eq!(S64::try_from_digits([], 31), Ok(S64::default()));
+        assert_eq!(U64::try_from_digits([], 31), Ok(U64::default()));
+
+        for radix in 2..=u8::MAX {
+            let step = radix.saturating_sub(3).max(1);
+
+            let mut digits = [0; 8];
+
+            for _ in 0..u16::MAX {
+                let bytes = digits
+                    .iter()
+                    .rev()
+                    .fold(0, |acc, &x| acc * radix as u64 + x as u64)
+                    .to_le_bytes();
+
+                assert_eq!(S64::try_from_digits(digits, radix), Ok(S64 { 0: pos(transmute!(bytes)) }));
+                assert_eq!(U64::try_from_digits(digits, radix), Ok(U64 { 0: pos(transmute!(bytes)) }));
+
+                if !add(&mut digits, radix, radix) {
+                    break;
+                }
+            }
+        }
+    }
 
     #[test]
     fn try_into_digits() {}
