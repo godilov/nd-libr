@@ -3,15 +3,15 @@
 
 use std::{cmp::Ordering, fmt::Display, iter::once, str::FromStr};
 
-use digit::{Double, Single, BITS, BYTES};
-use prime::{Primality, PRIMES};
+use digit::{BITS, BYTES, Double, Single};
+use prime::{PRIMES, Primality};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 use zerocopy::IntoBytes;
 
 use crate::{
-    num::radix::{Radix, RADIX},
+    num::radix::{RADIX, Radix},
     ops::{IteratorExt, Ops, OpsAssign, OpsFrom},
 };
 
