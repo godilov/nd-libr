@@ -29,51 +29,24 @@ macro_rules! unsigned {
     };
 }
 
-macro_rules! sign_from {
-    (@unsigned [$($type:ty),+]) => {
-        $(sign_from!(@unsigned $type);)+
-    };
-    (@signed [$($type:ty),+]) => {
-        $(sign_from!(@signed $type);)+
-    };
-    (@unsigned $type:ty) => {
-        impl From<$type> for Sign {
-            fn from(value: $type) -> Self {
-                if value == 0 { Sign::ZERO } else { Sign::POS }
-            }
-        }
-    };
-    (@signed $type:ty) => {
-        impl From<$type> for Sign {
-            fn from(value: $type) -> Self {
-                match value.cmp(&0) {
-                    Ordering::Less => Sign::NEG,
-                    Ordering::Equal => Sign::ZERO,
-                    Ordering::Greater => Sign::POS,
-                }
-            }
-        }
-    };
-}
-
 macro_rules! num_impl {
-    ($trait:ty, [$($type:ty),+] $(,)?) => {
-        $(num_impl!($trait, $type);)+
+    ($trait:ty, [$($primitive:ty),+] $(,)?) => {
+        $(num_impl!($trait, $primitive);)+
     };
-    ($trait:ty, $type:ty $(,)?) => {
-        impl NumBuilder for $type {
+    ($trait:ty, $primitive:ty $(,)?) => {
+        impl NumBuilder for $primitive {
             fn bitor_offset(&mut self, mask: u64, offset: usize) {
-                *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
+                *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
             }
 
             fn bitand_offset(&mut self, mask: u64, offset: usize) {
-                *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $type;
+                *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
             }
         }
 
-        impl Num for $type {
+        impl Num for $primitive {
             fn bits(&self) -> usize {
-                <$type>::BITS as usize
+                <$primitive>::BITS as usize
             }
 
             fn order(&self) -> usize {
@@ -85,7 +58,7 @@ macro_rules! num_impl {
             }
 
             fn log(&self) -> Self {
-                self.ilog2() as $type
+                self.ilog2() as $primitive
             }
 
             fn is_even(&self) -> bool {
@@ -93,26 +66,26 @@ macro_rules! num_impl {
             }
         }
 
-        impl NumStatic for $type {
-            const BITS: usize = <$type>::BITS as usize;
+        impl NumStatic for $primitive {
+            const BITS: usize = <$primitive>::BITS as usize;
             const ZERO: Self = 0;
             const ONE: Self = 1;
             const MIN: Self = Self::MIN;
             const MAX: Self = Self::MAX;
         }
 
-        impl $trait for $type {}
+        impl $trait for $primitive {}
     };
 }
 
 macro_rules! prime_impl {
-    ($([$type:ty, $count:expr]),+) => {
-        $(prime_impl!($type, $count,);)+
+    ($([$primitive:ty, $count:expr]),+) => {
+        $(prime_impl!($primitive, $count,);)+
     };
-    ($type:ty, $count:expr $(,)?) => {
-        impl Primality for $type {
+    ($primitive:ty, $count:expr $(,)?) => {
+        impl Primality for $primitive {
             fn primes() -> impl Iterator<Item = Self> {
-                PRIMES.iter().map(|&p| p as $type).take($count).take_while(|&p| p <= Self::MAX.isqrt())
+                PRIMES.iter().map(|&p| p as $primitive).take($count).take_while(|&p| p <= Self::MAX.isqrt())
             }
 
             fn as_count_estimate(&self) -> usize {
@@ -152,6 +125,52 @@ macro_rules! prime_impl {
             }
         }
     };
+}
+
+macro_rules! sign_from {
+    (@unsigned [$($primitive:ty),+]) => {
+        $(sign_from!(@unsigned $primitive);)+
+    };
+    (@signed [$($primitive:ty),+]) => {
+        $(sign_from!(@signed $primitive);)+
+    };
+    (@unsigned $primitive:ty) => {
+        impl From<$primitive> for Sign {
+            fn from(value: $primitive) -> Self {
+                if value == 0 { Sign::ZERO } else { Sign::POS }
+            }
+        }
+    };
+    (@signed $primitive:ty) => {
+        impl From<$primitive> for Sign {
+            fn from(value: $primitive) -> Self {
+                match value.cmp(&0) {
+                    Ordering::Less => Sign::NEG,
+                    Ordering::Equal => Sign::ZERO,
+                    Ordering::Greater => Sign::POS,
+                }
+            }
+        }
+    };
+}
+
+macro_rules! long_from {
+    ($long:ident, [$($primitive:ty),+]) => {
+        $(long_from!($long, $primitive);)+
+    };
+    ($long:ident, $primitive:ty) => {
+        impl<const L: usize> From<$primitive> for $long<L> {
+            fn from(value: $primitive) -> Self {
+                let bytes = value.to_le_bytes();
+
+                let mut res = [0; L];
+
+                res.as_mut_bytes()[..bytes.len()].copy_from_slice(&bytes);
+
+                Self(res)
+            }
+        }
+    }
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -696,12 +715,20 @@ where
     const MAX: Self;
 }
 
+trait ToBytes<const N: usize> {
+    fn to_le_bytes(self) -> [u8; N];
+    fn to_be_bytes(self) -> [u8; N];
+    fn to_ne_bytes(self) -> [u8; N];
+}
+
 num_impl!(NumSigned, [i8, i16, i32, i64, i128, isize]);
 num_impl!(NumUnsigned, [u8, u16, u32, u64, u128, usize]);
 prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
+long_from!(Signed, [i8, i16, i32, i64, i128, u8, u16, u32, u64, u128]);
+long_from!(Unsigned, [i8, i16, i32, i64, i128, u8, u16, u32, u64, u128]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromStrError {
@@ -809,14 +836,14 @@ impl<const L: usize> Default for Unsigned<L> {
     }
 }
 
-impl<const L: usize, Bytes: AsRef<[u8]>> From<Bytes> for Signed<L> {
-    fn from(value: Bytes) -> Self {
+impl<const L: usize> From<&[u8]> for Signed<L> {
+    fn from(value: &[u8]) -> Self {
         Self::from_bytes(value)
     }
 }
 
-impl<const L: usize, Bytes: AsRef<[u8]>> From<Bytes> for Unsigned<L> {
-    fn from(value: Bytes) -> Self {
+impl<const L: usize> From<&[u8]> for Unsigned<L> {
+    fn from(value: &[u8]) -> Self {
         Self::from_bytes(value)
     }
 }
@@ -954,23 +981,15 @@ impl<const L: usize> Unsigned<L> {
 }
 
 fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
-    #[cfg(target_endian = "little")]
-    {
-        let len = bytes.len().min(BYTES * L);
+    let len = bytes.len().min(BYTES * L);
 
-        let mut res = [0; L];
+    let mut res = [0; L];
 
-        res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
-        res
-    }
+    res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
 
-    #[cfg(target_endian = "big")]
-    {
-        bytes
-            .chunks(BYTES)
-            .map(|chunk| Single::from_le_bytes(chunk.iter().copied().collect_with([0; BYTES])))
-            .collect_with([0; L]);
-    }
+    res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
+
+    res
 }
 
 fn try_from_str_validate(s: &str, radix: u8) -> Result<(), TryFromStrError> {
