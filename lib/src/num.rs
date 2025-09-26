@@ -156,6 +156,7 @@ macro_rules! prime_impl {
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
 pub mod digit {
+    pub type Half = u32;
     pub type Single = u64;
     pub type Double = u128;
 
@@ -173,6 +174,7 @@ pub mod digit {
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
 pub mod digit {
+    pub type Half = u16;
     pub type Single = u32;
     pub type Double = u64;
 
@@ -190,6 +192,7 @@ pub mod digit {
 
 #[cfg(test)]
 pub mod digit {
+    pub type Half = u8;
     pub type Single = u8;
     pub type Double = u16;
 
@@ -856,28 +859,28 @@ impl<const L: usize> Signed<L> {
     }
 
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
+        try_from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
     pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
+        try_from_digits(digits.as_ref(), radix).map(Self)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        todo!()
+        self.0.as_bytes()
     }
 
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        todo!()
+        self.0.as_mut_bytes()
     }
 
-    // pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-    //     todo!()
-    // }
+    pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits_bin(&self.0, exp)
+    }
 
-    // pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-    //     todo!()
-    // }
+    pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits(self.0, radix)
+    }
 
     pub fn sign(&self) -> Sign {
         if self.0 == [0; L] {
@@ -889,12 +892,6 @@ impl<const L: usize> Signed<L> {
         } else {
             Sign::NEG
         }
-    }
-
-    pub fn with_neg(mut self) -> Self {
-        neg(&mut self.0);
-
-        self
     }
 
     pub fn with_sign(mut self, sign: Sign) -> Self {
@@ -914,6 +911,12 @@ impl<const L: usize> Signed<L> {
 
         self
     }
+
+    pub fn with_neg(mut self) -> Self {
+        neg(&mut self.0);
+
+        self
+    }
 }
 
 impl<const L: usize> Unsigned<L> {
@@ -926,28 +929,28 @@ impl<const L: usize> Unsigned<L> {
     }
 
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
+        try_from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
     pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
-        todo!()
+        try_from_digits(digits.as_ref(), radix).map(Self)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        todo!()
+        self.0.as_bytes()
     }
 
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        todo!()
+        self.0.as_mut_bytes()
     }
 
-    // pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-    //     todo!()
-    // }
+    pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits_bin(&self.0, exp)
+    }
 
-    // pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-    //     todo!()
-    // }
+    pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits(self.0, radix)
+    }
 }
 
 fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
@@ -1008,6 +1011,7 @@ fn try_into_digits_validate(radix: u8) -> Result<(), TryIntoDigitsError> {
     Ok(())
 }
 
+// [!NOTE]: Try to implement with iterators after tests and benches
 fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError> {
     let (s, sign) = get_sign_from_str(s)?;
     let (s, radix) = get_radix_from_str(s)?;
@@ -1040,6 +1044,7 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     Ok(res)
 }
 
+// [!NOTE]: Try to implement with iterators after tests and benches
 fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
     if radix & (radix - 1) == 0 {
         return try_from_digits_bin(digits, radix.ilog2() as u8);
@@ -1069,6 +1074,7 @@ fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; 
     Ok(res)
 }
 
+// [!NOTE]: Try to implement with iterators after tests and benches
 fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
     if radix & (radix - 1) == 0 {
         return try_into_digits_bin(&digits, radix.ilog2() as u8);
@@ -1106,6 +1112,7 @@ fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result
     Ok(res)
 }
 
+// [!NOTE]: Try to implement with iterators after tests and benches
 fn try_from_str_bin<const L: usize>(s: &str, exp: u8) -> Result<[Single; L], TryFromStrError> {
     try_from_str_validate(s, 1 << exp)?;
 
@@ -1138,6 +1145,7 @@ fn try_from_str_bin<const L: usize>(s: &str, exp: u8) -> Result<[Single; L], Try
     Ok(res)
 }
 
+// [!NOTE]: Try to implement with iterators after tests and benches
 fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
     if exp >= u8::BITS as u8 {
         return Err(TryFromDigitsError::InvalidExponent { exp });
@@ -1174,6 +1182,7 @@ fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single
     Ok(res)
 }
 
+// [!NOTE]: Try to implement with iterators after tests and benches
 fn try_into_digits_bin<const L: usize>(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
     if exp >= u8::BITS as u8 {
         return Err(TryIntoDigitsError::InvalidExponent { exp });
