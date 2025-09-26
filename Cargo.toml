@@ -9,6 +9,18 @@ license    = "GPL-3.0-or-later"
 repository = "https://github.com/godilov/nd-libr"
 homepage   = "https://github.com/godilov/nd-libr"
 authors    = ["German Odilov <godilov@tuta.io>"]
+categories = ["mathematics", "cryptography"]
+keywords   = ["math", "cryptography", "nums"]
+readme     = "README.md"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+panic       = { level = "forbid", priority = 127 }
+unwrap_used = { level = "forbid", priority = 126 }
+expect_used = { level = "forbid", priority = 125 }
+cargo       = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
 clap       = "4"
