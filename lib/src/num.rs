@@ -12,7 +12,7 @@ use zerocopy::IntoBytes;
 
 use crate::{
     num::radix::RADIX,
-    ops::{Ops, OpsAssign, OpsFrom},
+    ops::{IteratorExt, Ops, OpsAssign, OpsFrom},
 };
 
 #[macro_export]
@@ -155,22 +155,33 @@ macro_rules! sign_from {
 }
 
 macro_rules! long_from {
-    ($long:ident, [$($primitive:ty),+]) => {
-        $(long_from!($long, $primitive);)+
+    (@signed [$($primitive:ty),+]) => {
+        $(long_from!(@signed $primitive);)+
     };
-    ($long:ident, $primitive:ty) => {
-        impl<const L: usize> From<$primitive> for $long<L> {
+    (@unsigned [$($primitive:ty),+]) => {
+        $(long_from!(@unsigned $primitive);)+
+    };
+    (@signed $primitive:ty) => {
+        impl<const L: usize> From<$primitive> for Signed<L> {
             fn from(value: $primitive) -> Self {
+                let sign = Sign::from(value);
                 let bytes = value.to_le_bytes();
-
-                let mut res = [0; L];
-
-                res.as_mut_bytes()[..bytes.len()].copy_from_slice(&bytes);
+                let res = from_bytes_arr(&bytes, if sign == Sign::NEG { Single::MAX } else { 0 });
 
                 Self(res)
             }
         }
-    }
+    };
+    (@unsigned $primitive:ty) => {
+        impl<const L: usize> From<$primitive> for Unsigned<L> {
+            fn from(value: $primitive) -> Self {
+                let bytes = value.to_le_bytes();
+                let res = from_bytes_arr(&bytes, 0);
+
+                Self(res)
+            }
+        }
+    };
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -212,8 +223,8 @@ pub mod digit {
 #[cfg(test)]
 pub mod digit {
     pub type Half = u8;
-    pub type Single = u8;
-    pub type Double = u16;
+    pub type Single = u16;
+    pub type Double = u32;
 
     pub(super) const MAX: Single = Single::MAX;
     pub(super) const MIN: Single = Single::MIN;
@@ -727,8 +738,8 @@ prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
-long_from!(Signed, [i8, i16, i32, i64, i128, u8, u16, u32, u64, u128]);
-long_from!(Unsigned, [i8, i16, i32, i64, i128, u8, u16, u32, u64, u128]);
+long_from!(@signed [i8, i16, i32, i64, i128, isize]);
+long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromStrError {
@@ -933,14 +944,14 @@ impl<const L: usize> Signed<L> {
         }
 
         if sign != s {
-            neg(&mut self.0);
+            neg_mut(&mut self.0);
         }
 
         self
     }
 
     pub fn with_neg(mut self) -> Self {
-        neg(&mut self.0);
+        neg_mut(&mut self.0);
 
         self
     }
@@ -984,6 +995,18 @@ fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     let len = bytes.len().min(BYTES * L);
 
     let mut res = [0; L];
+
+    res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
+
+    res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
+
+    res
+}
+
+fn from_bytes_arr<const L: usize, const N: usize>(bytes: &[u8; N], default: Single) -> [Single; L] {
+    let len = bytes.len().min(BYTES * L);
+
+    let mut res = [default; L];
 
     res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
 
@@ -1061,7 +1084,7 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     }
 
     if sign == Sign::NEG {
-        neg(&mut res);
+        neg_mut(&mut res);
     }
 
     Ok(res)
@@ -1280,19 +1303,19 @@ fn get_digit_from_byte(byte: u8) -> Option<Single> {
     }
 }
 
-fn neg<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-    not(digits);
-    inc(digits);
-
+fn pos<const L: usize>(digits: [Single; L]) -> [Single; L] {
     digits
 }
 
-fn not<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-    digits.iter_mut().for_each(|x| *x = !*x);
-    digits
+fn neg<const L: usize>(digits: [Single; L]) -> [Single; L] {
+    inc(not(digits))
 }
 
-fn inc<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+fn not<const L: usize>(digits: [Single; L]) -> [Single; L] {
+    digits.iter().map(|&x| !x).collect_with([0; L])
+}
+
+fn inc<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
     let mut acc = 1;
 
     for ptr in digits.iter_mut() {
@@ -1310,7 +1333,59 @@ fn inc<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
     digits
 }
 
-fn dec<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+fn dec<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+    let mut acc = 1;
+
+    for ptr in digits.iter_mut() {
+        let digit = RADIX + *ptr as Double - acc as Double;
+
+        *ptr = digit as Single;
+
+        acc = (digit >> BITS) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    digits
+}
+
+fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+    digits
+}
+
+fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+    not_mut(digits);
+    inc_mut(digits);
+
+    digits
+}
+
+fn not_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+    digits.iter_mut().for_each(|x| *x = !*x);
+    digits
+}
+
+fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+    let mut acc = 1;
+
+    for ptr in digits.iter_mut() {
+        let digit = *ptr as Double + acc as Double;
+
+        *ptr = digit as Single;
+
+        acc = (digit >> BITS) as Single;
+
+        if acc == 0 {
+            break;
+        }
+    }
+
+    digits
+}
+
+fn dec_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
     let mut acc = 1;
 
     for ptr in digits.iter_mut() {
@@ -1332,10 +1407,16 @@ pub mod asm {
     use super::*;
 
     const L: usize = 4096 / BITS;
+    const N: usize = 256 / BITS;
 
     #[inline(never)]
     pub fn from_bytes_(bytes: &[u8]) -> [Single; L] {
         from_bytes(bytes)
+    }
+
+    #[inline(never)]
+    pub fn from_bytes_arr_(bytes: &[u8; N]) -> [Single; L] {
+        from_bytes_arr(bytes, 0)
     }
 
     #[inline(never)]
@@ -1369,22 +1450,87 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn neg_(digits: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn neg_(digits: [Single; L]) -> [Single; L] {
         neg(digits)
     }
 
     #[inline(never)]
-    pub fn not_(digits: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn not_(digits: [Single; L]) -> [Single; L] {
         not(digits)
     }
 
     #[inline(never)]
-    pub fn inc_(digits: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn inc_(digits: [Single; L]) -> [Single; L] {
         inc(digits)
     }
 
     #[inline(never)]
-    pub fn dec_(digits: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn dec_(digits: [Single; L]) -> [Single; L] {
         dec(digits)
     }
+
+    #[inline(never)]
+    pub fn neg_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        neg_mut(digits)
+    }
+
+    #[inline(never)]
+    pub fn not_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        not_mut(digits)
+    }
+
+    #[inline(never)]
+    pub fn inc_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        inc_mut(digits)
+    }
+
+    #[inline(never)]
+    pub fn dec_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
+        dec_mut(digits)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use zerocopy::transmute;
+
+    use super::*;
+
+    type S64 = signed!(64);
+    type U64 = unsigned!(64);
+
+    const PRIMES: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
+
+    #[test]
+    fn from_primitives() {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES[0]) {
+            let bytes = val.to_le_bytes();
+
+            let pval = val as i128;
+            let nval = -pval;
+
+            assert_eq!(S64::from(pval), S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(S64::from(nval), S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(U64::from(val), U64 { 0: pos(transmute!(bytes)) });
+        }
+    }
+
+    #[test]
+    fn from_bytes() {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES[0]) {
+            let bytes = val.to_le_bytes();
+
+            assert_eq!(S64::from_bytes(bytes), S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::from_bytes(bytes), U64 { 0: pos(transmute!(bytes)) });
+        }
+    }
+
+    #[test]
+    fn try_from_str() {}
+
+    #[test]
+    fn try_from_digits() {}
+
+    #[test]
+    fn try_into_digits() {}
 }
