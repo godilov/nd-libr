@@ -1,7 +1,7 @@
 #![allow(unused)]
 #![allow(clippy::manual_div_ceil)]
 
-use std::{cmp::Ordering, fmt::Display, iter::once, str::FromStr};
+use std::{cmp::Ordering, fmt::Display, str::FromStr};
 
 use digit::{BITS, BYTES, Double, Single};
 use prime::{PRIMES, Primality};
@@ -11,8 +11,8 @@ use thiserror::Error;
 use zerocopy::IntoBytes;
 
 use crate::{
-    num::radix::{RADIX, Radix},
-    ops::{IteratorExt, Ops, OpsAssign, OpsFrom},
+    num::radix::RADIX,
+    ops::{Ops, OpsAssign, OpsFrom},
 };
 
 #[macro_export]
@@ -400,7 +400,7 @@ pub mod prime {
 }
 
 mod radix {
-    use super::{digit::*, *};
+    use super::digit::*;
 
     pub(super) const RADIX: Double = MAX as Double + 1;
 
@@ -1039,6 +1039,10 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
         if idx < L && res[idx] > 0 {
             idx += 1;
         }
+    }
+
+    if sign == Sign::NEG {
+        neg(&mut res);
     }
 
     Ok(res)
