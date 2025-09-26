@@ -3,15 +3,15 @@
 
 use std::{cmp::Ordering, fmt::Display, iter::once, str::FromStr};
 
-use digit::{BITS, BYTES, Double, Single};
-use prime::{PRIMES, Primality};
+use digit::{Double, Single, BITS, BYTES};
+use prime::{Primality, PRIMES};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 use zerocopy::IntoBytes;
 
 use crate::{
-    num::radix::{RADIX, Radix},
+    num::radix::{Radix, RADIX},
     ops::{IteratorExt, Ops, OpsAssign, OpsFrom},
 };
 
@@ -412,47 +412,47 @@ mod radix {
     pub struct Hex;
 
     impl Bin {
+        pub(super) const PREFIX: &str = "0b";
         pub(super) const RADIX: Double = MAX as Double + 1;
         pub(super) const WIDTH: u8 = BITS as u8;
-        pub(super) const PREFIX: &str = "0b";
     }
 
     impl Oct {
+        pub(super) const PREFIX: &str = "0o";
         pub(super) const RADIX: Double = OCT_VAL;
         pub(super) const WIDTH: u8 = OCT_WIDTH;
-        pub(super) const PREFIX: &str = "0o";
     }
 
     impl Dec {
+        pub(super) const PREFIX: &str = "";
         pub(super) const RADIX: Double = DEC_VAL;
         pub(super) const WIDTH: u8 = DEC_WIDTH;
-        pub(super) const PREFIX: &str = "";
     }
 
     impl Hex {
+        pub(super) const PREFIX: &str = "0x";
         pub(super) const RADIX: Double = MAX as Double + 1;
         pub(super) const WIDTH: u8 = BITS as u8 / 4;
-        pub(super) const PREFIX: &str = "0x";
     }
 
     impl Radix for Bin {
-        const WIDTH: u8 = Self::WIDTH;
         const PREFIX: &str = Self::PREFIX;
+        const WIDTH: u8 = Self::WIDTH;
     }
 
     impl Radix for Oct {
-        const WIDTH: u8 = Self::WIDTH;
         const PREFIX: &str = Self::PREFIX;
+        const WIDTH: u8 = Self::WIDTH;
     }
 
     impl Radix for Dec {
-        const WIDTH: u8 = Self::WIDTH;
         const PREFIX: &str = Self::PREFIX;
+        const WIDTH: u8 = Self::WIDTH;
     }
 
     impl Radix for Hex {
-        const WIDTH: u8 = Self::WIDTH;
         const PREFIX: &str = Self::PREFIX;
+        const WIDTH: u8 = Self::WIDTH;
     }
 }
 
@@ -871,13 +871,13 @@ impl<const L: usize> Signed<L> {
         todo!()
     }
 
-    pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-        todo!()
-    }
+    // pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
+    //     todo!()
+    // }
 
-    pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-        todo!()
-    }
+    // pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
+    //     todo!()
+    // }
 
     pub fn sign(&self) -> Sign {
         if self.0 == [0; L] {
@@ -941,13 +941,13 @@ impl<const L: usize> Unsigned<L> {
         todo!()
     }
 
-    pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-        todo!()
-    }
+    // pub fn try_iter_bin(&self, exp: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
+    //     todo!()
+    // }
 
-    pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
-        todo!()
-    }
+    // pub fn try_iter(&self, radix: u8) -> Result<impl Iterator<Item = u8>, TryIntoDigitsError> {
+    //     todo!()
+    // }
 }
 
 fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
