@@ -58,16 +58,24 @@ macro_rules! digit_impl {
                 value as Self
             }
 
-            fn to_half(&self) -> Half {
-                *self as Half
+            fn to_half(self) -> Half {
+                self as Half
             }
 
-            fn to_single(&self) -> Single {
-                *self as Single
+            fn to_single(self) -> Single {
+                self as Single
             }
 
-            fn to_double(&self) -> Double {
-                *self as Double
+            fn to_double(self) -> Double {
+                self as Double
+            }
+
+            fn order(self) -> usize {
+                self.ilog2() as usize
+            }
+
+            fn is_pow2(self) -> bool {
+                (self & (self - 1) == 0) && self != 0
             }
         }
     };
@@ -262,9 +270,13 @@ pub mod digit {
         fn from_single(value: Single) -> Self;
         fn from_double(value: Double) -> Self;
 
-        fn to_half(&self) -> Half;
-        fn to_single(&self) -> Single;
-        fn to_double(&self) -> Double;
+        fn to_half(self) -> Half;
+        fn to_single(self) -> Single;
+        fn to_double(self) -> Double;
+
+        fn order(self) -> usize;
+
+        fn is_pow2(self) -> bool;
     }
 
     digit_impl!(u8, [u8, u8, u16]);
@@ -307,9 +319,13 @@ pub mod digit {
         fn from_single(value: Single) -> Self;
         fn from_double(value: Double) -> Self;
 
-        fn to_half(&self) -> Half;
-        fn to_single(&self) -> Single;
-        fn to_double(&self) -> Double;
+        fn to_half(self) -> Half;
+        fn to_single(self) -> Single;
+        fn to_double(self) -> Double;
+
+        fn order(self) -> usize;
+
+        fn is_pow2(self) -> bool;
     }
 
     digit_impl!(u8, [u8, u8, u16]);
@@ -351,9 +367,13 @@ pub mod digit {
         fn from_single(value: Single) -> Self;
         fn from_double(value: Double) -> Self;
 
-        fn to_half(&self) -> Half;
-        fn to_single(&self) -> Single;
-        fn to_double(&self) -> Double;
+        fn to_half(self) -> Half;
+        fn to_single(self) -> Single;
+        fn to_double(self) -> Double;
+
+        fn order(self) -> usize;
+
+        fn is_pow2(self) -> bool;
     }
 
     digit_impl!(u8, [u8, u8, u16]);
@@ -1256,9 +1276,9 @@ fn try_from_digits_validate(digits: &[u8], radix: u8) -> Result<(), TryFromDigit
     Ok(())
 }
 
-fn try_into_digits_validate(radix: u8) -> Result<(), TryIntoDigitsError> {
-    if radix < 2 {
-        return Err(TryIntoDigitsError::InvalidRadix { radix });
+fn try_into_digits_validate<D: Digit>(radix: D) -> Result<(), TryIntoDigitsError> {
+    if radix.to_single() < 2 {
+        return Err(TryIntoDigitsError::InvalidRadix { radix: radix.to_single() as u8 });
     }
 
     Ok(())
@@ -1341,7 +1361,7 @@ fn try_into_digits_bin<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) 
         return Err(TryIntoDigitsError::InvalidExponent { exp });
     }
 
-    try_into_digits_validate(1 << exp)?;
+    try_into_digits_validate(1u16 << exp)?;
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
@@ -1374,8 +1394,8 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     let (s, sign) = get_sign_from_str(s)?;
     let (s, radix) = get_radix_from_str(s)?;
 
-    if radix & (radix - 1) == 0 {
-        return try_from_str_bin(s, radix.ilog2() as u8, sign);
+    if radix.is_pow2() {
+        return try_from_str_bin(s, radix.order() as u8, sign);
     }
 
     try_from_str_validate(s, radix)?;
@@ -1407,8 +1427,8 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
 }
 
 fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
-    if radix & (radix - 1) == 0 {
-        return try_from_digits_bin(digits, radix.ilog2() as u8);
+    if radix.is_pow2() {
+        return try_from_digits_bin(digits, radix.order() as u8);
     }
 
     try_from_digits_validate(digits, radix)?;
@@ -1435,37 +1455,37 @@ fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; 
     Ok(res)
 }
 
-fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-    if radix & (radix - 1) == 0 {
-        return try_into_digits_bin(&digits, radix.ilog2() as u8);
+fn try_into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) -> Result<Vec<D>, TryIntoDigitsError> {
+    if radix.is_pow2() {
+        return try_into_digits_bin(&digits, radix.order() as u8);
     }
 
     try_into_digits_validate(radix)?;
 
-    let bits = radix.ilog2() as usize;
+    let bits = radix.order();
     let len = (digits.len() * BITS + bits - 1) / bits;
 
     let mut idx = 0;
-    let mut res = vec![0; len + 1];
+    let mut res = vec![D::ZERO; len + 1];
 
     loop {
         let mut any = 0;
         let mut acc = 0;
 
-        for digit in digits.as_mut_bytes().iter_mut().rev() {
+        for digit in digits.iter_mut().rev() {
             any |= *digit;
-            acc = (acc << u8::BITS) | *digit as u16;
+            acc = (acc << BITS) | *digit as Double;
 
-            *digit = (acc / radix as u16) as u8;
+            *digit = (acc / radix.to_double()) as Single;
 
-            acc %= radix as u16;
+            acc %= radix.to_double();
         }
 
         if any == 0 {
             break;
         }
 
-        res[idx] = acc as u8;
+        res[idx] = D::from_double(acc);
         idx += 1;
     }
 
