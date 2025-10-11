@@ -210,6 +210,9 @@ pub mod digit {
         type Half;
         type Single;
         type Double;
+
+        const BITS: usize;
+        const BYTES: usize;
     }
 }
 
@@ -235,6 +238,9 @@ pub mod digit {
         type Half;
         type Single;
         type Double;
+
+        const BITS: usize;
+        const BYTES: usize;
     }
 }
 
@@ -257,9 +263,12 @@ pub mod digit {
     pub(super) const DEC_WIDTH: u8 = 2;
 
     pub trait Digit {
-        type Half;
-        type Single;
-        type Double;
+        type Half: Clone + Copy;
+        type Single: Clone + Copy + From<Self::Half>;
+        type Double: Clone + Copy + From<Self::Single>;
+
+        const BITS: usize;
+        const BYTES: usize;
     }
 }
 
@@ -858,6 +867,9 @@ impl Digit for u8 {
     type Half = u8;
     type Single = u8;
     type Double = u16;
+
+    const BITS: usize = Self::BITS as usize;
+    const BYTES: usize = Self::BITS as usize / 8;
 }
 
 #[rustfmt::skip]
@@ -865,6 +877,9 @@ impl Digit for u16 {
     type Half = u8;
     type Single = u16;
     type Double = u32;
+
+    const BITS: usize = Self::BITS as usize;
+    const BYTES: usize = Self::BITS as usize / 8;
 }
 
 #[rustfmt::skip]
@@ -872,6 +887,9 @@ impl Digit for u32 {
     type Half = u16;
     type Single = u32;
     type Double = u64;
+
+    const BITS: usize = Self::BITS as usize;
+    const BYTES: usize = Self::BITS as usize / 8;
 }
 
 #[rustfmt::skip]
@@ -879,6 +897,9 @@ impl Digit for u64 {
     type Half = u32;
     type Single = u64;
     type Double = u128;
+
+    const BITS: usize = Self::BITS as usize;
+    const BYTES: usize = Self::BITS as usize / 8;
 }
 
 #[rustfmt::skip]
@@ -886,6 +907,9 @@ impl Digit for u128 {
     type Half = u64;
     type Single = u128;
     type Double = u128;
+
+    const BITS: usize = Self::BITS as usize;
+    const BYTES: usize = Self::BITS as usize / 8;
 }
 
 impl<const L: usize> Default for Signed<L> {
