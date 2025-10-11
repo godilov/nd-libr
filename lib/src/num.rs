@@ -1,9 +1,13 @@
 #![allow(unused)]
 #![allow(clippy::manual_div_ceil)]
 
-use std::{cmp::Ordering, fmt::Display, str::FromStr};
+use std::{
+    cmp::Ordering,
+    fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
+    str::FromStr,
+};
 
-use digit::{BITS, BYTES, Double, Single};
+use digit::{BITS, BYTES, Double, RADIX, Single};
 use prime::{PRIMES, Primality};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -194,11 +198,12 @@ pub mod digit {
     pub(super) const MIN: Single = Single::MIN;
     pub(super) const BITS: usize = Single::BITS as usize;
     pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub(super) const RADIX: Double = Single::MAX as Double + 1;
 
-    pub(super) const OCT_VAL: Double = (1 as Double) << 63;
+    pub(super) const OCT_RADIX: Double = (1 as Double) << 63;
     pub(super) const OCT_WIDTH: u8 = 21;
 
-    pub(super) const DEC_VAL: Double = 10_000_000_000_000_000_000;
+    pub(super) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 19;
 }
 
@@ -212,11 +217,12 @@ pub mod digit {
     pub(super) const MIN: Single = Single::MIN;
     pub(super) const BITS: usize = Single::BITS as usize;
     pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub(super) const RADIX: Double = Single::MAX as Double + 1;
 
-    pub(super) const OCT_VAL: Double = (1 as Double) << 30;
+    pub(super) const OCT_RADIX: Double = (1 as Double) << 30;
     pub(super) const OCT_WIDTH: u8 = 10;
 
-    pub(super) const DEC_VAL: Double = 1_000_000_000;
+    pub(super) const DEC_RADIX: Double = 1_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 9;
 }
 
@@ -230,12 +236,92 @@ pub mod digit {
     pub(super) const MIN: Single = Single::MIN;
     pub(super) const BITS: usize = Single::BITS as usize;
     pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub(super) const RADIX: Double = Single::MAX as Double + 1;
 
-    pub(super) const OCT_VAL: Double = (1 as Double) << 6;
+    pub(super) const OCT_RADIX: Double = (1 as Double) << 6;
     pub(super) const OCT_WIDTH: u8 = 2;
 
-    pub(super) const DEC_VAL: Double = 100;
+    pub(super) const DEC_RADIX: Double = 100;
     pub(super) const DEC_WIDTH: u8 = 2;
+}
+
+pub mod radix {
+    use super::digit::*;
+
+    pub struct Dec;
+    pub struct Bin;
+    pub struct Oct;
+    pub struct Hex;
+
+    pub struct RadixArgs {
+        pub(super) prefix: &'static str,
+        pub(super) value: Double,
+        pub(super) width: u8,
+    }
+
+    pub trait Radix {
+        const PREFIX: &str;
+        const VALUE: Double;
+        const WIDTH: u8;
+    }
+
+    impl Dec {
+        pub(super) const PREFIX: &str = "";
+        pub(super) const RADIX: Double = DEC_RADIX;
+        pub(super) const WIDTH: u8 = DEC_WIDTH;
+    }
+
+    impl Bin {
+        pub(super) const PREFIX: &str = "0b";
+        pub(super) const RADIX: Double = RADIX;
+        pub(super) const WIDTH: u8 = BITS as u8;
+    }
+
+    impl Oct {
+        pub(super) const PREFIX: &str = "0o";
+        pub(super) const RADIX: Double = OCT_RADIX;
+        pub(super) const WIDTH: u8 = OCT_WIDTH;
+    }
+
+    impl Hex {
+        pub(super) const PREFIX: &str = "0x";
+        pub(super) const RADIX: Double = RADIX;
+        pub(super) const WIDTH: u8 = BITS as u8 / 4;
+    }
+
+    impl Radix for Dec {
+        const PREFIX: &str = Self::PREFIX;
+        const VALUE: Double = Self::RADIX;
+        const WIDTH: u8 = Self::WIDTH;
+    }
+
+    impl Radix for Bin {
+        const PREFIX: &str = Self::PREFIX;
+        const VALUE: Double = Self::RADIX;
+        const WIDTH: u8 = Self::WIDTH;
+    }
+
+    impl Radix for Oct {
+        const PREFIX: &str = Self::PREFIX;
+        const VALUE: Double = Self::RADIX;
+        const WIDTH: u8 = Self::WIDTH;
+    }
+
+    impl Radix for Hex {
+        const PREFIX: &str = Self::PREFIX;
+        const VALUE: Double = Self::RADIX;
+        const WIDTH: u8 = Self::WIDTH;
+    }
+
+    impl<R: Radix> From<R> for RadixArgs {
+        fn from(_: R) -> Self {
+            Self {
+                prefix: R::PREFIX,
+                value: R::VALUE,
+                width: R::WIDTH,
+            }
+        }
+    }
 }
 
 pub mod prime {
@@ -427,66 +513,6 @@ pub mod prime {
 
     impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> where for<'s> &'s Prime: Ops {}
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
-}
-
-mod radix {
-    use super::digit::*;
-
-    pub(super) const RADIX: Double = MAX as Double + 1;
-
-    pub trait Radix {
-        const WIDTH: u8;
-        const PREFIX: &str;
-    }
-
-    pub struct Bin;
-    pub struct Oct;
-    pub struct Dec;
-    pub struct Hex;
-
-    impl Bin {
-        pub(super) const PREFIX: &str = "0b";
-        pub(super) const RADIX: Double = MAX as Double + 1;
-        pub(super) const WIDTH: u8 = BITS as u8;
-    }
-
-    impl Oct {
-        pub(super) const PREFIX: &str = "0o";
-        pub(super) const RADIX: Double = OCT_VAL;
-        pub(super) const WIDTH: u8 = OCT_WIDTH;
-    }
-
-    impl Dec {
-        pub(super) const PREFIX: &str = "";
-        pub(super) const RADIX: Double = DEC_VAL;
-        pub(super) const WIDTH: u8 = DEC_WIDTH;
-    }
-
-    impl Hex {
-        pub(super) const PREFIX: &str = "0x";
-        pub(super) const RADIX: Double = MAX as Double + 1;
-        pub(super) const WIDTH: u8 = BITS as u8 / 4;
-    }
-
-    impl Radix for Bin {
-        const PREFIX: &str = Self::PREFIX;
-        const WIDTH: u8 = Self::WIDTH;
-    }
-
-    impl Radix for Oct {
-        const PREFIX: &str = Self::PREFIX;
-        const WIDTH: u8 = Self::WIDTH;
-    }
-
-    impl Radix for Dec {
-        const PREFIX: &str = Self::PREFIX;
-        const WIDTH: u8 = Self::WIDTH;
-    }
-
-    impl Radix for Hex {
-        const PREFIX: &str = Self::PREFIX;
-        const WIDTH: u8 = Self::WIDTH;
-    }
 }
 
 pub trait NumBuilder: Num
@@ -726,12 +752,6 @@ where
     const MAX: Self;
 }
 
-trait ToBytes<const N: usize> {
-    fn to_le_bytes(self) -> [u8; N];
-    fn to_be_bytes(self) -> [u8; N];
-    fn to_ne_bytes(self) -> [u8; N];
-}
-
 num_impl!(NumSigned, [i8, i16, i32, i64, i128, isize]);
 num_impl!(NumUnsigned, [u8, u16, u32, u64, u128, usize]);
 prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
@@ -887,6 +907,90 @@ impl<const L: usize> From<Unsigned<L>> for Signed<L> {
     }
 }
 
+impl<const L: usize> AsRef<[u8]> for Signed<L> {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl<const L: usize> AsRef<[u8]> for Unsigned<L> {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl<const L: usize> AsMut<[u8]> for Signed<L> {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.as_bytes_mut()
+    }
+}
+
+impl<const L: usize> AsMut<[u8]> for Unsigned<L> {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.as_bytes_mut()
+    }
+}
+
+impl<const L: usize> Display for Signed<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<const L: usize> Display for Unsigned<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<const L: usize> Binary for Signed<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+    }
+}
+
+impl<const L: usize> Binary for Unsigned<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+    }
+}
+
+impl<const L: usize> Octal for Signed<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<const L: usize> Octal for Unsigned<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<const L: usize> LowerHex for Signed<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+    }
+}
+
+impl<const L: usize> LowerHex for Unsigned<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+    }
+}
+
+impl<const L: usize> UpperHex for Signed<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+    }
+}
+
+impl<const L: usize> UpperHex for Unsigned<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+    }
+}
+
 impl<const L: usize> Signed<L> {
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
         Self(from_bytes(bytes.as_ref()))
@@ -896,12 +1000,20 @@ impl<const L: usize> Signed<L> {
         try_from_str(s).map(Self)
     }
 
+    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
+        try_from_digits(digits.as_ref(), radix).map(Self)
+    }
+
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
         try_from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
-        try_from_digits(digits.as_ref(), radix).map(Self)
+    pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits(self.0, radix)
+    }
+
+    pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits_bin(&self.0, exp)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -912,12 +1024,8 @@ impl<const L: usize> Signed<L> {
         self.0.as_mut_bytes()
     }
 
-    pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        try_into_digits_bin(&self.0, exp)
-    }
-
-    pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        try_into_digits(self.0, radix)
+    pub fn digits(&self) -> &[Single; L] {
+        &self.0
     }
 
     pub fn sign(&self) -> Sign {
@@ -966,12 +1074,20 @@ impl<const L: usize> Unsigned<L> {
         try_from_str(s).map(Self)
     }
 
+    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
+        try_from_digits(digits.as_ref(), radix).map(Self)
+    }
+
     pub fn try_from_digits_bin(digits: impl AsRef<[u8]>, exp: u8) -> Result<Self, TryFromDigitsError> {
         try_from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
-    pub fn try_from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
-        try_from_digits(digits.as_ref(), radix).map(Self)
+    pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits(self.0, radix)
+    }
+
+    pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+        try_into_digits_bin(&self.0, exp)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -982,12 +1098,12 @@ impl<const L: usize> Unsigned<L> {
         self.0.as_mut_bytes()
     }
 
-    pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        try_into_digits_bin(&self.0, exp)
+    pub fn digits(&self) -> &[Single; L] {
+        &self.0
     }
 
-    pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-        try_into_digits(self.0, radix)
+    pub fn sign(&self) -> Sign {
+        get_sign_arr(&self.0, Sign::POS)
     }
 }
 
@@ -1053,7 +1169,8 @@ fn try_into_digits_validate(radix: u8) -> Result<(), TryIntoDigitsError> {
     Ok(())
 }
 
-// [!NOTE]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with generic digit type
 fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError> {
     let (s, sign) = get_sign_from_str(s)?;
     let (s, radix) = get_radix_from_str(s)?;
@@ -1067,9 +1184,11 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     let mut idx = 0;
     let mut res = [0; L];
 
+    // [!IMPORTANT]: Try to implement in Half/Single/Double
     for digit in s.bytes().filter_map(get_digit_from_byte) {
         let mut acc = digit as Double;
 
+        // [!IMPORTANT]: Try to implement in without take
         for ptr in res.iter_mut().take(idx + 1) {
             acc += *ptr as Double * radix as Double;
 
@@ -1090,7 +1209,8 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     Ok(res)
 }
 
-// [!NOTE]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with generic digit type
 fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
     if radix & (radix - 1) == 0 {
         return try_from_digits_bin(digits, radix.ilog2() as u8);
@@ -1101,9 +1221,11 @@ fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; 
     let mut idx = 0;
     let mut res = [0; L];
 
+    // [!IMPORTANT]: Try to implement in Half/Single/Double
     for &digit in digits.iter().rev() {
         let mut acc = digit as Double;
 
+        // [!IMPORTANT]: Try to implement in without take
         for ptr in res.iter_mut().take(idx + 1) {
             acc += *ptr as Double * radix as Double;
 
@@ -1120,7 +1242,8 @@ fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; 
     Ok(res)
 }
 
-// [!NOTE]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with generic digit type
 fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
     if radix & (radix - 1) == 0 {
         return try_into_digits_bin(&digits, radix.ilog2() as u8);
@@ -1128,7 +1251,7 @@ fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result
 
     try_into_digits_validate(radix)?;
 
-    let bits = 1 + radix.ilog2() as usize;
+    let bits = radix.ilog2() as usize;
     let len = (digits.len() * BITS + bits - 1) / bits;
 
     let mut idx = 0;
@@ -1138,6 +1261,7 @@ fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result
         let mut any = 0;
         let mut acc = 0;
 
+        // [!IMPORTANT]: Try to implement in Half/Single/Double
         for digit in digits.as_mut_bytes().iter_mut().rev() {
             any |= *digit;
             acc = (acc << u8::BITS) | *digit as u16;
@@ -1155,10 +1279,13 @@ fn try_into_digits<const L: usize>(mut digits: [Single; L], radix: u8) -> Result
         idx += 1;
     }
 
+    res.truncate(get_len(&res));
+
     Ok(res)
 }
 
-// [!NOTE]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with generic digit type
 fn try_from_str_bin<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
     try_from_str_validate(s, 1 << exp)?;
 
@@ -1171,6 +1298,7 @@ fn try_from_str_bin<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Sin
     let mut idx = 0;
     let mut res = [0; L];
 
+    // [!IMPORTANT]: Try to implement in Half/Single/Double
     for digit in s.bytes().rev().filter_map(get_digit_from_byte) {
         acc |= (digit as Double) << shl;
         shl += bits;
@@ -1195,7 +1323,8 @@ fn try_from_str_bin<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Sin
     Ok(res)
 }
 
-// [!NOTE]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with generic digit type
 fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
     if exp >= u8::BITS as u8 {
         return Err(TryFromDigitsError::InvalidExponent { exp });
@@ -1212,6 +1341,7 @@ fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single
     let mut idx = 0;
     let mut res = [0; L];
 
+    // [!IMPORTANT]: Try to implement in Half/Single/Double
     for &digit in digits {
         acc |= (digit as Double) << shl;
         shl += bits;
@@ -1232,7 +1362,8 @@ fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single
     Ok(res)
 }
 
-// [!NOTE]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with iterators after tests and benches
+// [!IMPORTANT]: Try to implement with generic digit type
 fn try_into_digits_bin<const L: usize>(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
     if exp >= u8::BITS as u8 {
         return Err(TryIntoDigitsError::InvalidExponent { exp });
@@ -1247,8 +1378,9 @@ fn try_into_digits_bin<const L: usize>(digits: &[Single; L], exp: u8) -> Result<
     let mut acc = 0;
     let mut shl = 0;
     let mut idx = 0;
-    let mut res = vec![0; len];
+    let mut res = vec![0; len + 1];
 
+    // [!IMPORTANT]: Try to implement in Half/Single/Double
     for &digit in digits {
         acc |= (digit as Double) << shl;
         shl += BITS;
@@ -1262,7 +1394,57 @@ fn try_into_digits_bin<const L: usize>(digits: &[Single; L], exp: u8) -> Result<
         }
     }
 
+    res.truncate(get_len(&res));
+
     Ok(res)
+}
+
+fn write_dec(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{digit:0width$}")
+}
+
+fn write_bin(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{digit:0width$b}")
+}
+
+fn write_oct(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{digit:0width$o}")
+}
+
+fn write_lhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{digit:0width$x}")
+}
+
+fn write_uhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
+    write!(buf, "{digit:0width$X}")
+}
+
+fn write_long<const L: usize, F: Fn(&mut String, Single, usize) -> std::fmt::Result>(
+    fmt: &mut Formatter<'_>,
+    args: RadixArgs,
+    digits: &[Single; L],
+    sign: Sign,
+    func: F,
+) -> std::fmt::Result {
+    let sign = match sign {
+        Sign::ZERO => {
+            return write!(fmt, "{}0", args.prefix);
+        },
+        Sign::NEG => "-",
+        Sign::POS => "",
+    };
+
+    let len = get_len_arr(digits);
+
+    let mut buf = String::with_capacity(len * args.width as usize);
+
+    for &digit in digits[..len].iter().rev() {
+        func(&mut buf, digit, args.width as usize)?;
+    }
+
+    let offset = buf.as_bytes().iter().take_while(|&byte| byte == &b'0').count();
+
+    write!(fmt, "{}{}{}", sign, args.prefix, &buf[offset..])
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
@@ -1305,6 +1487,68 @@ fn get_digit_from_byte(byte: u8) -> Option<Single> {
         b'A'..=b'F' => Some((byte - b'A' + 10) as Single),
         _ => None,
     }
+}
+
+fn get_len<N: NumStatic>(digits: &[N]) -> usize
+where
+    for<'n> &'n N: Ops,
+{
+    let zero = N::zero();
+
+    for (i, digit) in digits.iter().enumerate().rev() {
+        if digit != &zero {
+            return i + 1;
+        }
+    }
+
+    0
+}
+
+fn get_len_arr<N: NumStatic, const L: usize>(digits: &[N; L]) -> usize
+where
+    for<'n> &'n N: Ops,
+{
+    let zero = N::zero();
+
+    for (i, digit) in digits.iter().enumerate().rev() {
+        if digit != &zero {
+            return i + 1;
+        }
+    }
+
+    0
+}
+
+fn get_sign<N: NumStatic>(digits: &[N], sign: Sign) -> Sign
+where
+    for<'n> &'n N: Ops,
+{
+    if !is_zero(digits) { sign } else { Sign::ZERO }
+}
+
+fn get_sign_arr<N: NumStatic, const L: usize>(digits: &[N; L], sign: Sign) -> Sign
+where
+    for<'n> &'n N: Ops,
+{
+    if digits != &[N::zero(); L] { sign } else { Sign::ZERO }
+}
+
+fn is_zero<N: NumStatic>(digits: &[N]) -> bool
+where
+    for<'n> &'n N: Ops,
+{
+    let zero = N::zero();
+
+    digits.iter().all(|digit| digit == &zero)
+}
+
+fn is_non_zero<N: NumStatic>(digits: &[N]) -> bool
+where
+    for<'n> &'n N: Ops,
+{
+    let zero = N::zero();
+
+    digits.iter().any(|digit| digit != &zero)
 }
 
 mod uops {
@@ -1411,7 +1655,7 @@ mod uops {
     }
 }
 
-pub mod asm {
+pub(crate) mod asm {
     use super::*;
 
     const L: usize = 4096 / BITS;
@@ -1500,34 +1744,21 @@ pub mod asm {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::repeat;
+
+    use anyhow::Result;
+    use rand::{SeedableRng, rngs::StdRng};
+
     use super::*;
 
     type S64 = signed!(64);
     type U64 = unsigned!(64);
 
-    const PRIMES: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
-
-    fn add(digits: &mut [u8], radix: u8, val: u8) -> bool {
-        let mut acc = val as u16;
-
-        for digit in digits {
-            acc += *digit as u16;
-
-            *digit = (acc % radix as u16) as u8;
-
-            acc /= radix as u16;
-        }
-
-        acc > 0
-    }
-
-    fn value(digits: &[u8], radix: u8) -> u64 {
-        digits.iter().rev().fold(0, |acc, &x| acc * radix as u64 + x as u64)
-    }
+    const PRIMES_48BIT: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
 
     #[test]
     fn from_primitives() {
-        for val in (u64::MIN..u64::MAX).step_by(PRIMES[0]) {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
 
             let pval = val as i128;
@@ -1544,7 +1775,7 @@ mod tests {
         assert_eq!(S64::from_bytes([]), S64::default());
         assert_eq!(U64::from_bytes([]), U64::default());
 
-        for val in (u64::MIN..u64::MAX).step_by(PRIMES[0]) {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
 
             assert_eq!(S64::from_bytes(bytes), S64 { 0: pos(transmute!(bytes)) });
@@ -1553,64 +1784,133 @@ mod tests {
     }
 
     #[test]
-    fn try_from_str() {
-        for val in (u64::MIN..u64::MAX).step_by(PRIMES[0]) {
+    fn try_from_str() -> Result<()> {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
 
-            let pos_dec = format!("{val:#064}");
-            let pos_bin = format!("{val:#064b}");
-            let pos_oct = format!("{val:#064o}");
-            let pos_hex = format!("{val:#064x}");
+            let pval = val as i64;
+            let nval = -(val as i64);
 
-            let neg_dec = format!("-{val:#064}");
-            let neg_bin = format!("-{val:#064b}");
-            let neg_oct = format!("-{val:#064o}");
-            let neg_hex = format!("-{val:#064x}");
+            let pos_dec = format!("{pval:#}");
+            let pos_bin = format!("{pval:#b}");
+            let pos_oct = format!("{pval:#o}");
+            let pos_hex = format!("{pval:#x}");
 
-            assert_eq!(S64::try_from_str(&pos_dec), Ok(S64 { 0: pos(transmute!(bytes)) }));
-            assert_eq!(S64::try_from_str(&pos_bin), Ok(S64 { 0: pos(transmute!(bytes)) }));
-            assert_eq!(S64::try_from_str(&pos_oct), Ok(S64 { 0: pos(transmute!(bytes)) }));
-            assert_eq!(S64::try_from_str(&pos_hex), Ok(S64 { 0: pos(transmute!(bytes)) }));
+            let neg_dec = format!("{nval:#}");
+            let neg_bin = format!("{nval:#b}");
+            let neg_oct = format!("{nval:#o}");
+            let neg_hex = format!("{nval:#x}");
 
-            assert_eq!(S64::try_from_str(&neg_dec), Ok(S64 { 0: neg(transmute!(bytes)) }));
-            assert_eq!(S64::try_from_str(&neg_bin), Ok(S64 { 0: neg(transmute!(bytes)) }));
-            assert_eq!(S64::try_from_str(&neg_oct), Ok(S64 { 0: neg(transmute!(bytes)) }));
-            assert_eq!(S64::try_from_str(&neg_hex), Ok(S64 { 0: neg(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&pos_dec)?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(S64::try_from_str(&pos_bin)?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(S64::try_from_str(&pos_oct)?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(S64::try_from_str(&pos_hex)?, S64 { 0: pos(transmute!(bytes)) });
 
-            assert_eq!(U64::try_from_str(&pos_dec), Ok(U64 { 0: pos(transmute!(bytes)) }));
-            assert_eq!(U64::try_from_str(&pos_bin), Ok(U64 { 0: pos(transmute!(bytes)) }));
-            assert_eq!(U64::try_from_str(&pos_oct), Ok(U64 { 0: pos(transmute!(bytes)) }));
-            assert_eq!(U64::try_from_str(&pos_hex), Ok(U64 { 0: pos(transmute!(bytes)) }));
+            assert_eq!(S64::try_from_str(&neg_dec)?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(S64::try_from_str(&neg_bin)?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(S64::try_from_str(&neg_oct)?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(S64::try_from_str(&neg_hex)?, S64 { 0: neg(transmute!(bytes)) });
+
+            assert_eq!(U64::try_from_str(&pos_dec)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::try_from_str(&pos_bin)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::try_from_str(&pos_oct)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::try_from_str(&pos_hex)?, U64 { 0: pos(transmute!(bytes)) });
         }
+
+        Ok(())
     }
 
     #[test]
-    fn try_from_digits() {
-        assert_eq!(S64::try_from_digits([], 31), Ok(S64::default()));
-        assert_eq!(U64::try_from_digits([], 31), Ok(U64::default()));
+    fn try_from_digits() -> Result<()> {
+        assert_eq!(S64::try_from_digits([], 251)?, S64::default());
+        assert_eq!(U64::try_from_digits([], 251)?, U64::default());
+
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
 
         for radix in 2..=u8::MAX {
-            let step = radix.saturating_sub(3).max(1);
+            for _ in 0..=u8::MAX {
+                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
 
-            let mut digits = [0; 8];
-
-            for _ in 0..u16::MAX {
                 let bytes = digits
                     .iter()
                     .rev()
                     .fold(0, |acc, &x| acc * radix as u64 + x as u64)
                     .to_le_bytes();
 
-                assert_eq!(S64::try_from_digits(digits, radix), Ok(S64 { 0: pos(transmute!(bytes)) }));
-                assert_eq!(U64::try_from_digits(digits, radix), Ok(U64 { 0: pos(transmute!(bytes)) }));
-
-                if !add(&mut digits, radix, radix) {
-                    break;
-                }
+                assert_eq!(S64::try_from_digits(digits, radix)?, S64 { 0: pos(transmute!(bytes)) });
+                assert_eq!(U64::try_from_digits(digits, radix)?, U64 { 0: pos(transmute!(bytes)) });
             }
         }
+
+        Ok(())
     }
 
     #[test]
-    fn try_into_digits() {}
+    fn try_into_digits() -> Result<()> {
+        assert_eq!(S64::try_from_digits([], 251)?.try_into_digits(251)?, vec![]);
+        assert_eq!(U64::try_from_digits([], 251)?.try_into_digits(251)?, vec![]);
+
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        for radix in 2..=u8::MAX {
+            for _ in 0..=u8::MAX {
+                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+
+                assert!(
+                    S64::try_from_digits(digits, radix)?
+                        .try_into_digits(radix)?
+                        .iter()
+                        .chain(repeat(&0))
+                        .zip(digits.iter())
+                        .all(|(lhs, rhs)| lhs == rhs)
+                );
+
+                assert!(
+                    U64::try_from_digits(digits, radix)?
+                        .try_into_digits(radix)?
+                        .iter()
+                        .chain(repeat(&0))
+                        .zip(digits.iter())
+                        .all(|(lhs, rhs)| lhs == rhs)
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn to_str() {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
+            let bytes = val.to_le_bytes();
+
+            let pval = val as i64;
+            let nval = -(val as i64);
+
+            let pos_dec = format!("{pval:#}");
+            let pos_bin = format!("{pval:#b}");
+            let pos_oct = format!("{pval:#o}");
+            let pos_hex = format!("{pval:#x}");
+
+            let neg_dec = format!("{nval:#}");
+            let neg_bin = format!("{nval:#b}");
+            let neg_oct = format!("{nval:#o}");
+            let neg_hex = format!("{nval:#x}");
+
+            // assert_eq!(format!("{:#}", S64 { 0: pos(transmute!(bytes)) }), pos_dec);
+            assert_eq!(format!("{:#b}", S64 { 0: pos(transmute!(bytes)) }), pos_bin);
+            // assert_eq!(format!("{:#o}", S64 { 0: pos(transmute!(bytes)) }), pos_oct);
+            assert_eq!(format!("{:#x}", S64 { 0: pos(transmute!(bytes)) }), pos_hex);
+
+            // assert_eq!(format!("{:#}", S64 { 0: neg(transmute!(bytes)) }), neg_dec);
+            assert_eq!(format!("{:#b}", S64 { 0: neg(transmute!(bytes)) }), neg_bin);
+            // assert_eq!(format!("{:#o}", S64 { 0: neg(transmute!(bytes)) }), neg_oct);
+            assert_eq!(format!("{:#x}", S64 { 0: neg(transmute!(bytes)) }), neg_hex);
+
+            // assert_eq!(format!("{:#}", U64 { 0: pos(transmute!(bytes)) }), pos_dec);
+            assert_eq!(format!("{:#b}", U64 { 0: pos(transmute!(bytes)) }), pos_bin);
+            // assert_eq!(format!("{:#o}", U64 { 0: pos(transmute!(bytes)) }), pos_oct);
+            assert_eq!(format!("{:#x}", U64 { 0: pos(transmute!(bytes)) }), pos_hex);
+        }
+    }
 }
