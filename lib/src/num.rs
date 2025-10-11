@@ -15,7 +15,7 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute};
 
 use crate::{
-    num::{digit::Digit, radix::*, uops::*},
+    num::{digit::*, radix::*, uops::*},
     ops::*,
 };
 
@@ -30,6 +30,46 @@ macro_rules! signed {
 macro_rules! unsigned {
     ($bits:expr) => {
         $crate::num::Unsigned<{ ($bits as usize).div_ceil($crate::num::digit::BITS as usize) }>
+    };
+}
+
+macro_rules! digit_impl {
+    ($primitive:ty, [$half:ty, $single:ty, $double:ty] $(,)?) => {
+#[rustfmt::skip]
+        impl Digit for $primitive {
+            type Half = $half;
+            type Single = $single;
+            type Double = $double;
+
+            const BITS: usize = Self::BITS as usize;
+            const BYTES: usize = Self::BITS as usize / 8;
+            const ZERO: Self = 0;
+            const ONE: Self = 1;
+
+            fn from_half(value: Half) -> Self {
+                value as Self
+            }
+
+            fn from_single(value: Single) -> Self {
+                value as Self
+            }
+
+            fn from_double(value: Double) -> Self {
+                value as Self
+            }
+
+            fn to_half(&self) -> Half {
+                *self as Half
+            }
+
+            fn to_single(&self) -> Single {
+                *self as Single
+            }
+
+            fn to_double(&self) -> Double {
+                *self as Double
+            }
+        }
     };
 }
 
@@ -190,6 +230,8 @@ macro_rules! long_from {
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
 pub mod digit {
+    use zerocopy::{FromBytes, IntoBytes};
+
     pub type Half = u32;
     pub type Single = u64;
     pub type Double = u128;
@@ -206,18 +248,35 @@ pub mod digit {
     pub(super) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 19;
 
-    pub trait Digit {
-        type Half;
-        type Single;
-        type Double;
+    pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
+        type Half: Clone + Copy;
+        type Single: Clone + Copy + From<Self::Half>;
+        type Double: Clone + Copy + From<Self::Single>;
 
         const BITS: usize;
         const BYTES: usize;
+        const ZERO: Self;
+        const ONE: Self;
+
+        fn from_half(value: Half) -> Self;
+        fn from_single(value: Single) -> Self;
+        fn from_double(value: Double) -> Self;
+
+        fn to_half(&self) -> Half;
+        fn to_single(&self) -> Single;
+        fn to_double(&self) -> Double;
     }
+
+    digit_impl!(u8, [u8, u8, u16]);
+    digit_impl!(u16, [u8, u16, u32]);
+    digit_impl!(u32, [u16, u32, u64]);
+    digit_impl!(u64, [u32, u64, u128]);
 }
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
 pub mod digit {
+    use zerocopy::{FromBytes, IntoBytes};
+
     pub type Half = u16;
     pub type Single = u32;
     pub type Double = u64;
@@ -234,18 +293,34 @@ pub mod digit {
     pub(super) const DEC_RADIX: Double = 1_000_000_000;
     pub(super) const DEC_WIDTH: u8 = 9;
 
-    pub trait Digit {
-        type Half;
-        type Single;
-        type Double;
+    pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
+        type Half: Clone + Copy;
+        type Single: Clone + Copy + From<Self::Half>;
+        type Double: Clone + Copy + From<Self::Single>;
 
         const BITS: usize;
         const BYTES: usize;
+        const ZERO: Self;
+        const ONE: Self;
+
+        fn from_half(value: Half) -> Self;
+        fn from_single(value: Single) -> Self;
+        fn from_double(value: Double) -> Self;
+
+        fn to_half(&self) -> Half;
+        fn to_single(&self) -> Single;
+        fn to_double(&self) -> Double;
     }
+
+    digit_impl!(u8, [u8, u8, u16]);
+    digit_impl!(u16, [u8, u16, u32]);
+    digit_impl!(u32, [u16, u32, u64]);
 }
 
 #[cfg(test)]
 pub mod digit {
+    use zerocopy::{FromBytes, IntoBytes};
+
     pub type Half = u8;
     pub type Single = u16;
     pub type Double = u32;
@@ -262,14 +337,27 @@ pub mod digit {
     pub(super) const DEC_RADIX: Double = 100;
     pub(super) const DEC_WIDTH: u8 = 2;
 
-    pub trait Digit {
+    pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
         type Half: Clone + Copy;
         type Single: Clone + Copy + From<Self::Half>;
         type Double: Clone + Copy + From<Self::Single>;
 
         const BITS: usize;
         const BYTES: usize;
+        const ZERO: Self;
+        const ONE: Self;
+
+        fn from_half(value: Half) -> Self;
+        fn from_single(value: Single) -> Self;
+        fn from_double(value: Double) -> Self;
+
+        fn to_half(&self) -> Half;
+        fn to_single(&self) -> Single;
+        fn to_double(&self) -> Double;
     }
+
+    digit_impl!(u8, [u8, u8, u16]);
+    digit_impl!(u16, [u8, u16, u32]);
 }
 
 pub mod radix {
@@ -862,56 +950,6 @@ pub type U4096 = unsigned!(4096);
 pub type U6144 = unsigned!(6144);
 pub type U8192 = unsigned!(8192);
 
-#[rustfmt::skip]
-impl Digit for u8 {
-    type Half = u8;
-    type Single = u8;
-    type Double = u16;
-
-    const BITS: usize = Self::BITS as usize;
-    const BYTES: usize = Self::BITS as usize / 8;
-}
-
-#[rustfmt::skip]
-impl Digit for u16 {
-    type Half = u8;
-    type Single = u16;
-    type Double = u32;
-
-    const BITS: usize = Self::BITS as usize;
-    const BYTES: usize = Self::BITS as usize / 8;
-}
-
-#[rustfmt::skip]
-impl Digit for u32 {
-    type Half = u16;
-    type Single = u32;
-    type Double = u64;
-
-    const BITS: usize = Self::BITS as usize;
-    const BYTES: usize = Self::BITS as usize / 8;
-}
-
-#[rustfmt::skip]
-impl Digit for u64 {
-    type Half = u32;
-    type Single = u64;
-    type Double = u128;
-
-    const BITS: usize = Self::BITS as usize;
-    const BYTES: usize = Self::BITS as usize / 8;
-}
-
-#[rustfmt::skip]
-impl Digit for u128 {
-    type Half = u64;
-    type Single = u128;
-    type Double = u128;
-
-    const BITS: usize = Self::BITS as usize;
-    const BYTES: usize = Self::BITS as usize / 8;
-}
-
 impl<const L: usize> Default for Signed<L> {
     fn default() -> Self {
         Self([0; L])
@@ -1298,8 +1336,8 @@ fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single
     Ok(res)
 }
 
-fn try_into_digits_bin<const L: usize>(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
-    if exp >= u8::BITS as u8 {
+fn try_into_digits_bin<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) -> Result<Vec<D>, TryIntoDigitsError> {
+    if exp >= D::BITS as u8 {
         return Err(TryIntoDigitsError::InvalidExponent { exp });
     }
 
@@ -1312,18 +1350,18 @@ fn try_into_digits_bin<const L: usize>(digits: &[Single; L], exp: u8) -> Result<
     let mut acc = 0;
     let mut shl = 0;
     let mut idx = 0;
-    let mut res = vec![0; len + 1];
+    let mut res = vec![D::ZERO; len + 1];
 
     for &digit in digits {
         acc |= (digit as Double) << shl;
         shl += BITS;
-        res[idx] = (acc & mask) as u8;
+        res[idx] = D::from_double(acc & mask);
 
         while shl >= bits {
             acc >>= bits;
             shl -= bits;
             idx += 1;
-            res[idx] = (acc & mask) as u8;
+            res[idx] = D::from_double(acc & mask);
         }
     }
 
@@ -1526,14 +1564,9 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
     }
 }
 
-fn get_len<N: NumStatic>(digits: &[N]) -> usize
-where
-    for<'n> &'n N: Ops,
-{
-    let zero = N::zero();
-
+fn get_len<D: Digit>(digits: &[D]) -> usize {
     for (i, digit) in digits.iter().enumerate().rev() {
-        if digit != &zero {
+        if digit != &D::ZERO {
             return i + 1;
         }
     }
@@ -1541,14 +1574,9 @@ where
     0
 }
 
-fn get_len_arr<N: NumStatic, const L: usize>(digits: &[N; L]) -> usize
-where
-    for<'n> &'n N: Ops,
-{
-    let zero = N::zero();
-
+fn get_len_arr<D: Digit, const L: usize>(digits: &[D; L]) -> usize {
     for (i, digit) in digits.iter().enumerate().rev() {
-        if digit != &zero {
+        if digit != &D::ZERO {
             return i + 1;
         }
     }
@@ -1556,36 +1584,20 @@ where
     0
 }
 
-fn get_sign<N: NumStatic>(digits: &[N], sign: Sign) -> Sign
-where
-    for<'n> &'n N: Ops,
-{
+fn get_sign<D: Digit>(digits: &[D], sign: Sign) -> Sign {
     if !is_zero(digits) { sign } else { Sign::ZERO }
 }
 
-fn get_sign_arr<N: NumStatic, const L: usize>(digits: &[N; L], sign: Sign) -> Sign
-where
-    for<'n> &'n N: Ops,
-{
-    if digits != &[N::zero(); L] { sign } else { Sign::ZERO }
+fn get_sign_arr<D: Digit, const L: usize>(digits: &[D; L], sign: Sign) -> Sign {
+    if digits != &[D::ZERO; L] { sign } else { Sign::ZERO }
 }
 
-fn is_zero<N: NumStatic>(digits: &[N]) -> bool
-where
-    for<'n> &'n N: Ops,
-{
-    let zero = N::zero();
-
-    digits.iter().all(|digit| digit == &zero)
+fn is_zero<D: Digit>(digits: &[D]) -> bool {
+    digits.iter().all(|digit| digit == &D::ZERO)
 }
 
-fn is_non_zero<N: NumStatic>(digits: &[N]) -> bool
-where
-    for<'n> &'n N: Ops,
-{
-    let zero = N::zero();
-
-    digits.iter().any(|digit| digit != &zero)
+fn is_non_zero<D: Digit>(digits: &[D]) -> bool {
+    digits.iter().any(|digit| digit != &D::ZERO)
 }
 
 mod uops {
