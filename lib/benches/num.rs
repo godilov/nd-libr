@@ -9,6 +9,7 @@ use ndlib::{
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
+const BYTES: usize = 512;
 const PRIMES: [u64; 128] = [
     4292660621, 4292200421, 4274510453, 4273041679, 4268636153, 4199694749, 4187101291, 4172993729, 4132644721,
     4130742871, 4124827129, 4096342937, 4090601951, 4085747891, 4076510839, 4067541383, 4044350953, 3987288157,
@@ -30,9 +31,9 @@ const PRIMES: [u64; 128] = [
 fn get_group<'c>(c: &'c mut Criterion, name: &'static str) -> BenchmarkGroup<'c, WallTime> {
     let mut group = c.benchmark_group(name);
 
-    group.sample_size(512);
-    group.measurement_time(Duration::from_secs(10));
-    group.warm_up_time(Duration::from_secs(5));
+    group.sample_size(256);
+    group.measurement_time(Duration::from_secs(8));
+    group.warm_up_time(Duration::from_secs(4));
     group
 }
 
@@ -57,8 +58,8 @@ fn from_bytes(c: &mut Criterion) {
     let mut rng = get_rng();
 
     for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let bytes = rng.random::<[u8; 512]>();
-        let len = bytes.len() / div;
+        let len = BYTES / div;
+        let bytes = rng.random::<[u8; BYTES]>();
 
         group.throughput(Throughput::Bytes(len as u64));
 
@@ -72,16 +73,86 @@ fn from_bytes(c: &mut Criterion) {
     }
 }
 
-fn try_from_str(c: &mut Criterion) {}
+fn try_from_str(c: &mut Criterion) {
+    let mut group = get_group(c, "num::try_from_str");
+    let mut rng = get_rng();
+
+    for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        let signed = S4096::from_bytes(&bytes[..len]);
+        let unsigned = U4096::from_bytes(&bytes[..len]);
+
+        let dec_signed = format!("{:#}", &signed);
+        let bin_signed = format!("{:#b}", &signed);
+        let oct_signed = format!("{:#o}", &signed);
+        let hex_signed = format!("{:#x}", &signed);
+
+        let dec_unsigned = format!("{:#}", &unsigned);
+        let bin_unsigned = format!("{:#b}", &unsigned);
+        let oct_unsigned = format!("{:#o}", &unsigned);
+        let hex_unsigned = format!("{:#x}", &unsigned);
+
+        group.throughput(Throughput::Bytes(dec_signed.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("dec::S4096", 8 * len), &dec_signed, |b, str| {
+            b.iter(|| S4096::try_from_str(str))
+        });
+
+        group.throughput(Throughput::Bytes(dec_unsigned.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("dec::U4096", 8 * len), &dec_unsigned, |b, str| {
+            b.iter(|| U4096::try_from_str(str))
+        });
+
+        group.throughput(Throughput::Bytes(bin_signed.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("bin::S4096", 8 * len), &bin_signed, |b, str| {
+            b.iter(|| S4096::try_from_str(str))
+        });
+
+        group.throughput(Throughput::Bytes(bin_unsigned.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("bin::U4096", 8 * len), &bin_unsigned, |b, str| {
+            b.iter(|| U4096::try_from_str(str))
+        });
+
+        group.throughput(Throughput::Bytes(oct_signed.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("oct::S4096", 8 * len), &oct_signed, |b, str| {
+            b.iter(|| S4096::try_from_str(str))
+        });
+
+        group.throughput(Throughput::Bytes(oct_unsigned.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("oct::U4096", 8 * len), &oct_unsigned, |b, str| {
+            b.iter(|| U4096::try_from_str(str))
+        });
+
+        group.throughput(Throughput::Bytes(hex_signed.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("hex::S4096", 8 * len), &hex_signed, |b, str| {
+            b.iter(|| S4096::try_from_str(str))
+        });
+
+        group.throughput(Throughput::Bytes(hex_unsigned.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("hex::U4096", 8 * len), &hex_unsigned, |b, str| {
+            b.iter(|| U4096::try_from_str(str))
+        });
+    }
+}
 
 fn try_from_digits(c: &mut Criterion) {
     let mut group = get_group(c, "num::try_from_digits");
     let mut rng = get_rng();
 
     for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+
         let radix = 251u8;
-        let digits = (0..512).map(|_| rng.random_range(..radix)).collect_with([0; 512]);
-        let len = digits.len() / div;
+        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
 
         group.throughput(Throughput::Bytes(len as u64));
 
@@ -104,10 +175,11 @@ fn try_from_digits_bin(c: &mut Criterion) {
     let mut rng = get_rng();
 
     for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+
         let exp = 7;
         let radix = 1 << exp;
-        let digits = (0..512).map(|_| rng.random_range(..radix)).collect_with([0; 512]);
-        let len = digits.len() / div;
+        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
 
         group.throughput(Throughput::Bytes(len as u64));
 
@@ -130,7 +202,7 @@ fn try_into_digits(c: &mut Criterion) {
     let mut rng = get_rng();
 
     for radix in [255, 127, 63, 31, 15, 7, 3] {
-        let bytes = rng.random::<[u8; 512]>();
+        let bytes = rng.random::<[u8; BYTES]>();
 
         let signed = S4096::from_bytes(bytes);
         let unsigned = U4096::from_bytes(bytes);
@@ -152,7 +224,7 @@ fn try_into_digits_bin(c: &mut Criterion) {
     let mut rng = get_rng();
 
     for exp in [7, 6, 5, 4, 3, 2, 1] {
-        let bytes = rng.random::<[u8; 512]>();
+        let bytes = rng.random::<[u8; BYTES]>();
 
         let signed = S4096::from_bytes(bytes);
         let unsigned = U4096::from_bytes(bytes);
@@ -169,7 +241,52 @@ fn try_into_digits_bin(c: &mut Criterion) {
     }
 }
 
-fn to_str(c: &mut Criterion) {}
+fn to_str(c: &mut Criterion) {
+    let mut group = get_group(c, "num::to_str");
+    let mut rng = get_rng();
+
+    for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        let signed = S4096::from_bytes(&bytes[..len]);
+        let unsigned = U4096::from_bytes(&bytes[..len]);
+
+        group.throughput(Throughput::Bytes(len as u64));
+
+        group.bench_with_input(BenchmarkId::new("dec::S4096", 8 * len), &signed, |b, long| {
+            b.iter(|| format!("{:#}", long))
+        });
+
+        group.bench_with_input(BenchmarkId::new("dec::U4096", 8 * len), &unsigned, |b, long| {
+            b.iter(|| format!("{:#}", long))
+        });
+
+        group.bench_with_input(BenchmarkId::new("bin::S4096", 8 * len), &signed, |b, long| {
+            b.iter(|| format!("{:#b}", long))
+        });
+
+        group.bench_with_input(BenchmarkId::new("bin::U4096", 8 * len), &unsigned, |b, long| {
+            b.iter(|| format!("{:#b}", long))
+        });
+
+        group.bench_with_input(BenchmarkId::new("oct::S4096", 8 * len), &signed, |b, long| {
+            b.iter(|| format!("{:#o}", long))
+        });
+
+        group.bench_with_input(BenchmarkId::new("oct::U4096", 8 * len), &unsigned, |b, long| {
+            b.iter(|| format!("{:#o}", long))
+        });
+
+        group.bench_with_input(BenchmarkId::new("hex::S4096", 8 * len), &signed, |b, long| {
+            b.iter(|| format!("{:#x}", long))
+        });
+
+        group.bench_with_input(BenchmarkId::new("hex::U4096", 8 * len), &unsigned, |b, long| {
+            b.iter(|| format!("{:#x}", long))
+        });
+    }
+}
 
 criterion_group!(
     group,
