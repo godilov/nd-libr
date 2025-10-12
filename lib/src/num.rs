@@ -1048,61 +1048,69 @@ impl<const L: usize> AsMut<[u8]> for Unsigned<L> {
 
 impl<const L: usize> Display for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let digits = try_into_digits(*self.with_sign(Sign::POS).digits(), Dec::RADIX as Single).unwrap_or_default();
+
+        write_long(f, Dec.into(), &digits, get_sign(self.digits(), self.sign()), write_dec)
     }
 }
 
 impl<const L: usize> Display for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let digits = try_into_digits(*self.digits(), Dec::RADIX as Single).unwrap_or_default();
+
+        write_long(f, Dec.into(), &digits, get_sign(self.digits(), self.sign()), write_dec)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+        write_long_arr(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+        write_long_arr(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Octal for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let digits = try_into_digits_bin(self.digits(), Oct::RADIX.order() as u8).unwrap_or_default();
+
+        write_long(f, Oct.into(), &digits, get_sign(self.digits(), Sign::POS), write_oct)
     }
 }
 
 impl<const L: usize> Octal for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let digits = try_into_digits_bin(self.digits(), Oct::RADIX.order() as u8).unwrap_or_default();
+
+        write_long(f, Oct.into(), &digits, get_sign(self.digits(), Sign::POS), write_oct)
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
     }
 }
 
@@ -1264,13 +1272,16 @@ fn try_from_str_validate(s: &str, radix: u8) -> Result<(), TryFromStrError> {
     Ok(())
 }
 
-fn try_from_digits_validate(digits: &[u8], radix: u8) -> Result<(), TryFromDigitsError> {
-    if radix < 2 {
-        return Err(TryFromDigitsError::InvalidRadix { radix });
+fn try_from_digits_validate<D: Digit>(digits: &[D], radix: D) -> Result<(), TryFromDigitsError> {
+    if radix.to_single() < 2 {
+        return Err(TryFromDigitsError::InvalidRadix { radix: radix.to_single() as u8 });
     }
 
     if let Some(&digit) = digits.iter().find(|&&digit| digit >= radix) {
-        return Err(TryFromDigitsError::InvalidDigits { digit, radix });
+        return Err(TryFromDigitsError::InvalidDigits {
+            digit: digit.to_single() as u8,
+            radix: radix.to_single() as u8,
+        });
     }
 
     Ok(())
@@ -1320,12 +1331,12 @@ fn try_from_str_bin<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Sin
     Ok(res)
 }
 
-fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
-    if exp >= u8::BITS as u8 {
+fn try_from_digits_bin<const L: usize, D: Digit>(digits: &[D], exp: u8) -> Result<[Single; L], TryFromDigitsError> {
+    if exp >= D::BITS as u8 {
         return Err(TryFromDigitsError::InvalidExponent { exp });
     }
 
-    try_from_digits_validate(digits, 1 << exp)?;
+    try_from_digits_validate(digits, D::from_single(1 << exp))?;
 
     let bits = exp as usize;
     let mask = (1 << BITS) - 1;
@@ -1337,7 +1348,7 @@ fn try_from_digits_bin<const L: usize>(digits: &[u8], exp: u8) -> Result<[Single
     let mut res = [0; L];
 
     for &digit in digits {
-        acc |= (digit as Double) << shl;
+        acc |= digit.to_double() << shl;
         shl += bits;
         res[idx] = (acc & mask) as Single;
 
@@ -1361,7 +1372,7 @@ fn try_into_digits_bin<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) 
         return Err(TryIntoDigitsError::InvalidExponent { exp });
     }
 
-    try_into_digits_validate(1u16 << exp)?;
+    try_into_digits_validate(D::from_single(1 << exp))?;
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
@@ -1426,7 +1437,7 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     Ok(res)
 }
 
-fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; L], TryFromDigitsError> {
+fn try_from_digits<const L: usize, D: Digit>(digits: &[D], radix: D) -> Result<[Single; L], TryFromDigitsError> {
     if radix.is_pow2() {
         return try_from_digits_bin(digits, radix.order() as u8);
     }
@@ -1437,10 +1448,10 @@ fn try_from_digits<const L: usize>(digits: &[u8], radix: u8) -> Result<[Single; 
     let mut res = [0; L];
 
     for &digit in digits.iter().rev() {
-        let mut acc = digit as Double;
+        let mut acc = digit.to_double();
 
         for ptr in res.iter_mut().take(idx + 1) {
-            acc += *ptr as Double * radix as Double;
+            acc += *ptr as Double * radix.to_double();
 
             *ptr = acc as Single;
 
@@ -1514,7 +1525,35 @@ fn write_uhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result
     write!(buf, "{digit:0width$X}")
 }
 
-fn write_long<const L: usize, F: Fn(&mut String, Single, usize) -> std::fmt::Result>(
+fn write_long<F: Fn(&mut String, Single, usize) -> std::fmt::Result>(
+    fmt: &mut Formatter<'_>,
+    args: RadixArgs,
+    digits: &[Single],
+    sign: Sign,
+    func: F,
+) -> std::fmt::Result {
+    let sign = match sign {
+        Sign::ZERO => {
+            return write!(fmt, "{}0", args.prefix);
+        },
+        Sign::NEG => "-",
+        Sign::POS => "",
+    };
+
+    let len = get_len(digits);
+
+    let mut buf = String::with_capacity(len * args.width as usize);
+
+    for &digit in digits[..len].iter().rev() {
+        func(&mut buf, digit, args.width as usize)?;
+    }
+
+    let offset = buf.as_bytes().iter().take_while(|&byte| byte == &b'0').count();
+
+    write!(fmt, "{}{}{}", sign, args.prefix, &buf[offset..])
+}
+
+fn write_long_arr<const L: usize, F: Fn(&mut String, Single, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     args: RadixArgs,
     digits: &[Single; L],
@@ -1870,6 +1909,11 @@ mod tests {
             let neg_oct = format!("{nval:#o}");
             let neg_hex = format!("{nval:#x}");
 
+            let dec = format!("{val:#}");
+            let bin = format!("{val:#b}");
+            let oct = format!("{val:#o}");
+            let hex = format!("{val:#x}");
+
             assert_eq!(S64::try_from_str(&pos_dec)?, S64 { 0: pos(transmute!(bytes)) });
             assert_eq!(S64::try_from_str(&pos_bin)?, S64 { 0: pos(transmute!(bytes)) });
             assert_eq!(S64::try_from_str(&pos_oct)?, S64 { 0: pos(transmute!(bytes)) });
@@ -1880,10 +1924,10 @@ mod tests {
             assert_eq!(S64::try_from_str(&neg_oct)?, S64 { 0: neg(transmute!(bytes)) });
             assert_eq!(S64::try_from_str(&neg_hex)?, S64 { 0: neg(transmute!(bytes)) });
 
-            assert_eq!(U64::try_from_str(&pos_dec)?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::try_from_str(&pos_bin)?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::try_from_str(&pos_oct)?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::try_from_str(&pos_hex)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::try_from_str(&dec)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::try_from_str(&bin)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::try_from_str(&oct)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::try_from_str(&hex)?, U64 { 0: pos(transmute!(bytes)) });
         }
 
         Ok(())
@@ -1966,20 +2010,25 @@ mod tests {
             let neg_oct = format!("{nval:#o}");
             let neg_hex = format!("{nval:#x}");
 
-            // assert_eq!(format!("{:#}", S64 { 0: pos(transmute!(bytes)) }), pos_dec);
+            let dec = format!("{val:#}");
+            let bin = format!("{val:#b}");
+            let oct = format!("{val:#o}");
+            let hex = format!("{val:#x}");
+
+            assert_eq!(format!("{:#}", S64 { 0: pos(transmute!(bytes)) }), pos_dec);
             assert_eq!(format!("{:#b}", S64 { 0: pos(transmute!(bytes)) }), pos_bin);
-            // assert_eq!(format!("{:#o}", S64 { 0: pos(transmute!(bytes)) }), pos_oct);
+            assert_eq!(format!("{:#o}", S64 { 0: pos(transmute!(bytes)) }), pos_oct);
             assert_eq!(format!("{:#x}", S64 { 0: pos(transmute!(bytes)) }), pos_hex);
 
-            // assert_eq!(format!("{:#}", S64 { 0: neg(transmute!(bytes)) }), neg_dec);
+            assert_eq!(format!("{:#}", S64 { 0: neg(transmute!(bytes)) }), neg_dec);
             assert_eq!(format!("{:#b}", S64 { 0: neg(transmute!(bytes)) }), neg_bin);
-            // assert_eq!(format!("{:#o}", S64 { 0: neg(transmute!(bytes)) }), neg_oct);
+            assert_eq!(format!("{:#o}", S64 { 0: neg(transmute!(bytes)) }), neg_oct);
             assert_eq!(format!("{:#x}", S64 { 0: neg(transmute!(bytes)) }), neg_hex);
 
-            // assert_eq!(format!("{:#}", U64 { 0: pos(transmute!(bytes)) }), pos_dec);
-            assert_eq!(format!("{:#b}", U64 { 0: pos(transmute!(bytes)) }), pos_bin);
-            // assert_eq!(format!("{:#o}", U64 { 0: pos(transmute!(bytes)) }), pos_oct);
-            assert_eq!(format!("{:#x}", U64 { 0: pos(transmute!(bytes)) }), pos_hex);
+            assert_eq!(format!("{:#}", U64 { 0: pos(transmute!(bytes)) }), dec);
+            assert_eq!(format!("{:#b}", U64 { 0: pos(transmute!(bytes)) }), bin);
+            assert_eq!(format!("{:#o}", U64 { 0: pos(transmute!(bytes)) }), oct);
+            assert_eq!(format!("{:#x}", U64 { 0: pos(transmute!(bytes)) }), hex);
         }
     }
 }
