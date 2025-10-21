@@ -9,8 +9,8 @@ license    = "GPL-3.0-or-later"
 repository = "https://github.com/godilov/nd-libr"
 homepage   = "https://github.com/godilov/nd-libr"
 authors    = ["German Odilov <godilov@tuta.io>"]
-categories = ["mathematics", "cryptography"]
-keywords   = ["math", "cryptography", "nums"]
+categories = ["mathematics", "cryptography", "memory management"]
+keywords   = ["math", "cryptography", "nums", "mem"]
 readme     = "README.md"
 
 [workspace.lints.rust]

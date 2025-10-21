@@ -1,30 +1,6 @@
-#[macro_export]
-macro_rules! if_any {
-    ($(())+ { $($fn:tt)+ } $(or { $($fn_or:tt)+ })?) => {
-        $($($fn_or)+)?
-    };
-
-    ($(($($t:tt)*))+ { $($fn:tt)+ }) => {
-        $($fn)+
-    };
-}
-
-#[macro_export]
-macro_rules! if_all {
-    ($(($($t:tt)+))+ { $($fn:tt)+ }) => {
-        $($fn)+
-    };
-
-    ($(($($t:tt)*))+ { $($fn:tt)+ } $(or { $($fn_or:tt)+ })?) => {
-        $($($fn_or)+)?
-    };
-}
-
-pub mod alloc;
+pub mod mem;
 pub mod num;
 pub mod ops;
-
-pub use ndproc::{ops_impl, ops_impl_auto};
 
 #[cfg(test)]
 #[allow(dead_code)]
@@ -33,7 +9,7 @@ mod tests {
 
     use ndproc::ops_impl_auto;
 
-    use crate::ops::{Ops, OpsAssign, OpsFrom, OpsNegFrom, OpsNotFrom};
+    use crate::ops::*;
 
     macro_rules! ops_struct_def {
         ($([$($gen:tt)+][$($generics:tt)+] $(where [$($where:tt)+])?)? $type1:ident, $type2:ident, $type:ty $(,)?) => {
