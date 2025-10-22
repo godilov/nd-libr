@@ -81,6 +81,63 @@ macro_rules! digit_impl {
     };
 }
 
+macro_rules! digits_mod_impl {
+    ([$half:ty, $single:ty, $double:ty], [$dec_radix:expr, $dec_width:expr], [$oct_radix:expr, $oct_width:expr], { $($body:tt)* }) => {
+        pub mod digit {
+            use zerocopy::{FromBytes, IntoBytes};
+
+            use super::*;
+
+            pub type Half = $half;
+            pub type Single = $single;
+            pub type Double = $double;
+
+            pub(super) const MAX: Single = Single::MAX;
+            pub(super) const MIN: Single = Single::MIN;
+            pub(super) const BITS: usize = Single::BITS as usize;
+            pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+            pub(super) const RADIX: Double = Single::MAX as Double + 1;
+
+            pub(super) const DEC_RADIX: Double = $dec_radix;
+            pub(super) const DEC_WIDTH: u8 = $dec_width;
+
+            pub(super) const OCT_RADIX: Double = $oct_radix;
+            pub(super) const OCT_WIDTH: u8 = $oct_width;
+
+            pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
+                type Half: Clone + Copy;
+                type Single: Clone + Copy + From<Self::Half>;
+                type Double: Clone + Copy + From<Self::Single>;
+
+                const BITS: usize;
+                const BYTES: usize;
+                const ZERO: Self;
+                const ONE: Self;
+
+                fn from_half(value: Half) -> Self;
+                fn from_single(value: Single) -> Self;
+                fn from_double(value: Double) -> Self;
+
+                fn as_half(self) -> Half;
+                fn as_single(self) -> Single;
+                fn as_double(self) -> Double;
+
+                fn order(self) -> usize;
+
+                fn is_pow2(self) -> bool;
+            }
+
+            pub trait DigitsIterator:
+                Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
+            {
+                type Item: Digit;
+            }
+
+            $($body)*
+        }
+    };
+}
+
 macro_rules! sign_from {
     (@unsigned [$($primitive:ty),+]) => {
         $(sign_from!(@unsigned $primitive);)+
@@ -215,172 +272,25 @@ macro_rules! from_digits_impl {
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
-pub mod digit {
-    use zerocopy::{FromBytes, IntoBytes};
-
-    use super::*;
-
-    pub type Half = u32;
-    pub type Single = u64;
-    pub type Double = u128;
-
-    pub(super) const MAX: Single = Single::MAX;
-    pub(super) const MIN: Single = Single::MIN;
-    pub(super) const BITS: usize = Single::BITS as usize;
-    pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
-    pub(super) const RADIX: Double = Single::MAX as Double + 1;
-
-    pub(super) const OCT_RADIX: Double = (1 as Double) << 63;
-    pub(super) const OCT_WIDTH: u8 = 21;
-
-    pub(super) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
-    pub(super) const DEC_WIDTH: u8 = 19;
-
-    pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
-        type Half: Clone + Copy;
-        type Single: Clone + Copy + From<Self::Half>;
-        type Double: Clone + Copy + From<Self::Single>;
-
-        const BITS: usize;
-        const BYTES: usize;
-        const ZERO: Self;
-        const ONE: Self;
-
-        fn from_half(value: Half) -> Self;
-        fn from_single(value: Single) -> Self;
-        fn from_double(value: Double) -> Self;
-
-        fn as_half(self) -> Half;
-        fn as_single(self) -> Single;
-        fn as_double(self) -> Double;
-
-        fn order(self) -> usize;
-
-        fn is_pow2(self) -> bool;
-    }
-
-    pub trait DigitsIterator:
-        Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
-    {
-        type Item;
-    }
-
+digits_mod_impl!([u32, u64, u128], [10_000_000_000_000_000_000, 19], [Double::ONE << 63, 21], {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
     digit_impl!(u64, [u32, u64, u128]);
-}
+});
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
-pub mod digit {
-    use zerocopy::{FromBytes, IntoBytes};
-
-    use super::*;
-
-    pub type Half = u16;
-    pub type Single = u32;
-    pub type Double = u64;
-
-    pub(super) const MAX: Single = Single::MAX;
-    pub(super) const MIN: Single = Single::MIN;
-    pub(super) const BITS: usize = Single::BITS as usize;
-    pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
-    pub(super) const RADIX: Double = Single::MAX as Double + 1;
-
-    pub(super) const OCT_RADIX: Double = (1 as Double) << 30;
-    pub(super) const OCT_WIDTH: u8 = 10;
-
-    pub(super) const DEC_RADIX: Double = 1_000_000_000;
-    pub(super) const DEC_WIDTH: u8 = 9;
-
-    pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
-        type Half: Clone + Copy;
-        type Single: Clone + Copy + From<Self::Half>;
-        type Double: Clone + Copy + From<Self::Single>;
-
-        const BITS: usize;
-        const BYTES: usize;
-        const ZERO: Self;
-        const ONE: Self;
-
-        fn from_half(value: Half) -> Self;
-        fn from_single(value: Single) -> Self;
-        fn from_double(value: Double) -> Self;
-
-        fn as_half(self) -> Half;
-        fn as_single(self) -> Single;
-        fn as_double(self) -> Double;
-
-        fn order(self) -> usize;
-
-        fn is_pow2(self) -> bool;
-    }
-
-    pub trait DigitsIterator:
-        Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
-    {
-        type Item;
-    }
-
+digits_mod_impl!([u16, u32, u64], [1_000_000_000, 9], [Double::ONE << 30, 10], {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
-}
+});
 
 #[cfg(test)]
-pub mod digit {
-    use zerocopy::{FromBytes, IntoBytes};
-
-    use super::*;
-
-    pub type Half = u8;
-    pub type Single = u16;
-    pub type Double = u32;
-
-    pub(super) const MAX: Single = Single::MAX;
-    pub(super) const MIN: Single = Single::MIN;
-    pub(super) const BITS: usize = Single::BITS as usize;
-    pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
-    pub(super) const RADIX: Double = Single::MAX as Double + 1;
-
-    pub(super) const OCT_RADIX: Double = (1 as Double) << 6;
-    pub(super) const OCT_WIDTH: u8 = 2;
-
-    pub(super) const DEC_RADIX: Double = 100;
-    pub(super) const DEC_WIDTH: u8 = 2;
-
-    pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
-        type Half: Clone + Copy;
-        type Single: Clone + Copy + From<Self::Half>;
-        type Double: Clone + Copy + From<Self::Single>;
-
-        const BITS: usize;
-        const BYTES: usize;
-        const ZERO: Self;
-        const ONE: Self;
-
-        fn from_half(value: Half) -> Self;
-        fn from_single(value: Single) -> Self;
-        fn from_double(value: Double) -> Self;
-
-        fn as_half(self) -> Half;
-        fn as_single(self) -> Single;
-        fn as_double(self) -> Double;
-
-        fn order(self) -> usize;
-
-        fn is_pow2(self) -> bool;
-    }
-
-    pub trait DigitsIterator:
-        Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
-    {
-        type Item: Digit;
-    }
-
+digits_mod_impl!([u8, u16, u32], [100, 2], [Double::ONE << 6, 2], {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
-}
+});
 
 pub mod radix {
     use super::*;
