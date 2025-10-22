@@ -9,7 +9,7 @@ use std::{
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
-use zerocopy::{IntoBytes, transmute};
+use zerocopy::{FromBytes, Immutable, IntoBytes, transmute, transmute_mut};
 
 use crate::{
     num::{
@@ -84,8 +84,6 @@ macro_rules! digit_impl {
 macro_rules! digits_impl {
     (($half:ty, $single:ty, $double:ty), ($dec_radix:expr, $dec_width:expr), ($oct_radix:expr, $oct_width:expr), { $($body:tt)* }) => {
         pub mod digit {
-            use zerocopy::{FromBytes, IntoBytes};
-
             use super::*;
 
             pub type Half = $half;
@@ -104,7 +102,7 @@ macro_rules! digits_impl {
             pub(super) const OCT_RADIX: Double = $oct_radix;
             pub(super) const OCT_WIDTH: u8 = $oct_width;
 
-            pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes {
+            pub trait Digit: Clone + Copy + PartialEq + Eq + PartialOrd + Ord + FromBytes + IntoBytes + Immutable {
                 type Half: Clone + Copy;
                 type Single: Clone + Copy + From<Self::Half>;
                 type Double: Clone + Copy + From<Self::Single>;
@@ -176,7 +174,7 @@ macro_rules! long_from {
         impl<const L: usize> From<$primitive> for Signed<L> {
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
-                let res = from_bytes_arr(&bytes, if value >= 0 { 0 } else { MAX });
+                let res = from_arr(&bytes, if value >= 0 { 0 } else { MAX });
 
                 Self(res)
             }
@@ -186,7 +184,7 @@ macro_rules! long_from {
         impl<const L: usize> From<$primitive> for Unsigned<L> {
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
-                let res = from_bytes_arr(&bytes, 0);
+                let res = from_arr(&bytes, 0);
 
                 Self(res)
             }
@@ -525,15 +523,27 @@ impl<const L: usize> Default for Unsigned<L> {
     }
 }
 
-impl<const L: usize> From<&[u8]> for Signed<L> {
-    fn from(value: &[u8]) -> Self {
-        Self::from_bytes(value)
+impl<const L: usize, D: Digit> From<&[D]> for Signed<L> {
+    fn from(value: &[D]) -> Self {
+        Self(from_slice(value))
     }
 }
 
-impl<const L: usize> From<&[u8]> for Unsigned<L> {
-    fn from(value: &[u8]) -> Self {
-        Self::from_bytes(value)
+impl<const L: usize, D: Digit> From<&[D]> for Unsigned<L> {
+    fn from(value: &[D]) -> Self {
+        Self(from_slice(value))
+    }
+}
+
+impl<const L: usize, D: Digit> FromIterator<D> for Signed<L> {
+    fn from_iter<T: IntoIterator<Item = D>>(iter: T) -> Self {
+        Self(from_iter(iter.into_iter()))
+    }
+}
+
+impl<const L: usize, D: Digit> FromIterator<D> for Unsigned<L> {
+    fn from_iter<T: IntoIterator<Item = D>>(iter: T) -> Self {
+        Self(from_iter(iter.into_iter()))
     }
 }
 
@@ -550,18 +560,6 @@ impl<const L: usize> FromStr for Unsigned<L> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         from_str(s).map(Self)
-    }
-}
-
-impl<const L: usize> FromIterator<u8> for Signed<L> {
-    fn from_iter<T: IntoIterator<Item = u8>>(iter: T) -> Self {
-        Self::from_bytes_iter(iter.into_iter())
-    }
-}
-
-impl<const L: usize> FromIterator<u8> for Unsigned<L> {
-    fn from_iter<T: IntoIterator<Item = u8>>(iter: T) -> Self {
-        Self::from_bytes_iter(iter.into_iter())
     }
 }
 
@@ -688,14 +686,6 @@ impl<const L: usize> Signed<L> {
         (from_usize, usize),
     ]);
 
-    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
-        Self(from_bytes(bytes.as_ref()))
-    }
-
-    pub fn from_bytes_iter<Bytes: Iterator<Item = u8>>(bytes: Bytes) -> Self {
-        Self(from_bytes_iter(bytes))
-    }
-
     pub fn from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
         from_digits(digits.as_ref(), radix).map(Self)
     }
@@ -792,14 +782,6 @@ impl<const L: usize> Unsigned<L> {
         (from_u128, u128),
         (from_usize, usize),
     ]);
-
-    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
-        Self(from_bytes(bytes.as_ref()))
-    }
-
-    pub fn from_bytes_iter<Bytes: Iterator<Item = u8>>(bytes: Bytes) -> Self {
-        Self(from_bytes_iter(bytes))
-    }
 
     pub fn from_digits(digits: impl AsRef<[u8]>, radix: u8) -> Result<Self, TryFromDigitsError> {
         from_digits(digits.as_ref(), radix).map(Self)
@@ -915,34 +897,49 @@ impl<const L: usize, D: Digit> Iterator for DigitsIter<L, D> {
     }
 }
 
-fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
-    let len = bytes.len().min(BYTES * L);
-
-    let mut res = [0; L];
-
-    res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
-
-    res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
-    res
-}
-
-fn from_bytes_arr<const L: usize, const N: usize>(bytes: &[u8; N], default: Single) -> [Single; L] {
-    let len = bytes.len().min(BYTES * L);
+fn from_arr<const L: usize, const N: usize, D: Digit>(arr: &[D; N], default: Single) -> [Single; L] {
+    let len = N.min(L * BYTES / D::BYTES);
 
     let mut res = [default; L];
 
-    res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
+    (transmute_mut!(res.as_mut_bytes()) as &mut [D])[..len].copy_from_slice(&arr[..len]);
 
-    res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
+    #[cfg(target_endian = "big")]
+    res.iter_mut().for_each(|ptr| {
+        (transmute_mut!(ptr.as_mut_bytes()) as &mut [D]).reverse();
+    });
+
     res
 }
 
-fn from_bytes_iter<const L: usize, Bytes: Iterator<Item = u8>>(bytes: Bytes) -> [Single; L] {
+fn from_slice<const L: usize, D: Digit>(digits: &[D]) -> [Single; L] {
+    let len = digits.len().min(L * BYTES / D::BYTES);
+
     let mut res = [0; L];
 
-    res.as_mut_bytes().iter_mut().zip(bytes).for_each(|(dst, src)| *dst = src);
+    (transmute_mut!(res.as_mut_bytes()) as &mut [D])[..len].copy_from_slice(&digits[..len]);
 
-    res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
+    #[cfg(target_endian = "big")]
+    res.iter_mut().for_each(|ptr| {
+        (transmute_mut!(ptr.as_mut_bytes()) as &mut [D]).reverse();
+    });
+
+    res
+}
+
+fn from_iter<const L: usize, D: Digit, Iter: Iterator<Item = D>>(iter: Iter) -> [Single; L] {
+    let mut res = [0; L];
+
+    (transmute_mut!(res.as_mut_bytes()) as &mut [D])
+        .iter_mut()
+        .zip(iter)
+        .for_each(|(dst, src)| *dst = src);
+
+    #[cfg(target_endian = "big")]
+    res.iter_mut().for_each(|ptr| {
+        (transmute_mut!(ptr.as_mut_bytes()) as &mut [D]).reverse();
+    });
+
     res
 }
 
@@ -1435,16 +1432,6 @@ pub mod asm {
     const N: usize = 256 / BITS;
 
     #[inline(never)]
-    pub fn from_bytes_(bytes: &[u8]) -> [Single; L] {
-        from_bytes(bytes)
-    }
-
-    #[inline(never)]
-    pub fn from_bytes_arr_(bytes: &[u8; N]) -> [Single; L] {
-        from_bytes_arr(bytes, 0)
-    }
-
-    #[inline(never)]
     pub fn from_str_(s: &str) -> Result<[Single; L], TryFromStrError> {
         from_str(s)
     }
@@ -1521,7 +1508,6 @@ mod tests {
 
     use anyhow::Result;
     use rand::{Rng, SeedableRng, rngs::StdRng};
-    use zerocopy::transmute;
 
     use super::*;
 
@@ -1531,7 +1517,7 @@ mod tests {
     const PRIMES_48BIT: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
 
     #[test]
-    fn from_primitives() {
+    fn from_std() {
         for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
 
@@ -1545,16 +1531,94 @@ mod tests {
     }
 
     #[test]
-    fn from_bytes() {
-        assert_eq!(S64::from_bytes([]), S64::default());
-        assert_eq!(U64::from_bytes([]), U64::default());
+    fn from_slice() {
+        let empty = &[] as &[u8];
+
+        assert_eq!(S64::from(empty), S64::default());
+        assert_eq!(U64::from(empty), U64::default());
 
         for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
+            let slice = bytes.as_slice();
 
-            assert_eq!(S64::from_bytes(bytes), S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::from_bytes(bytes), U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(S64::from(slice), S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(U64::from(slice), U64 { 0: pos(transmute!(bytes)) });
         }
+    }
+
+    #[test]
+    fn from_iter() {
+        let empty = (&[] as &[u8]).iter().copied();
+
+        assert_eq!(empty.clone().collect::<S64>(), S64::default());
+        assert_eq!(empty.clone().collect::<U64>(), U64::default());
+
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
+            let bytes = val.to_le_bytes();
+            let iter = bytes.iter().copied();
+
+            assert_eq!(iter.clone().collect::<S64>(), S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(iter.clone().collect::<U64>(), U64 { 0: pos(transmute!(bytes)) });
+        }
+    }
+
+    #[test]
+    fn from_digits() -> Result<()> {
+        assert_eq!(S64::from_digits([], 251)?, S64::default());
+        assert_eq!(U64::from_digits([], 251)?, U64::default());
+
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        for radix in 2..=u8::MAX {
+            for _ in 0..=u8::MAX {
+                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+
+                let bytes = digits
+                    .iter()
+                    .rev()
+                    .fold(0, |acc, &x| acc * radix as u64 + x as u64)
+                    .to_le_bytes();
+
+                assert_eq!(S64::from_digits(digits, radix)?, S64 { 0: pos(transmute!(bytes)) });
+                assert_eq!(U64::from_digits(digits, radix)?, U64 { 0: pos(transmute!(bytes)) });
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn into_digits() -> Result<()> {
+        assert_eq!(S64::from_digits([], 251)?.into_digits(251)?, vec![]);
+        assert_eq!(U64::from_digits([], 251)?.into_digits(251)?, vec![]);
+
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        for radix in 2..=u8::MAX {
+            for _ in 0..=u8::MAX {
+                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+
+                assert!(
+                    S64::from_digits(digits, radix)?
+                        .into_digits(radix)?
+                        .iter()
+                        .chain(repeat(&0))
+                        .zip(digits.iter())
+                        .all(|(lhs, rhs)| lhs == rhs)
+                );
+
+                assert!(
+                    U64::from_digits(digits, radix)?
+                        .into_digits(radix)?
+                        .iter()
+                        .chain(repeat(&0))
+                        .zip(digits.iter())
+                        .all(|(lhs, rhs)| lhs == rhs)
+                );
+            }
+        }
+
+        Ok(())
     }
 
     #[test]
@@ -1637,64 +1701,5 @@ mod tests {
             assert_eq!(format!("{:#o}", U64 { 0: pos(transmute!(bytes)) }), oct);
             assert_eq!(format!("{:#x}", U64 { 0: pos(transmute!(bytes)) }), hex);
         }
-    }
-
-    #[test]
-    fn from_digits() -> Result<()> {
-        assert_eq!(S64::from_digits([], 251)?, S64::default());
-        assert_eq!(U64::from_digits([], 251)?, U64::default());
-
-        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
-
-        for radix in 2..=u8::MAX {
-            for _ in 0..=u8::MAX {
-                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
-
-                let bytes = digits
-                    .iter()
-                    .rev()
-                    .fold(0, |acc, &x| acc * radix as u64 + x as u64)
-                    .to_le_bytes();
-
-                assert_eq!(S64::from_digits(digits, radix)?, S64 { 0: pos(transmute!(bytes)) });
-                assert_eq!(U64::from_digits(digits, radix)?, U64 { 0: pos(transmute!(bytes)) });
-            }
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn into_digits() -> Result<()> {
-        assert_eq!(S64::from_digits([], 251)?.into_digits(251)?, vec![]);
-        assert_eq!(U64::from_digits([], 251)?.into_digits(251)?, vec![]);
-
-        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
-
-        for radix in 2..=u8::MAX {
-            for _ in 0..=u8::MAX {
-                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
-
-                assert!(
-                    S64::from_digits(digits, radix)?
-                        .into_digits(radix)?
-                        .iter()
-                        .chain(repeat(&0))
-                        .zip(digits.iter())
-                        .all(|(lhs, rhs)| lhs == rhs)
-                );
-
-                assert!(
-                    U64::from_digits(digits, radix)?
-                        .into_digits(radix)?
-                        .iter()
-                        .chain(repeat(&0))
-                        .zip(digits.iter())
-                        .all(|(lhs, rhs)| lhs == rhs)
-                );
-            }
-        }
-
-        Ok(())
     }
 }

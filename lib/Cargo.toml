@@ -31,5 +31,5 @@ ndproc = { workspace = true }
 criterion = { workspace = true }
 
 [[bench]]
-name    = "num"
+name    = "long"
 harness = false

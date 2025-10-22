@@ -64,11 +64,11 @@ fn from_bytes(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| S4096::from_bytes(bytes))
+            b.iter(|| S4096::from(bytes))
         });
 
         group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| U4096::from_bytes(bytes))
+            b.iter(|| U4096::from(bytes))
         });
     }
 }
@@ -81,8 +81,8 @@ fn try_from_str(c: &mut Criterion) {
         let len = BYTES / div;
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::from_bytes(&bytes[..len]);
-        let unsigned = U4096::from_bytes(&bytes[..len]);
+        let signed = S4096::from(&bytes[..len]);
+        let unsigned = U4096::from(&bytes[..len]);
 
         let dec_signed = format!("{:#}", &signed);
         let bin_signed = format!("{:#b}", &signed);
@@ -204,8 +204,8 @@ fn try_into_digits(c: &mut Criterion) {
     for radix in [255, 127, 63, 31, 15, 7, 3] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::from_bytes(bytes);
-        let unsigned = U4096::from_bytes(bytes);
+        let signed = S4096::from(&bytes[..]);
+        let unsigned = U4096::from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -226,8 +226,8 @@ fn try_into_digits_bin(c: &mut Criterion) {
     for exp in [7, 6, 5, 4, 3, 2, 1] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::from_bytes(bytes);
-        let unsigned = U4096::from_bytes(bytes);
+        let signed = S4096::from(&bytes[..]);
+        let unsigned = U4096::from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -249,8 +249,8 @@ fn to_str(c: &mut Criterion) {
         let len = BYTES / div;
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::from_bytes(&bytes[..len]);
-        let unsigned = U4096::from_bytes(&bytes[..len]);
+        let signed = S4096::from(&bytes[..len]);
+        let unsigned = U4096::from(&bytes[..len]);
 
         group.throughput(Throughput::Bytes(len as u64));
 
