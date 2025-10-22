@@ -81,7 +81,7 @@ macro_rules! digit_impl {
     };
 }
 
-macro_rules! digits_mod_impl {
+macro_rules! digits_impl {
     (($half:ty, $single:ty, $double:ty), ($dec_radix:expr, $dec_width:expr), ($oct_radix:expr, $oct_width:expr), { $($body:tt)* }) => {
         pub mod digit {
             use zerocopy::{FromBytes, IntoBytes};
@@ -311,7 +311,7 @@ macro_rules! from_digits_impl {
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
-digits_mod_impl!((u32, u64, u128), (10_000_000_000_000_000_000, 19), (Double::ONE << 63, 21), {
+digits_impl!((u32, u64, u128), (10_000_000_000_000_000_000, 19), (Double::ONE << 63, 21), {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
@@ -319,14 +319,14 @@ digits_mod_impl!((u32, u64, u128), (10_000_000_000_000_000_000, 19), (Double::ON
 });
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
-digits_mod_impl!((u16, u32, u64), (1_000_000_000, 9), (Double::ONE << 30, 10), {
+digits_impl!((u16, u32, u64), (1_000_000_000, 9), (Double::ONE << 30, 10), {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
 });
 
 #[cfg(test)]
-digits_mod_impl!((u8, u16, u32), (100, 2), (Double::ONE << 6, 2), {
+digits_impl!((u8, u16, u32), (100, 2), (Double::ONE << 6, 2), {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
 });
@@ -468,9 +468,22 @@ struct SignedFixedDyn(Vec<Single>, Sign, usize);
 
 struct UnsignedFixedDyn(Vec<Single>, usize);
 
-struct DigitsIter {}
+pub struct DigitsBinIter<'digits, const L: usize, D: Digit> {
+    digits: &'digits [Single; L],
+    bits: usize,
+    mask: Double,
+    len: usize,
+    acc: Double,
+    shl: usize,
+    idx: usize,
+    val: D,
+}
 
-struct DigitsBinIter {}
+pub struct DigitsIter<'digits, const L: usize, D: Digit> {
+    digits: &'digits mut [Single; L],
+    radix: D,
+    len: usize,
+}
 
 pub type S128 = signed!(128);
 pub type S192 = signed!(192);
@@ -717,12 +730,12 @@ impl<const L: usize> Signed<L> {
         try_into_digits_bin(&self.0, exp)
     }
 
-    pub fn try_into_digits_iter<Iter: Iterator<Item = u8>>(self, radix: u8) -> Result<Iter, TryIntoDigitsError> {
-        todo!()
+    pub fn try_into_digits_iter(&mut self, radix: u8) -> Result<DigitsIter<'_, L, u8>, TryIntoDigitsError> {
+        try_into_digits_iter(&mut self.0, radix)
     }
 
-    pub fn try_into_digits_bin_iter<Iter: Iterator<Item = u8>>(&self, exp: u8) -> Result<Iter, TryIntoDigitsError> {
-        todo!()
+    pub fn try_into_digits_bin_iter(&self, exp: u8) -> Result<DigitsBinIter<'_, L, u8>, TryIntoDigitsError> {
+        try_into_digits_bin_iter(&self.0, exp)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -826,12 +839,12 @@ impl<const L: usize> Unsigned<L> {
         try_into_digits_bin(&self.0, exp)
     }
 
-    pub fn try_into_digits_iter<Iter: Iterator<Item = u8>>(self, radix: u8) -> Result<Iter, TryIntoDigitsError> {
-        todo!()
+    pub fn try_into_digits_iter(&mut self, radix: u8) -> Result<DigitsIter<'_, L, u8>, TryIntoDigitsError> {
+        try_into_digits_iter(&mut self.0, radix)
     }
 
-    pub fn try_into_digits_bin_iter<Iter: Iterator<Item = u8>>(&self, exp: u8) -> Result<Iter, TryIntoDigitsError> {
-        todo!()
+    pub fn try_into_digits_bin_iter(&self, exp: u8) -> Result<DigitsBinIter<'_, L, u8>, TryIntoDigitsError> {
+        try_into_digits_bin_iter(&self.0, exp)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -850,6 +863,66 @@ impl<const L: usize> Unsigned<L> {
         get_sign_arr(&self.0, Sign::POS)
     }
 }
+
+impl<'digits, const L: usize, D: Digit> Iterator for DigitsBinIter<'digits, L, D> {
+    type Item = D;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.digits.len() == self.idx {
+            return None;
+        }
+
+        if self.shl >= self.bits {
+            self.acc >>= self.bits;
+            self.shl -= self.bits;
+            self.val = D::from_double(self.acc & self.mask);
+
+            return Some(self.val);
+        }
+
+        self.acc |= (self.digits[self.idx] as Double) << self.shl;
+        self.shl += BITS;
+        self.idx += 1;
+        self.val = D::from_double(self.acc & self.mask);
+
+        Some(self.val)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len, Some(self.len))
+    }
+}
+
+impl<'digits, const L: usize, D: Digit> Iterator for DigitsIter<'digits, L, D> {
+    type Item = D;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut any = 0;
+        let mut acc = 0;
+
+        for digit in self.digits.iter_mut().rev() {
+            any |= *digit;
+            acc = (acc << BITS) | *digit as Double;
+
+            *digit = (acc / self.radix.as_double()) as Single;
+
+            acc %= self.radix.as_double();
+        }
+
+        if any == 0 {
+            return None;
+        }
+
+        Some(D::from_double(acc))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len, Some(self.len))
+    }
+}
+
+impl<'digits, const L: usize, D: Digit> ExactSizeIterator for DigitsBinIter<'digits, L, D> {}
+impl<'digits, const L: usize, D: Digit> ExactSizeIterator for DigitsIter<'digits, L, D> {}
 
 fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     let len = bytes.len().min(BYTES * L);
@@ -983,6 +1056,32 @@ fn try_into_digits_bin<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) 
     Ok(res)
 }
 
+fn try_into_digits_bin_iter<const L: usize, D: Digit>(
+    digits: &[Single; L],
+    exp: u8,
+) -> Result<DigitsBinIter<'_, L, D>, TryIntoDigitsError> {
+    if exp >= D::BITS as u8 {
+        return Err(TryIntoDigitsError::InvalidExponent { exp });
+    }
+
+    try_into_digits_validate(D::from_single(1 << exp))?;
+
+    let bits = exp as usize;
+    let mask = (1 << bits) - 1;
+    let len = (digits.len() * BITS + bits - 1) / bits;
+
+    Ok(DigitsBinIter {
+        digits,
+        bits,
+        mask,
+        len,
+        acc: 0,
+        shl: 0,
+        idx: 0,
+        val: D::ZERO,
+    })
+}
+
 fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError> {
     let (s, sign) = get_sign_from_str(s)?;
     let (s, radix) = get_radix_from_str(s)?;
@@ -1066,6 +1165,18 @@ fn try_into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) 
     res.truncate(get_len(&res));
 
     Ok(res)
+}
+
+fn try_into_digits_iter<const L: usize, D: Digit>(
+    digits: &mut [Single; L],
+    radix: D,
+) -> Result<DigitsIter<'_, L, D>, TryIntoDigitsError> {
+    try_into_digits_validate(radix)?;
+
+    let bits = radix.order();
+    let len = (digits.len() * BITS + bits - 1) / bits;
+
+    Ok(DigitsIter { digits, radix, len })
 }
 
 fn write_dec(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
