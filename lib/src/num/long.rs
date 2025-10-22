@@ -58,15 +58,15 @@ macro_rules! digit_impl {
                 value as Self
             }
 
-            fn to_half(self) -> Half {
+            fn as_half(self) -> Half {
                 self as Half
             }
 
-            fn to_single(self) -> Single {
+            fn as_single(self) -> Single {
                 self as Single
             }
 
-            fn to_double(self) -> Double {
+            fn as_double(self) -> Double {
                 self as Double
             }
 
@@ -138,6 +138,82 @@ macro_rules! long_from {
     };
 }
 
+macro_rules! try_from_digits_validate {
+    ($digits:expr, $radix:expr) => {{
+        if $radix.as_single() < 2 {
+            return Err(TryFromDigitsError::InvalidRadix {
+                radix: $radix.as_single() as usize,
+            });
+        }
+
+        if let Some(digit) = $digits.find(|&digit| digit >= $radix) {
+            return Err(TryFromDigitsError::InvalidDigits {
+                digit: digit.as_single() as usize,
+                radix: $radix.as_single() as usize,
+            });
+        }
+
+        Ok(())
+    }};
+}
+
+macro_rules! from_digits_bin_impl {
+    ($digits:expr, $len:expr, $exp:expr) => {{
+        let bits = $exp as usize;
+        let mask = (1 << BITS) - 1;
+        let len = ($len * bits + BITS - 1) / BITS;
+
+        let mut acc = 0;
+        let mut shl = 0;
+        let mut idx = 0;
+        let mut res = [0; L];
+
+        for digit in $digits {
+            acc |= digit.as_double() << shl;
+            shl += bits;
+            res[idx] = (acc & mask) as Single;
+
+            if shl >= BITS {
+                if idx + 1 == L {
+                    break;
+                }
+
+                acc >>= BITS;
+                shl -= BITS;
+                idx += 1;
+                res[idx] = (acc & mask) as Single;
+            }
+        }
+
+        res
+    }};
+}
+
+macro_rules! from_digits_impl {
+    ($digits:expr, $radix:expr) => {{
+        let mut idx = 0;
+        let mut res = [0; L];
+
+        for digit in $digits {
+            let mut acc = digit.as_double();
+
+            for ptr in res.iter_mut().take(idx + 1) {
+                acc += *ptr as Double * $radix.as_double();
+
+                *ptr = acc as Single;
+
+                acc >>= BITS;
+            }
+
+            if idx < L && res[idx] > 0 {
+                idx += 1;
+            }
+        }
+
+        res
+    }};
+}
+
 #[cfg(all(target_pointer_width = "64", not(test)))]
 pub mod digit {
     use zerocopy::{FromBytes, IntoBytes};
@@ -174,13 +250,19 @@ pub mod digit {
         fn from_single(value: Single) -> Self;
         fn from_double(value: Double) -> Self;
 
-        fn to_half(self) -> Half;
-        fn to_single(self) -> Single;
-        fn to_double(self) -> Double;
+        fn as_half(self) -> Half;
+        fn as_single(self) -> Single;
+        fn as_double(self) -> Double;
 
         fn order(self) -> usize;
 
         fn is_pow2(self) -> bool;
+    }
+
+    pub trait DigitsIterator:
+        Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
+    {
+        type Item;
     }
 
     digit_impl!(u8, [u8, u8, u16]);
@@ -225,13 +307,19 @@ pub mod digit {
         fn from_single(value: Single) -> Self;
         fn from_double(value: Double) -> Self;
 
-        fn to_half(self) -> Half;
-        fn to_single(self) -> Single;
-        fn to_double(self) -> Double;
+        fn as_half(self) -> Half;
+        fn as_single(self) -> Single;
+        fn as_double(self) -> Double;
 
         fn order(self) -> usize;
 
         fn is_pow2(self) -> bool;
+    }
+
+    pub trait DigitsIterator:
+        Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
+    {
+        type Item;
     }
 
     digit_impl!(u8, [u8, u8, u16]);
@@ -275,13 +363,19 @@ pub mod digit {
         fn from_single(value: Single) -> Self;
         fn from_double(value: Double) -> Self;
 
-        fn to_half(self) -> Half;
-        fn to_single(self) -> Single;
-        fn to_double(self) -> Double;
+        fn as_half(self) -> Half;
+        fn as_single(self) -> Single;
+        fn as_double(self) -> Double;
 
         fn order(self) -> usize;
 
         fn is_pow2(self) -> bool;
+    }
+
+    pub trait DigitsIterator:
+        Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
+    {
+        type Item: Digit;
     }
 
     digit_impl!(u8, [u8, u8, u16]);
@@ -382,17 +476,17 @@ pub enum TryFromStrError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromDigitsError {
     #[error("Found invalid radix '{radix}'")]
-    InvalidRadix { radix: u8 },
+    InvalidRadix { radix: usize },
     #[error("Found invalid exp '{exp}'")]
     InvalidExponent { exp: u8 },
     #[error("Found invalid digit '{digit}' during parsing from slice of radix '{radix}'")]
-    InvalidDigits { digit: u8, radix: u8 },
+    InvalidDigits { digit: usize, radix: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryIntoDigitsError {
     #[error("Found invalid radix '{radix}'")]
-    InvalidRadix { radix: u8 },
+    InvalidRadix { radix: usize },
     #[error("Found invalid exp '{exp}'")]
     InvalidExponent { exp: u8 },
 }
@@ -482,6 +576,18 @@ impl<const L: usize> FromStr for Unsigned<L> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::try_from_str(s)
+    }
+}
+
+impl<const L: usize> FromIterator<u8> for Signed<L> {
+    fn from_iter<T: IntoIterator<Item = u8>>(iter: T) -> Self {
+        Self::from_bytes_iter(iter.into_iter())
+    }
+}
+
+impl<const L: usize> FromIterator<u8> for Unsigned<L> {
+    fn from_iter<T: IntoIterator<Item = u8>>(iter: T) -> Self {
+        Self::from_bytes_iter(iter.into_iter())
     }
 }
 
@@ -594,6 +700,10 @@ impl<const L: usize> Signed<L> {
         Self(from_bytes(bytes.as_ref()))
     }
 
+    pub fn from_bytes_iter<Bytes: Iterator<Item = u8>>(bytes: Bytes) -> Self {
+        Self(from_bytes_iter(bytes))
+    }
+
     pub fn try_from_str(s: &str) -> Result<Self, TryFromStrError> {
         try_from_str(s).map(Self)
     }
@@ -606,12 +716,34 @@ impl<const L: usize> Signed<L> {
         try_from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
+    pub fn try_from_digits_iter<Digits: DigitsIterator<Item = u8>>(
+        digits: Digits,
+        radix: u8,
+    ) -> Result<Self, TryFromDigitsError> {
+        try_from_digits_iter(digits, radix).map(Self)
+    }
+
+    pub fn try_from_digits_bin_iter<Digits: DigitsIterator<Item = u8>>(
+        digits: Digits,
+        exp: u8,
+    ) -> Result<Self, TryFromDigitsError> {
+        try_from_digits_bin_iter(digits, exp).map(Self)
+    }
+
     pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         try_into_digits(self.0, radix)
     }
 
     pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         try_into_digits_bin(&self.0, exp)
+    }
+
+    pub fn try_into_digits_iter<Iter: Iterator<Item = u8>>(self, radix: u8) -> Result<Iter, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_into_digits_bin_iter<Iter: Iterator<Item = u8>>(&self, exp: u8) -> Result<Iter, TryIntoDigitsError> {
+        todo!()
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -668,6 +800,10 @@ impl<const L: usize> Unsigned<L> {
         Self(from_bytes(bytes.as_ref()))
     }
 
+    pub fn from_bytes_iter<Bytes: Iterator<Item = u8>>(bytes: Bytes) -> Self {
+        Self(from_bytes_iter(bytes))
+    }
+
     pub fn try_from_str(s: &str) -> Result<Self, TryFromStrError> {
         try_from_str(s).map(Self)
     }
@@ -680,12 +816,34 @@ impl<const L: usize> Unsigned<L> {
         try_from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
+    pub fn try_from_digits_iter<Digits: DigitsIterator<Item = u8>>(
+        digits: Digits,
+        radix: u8,
+    ) -> Result<Self, TryFromDigitsError> {
+        try_from_digits_iter(digits, radix).map(Self)
+    }
+
+    pub fn try_from_digits_bin_iter<Digits: DigitsIterator<Item = u8>>(
+        digits: Digits,
+        exp: u8,
+    ) -> Result<Self, TryFromDigitsError> {
+        try_from_digits_bin_iter(digits, exp).map(Self)
+    }
+
     pub fn try_into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         try_into_digits(self.0, radix)
     }
 
     pub fn try_into_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
         try_into_digits_bin(&self.0, exp)
+    }
+
+    pub fn try_into_digits_iter<Iter: Iterator<Item = u8>>(self, radix: u8) -> Result<Iter, TryIntoDigitsError> {
+        todo!()
+    }
+
+    pub fn try_into_digits_bin_iter<Iter: Iterator<Item = u8>>(&self, exp: u8) -> Result<Iter, TryIntoDigitsError> {
+        todo!()
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -713,7 +871,6 @@ fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
 
     res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
-
     res
 }
 
@@ -725,7 +882,15 @@ fn from_bytes_arr<const L: usize, const N: usize>(bytes: &[u8; N], default: Sing
     res.as_mut_bytes()[..len].copy_from_slice(&bytes[..len]);
 
     res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
+    res
+}
 
+fn from_bytes_iter<const L: usize, Bytes: Iterator<Item = u8>>(bytes: Bytes) -> [Single; L] {
+    let mut res = [0; L];
+
+    res.as_mut_bytes().iter_mut().zip(bytes).for_each(|(dst, src)| *dst = src);
+
+    res.iter_mut().for_each(|ptr| *ptr = (*ptr as Single).to_le());
     res
 }
 
@@ -747,24 +912,11 @@ fn try_from_str_validate(s: &str, radix: u8) -> Result<(), TryFromStrError> {
     Ok(())
 }
 
-fn try_from_digits_validate<D: Digit>(digits: &[D], radix: D) -> Result<(), TryFromDigitsError> {
-    if radix.to_single() < 2 {
-        return Err(TryFromDigitsError::InvalidRadix { radix: radix.to_single() as u8 });
-    }
-
-    if let Some(&digit) = digits.iter().find(|&&digit| digit >= radix) {
-        return Err(TryFromDigitsError::InvalidDigits {
-            digit: digit.to_single() as u8,
-            radix: radix.to_single() as u8,
-        });
-    }
-
-    Ok(())
-}
-
 fn try_into_digits_validate<D: Digit>(radix: D) -> Result<(), TryIntoDigitsError> {
-    if radix.to_single() < 2 {
-        return Err(TryIntoDigitsError::InvalidRadix { radix: radix.to_single() as u8 });
+    if radix.as_single() < 2 {
+        return Err(TryIntoDigitsError::InvalidRadix {
+            radix: radix.as_single() as usize,
+        });
     }
 
     Ok(())
@@ -773,31 +925,7 @@ fn try_into_digits_validate<D: Digit>(radix: D) -> Result<(), TryIntoDigitsError
 fn try_from_str_bin<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], TryFromStrError> {
     try_from_str_validate(s, 1 << exp)?;
 
-    let bits = exp as usize;
-    let mask = (1 << BITS) - 1;
-    let len = (s.len() * bits + BITS - 1) / BITS;
-
-    let mut acc = 0;
-    let mut shl = 0;
-    let mut idx = 0;
-    let mut res = [0; L];
-
-    for digit in s.bytes().rev().filter_map(get_digit_from_byte) {
-        acc |= (digit as Double) << shl;
-        shl += bits;
-        res[idx] = (acc & mask) as Single;
-
-        if shl >= BITS {
-            if idx + 1 == L {
-                break;
-            }
-
-            acc >>= BITS;
-            shl -= BITS;
-            idx += 1;
-            res[idx] = (acc & mask) as Single;
-        }
-    }
+    let mut res = from_digits_bin_impl!(s.bytes().rev().filter_map(get_digit_from_byte), s.len(), exp);
 
     if sign == Sign::NEG {
         neg_mut(&mut res);
@@ -811,33 +939,24 @@ fn try_from_digits_bin<const L: usize, D: Digit>(digits: &[D], exp: u8) -> Resul
         return Err(TryFromDigitsError::InvalidExponent { exp });
     }
 
-    try_from_digits_validate(digits, D::from_single(1 << exp))?;
+    try_from_digits_validate!(digits.iter().copied(), D::from_single(1 << exp))?;
 
-    let bits = exp as usize;
-    let mask = (1 << BITS) - 1;
-    let len = (digits.len() * bits + BITS - 1) / BITS;
+    let res = from_digits_bin_impl!(digits, digits.len(), exp);
 
-    let mut acc = 0;
-    let mut shl = 0;
-    let mut idx = 0;
-    let mut res = [0; L];
+    Ok(res)
+}
 
-    for &digit in digits {
-        acc |= digit.to_double() << shl;
-        shl += bits;
-        res[idx] = (acc & mask) as Single;
-
-        if shl >= BITS {
-            if idx + 1 == L {
-                break;
-            }
-
-            acc >>= BITS;
-            shl -= BITS;
-            idx += 1;
-            res[idx] = (acc & mask) as Single;
-        }
+fn try_from_digits_bin_iter<const L: usize, D: Digit, Digits: DigitsIterator<Item = D>>(
+    digits: Digits,
+    exp: u8,
+) -> Result<[Single; L], TryFromDigitsError> {
+    if exp >= D::BITS as u8 {
+        return Err(TryFromDigitsError::InvalidExponent { exp });
     }
+
+    try_from_digits_validate!(digits.clone(), D::from_single(1 << exp))?;
+
+    let res = from_digits_bin_impl!(digits, digits.len(), exp);
 
     Ok(res)
 }
@@ -886,24 +1005,7 @@ fn try_from_str<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
 
     try_from_str_validate(s, radix)?;
 
-    let mut idx = 0;
-    let mut res = [0; L];
-
-    for digit in s.bytes().filter_map(get_digit_from_byte) {
-        let mut acc = digit as Double;
-
-        for ptr in res.iter_mut().take(idx + 1) {
-            acc += *ptr as Double * radix as Double;
-
-            *ptr = acc as Single;
-
-            acc >>= BITS;
-        }
-
-        if idx < L && res[idx] > 0 {
-            idx += 1;
-        }
-    }
+    let mut res = from_digits_impl!(s.bytes().filter_map(get_digit_from_byte), radix);
 
     if sign == Sign::NEG {
         neg_mut(&mut res);
@@ -917,26 +1019,24 @@ fn try_from_digits<const L: usize, D: Digit>(digits: &[D], radix: D) -> Result<[
         return try_from_digits_bin(digits, radix.order() as u8);
     }
 
-    try_from_digits_validate(digits, radix)?;
+    try_from_digits_validate!(digits.iter().copied(), radix)?;
 
-    let mut idx = 0;
-    let mut res = [0; L];
+    let res = from_digits_impl!(digits.iter().rev(), radix);
 
-    for &digit in digits.iter().rev() {
-        let mut acc = digit.to_double();
+    Ok(res)
+}
 
-        for ptr in res.iter_mut().take(idx + 1) {
-            acc += *ptr as Double * radix.to_double();
-
-            *ptr = acc as Single;
-
-            acc >>= BITS;
-        }
-
-        if idx < L && res[idx] > 0 {
-            idx += 1;
-        }
+fn try_from_digits_iter<const L: usize, D: Digit, Digits: DigitsIterator<Item = D>>(
+    digits: Digits,
+    radix: D,
+) -> Result<[Single; L], TryFromDigitsError> {
+    if radix.is_pow2() {
+        return try_from_digits_bin_iter(digits, radix.order() as u8);
     }
+
+    try_from_digits_validate!(digits.clone(), radix)?;
+
+    let res = from_digits_impl!(digits.rev(), radix);
 
     Ok(res)
 }
@@ -962,9 +1062,9 @@ fn try_into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) 
             any |= *digit;
             acc = (acc << BITS) | *digit as Double;
 
-            *digit = (acc / radix.to_double()) as Single;
+            *digit = (acc / radix.as_double()) as Single;
 
-            acc %= radix.to_double();
+            acc %= radix.as_double();
         }
 
         if any == 0 {
@@ -1141,15 +1241,49 @@ mod uops {
         digits
     }
 
+    pub(super) fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        digits
+    }
+
     pub(super) fn neg<const L: usize>(digits: [Single; L]) -> [Single; L] {
         inc(not(digits))
     }
 
+    pub(super) fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        not_mut(digits);
+        inc_mut(digits);
+
+        digits
+    }
+
     pub(super) fn not<const L: usize>(digits: [Single; L]) -> [Single; L] {
-        digits.iter().map(|&x| !x).collect_with([0; L])
+        digits.iter().map(|&digit| !digit).collect_with([0; L])
+    }
+
+    pub(super) fn not_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
+        digits.iter_mut().for_each(|digit| *digit = !*digit);
+        digits
     }
 
     pub(super) fn inc<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = *ptr as Double + acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = (digit >> BITS) as Single;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }
+
+    pub(super) fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
         let mut acc = 1;
 
         for ptr in digits.iter_mut() {
@@ -1172,40 +1306,6 @@ mod uops {
 
         for ptr in digits.iter_mut() {
             let digit = RADIX + *ptr as Double - acc as Double;
-
-            *ptr = digit as Single;
-
-            acc = (digit >> BITS) as Single;
-
-            if acc == 0 {
-                break;
-            }
-        }
-
-        digits
-    }
-
-    pub(super) fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        digits
-    }
-
-    pub(super) fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        not_mut(digits);
-        inc_mut(digits);
-
-        digits
-    }
-
-    pub(super) fn not_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        digits.iter_mut().for_each(|x| *x = !*x);
-        digits
-    }
-
-    pub(super) fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        let mut acc = 1;
-
-        for ptr in digits.iter_mut() {
-            let digit = *ptr as Double + acc as Double;
 
             *ptr = digit as Single;
 
@@ -1390,20 +1490,20 @@ mod tests {
             let oct = format!("{val:#o}");
             let hex = format!("{val:#x}");
 
-            assert_eq!(S64::try_from_str(&pos_dec)?, S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(S64::try_from_str(&pos_bin)?, S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(S64::try_from_str(&pos_oct)?, S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(S64::try_from_str(&pos_hex)?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(pos_dec.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(pos_bin.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(pos_oct.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(pos_hex.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
 
-            assert_eq!(S64::try_from_str(&neg_dec)?, S64 { 0: neg(transmute!(bytes)) });
-            assert_eq!(S64::try_from_str(&neg_bin)?, S64 { 0: neg(transmute!(bytes)) });
-            assert_eq!(S64::try_from_str(&neg_oct)?, S64 { 0: neg(transmute!(bytes)) });
-            assert_eq!(S64::try_from_str(&neg_hex)?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(neg_dec.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(neg_bin.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(neg_oct.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(neg_hex.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
 
-            assert_eq!(U64::try_from_str(&dec)?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::try_from_str(&bin)?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::try_from_str(&oct)?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::try_from_str(&hex)?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(dec.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(bin.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(oct.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(hex.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
         }
 
         Ok(())

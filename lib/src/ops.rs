@@ -56,7 +56,7 @@ pub trait IteratorExt: Iterator {
     fn collect_with<Collection>(self, mut collection: Collection) -> Collection
     where
         Self: Sized,
-        for<'i> &'i mut Collection: IntoIterator<Item = &'i mut Self::Item>,
+        for<'item> &'item mut Collection: IntoIterator<Item = &'item mut Self::Item>,
     {
         collection.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
         collection
