@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
@@ -97,49 +97,49 @@ fn try_from_str(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(dec_signed.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("dec::S4096", 8 * len), &dec_signed, |b, str| {
-            b.iter(|| S4096::try_from_str(str))
+            b.iter(|| S4096::from_str(str))
         });
 
         group.throughput(Throughput::Bytes(dec_unsigned.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("dec::U4096", 8 * len), &dec_unsigned, |b, str| {
-            b.iter(|| U4096::try_from_str(str))
+            b.iter(|| U4096::from_str(str))
         });
 
         group.throughput(Throughput::Bytes(bin_signed.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("bin::S4096", 8 * len), &bin_signed, |b, str| {
-            b.iter(|| S4096::try_from_str(str))
+            b.iter(|| S4096::from_str(str))
         });
 
         group.throughput(Throughput::Bytes(bin_unsigned.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("bin::U4096", 8 * len), &bin_unsigned, |b, str| {
-            b.iter(|| U4096::try_from_str(str))
+            b.iter(|| U4096::from_str(str))
         });
 
         group.throughput(Throughput::Bytes(oct_signed.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("oct::S4096", 8 * len), &oct_signed, |b, str| {
-            b.iter(|| S4096::try_from_str(str))
+            b.iter(|| S4096::from_str(str))
         });
 
         group.throughput(Throughput::Bytes(oct_unsigned.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("oct::U4096", 8 * len), &oct_unsigned, |b, str| {
-            b.iter(|| U4096::try_from_str(str))
+            b.iter(|| U4096::from_str(str))
         });
 
         group.throughput(Throughput::Bytes(hex_signed.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("hex::S4096", 8 * len), &hex_signed, |b, str| {
-            b.iter(|| S4096::try_from_str(str))
+            b.iter(|| S4096::from_str(str))
         });
 
         group.throughput(Throughput::Bytes(hex_unsigned.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("hex::U4096", 8 * len), &hex_unsigned, |b, str| {
-            b.iter(|| U4096::try_from_str(str))
+            b.iter(|| U4096::from_str(str))
         });
     }
 }
@@ -159,13 +159,13 @@ fn try_from_digits(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("S4096", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| S4096::try_from_digits(digits, radix)),
+            |b, &(digits, radix)| b.iter(|| S4096::from_digits(digits, radix)),
         );
 
         group.bench_with_input(
             BenchmarkId::new("U4096", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| U4096::try_from_digits(digits, radix)),
+            |b, &(digits, radix)| b.iter(|| U4096::from_digits(digits, radix)),
         );
     }
 }
@@ -186,13 +186,13 @@ fn try_from_digits_bin(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("S4096", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| S4096::try_from_digits_bin(digits, exp)),
+            |b, &(digits, exp)| b.iter(|| S4096::from_digits_bin(digits, exp)),
         );
 
         group.bench_with_input(
             BenchmarkId::new("U4096", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| U4096::try_from_digits_bin(digits, exp)),
+            |b, &(digits, exp)| b.iter(|| U4096::from_digits_bin(digits, exp)),
         );
     }
 }
@@ -210,11 +210,11 @@ fn try_into_digits(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("S4096", radix), &(&signed, radix), |b, &(long, radix)| {
-            b.iter(|| long.try_into_digits(radix))
+            b.iter(|| long.into_digits(radix))
         });
 
         group.bench_with_input(BenchmarkId::new("U4096", radix), &(&unsigned, radix), |b, &(long, radix)| {
-            b.iter(|| long.try_into_digits(radix))
+            b.iter(|| long.into_digits(radix))
         });
     }
 }
@@ -232,11 +232,11 @@ fn try_into_digits_bin(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("S4096", exp), &(&signed, exp), |b, &(long, exp)| {
-            b.iter(|| long.try_into_digits_bin(exp))
+            b.iter(|| long.to_digits_bin(exp))
         });
 
         group.bench_with_input(BenchmarkId::new("U4096", exp), &(&unsigned, exp), |b, &(long, exp)| {
-            b.iter(|| long.try_into_digits_bin(exp))
+            b.iter(|| long.to_digits_bin(exp))
         });
     }
 }
