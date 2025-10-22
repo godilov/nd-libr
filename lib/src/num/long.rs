@@ -82,7 +82,7 @@ macro_rules! digit_impl {
 }
 
 macro_rules! digits_mod_impl {
-    ([$half:ty, $single:ty, $double:ty], [$dec_radix:expr, $dec_width:expr], [$oct_radix:expr, $oct_width:expr], { $($body:tt)* }) => {
+    (($half:ty, $single:ty, $double:ty), ($dec_radix:expr, $dec_width:expr), ($oct_radix:expr, $oct_width:expr), { $($body:tt)* }) => {
         pub mod digit {
             use zerocopy::{FromBytes, IntoBytes};
 
@@ -175,9 +175,8 @@ macro_rules! long_from {
     (@signed $primitive:ty) => {
         impl<const L: usize> From<$primitive> for Signed<L> {
             fn from(value: $primitive) -> Self {
-                let sign = Sign::from(value);
                 let bytes = value.to_le_bytes();
-                let res = from_bytes_arr(&bytes, if sign == Sign::NEG { Single::MAX } else { 0 });
+                let res = from_bytes_arr(&bytes, if value >= 0 { 0 } else { MAX });
 
                 Self(res)
             }
@@ -191,6 +190,46 @@ macro_rules! long_from {
 
                 Self(res)
             }
+        }
+    };
+}
+
+macro_rules! long_from_const {
+    (@signed [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
+        $(long_from_const!(@signed $fn, $primitive);)+
+    };
+    (@unsigned [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
+        $(long_from_const!(@unsigned $fn, $primitive);)+
+    };
+    (@signed $fn:ident, $primitive:ty) => {
+        pub const fn $fn(mut val: $primitive) -> Self {
+            let default = if val >= 0 { 0 } else { MAX };
+
+            let mut val = val.abs_diff(0);
+            let mut idx = 0;
+            let mut res = [default; L];
+
+            while val > 0 {
+                res[idx] = val as Single;
+                idx += 1;
+                val = val.unbounded_shr(BITS as u32);
+            }
+
+            Self(res)
+        }
+    };
+    (@unsigned $fn:ident, $primitive:ty) => {
+        pub const fn $fn(mut val: $primitive) -> Self {
+            let mut idx = 0;
+            let mut res = [0; L];
+
+            while val > 0 {
+                res[idx] = val as Single;
+                idx += 1;
+                val = val.unbounded_shr(BITS as u32);
+            }
+
+            Self(res)
         }
     };
 }
@@ -272,7 +311,7 @@ macro_rules! from_digits_impl {
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
-digits_mod_impl!([u32, u64, u128], [10_000_000_000_000_000_000, 19], [Double::ONE << 63, 21], {
+digits_mod_impl!((u32, u64, u128), (10_000_000_000_000_000_000, 19), (Double::ONE << 63, 21), {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
@@ -280,14 +319,14 @@ digits_mod_impl!([u32, u64, u128], [10_000_000_000_000_000_000, 19], [Double::ON
 });
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
-digits_mod_impl!([u16, u32, u64], [1_000_000_000, 9], [Double::ONE << 30, 10], {
+digits_mod_impl!((u16, u32, u64), (1_000_000_000, 9), (Double::ONE << 30, 10), {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
 });
 
 #[cfg(test)]
-digits_mod_impl!([u8, u16, u32], [100, 2], [Double::ONE << 6, 2], {
+digits_mod_impl!((u8, u16, u32), (100, 2), (Double::ONE << 6, 2), {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
 });
@@ -420,6 +459,18 @@ pub struct SignedFixed<const L: usize>(pub [Single; L], pub usize);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UnsignedFixed<const L: usize>(pub [Single; L], pub usize);
+
+struct SignedDyn(Vec<Single>, Sign);
+
+struct UnsignedDyn(Vec<Single>);
+
+struct SignedFixedDyn(Vec<Single>, Sign, usize);
+
+struct UnsignedFixedDyn(Vec<Single>, usize);
+
+struct DigitsIter {}
+
+struct DigitsBinIter {}
 
 pub type S128 = signed!(128);
 pub type S192 = signed!(192);
@@ -606,6 +657,24 @@ impl<const L: usize> UpperHex for Unsigned<L> {
 }
 
 impl<const L: usize> Signed<L> {
+    long_from_const!(@signed [
+        (from_i8, i8),
+        (from_i16, i16),
+        (from_i32, i32),
+        (from_i64, i64),
+        (from_i128, i128),
+        (from_isize, isize),
+    ]);
+
+    long_from_const!(@unsigned [
+        (from_u8, u8),
+        (from_u16, u16),
+        (from_u32, u32),
+        (from_u64, u64),
+        (from_u128, u128),
+        (from_usize, usize),
+    ]);
+
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
         Self(from_bytes(bytes.as_ref()))
     }
@@ -706,6 +775,15 @@ impl<const L: usize> Signed<L> {
 }
 
 impl<const L: usize> Unsigned<L> {
+    long_from_const!(@unsigned [
+        (from_u8, u8),
+        (from_u16, u16),
+        (from_u32, u32),
+        (from_u64, u64),
+        (from_u128, u128),
+        (from_usize, usize),
+    ]);
+
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
         Self(from_bytes(bytes.as_ref()))
     }
