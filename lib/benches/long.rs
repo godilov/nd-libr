@@ -41,8 +41,22 @@ fn get_rng() -> StdRng {
     StdRng::seed_from_u64(PRIMES[0] * PRIMES[1])
 }
 
-fn from_primitive(c: &mut Criterion) {
-    let mut group = get_group(c, "num::from_primitive");
+fn from_std_const(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_std::const");
+
+    group.throughput(Throughput::Bits(128));
+
+    group.bench_function(BenchmarkId::new("S4096", 128), |b| {
+        b.iter(|| S4096::from_i128(116578228889707554089617590980330937198_i128))
+    });
+
+    group.bench_function(BenchmarkId::new("U4096", 128), |b| {
+        b.iter(|| U4096::from_u128(121940457858715132528838202027877031762_u128))
+    });
+}
+
+fn from_std(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_std");
     let mut rng = get_rng();
 
     let s128 = rng.random::<i128>();
@@ -53,8 +67,8 @@ fn from_primitive(c: &mut Criterion) {
     group.bench_with_input(BenchmarkId::new("U4096", 128), &u128, |b, &val| b.iter(|| U4096::from(val)));
 }
 
-fn from_bytes(c: &mut Criterion) {
-    let mut group = get_group(c, "num::from_bytes");
+fn from_slice(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_slice");
     let mut rng = get_rng();
 
     for div in (0..6).rev().map(|exp| 1usize << exp) {
@@ -73,8 +87,222 @@ fn from_bytes(c: &mut Criterion) {
     }
 }
 
-fn try_from_str(c: &mut Criterion) {
-    let mut group = get_group(c, "num::try_from_str");
+fn from_iter(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_iter");
+    let mut rng = get_rng();
+
+    for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        group.throughput(Throughput::Bytes(len as u64));
+
+        group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes[..len].iter().copied(), |b, iter| {
+            b.iter(|| iter.clone().collect::<S4096>())
+        });
+
+        group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes[..len].iter().copied(), |b, iter| {
+            b.iter(|| iter.clone().collect::<U4096>())
+        });
+    }
+}
+
+fn from_digits(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_digits");
+    let mut rng = get_rng();
+
+    for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+
+        let radix = 251u8;
+        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+
+        group.throughput(Throughput::Bytes(len as u64));
+
+        group.bench_with_input(
+            BenchmarkId::new("S4096", 8 * len),
+            &(&digits[..len], radix),
+            |b, &(digits, radix)| b.iter(|| S4096::from_digits(digits, radix)),
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("U4096", 8 * len),
+            &(&digits[..len], radix),
+            |b, &(digits, radix)| b.iter(|| U4096::from_digits(digits, radix)),
+        );
+    }
+}
+
+fn from_digits_iter(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_digits_iter");
+    let mut rng = get_rng();
+
+    for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+
+        let radix = 251u8;
+        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+
+        group.throughput(Throughput::Bytes(len as u64));
+
+        group.bench_with_input(
+            BenchmarkId::new("S4096", 8 * len),
+            &(&digits[..len].iter().copied(), radix),
+            |b, &(iter, radix)| b.iter(|| S4096::from_digits_iter(iter.clone(), radix)),
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("U4096", 8 * len),
+            &(&digits[..len].iter().copied(), radix),
+            |b, &(iter, radix)| b.iter(|| U4096::from_digits_iter(iter.clone(), radix)),
+        );
+    }
+}
+
+fn from_digits_bin(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_digits_bin");
+    let mut rng = get_rng();
+
+    for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+
+        let exp = 7;
+        let radix = 1 << exp;
+        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+
+        group.throughput(Throughput::Bytes(len as u64));
+
+        group.bench_with_input(
+            BenchmarkId::new("S4096", 8 * len),
+            &(&digits[..len], exp),
+            |b, &(digits, exp)| b.iter(|| S4096::from_digits_bin(digits, exp)),
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("U4096", 8 * len),
+            &(&digits[..len], exp),
+            |b, &(digits, exp)| b.iter(|| U4096::from_digits_bin(digits, exp)),
+        );
+    }
+}
+
+fn from_digits_bin_iter(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_digits_bin_iter");
+    let mut rng = get_rng();
+
+    for div in (0..6).rev().map(|exp| 1usize << exp) {
+        let len = BYTES / div;
+
+        let exp = 7;
+        let radix = 1 << exp;
+        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+
+        group.throughput(Throughput::Bytes(len as u64));
+
+        group.bench_with_input(
+            BenchmarkId::new("S4096", 8 * len),
+            &(&digits[..len].iter().copied(), exp),
+            |b, &(iter, exp)| b.iter(|| S4096::from_digits_bin_iter(iter.clone(), exp)),
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("U4096", 8 * len),
+            &(&digits[..len].iter().copied(), exp),
+            |b, &(iter, exp)| b.iter(|| U4096::from_digits_bin_iter(iter.clone(), exp)),
+        );
+    }
+}
+
+fn into_digits(c: &mut Criterion) {
+    let mut group = get_group(c, "long::into_digits");
+    let mut rng = get_rng();
+
+    for radix in [255, 127, 63, 31, 15, 7, 3] {
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        let signed = S4096::from(&bytes[..]);
+        let unsigned = U4096::from(&bytes[..]);
+
+        group.throughput(Throughput::Bytes(bytes.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("S4096", radix), &(&signed, radix), |b, &(long, radix)| {
+            b.iter(|| long.into_digits(radix))
+        });
+
+        group.bench_with_input(BenchmarkId::new("U4096", radix), &(&unsigned, radix), |b, &(long, radix)| {
+            b.iter(|| long.into_digits(radix))
+        });
+    }
+}
+
+fn into_digits_iter(c: &mut Criterion) {
+    let mut group = get_group(c, "long::into_digits_iter");
+    let mut rng = get_rng();
+
+    for radix in [255, 127, 63, 31, 15, 7, 3] {
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        let signed = S4096::from(&bytes[..]);
+        let unsigned = U4096::from(&bytes[..]);
+
+        group.throughput(Throughput::Bytes(bytes.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("S4096", radix), &(&signed, radix), |b, &(long, radix)| {
+            b.iter(|| long.into_digits_iter(radix).map(|it| it.count()))
+        });
+
+        group.bench_with_input(BenchmarkId::new("U4096", radix), &(&unsigned, radix), |b, &(long, radix)| {
+            b.iter(|| long.into_digits_iter(radix).map(|it| it.count()))
+        });
+    }
+}
+
+fn to_digits_bin(c: &mut Criterion) {
+    let mut group = get_group(c, "long::to_digits_bin");
+    let mut rng = get_rng();
+
+    for exp in [7, 6, 5, 4, 3, 2, 1] {
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        let signed = S4096::from(&bytes[..]);
+        let unsigned = U4096::from(&bytes[..]);
+
+        group.throughput(Throughput::Bytes(bytes.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("S4096", exp), &(&signed, exp), |b, &(long, exp)| {
+            b.iter(|| long.to_digits_bin(exp))
+        });
+
+        group.bench_with_input(BenchmarkId::new("U4096", exp), &(&unsigned, exp), |b, &(long, exp)| {
+            b.iter(|| long.to_digits_bin(exp))
+        });
+    }
+}
+
+fn to_digits_bin_iter(c: &mut Criterion) {
+    let mut group = get_group(c, "long::to_digits_bin_iter");
+    let mut rng = get_rng();
+
+    for exp in [7, 6, 5, 4, 3, 2, 1] {
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        let signed = S4096::from(&bytes[..]);
+        let unsigned = U4096::from(&bytes[..]);
+
+        group.throughput(Throughput::Bytes(bytes.len() as u64));
+
+        group.bench_with_input(BenchmarkId::new("S4096", exp), &(&signed, exp), |b, &(long, exp)| {
+            b.iter(|| long.to_digits_bin_iter(exp).map(|it| it.count()))
+        });
+
+        group.bench_with_input(BenchmarkId::new("U4096", exp), &(&unsigned, exp), |b, &(long, exp)| {
+            b.iter(|| long.to_digits_bin_iter(exp).map(|it| it.count()))
+        });
+    }
+}
+
+fn from_str(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_str");
     let mut rng = get_rng();
 
     for div in (0..6).rev().map(|exp| 1usize << exp) {
@@ -144,105 +372,8 @@ fn try_from_str(c: &mut Criterion) {
     }
 }
 
-fn try_from_digits(c: &mut Criterion) {
-    let mut group = get_group(c, "num::try_from_digits");
-    let mut rng = get_rng();
-
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
-
-        let radix = 251u8;
-        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-
-        group.throughput(Throughput::Bytes(len as u64));
-
-        group.bench_with_input(
-            BenchmarkId::new("S4096", 8 * len),
-            &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| S4096::from_digits(digits, radix)),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("U4096", 8 * len),
-            &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| U4096::from_digits(digits, radix)),
-        );
-    }
-}
-
-fn try_from_digits_bin(c: &mut Criterion) {
-    let mut group = get_group(c, "num::try_from_digits_bin");
-    let mut rng = get_rng();
-
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
-
-        let exp = 7;
-        let radix = 1 << exp;
-        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-
-        group.throughput(Throughput::Bytes(len as u64));
-
-        group.bench_with_input(
-            BenchmarkId::new("S4096", 8 * len),
-            &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| S4096::from_digits_bin(digits, exp)),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("U4096", 8 * len),
-            &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| U4096::from_digits_bin(digits, exp)),
-        );
-    }
-}
-
-fn try_into_digits(c: &mut Criterion) {
-    let mut group = get_group(c, "num::try_into_digits");
-    let mut rng = get_rng();
-
-    for radix in [255, 127, 63, 31, 15, 7, 3] {
-        let bytes = rng.random::<[u8; BYTES]>();
-
-        let signed = S4096::from(&bytes[..]);
-        let unsigned = U4096::from(&bytes[..]);
-
-        group.throughput(Throughput::Bytes(bytes.len() as u64));
-
-        group.bench_with_input(BenchmarkId::new("S4096", radix), &(&signed, radix), |b, &(long, radix)| {
-            b.iter(|| long.into_digits(radix))
-        });
-
-        group.bench_with_input(BenchmarkId::new("U4096", radix), &(&unsigned, radix), |b, &(long, radix)| {
-            b.iter(|| long.into_digits(radix))
-        });
-    }
-}
-
-fn try_into_digits_bin(c: &mut Criterion) {
-    let mut group = get_group(c, "num::try_into_digits_bin");
-    let mut rng = get_rng();
-
-    for exp in [7, 6, 5, 4, 3, 2, 1] {
-        let bytes = rng.random::<[u8; BYTES]>();
-
-        let signed = S4096::from(&bytes[..]);
-        let unsigned = U4096::from(&bytes[..]);
-
-        group.throughput(Throughput::Bytes(bytes.len() as u64));
-
-        group.bench_with_input(BenchmarkId::new("S4096", exp), &(&signed, exp), |b, &(long, exp)| {
-            b.iter(|| long.to_digits_bin(exp))
-        });
-
-        group.bench_with_input(BenchmarkId::new("U4096", exp), &(&unsigned, exp), |b, &(long, exp)| {
-            b.iter(|| long.to_digits_bin(exp))
-        });
-    }
-}
-
 fn to_str(c: &mut Criterion) {
-    let mut group = get_group(c, "num::to_str");
+    let mut group = get_group(c, "long::to_str");
     let mut rng = get_rng();
 
     for div in (0..6).rev().map(|exp| 1usize << exp) {
@@ -290,13 +421,19 @@ fn to_str(c: &mut Criterion) {
 
 criterion_group!(
     group,
-    from_primitive,
-    from_bytes,
-    try_from_str,
-    try_from_digits,
-    try_from_digits_bin,
-    try_into_digits,
-    try_into_digits_bin,
+    from_std_const,
+    from_std,
+    from_slice,
+    from_iter,
+    from_digits,
+    from_digits_iter,
+    from_digits_bin,
+    from_digits_bin_iter,
+    into_digits,
+    into_digits_iter,
+    to_digits_bin,
+    to_digits_bin_iter,
+    from_str,
     to_str
 );
 

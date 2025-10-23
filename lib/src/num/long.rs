@@ -125,10 +125,17 @@ macro_rules! digits_impl {
                 fn is_pow2(self) -> bool;
             }
 
-            pub trait DigitsIterator:
-                Clone + Iterator<Item = <Self as DigitsIterator>::Item> + DoubleEndedIterator + ExactSizeIterator
+            pub trait DigitsIterator: Clone + Iterator + DoubleEndedIterator + ExactSizeIterator
+            where
+                <Self as Iterator>::Item: Digit,
             {
-                type Item: Digit;
+            }
+
+            impl<Iter> DigitsIterator for Iter
+            where
+                Iter: Clone + Iterator + DoubleEndedIterator + ExactSizeIterator,
+                Iter::Item: Digit,
+            {
             }
 
             $($body)*
