@@ -3,7 +3,9 @@
 
 use std::{
     cmp::Ordering,
-    fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write},
+    fmt::{Binary, Display, Formatter, LowerHex, Octal, UpperHex, Write as _},
+    io::{Cursor, Write as _},
+    marker::PhantomData,
     str::FromStr,
 };
 
@@ -125,7 +127,7 @@ macro_rules! digits_impl {
                 fn is_pow2(self) -> bool;
             }
 
-            pub trait DigitsIterator: Clone + Iterator + DoubleEndedIterator + ExactSizeIterator
+            pub trait DigitsIterator: Clone + Iterator + ExactSizeIterator
             where
                 <Self as Iterator>::Item: Digit,
             {
@@ -133,7 +135,7 @@ macro_rules! digits_impl {
 
             impl<Iter> DigitsIterator for Iter
             where
-                Iter: Clone + Iterator + DoubleEndedIterator + ExactSizeIterator,
+                Iter: Clone + Iterator + ExactSizeIterator,
                 Iter::Item: Digit,
             {
             }
@@ -473,6 +475,7 @@ struct SignedFixedDyn(Vec<Single>, Sign, usize);
 
 struct UnsignedFixedDyn(Vec<Single>, usize);
 
+#[derive(Debug, Clone)]
 pub struct DigitsBinIter<'digits, const L: usize, D: Digit> {
     digits: &'digits [Single; L],
     bits: usize,
@@ -481,9 +484,10 @@ pub struct DigitsBinIter<'digits, const L: usize, D: Digit> {
     acc: Double,
     shl: usize,
     idx: usize,
-    val: D,
+    _phantom: PhantomData<D>,
 }
 
+#[derive(Debug, Clone)]
 pub struct DigitsIter<const L: usize, D: Digit> {
     digits: [Single; L],
     radix: D,
@@ -608,69 +612,81 @@ impl<const L: usize> AsMut<[u8]> for Unsigned<L> {
 
 impl<const L: usize> Display for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let digits = into_digits(*self.with_sign(Sign::POS).digits(), Dec::RADIX as Single).unwrap_or_default();
+        let iter = match self.with_sign(Sign::POS).into_digits_iter(Dec::RADIX as Single) {
+            Ok(val) => val,
+            Err(_) => unreachable!(),
+        };
 
-        write_long(f, Dec.into(), &digits, get_sign(self.digits(), self.sign()), write_dec)
+        write_long_iter(f, Dec.into(), iter, get_sign(self.digits(), self.sign()), write_dec)
     }
 }
 
 impl<const L: usize> Display for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let digits = into_digits(*self.digits(), Dec::RADIX as Single).unwrap_or_default();
+        let iter = match self.into_digits_iter(Dec::RADIX as Single) {
+            Ok(val) => val,
+            Err(_) => unreachable!(),
+        };
 
-        write_long(f, Dec.into(), &digits, get_sign(self.digits(), self.sign()), write_dec)
+        write_long_iter(f, Dec.into(), iter, get_sign(self.digits(), self.sign()), write_dec)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long_arr(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long_arr(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Octal for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let digits = to_digits_bin(self.digits(), Oct::RADIX.order() as u8).unwrap_or_default();
+        let iter = match self.to_digits_bin_iter::<Single>(Oct::RADIX.order() as u8) {
+            Ok(val) => val,
+            Err(_) => unreachable!(),
+        };
 
-        write_long(f, Oct.into(), &digits, get_sign(self.digits(), Sign::POS), write_oct)
+        write_long_iter(f, Oct.into(), iter, get_sign(self.digits(), Sign::POS), write_oct)
     }
 }
 
 impl<const L: usize> Octal for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let digits = to_digits_bin(self.digits(), Oct::RADIX.order() as u8).unwrap_or_default();
+        let iter = match self.to_digits_bin_iter::<Single>(Oct::RADIX.order() as u8) {
+            Ok(val) => val,
+            Err(_) => unreachable!(),
+        };
 
-        write_long(f, Oct.into(), &digits, get_sign(self.digits(), Sign::POS), write_oct)
+        write_long_iter(f, Oct.into(), iter, get_sign(self.digits(), Sign::POS), write_oct)
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long_arr(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
     }
 }
 
@@ -701,7 +717,7 @@ impl<const L: usize> Signed<L> {
         from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
-    pub fn from_digits_iter<Digits: DigitsIterator<Item = u8>>(
+    pub fn from_digits_iter<Digits: DigitsIterator<Item = u8> + DoubleEndedIterator>(
         digits: Digits,
         radix: u8,
     ) -> Result<Self, TryFromDigitsError> {
@@ -715,19 +731,19 @@ impl<const L: usize> Signed<L> {
         from_digits_bin_iter(digits, exp).map(Self)
     }
 
-    pub fn into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn into_digits<D: Digit>(self, radix: D) -> Result<Vec<D>, TryIntoDigitsError> {
         into_digits(self.0, radix)
     }
 
-    pub fn to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn to_digits_bin<D: Digit>(&self, exp: u8) -> Result<Vec<D>, TryIntoDigitsError> {
         to_digits_bin(&self.0, exp)
     }
 
-    pub fn into_digits_iter(self, radix: u8) -> Result<DigitsIter<L, u8>, TryIntoDigitsError> {
+    pub fn into_digits_iter<D: Digit>(self, radix: D) -> Result<DigitsIter<L, D>, TryIntoDigitsError> {
         into_digits_iter(self.0, radix)
     }
 
-    pub fn to_digits_bin_iter(&self, exp: u8) -> Result<DigitsBinIter<'_, L, u8>, TryIntoDigitsError> {
+    pub fn to_digits_bin_iter<D: Digit>(&self, exp: u8) -> Result<DigitsBinIter<'_, L, D>, TryIntoDigitsError> {
         to_digits_bin_iter(&self.0, exp)
     }
 
@@ -798,7 +814,7 @@ impl<const L: usize> Unsigned<L> {
         from_digits_bin(digits.as_ref(), exp).map(Self)
     }
 
-    pub fn from_digits_iter<Digits: DigitsIterator<Item = u8>>(
+    pub fn from_digits_iter<Digits: DigitsIterator<Item = u8> + DoubleEndedIterator>(
         digits: Digits,
         radix: u8,
     ) -> Result<Self, TryFromDigitsError> {
@@ -812,19 +828,19 @@ impl<const L: usize> Unsigned<L> {
         from_digits_bin_iter(digits, exp).map(Self)
     }
 
-    pub fn into_digits(self, radix: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn into_digits<D: Digit>(self, radix: D) -> Result<Vec<D>, TryIntoDigitsError> {
         into_digits(self.0, radix)
     }
 
-    pub fn to_digits_bin(&self, exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn to_digits_bin<D: Digit>(&self, exp: u8) -> Result<Vec<D>, TryIntoDigitsError> {
         to_digits_bin(&self.0, exp)
     }
 
-    pub fn into_digits_iter(self, radix: u8) -> Result<DigitsIter<L, u8>, TryIntoDigitsError> {
+    pub fn into_digits_iter<D: Digit>(self, radix: D) -> Result<DigitsIter<L, D>, TryIntoDigitsError> {
         into_digits_iter(self.0, radix)
     }
 
-    pub fn to_digits_bin_iter(&self, exp: u8) -> Result<DigitsBinIter<'_, L, u8>, TryIntoDigitsError> {
+    pub fn to_digits_bin_iter<D: Digit>(&self, exp: u8) -> Result<DigitsBinIter<'_, L, D>, TryIntoDigitsError> {
         to_digits_bin_iter(&self.0, exp)
     }
 
@@ -850,24 +866,31 @@ impl<'digits, const L: usize, D: Digit> Iterator for DigitsBinIter<'digits, L, D
     type Item = D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.digits.len() == self.idx {
-            return None;
-        }
+        if self.idx == self.digits.len() {
+            if self.acc == 0 && self.shl == 0 {
+                return None;
+            }
 
-        if self.shl >= self.bits {
+            let val = self.acc;
+
             self.acc >>= self.bits;
-            self.shl -= self.bits;
-            self.val = D::from_double(self.acc & self.mask);
+            self.shl = self.shl.saturating_sub(self.bits);
 
-            return Some(self.val);
+            return Some(D::from_double(val));
         }
 
-        self.acc |= (self.digits[self.idx] as Double) << self.shl;
-        self.shl += BITS;
-        self.idx += 1;
-        self.val = D::from_double(self.acc & self.mask);
+        if self.shl < self.bits {
+            self.acc |= (self.digits[self.idx] as Double) << self.shl;
+            self.shl += BITS;
+            self.idx += 1;
+        }
 
-        Some(self.val)
+        let val = self.acc;
+
+        self.acc >>= self.bits;
+        self.shl -= self.bits;
+
+        Some(D::from_double(val & self.mask))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -1073,7 +1096,7 @@ fn to_digits_bin_iter<const L: usize, D: Digit>(
         acc: 0,
         shl: 0,
         idx: 0,
-        val: D::ZERO,
+        _phantom: PhantomData,
     })
 }
 
@@ -1108,7 +1131,7 @@ fn from_digits<const L: usize, D: Digit>(digits: &[D], radix: D) -> Result<[Sing
     Ok(res)
 }
 
-fn from_digits_iter<const L: usize, D: Digit, Digits: DigitsIterator<Item = D>>(
+fn from_digits_iter<const L: usize, D: Digit, Digits: DigitsIterator<Item = D> + DoubleEndedIterator>(
     digits: Digits,
     radix: D,
 ) -> Result<[Single; L], TryFromDigitsError> {
@@ -1174,33 +1197,74 @@ fn into_digits_iter<const L: usize, D: Digit>(
     Ok(DigitsIter { digits, radix, len })
 }
 
-fn write_dec(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{digit:0width$}")
+fn write_dec(mut cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
+    cursor.write_fmt(format_args!("{digit:0width$}"));
+
+    Ok(())
 }
 
-fn write_bin(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{digit:0width$b}")
+fn write_bin(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
+    let buf = cursor.into_inner();
+
+    for byte in buf[..width].iter_mut().rev() {
+        *byte = b'0' + (digit % 2) as u8;
+        digit /= 2;
+    }
+
+    Ok(())
 }
 
-fn write_oct(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{digit:0width$o}")
+fn write_oct(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
+    let buf = cursor.into_inner();
+
+    for byte in buf[..width].iter_mut().rev() {
+        *byte = b'0' + (digit % 8) as u8;
+        digit /= 8;
+    }
+
+    Ok(())
 }
 
-fn write_lhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{digit:0width$x}")
+fn write_lhex(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
+    const HEX: [u8; 16] = [
+        b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
+    ];
+
+    let buf = cursor.into_inner();
+
+    for byte in buf[..width].iter_mut().rev() {
+        *byte = HEX[(digit % 16) as usize];
+        digit /= 16;
+    }
+
+    Ok(())
 }
 
-fn write_uhex(buf: &mut String, digit: Single, width: usize) -> std::fmt::Result {
-    write!(buf, "{digit:0width$X}")
+fn write_uhex(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
+    const HEX: [u8; 16] = [
+        b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F',
+    ];
+
+    let buf = cursor.into_inner();
+
+    for byte in buf[..width].iter_mut().rev() {
+        *byte = HEX[(digit % 16) as usize];
+        digit /= 16;
+    }
+
+    Ok(())
 }
 
-fn write_long<F: Fn(&mut String, Single, usize) -> std::fmt::Result>(
+fn write_long_iter<Digits: DigitsIterator, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     radix: Radix,
-    digits: &[Single],
+    digits: Digits,
     sign: Sign,
     func: F,
-) -> std::fmt::Result {
+) -> std::fmt::Result
+where
+    <Digits as Iterator>::Item: Digit,
+{
     let sign = match sign {
         Sign::ZERO => {
             return write!(fmt, "{}0", radix.prefix);
@@ -1209,20 +1273,28 @@ fn write_long<F: Fn(&mut String, Single, usize) -> std::fmt::Result>(
         Sign::POS => "",
     };
 
-    let len = get_len(digits);
+    let prefix = radix.prefix;
+    let width = radix.width as usize;
+    let len = digits.len();
 
-    let mut buf = String::with_capacity(len * radix.width as usize);
+    let mut buf = vec![b'0'; len * width];
 
-    for &digit in digits[..len].iter().rev() {
-        func(&mut buf, digit, radix.width as usize)?;
+    for (i, digit) in digits.enumerate() {
+        let offset = (len - i - 1) * width;
+
+        func(Cursor::new(&mut buf[offset..]), digit.as_single(), width)?;
     }
 
-    let offset = buf.as_bytes().iter().take_while(|&byte| byte == &b'0').count();
+    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
+    let str = match str::from_utf8(&buf[offset..]) {
+        Ok(val) => val,
+        Err(_) => unreachable!(),
+    };
 
-    write!(fmt, "{}{}{}", sign, radix.prefix, &buf[offset..])
+    write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
-fn write_long_arr<const L: usize, F: Fn(&mut String, Single, usize) -> std::fmt::Result>(
+fn write_long<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     radix: Radix,
     digits: &[Single; L],
@@ -1237,17 +1309,25 @@ fn write_long_arr<const L: usize, F: Fn(&mut String, Single, usize) -> std::fmt:
         Sign::POS => "",
     };
 
+    let prefix = radix.prefix;
+    let width = radix.width as usize;
     let len = get_len_arr(digits);
 
-    let mut buf = String::with_capacity(len * radix.width as usize);
+    let mut buf = vec![b'0'; len * width];
 
-    for &digit in digits[..len].iter().rev() {
-        func(&mut buf, digit, radix.width as usize)?;
+    for (i, &digit) in digits[..len].iter().enumerate() {
+        let offset = (len - i - 1) * width;
+
+        func(Cursor::new(&mut buf[offset..]), digit, width)?;
     }
 
-    let offset = buf.as_bytes().iter().take_while(|&byte| byte == &b'0').count();
+    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
+    let str = match str::from_utf8(&buf[offset..]) {
+        Ok(val) => val,
+        Err(_) => unreachable!(),
+    };
 
-    write!(fmt, "{}{}{}", sign, radix.prefix, &buf[offset..])
+    write!(fmt, "{}{}{}", sign, radix.prefix, str)
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
@@ -1596,8 +1676,8 @@ mod tests {
 
     #[test]
     fn into_digits() -> Result<()> {
-        assert_eq!(S64::from_digits([], 251)?.into_digits(251)?, vec![]);
-        assert_eq!(U64::from_digits([], 251)?.into_digits(251)?, vec![]);
+        assert_eq!(S64::from(0i8).into_digits(251u8)?, vec![] as Vec<u8>);
+        assert_eq!(U64::from(0u8).into_digits(251u8)?, vec![] as Vec<u8>);
 
         let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
 
@@ -1621,6 +1701,39 @@ mod tests {
                         .chain(repeat(&0))
                         .zip(digits.iter())
                         .all(|(lhs, rhs)| lhs == rhs)
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn into_digits_bin_iter() -> Result<()> {
+        assert_eq!(S64::from(0i8).into_digits(251u8)?, vec![] as Vec<u8>);
+        assert_eq!(U64::from(0u8).into_digits(251u8)?, vec![] as Vec<u8>);
+
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        for exp in 1..u8::BYTES as u8 {
+            for _ in 0..=u8::MAX {
+                let radix = 1 << exp;
+                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+
+                assert!(
+                    S64::from_digits_bin(digits, exp)?
+                        .to_digits_bin_iter(exp)?
+                        .chain(repeat(0))
+                        .zip(digits.iter())
+                        .all(|(lhs, &rhs)| lhs == rhs)
+                );
+
+                assert!(
+                    U64::from_digits_bin(digits, exp)?
+                        .to_digits_bin_iter(exp)?
+                        .chain(repeat(0))
+                        .zip(digits.iter())
+                        .all(|(lhs, &rhs)| lhs == rhs)
                 );
             }
         }
