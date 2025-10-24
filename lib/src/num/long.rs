@@ -480,6 +480,7 @@ pub struct DigitsBinIter<'digits, const L: usize, D: Digit> {
     digits: &'digits [Single; L],
     bits: usize,
     mask: Double,
+    cnt: usize,
     len: usize,
     acc: Double,
     shl: usize,
@@ -866,7 +867,7 @@ impl<'digits, const L: usize, D: Digit> Iterator for DigitsBinIter<'digits, L, D
     type Item = D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.idx == self.digits.len() {
+        if self.idx == self.cnt {
             if self.acc == 0 && self.shl == 0 {
                 return None;
             }
@@ -1086,12 +1087,14 @@ fn to_digits_bin_iter<const L: usize, D: Digit>(
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
-    let len = (digits.len() * BITS + bits - 1) / bits;
+    let cnt = get_len_arr(digits);
+    let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsBinIter {
         digits,
         bits,
         mask,
+        cnt,
         len,
         acc: 0,
         shl: 0,
@@ -1192,7 +1195,8 @@ fn into_digits_iter<const L: usize, D: Digit>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let len = (digits.len() * BITS + bits - 1) / bits;
+    let cnt = get_len_arr(&digits);
+    let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsIter { digits, radix, len })
 }
