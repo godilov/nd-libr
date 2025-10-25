@@ -32,8 +32,8 @@ fn get_group<'c>(c: &'c mut Criterion, name: &'static str) -> BenchmarkGroup<'c,
     let mut group = c.benchmark_group(name);
 
     group.sample_size(256);
-    group.measurement_time(Duration::from_secs(6));
-    group.warm_up_time(Duration::from_secs(2));
+    group.measurement_time(Duration::from_secs(8));
+    group.warm_up_time(Duration::from_secs(4));
     group
 }
 
@@ -71,8 +71,8 @@ fn from_slice(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_slice");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
         group.throughput(Throughput::Bytes(len as u64));
@@ -91,8 +91,8 @@ fn from_iter(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_iter");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
         group.throughput(Throughput::Bytes(len as u64));
@@ -111,8 +111,8 @@ fn from_digits(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
 
         let radix = 251u8;
         let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
@@ -137,8 +137,8 @@ fn from_digits_iter(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits_iter");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
 
         let radix = 251u8;
         let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
@@ -163,8 +163,8 @@ fn from_digits_bin(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits_bin");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
 
         let exp = 7;
         let radix = 1 << exp;
@@ -190,8 +190,8 @@ fn from_digits_bin_iter(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits_bin_iter");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
 
         let exp = 7;
         let radix = 1 << exp;
@@ -305,8 +305,8 @@ fn from_str(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_str");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
         let signed = S4096::from(&bytes[..len]);
@@ -376,8 +376,8 @@ fn to_str(c: &mut Criterion) {
     let mut group = get_group(c, "long::to_str");
     let mut rng = get_rng();
 
-    for div in (0..6).rev().map(|exp| 1usize << exp) {
-        let len = BYTES / div;
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
         let signed = S4096::from(&bytes[..len]);
