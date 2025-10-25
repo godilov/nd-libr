@@ -868,7 +868,7 @@ impl<'digits, const L: usize, D: Digit> Iterator for DigitsBinIter<'digits, L, D
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.idx == self.cnt {
-            if self.acc == 0 && self.shl == 0 {
+            if self.shl == 0 {
                 return None;
             }
 
