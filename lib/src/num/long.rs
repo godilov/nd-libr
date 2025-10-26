@@ -448,11 +448,15 @@ pub enum TryFromDigitsError {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+pub enum TryToDigitsError {
+    #[error("Found invalid exp '{exp}'")]
+    InvalidExponent { exp: u8 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryIntoDigitsError {
     #[error("Found invalid radix '{radix}'")]
     InvalidRadix { radix: usize },
-    #[error("Found invalid exp '{exp}'")]
-    InvalidExponent { exp: u8 },
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -530,6 +534,14 @@ pub type U3072 = unsigned!(3072);
 pub type U4096 = unsigned!(4096);
 pub type U6144 = unsigned!(6144);
 pub type U8192 = unsigned!(8192);
+
+impl From<TryToDigitsError> for TryIntoDigitsError {
+    fn from(value: TryToDigitsError) -> Self {
+        match value {
+            TryToDigitsError::InvalidExponent { exp } => Self::InvalidRadix { radix: exp.order() },
+        }
+    }
+}
 
 impl<const L: usize> Default for Signed<L> {
     fn default() -> Self {
@@ -740,11 +752,11 @@ impl<const L: usize> Signed<L> {
         from_digits_arb_iter(digits, radix).map(Self)
     }
 
-    pub fn to_digits<D: Digit>(&self, exp: u8) -> Result<Vec<D>, TryIntoDigitsError> {
+    pub fn to_digits<D: Digit>(&self, exp: u8) -> Result<Vec<D>, TryToDigitsError> {
         to_digits(&self.0, exp)
     }
 
-    pub fn to_digits_iter<D: Digit>(&self, exp: u8) -> Result<DigitsIter<'_, L, D>, TryIntoDigitsError> {
+    pub fn to_digits_iter<D: Digit>(&self, exp: u8) -> Result<DigitsIter<'_, L, D>, TryToDigitsError> {
         to_digits_iter(&self.0, exp)
     }
 
@@ -837,11 +849,11 @@ impl<const L: usize> Unsigned<L> {
         from_digits_arb_iter(digits, radix).map(Self)
     }
 
-    pub fn to_digits<D: Digit>(&self, exp: u8) -> Result<Vec<D>, TryIntoDigitsError> {
+    pub fn to_digits<D: Digit>(&self, exp: u8) -> Result<Vec<D>, TryToDigitsError> {
         to_digits(&self.0, exp)
     }
 
-    pub fn to_digits_iter<D: Digit>(&self, exp: u8) -> Result<DigitsIter<'_, L, D>, TryIntoDigitsError> {
+    pub fn to_digits_iter<D: Digit>(&self, exp: u8) -> Result<DigitsIter<'_, L, D>, TryToDigitsError> {
         to_digits_iter(&self.0, exp)
     }
 
@@ -1002,9 +1014,9 @@ fn from_str_validate(s: &str, radix: u8) -> Result<(), TryFromStrError> {
     Ok(())
 }
 
-fn to_digits_validate<D: Digit>(exp: u8) -> Result<(), TryIntoDigitsError> {
+fn to_digits_validate<D: Digit>(exp: u8) -> Result<(), TryToDigitsError> {
     if exp == 0 || exp >= D::BITS as u8 {
-        return Err(TryIntoDigitsError::InvalidExponent { exp });
+        return Err(TryToDigitsError::InvalidExponent { exp });
     }
 
     Ok(())
@@ -1105,7 +1117,7 @@ fn from_str_arb<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
     Ok(res)
 }
 
-fn to_digits<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) -> Result<Vec<D>, TryIntoDigitsError> {
+fn to_digits<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) -> Result<Vec<D>, TryToDigitsError> {
     to_digits_validate::<D>(exp)?;
 
     let bits = exp as usize;
@@ -1138,7 +1150,7 @@ fn to_digits<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) -> Result<
 fn to_digits_iter<const L: usize, D: Digit>(
     digits: &[Single; L],
     exp: u8,
-) -> Result<DigitsIter<'_, L, D>, TryIntoDigitsError> {
+) -> Result<DigitsIter<'_, L, D>, TryToDigitsError> {
     to_digits_validate::<D>(exp)?;
 
     let bits = exp as usize;
@@ -1161,7 +1173,7 @@ fn to_digits_iter<const L: usize, D: Digit>(
 
 fn into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) -> Result<Vec<D>, TryIntoDigitsError> {
     if radix.is_pow2() {
-        return to_digits(&digits, radix.order() as u8);
+        return Ok(to_digits(&digits, radix.order() as u8)?);
     }
 
     into_digits_validate(radix)?;
@@ -1580,12 +1592,12 @@ pub(crate) mod asm {
     }
 
     #[inline(never)]
-    pub fn to_digits_(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, TryIntoDigitsError> {
+    pub fn to_digits_(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, TryToDigitsError> {
         to_digits::<L, u8>(digits, exp)
     }
 
     #[inline(never)]
-    pub fn to_digits_iter_(digits: &[Single; L], exp: u8) -> Result<usize, TryIntoDigitsError> {
+    pub fn to_digits_iter_(digits: &[Single; L], exp: u8) -> Result<usize, TryToDigitsError> {
         to_digits_iter::<L, u8>(digits, exp).map(|iter| iter.count())
     }
 
