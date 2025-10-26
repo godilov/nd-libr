@@ -863,7 +863,7 @@ impl<const L: usize> Unsigned<L> {
     }
 
     pub fn sign(&self) -> Sign {
-        get_sign_arr(&self.0, Sign::POS)
+        get_sign(&self.0, Sign::POS)
     }
 }
 
@@ -872,8 +872,6 @@ impl<'digits, const L: usize, D: Digit> Iterator for DigitsBinIter<'digits, L, D
     type Item = D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        println!("{:?}", self);
-
         if self.idx == self.cnt {
             if self.acc == 0 {
                 return None;
@@ -911,6 +909,8 @@ impl<const L: usize, D: Digit> Iterator for DigitsIter<L, D> {
     type Item = D;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let radix = self.radix.as_double();
+
         let mut any = 0;
         let mut acc = 0;
 
@@ -918,9 +918,9 @@ impl<const L: usize, D: Digit> Iterator for DigitsIter<L, D> {
             any |= *digit;
             acc = (acc << BITS) | *digit as Double;
 
-            *digit = (acc / self.radix.as_double()) as Single;
+            *digit = (acc / radix) as Single;
 
-            acc %= self.radix.as_double();
+            acc %= radix;
         }
 
         if any == 0 {
@@ -1123,7 +1123,7 @@ fn to_digits_bin<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) -> Res
         }
     }
 
-    res.truncate(get_len(&res));
+    res.truncate(get_len_slice(&res));
 
     Ok(res)
 }
@@ -1140,7 +1140,7 @@ fn to_digits_bin_iter<const L: usize, D: Digit>(
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
-    let cnt = get_len_arr(digits);
+    let cnt = get_len(digits);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsBinIter {
@@ -1190,7 +1190,7 @@ fn into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) -> R
         idx += 1;
     }
 
-    res.truncate(get_len(&res));
+    res.truncate(get_len_slice(&res));
 
     Ok(res)
 }
@@ -1202,7 +1202,7 @@ fn into_digits_iter<const L: usize, D: Digit>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = get_len_arr(&digits);
+    let cnt = get_len(&digits);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsIter { digits, radix, len })
@@ -1266,6 +1266,42 @@ fn write_uhex(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std
     Ok(())
 }
 
+fn write_long<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
+    fmt: &mut Formatter<'_>,
+    radix: Radix,
+    digits: &[Single; L],
+    sign: Sign,
+    func: F,
+) -> std::fmt::Result {
+    let sign = match sign {
+        Sign::ZERO => {
+            return write!(fmt, "{}0", radix.prefix);
+        },
+        Sign::NEG => "-",
+        Sign::POS => "",
+    };
+
+    let prefix = radix.prefix;
+    let width = radix.width as usize;
+    let len = get_len(digits);
+
+    let mut buf = vec![b'0'; len * width];
+
+    for (i, &digit) in digits[..len].iter().enumerate() {
+        let offset = (len - i - 1) * width;
+
+        func(Cursor::new(&mut buf[offset..]), digit, width)?;
+    }
+
+    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
+    let str = match str::from_utf8(&buf[offset..]) {
+        Ok(val) => val,
+        Err(_) => unreachable!(),
+    };
+
+    write!(fmt, "{}{}{}", sign, radix.prefix, str)
+}
+
 fn write_long_iter<Digits: DigitsIterator, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     radix: Radix,
@@ -1303,42 +1339,6 @@ where
     };
 
     write!(fmt, "{}{}{}", sign, prefix, str)
-}
-
-fn write_long<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
-    fmt: &mut Formatter<'_>,
-    radix: Radix,
-    digits: &[Single; L],
-    sign: Sign,
-    func: F,
-) -> std::fmt::Result {
-    let sign = match sign {
-        Sign::ZERO => {
-            return write!(fmt, "{}0", radix.prefix);
-        },
-        Sign::NEG => "-",
-        Sign::POS => "",
-    };
-
-    let prefix = radix.prefix;
-    let width = radix.width as usize;
-    let len = get_len_arr(digits);
-
-    let mut buf = vec![b'0'; len * width];
-
-    for (i, &digit) in digits[..len].iter().enumerate() {
-        let offset = (len - i - 1) * width;
-
-        func(Cursor::new(&mut buf[offset..]), digit, width)?;
-    }
-
-    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
-    let str = match str::from_utf8(&buf[offset..]) {
-        Ok(val) => val,
-        Err(_) => unreachable!(),
-    };
-
-    write!(fmt, "{}{}{}", sign, radix.prefix, str)
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
@@ -1383,7 +1383,7 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
     }
 }
 
-fn get_len<D: Digit>(digits: &[D]) -> usize {
+fn get_len<D: Digit, const L: usize>(digits: &[D; L]) -> usize {
     for (i, digit) in digits.iter().enumerate().rev() {
         if digit != &D::ZERO {
             return i + 1;
@@ -1393,7 +1393,7 @@ fn get_len<D: Digit>(digits: &[D]) -> usize {
     0
 }
 
-fn get_len_arr<D: Digit, const L: usize>(digits: &[D; L]) -> usize {
+fn get_len_slice<D: Digit>(digits: &[D]) -> usize {
     for (i, digit) in digits.iter().enumerate().rev() {
         if digit != &D::ZERO {
             return i + 1;
@@ -1403,12 +1403,12 @@ fn get_len_arr<D: Digit, const L: usize>(digits: &[D; L]) -> usize {
     0
 }
 
-fn get_sign<D: Digit>(digits: &[D], sign: Sign) -> Sign {
-    if !is_zero(digits) { sign } else { Sign::ZERO }
-}
-
-fn get_sign_arr<D: Digit, const L: usize>(digits: &[D; L], sign: Sign) -> Sign {
+fn get_sign<D: Digit, const L: usize>(digits: &[D; L], sign: Sign) -> Sign {
     if digits != &[D::ZERO; L] { sign } else { Sign::ZERO }
+}
+
+fn get_sign_slice<D: Digit>(digits: &[D], sign: Sign) -> Sign {
+    if !is_zero(digits) { sign } else { Sign::ZERO }
 }
 
 fn is_zero<D: Digit>(digits: &[D]) -> bool {
@@ -1733,9 +1733,11 @@ mod tests {
     }
 
     #[test]
-    fn into_digits() -> Result<()> {
-        assert_eq!(S64::from(0i8).into_digits::<u8>(251)?, vec![]);
-        assert_eq!(U64::from(0u8).into_digits::<u8>(251)?, vec![]);
+    fn from_digits_iter() -> Result<()> {
+        let empty = (&[] as &[u8]).iter().copied();
+
+        assert_eq!(S64::from_digits_iter(empty.clone(), 251)?, S64::default());
+        assert_eq!(U64::from_digits_iter(empty.clone(), 251)?, U64::default());
 
         let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
 
@@ -1743,22 +1745,20 @@ mod tests {
             for _ in 0..=u8::MAX {
                 let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
 
-                assert!(
-                    S64::from_digits(digits, radix)?
-                        .into_digits(radix)?
-                        .iter()
-                        .chain(repeat(&0))
-                        .zip(digits.iter())
-                        .all(|(lhs, rhs)| lhs == rhs)
+                let bytes = digits
+                    .iter()
+                    .rev()
+                    .fold(0, |acc, &x| acc * radix as u64 + x as u64)
+                    .to_le_bytes();
+
+                assert_eq!(
+                    S64::from_digits_iter(digits.iter().copied(), radix)?,
+                    S64 { 0: pos(transmute!(bytes)) }
                 );
 
-                assert!(
-                    U64::from_digits(digits, radix)?
-                        .into_digits(radix)?
-                        .iter()
-                        .chain(repeat(&0))
-                        .zip(digits.iter())
-                        .all(|(lhs, rhs)| lhs == rhs)
+                assert_eq!(
+                    U64::from_digits_iter(digits.iter().copied(), radix)?,
+                    U64 { 0: pos(transmute!(bytes)) }
                 );
             }
         }
@@ -1802,6 +1802,76 @@ mod tests {
     }
 
     #[test]
+    fn to_digits_bin_iter() -> Result<()> {
+        assert_eq!(S64::from(0i8).to_digits_bin_iter::<u8>(7)?.len(), 0);
+        assert_eq!(U64::from(0u8).to_digits_bin_iter::<u8>(7)?.len(), 0);
+
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        for exp in 1..u8::BITS as u8 {
+            for _ in 0..=u8::MAX {
+                let radix = 1 << exp;
+                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+
+                let val = S64::from_digits_bin(digits, exp)?;
+                let res = val.to_digits_bin_iter::<u8>(exp)?.collect::<Vec<u8>>();
+
+                assert!(
+                    S64::from_digits_bin(digits, exp)?
+                        .to_digits_bin_iter(exp)?
+                        .chain(repeat(0))
+                        .zip(digits.iter())
+                        .all(|(lhs, &rhs)| lhs == rhs)
+                );
+
+                assert!(
+                    U64::from_digits_bin(digits, exp)?
+                        .to_digits_bin_iter(exp)?
+                        .chain(repeat(0))
+                        .zip(digits.iter())
+                        .all(|(lhs, &rhs)| lhs == rhs)
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn into_digits() -> Result<()> {
+        assert_eq!(S64::from(0i8).into_digits::<u8>(251)?, vec![]);
+        assert_eq!(U64::from(0u8).into_digits::<u8>(251)?, vec![]);
+
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        for radix in 2..=u8::MAX {
+            for _ in 0..=u8::MAX {
+                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+
+                assert!(
+                    S64::from_digits(digits, radix)?
+                        .into_digits(radix)?
+                        .iter()
+                        .chain(repeat(&0))
+                        .zip(digits.iter())
+                        .all(|(lhs, rhs)| lhs == rhs)
+                );
+
+                assert!(
+                    U64::from_digits(digits, radix)?
+                        .into_digits(radix)?
+                        .iter()
+                        .chain(repeat(&0))
+                        .zip(digits.iter())
+                        .all(|(lhs, rhs)| lhs == rhs)
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
     fn into_digits_iter() -> Result<()> {
         assert_eq!(S64::from(0i8).into_digits_iter::<u8>(251)?.len(), 0);
         assert_eq!(U64::from(0u8).into_digits_iter::<u8>(251)?.len(), 0);
@@ -1823,44 +1893,6 @@ mod tests {
                 assert!(
                     U64::from_digits(digits, radix)?
                         .into_digits_iter(radix)?
-                        .chain(repeat(0))
-                        .zip(digits.iter())
-                        .all(|(lhs, &rhs)| lhs == rhs)
-                );
-            }
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn to_digits_bin_iter() -> Result<()> {
-        assert_eq!(S64::from(0i8).to_digits_bin_iter::<u8>(7)?.len(), 0);
-        assert_eq!(U64::from(0u8).to_digits_bin_iter::<u8>(7)?.len(), 0);
-
-        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
-
-        for exp in 1..u8::BITS as u8 {
-            for _ in 0..=u8::MAX {
-                let radix = 1 << exp;
-                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
-
-                let val = S64::from_digits_bin(digits, exp)?;
-                let res = val.to_digits_bin_iter::<u8>(exp)?.collect::<Vec<u8>>();
-
-                println!("Context: {:?}", (exp, radix, &digits, &val, &res));
-
-                assert!(
-                    S64::from_digits_bin(digits, exp)?
-                        .to_digits_bin_iter(exp)?
-                        .chain(repeat(0))
-                        .zip(digits.iter())
-                        .all(|(lhs, &rhs)| lhs == rhs)
-                );
-
-                assert!(
-                    U64::from_digits_bin(digits, exp)?
-                        .to_digits_bin_iter(exp)?
                         .chain(repeat(0))
                         .zip(digits.iter())
                         .all(|(lhs, &rhs)| lhs == rhs)
