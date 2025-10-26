@@ -1002,8 +1002,8 @@ fn from_str_validate(s: &str, radix: u8) -> Result<(), TryFromStrError> {
     Ok(())
 }
 
-fn to_digits_validate(exp: u8) -> Result<(), TryIntoDigitsError> {
-    if exp == 0 || exp >= u8::BITS as u8 {
+fn to_digits_validate<D: Digit>(exp: u8) -> Result<(), TryIntoDigitsError> {
+    if exp == 0 || exp >= D::BITS as u8 {
         return Err(TryIntoDigitsError::InvalidExponent { exp });
     }
 
@@ -1106,7 +1106,7 @@ fn from_str_arb<const L: usize>(s: &str) -> Result<[Single; L], TryFromStrError>
 }
 
 fn to_digits<const L: usize, D: Digit>(digits: &[Single; L], exp: u8) -> Result<Vec<D>, TryIntoDigitsError> {
-    to_digits_validate(exp)?;
+    to_digits_validate::<D>(exp)?;
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
@@ -1139,7 +1139,7 @@ fn to_digits_iter<const L: usize, D: Digit>(
     digits: &[Single; L],
     exp: u8,
 ) -> Result<DigitsIter<'_, L, D>, TryIntoDigitsError> {
-    to_digits_validate(exp)?;
+    to_digits_validate::<D>(exp)?;
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
