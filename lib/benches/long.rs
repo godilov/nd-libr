@@ -220,16 +220,17 @@ fn to_digits(c: &mut Criterion) {
     for exp in [7, 6, 5, 4, 3, 2, 1] {
         let bytes = rng.random::<[u8; BYTES]>();
 
+        let radix = 1u8 << exp;
         let signed = S4096::from(&bytes[..]);
         let unsigned = U4096::from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
-        group.bench_with_input(BenchmarkId::new("S4096", exp), &(&signed, exp), |b, &(long, exp)| {
+        group.bench_with_input(BenchmarkId::new("S4096", radix), &(&signed, exp), |b, &(long, exp)| {
             b.iter(|| long.to_digits::<u8>(exp))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096", exp), &(&unsigned, exp), |b, &(long, exp)| {
+        group.bench_with_input(BenchmarkId::new("U4096", radix), &(&unsigned, exp), |b, &(long, exp)| {
             b.iter(|| long.to_digits::<u8>(exp))
         });
     }
@@ -242,16 +243,17 @@ fn to_digits_iter(c: &mut Criterion) {
     for exp in [7, 6, 5, 4, 3, 2, 1] {
         let bytes = rng.random::<[u8; BYTES]>();
 
+        let radix = 1u8 << exp;
         let signed = S4096::from(&bytes[..]);
         let unsigned = U4096::from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
-        group.bench_with_input(BenchmarkId::new("S4096", exp), &(&signed, exp), |b, &(long, exp)| {
+        group.bench_with_input(BenchmarkId::new("S4096", radix), &(&signed, exp), |b, &(long, exp)| {
             b.iter(|| long.to_digits_iter::<u8>(exp).map(|it| it.count()))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096", exp), &(&unsigned, exp), |b, &(long, exp)| {
+        group.bench_with_input(BenchmarkId::new("U4096", radix), &(&unsigned, exp), |b, &(long, exp)| {
             b.iter(|| long.to_digits_iter::<u8>(exp).map(|it| it.count()))
         });
     }

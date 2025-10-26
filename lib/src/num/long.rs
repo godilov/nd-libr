@@ -363,18 +363,21 @@ pub mod radix {
     }
 
     impl Bin {
+        pub const EXP: u8 = RADIX.ilog2() as u8;
         pub const PREFIX: &str = "0b";
         pub const RADIX: Double = RADIX;
         pub const WIDTH: u8 = BITS as u8;
     }
 
     impl Oct {
+        pub const EXP: u8 = OCT_RADIX.ilog2() as u8;
         pub const PREFIX: &str = "0o";
         pub const RADIX: Double = OCT_RADIX;
         pub const WIDTH: u8 = OCT_WIDTH;
     }
 
     impl Hex {
+        pub const EXP: u8 = RADIX.ilog2() as u8;
         pub const PREFIX: &str = "0x";
         pub const RADIX: Double = RADIX;
         pub const WIDTH: u8 = BITS as u8 / 4;
@@ -652,7 +655,7 @@ impl<const L: usize> Binary for Unsigned<L> {
 
 impl<const L: usize> Octal for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match self.to_digits_iter::<Single>(Oct::RADIX.order() as u8) {
+        let iter = match self.to_digits_iter::<Single>(Oct::EXP) {
             Ok(val) => val,
             Err(_) => unreachable!(),
         };
@@ -663,7 +666,7 @@ impl<const L: usize> Octal for Signed<L> {
 
 impl<const L: usize> Octal for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match self.to_digits_iter::<Single>(Oct::RADIX.order() as u8) {
+        let iter = match self.to_digits_iter::<Single>(Oct::EXP) {
             Ok(val) => val,
             Err(_) => unreachable!(),
         };
