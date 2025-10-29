@@ -11,7 +11,7 @@ use std::{
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
-use zerocopy::{FromBytes, Immutable, IntoBytes, transmute, transmute_mut};
+use zerocopy::{FromBytes, Immutable, IntoBytes, transmute, transmute_mut, transmute_ref};
 
 use crate::{
     num::{
@@ -1023,10 +1023,10 @@ fn to_digits_validate<D: Digit>(exp: u8) -> Result<(), TryToDigitsError> {
 }
 
 fn into_digits_validate<D: Digit>(radix: D) -> Result<(), TryIntoDigitsError> {
-    if radix.as_single() < 2 {
-        return Err(TryIntoDigitsError::InvalidRadix {
-            radix: radix.as_single() as usize,
-        });
+    let radix = radix.as_single() as usize;
+
+    if radix < 2 {
+        return Err(TryIntoDigitsError::InvalidRadix { radix });
     }
 
     Ok(())
@@ -1178,6 +1178,7 @@ fn into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) -> R
 
     into_digits_validate(radix)?;
 
+    let radix = radix.as_double();
     let bits = radix.order();
     let len = (digits.len() * BITS + bits - 1) / bits;
 
@@ -1192,9 +1193,9 @@ fn into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) -> R
             any |= *digit;
             acc = (acc << BITS) | *digit as Double;
 
-            *digit = (acc / radix.as_double()) as Single;
+            *digit = (acc / radix) as Single;
 
-            acc %= radix.as_double();
+            acc %= radix;
         }
 
         if any == 0 {
@@ -1354,6 +1355,95 @@ where
     };
 
     write!(fmt, "{}{}{}", sign, prefix, str)
+}
+
+fn add_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+    let x = transmute_ref!(&a[..]) as &[<Single as Digit>::Half];
+    let y = transmute_ref!(&b[..]) as &[<Single as Digit>::Half];
+
+    let mut res = [0; L];
+
+    x.iter()
+        .zip(y.iter())
+        .map(|(&x, &y)| x as Single + y as Single)
+        .scan(0, |s, x| {
+            let val = x + *s;
+
+            *s = val >> (BITS / 2);
+
+            Some(val.as_half())
+        })
+        .collect_with([0; L]);
+
+    todo!()
+}
+
+fn sub_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+    todo!()
+}
+
+fn mul_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+    todo!()
+}
+
+fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [Single; L]) {
+    todo!()
+}
+
+fn add_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
+    todo!()
+}
+
+fn sub_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
+    todo!()
+}
+
+fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
+    todo!()
+}
+
+fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
+    todo!()
+}
+
+fn add_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
+    todo!()
+}
+
+fn sub_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
+    todo!()
+}
+
+fn mul_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
+    todo!()
+}
+
+fn div_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
+    todo!()
+}
+
+fn rem_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
+    todo!()
+}
+
+fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
+    todo!()
+}
+
+fn sub_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
+    todo!()
+}
+
+fn mul_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
+    todo!()
+}
+
+fn div_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
+    todo!()
+}
+
+fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
+    todo!()
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
