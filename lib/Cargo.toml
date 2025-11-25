@@ -11,9 +11,6 @@ keywords.workspace   = true
 readme.workspace     = true
 description          = "Nd Lib"
 
-[lints]
-workspace = true
-
 [dependencies]
 anyhow    = { workspace = true }
 thiserror = { workspace = true }
@@ -29,6 +26,9 @@ ndproc = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
+
+[lints]
+workspace = true
 
 [[bench]]
 name    = "long"

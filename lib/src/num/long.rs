@@ -1361,9 +1361,12 @@ fn add_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
     let x = transmute_ref!(&a[..]) as &[<Single as Digit>::Half];
     let y = transmute_ref!(&b[..]) as &[<Single as Digit>::Half];
 
-    let mut res = [0; L];
+    let mut res = [<Single as Digit>::ZERO; L];
 
-    x.iter()
+    let mut r = transmute_mut!(&mut res) as &mut [[<Single as Digit>::Half; L]; 2];
+
+    let mut iter = x
+        .iter()
         .zip(y.iter())
         .map(|(&x, &y)| x as Single + y as Single)
         .scan(0, |s, x| {
@@ -1372,10 +1375,12 @@ fn add_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
             *s = val >> (BITS / 2);
 
             Some(val.as_half())
-        })
-        .collect_with([0; L]);
+        });
 
-    todo!()
+    r[0].iter_mut().zip(&mut iter).for_each(|(dst, src)| *dst = src);
+    r[1].iter_mut().zip(&mut iter).for_each(|(dst, src)| *dst = src);
+
+    res
 }
 
 fn sub_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
@@ -1628,7 +1633,7 @@ mod uops {
     }
 }
 
-pub(crate) mod asm {
+pub mod asm {
     use super::*;
 
     const L: usize = 4096 / BITS;
@@ -1699,6 +1704,26 @@ pub(crate) mod asm {
     #[inline(never)]
     pub fn into_digits_iter_(digits: [Single; L], radix: u8) -> Result<usize, TryIntoDigitsError> {
         into_digits_iter(digits, radix).map(|iter| iter.count())
+    }
+
+    #[inline(never)]
+    pub fn add_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+        add_long(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+        sub_long(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+        mul_long(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_long_(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [Single; L]) {
+        div_long(a, b)
     }
 
     #[inline(never)]
