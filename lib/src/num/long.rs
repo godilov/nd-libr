@@ -328,6 +328,7 @@ digits_impl!((u32, u64, u128), (10_000_000_000_000_000_000, 19), (Double::ONE <<
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
     digit_impl!(u64, [u32, u64, u128]);
+    digit_impl!(usize, [u32, u64, u128]);
 });
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
@@ -335,6 +336,7 @@ digits_impl!((u16, u32, u64), (1_000_000_000, 9), (Double::ONE << 30, 10), {
     digit_impl!(u8, [u8, u8, u16]);
     digit_impl!(u16, [u8, u16, u32]);
     digit_impl!(u32, [u16, u32, u64]);
+    digit_impl!(usize, [u16, u32, u64]);
 });
 
 #[cfg(test)]
@@ -424,11 +426,6 @@ pub mod radix {
     }
 }
 
-sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
-sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
-long_from!(@signed [i8, i16, i32, i64, i128, isize]);
-long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromStrError {
     #[error("Found empty during parsing from string")]
@@ -479,13 +476,17 @@ pub struct SignedFixed<const L: usize>(pub [Single; L], pub usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UnsignedFixed<const L: usize>(pub [Single; L], pub usize);
 
-struct SignedDyn(Vec<Single>, Sign);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedDyn(Vec<Single>, Sign);
 
-struct UnsignedDyn(Vec<Single>);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnsignedDyn(Vec<Single>);
 
-struct SignedFixedDyn(Vec<Single>, Sign, usize);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedFixedDyn(Vec<Single>, Sign, usize);
 
-struct UnsignedFixedDyn(Vec<Single>, usize);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnsignedFixedDyn(Vec<Single>, usize);
 
 #[derive(Debug, Clone)]
 pub struct DigitsIter<'digits, const L: usize, D: Digit> {
@@ -534,6 +535,11 @@ pub type U3072 = unsigned!(3072);
 pub type U4096 = unsigned!(4096);
 pub type U6144 = unsigned!(6144);
 pub type U8192 = unsigned!(8192);
+
+sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
+sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
+long_from!(@signed [i8, i16, i32, i64, i128, isize]);
+long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 impl From<TryToDigitsError> for TryIntoDigitsError {
     fn from(value: TryToDigitsError) -> Self {

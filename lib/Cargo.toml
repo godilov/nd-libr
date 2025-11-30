@@ -13,14 +13,12 @@ description          = "Nd Lib"
 
 [dependencies]
 anyhow    = { workspace = true }
+rand      = { workspace = true }
+rayon     = { workspace = true }
 thiserror = { workspace = true }
-
-rand     = { workspace = true, features = ["std_rng", "thread_rng"] }
-zerocopy = { workspace = true }
-
-rayon   = { workspace = true }
-tokio   = { workspace = true }
-tracing = { workspace = true }
+tokio     = { workspace = true }
+tracing   = { workspace = true }
+zerocopy  = { workspace = true }
 
 ndproc = { workspace = true }
 
