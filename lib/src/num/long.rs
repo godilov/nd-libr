@@ -1364,33 +1364,29 @@ where
 }
 
 fn add_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-    let x = transmute_ref!(&a[..]) as &[<Single as Digit>::Half];
-    let y = transmute_ref!(&b[..]) as &[<Single as Digit>::Half];
+    a.iter()
+        .zip(b.iter())
+        .scan(0, |acc, (&a, &b)| {
+            let val = a.as_double() + b.as_double() + *acc;
 
-    let mut res = [<Single as Digit>::ZERO; L];
+            *acc = val / RADIX;
 
-    let mut r = transmute_mut!(&mut res) as &mut [[<Single as Digit>::Half; L]; 2];
-
-    let mut iter = x
-        .iter()
-        .zip(y.iter())
-        .map(|(&x, &y)| x as Single + y as Single)
-        .scan(0, |s, x| {
-            let val = x + *s;
-
-            *s = val >> (BITS / 2);
-
-            Some(val.as_half())
-        });
-
-    r[0].iter_mut().zip(&mut iter).for_each(|(dst, src)| *dst = src);
-    r[1].iter_mut().zip(&mut iter).for_each(|(dst, src)| *dst = src);
-
-    res
+            Some(val as Single)
+        })
+        .collect_with([0; L])
 }
 
 fn sub_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-    todo!()
+    a.iter()
+        .zip(b.iter())
+        .scan(0, |acc, (&a, &b)| {
+            let val = RADIX + a.as_double() - b.as_double() - *acc;
+
+            *acc = (val < RADIX) as Double;
+
+            Some(val as Single)
+        })
+        .collect_with([0; L])
 }
 
 fn mul_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
@@ -1402,11 +1398,27 @@ fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [
 }
 
 fn add_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
-    todo!()
+    a.iter()
+        .scan(b.as_double(), |acc, &a| {
+            let val = a.as_double() + *acc;
+
+            *acc = val / RADIX;
+
+            Some(val as Single)
+        })
+        .collect_with([0; L])
 }
 
 fn sub_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
-    todo!()
+    a.iter()
+        .scan(b.as_double(), |acc, &a| {
+            let val = RADIX + a.as_double() - *acc;
+
+            *acc = (val < RADIX) as Double;
+
+            Some(val as Single)
+        })
+        .collect_with([0; L])
 }
 
 fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
@@ -1418,11 +1430,23 @@ fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Sing
 }
 
 fn add_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    todo!()
+    a.iter_mut().zip(b.iter()).fold(0, |acc, (a, &b)| {
+        let val = a.as_double() + b.as_double() + acc;
+
+        *a = val as Single;
+
+        val / RADIX
+    });
 }
 
 fn sub_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    todo!()
+    a.iter_mut().zip(b.iter()).fold(0, |acc, (a, &b)| {
+        let val = RADIX + a.as_double() - b.as_double() - acc;
+
+        *a = val as Single;
+
+        (val < RADIX) as Double
+    });
 }
 
 fn mul_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
@@ -1438,11 +1462,23 @@ fn rem_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
 }
 
 fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    todo!()
+    a.iter_mut().fold(b.as_double(), |acc, a| {
+        let val = a.as_double() + b.as_double() + acc;
+
+        *a = val as Single;
+
+        val / RADIX
+    });
 }
 
 fn sub_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    todo!()
+    a.iter_mut().fold(b.as_double(), |acc, a| {
+        let val = RADIX + a.as_double() - b.as_double() - acc;
+
+        *a = val as Single;
+
+        (val < RADIX) as Double
+    });
 }
 
 fn mul_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
@@ -1730,6 +1766,66 @@ pub mod asm {
     #[inline(never)]
     pub fn div_long_(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [Single; L]) {
         div_long(a, b)
+    }
+
+    #[inline(never)]
+    pub fn add_single_(a: &[Single; L], b: Single) -> [Single; L] {
+        add_single(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_single_(a: &[Single; L], b: Single) -> [Single; L] {
+        sub_single(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_single_(a: &[Single; L], b: Single) -> [Single; L] {
+        mul_single(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_single_(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
+        div_single(a, b)
+    }
+
+    #[inline(never)]
+    pub fn add_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
+        add_long_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
+        sub_long_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
+        mul_long_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
+        div_long_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn add_single_mut_(a: &mut [Single; L], b: Single) {
+        add_single_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn sub_single_mut_(a: &mut [Single; L], b: Single) {
+        sub_single_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn mul_single_mut_(a: &mut [Single; L], b: Single) {
+        mul_single_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn div_single_mut_(a: &mut [Single; L], b: Single) {
+        div_single_mut(a, b)
     }
 
     #[inline(never)]
