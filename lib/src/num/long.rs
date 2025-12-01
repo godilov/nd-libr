@@ -821,6 +821,18 @@ impl<const L: usize> Signed<L> {
 
         self
     }
+
+    pub fn inc(&mut self) -> &mut Self {
+        inc_mut(&mut self.0);
+
+        self
+    }
+
+    pub fn dec(&mut self) -> &mut Self {
+        dec_mut(&mut self.0);
+
+        self
+    }
 }
 
 impl<const L: usize> Unsigned<L> {
@@ -885,6 +897,18 @@ impl<const L: usize> Unsigned<L> {
 
     pub fn sign(&self) -> Sign {
         get_sign(&self.0, Sign::POS)
+    }
+
+    pub fn inc(&mut self) -> &mut Self {
+        inc_mut(&mut self.0);
+
+        self
+    }
+
+    pub fn dec(&mut self) -> &mut Self {
+        dec_mut(&mut self.0);
+
+        self
     }
 }
 
