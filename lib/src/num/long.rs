@@ -1390,7 +1390,27 @@ fn sub_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
 }
 
 fn mul_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-    todo!()
+    let mut res = [0; L];
+
+    for (idx, x) in b.iter().enumerate() {
+        let iter = a.iter().scan(0, |acc, &a| {
+            let val = a.as_double() * x.as_double() + *acc;
+
+            *acc = val / RADIX;
+
+            Some(val as Single)
+        });
+
+        res.iter_mut().skip(idx).zip(iter).fold(0, |acc, (a, b)| {
+            let val = a.as_double() + b.as_double() + acc;
+
+            *a = val as Single;
+
+            val / RADIX
+        });
+    }
+
+    res
 }
 
 fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [Single; L]) {
@@ -1458,7 +1478,7 @@ fn sub_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
 }
 
 fn mul_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    todo!()
+    *a = mul_long(a, b);
 }
 
 fn div_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
