@@ -1491,7 +1491,7 @@ fn rem_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
 
 fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     a.iter_mut().fold(b.as_double(), |acc, a| {
-        let val = a.as_double() + b.as_double() + acc;
+        let val = a.as_double() + acc;
 
         *a = val as Single;
 
@@ -1501,7 +1501,7 @@ fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
 
 fn sub_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     a.iter_mut().fold(b.as_double(), |acc, a| {
-        let val = RADIX + a.as_double() - b.as_double() - acc;
+        let val = RADIX + a.as_double() - acc;
 
         *a = val as Single;
 
@@ -1616,8 +1616,11 @@ mod uops {
         digits
     }
 
-    pub(super) fn neg<const L: usize>(digits: [Single; L]) -> [Single; L] {
-        inc(not(digits))
+    pub(super) fn neg<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+        not_mut(&mut digits);
+        inc_mut(&mut digits);
+
+        digits
     }
 
     pub(super) fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
@@ -1637,19 +1640,7 @@ mod uops {
     }
 
     pub(super) fn inc<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
-        let mut acc = 1;
-
-        for ptr in digits.iter_mut() {
-            let digit = *ptr as Double + acc as Double;
-
-            *ptr = digit as Single;
-
-            acc = (digit >> BITS) as Single;
-
-            if acc == 0 {
-                break;
-            }
-        }
+        inc_mut(&mut digits);
 
         digits
     }
@@ -1662,7 +1653,7 @@ mod uops {
 
             *ptr = digit as Single;
 
-            acc = (digit >> BITS) as Single;
+            acc = digit / RADIX;
 
             if acc == 0 {
                 break;
@@ -1673,19 +1664,7 @@ mod uops {
     }
 
     pub(super) fn dec<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
-        let mut acc = 1;
-
-        for ptr in digits.iter_mut() {
-            let digit = RADIX + *ptr as Double - acc as Double;
-
-            *ptr = digit as Single;
-
-            acc = (digit >> BITS) as Single;
-
-            if acc == 0 {
-                break;
-            }
-        }
+        dec_mut(&mut digits);
 
         digits
     }
@@ -1698,7 +1677,7 @@ mod uops {
 
             *ptr = digit as Single;
 
-            acc = (digit >> BITS) as Single;
+            acc = (digit < RADIX) as Double;
 
             if acc == 0 {
                 break;
