@@ -322,6 +322,25 @@ macro_rules! from_digits_impl {
     }};
 }
 
+macro_rules! search {
+    ($elem:expr, $l:expr, $r:expr, |$m:ident: $ty:ty| { $fn:expr }) => {{
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            match ((|$m: $ty| $fn)(m)).cmp(&$elem) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => l = m + 1,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        l
+    }};
+}
+
 #[cfg(all(target_pointer_width = "64", not(test)))]
 digits_impl!((u32, u64, u128), (10_000_000_000_000_000_000, 19), (Double::ONE << 63, 21), {
     digit_impl!(u8, [u8, u8, u16]);
@@ -1478,7 +1497,20 @@ fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
 }
 
 fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
-    todo!()
+    let mut div = [0; L];
+    let mut rem = 0 as Double;
+
+    for (idx, &val) in a.iter().enumerate().rev() {
+        rem <<= BITS;
+        rem |= val as Double;
+
+        let digit = search!(rem, 0, RADIX, |m: Double| { m * b as Double }).saturating_sub(1) as Single;
+
+        div[idx] = digit;
+        rem -= digit as Double * b as Double;
+    }
+
+    (div, from_arr(&rem.to_le_bytes(), 0))
 }
 
 fn add_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
