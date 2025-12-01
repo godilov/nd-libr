@@ -1422,7 +1422,15 @@ fn sub_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
 }
 
 fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
-    todo!()
+    a.iter()
+        .scan(0, |acc, &a| {
+            let val = a.as_double() * b.as_double() + *acc;
+
+            *acc = val / RADIX;
+
+            Some(val as Single)
+        })
+        .collect_with([0; L])
 }
 
 fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
@@ -1482,7 +1490,13 @@ fn sub_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
 }
 
 fn mul_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    todo!()
+    a.iter_mut().fold(0, |acc, a| {
+        let val = a.as_double() * b.as_double() + acc;
+
+        *a = val as Single;
+
+        val / RADIX
+    });
 }
 
 fn div_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
