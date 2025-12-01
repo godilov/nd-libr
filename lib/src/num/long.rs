@@ -1410,7 +1410,7 @@ fn add_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
     a.iter()
         .zip(b.iter())
         .scan(0, |acc, (&a, &b)| {
-            let val = a.as_double() + b.as_double() + *acc;
+            let val = a as Double + b as Double + *acc;
 
             *acc = val / RADIX;
 
@@ -1423,7 +1423,7 @@ fn sub_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
     a.iter()
         .zip(b.iter())
         .scan(0, |acc, (&a, &b)| {
-            let val = RADIX + a.as_double() - b.as_double() - *acc;
+            let val = RADIX + a as Double - b as Double - *acc;
 
             *acc = (val < RADIX) as Double;
 
@@ -1437,19 +1437,19 @@ fn mul_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
 
     for (idx, x) in b.iter().enumerate() {
         let iter = a.iter().scan(0, |acc, &a| {
-            let val = a.as_double() * x.as_double() + *acc;
+            let val = a as Double * *x as Double + *acc;
 
             *acc = val / RADIX;
 
             Some(val as Single)
         });
 
-        res.iter_mut().skip(idx).zip(iter).fold(0, |acc, (a, b)| {
-            let val = a.as_double() + b.as_double() + acc;
+        res.iter_mut().skip(idx).zip(iter).fold(0, |acc, (ptr, val)| {
+            let v = *ptr as Double + val as Double + acc;
 
-            *a = val as Single;
+            *ptr = v as Single;
 
-            val / RADIX
+            v / RADIX
         });
     }
 
@@ -1462,8 +1462,8 @@ fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [
 
 fn add_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
     a.iter()
-        .scan(b.as_double(), |acc, &a| {
-            let val = a.as_double() + *acc;
+        .scan(b as Double, |acc, &a| {
+            let val = a as Double + *acc;
 
             *acc = val / RADIX;
 
@@ -1474,8 +1474,8 @@ fn add_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
 
 fn sub_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
     a.iter()
-        .scan(b.as_double(), |acc, &a| {
-            let val = RADIX + a.as_double() - *acc;
+        .scan(b as Double, |acc, &a| {
+            let val = RADIX + a as Double - *acc;
 
             *acc = (val < RADIX) as Double;
 
@@ -1487,7 +1487,7 @@ fn sub_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
 fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
     a.iter()
         .scan(0, |acc, &a| {
-            let val = a.as_double() * b.as_double() + *acc;
+            let val = a as Double * b as Double + *acc;
 
             *acc = val / RADIX;
 
@@ -1514,22 +1514,22 @@ fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Sing
 }
 
 fn add_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    a.iter_mut().zip(b.iter()).fold(0, |acc, (a, &b)| {
-        let val = a.as_double() + b.as_double() + acc;
+    a.iter_mut().zip(b.iter()).fold(0, |acc, (ptr, &val)| {
+        let v = *ptr as Double + val as Double + acc;
 
-        *a = val as Single;
+        *ptr = v as Single;
 
-        val / RADIX
+        v / RADIX
     });
 }
 
 fn sub_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    a.iter_mut().zip(b.iter()).fold(0, |acc, (a, &b)| {
-        let val = RADIX + a.as_double() - b.as_double() - acc;
+    a.iter_mut().zip(b.iter()).fold(0, |acc, (ptr, &val)| {
+        let v = RADIX + *ptr as Double - val as Double - acc;
 
-        *a = val as Single;
+        *ptr = v as Single;
 
-        (val < RADIX) as Double
+        (v < RADIX) as Double
     });
 }
 
@@ -1546,32 +1546,32 @@ fn rem_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
 }
 
 fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    a.iter_mut().fold(b.as_double(), |acc, a| {
-        let val = a.as_double() + acc;
+    a.iter_mut().fold(b as Double, |acc, ptr| {
+        let v = *ptr as Double + acc;
 
-        *a = val as Single;
+        *ptr = v as Single;
 
-        val / RADIX
+        v / RADIX
     });
 }
 
 fn sub_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    a.iter_mut().fold(b.as_double(), |acc, a| {
-        let val = RADIX + a.as_double() - acc;
+    a.iter_mut().fold(b as Double, |acc, ptr| {
+        let v = RADIX + *ptr as Double - acc;
 
-        *a = val as Single;
+        *ptr = v as Single;
 
-        (val < RADIX) as Double
+        (v < RADIX) as Double
     });
 }
 
 fn mul_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    a.iter_mut().fold(0, |acc, a| {
-        let val = a.as_double() * b.as_double() + acc;
+    a.iter_mut().fold(0, |acc, ptr| {
+        let v = *ptr as Double * b as Double + acc;
 
-        *a = val as Single;
+        *ptr = v as Single;
 
-        val / RADIX
+        v / RADIX
     });
 }
 
