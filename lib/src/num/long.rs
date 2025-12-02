@@ -2292,6 +2292,26 @@ pub mod asm {
     pub fn dec_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
         dec_mut(digits)
     }
+
+    #[inline(never)]
+    pub fn shl_(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
+        shl(digits, shift, default)
+    }
+
+    #[inline(never)]
+    pub fn shr_(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
+        shr(digits, shift, default)
+    }
+
+    #[inline(never)]
+    pub fn shl_mut_(digits: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
+        shl_mut(digits, shift, default)
+    }
+
+    #[inline(never)]
+    pub fn shr_mut_(digits: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
+        shr_mut(digits, shift, default)
+    }
 }
 
 #[cfg(test)]
