@@ -9,6 +9,7 @@ use std::{
     str::FromStr,
 };
 
+use ndproc::ops_impl;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute, transmute_mut, transmute_ref};
@@ -589,6 +590,18 @@ impl<const L: usize> Default for Unsigned<L> {
     }
 }
 
+impl<const L: usize, const N: usize, D: Digit> From<&[D; N]> for Signed<L> {
+    fn from(value: &[D; N]) -> Self {
+        Self(from_arr(value, 0))
+    }
+}
+
+impl<const L: usize, const N: usize, D: Digit> From<&[D; N]> for Unsigned<L> {
+    fn from(value: &[D; N]) -> Self {
+        Self(from_arr(value, 0))
+    }
+}
+
 impl<const L: usize, D: Digit> From<&[D]> for Signed<L> {
     fn from(value: &[D]) -> Self {
         Self(from_slice(value))
@@ -744,6 +757,18 @@ impl<const L: usize> UpperHex for Unsigned<L> {
         write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
     }
 }
+
+ops_impl!(@bin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<L>, + 0i64, - 0i64, * 0i64, / 0i64, % 0i64, | 0i64, & 0i64, ^ 0i64);
+ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned::<L>, + 0u64, - 0u64, * 0u64, / 0u64, % 0u64, | 0u64, & 0u64, ^ 0u64);
+
+ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>, << 0i64, >> 0i64);
+ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>, << 0u64, >> 0u64);
+
+ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, *b: &Signed<L>|, += 0i64, -= 0i64, *= 0i64, /= 0i64, %= 0i64, |= 0i64, &= 0i64, ^= 0i64);
+ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, *b: &Unsigned<L>|, += 0u64, -= 0u64, *= 0u64, /= 0u64, %= 0u64, |= 0u64, &= 0u64, ^= 0u64);
+
+ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, b: usize|, <<= 0i64, >>= 0i64);
+ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, b: usize|, <<= 0u64, >>= 0u64);
 
 impl<const L: usize> Signed<L> {
     long_from_const!(@signed [
@@ -1980,7 +2005,47 @@ mod tests {
     type S64 = signed!(64);
     type U64 = unsigned!(64);
 
+    const PRIMES_32BIT: [usize; 2] = [4_294_392_163, 4_294_289_141];
     const PRIMES_48BIT: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
+
+    macro_rules! assert_ops {
+        ($fn:ident, $type_std:ty, $type_ext:ty, $type:ty, |$a:ident, $b:ident, $aop:ident, $bop:ident| [$({ $expr_lval:expr } { $expr_rval:expr })+]) => {
+            #[test]
+            fn $fn() {
+                for a in ((<$type_std>::MIN + 1) as $type_ext..<$type_std>::MAX as $type_ext).step_by(PRIMES_48BIT[0]) {
+                    for b in ((<$type_std>::MIN + 1) as $type_ext..<$type_std>::MAX as $type_ext).step_by(PRIMES_48BIT[1]) {
+                        let aop = &<$type>::from(a);
+                        let bop = &<$type>::from(b);
+
+                        $({
+                            let lval = (|$a: $type_ext, $b: $type_ext| $expr_lval)(a, b);
+                            let rval = (|$aop: &$type, $bop: &$type| $expr_rval)(aop, bop);
+
+                            assert_eq!(lval, rval);
+                        })+
+                    }
+                }
+            }
+        };
+
+        (@shift $fn:ident, $type_std:ty, $type_ext:ty, $type:ty, $range:expr, |$val:ident, $valop:ident, $shift:ident| [$({ $expr_lval:expr } { $expr_rval:expr })+]) => {
+            #[test]
+            fn $fn() {
+                for val in ((<$type_std>::MIN + 1) as $type_ext..<$type_std>::MAX as $type_ext).step_by(PRIMES_32BIT[0]) {
+                    for shift in $range {
+                        let valop = &<$type>::from(val);
+
+                        $({
+                            let lval = (|$val: $type_ext, $shift: usize| $expr_lval)(val, shift);
+                            let rval = (|$valop: &$type, $shift: usize| $expr_rval)(valop, shift);
+
+                            assert_eq!(lval, rval);
+                        })+
+                    }
+                }
+            }
+        };
+    }
 
     #[test]
     fn from_std() {
@@ -2308,4 +2373,36 @@ mod tests {
             assert_eq!(format!("{:#x}", U64 { 0: pos(transmute!(bytes)) }), hex);
         }
     }
+
+    assert_ops!(signed_ops, i64, i128, S64, |a, b, aop, bop| [
+        { S64::from(a.wrapping_add(b)) } { aop + bop }
+        { S64::from(a.wrapping_sub(b)) } { aop - bop }
+        { S64::from(a.wrapping_mul(b)) } { aop * bop }
+        { S64::from(a / b) } { aop / bop }
+        { S64::from(a % b) } { aop % bop }
+        { S64::from(a | b) } { aop | bop }
+        { S64::from(a & b) } { aop & bop }
+        { S64::from(a ^ b) } { aop ^ bop }
+    ]);
+
+    assert_ops!(unsigned_ops, u64, u128, U64, |a, b, aop, bop| [
+        { U64::from(a.wrapping_add(b)) } { aop + bop }
+        { U64::from(a.wrapping_sub(b)) } { aop - bop }
+        { U64::from(a.wrapping_mul(b)) } { aop * bop }
+        { U64::from(a / b) } { aop / bop }
+        { U64::from(a % b) } { aop % bop }
+        { U64::from(a | b) } { aop | bop }
+        { U64::from(a & b) } { aop & bop }
+        { U64::from(a ^ b) } { aop ^ bop }
+    ]);
+
+    assert_ops!(@shift signed_shift, i64, i128, S64, 0..64, |val, valop, shift| [
+        { S64::from(val << shift) } { valop << shift }
+        { S64::from(val >> shift) } { valop >> shift }
+    ]);
+
+    assert_ops!(@shift unsigned_shift, u64, u128, U64, 0..64, |val, valop, shift| [
+        { U64::from(val << shift) } { valop << shift }
+        { U64::from(val >> shift) } { valop >> shift }
+    ]);
 }
