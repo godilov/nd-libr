@@ -993,8 +993,25 @@ ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned
 ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>, << 0i64, >> 0i64);
 ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>, << 0u64, >> 0u64);
 
-ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, *b: &Signed<L>|, += 0i64, -= 0i64, *= 0i64, /= 0i64, %= 0i64, |= 0i64, &= 0i64, ^= 0i64);
-ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, *b: &Unsigned<L>|, += 0u64, -= 0u64, *= 0u64, /= 0u64, %= 0u64, |= 0u64, &= 0u64, ^= 0u64);
+ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, *b: &Signed<L>|,
+    += add_long_mut(&mut a.0, &b.0),
+    -= sub_long_mut(&mut a.0, &b.0),
+    *= mul_long_mut(&mut a.0, &b.0),
+    /= div_long_mut(&mut a.0, &b.0),
+    %= rem_long_mut(&mut a.0, &b.0),
+    |= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop | bop),
+    &= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
+    ^= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
+
+ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, *b: &Unsigned<L>|,
+    += add_long_mut(&mut a.0, &b.0),
+    -= sub_long_mut(&mut a.0, &b.0),
+    *= mul_long_mut(&mut a.0, &b.0),
+    /= div_long_mut(&mut a.0, &b.0),
+    %= rem_long_mut(&mut a.0, &b.0),
+    |= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop | bop),
+    &= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
+    ^= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, b: usize|, <<= 0i64, >>= 0i64);
 ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, b: usize|, <<= 0u64, >>= 0u64);
