@@ -457,6 +457,66 @@ macro_rules! mul_single_mut_impl {
     };
 }
 
+macro_rules! div_long_impl {
+    ($a:expr, $b:expr) => {{
+        let mut div = $a;
+        let mut rem = [0; L];
+
+        for val in div.iter_mut().rev() {
+            cycle!(rem, *val);
+
+            let digit = search!(@upper 0, RADIX, |m: Double| {
+                if mul_single_impl!(@overflow $b, m) > 0 {
+                    return Ordering::Greater;
+                }
+
+                let mul = mul_single_impl!($b, m).collect_with([0; L]);
+
+                mul.iter()
+                    .copied()
+                    .rev()
+                    .zip(rem.iter().copied().rev())
+                    .map(|(x, y)| x.cmp(&y))
+                    .find(|&ord| ord != Ordering::Equal)
+                    .unwrap_or(Ordering::Equal)
+            });
+
+            let digit = digit.saturating_sub(1) as Single;
+
+            if digit > 0 {
+                *val = digit;
+
+                let rem_iter = rem.iter_mut();
+                let mul_iter = mul_single_impl!($b, digit);
+
+                sub_long_mut_impl!(rem_iter, mul_iter);
+            }
+        }
+
+        (div, rem)
+    }};
+}
+
+macro_rules! div_single_impl {
+    ($a:expr, $b:expr) => {{
+        let mut div = $a;
+        let mut rem = 0 as Double;
+
+        for val in div.iter_mut().rev() {
+            rem <<= BITS;
+            rem |= *val as Double;
+
+            let digit = search!(@upper 0, RADIX, |m: Double| { (m * $b as Double).cmp(&rem) });
+            let digit = digit.saturating_sub(1) as Single;
+
+            *val = digit;
+            rem -= digit as Double * $b as Double;
+        }
+
+        (div, rem)
+    }};
+}
+
 macro_rules! cycle {
     ($arr:expr, $val:expr) => {{
         for i in (1..$arr.len()).rev() {
@@ -1613,41 +1673,7 @@ fn mul_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
 }
 
 fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [Single; L]) {
-    let mut div = [0; L];
-    let mut rem = [0; L];
-
-    for (idx, &val) in a.iter().enumerate().rev() {
-        cycle!(rem, val);
-
-        let digit = search!(@upper 0, RADIX, |m: Double| {
-            if mul_single_impl!(@overflow b.iter().copied(), m) > 0 {
-                return Ordering::Greater;
-            }
-
-            let mul = mul_single_impl!(b.iter().copied(), m).collect_with([0; L]);
-
-            mul.iter()
-                .copied()
-                .rev()
-                .zip(rem.iter().copied().rev())
-                .map(|(x, y)| x.cmp(&y))
-                .find(|&ord| ord != Ordering::Equal)
-                .unwrap_or(Ordering::Equal)
-        });
-
-        let digit = digit.saturating_sub(1) as Single;
-
-        if digit > 0 {
-            div[idx] = digit;
-
-            let rem_iter = rem.iter_mut();
-            let mul_iter = mul_single_impl!(b.iter().copied(), digit);
-
-            sub_long_mut_impl!(rem_iter, mul_iter);
-        }
-    }
-
-    (div, rem)
+    div_long_impl!(*a, b.iter().copied())
 }
 
 fn add_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
@@ -1663,19 +1689,7 @@ fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
 }
 
 fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
-    let mut div = [0; L];
-    let mut rem = 0 as Double;
-
-    for (idx, &val) in a.iter().enumerate().rev() {
-        rem <<= BITS;
-        rem |= val as Double;
-
-        let digit = search!(@upper 0, RADIX, |m: Double| { (m * b as Double).cmp(&rem) });
-        let digit = digit.saturating_sub(1) as Single;
-
-        div[idx] = digit;
-        rem -= digit as Double * b as Double;
-    }
+    let (div, rem) = div_single_impl!(*a, b);
 
     (div, from_arr(&rem.to_le_bytes(), 0))
 }
@@ -1693,11 +1707,13 @@ fn mul_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
 }
 
 fn div_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    todo!()
+    div_long_impl!(a, b.iter().copied());
 }
 
 fn rem_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    todo!()
+    let (_, rem) = div_long_impl!(*a, b.iter().copied());
+
+    *a = rem;
 }
 
 fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
@@ -1713,11 +1729,13 @@ fn mul_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
 }
 
 fn div_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    todo!()
+    div_single_impl!(a, b);
 }
 
 fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    todo!()
+    let (_, rem) = div_single_impl!(*a, b);
+
+    *a = from_arr(&rem.to_le_bytes(), 0);
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
