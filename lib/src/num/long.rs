@@ -560,6 +560,72 @@ macro_rules! div_single_impl {
     }};
 }
 
+macro_rules! shl_impl {
+    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, |$val:ident: $ty:ty| { $($fn:tt)+ }) => {{
+        let shift = $shift;
+        let offset = shift / BITS;
+        let shl = shift % BITS;
+        let shr = BITS - shl;
+
+        if offset >= L {
+            return (|$val: $ty| { $($fn)+ })($digits_ret);
+        }
+
+        let mut res = $digits;
+
+        let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
+        let val_l = $default.checked_shr(shr as u32).unwrap_or(0);
+
+        res[offset] = val_h | val_l;
+
+        for idx in (offset + 1).min(L)..L {
+            let idx_h = idx - offset;
+            let idx_l = idx - offset - 1;
+
+            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
+            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
+
+            res[idx] = val_h | val_l;
+        }
+
+        res.iter_mut().take(offset).for_each(|ptr| *ptr = $default);
+        res
+    }};
+}
+
+macro_rules! shr_impl {
+    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, |$val:ident: $ty:ty| { $($fn:tt)+ }) => {{
+        let shift = $shift;
+        let offset = shift / BITS;
+        let shr = shift % BITS;
+        let shl = BITS - shr;
+
+        if offset >= L {
+            return (|$val: $ty| { $($fn)+ })($digits_ret);
+        }
+
+        let mut res = $digits;
+
+        for idx in 0..(L - offset).saturating_sub(1) {
+            let idx_h = idx + offset + 1;
+            let idx_l = idx + offset;
+
+            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
+            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
+
+            res[idx] = val_h | val_l;
+        }
+
+        let val_h = $default.checked_shl(shl as u32).unwrap_or(0);
+        let val_l = res[L].checked_shr(shr as u32).unwrap_or(0);
+
+        res[L - offset] = val_h | val_l;
+
+        res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = $default);
+        res
+    }};
+}
+
 macro_rules! cycle {
     ($arr:expr, $val:expr) => {{
         for i in (1..$arr.len()).rev() {
@@ -1061,12 +1127,12 @@ ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, *b: &Unsigned<L>|,
     ^= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
 ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, b: usize|,
-    <<= shl_mut(&mut a.0, b, 0),
-    >>= shr_mut(&mut a.0, b, 0));
+    <<= { shl_mut(&mut a.0, b, 0); },
+    >>= { shr_mut(&mut a.0, b, 0); });
 
 ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, b: usize|,
-    <<= shl_mut(&mut a.0, b, 0),
-    >>= shr_mut(&mut a.0, b, 0));
+    <<= { shl_mut(&mut a.0, b, 0); },
+    >>= { shr_mut(&mut a.0, b, 0); });
 
 impl<const L: usize> Signed<L> {
     long_from_const!(@signed [
@@ -1994,73 +2060,33 @@ mod uops {
     }
 
     pub(super) fn shl<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        todo!()
+        shl_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
     }
 
     pub(super) fn shr<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        todo!()
+        shr_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
     }
 
-    pub(super) fn shl_mut<const L: usize>(digits: &mut [Single; L], shift: usize, default: Single) {
-        let offset = shift / BITS;
-        let shl = shift % BITS;
-        let shr = BITS - shl;
-
-        if offset >= L {
+    pub(super) fn shl_mut<'digits, const L: usize>(
+        digits: &'digits mut [Single; L],
+        shift: usize,
+        default: Single,
+    ) -> &'digits mut [Single; L] {
+        shl_impl!(digits, digits, shift, default, |digits: &'digits mut [Single; L]| {
             *digits = [default; L];
-
-            return;
-        }
-
-        let mut res = digits;
-
-        let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
-        let val_l = default.checked_shr(shr as u32).unwrap_or(0);
-
-        res[offset] = val_h | val_l;
-
-        for idx in (offset + 1).min(L)..L {
-            let idx_h = idx - offset;
-            let idx_l = idx - offset - 1;
-
-            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
-
-            res[idx] = val_h | val_l;
-        }
-
-        res.iter_mut().take(offset).for_each(|ptr| *ptr = default);
+            digits
+        })
     }
 
-    pub(super) fn shr_mut<const L: usize>(digits: &mut [Single; L], shift: usize, default: Single) {
-        let offset = shift / BITS;
-        let shr = shift % BITS;
-        let shl = BITS - shr;
-
-        if offset >= L {
+    pub(super) fn shr_mut<'digits, const L: usize>(
+        digits: &'digits mut [Single; L],
+        shift: usize,
+        default: Single,
+    ) -> &'digits mut [Single; L] {
+        shr_impl!(digits, digits, shift, default, |digits: &'digits mut [Single; L]| {
             *digits = [default; L];
-
-            return;
-        }
-
-        let mut res = digits;
-
-        for idx in 0..(L - offset).saturating_sub(1) {
-            let idx_h = idx + offset + 1;
-            let idx_l = idx + offset;
-
-            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
-
-            res[idx] = val_h | val_l;
-        }
-
-        let val_h = default.checked_shl(shl as u32).unwrap_or(0);
-        let val_l = res[L].checked_shr(shr as u32).unwrap_or(0);
-
-        res[L - offset] = val_h | val_l;
-
-        res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = default);
+            digits
+        })
     }
 }
 
