@@ -1032,8 +1032,13 @@ ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned
     & Unsigned::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Unsigned::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>, << 0i64, >> 0i64);
-ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>, << 0u64, >> 0u64);
+ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>,
+    << Signed::<L>(shl(&a.0, b)),
+    >> Signed::<L>(shr(&a.0, b)));
+
+ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>,
+    << Unsigned::<L>(shl(&a.0, b)),
+    >> Unsigned::<L>(shr(&a.0, b)));
 
 ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, *b: &Signed<L>|,
     += add_long_mut(&mut a.0, &b.0),
@@ -1055,8 +1060,13 @@ ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, *b: &Unsigned<L>|,
     &= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bitop_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, b: usize|, <<= 0i64, >>= 0i64);
-ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, b: usize|, <<= 0u64, >>= 0u64);
+ops_impl!(@mut <const L: usize> |a: &mut Signed<L>, b: usize|,
+    <<= shl_mut(&mut a.0, b),
+    >>= shr_mut(&mut a.0, b));
+
+ops_impl!(@mut <const L: usize> |a: &mut Unsigned<L>, b: usize|,
+    <<= shl_mut(&mut a.0, b),
+    >>= shr_mut(&mut a.0, b));
 
 impl<const L: usize> Signed<L> {
     long_from_const!(@signed [
@@ -1981,6 +1991,22 @@ mod uops {
 
     pub(super) fn dec_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
         dec_impl!(digits)
+    }
+
+    pub(super) fn shl<const L: usize>(digits: &[Single; L], shift: usize) -> [Single; L] {
+        todo!()
+    }
+
+    pub(super) fn shr<const L: usize>(digits: &[Single; L], shift: usize) -> [Single; L] {
+        todo!()
+    }
+
+    pub(super) fn shl_mut<const L: usize>(digits: &mut [Single; L], shift: usize) -> [Single; L] {
+        todo!()
+    }
+
+    pub(super) fn shr_mut<const L: usize>(digits: &mut [Single; L], shift: usize) -> [Single; L] {
+        todo!()
     }
 }
 
