@@ -323,24 +323,28 @@ macro_rules! from_digits_impl {
     }};
 }
 macro_rules! cycle {
-    ($arr:expr, $val:expr) => {
+    ($arr:expr, $val:expr) => {{
+        let val = *$arr.last().unwrap_or(&0);
+
         for i in (1..$arr.len()).rev() {
             $arr[i] = $arr[i - 1];
         }
 
         $arr[0] = $val;
-    };
+
+        val
+    }};
 }
 
 macro_rules! search {
-    ($l:expr, $r:expr, |$m:ident: $ty:ty| { $fn:expr }) => {{
+    ($l:expr, $r:expr, |$m:ident: $ty:ty| { $($fn:tt)+ }) => {{
         let mut l = 0;
         let mut r = RADIX;
 
         while l < r {
             let m = l + (r - l) / 2;
 
-            match (|$m: $ty| $fn)(m) {
+            match (|$m: $ty| { $($fn)+ })(m) {
                 Ordering::Less => l = m + 1,
                 Ordering::Equal => l = m + 1,
                 Ordering::Greater => r = m,
@@ -1496,9 +1500,35 @@ fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [
     let mut remx = 0;
 
     for (idx, &val) in a.iter().enumerate().rev() {
-        remx = rem[L - 1];
+        remx = cycle!(rem, val);
 
-        cycle!(rem, val);
+        let digit = search!(0, RADIX, |m: Double| {
+            let mut acc = 0;
+
+            let mul = b
+                .iter()
+                .map(|&a| {
+                    let val = a as Double * m as Double + acc;
+
+                    acc = val / RADIX;
+
+                    val as Single
+                })
+                .collect_with([0; L]);
+
+            match (acc as Single).cmp(&remx) {
+                Ordering::Less => Ordering::Less,
+                Ordering::Equal => mul.cmp(&rem),
+                Ordering::Greater => Ordering::Greater,
+            }
+        })
+        .saturating_sub(1) as Single;
+
+        if digit > 0 {
+            div[idx] = digit;
+
+            sub_long_mut(&mut rem, &mul_single(b, digit));
+        }
     }
 
     (div, rem)
