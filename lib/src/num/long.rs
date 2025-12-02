@@ -1892,15 +1892,17 @@ fn is_non_zero<D: Digit>(digits: &[D]) -> bool {
 mod uops {
     use super::*;
 
-    pub(super) fn pos<const L: usize>(digits: [Single; L]) -> [Single; L] {
-        digits
+    pub(super) fn pos<const L: usize>(digits: &[Single; L]) -> [Single; L] {
+        *digits
     }
 
     pub(super) fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
         digits
     }
 
-    pub(super) fn neg<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+    pub(super) fn neg<const L: usize>(digits: &[Single; L]) -> [Single; L] {
+        let mut digits = *digits;
+
         not_mut(&mut digits);
         inc_mut(&mut digits);
 
@@ -1914,7 +1916,7 @@ mod uops {
         digits
     }
 
-    pub(super) fn not<const L: usize>(digits: [Single; L]) -> [Single; L] {
+    pub(super) fn not<const L: usize>(digits: &[Single; L]) -> [Single; L] {
         digits.iter().map(|&digit| !digit).collect_with([0; L])
     }
 
@@ -1923,7 +1925,9 @@ mod uops {
         digits
     }
 
-    pub(super) fn inc<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+    pub(super) fn inc<const L: usize>(digits: &[Single; L]) -> [Single; L] {
+        let mut digits = *digits;
+
         inc_mut(&mut digits);
 
         digits
@@ -1947,7 +1951,9 @@ mod uops {
         digits
     }
 
-    pub(super) fn dec<const L: usize>(mut digits: [Single; L]) -> [Single; L] {
+    pub(super) fn dec<const L: usize>(digits: &[Single; L]) -> [Single; L] {
+        let mut digits = *digits;
+
         dec_mut(&mut digits);
 
         digits
@@ -2126,7 +2132,7 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn pos_(digits: [Single; L]) -> [Single; L] {
+    pub fn pos_(digits: &[Single; L]) -> [Single; L] {
         pos(digits)
     }
 
@@ -2136,7 +2142,7 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn neg_(digits: [Single; L]) -> [Single; L] {
+    pub fn neg_(digits: &[Single; L]) -> [Single; L] {
         neg(digits)
     }
 
@@ -2146,7 +2152,7 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn not_(digits: [Single; L]) -> [Single; L] {
+    pub fn not_(digits: &[Single; L]) -> [Single; L] {
         not(digits)
     }
 
@@ -2156,7 +2162,7 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn inc_(digits: [Single; L]) -> [Single; L] {
+    pub fn inc_(digits: &[Single; L]) -> [Single; L] {
         inc(digits)
     }
 
@@ -2166,7 +2172,7 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn dec_(digits: [Single; L]) -> [Single; L] {
+    pub fn dec_(digits: &[Single; L]) -> [Single; L] {
         dec(digits)
     }
 
@@ -2238,9 +2244,9 @@ mod tests {
             let pval = val as i128;
             let nval = -pval;
 
-            assert_eq!(S64::from(pval), S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(S64::from(nval), S64 { 0: neg(transmute!(bytes)) });
-            assert_eq!(U64::from(val), U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(S64::from(pval), S64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(S64::from(nval), S64 { 0: neg(&transmute!(bytes)) });
+            assert_eq!(U64::from(val), U64 { 0: pos(&transmute!(bytes)) });
         }
     }
 
@@ -2255,8 +2261,8 @@ mod tests {
             let bytes = val.to_le_bytes();
             let slice = bytes.as_slice();
 
-            assert_eq!(S64::from(slice), S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(U64::from(slice), U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(S64::from(slice), S64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(U64::from(slice), U64 { 0: pos(&transmute!(bytes)) });
         }
     }
 
@@ -2271,8 +2277,8 @@ mod tests {
             let bytes = val.to_le_bytes();
             let iter = bytes.iter().copied();
 
-            assert_eq!(iter.clone().collect::<S64>(), S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(iter.clone().collect::<U64>(), U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(iter.clone().collect::<S64>(), S64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(iter.clone().collect::<U64>(), U64 { 0: pos(&transmute!(bytes)) });
         }
     }
 
@@ -2297,8 +2303,8 @@ mod tests {
                     .fold(0, |acc, &x| acc * radix as u64 + x as u64)
                     .to_le_bytes();
 
-                assert_eq!(S64::from_digits_arb(digits, radix)?, S64 { 0: pos(transmute!(bytes)) });
-                assert_eq!(U64::from_digits_arb(digits, radix)?, U64 { 0: pos(transmute!(bytes)) });
+                assert_eq!(S64::from_digits_arb(digits, radix)?, S64 { 0: pos(&transmute!(bytes)) });
+                assert_eq!(U64::from_digits_arb(digits, radix)?, U64 { 0: pos(&transmute!(bytes)) });
             }
         }
 
@@ -2328,12 +2334,12 @@ mod tests {
 
                 assert_eq!(
                     S64::from_digits_arb_iter(digits.iter().copied(), radix)?,
-                    S64 { 0: pos(transmute!(bytes)) }
+                    S64 { 0: pos(&transmute!(bytes)) }
                 );
 
                 assert_eq!(
                     U64::from_digits_arb_iter(digits.iter().copied(), radix)?,
-                    U64 { 0: pos(transmute!(bytes)) }
+                    U64 { 0: pos(&transmute!(bytes)) }
                 );
             }
         }
@@ -2498,20 +2504,20 @@ mod tests {
             let oct = format!("{val:#o}");
             let hex = format!("{val:#x}");
 
-            assert_eq!(pos_dec.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(pos_bin.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(pos_oct.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(pos_hex.parse::<S64>()?, S64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(pos_dec.parse::<S64>()?, S64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(pos_bin.parse::<S64>()?, S64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(pos_oct.parse::<S64>()?, S64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(pos_hex.parse::<S64>()?, S64 { 0: pos(&transmute!(bytes)) });
 
-            assert_eq!(neg_dec.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
-            assert_eq!(neg_bin.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
-            assert_eq!(neg_oct.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
-            assert_eq!(neg_hex.parse::<S64>()?, S64 { 0: neg(transmute!(bytes)) });
+            assert_eq!(neg_dec.parse::<S64>()?, S64 { 0: neg(&transmute!(bytes)) });
+            assert_eq!(neg_bin.parse::<S64>()?, S64 { 0: neg(&transmute!(bytes)) });
+            assert_eq!(neg_oct.parse::<S64>()?, S64 { 0: neg(&transmute!(bytes)) });
+            assert_eq!(neg_hex.parse::<S64>()?, S64 { 0: neg(&transmute!(bytes)) });
 
-            assert_eq!(dec.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(bin.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(oct.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
-            assert_eq!(hex.parse::<U64>()?, U64 { 0: pos(transmute!(bytes)) });
+            assert_eq!(dec.parse::<U64>()?, U64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(bin.parse::<U64>()?, U64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(oct.parse::<U64>()?, U64 { 0: pos(&transmute!(bytes)) });
+            assert_eq!(hex.parse::<U64>()?, U64 { 0: pos(&transmute!(bytes)) });
         }
 
         Ok(())
@@ -2540,20 +2546,20 @@ mod tests {
             let oct = format!("{val:#o}");
             let hex = format!("{val:#x}");
 
-            assert_eq!(format!("{:#}", S64 { 0: pos(transmute!(bytes)) }), pos_dec);
-            assert_eq!(format!("{:#b}", S64 { 0: pos(transmute!(bytes)) }), pos_bin);
-            assert_eq!(format!("{:#o}", S64 { 0: pos(transmute!(bytes)) }), pos_oct);
-            assert_eq!(format!("{:#x}", S64 { 0: pos(transmute!(bytes)) }), pos_hex);
+            assert_eq!(format!("{:#}", S64 { 0: pos(&transmute!(bytes)) }), pos_dec);
+            assert_eq!(format!("{:#b}", S64 { 0: pos(&transmute!(bytes)) }), pos_bin);
+            assert_eq!(format!("{:#o}", S64 { 0: pos(&transmute!(bytes)) }), pos_oct);
+            assert_eq!(format!("{:#x}", S64 { 0: pos(&transmute!(bytes)) }), pos_hex);
 
-            assert_eq!(format!("{:#}", S64 { 0: neg(transmute!(bytes)) }), neg_dec);
-            assert_eq!(format!("{:#b}", S64 { 0: neg(transmute!(bytes)) }), neg_bin);
-            assert_eq!(format!("{:#o}", S64 { 0: neg(transmute!(bytes)) }), neg_oct);
-            assert_eq!(format!("{:#x}", S64 { 0: neg(transmute!(bytes)) }), neg_hex);
+            assert_eq!(format!("{:#}", S64 { 0: neg(&transmute!(bytes)) }), neg_dec);
+            assert_eq!(format!("{:#b}", S64 { 0: neg(&transmute!(bytes)) }), neg_bin);
+            assert_eq!(format!("{:#o}", S64 { 0: neg(&transmute!(bytes)) }), neg_oct);
+            assert_eq!(format!("{:#x}", S64 { 0: neg(&transmute!(bytes)) }), neg_hex);
 
-            assert_eq!(format!("{:#}", U64 { 0: pos(transmute!(bytes)) }), dec);
-            assert_eq!(format!("{:#b}", U64 { 0: pos(transmute!(bytes)) }), bin);
-            assert_eq!(format!("{:#o}", U64 { 0: pos(transmute!(bytes)) }), oct);
-            assert_eq!(format!("{:#x}", U64 { 0: pos(transmute!(bytes)) }), hex);
+            assert_eq!(format!("{:#}", U64 { 0: pos(&transmute!(bytes)) }), dec);
+            assert_eq!(format!("{:#b}", U64 { 0: pos(&transmute!(bytes)) }), bin);
+            assert_eq!(format!("{:#o}", U64 { 0: pos(&transmute!(bytes)) }), oct);
+            assert_eq!(format!("{:#x}", U64 { 0: pos(&transmute!(bytes)) }), hex);
         }
     }
 
