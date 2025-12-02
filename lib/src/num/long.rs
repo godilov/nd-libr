@@ -5,6 +5,7 @@ use std::{
     cmp::Ordering,
     fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex, Write as _},
     io::{Cursor, Write as _},
+    iter::{once, repeat},
     marker::PhantomData,
     str::FromStr,
 };
@@ -969,8 +970,25 @@ impl<const L: usize> UpperHex for Unsigned<L> {
     }
 }
 
-ops_impl!(@bin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<L>, + 0i64, - 0i64, * 0i64, / 0i64, % 0i64, | 0i64, & 0i64, ^ 0i64);
-ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned::<L>, + 0u64, - 0u64, * 0u64, / 0u64, % 0u64, | 0u64, & 0u64, ^ 0u64);
+ops_impl!(@bin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<L>,
+    + Signed::<L>(add_long(&a.0, &b.0)),
+    - Signed::<L>(sub_long(&a.0, &b.0)),
+    * Signed::<L>(mul_long(&a.0, &b.0)),
+    / Signed::<L>(div_long(&a.0, &b.0).0),
+    % Signed::<L>(div_long(&a.0, &b.0).1),
+    | Signed::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop | bop)),
+    & Signed::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop & bop)),
+    ^ Signed::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
+
+ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned::<L>,
+    + Unsigned::<L>(add_long(&a.0, &b.0)),
+    - Unsigned::<L>(sub_long(&a.0, &b.0)),
+    * Unsigned::<L>(mul_long(&a.0, &b.0)),
+    / Unsigned::<L>(div_long(&a.0, &b.0).0),
+    % Unsigned::<L>(div_long(&a.0, &b.0).1),
+    | Unsigned::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop | bop)),
+    & Unsigned::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop & bop)),
+    ^ Unsigned::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
 ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>, << 0i64, >> 0i64);
 ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>, << 0u64, >> 0u64);
@@ -1280,7 +1298,7 @@ fn from_iter<const L: usize, D: Digit, Iter: Iterator<Item = D>>(iter: Iter) -> 
     (transmute_mut!(res.as_mut_bytes()) as &mut [D])
         .iter_mut()
         .zip(iter)
-        .for_each(|(dst, src)| *dst = src);
+        .for_each(|(ptr, val)| *ptr = val);
 
     #[cfg(target_endian = "big")]
     res.iter_mut().for_each(|ptr| {
@@ -1676,6 +1694,17 @@ fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [
     div_long_impl!(*a, b.iter().copied())
 }
 
+fn bitop_long<const L: usize, F>(a: &[Single; L], b: &[Single; L], f: F) -> [Single; L]
+where
+    F: Fn(Single, Single) -> Single,
+{
+    a.iter()
+        .copied()
+        .zip(b.iter().copied())
+        .map(|(a, b)| f(a, b))
+        .collect_with([0; L])
+}
+
 fn add_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
     add_single_impl!(a.iter().copied(), b).collect_with([0; L])
 }
@@ -1692,6 +1721,17 @@ fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Sing
     let (div, rem) = div_single_impl!(*a, b);
 
     (div, from_arr(&rem.to_le_bytes(), 0))
+}
+
+fn bitop_single<const L: usize, F>(a: &[Single; L], b: Single, f: F) -> [Single; L]
+where
+    F: Fn(Single, Single) -> Single,
+{
+    a.iter()
+        .copied()
+        .zip(once(b).chain(repeat(0)))
+        .map(|(a, b)| f(a, b))
+        .collect_with([0; L])
 }
 
 fn add_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
@@ -1716,6 +1756,13 @@ fn rem_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
     *a = rem;
 }
 
+fn bitop_long_mut<const L: usize, F>(a: &mut [Single; L], b: &[Single; L], f: F)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    a.iter_mut().zip(b.iter().copied()).for_each(|(ptr, val)| *ptr = f(*ptr, val));
+}
+
 fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     add_single_mut_impl!(a.iter_mut(), b);
 }
@@ -1736,6 +1783,15 @@ fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     let (_, rem) = div_single_impl!(*a, b);
 
     *a = from_arr(&rem.to_le_bytes(), 0);
+}
+
+fn bitop_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, f: F)
+where
+    F: Fn(Single, Single) -> Single,
+{
+    a.iter_mut()
+        .zip(once(b).chain(repeat(0)))
+        .for_each(|(ptr, val)| *ptr = f(*ptr, val));
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
