@@ -322,17 +322,148 @@ macro_rules! from_digits_impl {
         res
     }};
 }
+
+macro_rules! add_long_impl {
+    ($a:expr, $b:expr) => {
+        $a.zip($b).scan(0, |acc, (a, b)| {
+            let val = a as Double + b as Double + *acc;
+
+            *acc = val / RADIX;
+
+            Some(val as Single)
+        })
+    };
+}
+
+macro_rules! sub_long_impl {
+    ($a:expr, $b:expr) => {
+        $a.zip($b).scan(0, |acc, (a, b)| {
+            let val = RADIX + a as Double - b as Double - *acc;
+
+            *acc = (val < RADIX) as Double;
+
+            Some(val as Single)
+        })
+    };
+}
+
+macro_rules! add_single_impl {
+    ($a:expr, $b:expr) => {
+        $a.scan($b as Double, |acc, a| {
+            let val = a as Double + *acc;
+
+            *acc = val / RADIX;
+
+            Some(val as Single)
+        })
+    };
+    (@overflow $a:expr, $b:expr) => {
+        $a.fold($b as Double, |acc, a| {
+            let val = a as Double + acc;
+
+            val / RADIX
+        })
+    };
+}
+
+macro_rules! sub_single_impl {
+    ($a:expr, $b:expr) => {
+        $a.scan($b as Double, |acc, a| {
+            let val = RADIX + a as Double - *acc;
+
+            *acc = (val < RADIX) as Double;
+
+            Some(val as Single)
+        })
+    };
+}
+
+macro_rules! mul_single_impl {
+    ($a:expr, $b:expr) => {
+        $a.scan(0, |acc, a| {
+            let val = a as Double * $b as Double + *acc;
+
+            *acc = val / RADIX;
+
+            Some(val as Single)
+        })
+    };
+    (@overflow $a:expr, $b:expr) => {
+        $a.fold(0, |acc, a| {
+            let val = a as Double * $b as Double + acc;
+
+            val / RADIX
+        })
+    };
+}
+
+macro_rules! add_long_mut_impl {
+    ($a:expr, $b:expr) => {
+        $a.zip($b).fold(0, |acc, (ptr, val)| {
+            let v = *ptr as Double + val as Double + acc;
+
+            *ptr = v as Single;
+
+            v / RADIX
+        });
+    };
+}
+
+macro_rules! sub_long_mut_impl {
+    ($a:expr, $b:expr) => {
+        $a.zip($b).fold(0, |acc, (ptr, val)| {
+            let v = RADIX + *ptr as Double - val as Double - acc;
+
+            *ptr = v as Single;
+
+            (v < RADIX) as Double
+        });
+    };
+}
+
+macro_rules! add_single_mut_impl {
+    ($a:expr, $b:expr) => {
+        $a.fold($b as Double, |acc, ptr| {
+            let v = *ptr as Double + acc;
+
+            *ptr = v as Single;
+
+            v / RADIX
+        });
+    };
+}
+
+macro_rules! sub_single_mut_impl {
+    ($a:expr, $b:expr) => {
+        $a.fold($b as Double, |acc, ptr| {
+            let v = RADIX + *ptr as Double - acc;
+
+            *ptr = v as Single;
+
+            (v < RADIX) as Double
+        });
+    };
+}
+
+macro_rules! mul_single_mut_impl {
+    ($a:expr, $b:expr) => {
+        $a.fold(0, |acc, ptr| {
+            let v = *ptr as Double * $b as Double + acc;
+
+            *ptr = v as Single;
+
+            v / RADIX
+        });
+    };
+}
+
 macro_rules! cycle {
     ($arr:expr, $val:expr) => {{
-        let val = *$arr.last().unwrap_or(&0);
-
         for i in (1..$arr.len()).rev() {
             $arr[i] = $arr[i - 1];
         }
 
         $arr[0] = $val;
-
-        val
     }};
 }
 
@@ -1445,50 +1576,21 @@ where
 }
 
 fn add_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-    a.iter()
-        .zip(b.iter())
-        .scan(0, |acc, (&a, &b)| {
-            let val = a as Double + b as Double + *acc;
-
-            *acc = val / RADIX;
-
-            Some(val as Single)
-        })
-        .collect_with([0; L])
+    add_long_impl!(a.iter().copied(), b.iter().copied()).collect_with([0; L])
 }
 
 fn sub_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-    a.iter()
-        .zip(b.iter())
-        .scan(0, |acc, (&a, &b)| {
-            let val = RADIX + a as Double - b as Double - *acc;
-
-            *acc = (val < RADIX) as Double;
-
-            Some(val as Single)
-        })
-        .collect_with([0; L])
+    sub_long_impl!(a.iter().copied(), b.iter().copied()).collect_with([0; L])
 }
 
 fn mul_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
     let mut res = [0; L];
 
     for (idx, x) in b.iter().enumerate() {
-        let iter = a.iter().scan(0, |acc, &a| {
-            let val = a as Double * *x as Double + *acc;
+        let res_iter = res.iter_mut().skip(idx);
+        let mul_iter = mul_single_impl!(a.iter().copied(), *x);
 
-            *acc = val / RADIX;
-
-            Some(val as Single)
-        });
-
-        res.iter_mut().skip(idx).zip(iter).fold(0, |acc, (ptr, val)| {
-            let v = *ptr as Double + val as Double + acc;
-
-            *ptr = v as Single;
-
-            v / RADIX
-        });
+        add_long_mut_impl!(res_iter, mul_iter);
     }
 
     res
@@ -1497,37 +1599,35 @@ fn mul_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
 fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [Single; L]) {
     let mut div = [0; L];
     let mut rem = [0; L];
-    let mut remx = 0;
 
     for (idx, &val) in a.iter().enumerate().rev() {
-        remx = cycle!(rem, val);
+        cycle!(rem, val);
 
         let digit = search!(0, RADIX, |m: Double| {
-            let mut acc = 0;
-
-            let mul = b
-                .iter()
-                .map(|&a| {
-                    let val = a as Double * m as Double + acc;
-
-                    acc = val / RADIX;
-
-                    val as Single
-                })
-                .collect_with([0; L]);
-
-            match (acc as Single).cmp(&remx) {
-                Ordering::Less => Ordering::Less,
-                Ordering::Equal => mul.cmp(&rem),
-                Ordering::Greater => Ordering::Greater,
+            if mul_single_impl!(@overflow b.iter().copied(), m) > 0 {
+                return Ordering::Greater;
             }
-        })
-        .saturating_sub(1) as Single;
+
+            let mul = mul_single_impl!(b.iter().copied(), m).collect_with([0; L]);
+
+            mul.iter()
+                .copied()
+                .rev()
+                .zip(rem.iter().copied().rev())
+                .map(|(x, y)| x.cmp(&y))
+                .find(|&ord| ord != Ordering::Equal)
+                .unwrap_or(Ordering::Equal)
+        });
+
+        let digit = digit.saturating_sub(1) as Single;
 
         if digit > 0 {
             div[idx] = digit;
 
-            sub_long_mut(&mut rem, &mul_single(b, digit));
+            let rem_iter = rem.iter_mut();
+            let mul_iter = mul_single_impl!(b.iter().copied(), digit);
+
+            sub_long_mut_impl!(rem_iter, mul_iter);
         }
     }
 
@@ -1535,39 +1635,15 @@ fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [
 }
 
 fn add_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
-    a.iter()
-        .scan(b as Double, |acc, &a| {
-            let val = a as Double + *acc;
-
-            *acc = val / RADIX;
-
-            Some(val as Single)
-        })
-        .collect_with([0; L])
+    add_single_impl!(a.iter().copied(), b).collect_with([0; L])
 }
 
 fn sub_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
-    a.iter()
-        .scan(b as Double, |acc, &a| {
-            let val = RADIX + a as Double - *acc;
-
-            *acc = (val < RADIX) as Double;
-
-            Some(val as Single)
-        })
-        .collect_with([0; L])
+    sub_single_impl!(a.iter().copied(), b).collect_with([0; L])
 }
 
 fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
-    a.iter()
-        .scan(0, |acc, &a| {
-            let val = a as Double * b as Double + *acc;
-
-            *acc = val / RADIX;
-
-            Some(val as Single)
-        })
-        .collect_with([0; L])
+    mul_single_impl!(a.iter().copied(), b).collect_with([0; L])
 }
 
 fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
@@ -1589,23 +1665,11 @@ fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Sing
 }
 
 fn add_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    a.iter_mut().zip(b.iter()).fold(0, |acc, (ptr, &val)| {
-        let v = *ptr as Double + val as Double + acc;
-
-        *ptr = v as Single;
-
-        v / RADIX
-    });
+    add_long_mut_impl!(a.iter_mut(), b.iter().copied());
 }
 
 fn sub_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
-    a.iter_mut().zip(b.iter()).fold(0, |acc, (ptr, &val)| {
-        let v = RADIX + *ptr as Double - val as Double - acc;
-
-        *ptr = v as Single;
-
-        (v < RADIX) as Double
-    });
+    sub_long_mut_impl!(a.iter_mut(), b.iter().copied());
 }
 
 fn mul_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
@@ -1621,33 +1685,15 @@ fn rem_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
 }
 
 fn add_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    a.iter_mut().fold(b as Double, |acc, ptr| {
-        let v = *ptr as Double + acc;
-
-        *ptr = v as Single;
-
-        v / RADIX
-    });
+    add_single_mut_impl!(a.iter_mut(), b);
 }
 
 fn sub_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    a.iter_mut().fold(b as Double, |acc, ptr| {
-        let v = RADIX + *ptr as Double - acc;
-
-        *ptr = v as Single;
-
-        (v < RADIX) as Double
-    });
+    sub_single_mut_impl!(a.iter_mut(), b);
 }
 
 fn mul_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
-    a.iter_mut().fold(0, |acc, ptr| {
-        let v = *ptr as Double * b as Double + acc;
-
-        *ptr = v as Single;
-
-        v / RADIX
-    });
+    mul_single_mut_impl!(a.iter_mut(), b);
 }
 
 fn div_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
