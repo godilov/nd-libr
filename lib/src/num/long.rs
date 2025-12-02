@@ -468,7 +468,23 @@ macro_rules! cycle {
 }
 
 macro_rules! search {
-    ($l:expr, $r:expr, |$m:ident: $ty:ty| { $($fn:tt)+ }) => {{
+    (@lower $l:expr, $r:expr, |$m:ident: $ty:ty| { $($fn:tt)+ }) => {{
+        let mut l = 0;
+        let mut r = RADIX;
+
+        while l < r {
+            let m = l + (r - l) / 2;
+
+            match (|$m: $ty| { $($fn)+ })(m) {
+                Ordering::Less => l = m + 1,
+                Ordering::Equal => r = m,
+                Ordering::Greater => r = m,
+            }
+        }
+
+        l
+    }};
+    (@upper $l:expr, $r:expr, |$m:ident: $ty:ty| { $($fn:tt)+ }) => {{
         let mut l = 0;
         let mut r = RADIX;
 
@@ -1603,7 +1619,7 @@ fn div_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [
     for (idx, &val) in a.iter().enumerate().rev() {
         cycle!(rem, val);
 
-        let digit = search!(0, RADIX, |m: Double| {
+        let digit = search!(@upper 0, RADIX, |m: Double| {
             if mul_single_impl!(@overflow b.iter().copied(), m) > 0 {
                 return Ordering::Greater;
             }
@@ -1654,7 +1670,7 @@ fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Sing
         rem <<= BITS;
         rem |= val as Double;
 
-        let digit = search!(0, RADIX, |m: Double| { (m * b as Double).cmp(&rem) });
+        let digit = search!(@upper 0, RADIX, |m: Double| { (m * b as Double).cmp(&rem) });
         let digit = digit.saturating_sub(1) as Single;
 
         div[idx] = digit;

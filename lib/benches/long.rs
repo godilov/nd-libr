@@ -28,6 +28,27 @@ const PRIMES: [u64; 128] = [
     2179519291, 2179381573,
 ];
 
+macro_rules! from_arr_impl {
+    ($group:expr, $rng:expr, $shr:expr) => {
+        let len = BYTES >> $shr;
+        let bytes = $rng.random::<[u8; BYTES]>();
+        let bytes = match <[u8; BYTES >> $shr]>::try_from(&bytes[..len]) {
+            Ok(val) => val,
+            Err(_) => return,
+        };
+
+        $group.throughput(Throughput::Bytes(len as u64));
+
+        $group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes, |b, bytes| {
+            b.iter(|| S4096::from(bytes))
+        });
+
+        $group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes, |b, bytes| {
+            b.iter(|| U4096::from(bytes))
+        });
+    };
+}
+
 fn get_group<'c>(c: &'c mut Criterion, name: &'static str) -> BenchmarkGroup<'c, WallTime> {
     let mut group = c.benchmark_group(name);
 
@@ -65,6 +86,18 @@ fn from_std(c: &mut Criterion) {
     group.throughput(Throughput::Bits(128));
     group.bench_with_input(BenchmarkId::new("S4096", 128), &s128, |b, &val| b.iter(|| S4096::from(val)));
     group.bench_with_input(BenchmarkId::new("U4096", 128), &u128, |b, &val| b.iter(|| U4096::from(val)));
+}
+
+fn from_arr(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_arr");
+    let mut rng = get_rng();
+
+    from_arr_impl!(group, rng, 0);
+    from_arr_impl!(group, rng, 1);
+    from_arr_impl!(group, rng, 2);
+    from_arr_impl!(group, rng, 3);
+    from_arr_impl!(group, rng, 4);
+    from_arr_impl!(group, rng, 5);
 }
 
 fn from_slice(c: &mut Criterion) {
@@ -469,6 +502,7 @@ criterion_group!(
     group,
     from_std_const,
     from_std,
+    from_arr,
     from_slice,
     from_iter,
     from_digits,
