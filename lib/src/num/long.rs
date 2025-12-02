@@ -324,6 +324,48 @@ macro_rules! from_digits_impl {
     }};
 }
 
+macro_rules! inc_impl {
+    ($digits:expr) => {{
+        let mut digits = $digits;
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = *ptr as Double + acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = digit / RADIX;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }};
+}
+
+macro_rules! dec_impl {
+    ($digits:expr) => {{
+        let mut digits = $digits;
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = RADIX + *ptr as Double - acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = (digit < RADIX) as Double;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }};
+}
+
 macro_rules! add_long_impl {
     ($a:expr, $b:expr) => {
         $a.zip($b).scan(0, |acc, (a, b)| {
@@ -1926,55 +1968,19 @@ mod uops {
     }
 
     pub(super) fn inc<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        let mut digits = *digits;
-
-        inc_mut(&mut digits);
-
-        digits
+        inc_impl!(*digits)
     }
 
     pub(super) fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        let mut acc = 1;
-
-        for ptr in digits.iter_mut() {
-            let digit = *ptr as Double + acc as Double;
-
-            *ptr = digit as Single;
-
-            acc = digit / RADIX;
-
-            if acc == 0 {
-                break;
-            }
-        }
-
-        digits
+        inc_impl!(digits)
     }
 
     pub(super) fn dec<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        let mut digits = *digits;
-
-        dec_mut(&mut digits);
-
-        digits
+        dec_impl!(*digits)
     }
 
     pub(super) fn dec_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        let mut acc = 1;
-
-        for ptr in digits.iter_mut() {
-            let digit = RADIX + *ptr as Double - acc as Double;
-
-            *ptr = digit as Single;
-
-            acc = (digit < RADIX) as Double;
-
-            if acc == 0 {
-                break;
-            }
-        }
-
-        digits
+        dec_impl!(digits)
     }
 }
 
