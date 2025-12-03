@@ -526,9 +526,9 @@ macro_rules! div_long_impl {
 
             let digit = digit.saturating_sub(1) as Single;
 
-            if digit > 0 {
-                *val = digit;
+            *val = digit;
 
+            if digit > 0 {
                 let rem_iter = rem.iter_mut();
                 let mul_iter = mul_single_impl!($b, digit);
 
@@ -2338,6 +2338,9 @@ mod tests {
                     let aop = &<$type>::from(a);
                     let bop = &<$type>::from(b);
 
+                    println!("A: {}", a);
+                    println!("B: {}", b);
+
                     $({
                         let lval = (|$aop: &$type, $bop: &$type| $expr_lval)(aop, bop);
                         let rval = (|$a: $type_std, $b: $type_std| $expr_rval)(a, b);
@@ -2711,8 +2714,8 @@ mod tests {
             { aop + bop } { U64::from(a.wrapping_add(b)) }
             { aop - bop } { U64::from(a.wrapping_sub(b)) }
             { aop * bop } { U64::from(a.wrapping_mul(b)) }
-            // { aop / bop } { U64::from(a / b) }
-            // { aop % bop } { U64::from(a % b) }
+            { aop / bop } { U64::from(a / b) }
+            { aop % bop } { U64::from(a % b) }
             { aop | bop } { U64::from(a | b) }
             { aop & bop } { U64::from(a & b) }
             { aop ^ bop } { U64::from(a ^ b) }
