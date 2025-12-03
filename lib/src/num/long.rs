@@ -568,12 +568,7 @@ macro_rules! shl_impl {
 
         let mut res = $digits;
 
-        let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
-        let val_l = $default.checked_shr(shr as u32).unwrap_or(0);
-
-        res[offset] = val_h | val_l;
-
-        for idx in (offset + 1).min(L)..L {
+        for idx in ((offset + 1).min(L)..L).rev() {
             let idx_h = idx - offset;
             let idx_l = idx - offset - 1;
 
@@ -582,6 +577,11 @@ macro_rules! shl_impl {
 
             res[idx] = val_h | val_l;
         }
+
+        let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
+        let val_l = $default.checked_shr(shr as u32).unwrap_or(0);
+
+        res[offset] = val_h | val_l;
 
         res.iter_mut().take(offset).for_each(|ptr| *ptr = $default);
         res
@@ -616,7 +616,7 @@ macro_rules! shr_impl {
 
         res[L - offset - 1] = val_h | val_l;
 
-        res.iter_mut().skip(L - offset - 1).for_each(|ptr| *ptr = $default);
+        res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = $default);
         res
     }};
 }
@@ -2718,9 +2718,9 @@ mod tests {
 
     #[test]
     fn unsigned_shift() {
-        // assert_ops!(@shift u64, U64, 0..64, |val, valop, shift| [
-        //     { valop << shift } { U64::from(val << shift) }
-        //     { valop >> shift } { U64::from(val >> shift) }
-        // ]);
+        assert_ops!(@shift u64, U64, 0..64, |val, valop, shift| [
+            { valop << shift } { U64::from(val << shift) }
+            { valop >> shift } { U64::from(val >> shift) }
+        ]);
     }
 }
