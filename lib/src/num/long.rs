@@ -1078,12 +1078,14 @@ impl<const L: usize> UpperHex for Unsigned<L> {
     }
 }
 
+ops_impl!(@bin |a: Sign, b: Sign| -> Sign, * Sign::from((a as i8) * (b as i8)));
+
 ops_impl!(@bin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<L>,
     + Signed::<L>(add_long(&a.0, &b.0)),
     - Signed::<L>(sub_long(&a.0, &b.0)),
     * Signed::<L>(mul_long(&a.0, &b.0)),
-    / Signed::<L>(div_long(&a.0, &b.0).0),
-    % Signed::<L>(div_long(&a.0, &b.0).1),
+    / Signed::<L>(div_long(&a.abs().0, &b.abs().0).0).with_sign(a.sign() * b.sign()),
+    % Signed::<L>(div_long(&a.abs().0, &b.abs().0).1).with_sign(a.sign()),
     | Signed::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop | bop)),
     & Signed::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Signed::<L>(bitop_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
@@ -1197,6 +1199,14 @@ impl<const L: usize> Signed<L> {
 
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
+    }
+
+    pub fn abs(&self) -> Unsigned<L> {
+        match self.sign() {
+            Sign::ZERO => Unsigned::<L>(self.0),
+            Sign::NEG => Unsigned::<L>(neg(&self.0)),
+            Sign::POS => Unsigned::<L>(self.0),
+        }
     }
 
     pub fn sign(&self) -> Sign {
@@ -2330,9 +2340,6 @@ mod tests {
                     let aop = &<$type>::from(a);
                     let bop = &<$type>::from(b);
 
-                    println!("A: {}", a);
-                    println!("B: {}", b);
-
                     $({
                         let lval = (|$aop: &$type, $bop: &$type| $expr_lval)(aop, bop);
                         let rval = (|$a: $type_std, $b: $type_std| $expr_rval)(a, b);
@@ -2692,8 +2699,8 @@ mod tests {
             { aop + bop } { S64::from(a.wrapping_add(b)) }
             { aop - bop } { S64::from(a.wrapping_sub(b)) }
             { aop * bop } { S64::from(a.wrapping_mul(b)) }
-            // { aop / bop } { S64::from(a / b) }
-            // { aop % bop } { S64::from(a % b) }
+            { aop / bop } { S64::from(a / b) }
+            { aop % bop } { S64::from(a % b) }
             { aop | bop } { S64::from(a | b) }
             { aop & bop } { S64::from(a & b) }
             { aop ^ bop } { S64::from(a ^ b) }
