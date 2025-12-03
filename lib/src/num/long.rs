@@ -1005,7 +1005,7 @@ impl<const L: usize> Display for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Dec.into(), iter, get_sign(self.digits(), self.sign()), write_dec)
+        write_long_iter(f, Dec.into(), iter, get_sign(&self.0, self.sign()), write_dec)
     }
 }
 
@@ -1016,19 +1016,19 @@ impl<const L: usize> Display for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Dec.into(), iter, get_sign(self.digits(), self.sign()), write_dec)
+        write_long_iter(f, Dec.into(), iter, get_sign(&self.0, self.sign()), write_dec)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+        write_long(f, Bin.into(), &self.0, get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Bin.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_bin)
+        write_long(f, Bin.into(), &self.0, get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
@@ -1039,7 +1039,7 @@ impl<const L: usize> Octal for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Oct.into(), iter, get_sign(self.digits(), Sign::POS), write_oct)
+        write_long_iter(f, Oct.into(), iter, get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
@@ -1050,31 +1050,31 @@ impl<const L: usize> Octal for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Oct.into(), iter, get_sign(self.digits(), Sign::POS), write_oct)
+        write_long_iter(f, Oct.into(), iter, get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_lhex)
+        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), self.digits(), get_sign(self.digits(), Sign::POS), write_uhex)
+        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
@@ -1199,10 +1199,6 @@ impl<const L: usize> Signed<L> {
         self.0.as_mut_bytes()
     }
 
-    pub fn digits(&self) -> &[Single; L] {
-        &self.0
-    }
-
     pub fn sign(&self) -> Sign {
         if self.0 == [0; L] {
             return Sign::ZERO;
@@ -1306,10 +1302,6 @@ impl<const L: usize> Unsigned<L> {
 
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
-    }
-
-    pub fn digits(&self) -> &[Single; L] {
-        &self.0
     }
 
     pub fn sign(&self) -> Sign {
