@@ -44,7 +44,7 @@ enum PrimeCommands {
     #[command(name = "by-limit")]
     Limit {
         /// Limit value
-        val: u64,
+        val: u128,
 
         /// Use fast test
         #[arg(short, long)]
@@ -71,15 +71,15 @@ fn main() -> anyhow::Result<()> {
         Commands::Primes { cmd, filepath, pretty } => {
             let primes = match cmd {
                 PrimeCommands::Count { val, fast } => match fast {
-                    false => Primes::by_count_full(val).collect::<Vec<u64>>(),
-                    true => Primes::by_count_fast(val).collect::<Vec<u64>>(),
+                    false => Primes::by_count_full(val).collect::<Vec<u128>>(),
+                    true => Primes::by_count_fast(val).collect::<Vec<u128>>(),
                 },
                 PrimeCommands::Limit { val, fast } => match fast {
-                    false => Primes::by_limit_full(val).collect::<Vec<u64>>(),
-                    true => Primes::by_limit_fast(val).collect::<Vec<u64>>(),
+                    false => Primes::by_limit_full(val).collect::<Vec<u128>>(),
+                    true => Primes::by_limit_fast(val).collect::<Vec<u128>>(),
                 },
                 PrimeCommands::Rand { order, count } => {
-                    let mut vec = u64::rand_primes_par(order, count);
+                    let mut vec = u128::rand_primes_par(order, count);
 
                     vec.sort_unstable();
                     vec.reverse();
