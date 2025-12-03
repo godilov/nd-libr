@@ -37,11 +37,40 @@ macro_rules! unsigned {
     };
 }
 
-macro_rules! digit_impl {
-    ($primitive:ty, [$half:ty, $single:ty, $double:ty] $(,)?) => {
+macro_rules! digit_def {
+    ($id:ident) => {
 #[rustfmt::skip]
-        impl Digit for $primitive {
-            type Half = $half;
+        pub trait $id: Clone + Copy
+            + PartialEq + Eq
+            + PartialOrd + Ord
+            + Debug + Display + Binary + Octal + LowerHex + UpperHex
+            + FromBytes + IntoBytes + Immutable
+        {
+            type Single: Clone + Copy;
+            type Double: Clone + Copy + From<Self::Single>;
+
+            const BITS: usize;
+            const BYTES: usize;
+            const ZERO: Self;
+            const ONE: Self;
+
+            fn from_single(value: Single) -> Self;
+            fn from_double(value: Double) -> Self;
+
+            fn as_single(self) -> Single;
+            fn as_double(self) -> Double;
+
+            fn order(self) -> usize;
+
+            fn is_pow2(self) -> bool;
+        }
+    };
+}
+
+macro_rules! digit_impl {
+    ($id:ident, $primitive:ty, [$single:ty, $double:ty] $(,)?) => {
+#[rustfmt::skip]
+        impl $id for $primitive {
             type Single = $single;
             type Double = $double;
 
@@ -50,20 +79,12 @@ macro_rules! digit_impl {
             const ZERO: Self = 0;
             const ONE: Self = 1;
 
-            fn from_half(value: Half) -> Self {
-                value as Self
-            }
-
             fn from_single(value: Single) -> Self {
                 value as Self
             }
 
             fn from_double(value: Double) -> Self {
                 value as Self
-            }
-
-            fn as_half(self) -> Half {
-                self as Half
             }
 
             fn as_single(self) -> Single {
@@ -86,11 +107,10 @@ macro_rules! digit_impl {
 }
 
 macro_rules! digits_impl {
-    (($half:ty, $single:ty, $double:ty), ($dec_radix:expr, $dec_width:expr), ($oct_radix:expr, $oct_width:expr), { $($body:tt)* }) => {
+    (($single:ty, $double:ty), ($dec_radix:expr, $dec_width:expr), ($oct_radix:expr, $oct_width:expr), { $($body:tt)* }) => {
         pub mod digit {
             use super::*;
 
-            pub type Half = $half;
             pub type Single = $single;
             pub type Double = $double;
 
@@ -106,33 +126,8 @@ macro_rules! digits_impl {
             pub(super) const OCT_RADIX: Double = $oct_radix;
             pub(super) const OCT_WIDTH: u8 = $oct_width;
 
-            pub trait Digit: Clone + Copy
-                + PartialEq + Eq
-                + PartialOrd + Ord
-                + Debug + Display + Binary + Octal + LowerHex + UpperHex
-                + FromBytes + IntoBytes + Immutable
-            {
-                type Half: Clone + Copy;
-                type Single: Clone + Copy + From<Self::Half>;
-                type Double: Clone + Copy + From<Self::Single>;
-
-                const BITS: usize;
-                const BYTES: usize;
-                const ZERO: Self;
-                const ONE: Self;
-
-                fn from_half(value: Half) -> Self;
-                fn from_single(value: Single) -> Self;
-                fn from_double(value: Double) -> Self;
-
-                fn as_half(self) -> Half;
-                fn as_single(self) -> Single;
-                fn as_double(self) -> Double;
-
-                fn order(self) -> usize;
-
-                fn is_pow2(self) -> bool;
-            }
+            digit_def!(Digit);
+            digit_def!(DigitExt);
 
             pub trait DigitsIterator: Clone + Iterator + ExactSizeIterator
             where
@@ -672,26 +667,40 @@ macro_rules! search {
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
-digits_impl!((u32, u64, u128), (10_000_000_000_000_000_000, 19), (Double::ONE << 63, 21), {
-    digit_impl!(u8, [u8, u8, u16]);
-    digit_impl!(u16, [u8, u16, u32]);
-    digit_impl!(u32, [u16, u32, u64]);
-    digit_impl!(u64, [u32, u64, u128]);
-    digit_impl!(usize, [u32, u64, u128]);
-});
+digits_impl!(
+    (u64, u128),
+    (10_000_000_000_000_000_000, 19),
+    (<Double as DigitExt>::ONE << 63, 21),
+    {
+        digit_impl!(Digit, u8, [u8, u16]);
+        digit_impl!(Digit, u16, [u16, u32]);
+        digit_impl!(Digit, u32, [u32, u64]);
+        digit_impl!(Digit, u64, [u64, u128]);
+        digit_impl!(Digit, usize, [u64, u128]);
+
+        digit_impl!(DigitExt, u128, [u128, u128]);
+    }
+);
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
-digits_impl!((u16, u32, u64), (1_000_000_000, 9), (Double::ONE << 30, 10), {
-    digit_impl!(u8, [u8, u8, u16]);
-    digit_impl!(u16, [u8, u16, u32]);
-    digit_impl!(u32, [u16, u32, u64]);
-    digit_impl!(usize, [u16, u32, u64]);
+digits_impl!((u32, u64), (1_000_000_000, 9), (<Double as DigitExt>::ONE << 30, 10), {
+    digit_impl!(Digit, u8, [u8, u16]);
+    digit_impl!(Digit, u16, [u16, u32]);
+    digit_impl!(Digit, u32, [u32, u64]);
+    digit_impl!(Digit, usize, [u32, u64]);
+
+    digit_impl!(DigitExt, u64, [u32, u64, u128]);
+    digit_impl!(DigitExt, u128, [u64, u128, u128]);
 });
 
 #[cfg(test)]
-digits_impl!((u8, u16, u32), (100, 2), (Double::ONE << 6, 2), {
-    digit_impl!(u8, [u8, u8, u16]);
-    digit_impl!(u16, [u8, u16, u32]);
+digits_impl!((u8, u16), (100, 2), (<Double as DigitExt>::ONE << 6, 2), {
+    digit_impl!(Digit, u8, [u8, u16]);
+
+    digit_impl!(DigitExt, u16, [u16, u32]);
+    digit_impl!(DigitExt, u32, [u32, u64]);
+    digit_impl!(DigitExt, u64, [u64, u128]);
+    digit_impl!(DigitExt, u128, [u128, u128]);
 });
 
 pub mod radix {
