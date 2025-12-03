@@ -1210,14 +1210,6 @@ impl<const L: usize> Signed<L> {
         self.0.as_mut_bytes()
     }
 
-    pub fn abs(&self) -> Unsigned<L> {
-        match self.sign() {
-            Sign::ZERO => Unsigned::<L>(self.0),
-            Sign::NEG => Unsigned::<L>(neg(&self.0)),
-            Sign::POS => Unsigned::<L>(self.0),
-        }
-    }
-
     pub fn sign(&self) -> Sign {
         if self.0 == [0; L] {
             return Sign::ZERO;
@@ -1227,6 +1219,14 @@ impl<const L: usize> Signed<L> {
             Sign::POS
         } else {
             Sign::NEG
+        }
+    }
+
+    pub fn abs(&self) -> Unsigned<L> {
+        match self.sign() {
+            Sign::ZERO => Unsigned::<L>(self.0),
+            Sign::NEG => Unsigned::<L>(neg(&self.0)),
+            Sign::POS => Unsigned::<L>(self.0),
         }
     }
 
@@ -1250,18 +1250,6 @@ impl<const L: usize> Signed<L> {
 
     pub fn with_neg(mut self) -> Self {
         neg_mut(&mut self.0);
-
-        self
-    }
-
-    pub fn inc(&mut self) -> &mut Self {
-        inc_mut(&mut self.0);
-
-        self
-    }
-
-    pub fn dec(&mut self) -> &mut Self {
-        dec_mut(&mut self.0);
 
         self
     }
@@ -1325,18 +1313,6 @@ impl<const L: usize> Unsigned<L> {
 
     pub fn sign(&self) -> Sign {
         get_sign(&self.0, Sign::POS)
-    }
-
-    pub fn inc(&mut self) -> &mut Self {
-        inc_mut(&mut self.0);
-
-        self
-    }
-
-    pub fn dec(&mut self) -> &mut Self {
-        dec_mut(&mut self.0);
-
-        self
     }
 }
 
