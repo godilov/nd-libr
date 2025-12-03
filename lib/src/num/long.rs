@@ -2332,39 +2332,33 @@ mod tests {
     const PRIMES_56BIT: [usize; 2] = [72_057_582_686_044_051, 72_051_998_136_909_223];
 
     macro_rules! assert_ops {
-        ($fn:ident, $type_std:ty, $type:ty, |$a:ident, $b:ident, $aop:ident, $bop:ident| [$({ $expr_lval:expr } { $expr_rval:expr })+]) => {
-            #[test]
-            fn $fn() {
-                for a in (<$type_std>::MIN + 1..<$type_std>::MAX).step_by(PRIMES_56BIT[0]) {
-                    for b in (<$type_std>::MIN + 1..<$type_std>::MAX).step_by(PRIMES_56BIT[1]) {
-                        let aop = &<$type>::from(a);
-                        let bop = &<$type>::from(b);
+        ($type_std:ty, $type:ty, |$a:ident, $b:ident, $aop:ident, $bop:ident| [$({ $expr_lval:expr } { $expr_rval:expr })+]) => {
+            for a in (<$type_std>::MIN + 1..<$type_std>::MAX).step_by(PRIMES_56BIT[0]) {
+                for b in (<$type_std>::MIN + 1..<$type_std>::MAX).step_by(PRIMES_56BIT[1]) {
+                    let aop = &<$type>::from(a);
+                    let bop = &<$type>::from(b);
 
-                        $({
-                            let lval = (|$aop: &$type, $bop: &$type| $expr_lval)(aop, bop);
-                            let rval = (|$a: $type_std, $b: $type_std| $expr_rval)(a, b);
+                    $({
+                        let lval = (|$aop: &$type, $bop: &$type| $expr_lval)(aop, bop);
+                        let rval = (|$a: $type_std, $b: $type_std| $expr_rval)(a, b);
 
-                            assert_eq!(lval, rval);
-                        })+
-                    }
+                        assert_eq!(lval, rval);
+                    })+
                 }
             }
         };
 
-        (@shift $fn:ident, $type_std:ty, $type:ty, $range:expr, |$val:ident, $valop:ident, $shift:ident| [$({ $expr_lval:expr } { $expr_rval:expr })+]) => {
-            #[test]
-            fn $fn() {
-                for val in (<$type_std>::MIN + 1..<$type_std>::MAX).step_by(PRIMES_48BIT[0]) {
-                    for shift in $range {
-                        let valop = &<$type>::from(val);
+        (@shift $type_std:ty, $type:ty, $range:expr, |$val:ident, $valop:ident, $shift:ident| [$({ $expr_lval:expr } { $expr_rval:expr })+]) => {
+            for val in (<$type_std>::MIN + 1..<$type_std>::MAX).step_by(PRIMES_48BIT[0]) {
+                for shift in $range {
+                    let valop = &<$type>::from(val);
 
-                        $({
-                            let lval = (|$valop: &$type, $shift: usize| $expr_lval)(valop, shift);
-                            let rval = (|$val: $type_std, $shift: usize| $expr_rval)(val, shift);
+                    $({
+                        let lval = (|$valop: &$type, $shift: usize| $expr_lval)(valop, shift);
+                        let rval = (|$val: $type_std, $shift: usize| $expr_rval)(val, shift);
 
-                            assert_eq!(lval, rval);
-                        })+
-                    }
+                        assert_eq!(lval, rval);
+                    })+
                 }
             }
         };
@@ -2697,35 +2691,47 @@ mod tests {
         }
     }
 
-    assert_ops!(signed_ops, i64, S64, |a, b, aop, bop| [
-        { aop + bop } { S64::from(a.wrapping_add(b)) }
-        { aop - bop } { S64::from(a.wrapping_sub(b)) }
-        { aop * bop } { S64::from(a.wrapping_mul(b)) }
-        // { aop / bop } { S64::from(a / b) }
-        // { aop % bop } { S64::from(a % b) }
-        { aop | bop } { S64::from(a | b) }
-        { aop & bop } { S64::from(a & b) }
-        { aop ^ bop } { S64::from(a ^ b) }
-    ]);
+    #[test]
+    fn signed_ops() {
+        assert_ops!(i64, S64, |a, b, aop, bop| [
+            { aop + bop } { S64::from(a.wrapping_add(b)) }
+            { aop - bop } { S64::from(a.wrapping_sub(b)) }
+            { aop * bop } { S64::from(a.wrapping_mul(b)) }
+            // { aop / bop } { S64::from(a / b) }
+            // { aop % bop } { S64::from(a % b) }
+            { aop | bop } { S64::from(a | b) }
+            { aop & bop } { S64::from(a & b) }
+            { aop ^ bop } { S64::from(a ^ b) }
+        ]);
+    }
 
-    assert_ops!(unsigned_ops, u64, U64, |a, b, aop, bop| [
-        { aop + bop } { U64::from(a.wrapping_add(b)) }
-        { aop - bop } { U64::from(a.wrapping_sub(b)) }
-        { aop * bop } { U64::from(a.wrapping_mul(b)) }
-        // { aop / bop } { U64::from(a / b) }
-        // { aop % bop } { U64::from(a % b) }
-        { aop | bop } { U64::from(a | b) }
-        { aop & bop } { U64::from(a & b) }
-        { aop ^ bop } { U64::from(a ^ b) }
-    ]);
+    #[test]
+    fn unsigned_ops() {
+        assert_ops!(u64, U64, |a, b, aop, bop| [
+            { aop + bop } { U64::from(a.wrapping_add(b)) }
+            { aop - bop } { U64::from(a.wrapping_sub(b)) }
+            { aop * bop } { U64::from(a.wrapping_mul(b)) }
+            // { aop / bop } { U64::from(a / b) }
+            // { aop % bop } { U64::from(a % b) }
+            { aop | bop } { U64::from(a | b) }
+            { aop & bop } { U64::from(a & b) }
+            { aop ^ bop } { U64::from(a ^ b) }
+        ]);
+    }
 
-    // assert_ops!(@shift signed_shift, i64, S64, 0..64, |val, valop, shift| [
-    //     { valop << shift } { S64::from(val << shift) }
-    //     { valop >> shift } { S64::from(val >> shift) }
-    // ]);
+    #[test]
+    fn signed_shift() {
+        // assert_ops!(@shift i64, S64, 0..64, |val, valop, shift| [
+        //     { valop << shift } { S64::from(val << shift) }
+        //     { valop >> shift } { S64::from(val >> shift) }
+        // ]);
+    }
 
-    // assert_ops!(@shift unsigned_shift, u64, U64, 0..64, |val, valop, shift| [
-    //     { valop << shift } { U64::from(val << shift) }
-    //     { valop >> shift } { U64::from(val >> shift) }
-    // ]);
+    #[test]
+    fn unsigned_shift() {
+        // assert_ops!(@shift u64, U64, 0..64, |val, valop, shift| [
+        //     { valop << shift } { U64::from(val << shift) }
+        //     { valop >> shift } { U64::from(val >> shift) }
+        // ]);
+    }
 }
