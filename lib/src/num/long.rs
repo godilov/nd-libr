@@ -1111,7 +1111,7 @@ ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned
 
 ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>,
     << Signed::<L>(shl(&a.0, b, 0)),
-    >> Signed::<L>(shr(&a.0, b, 0)));
+    >> Signed::<L>(shr(&a.0, b, if a.sign() != Sign::NEG { 0 } else { MAX })));
 
 ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>,
     << Unsigned::<L>(shl(&a.0, b, 0)),
@@ -2710,10 +2710,10 @@ mod tests {
 
     #[test]
     fn signed_shift() {
-        // assert_ops!(@shift i64, S64, 0..64, |val, valop, shift| [
-        //     { valop << shift } { S64::from(val << shift) }
-        //     { valop >> shift } { S64::from(val >> shift) }
-        // ]);
+        assert_ops!(@shift i64, S64, 0..64, |val, valop, shift| [
+            { valop << shift } { S64::from(val << shift) }
+            { valop >> shift } { S64::from(val >> shift) }
+        ]);
     }
 
     #[test]
