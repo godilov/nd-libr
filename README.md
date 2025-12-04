@@ -28,7 +28,7 @@ Executes all tests to verify correctness
 cargo test
 ```
 
-Executes all benches to verify performance
+Executes all benches to verify performance (report: `target/criterion/report/index.html`)
 
 ```shell
 cargo bench
