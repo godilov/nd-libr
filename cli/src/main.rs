@@ -21,7 +21,7 @@ enum Commands {
         #[arg(short, long)]
         filepath: Option<PathBuf>,
 
-        /// Pretty Json file
+        /// Json file prettified
         #[arg(long)]
         pretty: bool,
     },
