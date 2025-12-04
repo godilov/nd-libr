@@ -1,9 +1,8 @@
-#![allow(unused)]
 #![allow(clippy::manual_div_ceil)]
 
 use std::{
     cmp::Ordering,
-    fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex, Write as _},
+    fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
     io::{Cursor, Write as _},
     iter::{once, repeat},
     marker::PhantomData,
@@ -11,15 +10,11 @@ use std::{
 };
 
 use ndproc::ops_impl;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
-use zerocopy::{FromBytes, Immutable, IntoBytes, transmute, transmute_mut, transmute_ref};
+use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_mut};
 
 use crate::{
-    num::{
-        long::{digit::*, radix::*, uops::*},
-        *,
-    },
+    num::long::{digit::*, radix::*, uops::*},
     ops::*,
 };
 
@@ -114,11 +109,11 @@ macro_rules! digits_impl {
             pub type Single = $single;
             pub type Double = $double;
 
-            pub(super) const MAX: Single = Single::MAX;
-            pub(super) const MIN: Single = Single::MIN;
-            pub(super) const BITS: usize = Single::BITS as usize;
-            pub(super) const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
-            pub(super) const RADIX: Double = Single::MAX as Double + 1;
+            pub const MAX: Single = Single::MAX;
+            pub const MIN: Single = Single::MIN;
+            pub const BITS: usize = Single::BITS as usize;
+            pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+            pub const RADIX: Double = Single::MAX as Double + 1;
 
             pub(super) const DEC_RADIX: Double = $dec_radix;
             pub(super) const DEC_WIDTH: u8 = $dec_width;
@@ -211,7 +206,7 @@ macro_rules! long_from_const {
         $(long_from_const!(@unsigned $fn, $primitive);)+
     };
     (@signed $fn:ident, $primitive:ty) => {
-        pub const fn $fn(mut val: $primitive) -> Self {
+        pub const fn $fn(val: $primitive) -> Self {
             let default = if val >= 0 { 0 } else { MAX };
 
             let mut val = val.abs_diff(0);
@@ -266,7 +261,6 @@ macro_rules! from_digits_bin_impl {
     ($digits:expr, $len:expr, $exp:expr) => {{
         let bits = $exp as usize;
         let mask = (1 << BITS) - 1;
-        let len = ($len * bits + BITS - 1) / BITS;
 
         let mut acc = 0;
         let mut shl = 0;
@@ -321,6 +315,7 @@ macro_rules! from_digits_impl {
 
 macro_rules! inc_impl {
     ($digits:expr) => {{
+        #[allow(unused_mut)]
         let mut digits = $digits;
         let mut acc = 1;
 
@@ -342,6 +337,7 @@ macro_rules! inc_impl {
 
 macro_rules! dec_impl {
     ($digits:expr) => {{
+        #[allow(unused_mut)]
         let mut digits = $digits;
         let mut acc = 1;
 
@@ -497,6 +493,7 @@ macro_rules! mul_single_mut_impl {
 
 macro_rules! div_long_impl {
     ($a:expr, $b:expr) => {{
+        #[allow(unused_mut)]
         let mut div = $a;
         let mut rem = [0; L];
 
@@ -537,6 +534,7 @@ macro_rules! div_long_impl {
 
 macro_rules! div_single_impl {
     ($a:expr, $b:expr) => {{
+        #[allow(unused_mut)]
         let mut div = $a;
         let mut rem = 0 as Double;
 
@@ -566,6 +564,7 @@ macro_rules! shl_impl {
             return (|$val: $ty| { $($fn)+ })($digits_ret);
         }
 
+        #[allow(unused_mut)]
         let mut res = $digits;
 
         for idx in ((offset + 1).min(L)..L).rev() {
@@ -599,6 +598,7 @@ macro_rules! shr_impl {
             return (|$val: $ty| { $($fn)+ })($digits_ret);
         }
 
+        #[allow(unused_mut)]
         let mut res = $digits;
 
         for idx in 0..(L - offset).saturating_sub(1) {
@@ -710,10 +710,11 @@ pub mod radix {
     pub struct Bin;
     pub struct Oct;
     pub struct Hex;
+
     pub struct Radix {
-        pub(super) prefix: &'static str,
-        pub(super) value: Double,
-        pub(super) width: u8,
+        pub prefix: &'static str,
+        pub value: Double,
+        pub width: u8,
     }
 
     impl Dec {
@@ -1650,16 +1651,19 @@ fn into_digits_iter<const L: usize, D: Digit>(
     Ok(DigitsArbIter { digits, radix, len })
 }
 
-fn write_dec(mut cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
-    cursor.write_fmt(format_args!("{digit:0width$}"));
+fn write_dec(mut cursor: Cursor<&mut [u8]>, digit: Single, width: usize) -> std::fmt::Result {
+    match cursor.write_fmt(format_args!("{digit:0width$}")) {
+        Ok(()) => (),
+        Err(_) => return Err(std::fmt::Error),
+    }
 
     Ok(())
 }
 
-#[allow(clippy::unnecessary_cast)]
 fn write_bin(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
     let buf = cursor.into_inner();
 
+    #[allow(clippy::unnecessary_cast)]
     for byte in buf[..width].iter_mut().rev() {
         *byte = b'0' + (digit % 2) as u8;
         digit /= 2;
@@ -1668,10 +1672,10 @@ fn write_bin(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std:
     Ok(())
 }
 
-#[allow(clippy::unnecessary_cast)]
 fn write_oct(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
     let buf = cursor.into_inner();
 
+    #[allow(clippy::unnecessary_cast)]
     for byte in buf[..width].iter_mut().rev() {
         *byte = b'0' + (digit % 8) as u8;
         digit /= 8;
@@ -1743,7 +1747,7 @@ fn write_long<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fm
         Err(_) => unreachable!(),
     };
 
-    write!(fmt, "{}{}{}", sign, radix.prefix, str)
+    write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
 fn write_long_iter<Digits: DigitsIterator, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
@@ -1839,7 +1843,7 @@ fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Sing
     (div, from_arr(&rem.to_le_bytes(), 0))
 }
 
-fn bitop_single<const L: usize, F>(a: &[Single; L], b: Single, f: F) -> [Single; L]
+fn bit_single<const L: usize, F>(a: &[Single; L], b: Single, f: F) -> [Single; L]
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -1901,7 +1905,8 @@ fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     *a = from_arr(&rem.to_le_bytes(), 0);
 }
 
-fn bitop_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, f: F)
+#[allow(dead_code)]
+fn bit_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, f: F)
 where
     F: Fn(Single, Single) -> Single,
 {
@@ -1976,18 +1981,6 @@ fn get_sign<D: Digit, const L: usize>(digits: &[D; L], sign: Sign) -> Sign {
     if digits != &[D::ZERO; L] { sign } else { Sign::ZERO }
 }
 
-fn get_sign_slice<D: Digit>(digits: &[D], sign: Sign) -> Sign {
-    if !is_zero(digits) { sign } else { Sign::ZERO }
-}
-
-fn is_zero<D: Digit>(digits: &[D]) -> bool {
-    digits.iter().all(|digit| digit == &D::ZERO)
-}
-
-fn is_non_zero<D: Digit>(digits: &[D]) -> bool {
-    digits.iter().any(|digit| digit != &D::ZERO)
-}
-
 mod uops {
     use super::*;
 
@@ -2040,10 +2033,12 @@ mod uops {
         dec_impl!(digits)
     }
 
+    #[allow(unused_variables)]
     pub(super) fn shl<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         shl_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
     }
 
+    #[allow(unused_variables)]
     pub(super) fn shr<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         shr_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
     }
@@ -2195,6 +2190,21 @@ pub mod asm {
     }
 
     #[inline(never)]
+    pub fn bitor_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+        bit_long(a, b, |aop, bop| aop | bop)
+    }
+
+    #[inline(never)]
+    pub fn bitand_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+        bit_long(a, b, |aop, bop| aop & bop)
+    }
+
+    #[inline(never)]
+    pub fn bitxor_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
+        bit_long(a, b, |aop, bop| aop ^ bop)
+    }
+
+    #[inline(never)]
     pub fn add_single_(a: &[Single; L], b: Single) -> [Single; L] {
         add_single(a, b)
     }
@@ -2212,6 +2222,21 @@ pub mod asm {
     #[inline(never)]
     pub fn div_single_(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
         div_single(a, b)
+    }
+
+    #[inline(never)]
+    pub fn bitor_single_(a: &[Single; L], b: Single) -> [Single; L] {
+        bit_single(a, b, |aop, bop| aop | bop)
+    }
+
+    #[inline(never)]
+    pub fn bitand_single_(a: &[Single; L], b: Single) -> [Single; L] {
+        bit_single(a, b, |aop, bop| aop & bop)
+    }
+
+    #[inline(never)]
+    pub fn bitxor_single_(a: &[Single; L], b: Single) -> [Single; L] {
+        bit_single(a, b, |aop, bop| aop ^ bop)
     }
 
     #[inline(never)]
@@ -2235,6 +2260,21 @@ pub mod asm {
     }
 
     #[inline(never)]
+    pub fn bitor_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
+        bit_long_mut(a, b, |aop, bop| aop | bop);
+    }
+
+    #[inline(never)]
+    pub fn bitand_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
+        bit_long_mut(a, b, |aop, bop| aop & bop);
+    }
+
+    #[inline(never)]
+    pub fn bitxor_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
+        bit_long_mut(a, b, |aop, bop| aop ^ bop);
+    }
+
+    #[inline(never)]
     pub fn add_single_mut_(a: &mut [Single; L], b: Single) {
         add_single_mut(a, b)
     }
@@ -2252,6 +2292,26 @@ pub mod asm {
     #[inline(never)]
     pub fn div_single_mut_(a: &mut [Single; L], b: Single) {
         div_single_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn rem_single_mut_(a: &mut [Single; L], b: Single) {
+        rem_single_mut(a, b)
+    }
+
+    #[inline(never)]
+    pub fn bitor_single_mut_(a: &mut [Single; L], b: Single) {
+        bit_single_mut(a, b, |aop, bop| aop | bop)
+    }
+
+    #[inline(never)]
+    pub fn bitand_single_mut_(a: &mut [Single; L], b: Single) {
+        bit_single_mut(a, b, |aop, bop| aop & bop)
+    }
+
+    #[inline(never)]
+    pub fn bitxor_single_mut_(a: &mut [Single; L], b: Single) {
+        bit_single_mut(a, b, |aop, bop| aop ^ bop)
     }
 
     #[inline(never)]
@@ -2362,8 +2422,6 @@ mod tests {
     type S64 = signed!(64);
     type U64 = unsigned!(64);
 
-    const PRIMES_32BIT: [usize; 2] = [4_294_392_163, 4_294_289_141];
-    const PRIMES_40BIT: [usize; 2] = [1_099_466_711_507, 1_099_459_659_533];
     const PRIMES_48BIT: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
     const PRIMES_56BIT: [usize; 2] = [72_057_582_686_044_051, 72_051_998_136_909_223];
 
@@ -2410,7 +2468,7 @@ mod tests {
 
                         (|mut $aop: &mut $type, $bop: &$type| { $($fn_lval)+ })(aop, bop);
 
-                        assert_eq!(*aop, (|mut $a: $type_std, $b: $type_std| { $($fn_rval)+ })(a, b));
+                        assert_eq!(*aop, (|$a: $type_std, $b: $type_std| { $($fn_rval)+ })(a, b));
                     })+
                 }
             }
@@ -2424,7 +2482,7 @@ mod tests {
 
                         (|mut $valop: &mut $type, $shift: usize| { $($fn_lval)+ })(valop, shift);
 
-                        assert_eq!(*valop, (|mut $val: $type_std, $shift: usize| { $($fn_rval)+ })(val, shift));
+                        assert_eq!(*valop, (|$val: $type_std, $shift: usize| { $($fn_rval)+ })(val, shift));
                     })+
                 }
             }
