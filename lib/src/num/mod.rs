@@ -44,7 +44,7 @@ macro_rules! num_impl {
             }
         }
 
-        impl NumStatic for $primitive {
+        impl Static for $primitive {
             const BITS: usize = <$primitive>::BITS as usize;
             const ZERO: Self = 0;
             const ONE: Self = 1;
@@ -169,7 +169,7 @@ pub mod prime {
         }
     }
 
-    pub trait Primality: NumUnsigned
+    pub trait Primality: Unsigned
     where
         for<'s> &'s Self: Ops,
     {
@@ -488,7 +488,7 @@ where
     }
 }
 
-pub trait NumSigned: Num + From<i8>
+pub trait Signed: Num + From<i8>
 where
     for<'s> &'s Self: Ops,
 {
@@ -515,13 +515,13 @@ where
     }
 }
 
-pub trait NumUnsigned: Num + From<u8>
+pub trait Unsigned: Num + From<u8>
 where
     for<'s> &'s Self: Ops,
 {
 }
 
-pub trait NumStatic: Num + Copy
+pub trait Static: Num + Copy
 where
     for<'s> &'s Self: Ops,
 {
@@ -532,6 +532,6 @@ where
     const MAX: Self;
 }
 
-num_impl!(NumSigned, [i8, i16, i32, i64, i128, isize]);
-num_impl!(NumUnsigned, [u8, u16, u32, u64, u128, usize]);
+num_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
+num_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
 prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
