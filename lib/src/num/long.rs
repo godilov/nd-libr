@@ -2102,20 +2102,18 @@ pub mod asm {
     const L: usize = 4096 / BITS;
     const N: usize = 256 / BITS;
 
-    type D = u8;
-
     #[inline(never)]
-    pub fn from_arr_(arr: &[D; N], default: Single) -> [Single; L] {
+    pub fn from_arr_(arr: &[u8; N], default: Single) -> [Single; L] {
         from_arr(arr, default)
     }
 
     #[inline(never)]
-    pub fn from_slice_(slice: &[D]) -> [Single; L] {
+    pub fn from_slice_(slice: &[u8]) -> [Single; L] {
         from_slice(slice)
     }
 
     #[inline(never)]
-    pub fn from_iter_(slice: &[D]) -> [Single; L] {
+    pub fn from_iter_(slice: &[u8]) -> [Single; L] {
         from_iter(slice.iter().copied())
     }
 

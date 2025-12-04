@@ -92,12 +92,12 @@ fn from_arr(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_arr");
     let mut rng = get_rng();
 
-    from_arr_impl!(group, rng, 0);
-    from_arr_impl!(group, rng, 1);
-    from_arr_impl!(group, rng, 2);
-    from_arr_impl!(group, rng, 3);
-    from_arr_impl!(group, rng, 4);
     from_arr_impl!(group, rng, 5);
+    from_arr_impl!(group, rng, 4);
+    from_arr_impl!(group, rng, 3);
+    from_arr_impl!(group, rng, 2);
+    from_arr_impl!(group, rng, 1);
+    from_arr_impl!(group, rng, 0);
 }
 
 fn from_slice(c: &mut Criterion) {
