@@ -51,5 +51,5 @@ cargo run -- primes by-count 256
 Calculates primes by limit - up-to 256
 
 ```shell
-cargo run -- primes by-count 256
+cargo run -- primes by-limit 256
 ```
