@@ -1165,6 +1165,10 @@ impl<const L: usize> Signed<L> {
         (from_usize, usize),
     ]);
 
+    pub const fn from_bytes(bytes: &[u8]) -> Self {
+        Self(from_bytes(bytes))
+    }
+
     pub fn from_digits<D: Digit>(digits: impl AsRef<[D]>, exp: u8) -> Result<Self, TryFromDigitsError> {
         from_digits(digits.as_ref(), exp).map(Self)
     }
@@ -1257,6 +1261,10 @@ impl<const L: usize> Unsigned<L> {
         (from_u128, u128),
         (from_usize, usize),
     ]);
+
+    pub const fn from_bytes(bytes: &[u8]) -> Self {
+        Self(from_bytes(bytes))
+    }
 
     pub fn from_digits<D: Digit>(digits: impl AsRef<[D]>, exp: u8) -> Result<Self, TryFromDigitsError> {
         from_digits(digits.as_ref(), exp).map(Self)
@@ -1375,6 +1383,38 @@ impl<const L: usize, D: Digit> Iterator for DigitsArbIter<L, D> {
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
+}
+
+const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
+    let (bytes, bytes_) = bytes.as_chunks::<BYTES>();
+
+    let mut idx = 0;
+    let mut idx_ = 0;
+    let mut res = [0; L];
+
+    #[allow(clippy::modulo_one)]
+    while idx < bytes.len() && idx < L * BYTES {
+        let offset = idx / BYTES;
+        let shift = idx % BYTES;
+        let byte = bytes[offset][shift] as Single;
+
+        idx += 1;
+        res[offset] |= byte << shift;
+    }
+
+    #[allow(clippy::modulo_one)]
+    while idx_ < bytes_.len() && idx < L * BYTES {
+        let offset = idx / BYTES;
+        let shift = idx % BYTES;
+        let shift_ = idx_ % BYTES;
+        let byte = bytes_[shift_] as Single;
+
+        idx += 1;
+        idx_ += 1;
+        res[offset] |= byte << shift;
+    }
+
+    res
 }
 
 fn from_arr<const L: usize, const N: usize, D: Digit>(arr: &[D; N], default: Single) -> [Single; L] {
@@ -2488,6 +2528,16 @@ mod tests {
     }
 
     #[test]
+    fn from_bytes() {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
+            let bytes = val.to_le_bytes();
+
+            assert_eq!(S64::from_bytes(&bytes), S64 { 0: pos(&bytes) });
+            assert_eq!(U64::from_bytes(&bytes), U64 { 0: pos(&bytes) });
+        }
+    }
+
+    #[test]
     fn from_std() {
         for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
@@ -2498,6 +2548,17 @@ mod tests {
             assert_eq!(S64::from(pval), S64 { 0: pos(&bytes) });
             assert_eq!(S64::from(nval), S64 { 0: neg(&bytes) });
             assert_eq!(U64::from(val), U64 { 0: pos(&bytes) });
+        }
+    }
+
+    #[test]
+    fn from_arr() {
+        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
+            let bytes = val.to_le_bytes();
+            let arr = bytes.as_ref();
+
+            assert_eq!(S64::from(arr), S64 { 0: pos(&bytes) });
+            assert_eq!(U64::from(arr), U64 { 0: pos(&bytes) });
         }
     }
 
