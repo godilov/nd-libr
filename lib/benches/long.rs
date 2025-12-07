@@ -62,6 +62,20 @@ fn get_rng() -> StdRng {
     StdRng::seed_from_u64(PRIMES[0] * PRIMES[1])
 }
 
+fn from_bytes_const(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_bytes::const");
+
+    group.throughput(Throughput::Bits(128));
+
+    group.bench_function(BenchmarkId::new("S4096", 128), |b| {
+        b.iter(|| S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes()))
+    });
+
+    group.bench_function(BenchmarkId::new("U4096", 128), |b| {
+        b.iter(|| U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes()))
+    });
+}
+
 fn from_std_const(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_std::const");
 
@@ -74,18 +88,6 @@ fn from_std_const(c: &mut Criterion) {
     group.bench_function(BenchmarkId::new("U4096", 128), |b| {
         b.iter(|| U4096::from_u128(121940457858715132528838202027877031762_u128))
     });
-}
-
-fn from_std(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_std");
-    let mut rng = get_rng();
-
-    let s128 = rng.random::<i128>();
-    let u128 = rng.random::<u128>();
-
-    group.throughput(Throughput::Bits(128));
-    group.bench_with_input(BenchmarkId::new("S4096", 128), &s128, |b, &val| b.iter(|| S4096::from(val)));
-    group.bench_with_input(BenchmarkId::new("U4096", 128), &u128, |b, &val| b.iter(|| U4096::from(val)));
 }
 
 fn from_bytes(c: &mut Criterion) {
@@ -106,6 +108,18 @@ fn from_bytes(c: &mut Criterion) {
             b.iter(|| U4096::from_bytes(bytes))
         });
     }
+}
+
+fn from_std(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_std");
+    let mut rng = get_rng();
+
+    let s128 = rng.random::<i128>();
+    let u128 = rng.random::<u128>();
+
+    group.throughput(Throughput::Bits(128));
+    group.bench_with_input(BenchmarkId::new("S4096", 128), &s128, |b, &val| b.iter(|| S4096::from(val)));
+    group.bench_with_input(BenchmarkId::new("U4096", 128), &u128, |b, &val| b.iter(|| U4096::from(val)));
 }
 
 fn from_arr(c: &mut Criterion) {
@@ -520,6 +534,7 @@ fn to_str(c: &mut Criterion) {
 
 criterion_group!(
     group,
+    from_bytes_const,
     from_std_const,
     from_bytes,
     from_std,
