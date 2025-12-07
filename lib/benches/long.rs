@@ -88,6 +88,26 @@ fn from_std(c: &mut Criterion) {
     group.bench_with_input(BenchmarkId::new("U4096", 128), &u128, |b, &val| b.iter(|| U4096::from(val)));
 }
 
+fn from_bytes(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_bytes");
+    let mut rng = get_rng();
+
+    for shr in (0..6).rev() {
+        let len = BYTES >> shr;
+        let bytes = rng.random::<[u8; BYTES]>();
+
+        group.throughput(Throughput::Bytes(len as u64));
+
+        group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes[..len], |b, bytes| {
+            b.iter(|| S4096::from_bytes(bytes))
+        });
+
+        group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes[..len], |b, bytes| {
+            b.iter(|| U4096::from_bytes(bytes))
+        });
+    }
+}
+
 fn from_arr(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_arr");
     let mut rng = get_rng();
@@ -501,6 +521,7 @@ fn to_str(c: &mut Criterion) {
 criterion_group!(
     group,
     from_std_const,
+    from_bytes,
     from_std,
     from_arr,
     from_slice,
