@@ -2143,6 +2143,11 @@ pub mod asm {
     const N: usize = 256 / BITS;
 
     #[inline(never)]
+    pub fn from_bytes_(arr: &[u8; N]) -> [Single; L] {
+        from_bytes(arr)
+    }
+
+    #[inline(never)]
     pub fn from_arr_(arr: &[u8; N], default: Single) -> [Single; L] {
         from_arr(arr, default)
     }
