@@ -170,14 +170,15 @@ macro_rules! sign_from {
 }
 
 macro_rules! long_from {
-    (@signed [$($primitive:ty),+]) => {
+    (@signed [$($primitive:ty),+ $(,)?]) => {
         $(long_from!(@signed $primitive);)+
     };
-    (@unsigned [$($primitive:ty),+]) => {
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
         $(long_from!(@unsigned $primitive);)+
     };
     (@signed $primitive:ty) => {
         impl<const L: usize> From<$primitive> for Signed<L> {
+            #[allow(unused_comparisons)]
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
                 let res = from_arr(&bytes, if value >= 0 { 0 } else { MAX });
@@ -897,7 +898,10 @@ pub type U8192 = unsigned!(8192);
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
-long_from!(@signed [i8, i16, i32, i64, i128, isize]);
+long_from!(@signed [
+    i8, i16, i32, i64, i128, isize,
+    u8, u16, u32, u64, u128, usize,
+]);
 long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 impl From<TryToDigitsError> for TryIntoDigitsError {

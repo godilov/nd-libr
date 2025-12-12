@@ -5,7 +5,7 @@ use criterion::{
 };
 use ndlib::{
     num::long::{S4096, U4096},
-    ops::{IteratorExt, Ops, OpsFrom},
+    ops::IteratorExt,
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -50,29 +50,35 @@ macro_rules! from_arr_impl {
 }
 
 macro_rules! ops_impl {
-    ($group:expr, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
+    ($criterion:expr, [$($fn:literal ($len0:expr, $len1:expr): $fns:expr, $fnu:expr),+ $(,)?]) => {{
         $({
-            let op1 = composite(<$type>::from(1u64), $primes1);
-            let op2 = composite(<$type>::from(1u64), $primes2);
+            let s4096 = [composite!(S4096, 0, 2 * 4096 / $len0), composite!(S4096, 1, 2 * 4096 / $len1)];
+            let u4096 = [composite!(U4096, 0, 2 * 4096 / $len0), composite!(U4096, 1, 2 * 4096 / $len1)];
 
-            $group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| black_box(&op1 $op &op2)));
+            let mut group = get_group($criterion, $fn);
+
+            group.throughput(Throughput::Bytes(BYTES as u64));
+
+            group.bench_with_input("S4096", &s4096, |b, longs| {
+                b.iter(|| ($fns)(longs[0], longs[1]))
+            });
+
+            group.bench_with_input("U4096", &u4096, |b, longs| {
+                b.iter(|| ($fnu)(longs[0], longs[1]))
+            });
         })+
-    };
+    }};
 }
 
-macro_rules! ops_mut_impl {
-    ($group:expr, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
-        $({
-            let mut val = composite(<$type>::from(1u64), $primes1);
-            let operand = composite(<$type>::from(1u64), $primes2);
-
-            $group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| black_box(val $op &operand)));
-        })+
+macro_rules! composite {
+    ($long:ty, $skip:expr, $step:expr) => {
+        PRIMES
+            .iter()
+            .copied()
+            .skip($skip)
+            .step_by($step)
+            .fold(<$long>::from(1u64), |acc, x| <$long>::from(acc * <$long>::from(x)))
     };
-}
-
-fn composite<T: From<u64> + Ops + OpsFrom, Iter: IntoIterator<Item = u64>>(init: T, iter: Iter) -> T {
-    iter.into_iter().fold(init, |acc, x| T::from(acc * T::from(x)))
 }
 
 fn get_group<'c>(c: &'c mut Criterion, name: &'static str) -> BenchmarkGroup<'c, WallTime> {
@@ -525,37 +531,67 @@ fn to_str(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(BenchmarkId::new("dec::S4096", 8 * len), &signed, |b, long| {
-            b.iter(|| format!("{:#}", long))
+            b.iter_with_large_drop(|| format!("{:#}", long))
         });
 
         group.bench_with_input(BenchmarkId::new("dec::U4096", 8 * len), &unsigned, |b, long| {
-            b.iter(|| format!("{:#}", long))
+            b.iter_with_large_drop(|| format!("{:#}", long))
         });
 
         group.bench_with_input(BenchmarkId::new("bin::S4096", 8 * len), &signed, |b, long| {
-            b.iter(|| format!("{:#b}", long))
+            b.iter_with_large_drop(|| format!("{:#b}", long))
         });
 
         group.bench_with_input(BenchmarkId::new("bin::U4096", 8 * len), &unsigned, |b, long| {
-            b.iter(|| format!("{:#b}", long))
+            b.iter_with_large_drop(|| format!("{:#b}", long))
         });
 
         group.bench_with_input(BenchmarkId::new("oct::S4096", 8 * len), &signed, |b, long| {
-            b.iter(|| format!("{:#o}", long))
+            b.iter_with_large_drop(|| format!("{:#o}", long))
         });
 
         group.bench_with_input(BenchmarkId::new("oct::U4096", 8 * len), &unsigned, |b, long| {
-            b.iter(|| format!("{:#o}", long))
+            b.iter_with_large_drop(|| format!("{:#o}", long))
         });
 
         group.bench_with_input(BenchmarkId::new("hex::S4096", 8 * len), &signed, |b, long| {
-            b.iter(|| format!("{:#x}", long))
+            b.iter_with_large_drop(|| format!("{:#x}", long))
         });
 
         group.bench_with_input(BenchmarkId::new("hex::U4096", 8 * len), &unsigned, |b, long| {
-            b.iter(|| format!("{:#x}", long))
+            b.iter_with_large_drop(|| format!("{:#x}", long))
         });
     }
+}
+
+fn ops(c: &mut Criterion) {
+    ops_impl!(c, [
+        "long::ops::add"    (4096, 4096): |a: S4096, b: S4096| a + b,     |a: U4096, b: U4096| a + b,
+        "long::ops::sub"    (4096, 4096): |a: S4096, b: S4096| a - b,     |a: U4096, b: U4096| a - b,
+        "long::ops::mul"    (4096, 4096): |a: S4096, b: S4096| a * b,     |a: U4096, b: U4096| a * b,
+        "long::ops::div"    (4096, 2048): |a: S4096, b: S4096| a / b,     |a: U4096, b: U4096| a / b,
+        "long::ops::rem"    (4096, 2048): |a: S4096, b: S4096| a % b,     |a: U4096, b: U4096| a % b,
+        "long::ops::bitor"  (4096, 4096): |a: S4096, b: S4096| a | b,     |a: U4096, b: U4096| a | b,
+        "long::ops::bitand" (4096, 4096): |a: S4096, b: S4096| a & b,     |a: U4096, b: U4096| a & b,
+        "long::ops::bitxor" (4096, 4096): |a: S4096, b: S4096| a ^ b,     |a: U4096, b: U4096| a ^ b,
+        "long::ops::shl"    (4096, 4096): |a: S4096, _: S4096| a << 1021, |a: U4096, _: U4096| a << 1021,
+        "long::ops::shr"    (4096, 4096): |a: S4096, _: S4096| a >> 1021, |a: U4096, _: U4096| a >> 1021,
+    ]);
+}
+
+fn ops_mut(c: &mut Criterion) {
+    ops_impl!(c, [
+        "long::ops::mut::add"    (4096, 4096): |mut a: S4096, b: S4096| a += b,     |mut a: U4096, b: U4096| a += b,
+        "long::ops::mut::sub"    (4096, 4096): |mut a: S4096, b: S4096| a -= b,     |mut a: U4096, b: U4096| a -= b,
+        "long::ops::mut::mul"    (4096, 4096): |mut a: S4096, b: S4096| a *= b,     |mut a: U4096, b: U4096| a *= b,
+        "long::ops::mut::div"    (4096, 2048): |mut a: S4096, b: S4096| a /= b,     |mut a: U4096, b: U4096| a /= b,
+        "long::ops::mut::rem"    (4096, 2048): |mut a: S4096, b: S4096| a %= b,     |mut a: U4096, b: U4096| a %= b,
+        "long::ops::mut::bitor"  (4096, 4096): |mut a: S4096, b: S4096| a |= b,     |mut a: U4096, b: U4096| a |= b,
+        "long::ops::mut::bitand" (4096, 4096): |mut a: S4096, b: S4096| a &= b,     |mut a: U4096, b: U4096| a &= b,
+        "long::ops::mut::bitxor" (4096, 4096): |mut a: S4096, b: S4096| a ^= b,     |mut a: U4096, b: U4096| a ^= b,
+        "long::ops::mut::shl"    (4096, 4096): |mut a: S4096, _: S4096| a <<= 1021, |mut a: U4096, _: U4096| a <<= 1021,
+        "long::ops::mut::shr"    (4096, 4096): |mut a: S4096, _: S4096| a >>= 1021, |mut a: U4096, _: U4096| a >>= 1021,
+    ]);
 }
 
 criterion_group!(
@@ -578,7 +614,9 @@ criterion_group!(
     into_digits_iter,
     into_digits_iter_collect,
     from_str,
-    to_str
+    to_str,
+    ops,
+    ops_mut,
 );
 
 criterion_main!(group);
