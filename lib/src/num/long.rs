@@ -1122,7 +1122,7 @@ ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>,
     << Unsigned::<L>(shl(&a.0, b, 0)),
     >> Unsigned::<L>(shr(&a.0, b, 0)));
 
-ops_impl!(@mut <const L: usize> |*a: &mut Signed<L>, *b: &Signed<L>|,
+ops_impl!(@mut <const L: usize> |a: mut Signed<L>, *b: &Signed<L>|,
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
     *= mul_long_mut(&mut a.0, &b.0),
@@ -1132,7 +1132,7 @@ ops_impl!(@mut <const L: usize> |*a: &mut Signed<L>, *b: &Signed<L>|,
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@mut <const L: usize> |*a: &mut Unsigned<L>, *b: &Unsigned<L>|,
+ops_impl!(@mut <const L: usize> |a: mut Unsigned<L>, *b: &Unsigned<L>|,
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
     *= mul_long_mut(&mut a.0, &b.0),
@@ -1142,11 +1142,11 @@ ops_impl!(@mut <const L: usize> |*a: &mut Unsigned<L>, *b: &Unsigned<L>|,
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@mut <const L: usize> |*a: &mut Signed<L>, b: usize|,
+ops_impl!(@mut <const L: usize> |a: mut Signed<L>, b: usize|,
     <<= { shl_signed_mut(&mut a.0, b); },
     >>= { shr_signed_mut(&mut a.0, b); });
 
-ops_impl!(@mut <const L: usize> |*a: &mut Unsigned<L>, b: usize|,
+ops_impl!(@mut <const L: usize> |a: mut Unsigned<L>, b: usize|,
     <<= { shl_mut(&mut a.0, b, 0); },
     >>= { shr_mut(&mut a.0, b, 0); });
 
