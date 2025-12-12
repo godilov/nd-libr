@@ -5,7 +5,7 @@ use criterion::{
 };
 use ndlib::{
     num::long::{S4096, U4096},
-    ops::IteratorExt,
+    ops::{IteratorExt, Ops, OpsFrom},
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -47,6 +47,32 @@ macro_rules! from_arr_impl {
             b.iter(|| U4096::from(bytes))
         });
     };
+}
+
+macro_rules! ops_impl {
+    ($group:expr, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
+        $({
+            let op1 = composite(<$type>::from(1u64), $primes1);
+            let op2 = composite(<$type>::from(1u64), $primes2);
+
+            $group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| black_box(&op1 $op &op2)));
+        })+
+    };
+}
+
+macro_rules! ops_mut_impl {
+    ($group:expr, $primes1:expr, $primes2:expr, [$($type:ty),+], [$op:tt]) => {
+        $({
+            let mut val = composite(<$type>::from(1u64), $primes1);
+            let operand = composite(<$type>::from(1u64), $primes2);
+
+            $group.bench_function(stringify!($type), |b| b.iter_with_large_drop(|| black_box(val $op &operand)));
+        })+
+    };
+}
+
+fn composite<T: From<u64> + Ops + OpsFrom, Iter: IntoIterator<Item = u64>>(init: T, iter: Iter) -> T {
+    iter.into_iter().fold(init, |acc, x| T::from(acc * T::from(x)))
 }
 
 fn get_group<'c>(c: &'c mut Criterion, name: &'static str) -> BenchmarkGroup<'c, WallTime> {
