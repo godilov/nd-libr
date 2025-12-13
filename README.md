@@ -40,7 +40,7 @@ Emits Assembly for functions in `ndlib` package. `asm` submodules contain monomo
 cargo asm -p ndlib --lib
 ```
 
-### Run
+### Execute
 
 Calculates primes by count - first 256
 

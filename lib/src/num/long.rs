@@ -32,38 +32,8 @@ macro_rules! unsigned {
     };
 }
 
-macro_rules! digit_def {
-    ($id:ident) => {
-#[rustfmt::skip]
-        pub trait $id: Clone + Copy
-            + PartialEq + Eq
-            + PartialOrd + Ord
-            + Debug + Display + Binary + Octal + LowerHex + UpperHex
-            + FromBytes + IntoBytes + Immutable
-        {
-            type Single: Clone + Copy;
-            type Double: Clone + Copy + From<Self::Single>;
-
-            const BITS: usize;
-            const BYTES: usize;
-            const ZERO: Self;
-            const ONE: Self;
-
-            fn from_single(value: Single) -> Self;
-            fn from_double(value: Double) -> Self;
-
-            fn as_single(self) -> Single;
-            fn as_double(self) -> Double;
-
-            fn order(self) -> usize;
-
-            fn is_pow2(self) -> bool;
-        }
-    };
-}
-
 macro_rules! digit_impl {
-    ($id:ident, $primitive:ty, [$single:ty, $double:ty] $(,)?) => {
+    ($id:ident, $primitive:ty, ($single:ty, $double:ty) $(,)?) => {
 #[rustfmt::skip]
         impl $id for $primitive {
             type Single = $single;
@@ -73,6 +43,10 @@ macro_rules! digit_impl {
             const BYTES: usize = Self::BITS as usize / 8;
             const ZERO: Self = 0;
             const ONE: Self = 1;
+
+            fn to_arr<const L: usize>(self) -> [Single; L] {
+                from_arr(&self.to_le_bytes(), 0)
+            }
 
             fn from_single(value: Single) -> Self {
                 value as Self
@@ -121,8 +95,32 @@ macro_rules! digits_impl {
             pub(super) const OCT_RADIX: Double = $oct_radix;
             pub(super) const OCT_WIDTH: u8 = $oct_width;
 
-            digit_def!(Digit);
-            digit_def!(DigitExt);
+            pub trait Digit: Clone + Copy
+                + PartialEq + Eq
+                + PartialOrd + Ord
+                + Debug + Display + Binary + Octal + LowerHex + UpperHex
+                + FromBytes + IntoBytes + Immutable
+            {
+                type Single: Clone + Copy;
+                type Double: Clone + Copy + From<Self::Single>;
+
+                const BITS: usize;
+                const BYTES: usize;
+                const ZERO: Self;
+                const ONE: Self;
+
+                fn to_arr<const L: usize>(self) -> [Single; L];
+
+                fn from_single(value: Single) -> Self;
+                fn from_double(value: Double) -> Self;
+
+                fn as_single(self) -> Single;
+                fn as_double(self) -> Double;
+
+                fn order(self) -> usize;
+
+                fn is_pow2(self) -> bool;
+            }
 
             pub trait DigitsIterator: Clone + Iterator + ExactSizeIterator
             where
@@ -668,40 +666,25 @@ macro_rules! search {
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
-digits_impl!(
-    (u64, u128),
-    (10_000_000_000_000_000_000, 19),
-    (<Double as DigitExt>::ONE << 63, 21),
-    {
-        digit_impl!(Digit, u8, [u8, u16]);
-        digit_impl!(Digit, u16, [u16, u32]);
-        digit_impl!(Digit, u32, [u32, u64]);
-        digit_impl!(Digit, u64, [u64, u128]);
-        digit_impl!(Digit, usize, [u64, u128]);
-
-        digit_impl!(DigitExt, u128, [u128, u128]);
-    }
-);
+digits_impl!((u64, u128), (10_000_000_000_000_000_000, 19), (1 << 63, 21), {
+    digit_impl!(Digit, u8, (u8, u16));
+    digit_impl!(Digit, u16, (u16, u32));
+    digit_impl!(Digit, u32, (u32, u64));
+    digit_impl!(Digit, u64, (u64, u128));
+    digit_impl!(Digit, usize, (u64, u128));
+});
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
-digits_impl!((u32, u64), (1_000_000_000, 9), (<Double as DigitExt>::ONE << 30, 10), {
-    digit_impl!(Digit, u8, [u8, u16]);
-    digit_impl!(Digit, u16, [u16, u32]);
-    digit_impl!(Digit, u32, [u32, u64]);
-    digit_impl!(Digit, usize, [u32, u64]);
-
-    digit_impl!(DigitExt, u64, [u32, u64, u128]);
-    digit_impl!(DigitExt, u128, [u64, u128, u128]);
+digits_impl!((u32, u64), (1_000_000_000, 9), (1 << 30, 10), {
+    digit_impl!(Digit, u8, (u8, u16));
+    digit_impl!(Digit, u16, (u16, u32));
+    digit_impl!(Digit, u32, (u32, u64));
+    digit_impl!(Digit, usize, (u32, u64));
 });
 
 #[cfg(test)]
-digits_impl!((u8, u16), (100, 2), (<Double as DigitExt>::ONE << 6, 2), {
-    digit_impl!(Digit, u8, [u8, u16]);
-
-    digit_impl!(DigitExt, u16, [u16, u32]);
-    digit_impl!(DigitExt, u32, [u32, u64]);
-    digit_impl!(DigitExt, u64, [u64, u128]);
-    digit_impl!(DigitExt, u128, [u128, u128]);
+digits_impl!((u8, u16), (100, 2), (1 << 6, 2), {
+    digit_impl!(Digit, u8, (u8, u16));
 });
 
 pub mod radix {
@@ -1114,13 +1097,25 @@ ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned
     & Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>,
-    << Signed::<L>(shl_signed(&a.0, b)),
-    >> Signed::<L>(shr_signed(&a.0, b)));
+ops_impl!(@bin <const L: usize, D: Digit> |*a: &Signed<L>, b: D| -> Signed::<L>,
+    + Signed::<L>(add_single(&a.0, b.as_single())),
+    - Signed::<L>(sub_single(&a.0, b.as_single())),
+    * Signed::<L>(mul_single(&a.0, b.as_single())),
+    / Signed::<L>(div_single(&a.abs().0, b.as_single()).0).with_sign(a.sign()),
+    % Signed::<L>(div_single(&a.abs().0, b.as_single()).1).with_sign(a.sign()),
+    | Signed::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop | bop)),
+    & Signed::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop & bop)),
+    ^ Signed::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop ^ bop)));
 
-ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>,
-    << Unsigned::<L>(shl(&a.0, b, 0)),
-    >> Unsigned::<L>(shr(&a.0, b, 0)));
+ops_impl!(@bin <const L: usize, D: Digit> |*a: &Unsigned<L>, b: D| -> Unsigned::<L>,
+    + Unsigned::<L>(add_single(&a.0, b.as_single())),
+    - Unsigned::<L>(sub_single(&a.0, b.as_single())),
+    * Unsigned::<L>(mul_single(&a.0, b.as_single())),
+    / Unsigned::<L>(div_single(&a.0, b.as_single()).0),
+    % Unsigned::<L>(div_single(&a.0, b.as_single()).1),
+    | Unsigned::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop | bop)),
+    & Unsigned::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop & bop)),
+    ^ Unsigned::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop ^ bop)));
 
 ops_impl!(@mut <const L: usize> |a: mut Signed<L>, *b: &Signed<L>|,
     += add_long_mut(&mut a.0, &b.0),
@@ -1141,6 +1136,34 @@ ops_impl!(@mut <const L: usize> |a: mut Unsigned<L>, *b: &Unsigned<L>|,
     |= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop | bop),
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
+
+ops_impl!(@mut <const L: usize, D: Digit> |a: mut Signed<L>, b: D|,
+    += add_single_mut(&mut a.0, b.as_single()),
+    -= sub_single_mut(&mut a.0, b.as_single()),
+    *= mul_single_mut(&mut a.0, b.as_single()),
+    /= { *a = Signed::<L>(div_single(&a.abs().0, b.as_single()).0).with_sign(a.sign()); },
+    %= { *a = Signed::<L>(div_single(&a.abs().0, b.as_single()).1).with_sign(a.sign()); },
+    |= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop | bop),
+    &= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop & bop),
+    ^= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop ^ bop));
+
+ops_impl!(@mut <const L: usize, D: Digit> |a: mut Unsigned<L>, b: D|,
+    += add_single_mut(&mut a.0, b.as_single()),
+    -= sub_single_mut(&mut a.0, b.as_single()),
+    *= mul_single_mut(&mut a.0, b.as_single()),
+    /= div_single_mut(&mut a.0, b.as_single()),
+    %= rem_single_mut(&mut a.0, b.as_single()),
+    |= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop | bop),
+    &= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop & bop),
+    ^= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop ^ bop));
+
+ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>,
+    << Signed::<L>(shl_signed(&a.0, b)),
+    >> Signed::<L>(shr_signed(&a.0, b)));
+
+ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>,
+    << Unsigned::<L>(shl(&a.0, b, 0)),
+    >> Unsigned::<L>(shr(&a.0, b, 0)));
 
 ops_impl!(@mut <const L: usize> |a: mut Signed<L>, b: usize|,
     <<= { shl_signed_mut(&mut a.0, b); },
@@ -1649,7 +1672,6 @@ fn into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) -> R
 
     into_digits_validate(radix)?;
 
-    let radix = radix.as_double();
     let bits = radix.order();
     let len = (digits.len() * BITS + bits - 1) / bits;
 
@@ -1664,9 +1686,9 @@ fn into_digits<const L: usize, D: Digit>(mut digits: [Single; L], radix: D) -> R
             any |= *digit;
             acc = (acc << BITS) | *digit as Double;
 
-            *digit = (acc / radix) as Single;
+            *digit = (acc / radix.as_double()) as Single;
 
-            acc %= radix;
+            acc %= radix.as_double();
         }
 
         if any == 0 {
@@ -2892,22 +2914,6 @@ mod tests {
     }
 
     #[test]
-    fn signed_ops_shift() {
-        assert_ops!(@shift S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|val: S64, shift: usize| { val << shift })(|val: i64, shift: usize| { S64::from(val << shift) }),
-            (|val: S64, shift: usize| { val >> shift })(|val: i64, shift: usize| { S64::from(val >> shift) }),
-        ]);
-    }
-
-    #[test]
-    fn unsigned_ops_shift() {
-        assert_ops!(@shift U64, (u64::MIN + 1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|val: U64, shift: usize| { val << shift })(|val: u64, shift: usize| { U64::from(val << shift) }),
-            (|val: U64, shift: usize| { val >> shift })(|val: u64, shift: usize| { U64::from(val >> shift) }),
-        ]);
-    }
-
-    #[test]
     #[rustfmt::skip]
     fn signed_ops_mut() {
         assert_ops!(
@@ -2945,6 +2951,22 @@ mod tests {
                 (|mut a: U64, b: U64| { a ^= b; a })(|a: u64, b: u64| { U64::from(a ^ b) }),
             ]
         );
+    }
+
+    #[test]
+    fn signed_ops_shift() {
+        assert_ops!(@shift S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
+            (|val: S64, shift: usize| { val << shift })(|val: i64, shift: usize| { S64::from(val << shift) }),
+            (|val: S64, shift: usize| { val >> shift })(|val: i64, shift: usize| { S64::from(val >> shift) }),
+        ]);
+    }
+
+    #[test]
+    fn unsigned_ops_shift() {
+        assert_ops!(@shift U64, (u64::MIN + 1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
+            (|val: U64, shift: usize| { val << shift })(|val: u64, shift: usize| { U64::from(val << shift) }),
+            (|val: U64, shift: usize| { val >> shift })(|val: u64, shift: usize| { U64::from(val >> shift) }),
+        ]);
     }
 
     #[test]
