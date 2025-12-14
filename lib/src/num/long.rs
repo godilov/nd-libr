@@ -75,7 +75,7 @@ macro_rules! digit_impl {
     };
 }
 
-macro_rules! digits_impl {
+macro_rules! digits_def {
     (($single:ty, $double:ty), ($dec_radix:expr, $dec_width:expr), ($oct_radix:expr, $oct_width:expr), { $($body:tt)* }) => {
         pub mod digit {
             use super::*;
@@ -234,6 +234,68 @@ macro_rules! long_from_const {
 
             Self(res)
         }
+    };
+}
+
+macro_rules! ops_primitive_native_impl {
+    (@signed [$($primitive:ty $(,)?),+]) => {
+        $(ops_primitive_native_impl!(@signed $primitive);)+
+    };
+    (@unsigned [$($primitive:ty $(,)?),+]) => {
+        $(ops_primitive_native_impl!(@unsigned $primitive);)+
+    };
+    (@signed $primitive:ty) => {
+        ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: $primitive| -> Signed::<L>,
+            + Signed::<L>(add_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
+            - Signed::<L>(sub_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
+            * Signed::<L>(mul_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
+            / Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).with_sign(a.sign() * Sign::from(b)),
+            % Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).with_sign(a.sign()),
+            | Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
+            & Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
+            ^ Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
+    };
+    (@unsigned $primitive:ty) => {
+        ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
+            + Unsigned::<L>(add_single(&a.0, b as Single)),
+            - Unsigned::<L>(sub_single(&a.0, b as Single)),
+            * Unsigned::<L>(mul_single(&a.0, b as Single)),
+            / Unsigned::<L>(div_single(&a.0, b as Single).0),
+            % Unsigned::<L>(div_single(&a.0, b as Single).1),
+            | Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop | bop)),
+            & Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop & bop)),
+            ^ Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop ^ bop)));
+    };
+}
+
+macro_rules! ops_primitive_impl {
+    (@signed [$($primitive:ty $(,)?),+]) => {
+        $(ops_primitive_impl!(@signed $primitive);)+
+    };
+    (@unsigned [$($primitive:ty $(,)?),+]) => {
+        $(ops_primitive_impl!(@unsigned $primitive);)+
+    };
+    (@signed $primitive:ty) => {
+        ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: $primitive| -> Signed::<L>,
+            + Signed::<L>(add_long(&a.0, &Signed::<L>::from(b).0)),
+            - Signed::<L>(sub_long(&a.0, &Signed::<L>::from(b).0)),
+            * Signed::<L>(mul_long(&a.0, &Signed::<L>::from(b).0)),
+            / Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).0).with_sign(a.sign() * Sign::from(b)),
+            % Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).1).with_sign(a.sign()),
+            | Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop)),
+            & Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop)),
+            ^ Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop)));
+    };
+    (@unsigned $primitive:ty) => {
+        ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
+            + Unsigned::<L>(add_long(&a.0, &Unsigned::<L>::from(b).0)),
+            - Unsigned::<L>(sub_long(&a.0, &Unsigned::<L>::from(b).0)),
+            * Unsigned::<L>(mul_long(&a.0, &Unsigned::<L>::from(b).0)),
+            / Unsigned::<L>(div_long(&a.0, &Unsigned::<L>::from(b).0).0),
+            % Unsigned::<L>(div_long(&a.0, &Unsigned::<L>::from(b).0).1),
+            | Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop | bop)),
+            & Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop & bop)),
+            ^ Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop ^ bop)));
     };
 }
 
@@ -666,25 +728,43 @@ macro_rules! search {
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
-digits_impl!((u64, u128), (10_000_000_000_000_000_000, 19), (1 << 63, 21), {
+digits_def!((u64, u128), (10_000_000_000_000_000_000, 19), (1 << 63, 21), {
     digit_impl!(Digit, u8, (u8, u16));
     digit_impl!(Digit, u16, (u16, u32));
     digit_impl!(Digit, u32, (u32, u64));
     digit_impl!(Digit, u64, (u64, u128));
     digit_impl!(Digit, usize, (u64, u128));
+
+    ops_primitive_native_impl!(@signed [i8, i16, i32, i64]);
+    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64]);
+
+    ops_primitive_impl!(@signed [i128]);
+    ops_primitive_impl!(@unsigned [u128]);
 });
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
-digits_impl!((u32, u64), (1_000_000_000, 9), (1 << 30, 10), {
+digits_def!((u32, u64), (1_000_000_000, 9), (1 << 30, 10), {
     digit_impl!(Digit, u8, (u8, u16));
     digit_impl!(Digit, u16, (u16, u32));
     digit_impl!(Digit, u32, (u32, u64));
     digit_impl!(Digit, usize, (u32, u64));
+
+    ops_primitive_native_impl!(@signed [i8, i16, i32]);
+    ops_primitive_native_impl!(@unsigned [u8, u16, u32]);
+
+    ops_primitive_impl!(@signed [i64, i128]);
+    ops_primitive_impl!(@unsigned [u64, u128]);
 });
 
 #[cfg(test)]
-digits_impl!((u8, u16), (100, 2), (1 << 6, 2), {
+digits_def!((u8, u16), (100, 2), (1 << 6, 2), {
     digit_impl!(Digit, u8, (u8, u16));
+
+    ops_primitive_native_impl!(@signed [i8]);
+    ops_primitive_native_impl!(@unsigned [u8]);
+
+    ops_primitive_impl!(@signed [i16, i32, i64, i128]);
+    ops_primitive_impl!(@unsigned [u16, u32, u64, u128]);
 });
 
 pub mod radix {
@@ -1097,26 +1177,6 @@ ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned
     & Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@bin <const L: usize, D: Digit> |*a: &Signed<L>, b: D| -> Signed::<L>,
-    + Signed::<L>(add_single(&a.0, b.as_single())),
-    - Signed::<L>(sub_single(&a.0, b.as_single())),
-    * Signed::<L>(mul_single(&a.0, b.as_single())),
-    / Signed::<L>(div_single(&a.abs().0, b.as_single()).0).with_sign(a.sign()),
-    % Signed::<L>(div_single(&a.abs().0, b.as_single()).1).with_sign(a.sign()),
-    | Signed::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop | bop)),
-    & Signed::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop & bop)),
-    ^ Signed::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop ^ bop)));
-
-ops_impl!(@bin <const L: usize, D: Digit> |*a: &Unsigned<L>, b: D| -> Unsigned::<L>,
-    + Unsigned::<L>(add_single(&a.0, b.as_single())),
-    - Unsigned::<L>(sub_single(&a.0, b.as_single())),
-    * Unsigned::<L>(mul_single(&a.0, b.as_single())),
-    / Unsigned::<L>(div_single(&a.0, b.as_single()).0),
-    % Unsigned::<L>(div_single(&a.0, b.as_single()).1),
-    | Unsigned::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop | bop)),
-    & Unsigned::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop & bop)),
-    ^ Unsigned::<L>(bit_single(&a.0, b.as_single(), |aop, bop| aop ^ bop)));
-
 ops_impl!(@mut <const L: usize> |a: mut Signed<L>, *b: &Signed<L>|,
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
@@ -1136,26 +1196,6 @@ ops_impl!(@mut <const L: usize> |a: mut Unsigned<L>, *b: &Unsigned<L>|,
     |= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop | bop),
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
-
-ops_impl!(@mut <const L: usize, D: Digit> |a: mut Signed<L>, b: D|,
-    += add_single_mut(&mut a.0, b.as_single()),
-    -= sub_single_mut(&mut a.0, b.as_single()),
-    *= mul_single_mut(&mut a.0, b.as_single()),
-    /= { *a = Signed::<L>(div_single(&a.abs().0, b.as_single()).0).with_sign(a.sign()); },
-    %= { *a = Signed::<L>(div_single(&a.abs().0, b.as_single()).1).with_sign(a.sign()); },
-    |= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop | bop),
-    &= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop & bop),
-    ^= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop ^ bop));
-
-ops_impl!(@mut <const L: usize, D: Digit> |a: mut Unsigned<L>, b: D|,
-    += add_single_mut(&mut a.0, b.as_single()),
-    -= sub_single_mut(&mut a.0, b.as_single()),
-    *= mul_single_mut(&mut a.0, b.as_single()),
-    /= div_single_mut(&mut a.0, b.as_single()),
-    %= rem_single_mut(&mut a.0, b.as_single()),
-    |= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop | bop),
-    &= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop & bop),
-    ^= bit_single_mut(&mut a.0, b.as_single(), |aop, bop| aop ^ bop));
 
 ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>,
     << Signed::<L>(shl_signed(&a.0, b)),
@@ -1909,15 +1949,41 @@ fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Sing
     (div, from_arr(&rem.to_le_bytes(), 0))
 }
 
-fn bit_single<const L: usize, F>(a: &[Single; L], b: Single, f: F) -> [Single; L]
+fn bit_single<const L: usize, F>(a: &[Single; L], b: Single, default: Single, f: F) -> [Single; L]
 where
     F: Fn(Single, Single) -> Single,
 {
     a.iter()
         .copied()
-        .zip(once(b).chain(repeat(0)))
+        .zip(once(b).chain(repeat(default)))
         .map(|(a, b)| f(a, b))
         .collect_with([0; L])
+}
+
+fn add_signed<const L: usize>(a: &[Single; L], (b, sign): (Single, Sign)) -> [Single; L] {
+    match sign {
+        Sign::ZERO => sub_single(a, b),
+        Sign::NEG => sub_single(a, b),
+        Sign::POS => add_single(a, b),
+    }
+}
+
+fn sub_signed<const L: usize>(a: &[Single; L], (b, sign): (Single, Sign)) -> [Single; L] {
+    match sign {
+        Sign::ZERO => add_single(a, b),
+        Sign::NEG => add_single(a, b),
+        Sign::POS => sub_single(a, b),
+    }
+}
+
+fn mul_signed<const L: usize>(a: &[Single; L], (b, sign): (Single, Sign)) -> [Single; L] {
+    let mut mul = mul_single(a, b);
+
+    if sign == Sign::NEG {
+        neg_mut(&mut mul);
+    }
+
+    mul
 }
 
 fn add_long_mut<const L: usize>(a: &mut [Single; L], b: &[Single; L]) {
@@ -2295,17 +2361,17 @@ pub mod asm {
 
     #[inline(never)]
     pub fn bitor_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        bit_single(a, b, |aop, bop| aop | bop)
+        bit_single(a, b, 0, |aop, bop| aop | bop)
     }
 
     #[inline(never)]
     pub fn bitand_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        bit_single(a, b, |aop, bop| aop & bop)
+        bit_single(a, b, 0, |aop, bop| aop & bop)
     }
 
     #[inline(never)]
     pub fn bitxor_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        bit_single(a, b, |aop, bop| aop ^ bop)
+        bit_single(a, b, 0, |aop, bop| aop ^ bop)
     }
 
     #[inline(never)]
@@ -2510,8 +2576,27 @@ mod tests {
                 }
             }
         };
+    }
 
-        (@shift $type:ty, $range_val:expr, $range_shift:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
+    macro_rules! _assert_ops_single {
+        ($type:ty, $range_a:expr, $range_b:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
+            for a in $range_a {
+                for b in $range_b {
+                    let long = <$type>::from(a);
+
+                    $({
+                        let lval = ($fn_lval)(long, b);
+                        let rval = ($fn_rval)(a, b);
+
+                        assert_eq!(lval, rval);
+                    })+
+                }
+            }
+        };
+    }
+
+    macro_rules! assert_ops_shift {
+        ($type:ty, $range_val:expr, $range_shift:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
             for val in $range_val {
                 for shift in $range_shift {
                     let long = <$type>::from(val);
@@ -2898,8 +2983,8 @@ mod tests {
     fn unsigned_ops() {
         assert_ops!(
             U64,
-            (u64::MIN + 1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            (u64::MIN + 1..u64::MAX).step_by(PRIMES_56BIT[1]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[1]),
             [
                 (|a: U64, b: U64| { a + b })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
                 (|a: U64, b: U64| { a - b })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
@@ -2938,8 +3023,8 @@ mod tests {
     fn unsigned_ops_mut() {
         assert_ops!(
             U64,
-            (u64::MIN + 1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            (u64::MIN + 1..u64::MAX).step_by(PRIMES_56BIT[1]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[1]),
             [
                 (|mut a: U64, b: U64| { a += b; a })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
                 (|mut a: U64, b: U64| { a -= b; a })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
@@ -2955,24 +3040,34 @@ mod tests {
 
     #[test]
     fn signed_ops_shift() {
-        assert_ops!(@shift S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|val: S64, shift: usize| { val << shift })(|val: i64, shift: usize| { S64::from(val << shift) }),
-            (|val: S64, shift: usize| { val >> shift })(|val: i64, shift: usize| { S64::from(val >> shift) }),
-        ]);
+        assert_ops_shift!(
+            S64,
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]),
+            0..64,
+            [
+                (|val: S64, shift: usize| { val << shift })(|val: i64, shift: usize| { S64::from(val << shift) }),
+                (|val: S64, shift: usize| { val >> shift })(|val: i64, shift: usize| { S64::from(val >> shift) }),
+            ]
+        );
     }
 
     #[test]
     fn unsigned_ops_shift() {
-        assert_ops!(@shift U64, (u64::MIN + 1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|val: U64, shift: usize| { val << shift })(|val: u64, shift: usize| { U64::from(val << shift) }),
-            (|val: U64, shift: usize| { val >> shift })(|val: u64, shift: usize| { U64::from(val >> shift) }),
-        ]);
+        assert_ops_shift!(
+            U64,
+            (1..u64::MAX).step_by(PRIMES_48BIT[0]),
+            0..64,
+            [
+                (|val: U64, shift: usize| { val << shift })(|val: u64, shift: usize| { U64::from(val << shift) }),
+                (|val: U64, shift: usize| { val >> shift })(|val: u64, shift: usize| { U64::from(val >> shift) }),
+            ]
+        );
     }
 
     #[test]
     #[rustfmt::skip]
     fn signed_ops_shift_mut() {
-        assert_ops!(@shift S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
+        assert_ops_shift!(S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
             (|mut val: S64, shift: usize| { val <<= shift; val })(|val: i64, shift: usize| { S64::from(val << shift) }),
             (|mut val: S64, shift: usize| { val >>= shift; val })(|val: i64, shift: usize| { S64::from(val >> shift) }),
         ]);
@@ -2981,7 +3076,7 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn unsigned_ops_shift_mut() {
-        assert_ops!(@shift U64, (u64::MIN + 1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
+        assert_ops_shift!(U64, (1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
             (|mut val: U64, shift: usize| { val <<= shift; val })(|val: u64, shift: usize| { U64::from(val << shift) }),
             (|mut val: U64, shift: usize| { val >>= shift; val })(|val: u64, shift: usize| { U64::from(val >> shift) }),
         ]);
