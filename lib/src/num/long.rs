@@ -265,6 +265,16 @@ macro_rules! ops_primitive_native_impl {
             | Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
             & Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
             ^ Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
+
+        ops_impl!(@mut <const L: usize> |a: mut Signed<L>, b: $primitive|,
+            += add_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
+            -= sub_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
+            *= mul_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
+            /= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).with_sign(a.sign() * Sign::from(b)); },
+            %= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).with_sign(a.sign()); },
+            |= bit_single_mut(&mut a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop),
+            &= bit_single_mut(&mut a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop),
+            ^= bit_single_mut(&mut a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
     };
     (@unsigned $primitive:ty) => {
         ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
@@ -276,6 +286,16 @@ macro_rules! ops_primitive_native_impl {
             | Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop | bop)),
             & Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop & bop)),
             ^ Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop ^ bop)));
+
+        ops_impl!(@mut <const L: usize> |a: mut Unsigned<L>, b: $primitive|,
+            += add_single_mut(&mut a.0, b as Single),
+            -= sub_single_mut(&mut a.0, b as Single),
+            *= mul_single_mut(&mut a.0, b as Single),
+            /= div_single_mut(&mut a.0, b as Single),
+            %= rem_single_mut(&mut a.0, b as Single),
+            |= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop | bop),
+            &= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop & bop),
+            ^= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop ^ bop));
     };
 }
 
@@ -2090,13 +2110,37 @@ fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
 }
 
 #[allow(dead_code)]
-fn bit_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, f: F)
+fn bit_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, default: Single, f: F)
 where
     F: Fn(Single, Single) -> Single,
 {
     a.iter_mut()
-        .zip(once(b).chain(repeat(0)))
+        .zip(once(b).chain(repeat(default)))
         .for_each(|(ptr, val)| *ptr = f(*ptr, val));
+}
+
+fn add_signed_mut<const L: usize>(a: &mut [Single; L], (b, sign): (Single, Sign)) {
+    match sign {
+        Sign::ZERO => sub_single_mut(a, b),
+        Sign::NEG => sub_single_mut(a, b),
+        Sign::POS => add_single_mut(a, b),
+    }
+}
+
+fn sub_signed_mut<const L: usize>(a: &mut [Single; L], (b, sign): (Single, Sign)) {
+    match sign {
+        Sign::ZERO => add_single_mut(a, b),
+        Sign::NEG => add_single_mut(a, b),
+        Sign::POS => sub_single_mut(a, b),
+    }
+}
+
+fn mul_signed_mut<const L: usize>(a: &mut [Single; L], (b, sign): (Single, Sign)) {
+    mul_single_mut(a, b);
+
+    if sign == Sign::NEG {
+        neg_mut(a);
+    }
 }
 
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), TryFromStrError> {
@@ -2487,18 +2531,18 @@ pub mod asm {
     }
 
     #[inline(never)]
-    pub fn bitor_single_mut_(a: &mut [Single; L], b: Single) {
-        bit_single_mut(a, b, |aop, bop| aop | bop)
+    pub fn bitor_single_mut_(a: &mut [Single; L], b: Single, default: Single) {
+        bit_single_mut(a, b, default, |aop, bop| aop | bop)
     }
 
     #[inline(never)]
-    pub fn bitand_single_mut_(a: &mut [Single; L], b: Single) {
-        bit_single_mut(a, b, |aop, bop| aop & bop)
+    pub fn bitand_single_mut_(a: &mut [Single; L], b: Single, default: Single) {
+        bit_single_mut(a, b, default, |aop, bop| aop & bop)
     }
 
     #[inline(never)]
-    pub fn bitxor_single_mut_(a: &mut [Single; L], b: Single) {
-        bit_single_mut(a, b, |aop, bop| aop ^ bop)
+    pub fn bitxor_single_mut_(a: &mut [Single; L], b: Single, default: Single) {
+        bit_single_mut(a, b, default, |aop, bop| aop ^ bop)
     }
 
     #[inline(never)]
