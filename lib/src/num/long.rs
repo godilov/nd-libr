@@ -316,6 +316,16 @@ macro_rules! ops_primitive_impl {
             | Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop)),
             & Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop)),
             ^ Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop)));
+
+        ops_impl!(@mut <const L: usize> |a: mut Signed<L>, b: $primitive|,
+            += add_long_mut(&mut a.0, &Signed::<L>::from(b).0),
+            -= sub_long_mut(&mut a.0, &Signed::<L>::from(b).0),
+            *= mul_long_mut(&mut a.0, &Signed::<L>::from(b).0),
+            /= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).0).with_sign(a.sign() * Sign::from(b)); },
+            %= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).1).with_sign(a.sign()); },
+            |= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop),
+            &= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop),
+            ^= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop));
     };
     (@unsigned $primitive:ty) => {
         ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
@@ -327,6 +337,16 @@ macro_rules! ops_primitive_impl {
             | Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop | bop)),
             & Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop & bop)),
             ^ Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop ^ bop)));
+
+        ops_impl!(@mut <const L: usize> |a: mut Unsigned<L>, b: $primitive|,
+            += add_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
+            -= sub_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
+            *= mul_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
+            /= div_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
+            %= rem_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
+            |= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop | bop),
+            &= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop & bop),
+            ^= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop ^ bop));
     };
 }
 
