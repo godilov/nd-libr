@@ -167,6 +167,17 @@ macro_rules! sign_from {
     };
 }
 
+macro_rules! long_cmp {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.copied()
+            .rev()
+            .zip($rhs.copied().rev())
+            .map(|(a, b)| a.cmp(&b))
+            .find(|&ord| ord != Ordering::Equal)
+            .unwrap_or(Ordering::Equal)
+    };
+}
+
 macro_rules! long_from {
     (@signed [$($primitive:ty),+ $(,)?]) => {
         $(long_from!(@signed $primitive);)+
@@ -887,10 +898,10 @@ pub enum Sign {
     POS = 1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1072,6 +1083,47 @@ impl<const L: usize> AsMut<[u8]> for Signed<L> {
 impl<const L: usize> AsMut<[u8]> for Unsigned<L> {
     fn as_mut(&mut self) -> &mut [u8] {
         self.as_bytes_mut()
+    }
+}
+
+impl<const L: usize> PartialOrd for Signed<L> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<const L: usize> PartialOrd for Unsigned<L> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<const L: usize> Ord for Signed<L> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let x = self.sign();
+        let y = other.sign();
+
+        if x != y {
+            return x.cmp(&y);
+        }
+
+        let ord = long_cmp!(self.0.iter(), other.0.iter());
+
+        match x {
+            Sign::ZERO => ord,
+            Sign::NEG => match ord {
+                Ordering::Less => Ordering::Greater,
+                Ordering::Equal => Ordering::Equal,
+                Ordering::Greater => Ordering::Less,
+            },
+            Sign::POS => ord,
+        }
+    }
+}
+
+impl<const L: usize> Ord for Unsigned<L> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        long_cmp!(self.0.iter(), other.0.iter())
     }
 }
 
