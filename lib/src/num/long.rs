@@ -2117,7 +2117,6 @@ fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     *a = from_arr(&rem.to_le_bytes(), 0);
 }
 
-#[allow(dead_code)]
 fn bit_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, default: Single, f: F)
 where
     F: Fn(Single, Single) -> Single,

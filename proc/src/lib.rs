@@ -311,7 +311,6 @@ impl ToTokens for OpsImplMutable {
             quote! {
                 impl #implgen #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #wheregen {
                     fn #ident(&mut self, rhs: #rhs_ref #rhs_type ) {
-                        #[allow(clippy::redundant_closure_call)]
                         (|#lhs_mut #lhs_ident: &mut #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs);
                     }
                 }
@@ -420,7 +419,6 @@ impl ToTokens for OpsImplBinary {
                     type Output = #op_type;
 
                     fn #ident(self, rhs: #rhs_ref #rhs_type) -> Self::Output {
-                        #[allow(clippy::redundant_closure_call)]
                         (|#lhs_mut #lhs_ident: #lhs_ref #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #op_type::from(#expr) })(self, rhs)
                     }
                 }
@@ -526,7 +524,6 @@ impl ToTokens for OpsImplUnary {
                     type Output = #op_type;
 
                     fn #ident(self) -> Self::Output {
-                        #[allow(clippy::redundant_closure_call)]
                         (|#lhs_mut #lhs_ident: #lhs_ref #lhs_type| { (#expr).into() })(self)
                     }
                 }
