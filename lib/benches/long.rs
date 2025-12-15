@@ -52,8 +52,8 @@ macro_rules! from_arr_impl {
 macro_rules! ops_impl {
     ($criterion:expr, [$($fn:literal ($len0:expr, $len1:expr): $fns:expr, $fnu:expr),+ $(,)?]) => {{
         $({
-            let s4096 = [composite!(S4096, 0, 2 * 4096 / $len0), composite!(S4096, 1, 2 * 4096 / $len1)];
-            let u4096 = [composite!(U4096, 0, 2 * 4096 / $len0), composite!(U4096, 1, 2 * 4096 / $len1)];
+            let s4096 = [composite!(S4096, i64, 0, 2 * 4096 / $len0), composite!(S4096, i64, 1, 2 * 4096 / $len1)];
+            let u4096 = [composite!(U4096, u64, 0, 2 * 4096 / $len0), composite!(U4096, u64, 1, 2 * 4096 / $len1)];
 
             let mut group = get_group($criterion, $fn);
 
@@ -71,13 +71,13 @@ macro_rules! ops_impl {
 }
 
 macro_rules! composite {
-    ($long:ty, $skip:expr, $step:expr) => {
+    ($long:ty, $primitive:ty, $skip:expr, $step:expr) => {
         PRIMES
             .iter()
             .copied()
             .skip($skip)
             .step_by($step)
-            .fold(<$long>::from(1u64), |acc, x| <$long>::from(acc * <$long>::from(x)))
+            .fold(<$long>::from(1 as $primitive), |acc, x| <$long>::from(acc * x as $primitive))
     };
 }
 
