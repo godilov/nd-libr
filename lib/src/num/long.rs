@@ -262,9 +262,9 @@ macro_rules! ops_primitive_native_impl {
             * Signed::<L>(mul_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
             / Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).with_sign(a.sign() * Sign::from(b)),
             % Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).with_sign(a.sign()),
-            | Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
-            & Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
-            ^ Signed::<L>(bit_single(&a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
+            | Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
+            & Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
+            ^ Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
 
         ops_impl!(@mut <const L: usize> |a: mut Signed<L>, b: $primitive|,
             += add_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
@@ -272,9 +272,9 @@ macro_rules! ops_primitive_native_impl {
             *= mul_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
             /= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).with_sign(a.sign() * Sign::from(b)); },
             %= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).with_sign(a.sign()); },
-            |= bit_single_mut(&mut a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop),
-            &= bit_single_mut(&mut a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop),
-            ^= bit_single_mut(&mut a.0, b.unsigned_abs() as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
+            |= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop),
+            &= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop),
+            ^= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
     };
     (@unsigned $primitive:ty) => {
         ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
@@ -311,8 +311,8 @@ macro_rules! ops_primitive_impl {
             + Signed::<L>(add_long(&a.0, &Signed::<L>::from(b).0)),
             - Signed::<L>(sub_long(&a.0, &Signed::<L>::from(b).0)),
             * Signed::<L>(mul_long(&a.0, &Signed::<L>::from(b).0)),
-            / Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).0).with_sign(a.sign() * Sign::from(b)),
-            % Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).1).with_sign(a.sign()),
+            / Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).0).with_sign(a.sign() * Sign::from(b)),
+            % Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).1).with_sign(a.sign()),
             | Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop)),
             & Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop)),
             ^ Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop)));
@@ -321,8 +321,8 @@ macro_rules! ops_primitive_impl {
             += add_long_mut(&mut a.0, &Signed::<L>::from(b).0),
             -= sub_long_mut(&mut a.0, &Signed::<L>::from(b).0),
             *= mul_long_mut(&mut a.0, &Signed::<L>::from(b).0),
-            /= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).0).with_sign(a.sign() * Sign::from(b)); },
-            %= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b).0).1).with_sign(a.sign()); },
+            /= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).0).with_sign(a.sign() * Sign::from(b)); },
+            %= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).1).with_sign(a.sign()); },
             |= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop),
             &= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop),
             ^= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop));
@@ -2677,9 +2677,9 @@ mod tests {
     const PRIMES_56BIT: [usize; 2] = [72_057_582_686_044_051, 72_051_998_136_909_223];
 
     macro_rules! assert_ops {
-        ($type:ty, $range_a:expr, $range_b:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
-            for a in $range_a {
-                for b in $range_b {
+        ($type:ty, $iter_a:expr, $iter_b:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
+            for a in $iter_a {
+                for b in $iter_b {
                     let along = <$type>::from(a);
                     let blong = <$type>::from(b);
 
@@ -2694,10 +2694,10 @@ mod tests {
         };
     }
 
-    macro_rules! _assert_ops_single {
-        ($type:ty, $range_a:expr, $range_b:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
-            for a in $range_a {
-                for b in $range_b {
+    macro_rules! assert_ops_single {
+        ($type:ty, $iter_a:expr, $iter_b:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
+            for a in $iter_a {
+                for b in $iter_b {
                     let long = <$type>::from(a);
 
                     $({
@@ -2712,9 +2712,9 @@ mod tests {
     }
 
     macro_rules! assert_ops_shift {
-        ($type:ty, $range_val:expr, $range_shift:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
-            for val in $range_val {
-                for shift in $range_shift {
+        ($type:ty, $iter_val:expr, $iter_shift:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
+            for val in $iter_val {
+                for shift in $iter_shift {
                     let long = <$type>::from(val);
 
                     $({
@@ -3115,6 +3115,82 @@ mod tests {
     }
 
     #[test]
+    fn signed_ops_primitive_native() {
+        assert_ops_single!(
+            S64,
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            (i8::MIN..i8::MAX).filter(|&x| x != 0),
+            [
+                (|a: S64, b: i8| { a + b })(|a: i64, b: i8| { S64::from(a.wrapping_add(b as i64)) }),
+                (|a: S64, b: i8| { a - b })(|a: i64, b: i8| { S64::from(a.wrapping_sub(b as i64)) }),
+                (|a: S64, b: i8| { a * b })(|a: i64, b: i8| { S64::from(a.wrapping_mul(b as i64)) }),
+                (|a: S64, b: i8| { a / b })(|a: i64, b: i8| { S64::from(a / b as i64) }),
+                (|a: S64, b: i8| { a % b })(|a: i64, b: i8| { S64::from(a % b as i64) }),
+                (|a: S64, b: i8| { a | b })(|a: i64, b: i8| { S64::from(a | b as i64) }),
+                (|a: S64, b: i8| { a & b })(|a: i64, b: i8| { S64::from(a & b as i64) }),
+                (|a: S64, b: i8| { a ^ b })(|a: i64, b: i8| { S64::from(a ^ b as i64) }),
+            ]
+        );
+    }
+
+    #[test]
+    fn unsigned_ops_primitive_native() {
+        assert_ops_single!(
+            U64,
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            1..u8::MAX,
+            [
+                (|a: U64, b: u8| { a + b })(|a: u64, b: u8| { U64::from(a.wrapping_add(b as u64)) }),
+                (|a: U64, b: u8| { a - b })(|a: u64, b: u8| { U64::from(a.wrapping_sub(b as u64)) }),
+                (|a: U64, b: u8| { a * b })(|a: u64, b: u8| { U64::from(a.wrapping_mul(b as u64)) }),
+                (|a: U64, b: u8| { a / b })(|a: u64, b: u8| { U64::from(a / b as u64) }),
+                (|a: U64, b: u8| { a % b })(|a: u64, b: u8| { U64::from(a % b as u64) }),
+                (|a: U64, b: u8| { a | b })(|a: u64, b: u8| { U64::from(a | b as u64) }),
+                (|a: U64, b: u8| { a & b })(|a: u64, b: u8| { U64::from(a & b as u64) }),
+                (|a: U64, b: u8| { a ^ b })(|a: u64, b: u8| { U64::from(a ^ b as u64) }),
+            ]
+        );
+    }
+
+    #[test]
+    fn signed_ops_primitive() {
+        assert_ops_single!(
+            S64,
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
+            [
+                (|a: S64, b: i64| { a + b })(|a: i64, b: i64| { S64::from(a.wrapping_add(b)) }),
+                (|a: S64, b: i64| { a - b })(|a: i64, b: i64| { S64::from(a.wrapping_sub(b)) }),
+                (|a: S64, b: i64| { a * b })(|a: i64, b: i64| { S64::from(a.wrapping_mul(b)) }),
+                (|a: S64, b: i64| { a / b })(|a: i64, b: i64| { S64::from(a / b) }),
+                (|a: S64, b: i64| { a % b })(|a: i64, b: i64| { S64::from(a % b) }),
+                (|a: S64, b: i64| { a | b })(|a: i64, b: i64| { S64::from(a | b) }),
+                (|a: S64, b: i64| { a & b })(|a: i64, b: i64| { S64::from(a & b) }),
+                (|a: S64, b: i64| { a ^ b })(|a: i64, b: i64| { S64::from(a ^ b) }),
+            ]
+        );
+    }
+
+    #[test]
+    fn unsigned_ops_primitive() {
+        assert_ops_single!(
+            U64,
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[1]),
+            [
+                (|a: U64, b: u64| { a + b })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
+                (|a: U64, b: u64| { a - b })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
+                (|a: U64, b: u64| { a * b })(|a: u64, b: u64| { U64::from(a.wrapping_mul(b)) }),
+                (|a: U64, b: u64| { a / b })(|a: u64, b: u64| { U64::from(a / b) }),
+                (|a: U64, b: u64| { a % b })(|a: u64, b: u64| { U64::from(a % b) }),
+                (|a: U64, b: u64| { a | b })(|a: u64, b: u64| { U64::from(a | b) }),
+                (|a: U64, b: u64| { a & b })(|a: u64, b: u64| { U64::from(a & b) }),
+                (|a: U64, b: u64| { a ^ b })(|a: u64, b: u64| { U64::from(a ^ b) }),
+            ]
+        );
+    }
+
+    #[test]
     #[rustfmt::skip]
     fn signed_ops_mut() {
         assert_ops!(
@@ -3150,6 +3226,86 @@ mod tests {
                 (|mut a: U64, b: U64| { a |= b; a })(|a: u64, b: u64| { U64::from(a | b) }),
                 (|mut a: U64, b: U64| { a &= b; a })(|a: u64, b: u64| { U64::from(a & b) }),
                 (|mut a: U64, b: U64| { a ^= b; a })(|a: u64, b: u64| { U64::from(a ^ b) }),
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn signed_ops_primitive_native_mut() {
+        assert_ops_single!(
+            S64,
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            (i8::MIN..i8::MAX).filter(|&x| x != 0),
+            [
+                (|mut a: S64, b: i8| { a += b; a })(|a: i64, b: i8| { S64::from(a.wrapping_add(b as i64)) }),
+                (|mut a: S64, b: i8| { a -= b; a })(|a: i64, b: i8| { S64::from(a.wrapping_sub(b as i64)) }),
+                (|mut a: S64, b: i8| { a *= b; a })(|a: i64, b: i8| { S64::from(a.wrapping_mul(b as i64)) }),
+                (|mut a: S64, b: i8| { a /= b; a })(|a: i64, b: i8| { S64::from(a / b as i64) }),
+                (|mut a: S64, b: i8| { a %= b; a })(|a: i64, b: i8| { S64::from(a % b as i64) }),
+                (|mut a: S64, b: i8| { a |= b; a })(|a: i64, b: i8| { S64::from(a | b as i64) }),
+                (|mut a: S64, b: i8| { a &= b; a })(|a: i64, b: i8| { S64::from(a & b as i64) }),
+                (|mut a: S64, b: i8| { a ^= b; a })(|a: i64, b: i8| { S64::from(a ^ b as i64) }),
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn unsigned_ops_primitive_native_mut() {
+        assert_ops_single!(
+            U64,
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            1..u8::MAX,
+            [
+                (|mut a: U64, b: u8| { a += b; a })(|a: u64, b: u8| { U64::from(a.wrapping_add(b as u64)) }),
+                (|mut a: U64, b: u8| { a -= b; a })(|a: u64, b: u8| { U64::from(a.wrapping_sub(b as u64)) }),
+                (|mut a: U64, b: u8| { a *= b; a })(|a: u64, b: u8| { U64::from(a.wrapping_mul(b as u64)) }),
+                (|mut a: U64, b: u8| { a /= b; a })(|a: u64, b: u8| { U64::from(a / b as u64) }),
+                (|mut a: U64, b: u8| { a %= b; a })(|a: u64, b: u8| { U64::from(a % b as u64) }),
+                (|mut a: U64, b: u8| { a |= b; a })(|a: u64, b: u8| { U64::from(a | b as u64) }),
+                (|mut a: U64, b: u8| { a &= b; a })(|a: u64, b: u8| { U64::from(a & b as u64) }),
+                (|mut a: U64, b: u8| { a ^= b; a })(|a: u64, b: u8| { U64::from(a ^ b as u64) }),
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn signed_ops_primitive_mut() {
+        assert_ops_single!(
+            S64,
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
+            [
+                (|mut a: S64, b: i64| { a += b; a })(|a: i64, b: i64| { S64::from(a.wrapping_add(b)) }),
+                (|mut a: S64, b: i64| { a -= b; a })(|a: i64, b: i64| { S64::from(a.wrapping_sub(b)) }),
+                (|mut a: S64, b: i64| { a *= b; a })(|a: i64, b: i64| { S64::from(a.wrapping_mul(b)) }),
+                (|mut a: S64, b: i64| { a /= b; a })(|a: i64, b: i64| { S64::from(a / b) }),
+                (|mut a: S64, b: i64| { a %= b; a })(|a: i64, b: i64| { S64::from(a % b) }),
+                (|mut a: S64, b: i64| { a |= b; a })(|a: i64, b: i64| { S64::from(a | b) }),
+                (|mut a: S64, b: i64| { a &= b; a })(|a: i64, b: i64| { S64::from(a & b) }),
+                (|mut a: S64, b: i64| { a ^= b; a })(|a: i64, b: i64| { S64::from(a ^ b) }),
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn unsigned_ops_primitive_mut() {
+        assert_ops_single!(
+            U64,
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[1]),
+            [
+                (|mut a: U64, b: u64| { a += b; a })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
+                (|mut a: U64, b: u64| { a -= b; a })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
+                (|mut a: U64, b: u64| { a *= b; a })(|a: u64, b: u64| { U64::from(a.wrapping_mul(b)) }),
+                (|mut a: U64, b: u64| { a /= b; a })(|a: u64, b: u64| { U64::from(a / b) }),
+                (|mut a: U64, b: u64| { a %= b; a })(|a: u64, b: u64| { U64::from(a % b) }),
+                (|mut a: U64, b: u64| { a |= b; a })(|a: u64, b: u64| { U64::from(a | b) }),
+                (|mut a: U64, b: u64| { a &= b; a })(|a: u64, b: u64| { U64::from(a & b) }),
+                (|mut a: U64, b: u64| { a ^= b; a })(|a: u64, b: u64| { U64::from(a ^ b) }),
             ]
         );
     }
