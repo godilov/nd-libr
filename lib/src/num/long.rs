@@ -1012,10 +1012,7 @@ pub type U8192 = unsigned!(8192);
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
-long_from!(@signed [
-    i8, i16, i32, i64, i128, isize,
-    u8, u16, u32, u64, u128, usize,
-]);
+long_from!(@signed [i8, i16, i32, i64, i128, isize]);
 long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 impl From<TryToDigitsError> for TryIntoDigitsError {
@@ -1313,15 +1310,6 @@ impl<const L: usize> Signed<L> {
         (from_i64, i64),
         (from_i128, i128),
         (from_isize, isize),
-    ]);
-
-    long_from_const!(@unsigned [
-        (from_u8, u8),
-        (from_u16, u16),
-        (from_u32, u32),
-        (from_u64, u64),
-        (from_u128, u128),
-        (from_usize, usize),
     ]);
 
     pub const fn from_bytes(bytes: &[u8]) -> Self {
