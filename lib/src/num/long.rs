@@ -2682,7 +2682,7 @@ mod tests {
         };
     }
 
-    macro_rules! assert_ops_single {
+    macro_rules! assert_ops_primitive {
         ($type:ty, $iter_a:expr, $iter_b:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
             for a in $iter_a {
                 for b in $iter_b {
@@ -3104,7 +3104,7 @@ mod tests {
 
     #[test]
     fn signed_ops_primitive_native() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i8::MIN..i8::MAX).filter(|&x| x != 0),
@@ -3123,7 +3123,7 @@ mod tests {
 
     #[test]
     fn unsigned_ops_primitive_native() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             U64,
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             1..u8::MAX,
@@ -3142,7 +3142,7 @@ mod tests {
 
     #[test]
     fn signed_ops_primitive() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
@@ -3161,7 +3161,7 @@ mod tests {
 
     #[test]
     fn unsigned_ops_primitive() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             U64,
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             (1..u64::MAX).step_by(PRIMES_56BIT[1]),
@@ -3221,7 +3221,7 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn signed_ops_primitive_native_mut() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i8::MIN..i8::MAX).filter(|&x| x != 0),
@@ -3241,7 +3241,7 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn unsigned_ops_primitive_native_mut() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             U64,
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             1..u8::MAX,
@@ -3261,7 +3261,7 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn signed_ops_primitive_mut() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
@@ -3281,7 +3281,7 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn unsigned_ops_primitive_mut() {
-        assert_ops_single!(
+        assert_ops_primitive!(
             U64,
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             (1..u64::MAX).step_by(PRIMES_56BIT[1]),
