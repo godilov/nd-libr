@@ -43,7 +43,7 @@ macro_rules! digit_impl {
             const ONE: Self = 1;
 
             fn to_arr<const L: usize>(self) -> [Single; L] {
-                from_arr_raw(&self.to_le_bytes(), 0)
+                from_arr_trunc(&self.to_le_bytes(), 0)
             }
 
             fn from_single(value: Single) -> Self {
@@ -188,7 +188,7 @@ macro_rules! long_from {
             #[allow(unused_comparisons)]
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
-                let res = from_arr_raw(&bytes, if value >= 0 { 0 } else { MAX });
+                let res = from_arr_trunc(&bytes, if value >= 0 { 0 } else { MAX });
 
                 Self(res)
             }
@@ -198,7 +198,7 @@ macro_rules! long_from {
         impl<const L: usize> From<$primitive> for Unsigned<L> {
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
-                let res = from_arr_raw(&bytes, 0);
+                let res = from_arr_trunc(&bytes, 0);
 
                 Self(res)
             }
@@ -1310,12 +1310,12 @@ impl<const L: usize> Signed<L> {
         Ok(Self(from_slice(slice)?))
     }
 
-    pub fn from_arr_raw<const N: usize, D: Digit>(arr: &[D; N]) -> Self {
-        Self(from_arr_raw(arr, 0))
+    pub fn from_arr_trunc<const N: usize, D: Digit>(arr: &[D; N]) -> Self {
+        Self(from_arr_trunc(arr, 0))
     }
 
-    pub fn from_slice_raw<D: Digit>(arr: &[D]) -> Self {
-        Self(from_slice_raw(arr))
+    pub fn from_slice_trunc<D: Digit>(arr: &[D]) -> Self {
+        Self(from_slice_trunc(arr))
     }
 
     pub fn from_digits<D: Digit>(digits: impl AsRef<[D]>, exp: u8) -> Result<Self, FromDigitsError> {
@@ -1423,12 +1423,12 @@ impl<const L: usize> Unsigned<L> {
         Ok(Self(from_slice(slice)?))
     }
 
-    pub fn from_arr_raw<const N: usize, D: Digit>(arr: &[D; N]) -> Self {
-        Self(from_arr_raw(arr, 0))
+    pub fn from_arr_trunc<const N: usize, D: Digit>(arr: &[D; N]) -> Self {
+        Self(from_arr_trunc(arr, 0))
     }
 
-    pub fn from_slice_raw<D: Digit>(arr: &[D]) -> Self {
-        Self(from_slice_raw(arr))
+    pub fn from_slice_trunc<D: Digit>(arr: &[D]) -> Self {
+        Self(from_slice_trunc(arr))
     }
 
     pub fn from_digits<D: Digit>(digits: impl AsRef<[D]>, exp: u8) -> Result<Self, FromDigitsError> {
@@ -1587,21 +1587,21 @@ fn from_arr<const L: usize, const N: usize, D: Digit>(
     default: Single,
 ) -> Result<[Single; L], FromArrError> {
     match (N * D::BYTES).cmp(&(L * BYTES)) {
-        Ordering::Less => Ok(from_arr_raw(arr, default)),
-        Ordering::Equal => Ok(from_arr_raw(arr, default)),
+        Ordering::Less => Ok(from_arr_trunc(arr, default)),
+        Ordering::Equal => Ok(from_arr_trunc(arr, default)),
         Ordering::Greater => Err(FromArrError::InvalidLength),
     }
 }
 
 fn from_slice<const L: usize, D: Digit>(slice: &[D]) -> Result<[Single; L], FromSliceError> {
     match (slice.len() * D::BYTES).cmp(&(L * BYTES)) {
-        Ordering::Less => Ok(from_slice_raw(slice)),
-        Ordering::Equal => Ok(from_slice_raw(slice)),
+        Ordering::Less => Ok(from_slice_trunc(slice)),
+        Ordering::Equal => Ok(from_slice_trunc(slice)),
         Ordering::Greater => Err(FromSliceError::InvalidLength),
     }
 }
 
-fn from_arr_raw<const L: usize, const N: usize, D: Digit>(arr: &[D; N], default: Single) -> [Single; L] {
+fn from_arr_trunc<const L: usize, const N: usize, D: Digit>(arr: &[D; N], default: Single) -> [Single; L] {
     let len = N.min(L * BYTES / D::BYTES);
 
     let mut res = [default; L];
@@ -1616,7 +1616,7 @@ fn from_arr_raw<const L: usize, const N: usize, D: Digit>(arr: &[D; N], default:
     res
 }
 
-fn from_slice_raw<const L: usize, D: Digit>(slice: &[D]) -> [Single; L] {
+fn from_slice_trunc<const L: usize, D: Digit>(slice: &[D]) -> [Single; L] {
     let len = slice.len().min(L * BYTES / D::BYTES);
 
     let mut res = [0; L];
@@ -2063,7 +2063,7 @@ fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
 fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
     let (div, rem) = div_single_impl!(*a, b);
 
-    (div, from_arr_raw(&rem.to_le_bytes(), 0))
+    (div, from_arr_trunc(&rem.to_le_bytes(), 0))
 }
 
 fn bit_single<const L: usize, F>(a: &[Single; L], b: Single, default: Single, f: F) -> [Single; L]
@@ -2151,7 +2151,7 @@ fn div_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
 fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     let (_, rem) = div_single_impl!(*a, b);
 
-    *a = from_arr_raw(&rem.to_le_bytes(), 0);
+    *a = from_arr_trunc(&rem.to_le_bytes(), 0);
 }
 
 fn bit_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, default: Single, f: F)
@@ -2381,12 +2381,12 @@ pub mod asm {
 
     #[inline(never)]
     pub fn from_arr_(arr: &[u8; N], default: Single) -> [Single; L] {
-        from_arr_raw(arr, default)
+        from_arr_trunc(arr, default)
     }
 
     #[inline(never)]
     pub fn from_slice_(slice: &[u8]) -> [Single; L] {
-        from_slice_raw(slice)
+        from_slice_trunc(slice)
     }
 
     #[inline(never)]
