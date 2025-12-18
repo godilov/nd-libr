@@ -25,76 +25,6 @@ macro_rules! long_cmp {
     };
 }
 
-macro_rules! long_from {
-    (@signed [$($primitive:ty),+ $(,)?]) => {
-        $(long_from!(@signed $primitive);)+
-    };
-    (@unsigned [$($primitive:ty),+ $(,)?]) => {
-        $(long_from!(@unsigned $primitive);)+
-    };
-    (@signed $primitive:ty) => {
-        impl<const L: usize> From<$primitive> for Signed<L> {
-            #[allow(unused_comparisons)]
-            fn from(value: $primitive) -> Self {
-                let bytes = value.to_le_bytes();
-                let res = from_arr_trunc(&bytes, if value >= 0 { 0 } else { MAX });
-
-                Self(res)
-            }
-        }
-    };
-    (@unsigned $primitive:ty) => {
-        impl<const L: usize> From<$primitive> for Unsigned<L> {
-            fn from(value: $primitive) -> Self {
-                let bytes = value.to_le_bytes();
-                let res = from_arr_trunc(&bytes, 0);
-
-                Self(res)
-            }
-        }
-    };
-}
-
-macro_rules! long_from_const {
-    (@signed [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
-        $(long_from_const!(@signed $fn, $primitive);)+
-    };
-    (@unsigned [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
-        $(long_from_const!(@unsigned $fn, $primitive);)+
-    };
-    (@signed $fn:ident, $primitive:ty) => {
-        pub const fn $fn(val: $primitive) -> Self {
-            let default = if val >= 0 { 0 } else { MAX };
-
-            let mut val = val.abs_diff(0);
-            let mut idx = 0;
-            let mut res = [default; L];
-
-            while val > 0 {
-                res[idx] = val as Single;
-                idx += 1;
-                val = val.unbounded_shr(BITS as u32);
-            }
-
-            Self(res)
-        }
-    };
-    (@unsigned $fn:ident, $primitive:ty) => {
-        pub const fn $fn(mut val: $primitive) -> Self {
-            let mut idx = 0;
-            let mut res = [0; L];
-
-            while val > 0 {
-                res[idx] = val as Single;
-                idx += 1;
-                val = val.unbounded_shr(BITS as u32);
-            }
-
-            Self(res)
-        }
-    };
-}
-
 macro_rules! ops_primitive_native_impl {
     (@signed [$($primitive:ty $(,)?),+]) => {
         $(ops_primitive_native_impl!(@signed $primitive);)+
@@ -530,8 +460,8 @@ pub struct SignedFixedDyn(Vec<Single>, Sign, usize);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsignedFixedDyn(Vec<Single>, usize);
 
-long_from!(@signed [i8, i16, i32, i64, i128, isize]);
-long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
+from_primitive!(@signed [i8, i16, i32, i64, i128, isize]);
+from_primitive!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 impl From<ToDigitsError> for IntoDigitsError {
     fn from(value: ToDigitsError) -> Self {
@@ -785,7 +715,7 @@ ops_impl!(@mut <const L: usize> |a: mut Unsigned<L>, b: usize|,
     >>= { shr_mut(&mut a.0, b, 0); });
 
 impl<const L: usize> Signed<L> {
-    long_from_const!(@signed [
+    from_primitive_const!(@signed [
         (from_i8, i8),
         (from_i16, i16),
         (from_i32, i32),
@@ -898,7 +828,7 @@ impl<const L: usize> Signed<L> {
 }
 
 impl<const L: usize> Unsigned<L> {
-    long_from_const!(@unsigned [
+    from_primitive_const!(@unsigned [
         (from_u8, u8),
         (from_u16, u16),
         (from_u32, u32),

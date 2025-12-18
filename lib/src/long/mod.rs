@@ -9,7 +9,7 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut};
 
 use crate::{
-    long::{radix::*, uops::*},
+    long::{_macro::*, radix::*, uops::*},
     num::*,
     ops::*,
     word::*,
@@ -27,6 +27,112 @@ macro_rules! signed {
 macro_rules! unsigned {
     ($bits:expr) => {
         $crate::long::num::Unsigned<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
+    };
+}
+
+macro_rules! bytes {
+    ($bits:expr) => {
+        $crate::long::bytes::Bytes<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
+    };
+}
+
+macro_rules! from_primitive {
+    (@signed [$($primitive:ty),+ $(,)?]) => {
+        $(from_primitive!(@signed $primitive);)+
+    };
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
+        $(from_primitive!(@unsigned $primitive);)+
+    };
+    (@bytes [$($primitive:ty),+ $(,)?]) => {
+        $(from_primitive!(@bytes $primitive);)+
+    };
+    (@signed $primitive:ty) => {
+        impl<const L: usize> From<$primitive> for Signed<L> {
+            #[allow(unused_comparisons)]
+            fn from(value: $primitive) -> Self {
+                let bytes = value.to_le_bytes();
+                let res = from_arr_trunc(&bytes, if value >= 0 { 0 } else { MAX });
+
+                Self(res)
+            }
+        }
+    };
+    (@unsigned $primitive:ty) => {
+        impl<const L: usize> From<$primitive> for Unsigned<L> {
+            fn from(value: $primitive) -> Self {
+                let bytes = value.to_le_bytes();
+                let res = from_arr_trunc(&bytes, 0);
+
+                Self(res)
+            }
+        }
+    };
+    (@bytes $primitive:ty) => {
+        impl<const L: usize> From<$primitive> for Bytes<L> {
+            fn from(value: $primitive) -> Self {
+                let bytes = value.to_le_bytes();
+                let res = from_arr_trunc(&bytes, 0);
+
+                Self(res)
+            }
+        }
+    };
+}
+
+macro_rules! from_primitive_const {
+    (@signed [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
+        $(from_primitive_const!(@signed $fn, $primitive);)+
+    };
+    (@unsigned [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
+        $(from_primitive_const!(@unsigned $fn, $primitive);)+
+    };
+    (@bytes [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
+        $(from_primitive_const!(@unsigned $fn, $primitive);)+
+    };
+    (@signed $fn:ident, $primitive:ty) => {
+        pub const fn $fn(val: $primitive) -> Self {
+            let default = if val >= 0 { 0 } else { MAX };
+
+            let mut val = val.abs_diff(0);
+            let mut idx = 0;
+            let mut res = [default; L];
+
+            while val > 0 {
+                res[idx] = val as Single;
+                idx += 1;
+                val = val.unbounded_shr(BITS as u32);
+            }
+
+            Self(res)
+        }
+    };
+    (@unsigned $fn:ident, $primitive:ty) => {
+        pub const fn $fn(mut val: $primitive) -> Self {
+            let mut idx = 0;
+            let mut res = [0; L];
+
+            while val > 0 {
+                res[idx] = val as Single;
+                idx += 1;
+                val = val.unbounded_shr(BITS as u32);
+            }
+
+            Self(res)
+        }
+    };
+    (@bytes $fn:ident, $primitive:ty) => {
+        pub const fn $fn(mut val: $primitive) -> Self {
+            let mut idx = 0;
+            let mut res = [0; L];
+
+            while val > 0 {
+                res[idx] = val as Single;
+                idx += 1;
+                val = val.unbounded_shr(BITS as u32);
+            }
+
+            Self(res)
+        }
     };
 }
 
@@ -105,10 +211,6 @@ macro_rules! from_digits_arb_impl {
     }};
 }
 
-use from_digits_arb_impl;
-use from_digits_impl;
-use from_digits_validate;
-
 pub mod radix {
     use super::*;
 
@@ -122,6 +224,9 @@ pub mod radix {
         pub value: Double,
         pub width: u8,
     }
+
+    pub trait NumRadix {}
+    pub trait BytesRadix {}
 
     impl Dec {
         pub const PREFIX: &str = "";
@@ -189,6 +294,15 @@ pub mod radix {
             }
         }
     }
+
+    impl NumRadix for Dec {}
+    impl NumRadix for Bin {}
+    impl NumRadix for Oct {}
+    impl NumRadix for Hex {}
+
+    impl BytesRadix for Bin {}
+    impl BytesRadix for Oct {}
+    impl BytesRadix for Hex {}
 }
 
 #[allow(unused)]
@@ -419,6 +533,15 @@ mod uops {
     }
 }
 
+#[rustfmt::skip]
+mod _macro {
+    pub(crate) use from_primitive;
+    pub(crate) use from_primitive_const;
+    pub(crate) use from_digits_validate;
+    pub(crate) use from_digits_impl;
+    pub(crate) use from_digits_arb_impl;
+}
+
 pub type S8 = signed!(8);
 pub type S12 = signed!(12);
 pub type S16 = signed!(16);
@@ -463,6 +586,28 @@ pub type U4096 = unsigned!(4096);
 pub type U6144 = unsigned!(6144);
 pub type U8192 = unsigned!(8192);
 
+pub type B8 = bytes!(8);
+pub type B12 = bytes!(12);
+pub type B16 = bytes!(16);
+pub type B24 = bytes!(24);
+pub type B32 = bytes!(32);
+pub type B48 = bytes!(48);
+pub type B64 = bytes!(64);
+pub type B96 = bytes!(96);
+pub type B128 = bytes!(128);
+pub type B192 = bytes!(192);
+pub type B256 = bytes!(256);
+pub type B384 = bytes!(384);
+pub type B512 = bytes!(512);
+pub type B768 = bytes!(768);
+pub type B1024 = bytes!(1024);
+pub type B1536 = bytes!(1536);
+pub type B2048 = bytes!(2048);
+pub type B3072 = bytes!(3072);
+pub type B4096 = bytes!(4096);
+pub type B6144 = bytes!(6144);
+pub type B8192 = bytes!(8192);
+
 #[derive(Debug, Clone)]
 pub struct DigitsIter<'digits, const L: usize, W: Word> {
     digits: &'digits [Single; L],
@@ -499,6 +644,8 @@ pub enum FromSliceError {
 pub enum FromStrError {
     #[error("Found empty during parsing from string")]
     InvalidLength,
+    #[error("Found invalid radix '{radix}'")]
+    InvalidRadix { radix: usize },
     #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
     InvalidSymbol { ch: char, radix: u8 },
 }
