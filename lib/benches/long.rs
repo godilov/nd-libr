@@ -4,7 +4,7 @@ use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
 };
 use ndlib::{
-    num::long::{S4096, U4096},
+    long::{S4096, U4096},
     ops::IteratorExt,
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};

@@ -14,19 +14,19 @@ use thiserror::Error;
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_mut};
 
 use crate::{
-    num::long::{digit::*, radix::*, uops::*},
+    long::{digit::*, radix::*, uops::*},
     ops::*,
 };
 
 macro_rules! signed {
     ($bits:expr) => {
-        $crate::num::long::Signed<{ ($bits as usize).div_ceil($crate::num::long::digit::BITS as usize) }>
+        $crate::long::Signed<{ ($bits as usize).div_ceil($crate::long::digit::BITS as usize) }>
     };
 }
 
 macro_rules! unsigned {
     ($bits:expr) => {
-        $crate::num::long::Unsigned<{ ($bits as usize).div_ceil($crate::num::long::digit::BITS as usize) }>
+        $crate::long::Unsigned<{ ($bits as usize).div_ceil($crate::long::digit::BITS as usize) }>
     };
 }
 
