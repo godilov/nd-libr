@@ -103,6 +103,33 @@ macro_rules! prime_impl {
     };
 }
 
+macro_rules! sign_from {
+    (@unsigned [$($primitive:ty),+]) => {
+        $(sign_from!(@unsigned $primitive);)+
+    };
+    (@signed [$($primitive:ty),+]) => {
+        $(sign_from!(@signed $primitive);)+
+    };
+    (@unsigned $primitive:ty) => {
+        impl From<$primitive> for Sign {
+            fn from(value: $primitive) -> Self {
+                if value == 0 { Sign::ZERO } else { Sign::POS }
+            }
+        }
+    };
+    (@signed $primitive:ty) => {
+        impl From<$primitive> for Sign {
+            fn from(value: $primitive) -> Self {
+                match value.cmp(&0) {
+                    Ordering::Less => Sign::NEG,
+                    Ordering::Equal => Sign::ZERO,
+                    Ordering::Greater => Sign::POS,
+                }
+            }
+        }
+    };
+}
+
 pub mod prime {
     use std::mem::{replace, take};
 
@@ -291,6 +318,14 @@ pub mod prime {
 
     impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> where for<'s> &'s Prime: Ops {}
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Sign {
+    #[default]
+    ZERO = 0,
+    NEG = -1,
+    POS = 1,
 }
 
 pub trait NumBuilder: Num
@@ -532,4 +567,8 @@ where
 
 num_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
 num_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
+
 prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
+
+sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
+sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);

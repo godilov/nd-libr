@@ -15,36 +15,10 @@ use zerocopy::{IntoBytes, transmute_mut};
 
 use crate::{
     long::num::{radix::*, uops::*},
+    num::*,
     ops::*,
     word::*,
 };
-
-macro_rules! sign_from {
-    (@unsigned [$($primitive:ty),+]) => {
-        $(sign_from!(@unsigned $primitive);)+
-    };
-    (@signed [$($primitive:ty),+]) => {
-        $(sign_from!(@signed $primitive);)+
-    };
-    (@unsigned $primitive:ty) => {
-        impl From<$primitive> for Sign {
-            fn from(value: $primitive) -> Self {
-                if value == 0 { Sign::ZERO } else { Sign::POS }
-            }
-        }
-    };
-    (@signed $primitive:ty) => {
-        impl From<$primitive> for Sign {
-            fn from(value: $primitive) -> Self {
-                match value.cmp(&0) {
-                    Ordering::Less => Sign::NEG,
-                    Ordering::Equal => Sign::ZERO,
-                    Ordering::Greater => Sign::POS,
-                }
-            }
-        }
-    };
-}
 
 macro_rules! long_cmp {
     ($lhs:expr, $rhs:expr) => {
@@ -814,14 +788,6 @@ pub enum IntoDigitsError {
     InvalidRadix { radix: usize },
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Sign {
-    #[default]
-    ZERO = 0,
-    NEG = -1,
-    POS = 1,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
@@ -866,8 +832,6 @@ pub struct WordsArbIter<const L: usize, W: Word> {
     len: usize,
 }
 
-sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
-sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 long_from!(@signed [i8, i16, i32, i64, i128, isize]);
 long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
