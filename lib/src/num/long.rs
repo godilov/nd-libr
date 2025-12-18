@@ -42,10 +42,6 @@ macro_rules! digit_impl {
             const ZERO: Self = 0;
             const ONE: Self = 1;
 
-            fn to_arr<const L: usize>(self) -> [Single; L] {
-                from_arr_trunc(&self.to_le_bytes(), 0)
-            }
-
             fn from_single(value: Single) -> Self {
                 value as Self
             }
@@ -74,7 +70,7 @@ macro_rules! digit_impl {
 }
 
 macro_rules! digits_def {
-    (($single:ty, $double:ty), ($dec_radix:expr, $dec_width:expr), ($oct_radix:expr, $oct_width:expr), { $($body:tt)* }) => {
+    (($single:ty, $double:ty), { $($body:tt)* }) => {
         pub mod digit {
             use super::*;
 
@@ -86,12 +82,6 @@ macro_rules! digits_def {
             pub const BITS: usize = Single::BITS as usize;
             pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
             pub const RADIX: Double = Single::MAX as Double + 1;
-
-            pub(super) const DEC_RADIX: Double = $dec_radix;
-            pub(super) const DEC_WIDTH: u8 = $dec_width;
-
-            pub(super) const OCT_RADIX: Double = $oct_radix;
-            pub(super) const OCT_WIDTH: u8 = $oct_width;
 
             pub trait Digit: Clone + Copy
                 + PartialEq + Eq
@@ -106,8 +96,6 @@ macro_rules! digits_def {
                 const BYTES: usize;
                 const ZERO: Self;
                 const ONE: Self;
-
-                fn to_arr<const L: usize>(self) -> [Single; L];
 
                 fn from_single(value: Single) -> Self;
                 fn from_double(value: Double) -> Self;
@@ -777,7 +765,13 @@ macro_rules! search {
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
-digits_def!((u64, u128), (10_000_000_000_000_000_000, 19), (1 << 63, 21), {
+digits_def!((u64, u128), {
+    pub(super) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
+    pub(super) const DEC_WIDTH: u8 = 19;
+
+    pub(super) const OCT_RADIX: Double = 1 << 63;
+    pub(super) const OCT_WIDTH: u8 = 21;
+
     digit_impl!(Digit, u8, (u8, u16));
     digit_impl!(Digit, u16, (u16, u32));
     digit_impl!(Digit, u32, (u32, u64));
@@ -792,7 +786,13 @@ digits_def!((u64, u128), (10_000_000_000_000_000_000, 19), (1 << 63, 21), {
 });
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
-digits_def!((u32, u64), (1_000_000_000, 9), (1 << 30, 10), {
+digits_def!((u32, u64), {
+    pub(super) const DEC_RADIX: Double = 1_000_000_000;
+    pub(super) const DEC_WIDTH: u8 = 9;
+
+    pub(super) const OCT_RADIX: Double = 1 << 30;
+    pub(super) const OCT_WIDTH: u8 = 10;
+
     digit_impl!(Digit, u8, (u8, u16));
     digit_impl!(Digit, u16, (u16, u32));
     digit_impl!(Digit, u32, (u32, u64));
@@ -806,7 +806,13 @@ digits_def!((u32, u64), (1_000_000_000, 9), (1 << 30, 10), {
 });
 
 #[cfg(test)]
-digits_def!((u8, u16), (100, 2), (1 << 6, 2), {
+digits_def!((u8, u16), {
+    pub(super) const DEC_RADIX: Double = 100;
+    pub(super) const DEC_WIDTH: u8 = 2;
+
+    pub(super) const OCT_RADIX: Double = 1 << 6;
+    pub(super) const OCT_WIDTH: u8 = 2;
+
     digit_impl!(Digit, u8, (u8, u16));
 
     ops_primitive_native_impl!(@signed [i8]);
