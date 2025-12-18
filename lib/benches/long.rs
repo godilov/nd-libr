@@ -233,11 +233,11 @@ fn from_slice(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| S4096::from_slice(bytes))
+            b.iter(|| S4096::from_slice_trunc(bytes))
         });
 
         group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| U4096::from_slice(bytes))
+            b.iter(|| U4096::from_slice_trunc(bytes))
         });
     }
 }
