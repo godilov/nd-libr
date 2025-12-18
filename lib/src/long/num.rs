@@ -19,18 +19,6 @@ use crate::{
     word::*,
 };
 
-macro_rules! signed {
-    ($bits:expr) => {
-        $crate::long::num::Signed<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
-    };
-}
-
-macro_rules! unsigned {
-    ($bits:expr) => {
-        $crate::long::num::Unsigned<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
-    };
-}
-
 macro_rules! sign_from {
     (@unsigned [$($primitive:ty),+]) => {
         $(sign_from!(@unsigned $primitive);)+
@@ -877,34 +865,6 @@ pub struct WordsArbIter<const L: usize, W: Word> {
     radix: W,
     len: usize,
 }
-
-pub type S128 = signed!(128);
-pub type S192 = signed!(192);
-pub type S256 = signed!(256);
-pub type S384 = signed!(384);
-pub type S512 = signed!(512);
-pub type S768 = signed!(768);
-pub type S1024 = signed!(1024);
-pub type S1536 = signed!(1536);
-pub type S2048 = signed!(2048);
-pub type S3072 = signed!(3072);
-pub type S4096 = signed!(4096);
-pub type S6144 = signed!(6144);
-pub type S8192 = signed!(8192);
-
-pub type U128 = unsigned!(128);
-pub type U192 = unsigned!(192);
-pub type U256 = unsigned!(256);
-pub type U384 = unsigned!(384);
-pub type U512 = unsigned!(512);
-pub type U768 = unsigned!(768);
-pub type U1024 = unsigned!(1024);
-pub type U1536 = unsigned!(1536);
-pub type U2048 = unsigned!(2048);
-pub type U3072 = unsigned!(3072);
-pub type U4096 = unsigned!(4096);
-pub type U6144 = unsigned!(6144);
-pub type U8192 = unsigned!(8192);
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
@@ -2579,9 +2539,7 @@ mod tests {
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
     use super::*;
-
-    type S64 = signed!(64);
-    type U64 = unsigned!(64);
+    use crate::long::{S64, U64};
 
     const PRIMES_48BIT: [usize; 2] = [281_415_416_265_077, 281_397_419_487_323];
     const PRIMES_56BIT: [usize; 2] = [72_057_582_686_044_051, 72_051_998_136_909_223];
