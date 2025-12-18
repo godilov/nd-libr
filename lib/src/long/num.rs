@@ -3,7 +3,6 @@
 use std::{
     cmp::Ordering,
     fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
-    io::{Cursor, Write as _},
     iter::{once, repeat},
     marker::PhantomData,
     str::FromStr,
@@ -11,14 +10,9 @@ use std::{
 
 use ndproc::ops_impl;
 use thiserror::Error;
-use zerocopy::{IntoBytes, transmute_mut};
+use zerocopy::IntoBytes;
 
-use crate::{
-    long::num::{radix::*, uops::*},
-    num::*,
-    ops::*,
-    word::*,
-};
+use crate::long::*;
 
 macro_rules! long_cmp {
     ($lhs:expr, $rhs:expr) => {
@@ -203,122 +197,16 @@ macro_rules! ops_primitive_impl {
     };
 }
 
-macro_rules! from_digits_validate {
-    ($digits:expr, $radix:expr) => {{
-        if $radix.as_single() < 2 {
-            return Err(FromDigitsError::InvalidRadix {
-                radix: $radix.as_single() as usize,
-            });
+macro_rules! from_str_impl {
+    ($str:expr) => {{
+        let (s, sign) = get_sign_from_str($str)?;
+        let (s, radix) = get_radix_from_str(s, 10)?;
+
+        if radix.is_pow2() {
+            from_str(s, radix.order() as u8, sign)
+        } else {
+            from_str_arb(s, radix, sign)
         }
-
-        if let Some(digit) = $digits.find(|&digit| digit >= $radix) {
-            return Err(FromDigitsError::InvalidDigit {
-                digit: digit.as_single() as usize,
-                radix: $radix.as_single() as usize,
-            });
-        }
-
-        Ok(())
-    }};
-}
-
-macro_rules! from_digits_bin_impl {
-    ($digits:expr, $len:expr, $exp:expr) => {{
-        let bits = $exp as usize;
-        let mask = (1 << BITS) - 1;
-
-        let mut acc = 0;
-        let mut shl = 0;
-        let mut idx = 0;
-        let mut res = [0; L];
-
-        for digit in $digits {
-            acc |= digit.as_double() << shl;
-            shl += bits;
-            res[idx] = (acc & mask) as Single;
-
-            if shl >= BITS {
-                if idx + 1 == L {
-                    break;
-                }
-
-                acc >>= BITS;
-                shl -= BITS;
-                idx += 1;
-                res[idx] = (acc & mask) as Single;
-            }
-        }
-
-        res
-    }};
-}
-
-macro_rules! from_digits_impl {
-    ($digits:expr, $radix:expr) => {{
-        let mut idx = 0;
-        let mut res = [0; L];
-
-        for digit in $digits {
-            let mut acc = digit.as_double();
-
-            for ptr in res.iter_mut().take(idx + 1) {
-                acc += *ptr as Double * $radix.as_double();
-
-                *ptr = acc as Single;
-
-                acc >>= BITS;
-            }
-
-            if idx < L && res[idx] > 0 {
-                idx += 1;
-            }
-        }
-
-        res
-    }};
-}
-
-macro_rules! inc_impl {
-    ($digits:expr) => {{
-        #[allow(unused_mut)]
-        let mut digits = $digits;
-        let mut acc = 1;
-
-        for ptr in digits.iter_mut() {
-            let digit = *ptr as Double + acc as Double;
-
-            *ptr = digit as Single;
-
-            acc = digit / RADIX;
-
-            if acc == 0 {
-                break;
-            }
-        }
-
-        digits
-    }};
-}
-
-macro_rules! dec_impl {
-    ($digits:expr) => {{
-        #[allow(unused_mut)]
-        let mut digits = $digits;
-        let mut acc = 1;
-
-        for ptr in digits.iter_mut() {
-            let digit = RADIX + *ptr as Double - acc as Double;
-
-            *ptr = digit as Single;
-
-            acc = (digit < RADIX) as Double;
-
-            if acc == 0 {
-                break;
-            }
-        }
-
-        digits
     }};
 }
 
@@ -518,74 +406,6 @@ macro_rules! div_single_impl {
     }};
 }
 
-macro_rules! shl_impl {
-    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
-        let shift = $shift;
-        let offset = shift / BITS;
-        let shl = shift % BITS;
-        let shr = BITS - shl;
-
-        if offset >= L {
-            return ($fn)($digits_ret);
-        }
-
-        #[allow(unused_mut)]
-        let mut res = $digits;
-
-        for idx in ((offset + 1).min(L)..L).rev() {
-            let idx_h = idx - offset;
-            let idx_l = idx - offset - 1;
-
-            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
-
-            res[idx] = val_h | val_l;
-        }
-
-        let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
-        let val_l = $default.checked_shr(shr as u32).unwrap_or(0);
-
-        res[offset] = val_h | val_l;
-
-        res.iter_mut().take(offset).for_each(|ptr| *ptr = $default);
-        res
-    }};
-}
-
-macro_rules! shr_impl {
-    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
-        let shift = $shift;
-        let offset = shift / BITS;
-        let shr = shift % BITS;
-        let shl = BITS - shr;
-
-        if offset >= L {
-            return ($fn)($digits_ret);
-        }
-
-        #[allow(unused_mut)]
-        let mut res = $digits;
-
-        for idx in 0..(L - offset).saturating_sub(1) {
-            let idx_h = idx + offset + 1;
-            let idx_l = idx + offset;
-
-            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
-
-            res[idx] = val_h | val_l;
-        }
-
-        let val_h = $default.checked_shl(shl as u32).unwrap_or(0);
-        let val_l = res[L - 1].checked_shr(shr as u32).unwrap_or(0);
-
-        res[L - offset - 1] = val_h | val_l;
-
-        res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = $default);
-        res
-    }};
-}
-
 macro_rules! cycle {
     ($arr:expr, $val:expr) => {{
         for i in (1..$arr.len()).rev() {
@@ -631,88 +451,6 @@ macro_rules! search {
     }};
 }
 
-pub mod radix {
-    use super::*;
-
-    pub struct Dec;
-    pub struct Bin;
-    pub struct Oct;
-    pub struct Hex;
-
-    pub struct Radix {
-        pub prefix: &'static str,
-        pub value: Double,
-        pub width: u8,
-    }
-
-    impl Dec {
-        pub const PREFIX: &str = "";
-        pub const RADIX: Double = DEC_RADIX;
-        pub const WIDTH: u8 = DEC_WIDTH;
-    }
-
-    impl Bin {
-        pub const EXP: u8 = RADIX.ilog2() as u8;
-        pub const PREFIX: &str = "0b";
-        pub const RADIX: Double = RADIX;
-        pub const WIDTH: u8 = BITS as u8;
-    }
-
-    impl Oct {
-        pub const EXP: u8 = OCT_RADIX.ilog2() as u8;
-        pub const PREFIX: &str = "0o";
-        pub const RADIX: Double = OCT_RADIX;
-        pub const WIDTH: u8 = OCT_WIDTH;
-    }
-
-    impl Hex {
-        pub const EXP: u8 = RADIX.ilog2() as u8;
-        pub const PREFIX: &str = "0x";
-        pub const RADIX: Double = RADIX;
-        pub const WIDTH: u8 = BITS as u8 / 4;
-    }
-
-    impl From<Dec> for Radix {
-        fn from(_: Dec) -> Self {
-            Self {
-                prefix: Dec::PREFIX,
-                value: Dec::RADIX,
-                width: Dec::WIDTH,
-            }
-        }
-    }
-
-    impl From<Bin> for Radix {
-        fn from(_: Bin) -> Self {
-            Self {
-                prefix: Bin::PREFIX,
-                value: Bin::RADIX,
-                width: Bin::WIDTH,
-            }
-        }
-    }
-
-    impl From<Oct> for Radix {
-        fn from(_: Oct) -> Self {
-            Self {
-                prefix: Oct::PREFIX,
-                value: Oct::RADIX,
-                width: Oct::WIDTH,
-            }
-        }
-    }
-
-    impl From<Hex> for Radix {
-        fn from(_: Hex) -> Self {
-            Self {
-                prefix: Hex::PREFIX,
-                value: Hex::RADIX,
-                width: Hex::WIDTH,
-            }
-        }
-    }
-}
-
 #[cfg(all(target_pointer_width = "64", not(test)))]
 mod _impl {
     use super::*;
@@ -747,18 +485,6 @@ mod _impl {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum FromArrError {
-    #[error("Found invalid length during initializing from array")]
-    InvalidLength,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum FromSliceError {
-    #[error("Found invalid length during initializing from slice")]
-    InvalidLength,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum FromDigitsError {
     #[error("Found invalid radix '{radix}'")]
     InvalidRadix { radix: usize },
@@ -766,14 +492,6 @@ pub enum FromDigitsError {
     InvalidExponent { exp: u8 },
     #[error("Found invalid digit '{digit}' during parsing from slice of radix '{radix}'")]
     InvalidDigit { digit: usize, radix: usize },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum FromStrError {
-    #[error("Found empty during parsing from string")]
-    InvalidLength,
-    #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
-    InvalidSymbol { ch: char, radix: u8 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
@@ -811,26 +529,6 @@ pub struct SignedFixedDyn(Vec<Single>, Sign, usize);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsignedFixedDyn(Vec<Single>, usize);
-
-#[derive(Debug, Clone)]
-pub struct WordsIter<'digits, const L: usize, W: Word> {
-    digits: &'digits [Single; L],
-    bits: usize,
-    mask: Double,
-    cnt: usize,
-    len: usize,
-    acc: Double,
-    shl: usize,
-    idx: usize,
-    _phantom: PhantomData<W>,
-}
-
-#[derive(Debug, Clone)]
-pub struct WordsArbIter<const L: usize, W: Word> {
-    digits: [Single; L],
-    radix: W,
-    len: usize,
-}
 
 long_from!(@signed [i8, i16, i32, i64, i128, isize]);
 long_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
@@ -871,7 +569,7 @@ impl<const L: usize> FromStr for Signed<L> {
     type Err = FromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        from_str_arb(s).map(Self)
+        Ok(Self(from_str_impl!(s)?))
     }
 }
 
@@ -879,19 +577,7 @@ impl<const L: usize> FromStr for Unsigned<L> {
     type Err = FromStrError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        from_str_arb(s).map(Self)
-    }
-}
-
-impl<const L: usize> From<Signed<L>> for Unsigned<L> {
-    fn from(value: Signed<L>) -> Self {
-        Self(value.0)
-    }
-}
-
-impl<const L: usize> From<Unsigned<L>> for Signed<L> {
-    fn from(value: Unsigned<L>) -> Self {
-        Self(value.0)
+        Ok(Self(from_str_impl!(s)?))
     }
 }
 
@@ -967,7 +653,7 @@ impl<const L: usize> Display for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Dec.into(), iter, get_sign(&self.0, self.sign()), write_dec)
+        write_iter(f, iter, Dec.into(), get_sign(&self.0, self.sign()), write_dec)
     }
 }
 
@@ -978,19 +664,19 @@ impl<const L: usize> Display for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Dec.into(), iter, get_sign(&self.0, self.sign()), write_dec)
+        write_iter(f, iter, Dec.into(), get_sign(&self.0, self.sign()), write_dec)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Bin.into(), &self.0, get_sign(&self.0, Sign::POS), write_bin)
+        write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Bin.into(), &self.0, get_sign(&self.0, Sign::POS), write_bin)
+        write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
@@ -1001,7 +687,7 @@ impl<const L: usize> Octal for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Oct.into(), iter, get_sign(&self.0, Sign::POS), write_oct)
+        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
@@ -1012,31 +698,31 @@ impl<const L: usize> Octal for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_long_iter(f, Oct.into(), iter, get_sign(&self.0, Sign::POS), write_oct)
+        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_long(f, Hex.into(), &self.0, get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
@@ -1154,7 +840,7 @@ impl<const L: usize> Signed<L> {
         to_digits(&self.0, exp)
     }
 
-    pub fn to_digits_iter<W: Word>(&self, exp: u8) -> Result<WordsIter<'_, L, W>, ToDigitsError> {
+    pub fn to_digits_iter<W: Word>(&self, exp: u8) -> Result<DigitsIter<'_, L, W>, ToDigitsError> {
         to_digits_iter(&self.0, exp)
     }
 
@@ -1162,7 +848,7 @@ impl<const L: usize> Signed<L> {
         into_digits(self.0, radix)
     }
 
-    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<WordsArbIter<L, W>, IntoDigitsError> {
+    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<DigitsArbIter<L, W>, IntoDigitsError> {
         into_digits_iter(self.0, radix)
     }
 
@@ -1267,7 +953,7 @@ impl<const L: usize> Unsigned<L> {
         to_digits(&self.0, exp)
     }
 
-    pub fn to_digits_iter<W: Word>(&self, exp: u8) -> Result<WordsIter<'_, L, W>, ToDigitsError> {
+    pub fn to_digits_iter<W: Word>(&self, exp: u8) -> Result<DigitsIter<'_, L, W>, ToDigitsError> {
         to_digits_iter(&self.0, exp)
     }
 
@@ -1275,7 +961,7 @@ impl<const L: usize> Unsigned<L> {
         into_digits(self.0, radix)
     }
 
-    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<WordsArbIter<L, W>, IntoDigitsError> {
+    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<DigitsArbIter<L, W>, IntoDigitsError> {
         into_digits_iter(self.0, radix)
     }
 
@@ -1290,189 +976,6 @@ impl<const L: usize> Unsigned<L> {
     pub fn sign(&self) -> Sign {
         get_sign(&self.0, Sign::POS)
     }
-}
-
-impl<'digits, const L: usize, W: Word> ExactSizeIterator for WordsIter<'digits, L, W> {}
-impl<'digits, const L: usize, W: Word> Iterator for WordsIter<'digits, L, W> {
-    type Item = W;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.idx == self.cnt {
-            if self.acc == 0 {
-                return None;
-            }
-
-            let val = self.acc;
-
-            self.acc >>= self.bits;
-            self.shl = self.shl.saturating_sub(self.bits);
-
-            return Some(W::from_double(val & self.mask));
-        }
-
-        if self.shl < self.bits {
-            self.acc |= (self.digits[self.idx] as Double) << self.shl;
-            self.shl += BITS;
-            self.idx += 1;
-        }
-
-        let val = self.acc;
-
-        self.acc >>= self.bits;
-        self.shl -= self.bits;
-
-        Some(W::from_double(val & self.mask))
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
-}
-
-impl<const L: usize, W: Word> ExactSizeIterator for WordsArbIter<L, W> {}
-impl<const L: usize, W: Word> Iterator for WordsArbIter<L, W> {
-    type Item = W;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let radix = self.radix.as_double();
-
-        let mut any = 0;
-        let mut acc = 0;
-
-        for digit in self.digits.iter_mut().rev() {
-            any |= *digit;
-            acc = (acc << BITS) | *digit as Double;
-
-            *digit = (acc / radix) as Single;
-
-            acc %= radix;
-        }
-
-        if any == 0 {
-            return None;
-        }
-
-        Some(W::from_double(acc))
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
-}
-
-const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
-    let (bytes, bytes_) = bytes.as_chunks::<BYTES>();
-
-    let mut idx = 0;
-    let mut idx_ = 0;
-    let mut res = [0; L];
-
-    #[allow(clippy::modulo_one)]
-    while idx < bytes.len() && idx < L * BYTES {
-        let offset = idx / BYTES;
-        let shift = idx % BYTES;
-        let byte = bytes[offset][shift] as Single;
-
-        idx += 1;
-        res[offset] |= byte << shift;
-    }
-
-    #[allow(clippy::modulo_one)]
-    while idx_ < bytes_.len() && idx < L * BYTES {
-        let offset = idx / BYTES;
-        let shift = idx % BYTES;
-        let shift_ = idx_ % BYTES;
-        let byte = bytes_[shift_] as Single;
-
-        idx += 1;
-        idx_ += 1;
-        res[offset] |= byte << shift;
-    }
-
-    res
-}
-
-fn from_arr<const L: usize, const N: usize, W: Word>(
-    arr: &[W; N],
-    default: Single,
-) -> Result<[Single; L], FromArrError> {
-    match (N * W::BYTES).cmp(&(L * BYTES)) {
-        Ordering::Less => Ok(from_arr_trunc(arr, default)),
-        Ordering::Equal => Ok(from_arr_trunc(arr, default)),
-        Ordering::Greater => Err(FromArrError::InvalidLength),
-    }
-}
-
-fn from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], FromSliceError> {
-    match (slice.len() * W::BYTES).cmp(&(L * BYTES)) {
-        Ordering::Less => Ok(from_slice_trunc(slice)),
-        Ordering::Equal => Ok(from_slice_trunc(slice)),
-        Ordering::Greater => Err(FromSliceError::InvalidLength),
-    }
-}
-
-fn from_arr_trunc<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
-    let len = N.min(L * BYTES / W::BYTES);
-
-    let mut res = [default; L];
-
-    (transmute_mut!(res.as_mut_bytes()) as &mut [W])[..len].copy_from_slice(&arr[..len]);
-
-    #[cfg(target_endian = "big")]
-    res.iter_mut().for_each(|ptr| {
-        (transmute_mut!(ptr.as_mut_bytes()) as &mut [W]).reverse();
-    });
-
-    res
-}
-
-fn from_slice_trunc<const L: usize, W: Word>(slice: &[W]) -> [Single; L] {
-    let len = slice.len().min(L * BYTES / W::BYTES);
-
-    let mut res = [0; L];
-
-    (transmute_mut!(res.as_mut_bytes()) as &mut [W])[..len].copy_from_slice(&slice[..len]);
-
-    #[cfg(target_endian = "big")]
-    res.iter_mut().for_each(|ptr| {
-        (transmute_mut!(ptr.as_mut_bytes()) as &mut [W]).reverse();
-    });
-
-    res
-}
-
-fn from_iter<const L: usize, W: Word, Iter: Iterator<Item = W>>(iter: Iter) -> [Single; L] {
-    let mut res = [0; L];
-
-    (transmute_mut!(res.as_mut_bytes()) as &mut [W])
-        .iter_mut()
-        .zip(iter)
-        .for_each(|(ptr, val)| *ptr = val);
-
-    #[cfg(target_endian = "big")]
-    res.iter_mut().for_each(|ptr| {
-        (transmute_mut!(ptr.as_mut_bytes()) as &mut [W]).reverse();
-    });
-
-    res
-}
-
-fn from_str_validate(s: &str, radix: u8) -> Result<(), FromStrError> {
-    if let Some(ch) = s.chars().find(|&ch| {
-        let byte = ch as u8;
-
-        match ch {
-            '0'..='9' => byte - b'0' >= radix,
-            'a'..='f' => byte - b'a' + 10 >= radix,
-            'A'..='F' => byte - b'A' + 10 >= radix,
-            '_' => false,
-            _ => false,
-        }
-    }) {
-        return Err(FromStrError::InvalidSymbol { ch, radix });
-    }
-
-    Ok(())
 }
 
 fn to_digits_validate<W: Word>(exp: u8) -> Result<(), ToDigitsError> {
@@ -1500,7 +1003,7 @@ fn from_digits<const L: usize, W: Word>(digits: &[W], exp: u8) -> Result<[Single
 
     from_digits_validate!(digits.iter().copied(), W::from_single(1 << exp))?;
 
-    let res = from_digits_bin_impl!(digits, digits.len(), exp);
+    let res = from_digits_impl!(digits, digits.len(), exp);
 
     Ok(res)
 }
@@ -1515,19 +1018,7 @@ fn from_digits_iter<const L: usize, W: Word, Words: WordsIterator<Item = W>>(
 
     from_digits_validate!(digits.clone(), W::from_single(1 << exp))?;
 
-    let res = from_digits_bin_impl!(digits, digits.len(), exp);
-
-    Ok(res)
-}
-
-fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
-    from_str_validate(s, 1 << exp)?;
-
-    let mut res = from_digits_bin_impl!(s.bytes().rev().filter_map(get_digit_from_byte), s.len(), exp);
-
-    if sign == Sign::NEG {
-        neg_mut(&mut res);
-    }
+    let res = from_digits_impl!(digits, digits.len(), exp);
 
     Ok(res)
 }
@@ -1539,7 +1030,7 @@ fn from_digits_arb<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<[S
 
     from_digits_validate!(digits.iter().copied(), radix)?;
 
-    let res = from_digits_impl!(digits.iter().rev(), radix);
+    let res = from_digits_arb_impl!(digits.iter().rev(), radix);
 
     Ok(res)
 }
@@ -1554,26 +1045,7 @@ fn from_digits_arb_iter<const L: usize, W: Word, Words: WordsIterator<Item = W> 
 
     from_digits_validate!(digits.clone(), radix)?;
 
-    let res = from_digits_impl!(digits.rev(), radix);
-
-    Ok(res)
-}
-
-fn from_str_arb<const L: usize>(s: &str) -> Result<[Single; L], FromStrError> {
-    let (s, sign) = get_sign_from_str(s)?;
-    let (s, radix) = get_radix_from_str(s)?;
-
-    if radix.is_pow2() {
-        return from_str(s, radix.order() as u8, sign);
-    }
-
-    from_str_validate(s, radix)?;
-
-    let mut res = from_digits_impl!(s.bytes().filter_map(get_digit_from_byte), radix);
-
-    if sign == Sign::NEG {
-        neg_mut(&mut res);
-    }
+    let res = from_digits_arb_impl!(digits.rev(), radix);
 
     Ok(res)
 }
@@ -1611,15 +1083,15 @@ fn to_digits<const L: usize, W: Word>(digits: &[Single; L], exp: u8) -> Result<V
 fn to_digits_iter<const L: usize, W: Word>(
     digits: &[Single; L],
     exp: u8,
-) -> Result<WordsIter<'_, L, W>, ToDigitsError> {
+) -> Result<DigitsIter<'_, L, W>, ToDigitsError> {
     to_digits_validate::<W>(exp)?;
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
-    let cnt = get_len(digits);
+    let cnt = get_len_arr(digits);
     let len = (cnt * BITS + bits - 1) / bits;
 
-    Ok(WordsIter {
+    Ok(DigitsIter {
         digits,
         bits,
         mask,
@@ -1674,152 +1146,14 @@ fn into_digits<const L: usize, W: Word>(mut digits: [Single; L], radix: W) -> Re
 fn into_digits_iter<const L: usize, W: Word>(
     digits: [Single; L],
     radix: W,
-) -> Result<WordsArbIter<L, W>, IntoDigitsError> {
+) -> Result<DigitsArbIter<L, W>, IntoDigitsError> {
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = get_len(&digits);
+    let cnt = get_len_arr(&digits);
     let len = (cnt * BITS + bits - 1) / bits;
 
-    Ok(WordsArbIter { digits, radix, len })
-}
-
-fn write_dec(mut cursor: Cursor<&mut [u8]>, digit: Single, width: usize) -> std::fmt::Result {
-    match cursor.write_fmt(format_args!("{digit:0width$}")) {
-        Ok(()) => (),
-        Err(_) => return Err(std::fmt::Error),
-    }
-
-    Ok(())
-}
-
-fn write_bin(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
-    let buf = cursor.into_inner();
-
-    #[allow(clippy::unnecessary_cast)]
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = b'0' + (digit % 2) as u8;
-        digit /= 2;
-    }
-
-    Ok(())
-}
-
-fn write_oct(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
-    let buf = cursor.into_inner();
-
-    #[allow(clippy::unnecessary_cast)]
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = b'0' + (digit % 8) as u8;
-        digit /= 8;
-    }
-
-    Ok(())
-}
-
-fn write_lhex(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
-    const HEX: [u8; 16] = [
-        b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
-    ];
-
-    let buf = cursor.into_inner();
-
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = HEX[(digit % 16) as usize];
-        digit /= 16;
-    }
-
-    Ok(())
-}
-
-fn write_uhex(cursor: Cursor<&mut [u8]>, mut digit: Single, width: usize) -> std::fmt::Result {
-    const HEX: [u8; 16] = [
-        b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F',
-    ];
-
-    let buf = cursor.into_inner();
-
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = HEX[(digit % 16) as usize];
-        digit /= 16;
-    }
-
-    Ok(())
-}
-
-fn write_long<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
-    fmt: &mut Formatter<'_>,
-    radix: Radix,
-    digits: &[Single; L],
-    sign: Sign,
-    func: F,
-) -> std::fmt::Result {
-    let sign = match sign {
-        Sign::ZERO => {
-            return write!(fmt, "{}0", radix.prefix);
-        },
-        Sign::NEG => "-",
-        Sign::POS => "",
-    };
-
-    let prefix = radix.prefix;
-    let width = radix.width as usize;
-    let len = get_len(digits);
-
-    let mut buf = vec![b'0'; len * width];
-
-    for (i, &digit) in digits[..len].iter().enumerate() {
-        let offset = (len - i - 1) * width;
-
-        func(Cursor::new(&mut buf[offset..]), digit, width)?;
-    }
-
-    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
-    let str = match str::from_utf8(&buf[offset..]) {
-        Ok(val) => val,
-        Err(_) => unreachable!(),
-    };
-
-    write!(fmt, "{}{}{}", sign, prefix, str)
-}
-
-fn write_long_iter<Words: WordsIterator, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
-    fmt: &mut Formatter<'_>,
-    radix: Radix,
-    digits: Words,
-    sign: Sign,
-    func: F,
-) -> std::fmt::Result
-where
-    <Words as Iterator>::Item: Word,
-{
-    let sign = match sign {
-        Sign::ZERO => {
-            return write!(fmt, "{}0", radix.prefix);
-        },
-        Sign::NEG => "-",
-        Sign::POS => "",
-    };
-
-    let prefix = radix.prefix;
-    let width = radix.width as usize;
-    let len = digits.len();
-
-    let mut buf = vec![b'0'; len * width];
-
-    for (i, digit) in digits.enumerate() {
-        let offset = (len - i - 1) * width;
-
-        func(Cursor::new(&mut buf[offset..]), digit.as_single(), width)?;
-    }
-
-    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
-    let str = match str::from_utf8(&buf[offset..]) {
-        Ok(val) => val,
-        Err(_) => unreachable!(),
-    };
-
-    write!(fmt, "{}{}{}", sign, prefix, str)
+    Ok(DigitsArbIter { digits, radix, len })
 }
 
 fn add_long<const L: usize>(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
@@ -1994,504 +1328,6 @@ fn mul_signed_mut<const L: usize>(a: &mut [Single; L], (b, sign): (Single, Sign)
 
     if sign == Sign::NEG {
         neg_mut(a);
-    }
-}
-
-fn get_sign_from_str(s: &str) -> Result<(&str, Sign), FromStrError> {
-    if s.is_empty() {
-        return Err(FromStrError::InvalidLength);
-    }
-
-    let val = match &s[..1] {
-        "+" => (&s[1..], Sign::POS),
-        "-" => (&s[1..], Sign::NEG),
-        _ => (s, Sign::POS),
-    };
-
-    Ok(val)
-}
-
-fn get_radix_from_str(s: &str) -> Result<(&str, u8), FromStrError> {
-    if s.is_empty() {
-        return Err(FromStrError::InvalidLength);
-    }
-
-    if s.len() < 2 {
-        return Ok((s, 10));
-    }
-
-    let val = match &s[..2] {
-        "0x" | "0X" => (&s[2..], 16),
-        "0o" | "0O" => (&s[2..], 8),
-        "0b" | "0B" => (&s[2..], 2),
-        _ => (s, 10),
-    };
-
-    Ok(val)
-}
-
-fn get_digit_from_byte(byte: u8) -> Option<u8> {
-    match byte {
-        b'0'..=b'9' => Some(byte - b'0'),
-        b'a'..=b'f' => Some(byte - b'a' + 10),
-        b'A'..=b'F' => Some(byte - b'A' + 10),
-        _ => None,
-    }
-}
-
-fn get_len<W: Word, const L: usize>(digits: &[W; L]) -> usize {
-    for (i, digit) in digits.iter().enumerate().rev() {
-        if digit != &W::ZERO {
-            return i + 1;
-        }
-    }
-
-    0
-}
-
-fn get_len_slice<W: Word>(digits: &[W]) -> usize {
-    for (i, digit) in digits.iter().enumerate().rev() {
-        if digit != &W::ZERO {
-            return i + 1;
-        }
-    }
-
-    0
-}
-
-fn get_sign<W: Word, const L: usize>(digits: &[W; L], sign: Sign) -> Sign {
-    if digits != &[W::ZERO; L] { sign } else { Sign::ZERO }
-}
-
-mod uops {
-    use super::*;
-
-    pub(super) fn pos<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        *digits
-    }
-
-    pub(super) fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        digits
-    }
-
-    pub(super) fn neg<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        let mut digits = *digits;
-
-        not_mut(&mut digits);
-        inc_mut(&mut digits);
-
-        digits
-    }
-
-    pub(super) fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        not_mut(digits);
-        inc_mut(digits);
-
-        digits
-    }
-
-    pub(super) fn not<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        digits.iter().map(|&digit| !digit).collect_with([0; L])
-    }
-
-    pub(super) fn not_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        digits.iter_mut().for_each(|digit| *digit = !*digit);
-        digits
-    }
-
-    pub(super) fn inc<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        inc_impl!(*digits)
-    }
-
-    pub(super) fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        inc_impl!(digits)
-    }
-
-    pub(super) fn dec<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        dec_impl!(*digits)
-    }
-
-    pub(super) fn dec_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        dec_impl!(digits)
-    }
-
-    #[allow(unused_variables)]
-    pub(super) fn shl<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shl_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
-    }
-
-    #[allow(unused_variables)]
-    pub(super) fn shr<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shr_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
-    }
-
-    pub(super) fn shl_mut<'digits, const L: usize>(
-        digits: &'digits mut [Single; L],
-        shift: usize,
-        default: Single,
-    ) -> &'digits mut [Single; L] {
-        shl_impl!(digits, digits, shift, default, |digits: &'digits mut [Single; L]| {
-            *digits = [default; L];
-            digits
-        })
-    }
-
-    pub(super) fn shr_mut<'digits, const L: usize>(
-        digits: &'digits mut [Single; L],
-        shift: usize,
-        default: Single,
-    ) -> &'digits mut [Single; L] {
-        shr_impl!(digits, digits, shift, default, |digits: &'digits mut [Single; L]| {
-            *digits = [default; L];
-            digits
-        })
-    }
-
-    pub(super) fn shl_signed<const L: usize>(digits: &[Single; L], shift: usize) -> [Single; L] {
-        shl(digits, shift, 0)
-    }
-
-    pub(super) fn shr_signed<const L: usize>(digits: &[Single; L], shift: usize) -> [Single; L] {
-        shr(digits, shift, if sign(digits) != Sign::NEG { 0 } else { MAX })
-    }
-
-    pub(super) fn shl_signed_mut<const L: usize>(digits: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        shl_mut(digits, shift, 0)
-    }
-
-    pub(super) fn shr_signed_mut<const L: usize>(digits: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        let default = if sign(digits) != Sign::NEG { 0 } else { MAX };
-
-        shr_mut(digits, shift, default)
-    }
-
-    pub(super) fn sign<const L: usize>(digits: &[Single; L]) -> Sign {
-        if digits == &[0; L] {
-            return Sign::ZERO;
-        }
-
-        if digits[L - 1] >> (BITS - 1) == 0 {
-            Sign::POS
-        } else {
-            Sign::NEG
-        }
-    }
-}
-
-pub mod asm {
-    use super::*;
-
-    const L: usize = 4096 / BITS;
-    const N: usize = 256 / BITS;
-
-    #[inline(never)]
-    pub fn from_bytes_(arr: &[u8; N]) -> [Single; L] {
-        from_bytes(arr)
-    }
-
-    #[inline(never)]
-    pub fn from_arr_(arr: &[u8; N], default: Single) -> [Single; L] {
-        from_arr_trunc(arr, default)
-    }
-
-    #[inline(never)]
-    pub fn from_slice_(slice: &[u8]) -> [Single; L] {
-        from_slice_trunc(slice)
-    }
-
-    #[inline(never)]
-    pub fn from_iter_(slice: &[u8]) -> [Single; L] {
-        from_iter(slice.iter().copied())
-    }
-
-    #[inline(never)]
-    pub fn from_digits_(digits: &[u8], exp: u8) -> Result<[Single; L], FromDigitsError> {
-        from_digits(digits, exp)
-    }
-
-    #[inline(never)]
-    pub fn from_digits_iter_(digits: &[u8], exp: u8) -> Result<[Single; L], FromDigitsError> {
-        from_digits_iter(digits.iter().copied(), exp)
-    }
-
-    #[inline(never)]
-    pub fn from_str_(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
-        from_str(s, exp, sign)
-    }
-
-    #[inline(never)]
-    pub fn from_digits_arb_(digits: &[u8], radix: u8) -> Result<[Single; L], FromDigitsError> {
-        from_digits_arb(digits, radix)
-    }
-
-    #[inline(never)]
-    pub fn from_digits_iter_arb_(digits: &[u8], radix: u8) -> Result<[Single; L], FromDigitsError> {
-        from_digits_arb_iter(digits.iter().copied(), radix)
-    }
-
-    #[inline(never)]
-    pub fn from_str_arb_(s: &str) -> Result<[Single; L], FromStrError> {
-        from_str_arb(s)
-    }
-
-    #[inline(never)]
-    pub fn to_digits_(digits: &[Single; L], exp: u8) -> Result<Vec<u8>, ToDigitsError> {
-        to_digits::<L, u8>(digits, exp)
-    }
-
-    #[inline(never)]
-    pub fn to_digits_iter_(digits: &[Single; L], exp: u8) -> Result<usize, ToDigitsError> {
-        to_digits_iter::<L, u8>(digits, exp).map(|iter| iter.count())
-    }
-
-    #[inline(never)]
-    pub fn into_digits_(digits: [Single; L], radix: u8) -> Result<Vec<u8>, IntoDigitsError> {
-        into_digits(digits, radix)
-    }
-
-    #[inline(never)]
-    pub fn into_digits_iter_(digits: [Single; L], radix: u8) -> Result<usize, IntoDigitsError> {
-        into_digits_iter(digits, radix).map(|iter| iter.count())
-    }
-
-    #[inline(never)]
-    pub fn add_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-        add_long(a, b)
-    }
-
-    #[inline(never)]
-    pub fn sub_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-        sub_long(a, b)
-    }
-
-    #[inline(never)]
-    pub fn mul_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-        mul_long(a, b)
-    }
-
-    #[inline(never)]
-    pub fn div_long_(a: &[Single; L], b: &[Single; L]) -> ([Single; L], [Single; L]) {
-        div_long(a, b)
-    }
-
-    #[inline(never)]
-    pub fn bitor_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-        bit_long(a, b, |aop, bop| aop | bop)
-    }
-
-    #[inline(never)]
-    pub fn bitand_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-        bit_long(a, b, |aop, bop| aop & bop)
-    }
-
-    #[inline(never)]
-    pub fn bitxor_long_(a: &[Single; L], b: &[Single; L]) -> [Single; L] {
-        bit_long(a, b, |aop, bop| aop ^ bop)
-    }
-
-    #[inline(never)]
-    pub fn add_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        add_single(a, b)
-    }
-
-    #[inline(never)]
-    pub fn sub_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        sub_single(a, b)
-    }
-
-    #[inline(never)]
-    pub fn mul_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        mul_single(a, b)
-    }
-
-    #[inline(never)]
-    pub fn div_single_(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
-        div_single(a, b)
-    }
-
-    #[inline(never)]
-    pub fn bitor_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        bit_single(a, b, 0, |aop, bop| aop | bop)
-    }
-
-    #[inline(never)]
-    pub fn bitand_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        bit_single(a, b, 0, |aop, bop| aop & bop)
-    }
-
-    #[inline(never)]
-    pub fn bitxor_single_(a: &[Single; L], b: Single) -> [Single; L] {
-        bit_single(a, b, 0, |aop, bop| aop ^ bop)
-    }
-
-    #[inline(never)]
-    pub fn add_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
-        add_long_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn sub_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
-        sub_long_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn mul_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
-        mul_long_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn div_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
-        div_long_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn bitor_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
-        bit_long_mut(a, b, |aop, bop| aop | bop);
-    }
-
-    #[inline(never)]
-    pub fn bitand_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
-        bit_long_mut(a, b, |aop, bop| aop & bop);
-    }
-
-    #[inline(never)]
-    pub fn bitxor_long_mut_(a: &mut [Single; L], b: &[Single; L]) {
-        bit_long_mut(a, b, |aop, bop| aop ^ bop);
-    }
-
-    #[inline(never)]
-    pub fn add_single_mut_(a: &mut [Single; L], b: Single) {
-        add_single_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn sub_single_mut_(a: &mut [Single; L], b: Single) {
-        sub_single_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn mul_single_mut_(a: &mut [Single; L], b: Single) {
-        mul_single_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn div_single_mut_(a: &mut [Single; L], b: Single) {
-        div_single_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn rem_single_mut_(a: &mut [Single; L], b: Single) {
-        rem_single_mut(a, b)
-    }
-
-    #[inline(never)]
-    pub fn bitor_single_mut_(a: &mut [Single; L], b: Single, default: Single) {
-        bit_single_mut(a, b, default, |aop, bop| aop | bop)
-    }
-
-    #[inline(never)]
-    pub fn bitand_single_mut_(a: &mut [Single; L], b: Single, default: Single) {
-        bit_single_mut(a, b, default, |aop, bop| aop & bop)
-    }
-
-    #[inline(never)]
-    pub fn bitxor_single_mut_(a: &mut [Single; L], b: Single, default: Single) {
-        bit_single_mut(a, b, default, |aop, bop| aop ^ bop)
-    }
-
-    #[inline(never)]
-    pub fn pos_(digits: &[Single; L]) -> [Single; L] {
-        pos(digits)
-    }
-
-    #[inline(never)]
-    pub fn pos_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
-        pos_mut(digits)
-    }
-
-    #[inline(never)]
-    pub fn neg_(digits: &[Single; L]) -> [Single; L] {
-        neg(digits)
-    }
-
-    #[inline(never)]
-    pub fn neg_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
-        neg_mut(digits)
-    }
-
-    #[inline(never)]
-    pub fn not_(digits: &[Single; L]) -> [Single; L] {
-        not(digits)
-    }
-
-    #[inline(never)]
-    pub fn not_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
-        not_mut(digits)
-    }
-
-    #[inline(never)]
-    pub fn inc_(digits: &[Single; L]) -> [Single; L] {
-        inc(digits)
-    }
-
-    #[inline(never)]
-    pub fn inc_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
-        inc_mut(digits)
-    }
-
-    #[inline(never)]
-    pub fn dec_(digits: &[Single; L]) -> [Single; L] {
-        dec(digits)
-    }
-
-    #[inline(never)]
-    pub fn dec_mut_(digits: &mut [Single; L]) -> &mut [Single; L] {
-        dec_mut(digits)
-    }
-
-    #[inline(never)]
-    pub fn shl_(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shl(digits, shift, default)
-    }
-
-    #[inline(never)]
-    pub fn shr_(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shr(digits, shift, default)
-    }
-
-    #[inline(never)]
-    pub fn shl_mut_(digits: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
-        shl_mut(digits, shift, default)
-    }
-
-    #[inline(never)]
-    pub fn shr_mut_(digits: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
-        shr_mut(digits, shift, default)
-    }
-
-    #[inline(never)]
-    pub fn shl_signed_(digits: &[Single; L], shift: usize) -> [Single; L] {
-        shl_signed(digits, shift)
-    }
-
-    #[inline(never)]
-    pub fn shr_signed_(digits: &[Single; L], shift: usize) -> [Single; L] {
-        shr_signed(digits, shift)
-    }
-
-    #[inline(never)]
-    pub fn shl_signed_mut_(digits: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        shl_signed_mut(digits, shift)
-    }
-
-    #[inline(never)]
-    pub fn shr_signed_mut_(digits: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        shr_signed_mut(digits, shift)
-    }
-
-    #[inline(never)]
-    pub fn sign_(digits: &mut [Single; L]) -> Sign {
-        sign(digits)
     }
 }
 
