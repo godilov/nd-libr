@@ -164,8 +164,8 @@ fn from_bytes_const(c: &mut Criterion) {
     });
 }
 
-fn from_std_const(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_std::const");
+fn from_primitive_const(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_primitive::const");
 
     group.throughput(Throughput::Bits(128));
 
@@ -182,7 +182,7 @@ fn from_bytes(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_bytes");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -198,8 +198,8 @@ fn from_bytes(c: &mut Criterion) {
     }
 }
 
-fn from_std(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_std");
+fn from_primitive(c: &mut Criterion) {
+    let mut group = get_group(c, "long::from_primitive");
     let mut rng = get_rng();
 
     let s128 = rng.random::<i128>();
@@ -226,7 +226,7 @@ fn from_slice(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_slice");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -246,7 +246,7 @@ fn from_iter(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_iter");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -266,7 +266,7 @@ fn from_digits(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
 
         let exp = 7;
@@ -293,7 +293,7 @@ fn from_digits_iter(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits_iter");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
 
         let exp = 7;
@@ -320,7 +320,7 @@ fn from_digits_arb(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits_arb");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
 
         let radix = 251u8;
@@ -346,7 +346,7 @@ fn from_digits_arb_iter(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_digits_arb_iter");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
 
         let radix = 251u8;
@@ -372,7 +372,7 @@ fn to_digits(c: &mut Criterion) {
     let mut group = get_group(c, "long::to_digits");
     let mut rng = get_rng();
 
-    for exp in [7, 6, 5, 4, 3, 2, 1] {
+    for exp in [7, 4, 1] {
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
@@ -391,11 +391,11 @@ fn to_digits(c: &mut Criterion) {
     }
 }
 
-fn to_digits_iter(c: &mut Criterion) {
-    let mut group = get_group(c, "long::to_digits_iter");
+fn to_digits_iter_count(c: &mut Criterion) {
+    let mut group = get_group(c, "long::to_digits_iter::count");
     let mut rng = get_rng();
 
-    for exp in [7, 6, 5, 4, 3, 2, 1] {
+    for exp in [7, 4, 1] {
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
@@ -418,19 +418,20 @@ fn to_digits_iter_collect(c: &mut Criterion) {
     let mut group = get_group(c, "long::to_digits_iter::collect");
     let mut rng = get_rng();
 
-    for exp in [7, 6, 5, 4, 3, 2, 1] {
+    for exp in [7, 4, 1] {
         let bytes = rng.random::<[u8; BYTES]>();
 
+        let radix = 1u8 << exp;
         let signed = S4096::from_slice_trunc(&bytes[..]);
         let unsigned = U4096::from_slice_trunc(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
-        group.bench_with_input(BenchmarkId::new("S4096", exp), &(&signed, exp), |b, &(long, exp)| {
+        group.bench_with_input(BenchmarkId::new("S4096", radix), &(&signed, exp), |b, &(long, exp)| {
             b.iter(|| long.to_digits_iter::<u8>(exp).map(|it| it.collect::<Vec<u8>>()))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096", exp), &(&unsigned, exp), |b, &(long, exp)| {
+        group.bench_with_input(BenchmarkId::new("U4096", radix), &(&unsigned, exp), |b, &(long, exp)| {
             b.iter(|| long.to_digits_iter::<u8>(exp).map(|it| it.collect::<Vec<u8>>()))
         });
     }
@@ -440,7 +441,7 @@ fn into_digits(c: &mut Criterion) {
     let mut group = get_group(c, "long::into_digits");
     let mut rng = get_rng();
 
-    for radix in [255u8, 127u8, 63u8, 31u8, 15u8, 7u8, 3u8] {
+    for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
         let signed = S4096::from_slice_trunc(&bytes[..]);
@@ -458,11 +459,11 @@ fn into_digits(c: &mut Criterion) {
     }
 }
 
-fn into_digits_iter(c: &mut Criterion) {
-    let mut group = get_group(c, "long::into_digits_iter");
+fn into_digits_iter_count(c: &mut Criterion) {
+    let mut group = get_group(c, "long::into_digits_iter::count");
     let mut rng = get_rng();
 
-    for radix in [255u8, 127u8, 63u8, 31u8, 15u8, 7u8, 3u8] {
+    for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
         let signed = S4096::from_slice_trunc(&bytes[..]);
@@ -484,7 +485,7 @@ fn into_digits_iter_collect(c: &mut Criterion) {
     let mut group = get_group(c, "long::into_digits_iter::collect");
     let mut rng = get_rng();
 
-    for radix in [255u8, 127u8, 63u8, 31u8, 15u8, 7u8, 3u8] {
+    for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
         let signed = S4096::from_slice_trunc(&bytes[..]);
@@ -506,7 +507,7 @@ fn from_str(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_str");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -577,7 +578,7 @@ fn to_str(c: &mut Criterion) {
     let mut group = get_group(c, "long::to_str");
     let mut rng = get_rng();
 
-    for shr in (0..6).rev() {
+    for shr in [4, 2, 0] {
         let len = BYTES >> shr;
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -689,9 +690,9 @@ fn ops_shift_mut(c: &mut Criterion) {
 criterion_group!(
     group,
     from_bytes_const,
-    from_std_const,
+    from_primitive_const,
     from_bytes,
-    from_std,
+    from_primitive,
     from_arr,
     from_slice,
     from_iter,
@@ -700,10 +701,10 @@ criterion_group!(
     from_digits_arb,
     from_digits_arb_iter,
     to_digits,
-    to_digits_iter,
+    to_digits_iter_count,
     to_digits_iter_collect,
     into_digits,
-    into_digits_iter,
+    into_digits_iter_count,
     into_digits_iter_collect,
     from_str,
     to_str,
