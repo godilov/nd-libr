@@ -1,0 +1,126 @@
+use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
+
+use zerocopy::{FromBytes, Immutable, IntoBytes};
+
+macro_rules! word_impl {
+    ([$($primitive:ty),+ $(,)?]) => {
+        $(word_impl!($primitive);)+
+    };
+    ($primitive:ty $(,)?) => {
+#[rustfmt::skip]
+        impl Word for $primitive {
+            const BITS: usize = Self::BITS as usize;
+            const BYTES: usize = Self::BITS as usize / 8;
+            const ZERO: Self = 0;
+            const ONE: Self = 1;
+
+            fn from_single(value: Single) -> Self {
+                value as Self
+            }
+
+            fn from_double(value: Double) -> Self {
+                value as Self
+            }
+
+            fn as_single(self) -> Single {
+                self as Single
+            }
+
+            fn as_double(self) -> Double {
+                self as Double
+            }
+
+            fn order(self) -> usize {
+                self.ilog2() as usize
+            }
+
+            fn is_pow2(self) -> bool {
+                (self & (self - 1) == 0) && self != 0
+            }
+        }
+    };
+}
+
+macro_rules! word_def {
+    (($single:ty, $double:ty), { $($body:tt)* }) => {
+        pub type Single = $single;
+        pub type Double = $double;
+
+        $($body)*
+    };
+}
+
+#[cfg(all(target_pointer_width = "64", not(test)))]
+word_def!((u64, u128), {
+    pub(crate) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
+    pub(crate) const DEC_WIDTH: u8 = 19;
+
+    pub(crate) const OCT_RADIX: Double = 1 << 63;
+    pub(crate) const OCT_WIDTH: u8 = 21;
+
+    word_impl!([u8, u16, u32, u64, usize]);
+});
+
+#[cfg(all(target_pointer_width = "32", not(test)))]
+word_def!((u32, u64), {
+    pub(crate) const DEC_RADIX: Double = 1_000_000_000;
+    pub(crate) const DEC_WIDTH: u8 = 9;
+
+    pub(crate) const OCT_RADIX: Double = 1 << 30;
+    pub(crate) const OCT_WIDTH: u8 = 10;
+
+    word_impl!([u8, u16, u32, usize]);
+});
+
+#[cfg(test)]
+word_def!((u8, u16), {
+    pub(crate) const DEC_RADIX: Double = 100;
+    pub(crate) const DEC_WIDTH: u8 = 2;
+
+    pub(crate) const OCT_RADIX: Double = 1 << 6;
+    pub(crate) const OCT_WIDTH: u8 = 2;
+
+    word_impl!([u8]);
+});
+
+pub const MAX: Single = Single::MAX;
+pub const MIN: Single = Single::MIN;
+pub const BITS: usize = Single::BITS as usize;
+pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+pub const RADIX: Double = Single::MAX as Double + 1;
+
+#[rustfmt::skip]
+pub trait Word: Clone + Copy
+    + PartialEq + Eq
+    + PartialOrd + Ord
+    + Debug + Display + Binary + Octal + LowerHex + UpperHex
+    + FromBytes + IntoBytes + Immutable
+{
+    const BITS: usize;
+    const BYTES: usize;
+    const ZERO: Self;
+    const ONE: Self;
+
+    fn from_single(value: Single) -> Self;
+    fn from_double(value: Double) -> Self;
+
+    fn as_single(self) -> Single;
+    fn as_double(self) -> Double;
+
+    fn order(self) -> usize;
+
+    fn is_pow2(self) -> bool;
+}
+
+pub trait WordsIterator: Clone + Iterator + ExactSizeIterator
+where
+    <Self as Iterator>::Item: Word,
+{
+}
+
+impl<Iter> WordsIterator for Iter
+where
+    Iter: Clone + Iterator + ExactSizeIterator,
+    Iter::Item: Word,
+{
+}

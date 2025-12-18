@@ -2,6 +2,7 @@ pub mod bytes;
 pub mod long;
 pub mod num;
 pub mod ops;
+pub mod word;
 
 #[cfg(test)]
 #[allow(dead_code)]
