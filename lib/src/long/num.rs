@@ -14,20 +14,20 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut};
 
 use crate::{
-    long::{radix::*, uops::*},
+    long::num::{radix::*, uops::*},
     ops::*,
     word::*,
 };
 
 macro_rules! signed {
     ($bits:expr) => {
-        $crate::long::Signed<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
+        $crate::long::num::Signed<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
     };
 }
 
 macro_rules! unsigned {
     ($bits:expr) => {
-        $crate::long::Unsigned<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
+        $crate::long::num::Unsigned<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
     };
 }
 
