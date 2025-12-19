@@ -2,7 +2,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, Error, Expr, Generics, Ident, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
+    BinOp, Error, Expr, Generics, Ident, Item, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -682,6 +682,31 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             }
         },
         _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let item = parse_macro_input!(item as Item);
+
+    match item {
+        Item::Enum(item) => quote! {
+            #[cfg_attr(target_arch = "x86",     repr(align(64)))]
+            #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
+            #[cfg_attr(target_arch = "arm",     repr(align(64)))]
+            #[cfg_attr(target_arch = "aarch64", repr(align(128)))]
+            #item
+        }
+        .into(),
+        Item::Struct(item) => quote! {
+            #[cfg_attr(target_arch = "x86",     repr(align(64)))]
+            #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
+            #[cfg_attr(target_arch = "arm",     repr(align(64)))]
+            #[cfg_attr(target_arch = "aarch64", repr(align(128)))]
+            #item
+        }
+        .into(),
+        _ => unimplemented!(),
     }
 }
 

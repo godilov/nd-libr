@@ -150,6 +150,15 @@ fn get_rng() -> StdRng {
     StdRng::seed_from_u64(PRIMES[0] * PRIMES[1])
 }
 
+fn default(c: &mut Criterion) {
+    let mut group = get_group(c, "long::default");
+
+    group.throughput(Throughput::Bits(4096));
+
+    group.bench_function(BenchmarkId::new("S4096", 4096), |b| b.iter(S4096::default));
+    group.bench_function(BenchmarkId::new("U4096", 4096), |b| b.iter(U4096::default));
+}
+
 fn from_bytes_const(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_bytes::const");
 
@@ -214,11 +223,8 @@ fn from_arr(c: &mut Criterion) {
     let mut group = get_group(c, "long::from_arr");
     let mut rng = get_rng();
 
-    from_arr_impl!(group, rng, 5);
     from_arr_impl!(group, rng, 4);
-    from_arr_impl!(group, rng, 3);
     from_arr_impl!(group, rng, 2);
-    from_arr_impl!(group, rng, 1);
     from_arr_impl!(group, rng, 0);
 }
 
@@ -697,6 +703,7 @@ fn ops_shift_mut(c: &mut Criterion) {
 
 criterion_group!(
     group,
+    default,
     from_bytes_const,
     from_primitive_const,
     from_bytes,
