@@ -140,9 +140,9 @@ macro_rules! composite {
 fn get_group<'c>(c: &'c mut Criterion, name: &'static str) -> BenchmarkGroup<'c, WallTime> {
     let mut group = c.benchmark_group(name);
 
-    group.sample_size(256);
-    group.measurement_time(Duration::from_secs(10));
-    group.warm_up_time(Duration::from_secs(5));
+    group.sample_size(128);
+    group.measurement_time(Duration::from_secs(4));
+    group.warm_up_time(Duration::from_secs(2));
     group
 }
 

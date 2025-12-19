@@ -14,17 +14,6 @@ use zerocopy::IntoBytes;
 
 use crate::long::*;
 
-macro_rules! long_cmp {
-    ($lhs:expr, $rhs:expr) => {
-        $lhs.copied()
-            .rev()
-            .zip($rhs.copied().rev())
-            .map(|(a, b)| a.cmp(&b))
-            .find(|&ord| ord != Ordering::Equal)
-            .unwrap_or(Ordering::Equal)
-    };
-}
-
 macro_rules! ops_primitive_native_impl {
     (@signed [$($primitive:ty $(,)?),+]) => {
         $(ops_primitive_native_impl!(@signed $primitive);)+
@@ -174,11 +163,13 @@ macro_rules! add_single_impl {
             Some(val as Single)
         })
     };
-    (@overflow $a:expr, $b:expr) => {
-        $a.fold($b as Double, |acc, a| {
-            let val = a as Double + acc;
+    (@overflow $a:expr, $b:expr, $acc:expr) => {
+        $a.scan($b as Double, |_, a| {
+            let val = a as Double + $acc;
 
-            val / RADIX
+            $acc = val / RADIX;
+
+            Some(val as Single)
         })
     };
 }
@@ -205,13 +196,15 @@ macro_rules! mul_single_impl {
             Some(val as Single)
         })
     };
-    (@overflow $a:expr, $b:expr) => {
-        $a.fold(0, |acc, a| {
-            let val = a as Double * $b as Double + acc;
+    (@overflow $a:expr, $b:expr, $acc:expr) => {{
+        $a.scan(0, |_, a| {
+            let val = a as Double * $b as Double + $acc;
 
-            val / RADIX
+            $acc = val / RADIX;
+
+            Some(val as Single)
         })
-    };
+    }};
 }
 
 macro_rules! add_long_mut_impl {
@@ -284,19 +277,15 @@ macro_rules! div_long_impl {
             cycle!(rem, *val);
 
             let digit = search!(@upper 0, RADIX, |m: Double| {
-                if mul_single_impl!(@overflow $b, m) > 0 {
+                let mut acc = 0;
+
+                let mul = mul_single_impl!(@overflow $b, m, acc).collect_with([0; L]);
+
+                if acc > 0 {
                     return Ordering::Greater;
                 }
 
-                let mul = mul_single_impl!($b, m).collect_with([0; L]);
-
-                mul.iter()
-                    .copied()
-                    .rev()
-                    .zip(rem.iter().copied().rev())
-                    .map(|(x, y)| x.cmp(&y))
-                    .find(|&ord| ord != Ordering::Equal)
-                    .unwrap_or(Ordering::Equal)
+                mul.iter().rev().cmp(rem.iter().rev())
             });
 
             let digit = digit.saturating_sub(1) as Single;
@@ -556,7 +545,7 @@ impl<const L: usize> Ord for Signed<L> {
             return x.cmp(&y);
         }
 
-        let ord = long_cmp!(self.0.iter(), other.0.iter());
+        let ord = self.0.iter().rev().cmp(other.0.iter().rev());
 
         match x {
             Sign::ZERO => ord,
@@ -572,7 +561,7 @@ impl<const L: usize> Ord for Signed<L> {
 
 impl<const L: usize> Ord for Unsigned<L> {
     fn cmp(&self, other: &Self) -> Ordering {
-        long_cmp!(self.0.iter(), other.0.iter())
+        self.0.iter().rev().cmp(other.0.iter().rev())
     }
 }
 
