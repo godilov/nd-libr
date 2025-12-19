@@ -17,7 +17,7 @@ macro_rules! from_str_impl {
     }};
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
 
 impl<const L: usize> Default for Bytes<L> {

@@ -425,12 +425,10 @@ pub enum IntoDigitsError {
     InvalidRadix { radix: usize },
 }
 
-#[ndproc::align]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
-#[ndproc::align]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

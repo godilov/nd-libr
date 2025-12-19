@@ -9,10 +9,10 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut};
 
 use crate::{
+    arch::*,
     long::{_macro::*, radix::*, uops::*},
     num::*,
     ops::*,
-    word::*,
 };
 
 pub mod bytes;
@@ -20,19 +20,19 @@ pub mod num;
 
 macro_rules! signed {
     ($bits:expr) => {
-        $crate::long::num::Signed<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
+        $crate::long::num::Signed<{ ($bits as usize).div_ceil($crate::arch::BITS as usize) }>
     };
 }
 
 macro_rules! unsigned {
     ($bits:expr) => {
-        $crate::long::num::Unsigned<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
+        $crate::long::num::Unsigned<{ ($bits as usize).div_ceil($crate::arch::BITS as usize) }>
     };
 }
 
 macro_rules! bytes {
     ($bits:expr) => {
-        $crate::long::bytes::Bytes<{ ($bits as usize).div_ceil($crate::word::BITS as usize) }>
+        $crate::long::bytes::Bytes<{ ($bits as usize).div_ceil($crate::arch::BITS as usize) }>
     };
 }
 

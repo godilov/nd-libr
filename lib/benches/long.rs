@@ -4,6 +4,7 @@ use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
 };
 use ndlib::{
+    arch::Aligned,
     long::{S4096, U4096},
     ops::IteratorExt,
 };
@@ -54,11 +55,11 @@ macro_rules! from_arr_impl {
         $group.throughput(Throughput::Bytes(len as u64));
 
         $group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes, |b, bytes| {
-            b.iter(|| S4096::from_arr_trunc(bytes))
+            b.iter(|| Aligned(S4096::from_arr_trunc(bytes)))
         });
 
         $group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes, |b, bytes| {
-            b.iter(|| U4096::from_arr_trunc(bytes))
+            b.iter(|| Aligned(U4096::from_arr_trunc(bytes)))
         });
     };
 }
@@ -66,8 +67,15 @@ macro_rules! from_arr_impl {
 macro_rules! ops_impl {
     ($criterion:expr, [$($fn:literal ($len0:expr, $len1:expr): $fns:expr, $fnu:expr),+ $(,)?]) => {{
         $({
-            let s4096 = [composite!(S4096, i64, 0, 2 * 4096 / $len0), composite!(S4096, i64, 1, 2 * 4096 / $len1)];
-            let u4096 = [composite!(U4096, u64, 0, 2 * 4096 / $len0), composite!(U4096, u64, 1, 2 * 4096 / $len1)];
+            let s4096 = [
+                Aligned(composite!(S4096, i64, 0, 2 * 4096 / $len0)),
+                Aligned(composite!(S4096, i64, 1, 2 * 4096 / $len1)),
+            ];
+
+            let u4096 = [
+                Aligned(composite!(U4096, u64, 0, 2 * 4096 / $len0)),
+                Aligned(composite!(U4096, u64, 1, 2 * 4096 / $len1)),
+            ];
 
             let mut group = get_group($criterion, $fn);
 
@@ -87,8 +95,8 @@ macro_rules! ops_impl {
 macro_rules! ops_single_impl {
     ($criterion:expr, [$($fn:literal: $fns:expr, $fnu:expr),+ $(,)?]) => {{
         $({
-            let s4096 = composite!(S4096, i64, 0, 2);
-            let u4096 = composite!(U4096, u64, 0, 2);
+            let s4096 = Aligned(composite!(S4096, i64, 0, 2));
+            let u4096 = Aligned(composite!(U4096, u64, 0, 2));
 
             let mut group = get_group($criterion, $fn);
 
@@ -108,8 +116,8 @@ macro_rules! ops_single_impl {
 macro_rules! ops_shift_impl {
     ($criterion:expr, [$($fn:literal: $fns:expr, $fnu:expr),+ $(,)?]) => {{
         $({
-            let s4096 = composite!(S4096, i64, 0, 2);
-            let u4096 = composite!(U4096, u64, 0, 2);
+            let s4096 = Aligned(composite!(S4096, i64, 0, 2));
+            let u4096 = Aligned(composite!(U4096, u64, 0, 2));
 
             let mut group = get_group($criterion, $fn);
 
@@ -155,8 +163,8 @@ fn default(c: &mut Criterion) {
 
     group.throughput(Throughput::Bits(4096));
 
-    group.bench_function(BenchmarkId::new("S4096", 4096), |b| b.iter(S4096::default));
-    group.bench_function(BenchmarkId::new("U4096", 4096), |b| b.iter(U4096::default));
+    group.bench_function(BenchmarkId::new("S4096", 4096), |b| b.iter(|| Aligned(S4096::default())));
+    group.bench_function(BenchmarkId::new("U4096", 4096), |b| b.iter(|| Aligned(U4096::default())));
 }
 
 fn from_bytes_const(c: &mut Criterion) {
@@ -165,11 +173,11 @@ fn from_bytes_const(c: &mut Criterion) {
     group.throughput(Throughput::Bits(128));
 
     group.bench_function(BenchmarkId::new("S4096", 128), |b| {
-        b.iter(|| S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes()))
+        b.iter(|| Aligned(S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes())))
     });
 
     group.bench_function(BenchmarkId::new("U4096", 128), |b| {
-        b.iter(|| U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes()))
+        b.iter(|| Aligned(U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes())))
     });
 }
 
@@ -179,11 +187,11 @@ fn from_primitive_const(c: &mut Criterion) {
     group.throughput(Throughput::Bits(128));
 
     group.bench_function(BenchmarkId::new("S4096", 128), |b| {
-        b.iter(|| S4096::from_i128(116578228889707554089617590980330937198_i128))
+        b.iter(|| Aligned(S4096::from_i128(116578228889707554089617590980330937198_i128)))
     });
 
     group.bench_function(BenchmarkId::new("U4096", 128), |b| {
-        b.iter(|| U4096::from_u128(121940457858715132528838202027877031762_u128))
+        b.iter(|| Aligned(U4096::from_u128(121940457858715132528838202027877031762_u128)))
     });
 }
 
@@ -198,11 +206,11 @@ fn from_bytes(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| S4096::from_bytes(bytes))
+            b.iter(|| Aligned(S4096::from_bytes(bytes)))
         });
 
         group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| U4096::from_bytes(bytes))
+            b.iter(|| Aligned(U4096::from_bytes(bytes)))
         });
     }
 }
@@ -215,8 +223,14 @@ fn from_primitive(c: &mut Criterion) {
     let u128 = rng.random::<u128>();
 
     group.throughput(Throughput::Bits(128));
-    group.bench_with_input(BenchmarkId::new("S4096", 128), &s128, |b, &val| b.iter(|| S4096::from(val)));
-    group.bench_with_input(BenchmarkId::new("U4096", 128), &u128, |b, &val| b.iter(|| U4096::from(val)));
+
+    group.bench_with_input(BenchmarkId::new("S4096", 128), &s128, |b, &val| {
+        b.iter(|| Aligned(S4096::from(val)))
+    });
+
+    group.bench_with_input(BenchmarkId::new("U4096", 128), &u128, |b, &val| {
+        b.iter(|| Aligned(U4096::from(val)))
+    });
 }
 
 fn from_arr(c: &mut Criterion) {
@@ -239,11 +253,11 @@ fn from_slice(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| S4096::from_slice_trunc(bytes))
+            b.iter(|| Aligned(S4096::from_slice_trunc(bytes)))
         });
 
         group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| U4096::from_slice_trunc(bytes))
+            b.iter(|| Aligned(U4096::from_slice_trunc(bytes)))
         });
     }
 }
@@ -259,11 +273,11 @@ fn from_iter(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(BenchmarkId::new("S4096", 8 * len), &bytes[..len].iter().copied(), |b, iter| {
-            b.iter(|| iter.clone().collect::<S4096>())
+            b.iter(|| iter.clone().collect::<Aligned<S4096>>())
         });
 
         group.bench_with_input(BenchmarkId::new("U4096", 8 * len), &bytes[..len].iter().copied(), |b, iter| {
-            b.iter(|| iter.clone().collect::<U4096>())
+            b.iter(|| iter.clone().collect::<Aligned<U4096>>())
         });
     }
 }
@@ -284,13 +298,13 @@ fn from_digits(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("S4096", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| S4096::from_digits(digits, exp)),
+            |b, &(digits, exp)| b.iter(|| Aligned(S4096::from_digits(digits, exp))),
         );
 
         group.bench_with_input(
             BenchmarkId::new("U4096", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| U4096::from_digits(digits, exp)),
+            |b, &(digits, exp)| b.iter(|| Aligned(U4096::from_digits(digits, exp))),
         );
     }
 }
@@ -311,13 +325,13 @@ fn from_digits_iter(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("S4096", 8 * len),
             &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| S4096::from_digits_iter(iter.clone(), exp)),
+            |b, &(iter, exp)| b.iter(|| Aligned(S4096::from_digits_iter(iter.clone(), exp))),
         );
 
         group.bench_with_input(
             BenchmarkId::new("U4096", 8 * len),
             &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| U4096::from_digits_iter(iter.clone(), exp)),
+            |b, &(iter, exp)| b.iter(|| Aligned(U4096::from_digits_iter(iter.clone(), exp))),
         );
     }
 }
@@ -337,13 +351,13 @@ fn from_digits_arb(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("S4096", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| S4096::from_digits_arb(digits, radix)),
+            |b, &(digits, radix)| b.iter(|| Aligned(S4096::from_digits_arb(digits, radix))),
         );
 
         group.bench_with_input(
             BenchmarkId::new("U4096", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| U4096::from_digits_arb(digits, radix)),
+            |b, &(digits, radix)| b.iter(|| Aligned(U4096::from_digits_arb(digits, radix))),
         );
     }
 }
