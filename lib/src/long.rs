@@ -317,6 +317,118 @@ macro_rules! ops_primitive_impl {
     };
 }
 
+macro_rules! inc_impl {
+    ($digits:expr) => {{
+        #[allow(unused_mut)]
+        let mut digits = $digits;
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = *ptr as Double + acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = digit / RADIX;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }};
+}
+
+macro_rules! dec_impl {
+    ($digits:expr) => {{
+        #[allow(unused_mut)]
+        let mut digits = $digits;
+        let mut acc = 1;
+
+        for ptr in digits.iter_mut() {
+            let digit = RADIX + *ptr as Double - acc as Double;
+
+            *ptr = digit as Single;
+
+            acc = (digit < RADIX) as Double;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        digits
+    }};
+}
+
+macro_rules! shl_impl {
+    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
+        let shift = $shift;
+        let offset = shift / BITS;
+        let shl = shift % BITS;
+        let shr = BITS - shl;
+
+        if offset >= L {
+            return ($fn)($digits_ret);
+        }
+
+        #[allow(unused_mut)]
+        let mut res = $digits;
+
+        for idx in ((offset + 1).min(L)..L).rev() {
+            let idx_h = idx - offset;
+            let idx_l = idx - offset - 1;
+
+            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
+            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
+
+            res[idx] = val_h | val_l;
+        }
+
+        let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
+        let val_l = $default.checked_shr(shr as u32).unwrap_or(0);
+
+        res[offset] = val_h | val_l;
+
+        res.iter_mut().take(offset).for_each(|ptr| *ptr = $default);
+        res
+    }};
+}
+
+macro_rules! shr_impl {
+    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
+        let shift = $shift;
+        let offset = shift / BITS;
+        let shr = shift % BITS;
+        let shl = BITS - shr;
+
+        if offset >= L {
+            return ($fn)($digits_ret);
+        }
+
+        #[allow(unused_mut)]
+        let mut res = $digits;
+
+        for idx in 0..(L - offset).saturating_sub(1) {
+            let idx_h = idx + offset + 1;
+            let idx_l = idx + offset;
+
+            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
+            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
+
+            res[idx] = val_h | val_l;
+        }
+
+        let val_h = $default.checked_shl(shl as u32).unwrap_or(0);
+        let val_l = res[L - 1].checked_shr(shr as u32).unwrap_or(0);
+
+        res[L - offset - 1] = val_h | val_l;
+
+        res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = $default);
+        res
+    }};
+}
+
 macro_rules! add_long_impl {
     ($a:expr, $b:expr) => {
         $a.zip($b).scan(0, |acc, (a, b)| {
@@ -572,9 +684,6 @@ pub mod radix {
         pub width: u8,
     }
 
-    pub trait NumRadix {}
-    pub trait BytesRadix {}
-
     impl Dec {
         pub const PREFIX: &str = "";
         pub const RADIX: Double = DEC_RADIX;
@@ -641,15 +750,6 @@ pub mod radix {
             }
         }
     }
-
-    impl NumRadix for Dec {}
-    impl NumRadix for Bin {}
-    impl NumRadix for Oct {}
-    impl NumRadix for Hex {}
-
-    impl BytesRadix for Bin {}
-    impl BytesRadix for Oct {}
-    impl BytesRadix for Hex {}
 }
 
 pub mod num {
@@ -690,118 +790,6 @@ pub mod bytes {
 #[allow(unused)]
 mod uops {
     use super::*;
-
-    macro_rules! inc_impl {
-        ($digits:expr) => {{
-            #[allow(unused_mut)]
-            let mut digits = $digits;
-            let mut acc = 1;
-
-            for ptr in digits.iter_mut() {
-                let digit = *ptr as Double + acc as Double;
-
-                *ptr = digit as Single;
-
-                acc = digit / RADIX;
-
-                if acc == 0 {
-                    break;
-                }
-            }
-
-            digits
-        }};
-    }
-
-    macro_rules! dec_impl {
-        ($digits:expr) => {{
-            #[allow(unused_mut)]
-            let mut digits = $digits;
-            let mut acc = 1;
-
-            for ptr in digits.iter_mut() {
-                let digit = RADIX + *ptr as Double - acc as Double;
-
-                *ptr = digit as Single;
-
-                acc = (digit < RADIX) as Double;
-
-                if acc == 0 {
-                    break;
-                }
-            }
-
-            digits
-        }};
-    }
-
-    macro_rules! shl_impl {
-        ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
-            let shift = $shift;
-            let offset = shift / BITS;
-            let shl = shift % BITS;
-            let shr = BITS - shl;
-
-            if offset >= L {
-                return ($fn)($digits_ret);
-            }
-
-            #[allow(unused_mut)]
-            let mut res = $digits;
-
-            for idx in ((offset + 1).min(L)..L).rev() {
-                let idx_h = idx - offset;
-                let idx_l = idx - offset - 1;
-
-                let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-                let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
-
-                res[idx] = val_h | val_l;
-            }
-
-            let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
-            let val_l = $default.checked_shr(shr as u32).unwrap_or(0);
-
-            res[offset] = val_h | val_l;
-
-            res.iter_mut().take(offset).for_each(|ptr| *ptr = $default);
-            res
-        }};
-    }
-
-    macro_rules! shr_impl {
-        ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
-            let shift = $shift;
-            let offset = shift / BITS;
-            let shr = shift % BITS;
-            let shl = BITS - shr;
-
-            if offset >= L {
-                return ($fn)($digits_ret);
-            }
-
-            #[allow(unused_mut)]
-            let mut res = $digits;
-
-            for idx in 0..(L - offset).saturating_sub(1) {
-                let idx_h = idx + offset + 1;
-                let idx_l = idx + offset;
-
-                let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-                let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
-
-                res[idx] = val_h | val_l;
-            }
-
-            let val_h = $default.checked_shl(shl as u32).unwrap_or(0);
-            let val_l = res[L - 1].checked_shr(shr as u32).unwrap_or(0);
-
-            res[L - offset - 1] = val_h | val_l;
-
-            res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = $default);
-            res
-        }};
-    }
 
     pub(super) fn pos<const L: usize>(digits: &[Single; L]) -> [Single; L] {
         *digits
