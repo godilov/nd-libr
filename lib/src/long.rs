@@ -347,62 +347,62 @@ macro_rules! ops_primitive_impl {
 }
 
 macro_rules! inc_impl {
-    ($digits:expr) => {{
+    ($words:expr) => {{
         #[allow(unused_mut)]
-        let mut digits = $digits;
+        let mut words = $words;
         let mut acc = 1;
 
-        for ptr in digits.iter_mut() {
-            let digit = *ptr as Double + acc as Double;
+        for ptr in words.iter_mut() {
+            let word = *ptr as Double + acc as Double;
 
-            *ptr = digit as Single;
+            *ptr = word as Single;
 
-            acc = digit / RADIX;
+            acc = word / RADIX;
 
             if acc == 0 {
                 break;
             }
         }
 
-        digits
+        words
     }};
 }
 
 macro_rules! dec_impl {
-    ($digits:expr) => {{
+    ($words:expr) => {{
         #[allow(unused_mut)]
-        let mut digits = $digits;
+        let mut words = $words;
         let mut acc = 1;
 
-        for ptr in digits.iter_mut() {
-            let digit = RADIX + *ptr as Double - acc as Double;
+        for ptr in words.iter_mut() {
+            let word = RADIX + *ptr as Double - acc as Double;
 
-            *ptr = digit as Single;
+            *ptr = word as Single;
 
-            acc = (digit < RADIX) as Double;
+            acc = (word < RADIX) as Double;
 
             if acc == 0 {
                 break;
             }
         }
 
-        digits
+        words
     }};
 }
 
 macro_rules! shl_impl {
-    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
+    ($words:expr, $words_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
         let shift = $shift;
         let offset = shift / BITS;
         let shl = shift % BITS;
         let shr = BITS - shl;
 
         if offset >= L {
-            return ($fn)($digits_ret);
+            return ($fn)($words_ret);
         }
 
         #[allow(unused_mut)]
-        let mut res = $digits;
+        let mut res = $words;
 
         for idx in ((offset + 1).min(L)..L).rev() {
             let idx_h = idx - offset;
@@ -425,18 +425,18 @@ macro_rules! shl_impl {
 }
 
 macro_rules! shr_impl {
-    ($digits:expr, $digits_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
+    ($words:expr, $words_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
         let shift = $shift;
         let offset = shift / BITS;
         let shr = shift % BITS;
         let shl = BITS - shr;
 
         if offset >= L {
-            return ($fn)($digits_ret);
+            return ($fn)($words_ret);
         }
 
         #[allow(unused_mut)]
-        let mut res = $digits;
+        let mut res = $words;
 
         for idx in 0..(L - offset).saturating_sub(1) {
             let idx_h = idx + offset + 1;
@@ -1038,8 +1038,8 @@ pub type B6144 = bytes!(6144);
 pub type B8192 = bytes!(8192);
 
 #[derive(Debug, Clone)]
-pub struct DigitsIter<'digits, const L: usize, W: Word> {
-    digits: &'digits [Single; L],
+pub struct DigitsIter<'words, const L: usize, W: Word> {
+    words: &'words [Single; L],
     bits: usize,
     mask: Double,
     cnt: usize,
@@ -1052,7 +1052,7 @@ pub struct DigitsIter<'digits, const L: usize, W: Word> {
 
 #[derive(Debug, Clone)]
 pub struct DigitsArbIter<const L: usize, W: Word> {
-    digits: [Single; L],
+    words: [Single; L],
     radix: W,
     len: usize,
 }
@@ -1738,8 +1738,8 @@ impl<const L: usize> Bytes<L> {
     }
 }
 
-impl<'digits, const L: usize, W: Word> ExactSizeIterator for DigitsIter<'digits, L, W> {}
-impl<'digits, const L: usize, W: Word> Iterator for DigitsIter<'digits, L, W> {
+impl<'words, const L: usize, W: Word> ExactSizeIterator for DigitsIter<'words, L, W> {}
+impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
     type Item = W;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1757,7 +1757,7 @@ impl<'digits, const L: usize, W: Word> Iterator for DigitsIter<'digits, L, W> {
         }
 
         if self.shl < self.bits {
-            self.acc |= (self.digits[self.idx] as Double) << self.shl;
+            self.acc |= (self.words[self.idx] as Double) << self.shl;
             self.shl += BITS;
             self.idx += 1;
         }
@@ -1785,11 +1785,11 @@ impl<const L: usize, W: Word> Iterator for DigitsArbIter<L, W> {
         let mut any = 0;
         let mut acc = 0;
 
-        for digit in self.digits.iter_mut().rev() {
-            any |= *digit;
-            acc = (acc << BITS) | *digit as Double;
+        for word in self.words.iter_mut().rev() {
+            any |= *word;
+            acc = (acc << BITS) | *word as Double;
 
-            *digit = (acc / radix) as Single;
+            *word = (acc / radix) as Single;
 
             acc %= radix;
         }
@@ -2083,7 +2083,7 @@ fn to_digits_iter<const L: usize, W: Word>(
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsIter {
-        digits,
+        words: digits,
         bits,
         mask,
         cnt,
@@ -2144,7 +2144,7 @@ fn into_digits_iter<const L: usize, W: Word>(
     let cnt = get_len_arr(&digits);
     let len = (cnt * BITS + bits - 1) / bits;
 
-    Ok(DigitsArbIter { digits, radix, len })
+    Ok(DigitsArbIter { words: digits, radix, len })
 }
 
 fn write_dec(mut cursor: Cursor<&mut [u8]>, word: Single, width: usize) -> std::fmt::Result {
