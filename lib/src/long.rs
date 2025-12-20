@@ -169,7 +169,7 @@ macro_rules! from_digits_impl {
     }};
 }
 
-macro_rules! from_digits_arb_impl {
+macro_rules! from_digits_general_impl {
     ($digits:expr, $radix:expr) => {{
         let mut idx = 0;
         let mut res = [0; L];
@@ -202,7 +202,7 @@ macro_rules! from_str_impl {
         if radix.is_pow2() {
             from_str(s, radix.order() as u8, sign)
         } else {
-            from_str_arb(s, radix, sign)
+            from_str_general(s, radix, sign)
         }
     }};
     (@bytes $str:expr) => {{
@@ -1051,7 +1051,7 @@ pub struct DigitsIter<'words, const L: usize, W: Word> {
 }
 
 #[derive(Debug, Clone)]
-pub struct DigitsArbIter<const L: usize, W: Word> {
+pub struct DigitsGeneralIter<const L: usize, W: Word> {
     words: [Single; L],
     radix: W,
     len: usize,
@@ -1113,19 +1113,19 @@ pub trait FromDigits<W: Word, Impl: LongImpl<W>>: Sized {
 }
 
 pub trait FromDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
-    fn from_digits_iter<Words>(digits: Words, arg: Impl::Arg) -> Result<Self, FromDigitsError>
+    fn from_digits<Words>(digits: Words, arg: Impl::Arg) -> Result<Self, FromDigitsError>
     where
-        Words: WordsIterator<Item = W>;
+        Words: WordsIterator<Item = W> + DoubleEndedIterator;
 }
 
-pub trait ToDigits<W: Word, Impl: LongImpl<W>>: Sized {
-    fn to_digits(&self, arg: Impl::Arg) -> Result<Vec<W>, ToDigitsError>;
+pub trait ToDigits<'words, W: Word, Impl: LongImpl<W>>: Sized {
+    fn to_digits(&'words self, arg: Impl::Arg) -> Result<Vec<W>, ToDigitsError>;
 }
 
-pub trait ToDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
-    fn to_digits_iter<Words>(&self, arg: Impl::Arg) -> Result<Words, ToDigitsError>
-    where
-        Words: WordsIterator<Item = W>;
+pub trait ToDigitsIter<'words, W: Word, Impl: LongImpl<W>>: Sized {
+    type Iter: WordsIterator<Item = W> + ExactSizeIterator;
+
+    fn to_digits(&'words self, arg: Impl::Arg) -> Result<Self::Iter, ToDigitsError>;
 }
 
 pub trait IntoDigits<W: Word, Impl: LongImpl<W>>: Sized {
@@ -1133,9 +1133,9 @@ pub trait IntoDigits<W: Word, Impl: LongImpl<W>>: Sized {
 }
 
 pub trait IntoDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
-    fn into_digits_iter<Words>(self, arg: Impl::Arg) -> Result<Words, IntoDigitsError>
-    where
-        Words: WordsIterator<Item = W>;
+    type Iter: WordsIterator<Item = W> + ExactSizeIterator;
+
+    fn into_digits(self, arg: Impl::Arg) -> Result<Self::Iter, IntoDigitsError>;
 }
 
 impl<W: Word> LongImpl<W> for BinaryImpl {
@@ -1579,14 +1579,14 @@ impl<const L: usize> Signed<L> {
     }
 
     pub fn from_digits_arb<W: Word>(digits: impl AsRef<[W]>, radix: W) -> Result<Self, FromDigitsError> {
-        from_digits_arb(digits.as_ref(), radix).map(Self)
+        from_digits_general(digits.as_ref(), radix).map(Self)
     }
 
     pub fn from_digits_arb_iter<W: Word, Words: WordsIterator<Item = W> + DoubleEndedIterator>(
         digits: Words,
         radix: W,
     ) -> Result<Self, FromDigitsError> {
-        from_digits_arb_iter(digits, radix).map(Self)
+        from_digits_general_iter(digits, radix).map(Self)
     }
 
     pub fn to_digits<W: Word>(&self, exp: u8) -> Result<Vec<W>, ToDigitsError> {
@@ -1601,7 +1601,7 @@ impl<const L: usize> Signed<L> {
         into_digits(self.0, radix)
     }
 
-    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<DigitsArbIter<L, W>, IntoDigitsError> {
+    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<DigitsGeneralIter<L, W>, IntoDigitsError> {
         into_digits_iter(self.0, radix)
     }
 
@@ -1676,14 +1676,14 @@ impl<const L: usize> Unsigned<L> {
     }
 
     pub fn from_digits_arb<W: Word>(digits: impl AsRef<[W]>, radix: W) -> Result<Self, FromDigitsError> {
-        from_digits_arb(digits.as_ref(), radix).map(Self)
+        from_digits_general(digits.as_ref(), radix).map(Self)
     }
 
     pub fn from_digits_arb_iter<W: Word, Words: WordsIterator<Item = W> + DoubleEndedIterator>(
         digits: Words,
         radix: W,
     ) -> Result<Self, FromDigitsError> {
-        from_digits_arb_iter(digits, radix).map(Self)
+        from_digits_general_iter(digits, radix).map(Self)
     }
 
     pub fn to_digits<W: Word>(&self, exp: u8) -> Result<Vec<W>, ToDigitsError> {
@@ -1698,7 +1698,7 @@ impl<const L: usize> Unsigned<L> {
         into_digits(self.0, radix)
     }
 
-    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<DigitsArbIter<L, W>, IntoDigitsError> {
+    pub fn into_digits_iter<W: Word>(self, radix: W) -> Result<DigitsGeneralIter<L, W>, IntoDigitsError> {
         into_digits_iter(self.0, radix)
     }
 
@@ -1735,6 +1735,122 @@ impl<const L: usize> Bytes<L> {
 
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
+    }
+}
+
+impl<const L: usize, W: Word> FromDigits<W, BinaryImpl> for Signed<L> {
+    fn from_digits(digits: impl AsRef<[W]>, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError> {
+        Ok(Self(from_digits(digits.as_ref(), arg)?))
+    }
+}
+
+impl<const L: usize, W: Word> FromDigits<W, BinaryImpl> for Unsigned<L> {
+    fn from_digits(digits: impl AsRef<[W]>, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError> {
+        Ok(Self(from_digits(digits.as_ref(), arg)?))
+    }
+}
+
+impl<const L: usize, W: Word> FromDigitsIter<W, BinaryImpl> for Signed<L> {
+    fn from_digits<Words>(digits: Words, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError>
+    where
+        Words: WordsIterator<Item = W>,
+    {
+        Ok(Self(from_digits_iter(digits, arg)?))
+    }
+}
+
+impl<const L: usize, W: Word> FromDigitsIter<W, BinaryImpl> for Unsigned<L> {
+    fn from_digits<Words>(digits: Words, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError>
+    where
+        Words: WordsIterator<Item = W>,
+    {
+        Ok(Self(from_digits_iter(digits, arg)?))
+    }
+}
+
+impl<const L: usize, W: Word> FromDigits<W, GeneralImpl> for Signed<L> {
+    fn from_digits(digits: impl AsRef<[W]>, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError> {
+        Ok(Self(from_digits_general(digits.as_ref(), arg)?))
+    }
+}
+
+impl<const L: usize, W: Word> FromDigits<W, GeneralImpl> for Unsigned<L> {
+    fn from_digits(digits: impl AsRef<[W]>, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError> {
+        Ok(Self(from_digits_general(digits.as_ref(), arg)?))
+    }
+}
+
+impl<const L: usize, W: Word> FromDigitsIter<W, GeneralImpl> for Signed<L> {
+    fn from_digits<Words>(digits: Words, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError>
+    where
+        Words: WordsIterator<Item = W> + DoubleEndedIterator,
+    {
+        Ok(Self(from_digits_general_iter(digits, arg)?))
+    }
+}
+
+impl<const L: usize, W: Word> FromDigitsIter<W, GeneralImpl> for Unsigned<L> {
+    fn from_digits<Words>(digits: Words, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Self, FromDigitsError>
+    where
+        Words: WordsIterator<Item = W> + DoubleEndedIterator,
+    {
+        Ok(Self(from_digits_general_iter(digits, arg)?))
+    }
+}
+
+impl<'words, const L: usize, W: Word> ToDigits<'words, W, BinaryImpl> for Signed<L> {
+    fn to_digits(&'words self, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Vec<W>, ToDigitsError> {
+        to_digits(&self.0, arg)
+    }
+}
+
+impl<'words, const L: usize, W: Word> ToDigits<'words, W, BinaryImpl> for Unsigned<L> {
+    fn to_digits(&'words self, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Vec<W>, ToDigitsError> {
+        to_digits(&self.0, arg)
+    }
+}
+
+impl<'words, const L: usize, W: Word> ToDigitsIter<'words, W, BinaryImpl> for Signed<L> {
+    type Iter = DigitsIter<'words, L, W>;
+
+    fn to_digits(&'words self, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Self::Iter, ToDigitsError> {
+        to_digits_iter(&self.0, arg)
+    }
+}
+
+impl<'words, const L: usize, W: Word> ToDigitsIter<'words, W, BinaryImpl> for Unsigned<L> {
+    type Iter = DigitsIter<'words, L, W>;
+
+    fn to_digits(&'words self, arg: <BinaryImpl as LongImpl<W>>::Arg) -> Result<Self::Iter, ToDigitsError> {
+        to_digits_iter(&self.0, arg)
+    }
+}
+
+impl<const L: usize, W: Word> IntoDigits<W, GeneralImpl> for Signed<L> {
+    fn into_digits(self, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Vec<W>, IntoDigitsError> {
+        into_digits(self.0, arg)
+    }
+}
+
+impl<const L: usize, W: Word> IntoDigits<W, GeneralImpl> for Unsigned<L> {
+    fn into_digits(self, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Vec<W>, IntoDigitsError> {
+        into_digits(self.0, arg)
+    }
+}
+
+impl<const L: usize, W: Word> IntoDigitsIter<W, GeneralImpl> for Signed<L> {
+    type Iter = DigitsGeneralIter<L, W>;
+
+    fn into_digits(self, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Self::Iter, IntoDigitsError> {
+        into_digits_iter(self.0, arg)
+    }
+}
+
+impl<const L: usize, W: Word> IntoDigitsIter<W, GeneralImpl> for Unsigned<L> {
+    type Iter = DigitsGeneralIter<L, W>;
+
+    fn into_digits(self, arg: <GeneralImpl as LongImpl<W>>::Arg) -> Result<Self::Iter, IntoDigitsError> {
+        into_digits_iter(self.0, arg)
     }
 }
 
@@ -1775,8 +1891,8 @@ impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
     }
 }
 
-impl<const L: usize, W: Word> ExactSizeIterator for DigitsArbIter<L, W> {}
-impl<const L: usize, W: Word> Iterator for DigitsArbIter<L, W> {
+impl<const L: usize, W: Word> ExactSizeIterator for DigitsGeneralIter<L, W> {}
+impl<const L: usize, W: Word> Iterator for DigitsGeneralIter<L, W> {
     type Item = W;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1998,19 +2114,22 @@ fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L],
     Ok(res)
 }
 
-fn from_digits_arb<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<[Single; L], FromDigitsError> {
+fn from_digits_general<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<[Single; L], FromDigitsError> {
     if radix.is_pow2() {
         return from_digits(digits, radix.order() as u8);
     }
 
     from_digits_validate(digits.iter().copied(), radix)?;
 
-    let res = from_digits_arb_impl!(digits.iter().rev(), radix);
+    let res = from_digits_general_impl!(digits.iter().rev(), radix);
 
     Ok(res)
 }
 
-fn from_digits_arb_iter<const L: usize, W: Word, Words>(digits: Words, radix: W) -> Result<[Single; L], FromDigitsError>
+fn from_digits_general_iter<const L: usize, W: Word, Words>(
+    digits: Words,
+    radix: W,
+) -> Result<[Single; L], FromDigitsError>
 where
     Words: WordsIterator<Item = W> + DoubleEndedIterator,
 {
@@ -2020,19 +2139,19 @@ where
 
     from_digits_validate(digits.clone(), radix)?;
 
-    let res = from_digits_arb_impl!(digits.rev(), radix);
+    let res = from_digits_general_impl!(digits.rev(), radix);
 
     Ok(res)
 }
 
-fn from_str_arb<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
+fn from_str_general<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
     if radix.is_pow2() {
         return from_str(s, radix.order() as u8, sign);
     }
 
     from_str_validate(s, radix)?;
 
-    let mut res = from_digits_arb_impl!(s.bytes().filter_map(get_digit_from_byte), radix);
+    let mut res = from_digits_general_impl!(s.bytes().filter_map(get_digit_from_byte), radix);
 
     if sign == Sign::NEG {
         neg_mut(&mut res);
@@ -2041,19 +2160,19 @@ fn from_str_arb<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Singl
     Ok(res)
 }
 
-fn to_digits<const L: usize, W: Word>(digits: &[Single; L], exp: u8) -> Result<Vec<W>, ToDigitsError> {
+fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: u8) -> Result<Vec<W>, ToDigitsError> {
     to_digits_validate::<W>(exp)?;
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
-    let len = (digits.len() * BITS + bits - 1) / bits;
+    let len = (words.len() * BITS + bits - 1) / bits;
 
     let mut acc = 0;
     let mut shl = 0;
     let mut idx = 0;
     let mut res = vec![W::ZERO; len + 1];
 
-    for &digit in digits {
+    for &digit in words {
         acc |= (digit as Double) << shl;
         shl += BITS;
         res[idx] = W::from_double(acc & mask);
@@ -2072,18 +2191,18 @@ fn to_digits<const L: usize, W: Word>(digits: &[Single; L], exp: u8) -> Result<V
 }
 
 fn to_digits_iter<const L: usize, W: Word>(
-    digits: &[Single; L],
+    words: &[Single; L],
     exp: u8,
 ) -> Result<DigitsIter<'_, L, W>, ToDigitsError> {
     to_digits_validate::<W>(exp)?;
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
-    let cnt = get_len_arr(digits);
+    let cnt = get_len_arr(words);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsIter {
-        words: digits,
+        words,
         bits,
         mask,
         cnt,
@@ -2095,15 +2214,15 @@ fn to_digits_iter<const L: usize, W: Word>(
     })
 }
 
-fn into_digits<const L: usize, W: Word>(mut digits: [Single; L], radix: W) -> Result<Vec<W>, IntoDigitsError> {
+fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Result<Vec<W>, IntoDigitsError> {
     if radix.is_pow2() {
-        return Ok(to_digits(&digits, radix.order() as u8)?);
+        return Ok(to_digits(&words, radix.order() as u8)?);
     }
 
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let len = (digits.len() * BITS + bits - 1) / bits;
+    let len = (words.len() * BITS + bits - 1) / bits;
 
     let mut idx = 0;
     let mut res = vec![W::ZERO; len + 1];
@@ -2112,7 +2231,7 @@ fn into_digits<const L: usize, W: Word>(mut digits: [Single; L], radix: W) -> Re
         let mut any = 0;
         let mut acc = 0;
 
-        for digit in digits.iter_mut().rev() {
+        for digit in words.iter_mut().rev() {
             any |= *digit;
             acc = (acc << BITS) | *digit as Double;
 
@@ -2135,16 +2254,16 @@ fn into_digits<const L: usize, W: Word>(mut digits: [Single; L], radix: W) -> Re
 }
 
 fn into_digits_iter<const L: usize, W: Word>(
-    digits: [Single; L],
+    words: [Single; L],
     radix: W,
-) -> Result<DigitsArbIter<L, W>, IntoDigitsError> {
+) -> Result<DigitsGeneralIter<L, W>, IntoDigitsError> {
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = get_len_arr(&digits);
+    let cnt = get_len_arr(&words);
     let len = (cnt * BITS + bits - 1) / bits;
 
-    Ok(DigitsArbIter { words: digits, radix, len })
+    Ok(DigitsGeneralIter { words, radix, len })
 }
 
 fn write_dec(mut cursor: Cursor<&mut [u8]>, word: Single, width: usize) -> std::fmt::Result {
