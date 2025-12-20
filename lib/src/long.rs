@@ -820,111 +820,111 @@ pub mod bytes {
 mod uops {
     use super::*;
 
-    pub(super) fn pos<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        *digits
+    pub(super) fn pos<const L: usize>(words: &[Single; L]) -> [Single; L] {
+        *words
     }
 
-    pub(super) fn pos_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        digits
+    pub(super) fn pos_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        words
     }
 
-    pub(super) fn neg<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        let mut digits = *digits;
+    pub(super) fn neg<const L: usize>(words: &[Single; L]) -> [Single; L] {
+        let mut words = *words;
 
-        not_mut(&mut digits);
-        inc_mut(&mut digits);
+        not_mut(&mut words);
+        inc_mut(&mut words);
 
-        digits
+        words
     }
 
-    pub(super) fn neg_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        not_mut(digits);
-        inc_mut(digits);
+    pub(super) fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        not_mut(words);
+        inc_mut(words);
 
-        digits
+        words
     }
 
-    pub(super) fn not<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        digits.iter().map(|&digit| !digit).collect_with([0; L])
+    pub(super) fn not<const L: usize>(words: &[Single; L]) -> [Single; L] {
+        words.iter().map(|&word| !word).collect_with([0; L])
     }
 
-    pub(super) fn not_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        digits.iter_mut().for_each(|digit| *digit = !*digit);
-        digits
+    pub(super) fn not_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        words.iter_mut().for_each(|word| *word = !*word);
+        words
     }
 
-    pub(super) fn inc<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        inc_impl!(*digits)
+    pub(super) fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
+        inc_impl!(*words)
     }
 
-    pub(super) fn inc_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        inc_impl!(digits)
+    pub(super) fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        inc_impl!(words)
     }
 
-    pub(super) fn dec<const L: usize>(digits: &[Single; L]) -> [Single; L] {
-        dec_impl!(*digits)
+    pub(super) fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
+        dec_impl!(*words)
     }
 
-    pub(super) fn dec_mut<const L: usize>(digits: &mut [Single; L]) -> &mut [Single; L] {
-        dec_impl!(digits)
-    }
-
-    #[allow(unused_variables)]
-    pub(super) fn shl<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shl_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
+    pub(super) fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        dec_impl!(words)
     }
 
     #[allow(unused_variables)]
-    pub(super) fn shr<const L: usize>(digits: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shr_impl!(*digits, digits, shift, default, |digits: &[Single; L]| { [default; L] })
+    pub(super) fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
+        shl_impl!(*words, words, shift, default, |words: &[Single; L]| { [default; L] })
     }
 
-    pub(super) fn shl_mut<'digits, const L: usize>(
-        digits: &'digits mut [Single; L],
+    #[allow(unused_variables)]
+    pub(super) fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
+        shr_impl!(*words, words, shift, default, |words: &[Single; L]| { [default; L] })
+    }
+
+    pub(super) fn shl_mut<'words, const L: usize>(
+        words: &'words mut [Single; L],
         shift: usize,
         default: Single,
-    ) -> &'digits mut [Single; L] {
-        shl_impl!(digits, digits, shift, default, |digits: &'digits mut [Single; L]| {
-            *digits = [default; L];
-            digits
+    ) -> &'words mut [Single; L] {
+        shl_impl!(words, words, shift, default, |words: &'words mut [Single; L]| {
+            *words = [default; L];
+            words
         })
     }
 
-    pub(super) fn shr_mut<'digits, const L: usize>(
-        digits: &'digits mut [Single; L],
+    pub(super) fn shr_mut<'words, const L: usize>(
+        words: &'words mut [Single; L],
         shift: usize,
         default: Single,
-    ) -> &'digits mut [Single; L] {
-        shr_impl!(digits, digits, shift, default, |digits: &'digits mut [Single; L]| {
-            *digits = [default; L];
-            digits
+    ) -> &'words mut [Single; L] {
+        shr_impl!(words, words, shift, default, |words: &'words mut [Single; L]| {
+            *words = [default; L];
+            words
         })
     }
 
-    pub(super) fn shl_signed<const L: usize>(digits: &[Single; L], shift: usize) -> [Single; L] {
-        shl(digits, shift, 0)
+    pub(super) fn shl_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
+        shl(words, shift, 0)
     }
 
-    pub(super) fn shr_signed<const L: usize>(digits: &[Single; L], shift: usize) -> [Single; L] {
-        shr(digits, shift, if sign(digits) != Sign::NEG { 0 } else { MAX })
+    pub(super) fn shr_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
+        shr(words, shift, if sign(words) != Sign::NEG { 0 } else { MAX })
     }
 
-    pub(super) fn shl_signed_mut<const L: usize>(digits: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        shl_mut(digits, shift, 0)
+    pub(super) fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
+        shl_mut(words, shift, 0)
     }
 
-    pub(super) fn shr_signed_mut<const L: usize>(digits: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        let default = if sign(digits) != Sign::NEG { 0 } else { MAX };
+    pub(super) fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
+        let default = if sign(words) != Sign::NEG { 0 } else { MAX };
 
-        shr_mut(digits, shift, default)
+        shr_mut(words, shift, default)
     }
 
-    pub(super) fn sign<const L: usize>(digits: &[Single; L]) -> Sign {
-        if digits == &[0; L] {
+    pub(super) fn sign<const L: usize>(words: &[Single; L]) -> Sign {
+        if words == &[0; L] {
             return Sign::ZERO;
         }
 
-        if digits[L - 1] >> (BITS - 1) == 0 {
+        if words[L - 1] >> (BITS - 1) == 0 {
             Sign::POS
         } else {
             Sign::NEG
@@ -1058,13 +1058,13 @@ pub struct DigitsArbIter<const L: usize, W: Word> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum FromArrError {
+pub enum TryFromArrError {
     #[error("Found invalid length during initializing from array")]
     InvalidLength,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum FromSliceError {
+pub enum TryFromSliceError {
     #[error("Found invalid length during initializing from slice")]
     InvalidLength,
 }
@@ -1108,28 +1108,34 @@ pub trait LongImpl<W: Word> {
     type Arg;
 }
 
-pub trait NdTryFromDigits<W: Word, Impl: LongImpl<W>>: Sized {
-    type Error;
-
-    fn nd_try_from(digits: impl AsRef<[W]>, arg: Impl::Arg) -> Result<Self, Self::Error>;
+pub trait FromDigits<W: Word, Impl: LongImpl<W>>: Sized {
+    fn from_digits(digits: impl AsRef<[W]>, arg: Impl::Arg) -> Result<Self, FromDigitsError>;
 }
 
-pub trait NdTryFromDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
-    type Error;
-
-    fn nd_try_from_iter<Words: WordsIterator<Item = W>>(digits: Words, arg: Impl::Arg) -> Result<Self, Self::Error>;
+pub trait FromDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
+    fn from_digits_iter<Words>(digits: Words, arg: Impl::Arg) -> Result<Self, FromDigitsError>
+    where
+        Words: WordsIterator<Item = W>;
 }
 
-pub trait NdTryToDigits<W: Word, Impl: LongImpl<W>>: Sized {
-    type Error;
-
-    fn nd_try_to(&self, arg: Impl::Arg) -> Result<Vec<W>, Self::Error>;
+pub trait ToDigits<W: Word, Impl: LongImpl<W>>: Sized {
+    fn to_digits(&self, arg: Impl::Arg) -> Result<Vec<W>, ToDigitsError>;
 }
 
-pub trait NdTryToDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
-    type Error;
+pub trait ToDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
+    fn to_digits_iter<Words>(&self, arg: Impl::Arg) -> Result<Words, ToDigitsError>
+    where
+        Words: WordsIterator<Item = W>;
+}
 
-    fn nd_try_to_iter<Words: WordsIterator<Item = W>>(&self, arg: Impl::Arg) -> Result<Words, Self::Error>;
+pub trait IntoDigits<W: Word, Impl: LongImpl<W>>: Sized {
+    fn into_digits(self, arg: Impl::Arg) -> Result<Vec<W>, IntoDigitsError>;
+}
+
+pub trait IntoDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
+    fn into_digits_iter<Words>(self, arg: Impl::Arg) -> Result<Words, IntoDigitsError>
+    where
+        Words: WordsIterator<Item = W>;
 }
 
 impl<W: Word> LongImpl<W> for BinaryImpl {
@@ -1207,7 +1213,7 @@ impl<const L: usize, W: Word> NdFrom<&[W]> for Bytes<L> {
 }
 
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Signed<L> {
-    type Error = FromArrError;
+    type Error = TryFromArrError;
 
     fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
         Ok(Self(try_from_arr(value, 0)?))
@@ -1215,7 +1221,7 @@ impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Signed<L> {
 }
 
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Unsigned<L> {
-    type Error = FromArrError;
+    type Error = TryFromArrError;
 
     fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
         Ok(Self(try_from_arr(value, 0)?))
@@ -1223,7 +1229,7 @@ impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Unsigned<L>
 }
 
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Bytes<L> {
-    type Error = FromArrError;
+    type Error = TryFromArrError;
 
     fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
         Ok(Self(try_from_arr(value, 0)?))
@@ -1231,7 +1237,7 @@ impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Bytes<L> {
 }
 
 impl<const L: usize, W: Word> NdTryFrom<&[W]> for Signed<L> {
-    type Error = FromSliceError;
+    type Error = TryFromSliceError;
 
     fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
         Ok(Self(try_from_slice(value)?))
@@ -1239,7 +1245,7 @@ impl<const L: usize, W: Word> NdTryFrom<&[W]> for Signed<L> {
 }
 
 impl<const L: usize, W: Word> NdTryFrom<&[W]> for Unsigned<L> {
-    type Error = FromSliceError;
+    type Error = TryFromSliceError;
 
     fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
         Ok(Self(try_from_slice(value)?))
@@ -1247,7 +1253,7 @@ impl<const L: usize, W: Word> NdTryFrom<&[W]> for Unsigned<L> {
 }
 
 impl<const L: usize, W: Word> NdTryFrom<&[W]> for Bytes<L> {
-    type Error = FromSliceError;
+    type Error = TryFromSliceError;
 
     fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
         Ok(Self(try_from_slice(value)?))
@@ -1835,19 +1841,19 @@ const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
 fn try_from_arr<const L: usize, const N: usize, W: Word>(
     arr: &[W; N],
     default: Single,
-) -> Result<[Single; L], FromArrError> {
+) -> Result<[Single; L], TryFromArrError> {
     match (N * W::BYTES).cmp(&(L * BYTES)) {
         Ordering::Less => Ok(from_arr(arr, default)),
         Ordering::Equal => Ok(from_arr(arr, default)),
-        Ordering::Greater => Err(FromArrError::InvalidLength),
+        Ordering::Greater => Err(TryFromArrError::InvalidLength),
     }
 }
 
-fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], FromSliceError> {
+fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], TryFromSliceError> {
     match (slice.len() * W::BYTES).cmp(&(L * BYTES)) {
         Ordering::Less => Ok(from_slice(slice)),
         Ordering::Equal => Ok(from_slice(slice)),
-        Ordering::Greater => Err(FromSliceError::InvalidLength),
+        Ordering::Greater => Err(TryFromSliceError::InvalidLength),
     }
 }
 
@@ -1897,10 +1903,10 @@ fn from_iter<const L: usize, W: Word, Iter: Iterator<Item = W>>(iter: Iter) -> [
     res
 }
 
-fn from_digits_validate<W: Word, Words: WordsIterator<Item = W>>(
-    mut digits: Words,
-    radix: W,
-) -> Result<(), FromDigitsError> {
+fn from_digits_validate<W: Word, Words>(mut digits: Words, radix: W) -> Result<(), FromDigitsError>
+where
+    Words: WordsIterator<Item = W>,
+{
     if radix.as_single() < 2 {
         return Err(FromDigitsError::InvalidRadix {
             radix: radix.as_single() as usize,
@@ -1965,10 +1971,10 @@ fn from_digits<const L: usize, W: Word>(digits: &[W], exp: u8) -> Result<[Single
     Ok(res)
 }
 
-fn from_digits_iter<const L: usize, W: Word, Words: WordsIterator<Item = W>>(
-    digits: Words,
-    exp: u8,
-) -> Result<[Single; L], FromDigitsError> {
+fn from_digits_iter<const L: usize, W: Word, Words>(digits: Words, exp: u8) -> Result<[Single; L], FromDigitsError>
+where
+    Words: WordsIterator<Item = W>,
+{
     if exp >= W::BITS as u8 {
         return Err(FromDigitsError::InvalidExponent { exp });
     }
@@ -2004,10 +2010,10 @@ fn from_digits_arb<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<[S
     Ok(res)
 }
 
-fn from_digits_arb_iter<const L: usize, W: Word, Words: WordsIterator<Item = W> + DoubleEndedIterator>(
-    digits: Words,
-    radix: W,
-) -> Result<[Single; L], FromDigitsError> {
+fn from_digits_arb_iter<const L: usize, W: Word, Words>(digits: Words, radix: W) -> Result<[Single; L], FromDigitsError>
+where
+    Words: WordsIterator<Item = W> + DoubleEndedIterator,
+{
     if radix.is_pow2() {
         return from_digits_iter(digits, radix.order() as u8);
     }
@@ -2240,7 +2246,7 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Re
     write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
-fn write_iter<Words: WordsIterator, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
+fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     words: Words,
     radix: Radix,
@@ -2248,7 +2254,7 @@ fn write_iter<Words: WordsIterator, F: Fn(Cursor<&mut [u8]>, Single, usize) -> s
     func: F,
 ) -> std::fmt::Result
 where
-    <Words as Iterator>::Item: Word,
+    Words: WordsIterator<Item = W>,
 {
     let sign = match sign {
         Sign::ZERO => {
