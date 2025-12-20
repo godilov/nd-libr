@@ -13,6 +13,7 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut};
 
 use crate::{
+    NdFrom, NdTryFrom,
     arch::*,
     long::{bytes::*, num::*, radix::*, uops::*},
     num::Sign,
@@ -52,7 +53,7 @@ macro_rules! from_primitive {
             #[allow(unused_comparisons)]
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
-                let res = from_arr_trunc(&bytes, if value >= 0 { 0 } else { MAX });
+                let res = from_arr(&bytes, if value >= 0 { 0 } else { MAX });
 
                 Self(res)
             }
@@ -62,7 +63,7 @@ macro_rules! from_primitive {
         impl<const L: usize> From<$primitive> for Unsigned<L> {
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
-                let res = from_arr_trunc(&bytes, 0);
+                let res = from_arr(&bytes, 0);
 
                 Self(res)
             }
@@ -72,7 +73,7 @@ macro_rules! from_primitive {
         impl<const L: usize> From<$primitive> for Bytes<L> {
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
-                let res = from_arr_trunc(&bytes, 0);
+                let res = from_arr(&bytes, 0);
 
                 Self(res)
             }
@@ -1100,9 +1101,44 @@ pub enum IntoDigitsError {
     InvalidRadix { radix: usize },
 }
 
-from_primitive!(@signed [i8, i16, i32, i64, i128, isize]);
-from_primitive!(@unsigned [u8, u16, u32, u64, u128, usize]);
-from_primitive!(@bytes [u8, u16, u32, u64, u128, usize]);
+pub struct BinaryImpl {}
+pub struct GeneralImpl {}
+
+pub trait LongImpl<W: Word> {
+    type Arg;
+}
+
+pub trait NdTryFromDigits<W: Word, Impl: LongImpl<W>>: Sized {
+    type Error;
+
+    fn nd_try_from(digits: impl AsRef<[W]>, arg: Impl::Arg) -> Result<Self, Self::Error>;
+}
+
+pub trait NdTryFromDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
+    type Error;
+
+    fn nd_try_from_iter<Words: WordsIterator<Item = W>>(digits: Words, arg: Impl::Arg) -> Result<Self, Self::Error>;
+}
+
+pub trait NdTryToDigits<W: Word, Impl: LongImpl<W>>: Sized {
+    type Error;
+
+    fn nd_try_to(&self, arg: Impl::Arg) -> Result<Vec<W>, Self::Error>;
+}
+
+pub trait NdTryToDigitsIter<W: Word, Impl: LongImpl<W>>: Sized {
+    type Error;
+
+    fn nd_try_to_iter<Words: WordsIterator<Item = W>>(&self, arg: Impl::Arg) -> Result<Words, Self::Error>;
+}
+
+impl<W: Word> LongImpl<W> for BinaryImpl {
+    type Arg = u8;
+}
+
+impl<W: Word> LongImpl<W> for GeneralImpl {
+    type Arg = W;
+}
 
 impl From<ToDigitsError> for IntoDigitsError {
     fn from(value: ToDigitsError) -> Self {
@@ -1127,6 +1163,94 @@ impl<const L: usize> Default for Unsigned<L> {
 impl<const L: usize> Default for Bytes<L> {
     fn default() -> Self {
         Self([0; L])
+    }
+}
+
+from_primitive!(@signed [i8, i16, i32, i64, i128, isize]);
+from_primitive!(@unsigned [u8, u16, u32, u64, u128, usize]);
+from_primitive!(@bytes [u8, u16, u32, u64, u128, usize]);
+
+impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Signed<L> {
+    fn nd_from(value: &[W; N]) -> Self {
+        Self(from_arr(value, 0))
+    }
+}
+
+impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Unsigned<L> {
+    fn nd_from(value: &[W; N]) -> Self {
+        Self(from_arr(value, 0))
+    }
+}
+
+impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Bytes<L> {
+    fn nd_from(value: &[W; N]) -> Self {
+        Self(from_arr(value, 0))
+    }
+}
+
+impl<const L: usize, W: Word> NdFrom<&[W]> for Signed<L> {
+    fn nd_from(value: &[W]) -> Self {
+        Self(from_slice(value))
+    }
+}
+
+impl<const L: usize, W: Word> NdFrom<&[W]> for Unsigned<L> {
+    fn nd_from(value: &[W]) -> Self {
+        Self(from_slice(value))
+    }
+}
+
+impl<const L: usize, W: Word> NdFrom<&[W]> for Bytes<L> {
+    fn nd_from(value: &[W]) -> Self {
+        Self(from_slice(value))
+    }
+}
+
+impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Signed<L> {
+    type Error = FromArrError;
+
+    fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
+        Ok(Self(try_from_arr(value, 0)?))
+    }
+}
+
+impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Unsigned<L> {
+    type Error = FromArrError;
+
+    fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
+        Ok(Self(try_from_arr(value, 0)?))
+    }
+}
+
+impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Bytes<L> {
+    type Error = FromArrError;
+
+    fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
+        Ok(Self(try_from_arr(value, 0)?))
+    }
+}
+
+impl<const L: usize, W: Word> NdTryFrom<&[W]> for Signed<L> {
+    type Error = FromSliceError;
+
+    fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
+        Ok(Self(try_from_slice(value)?))
+    }
+}
+
+impl<const L: usize, W: Word> NdTryFrom<&[W]> for Unsigned<L> {
+    type Error = FromSliceError;
+
+    fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
+        Ok(Self(try_from_slice(value)?))
+    }
+}
+
+impl<const L: usize, W: Word> NdTryFrom<&[W]> for Bytes<L> {
+    type Error = FromSliceError;
+
+    fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
+        Ok(Self(try_from_slice(value)?))
     }
 }
 
@@ -1437,22 +1561,6 @@ impl<const L: usize> Signed<L> {
         Self(from_bytes(bytes))
     }
 
-    pub fn from_arr<const N: usize, W: Word>(arr: &[W; N]) -> Result<Self, FromArrError> {
-        Ok(Self(from_arr(arr, 0)?))
-    }
-
-    pub fn from_slice<W: Word>(slice: &[W]) -> Result<Self, FromSliceError> {
-        Ok(Self(from_slice(slice)?))
-    }
-
-    pub fn from_arr_trunc<const N: usize, W: Word>(arr: &[W; N]) -> Self {
-        Self(from_arr_trunc(arr, 0))
-    }
-
-    pub fn from_slice_trunc<W: Word>(arr: &[W]) -> Self {
-        Self(from_slice_trunc(arr))
-    }
-
     pub fn from_digits<W: Word>(digits: impl AsRef<[W]>, exp: u8) -> Result<Self, FromDigitsError> {
         from_digits(digits.as_ref(), exp).map(Self)
     }
@@ -1550,22 +1658,6 @@ impl<const L: usize> Unsigned<L> {
         Self(from_bytes(bytes))
     }
 
-    pub fn from_arr<const N: usize, W: Word>(arr: &[W; N]) -> Result<Self, FromArrError> {
-        Ok(Self(from_arr(arr, 0)?))
-    }
-
-    pub fn from_slice<W: Word>(slice: &[W]) -> Result<Self, FromSliceError> {
-        Ok(Self(from_slice(slice)?))
-    }
-
-    pub fn from_arr_trunc<const N: usize, W: Word>(arr: &[W; N]) -> Self {
-        Self(from_arr_trunc(arr, 0))
-    }
-
-    pub fn from_slice_trunc<W: Word>(arr: &[W]) -> Self {
-        Self(from_slice_trunc(arr))
-    }
-
     pub fn from_digits<W: Word>(digits: impl AsRef<[W]>, exp: u8) -> Result<Self, FromDigitsError> {
         from_digits(digits.as_ref(), exp).map(Self)
     }
@@ -1629,22 +1721,6 @@ impl<const L: usize> Bytes<L> {
 
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
-    }
-
-    pub fn from_arr<const N: usize, W: Word>(arr: &[W; N]) -> Result<Self, FromArrError> {
-        Ok(Self(from_arr(arr, 0)?))
-    }
-
-    pub fn from_slice<W: Word>(slice: &[W]) -> Result<Self, FromSliceError> {
-        Ok(Self(from_slice(slice)?))
-    }
-
-    pub fn from_arr_trunc<const N: usize, W: Word>(arr: &[W; N]) -> Self {
-        Self(from_arr_trunc(arr, 0))
-    }
-
-    pub fn from_slice_trunc<W: Word>(arr: &[W]) -> Self {
-        Self(from_slice_trunc(arr))
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -1756,26 +1832,26 @@ const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     res
 }
 
-fn from_arr<const L: usize, const N: usize, W: Word>(
+fn try_from_arr<const L: usize, const N: usize, W: Word>(
     arr: &[W; N],
     default: Single,
 ) -> Result<[Single; L], FromArrError> {
     match (N * W::BYTES).cmp(&(L * BYTES)) {
-        Ordering::Less => Ok(from_arr_trunc(arr, default)),
-        Ordering::Equal => Ok(from_arr_trunc(arr, default)),
+        Ordering::Less => Ok(from_arr(arr, default)),
+        Ordering::Equal => Ok(from_arr(arr, default)),
         Ordering::Greater => Err(FromArrError::InvalidLength),
     }
 }
 
-fn from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], FromSliceError> {
+fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], FromSliceError> {
     match (slice.len() * W::BYTES).cmp(&(L * BYTES)) {
-        Ordering::Less => Ok(from_slice_trunc(slice)),
-        Ordering::Equal => Ok(from_slice_trunc(slice)),
+        Ordering::Less => Ok(from_slice(slice)),
+        Ordering::Equal => Ok(from_slice(slice)),
         Ordering::Greater => Err(FromSliceError::InvalidLength),
     }
 }
 
-fn from_arr_trunc<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
+fn from_arr<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
     let len = N.min(L * BYTES / W::BYTES);
 
     let mut res = [default; L];
@@ -1790,7 +1866,7 @@ fn from_arr_trunc<const L: usize, const N: usize, W: Word>(arr: &[W; N], default
     res
 }
 
-fn from_slice_trunc<const L: usize, W: Word>(slice: &[W]) -> [Single; L] {
+fn from_slice<const L: usize, W: Word>(slice: &[W]) -> [Single; L] {
     let len = slice.len().min(L * BYTES / W::BYTES);
 
     let mut res = [0; L];
@@ -2254,7 +2330,7 @@ fn mul_single<const L: usize>(a: &[Single; L], b: Single) -> [Single; L] {
 fn div_single<const L: usize>(a: &[Single; L], b: Single) -> ([Single; L], [Single; L]) {
     let (div, rem) = div_single_impl!(*a, b);
 
-    (div, from_arr_trunc(&rem.to_le_bytes(), 0))
+    (div, from_arr(&rem.to_le_bytes(), 0))
 }
 
 fn bit_single<const L: usize, F>(a: &[Single; L], b: Single, default: Single, f: F) -> [Single; L]
@@ -2342,7 +2418,7 @@ fn div_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
 fn rem_single_mut<const L: usize>(a: &mut [Single; L], b: Single) {
     let (_, rem) = div_single_impl!(*a, b);
 
-    *a = from_arr_trunc(&rem.to_le_bytes(), 0);
+    *a = from_arr(&rem.to_le_bytes(), 0);
 }
 
 fn bit_single_mut<const L: usize, F>(a: &mut [Single; L], b: Single, default: Single, f: F)
@@ -2534,8 +2610,8 @@ mod tests {
         for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
 
-            assert_eq!(S64::from_arr(&bytes)?, S64 { 0: pos(&bytes) });
-            assert_eq!(U64::from_arr(&bytes)?, U64 { 0: pos(&bytes) });
+            assert_eq!(S64::nd_try_from(&bytes)?, S64 { 0: pos(&bytes) });
+            assert_eq!(U64::nd_try_from(&bytes)?, U64 { 0: pos(&bytes) });
         }
 
         Ok(())
@@ -2545,15 +2621,15 @@ mod tests {
     fn from_slice() -> Result<()> {
         let empty = &[] as &[u8];
 
-        assert_eq!(S64::from_slice(empty)?, S64::default());
-        assert_eq!(U64::from_slice(empty)?, U64::default());
+        assert_eq!(S64::nd_try_from(empty)?, S64::default());
+        assert_eq!(U64::nd_try_from(empty)?, U64::default());
 
         for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
             let slice = bytes.as_slice();
 
-            assert_eq!(S64::from_slice(slice)?, S64 { 0: pos(&bytes) });
-            assert_eq!(U64::from_slice(slice)?, U64 { 0: pos(&bytes) });
+            assert_eq!(S64::nd_try_from(slice)?, S64 { 0: pos(&bytes) });
+            assert_eq!(U64::nd_try_from(slice)?, U64 { 0: pos(&bytes) });
         }
 
         Ok(())
