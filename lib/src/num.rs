@@ -120,7 +120,10 @@ macro_rules! sign_from {
     (@unsigned $primitive:ty) => {
         impl From<$primitive> for Sign {
             fn from(value: $primitive) -> Self {
-                if value == 0 { Sign::ZERO } else { Sign::POS }
+                match value {
+                    0 => Sign::ZERO,
+                    _ => Sign::POS,
+                }
             }
         }
     };

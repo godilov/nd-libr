@@ -906,9 +906,13 @@ mod uops {
     }
 
     pub(super) fn shr_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
-        let idx = (sign(words, Sign::POS, Sign::NEG) as i8 + 1) as usize;
+        let default = match sign(words, Sign::POS, Sign::NEG) {
+            Sign::ZERO => 0,
+            Sign::NEG => MAX,
+            Sign::POS => 0,
+        };
 
-        shr(words, shift, [MAX, 0, 0][idx])
+        shr(words, shift, default)
     }
 
     pub(super) fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
@@ -916,9 +920,13 @@ mod uops {
     }
 
     pub(super) fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        let idx = (sign(words, Sign::POS, Sign::NEG) as i8 + 1) as usize;
+        let default = match sign(words, Sign::POS, Sign::NEG) {
+            Sign::ZERO => 0,
+            Sign::NEG => MAX,
+            Sign::POS => 0,
+        };
 
-        shr_mut(words, shift, [MAX, 0, 0][idx])
+        shr_mut(words, shift, default)
     }
 
     pub(super) fn sign<const L: usize>(words: &[Single; L], pos: Sign, neg: Sign) -> Sign {
@@ -926,7 +934,10 @@ mod uops {
             return Sign::ZERO;
         }
 
-        [pos, neg][(words[L - 1] >> (BITS - 1)) as usize]
+        match words[L - 1] >> (BITS - 1) {
+            0 => pos,
+            _ => neg,
+        }
     }
 }
 
