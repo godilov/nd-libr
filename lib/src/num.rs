@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt::Display};
+use std::{cmp::Ordering, fmt::Display, marker::PhantomData};
 
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -11,12 +11,16 @@ macro_rules! num_impl {
     };
     ($trait:ty, $primitive:ty $(,)?) => {
         impl NumBuilder for $primitive {
-            fn bitor_offset(&mut self, mask: u64, offset: usize) {
+            fn bitor_offset(&mut self, mask: u64, offset: usize) -> u8 {
                 *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
+
+                (<$primitive>::BITS as usize).saturating_sub(offset).min(64) as u8
             }
 
-            fn bitand_offset(&mut self, mask: u64, offset: usize) {
+            fn bitand_offset(&mut self, mask: u64, offset: usize) -> u8 {
                 *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
+
+                (<$primitive>::BITS as usize).saturating_sub(offset).min(64) as u8
             }
         }
 
@@ -55,7 +59,7 @@ macro_rules! num_impl {
 }
 
 macro_rules! prime_impl {
-    ($([$primitive:ty, $count:expr]),+) => {
+    ($(($primitive:ty, $count:expr)),+) => {
         $(prime_impl!($primitive, $count,);)+
     };
     ($primitive:ty, $count:expr $(,)?) => {
@@ -320,6 +324,14 @@ pub mod prime {
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
+pub struct Width<N: Num + NumBuilder + Static, const BITS: usize>(pub N)
+where
+    for<'s> &'s N: Ops;
+
+pub struct Modular<N: Num + NumBuilder + Static + Unsigned, M: Modulus<N>>(pub N, PhantomData<M>)
+where
+    for<'s> &'s N: Ops;
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
     #[default]
@@ -332,9 +344,9 @@ pub trait NumBuilder: Num
 where
     for<'s> &'s Self: Ops,
 {
-    fn bitor_offset(&mut self, mask: u64, offset: usize);
+    fn bitor_offset(&mut self, mask: u64, offset: usize) -> u8;
 
-    fn bitand_offset(&mut self, mask: u64, offset: usize);
+    fn bitand_offset(&mut self, mask: u64, offset: usize) -> u8;
 
     fn with_bitor_offset(mut self, mask: u64, offset: usize) -> Self {
         self.bitor_offset(mask, offset);
@@ -565,10 +577,21 @@ where
     const MAX: Self;
 }
 
+pub trait Modulus<N: Num + NumBuilder + Static + Unsigned>
+where
+    for<'s> &'s N: Ops,
+{
+    const MOD: N;
+}
+
 num_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
 num_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
 
-prime_impl!([u8, 1], [u16, 2], [u32, 5], [u64, 12], [u128, 20], [usize, 12]);
+#[cfg(target_pointer_width = "64")]
+prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 12));
+
+#[cfg(target_pointer_width = "32")]
+prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
