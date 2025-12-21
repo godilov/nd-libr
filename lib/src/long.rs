@@ -1051,7 +1051,7 @@ pub struct DigitsIter<'words, const L: usize, W: Word> {
 }
 
 #[derive(Debug, Clone)]
-pub struct DigitsGenIter<const L: usize, W: Word> {
+pub struct DigitsRadixIter<const L: usize, W: Word> {
     words: [Single; L],
     radix: W,
     len: usize,
@@ -1766,7 +1766,7 @@ impl<const L: usize> IntoDigits for Unsigned<L> {
 }
 
 impl<const L: usize> IntoDigitsIter for Signed<L> {
-    type Iter<W: Word> = DigitsGenIter<L, W>;
+    type Iter<W: Word> = DigitsRadixIter<L, W>;
 
     fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError> {
         into_digits_iter(self.0, arg.radix)
@@ -1774,7 +1774,7 @@ impl<const L: usize> IntoDigitsIter for Signed<L> {
 }
 
 impl<const L: usize> IntoDigitsIter for Unsigned<L> {
-    type Iter<W: Word> = DigitsGenIter<L, W>;
+    type Iter<W: Word> = DigitsRadixIter<L, W>;
 
     fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError> {
         into_digits_iter(self.0, arg.radix)
@@ -1818,8 +1818,8 @@ impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
     }
 }
 
-impl<const L: usize, W: Word> ExactSizeIterator for DigitsGenIter<L, W> {}
-impl<const L: usize, W: Word> Iterator for DigitsGenIter<L, W> {
+impl<const L: usize, W: Word> ExactSizeIterator for DigitsRadixIter<L, W> {}
+impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     type Item = W;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -2183,14 +2183,14 @@ fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Res
 fn into_digits_iter<const L: usize, W: Word>(
     words: [Single; L],
     radix: W,
-) -> Result<DigitsGenIter<L, W>, IntoDigitsError> {
+) -> Result<DigitsRadixIter<L, W>, IntoDigitsError> {
     into_digits_validate(radix)?;
 
     let bits = radix.order();
     let cnt = get_len_arr(&words);
     let len = (cnt * BITS + bits - 1) / bits;
 
-    Ok(DigitsGenIter { words, radix, len })
+    Ok(DigitsRadixIter { words, radix, len })
 }
 
 fn write_dec(mut cursor: Cursor<&mut [u8]>, word: Single, width: usize) -> std::fmt::Result {
