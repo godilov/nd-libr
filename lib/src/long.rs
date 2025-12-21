@@ -1404,6 +1404,12 @@ impl<const L: usize> Display for Unsigned<L> {
     }
 }
 
+impl<const L: usize> Display for Bytes<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
+    }
+}
+
 impl<const L: usize> Binary for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
@@ -1434,6 +1440,17 @@ impl<const L: usize> Octal for Signed<L> {
 }
 
 impl<const L: usize> Octal for Unsigned<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let iter = match self.to_digits_iter::<Single>(ExpImpl { exp: Oct::EXP }) {
+            Ok(val) => val,
+            Err(_) => unreachable!(),
+        };
+
+        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
+    }
+}
+
+impl<const L: usize> Octal for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self.to_digits_iter::<Single>(ExpImpl { exp: Oct::EXP }) {
             Ok(val) => val,
@@ -1677,6 +1694,12 @@ impl<const L: usize, W: Word> FromDigits<W, ExpImpl> for Unsigned<L> {
     }
 }
 
+impl<const L: usize, W: Word> FromDigits<W, ExpImpl> for Bytes<L> {
+    fn from_digits(digits: impl AsRef<[W]>, arg: ExpImpl) -> Result<Self, FromDigitsError> {
+        from_digits(digits.as_ref(), arg.exp).map(Self)
+    }
+}
+
 impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl> for Signed<L> {
     fn from_digits_iter<Words>(digits: Words, arg: ExpImpl) -> Result<Self, FromDigitsError>
     where
@@ -1687,6 +1710,15 @@ impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl> for Signed<L> {
 }
 
 impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl> for Unsigned<L> {
+    fn from_digits_iter<Words>(digits: Words, arg: ExpImpl) -> Result<Self, FromDigitsError>
+    where
+        Words: WordsIterator<Item = W>,
+    {
+        from_digits_iter(digits, arg.exp).map(Self)
+    }
+}
+
+impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl> for Bytes<L> {
     fn from_digits_iter<Words>(digits: Words, arg: ExpImpl) -> Result<Self, FromDigitsError>
     where
         Words: WordsIterator<Item = W>,
@@ -1737,6 +1769,12 @@ impl<'words, const L: usize> ToDigits<'words> for Unsigned<L> {
     }
 }
 
+impl<'words, const L: usize> ToDigits<'words> for Bytes<L> {
+    fn to_digits<W: Word>(&'words self, arg: ExpImpl) -> Result<Vec<W>, ToDigitsError> {
+        to_digits(&self.0, arg.exp)
+    }
+}
+
 impl<'words, const L: usize> ToDigitsIter<'words> for Signed<L> {
     type Iter<W: Word> = DigitsIter<'words, L, W>;
 
@@ -1746,6 +1784,14 @@ impl<'words, const L: usize> ToDigitsIter<'words> for Signed<L> {
 }
 
 impl<'words, const L: usize> ToDigitsIter<'words> for Unsigned<L> {
+    type Iter<W: Word> = DigitsIter<'words, L, W>;
+
+    fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl) -> Result<Self::Iter<W>, ToDigitsError> {
+        to_digits_iter(&self.0, arg.exp)
+    }
+}
+
+impl<'words, const L: usize> ToDigitsIter<'words> for Bytes<L> {
     type Iter<W: Word> = DigitsIter<'words, L, W>;
 
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl) -> Result<Self::Iter<W>, ToDigitsError> {
