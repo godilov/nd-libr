@@ -231,8 +231,8 @@ macro_rules! ops_primitive_native_impl {
             + Signed::<L>(add_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
             - Signed::<L>(sub_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
             * Signed::<L>(mul_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
-            / Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).with_sign(a.sign() * Sign::from(b)),
-            % Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).with_sign(a.sign()),
+            / Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).signed(a.sign() * Sign::from(b)),
+            % Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).signed(a.sign()),
             | Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
             & Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
             ^ Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
@@ -241,8 +241,8 @@ macro_rules! ops_primitive_native_impl {
             += add_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
             -= sub_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
             *= mul_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
-            /= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).with_sign(a.sign() * Sign::from(b)); },
-            %= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).with_sign(a.sign()); },
+            /= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).0).signed(a.sign() * Sign::from(b)); },
+            %= { *a = Signed::<L>(div_single(&a.abs().0, b.unsigned_abs() as Single).1).signed(a.sign()); },
             |= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop),
             &= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop),
             ^= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
@@ -296,8 +296,8 @@ macro_rules! ops_primitive_impl {
             + Signed::<L>(add_long(&a.0, &Signed::<L>::from(b).0)),
             - Signed::<L>(sub_long(&a.0, &Signed::<L>::from(b).0)),
             * Signed::<L>(mul_long(&a.0, &Signed::<L>::from(b).0)),
-            / Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).0).with_sign(a.sign() * Sign::from(b)),
-            % Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).1).with_sign(a.sign()),
+            / Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).0).signed(a.sign() * Sign::from(b)),
+            % Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).1).signed(a.sign()),
             | Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop)),
             & Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop)),
             ^ Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop)));
@@ -306,8 +306,8 @@ macro_rules! ops_primitive_impl {
             += add_long_mut(&mut a.0, &Signed::<L>::from(b).0),
             -= sub_long_mut(&mut a.0, &Signed::<L>::from(b).0),
             *= mul_long_mut(&mut a.0, &Signed::<L>::from(b).0),
-            /= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).0).with_sign(a.sign() * Sign::from(b)); },
-            %= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).1).with_sign(a.sign()); },
+            /= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).0).signed(a.sign() * Sign::from(b)); },
+            %= { *a = Signed::<L>(div_long(&a.abs().0, &Signed::<L>::from(b.abs()).0).1).signed(a.sign()); },
             |= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop),
             &= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop),
             ^= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop));
@@ -906,7 +906,9 @@ mod uops {
     }
 
     pub(super) fn shr_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
-        shr(words, shift, if sign(words) != Sign::NEG { 0 } else { MAX })
+        let idx = (sign(words, Sign::POS, Sign::NEG) as i8 + 1) as usize;
+
+        shr(words, shift, [MAX, 0, 0][idx])
     }
 
     pub(super) fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
@@ -914,21 +916,17 @@ mod uops {
     }
 
     pub(super) fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
-        let default = if sign(words) != Sign::NEG { 0 } else { MAX };
+        let idx = (sign(words, Sign::POS, Sign::NEG) as i8 + 1) as usize;
 
-        shr_mut(words, shift, default)
+        shr_mut(words, shift, [MAX, 0, 0][idx])
     }
 
-    pub(super) fn sign<const L: usize>(words: &[Single; L]) -> Sign {
+    pub(super) fn sign<const L: usize>(words: &[Single; L], pos: Sign, neg: Sign) -> Sign {
         if words == &[0; L] {
             return Sign::ZERO;
         }
 
-        if words[L - 1] >> (BITS - 1) == 0 {
-            Sign::POS
-        } else {
-            Sign::NEG
-        }
+        [pos, neg][(words[L - 1] >> (BITS - 1)) as usize]
     }
 }
 
@@ -1382,14 +1380,14 @@ impl<const L: usize> Ord for Unsigned<L> {
 impl<const L: usize> Display for Signed<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self
-            .with_sign(Sign::POS)
+            .signed(Sign::POS)
             .into_digits_iter(RadixImpl { radix: Dec::RADIX as Single })
         {
             Ok(val) => val,
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Dec.into(), get_sign(&self.0, self.sign()), write_dec)
+        write_iter(f, iter, Dec.into(), self.sign(), write_dec)
     }
 }
 
@@ -1400,13 +1398,13 @@ impl<const L: usize> Display for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Dec.into(), get_sign(&self.0, self.sign()), write_dec)
+        write_iter(f, iter, Dec.into(), self.sign(), write_dec)
     }
 }
 
 impl<const L: usize> Display for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, Hex.into(), Sign::POS, write_uhex)
     }
 }
 
@@ -1424,7 +1422,7 @@ impl<const L: usize> Binary for Unsigned<L> {
 
 impl<const L: usize> Binary for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
+        write(f, &self.0, Bin.into(), Sign::POS, write_bin)
     }
 }
 
@@ -1457,7 +1455,7 @@ impl<const L: usize> Octal for Bytes<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
+        write_iter(f, iter, Oct.into(), Sign::POS, write_oct)
     }
 }
 
@@ -1475,7 +1473,7 @@ impl<const L: usize> LowerHex for Unsigned<L> {
 
 impl<const L: usize> LowerHex for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, &self.0, Hex.into(), Sign::POS, write_lhex)
     }
 }
 
@@ -1493,9 +1491,27 @@ impl<const L: usize> UpperHex for Unsigned<L> {
 
 impl<const L: usize> UpperHex for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, Hex.into(), Sign::POS, write_uhex)
     }
 }
+
+ops_impl!(@un <const L: usize> |a: &Signed<L>| -> Signed::<L>,
+    - Signed::<L>(neg(&a.0)),
+    ! Signed::<L>(not(&a.0)),
+);
+
+ops_impl!(@un <const L: usize> |a: &Unsigned<L>| -> Unsigned::<L>,
+    ! Unsigned::<L>(not(&a.0)),
+);
+
+ops_impl!(@un <const L: usize> |mut a: Signed<L>| -> Signed::<L>,
+    - { neg_mut(&mut a.0); a },
+    ! { not_mut(&mut a.0); a },
+);
+
+ops_impl!(@un <const L: usize> |mut a: Unsigned<L>| -> Unsigned::<L>,
+    ! { not_mut(&mut a.0); a },
+);
 
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign, * Sign::from((a as i8) * (b as i8)));
 
@@ -1503,8 +1519,8 @@ ops_impl!(@bin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<L>,
     + Signed::<L>(add_long(&a.0, &b.0)),
     - Signed::<L>(sub_long(&a.0, &b.0)),
     * Signed::<L>(mul_long(&a.0, &b.0)),
-    / Signed::<L>(div_long(&a.abs().0, &b.abs().0).0).with_sign(a.sign() * b.sign()),
-    % Signed::<L>(div_long(&a.abs().0, &b.abs().0).1).with_sign(a.sign()),
+    / Signed::<L>(div_long(&a.abs().0, &b.abs().0).0).signed(a.sign() * b.sign()),
+    % Signed::<L>(div_long(&a.abs().0, &b.abs().0).1).signed(a.sign()),
     | Signed::<L>(bit_long(&a.0, &b.0, |aop, bop| aop | bop)),
     & Signed::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Signed::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
@@ -1528,8 +1544,8 @@ ops_impl!(@mut <const L: usize> |a: mut Signed<L>, *b: &Signed<L>|,
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
     *= mul_long_mut(&mut a.0, &b.0),
-    /= { *a = Signed::<L>(div_long(&a.abs().0, &b.abs().0).0).with_sign(a.sign() * b.sign()); },
-    %= { *a = Signed::<L>(div_long(&a.abs().0, &b.abs().0).1).with_sign(a.sign()); },
+    /= { *a = Signed::<L>(div_long(&a.abs().0, &b.abs().0).0).signed(a.sign() * b.sign()); },
+    %= { *a = Signed::<L>(div_long(&a.abs().0, &b.abs().0).1).signed(a.sign()); },
     |= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop | bop),
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
@@ -1596,39 +1612,29 @@ impl<const L: usize> Signed<L> {
     }
 
     pub fn sign(&self) -> Sign {
-        sign(&self.0)
+        sign(&self.0, Sign::POS, Sign::NEG)
     }
 
-    pub fn abs(&self) -> Unsigned<L> {
+    pub fn abs(&self) -> Signed<L> {
         match self.sign() {
-            Sign::ZERO => Unsigned::<L>(self.0),
-            Sign::NEG => Unsigned::<L>(neg(&self.0)),
-            Sign::POS => Unsigned::<L>(self.0),
+            Sign::ZERO => Signed::<L>(self.0),
+            Sign::NEG => Signed::<L>(neg(&self.0)),
+            Sign::POS => Signed::<L>(self.0),
         }
     }
 
-    pub fn with_sign(mut self, sign: Sign) -> Self {
-        let s = self.sign();
-
-        if s == Sign::ZERO {
-            return self;
-        }
-
-        if sign == Sign::ZERO {
-            return Self::default();
-        }
-
-        if sign != s {
-            neg_mut(&mut self.0);
-        }
+    pub fn signed(mut self, sign: Sign) -> Self {
+        match self.sign() * sign {
+            Sign::ZERO => return Self::default(),
+            Sign::NEG => neg_mut(&mut self.0),
+            Sign::POS => pos_mut(&mut self.0),
+        };
 
         self
     }
 
-    pub fn with_neg(mut self) -> Self {
-        neg_mut(&mut self.0);
-
-        self
+    pub fn unsigned(self) -> Unsigned<L> {
+        Unsigned::<L>(self.0)
     }
 }
 
@@ -1655,7 +1661,21 @@ impl<const L: usize> Unsigned<L> {
     }
 
     pub fn sign(&self) -> Sign {
-        get_sign(&self.0, Sign::POS)
+        sign(&self.0, Sign::POS, Sign::POS)
+    }
+
+    pub fn signed(mut self, sign: Sign) -> Signed<L> {
+        match self.sign() * sign {
+            Sign::ZERO => return Signed::<L>::default(),
+            Sign::NEG => neg_mut(&mut self.0),
+            Sign::POS => pos_mut(&mut self.0),
+        };
+
+        Signed::<L>(self.0)
+    }
+
+    pub fn unsigned(self) -> Self {
+        Self(self.0)
     }
 }
 
