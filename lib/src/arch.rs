@@ -12,7 +12,7 @@ macro_rules! aligned_display_impl {
     ([$($display:ident),+ $(,)?]) => {
         $(aligned_display_impl!($display);)+
     };
-    ($display:ident) => {
+    ($display:ident $(,)?) => {
         impl<T: $display> $display for Aligned<T> {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 self.0.fmt(f)
@@ -25,7 +25,7 @@ macro_rules! aligned_ops_impl {
     ([$($op:ident => $fn:ident),+ $(,)?]) => {
         $(aligned_ops_impl!($op => $fn);)+
     };
-    ($op:ident => $fn:ident) => {
+    ($op:ident => $fn:ident $(,)?) => {
         impl<U, V: $op<U, Output = V>> $op<U> for Aligned<V> {
             type Output = Aligned<V>;
 
@@ -40,7 +40,7 @@ macro_rules! aligned_ops_mut_impl {
     ([$($op:ident => $fn:ident),+ $(,)?]) => {
         $(aligned_ops_mut_impl!($op => $fn);)+
     };
-    ($op:ident => $fn:ident) => {
+    ($op:ident => $fn:ident $(,)?) => {
         impl<U, V: $op<U>> $op<U> for Aligned<V> {
             fn $fn(&mut self, rhs: U) {
                 self.0.$fn(rhs);
@@ -50,7 +50,7 @@ macro_rules! aligned_ops_mut_impl {
 }
 
 macro_rules! word_def {
-    (($single:ty, $double:ty), { $($body:tt)* }) => {
+    (($single:ty, $double:ty), { $($body:tt)* } $(,)?) => {
         pub type Single = $single;
         pub type Double = $double;
 

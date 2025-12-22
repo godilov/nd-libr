@@ -48,7 +48,7 @@ macro_rules! from_primitive {
     (@bytes [$($primitive:ty),+ $(,)?]) => {
         $(from_primitive!(@bytes $primitive);)+
     };
-    (@signed $primitive:ty) => {
+    (@signed $primitive:ty $(,)?) => {
         impl<const L: usize> From<$primitive> for Signed<L> {
             #[allow(unused_comparisons)]
             fn from(value: $primitive) -> Self {
@@ -59,7 +59,7 @@ macro_rules! from_primitive {
             }
         }
     };
-    (@unsigned $primitive:ty) => {
+    (@unsigned $primitive:ty $(,)?) => {
         impl<const L: usize> From<$primitive> for Unsigned<L> {
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
@@ -69,7 +69,7 @@ macro_rules! from_primitive {
             }
         }
     };
-    (@bytes $primitive:ty) => {
+    (@bytes $primitive:ty $(,)?) => {
         impl<const L: usize> From<$primitive> for Bytes<L> {
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
@@ -91,7 +91,7 @@ macro_rules! from_primitive_const {
     (@bytes [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
         $(from_primitive_const!(@unsigned $fn, $primitive);)+
     };
-    (@signed $fn:ident, $primitive:ty) => {
+    (@signed $fn:ident, $primitive:ty $(,)?) => {
         pub const fn $fn(val: $primitive) -> Self {
             let default = if val >= 0 { 0 } else { MAX };
 
@@ -108,7 +108,7 @@ macro_rules! from_primitive_const {
             Self(res)
         }
     };
-    (@unsigned $fn:ident, $primitive:ty) => {
+    (@unsigned $fn:ident, $primitive:ty $(,)?) => {
         pub const fn $fn(mut val: $primitive) -> Self {
             let mut idx = 0;
             let mut res = [0; L];
@@ -122,7 +122,7 @@ macro_rules! from_primitive_const {
             Self(res)
         }
     };
-    (@bytes $fn:ident, $primitive:ty) => {
+    (@bytes $fn:ident, $primitive:ty $(,)?) => {
         pub const fn $fn(mut val: $primitive) -> Self {
             let mut idx = 0;
             let mut res = [0; L];
@@ -217,16 +217,16 @@ macro_rules! from_str_impl {
 }
 
 macro_rules! ops_primitive_native_impl {
-    (@signed [$($primitive:ty $(,)?),+]) => {
+    (@signed [$($primitive:ty),+ $(,)?]) => {
         $(ops_primitive_native_impl!(@signed $primitive);)+
     };
-    (@unsigned [$($primitive:ty $(,)?),+]) => {
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
         $(ops_primitive_native_impl!(@unsigned $primitive);)+
     };
-    (@bytes [$($primitive:ty $(,)?),+]) => {
+    (@bytes [$($primitive:ty),+ $(,)?]) => {
         $(ops_primitive_native_impl!(@bytes $primitive);)+
     };
-    (@signed $primitive:ty) => {
+    (@signed $primitive:ty $(,)?) => {
         ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: $primitive| -> Signed::<L>,
             + Signed::<L>(add_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
             - Signed::<L>(sub_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
@@ -247,7 +247,7 @@ macro_rules! ops_primitive_native_impl {
             &= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop),
             ^= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
     };
-    (@unsigned $primitive:ty) => {
+    (@unsigned $primitive:ty $(,)?) => {
         ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
             + Unsigned::<L>(add_single(&a.0, b as Single)),
             - Unsigned::<L>(sub_single(&a.0, b as Single)),
@@ -268,7 +268,7 @@ macro_rules! ops_primitive_native_impl {
             &= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop & bop),
             ^= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop ^ bop));
     };
-    (@bytes $primitive:ty) => {
+    (@bytes $primitive:ty $(,)?) => {
         ops_impl!(@bin <const L: usize> |*a: &Bytes<L>, b: $primitive| -> Bytes::<L>,
             | Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop | bop)),
             & Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop & bop)),
@@ -282,16 +282,16 @@ macro_rules! ops_primitive_native_impl {
 }
 
 macro_rules! ops_primitive_impl {
-    (@signed [$($primitive:ty $(,)?),+]) => {
+    (@signed [$($primitive:ty),+ $(,)?]) => {
         $(ops_primitive_impl!(@signed $primitive);)+
     };
-    (@unsigned [$($primitive:ty $(,)?),+]) => {
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
         $(ops_primitive_impl!(@unsigned $primitive);)+
     };
-    (@bytes [$($primitive:ty $(,)?),+]) => {
+    (@bytes [$($primitive:ty),+ $(,)?]) => {
         $(ops_primitive_impl!(@bytes $primitive);)+
     };
-    (@signed $primitive:ty) => {
+    (@signed $primitive:ty $(,)?) => {
         ops_impl!(@bin <const L: usize> |*a: &Signed<L>, b: $primitive| -> Signed::<L>,
             + Signed::<L>(add_long(&a.0, &Signed::<L>::from(b).0)),
             - Signed::<L>(sub_long(&a.0, &Signed::<L>::from(b).0)),
@@ -312,7 +312,7 @@ macro_rules! ops_primitive_impl {
             &= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop),
             ^= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop));
     };
-    (@unsigned $primitive:ty) => {
+    (@unsigned $primitive:ty $(,)?) => {
         ops_impl!(@bin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
             + Unsigned::<L>(add_long(&a.0, &Unsigned::<L>::from(b).0)),
             - Unsigned::<L>(sub_long(&a.0, &Unsigned::<L>::from(b).0)),
@@ -333,7 +333,7 @@ macro_rules! ops_primitive_impl {
             &= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop & bop),
             ^= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop ^ bop));
     };
-    (@bytes $primitive:ty) => {
+    (@bytes $primitive:ty $(,)?) => {
         ops_impl!(@bin <const L: usize> |*a: &Bytes<L>, b: $primitive| -> Bytes::<L>,
             | Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop | bop)),
             & Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop & bop)),

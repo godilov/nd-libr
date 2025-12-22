@@ -79,7 +79,7 @@ macro_rules! unsigned_impl {
 }
 
 macro_rules! prime_impl {
-    ($(($primitive:ty, $count:expr)),+) => {
+    ($(($primitive:ty, $count:expr)),+ $(,)?) => {
         $(prime_impl!($primitive, $count,);)+
     };
     ($primitive:ty, $count:expr $(,)?) => {
@@ -128,13 +128,13 @@ macro_rules! prime_impl {
 }
 
 macro_rules! sign_from {
-    (@unsigned [$($primitive:ty),+]) => {
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
         $(sign_from!(@unsigned $primitive);)+
     };
-    (@signed [$($primitive:ty),+]) => {
+    (@signed [$($primitive:ty),+ $(,)?]) => {
         $(sign_from!(@signed $primitive);)+
     };
-    (@unsigned $primitive:ty) => {
+    (@unsigned $primitive:ty $(,)?) => {
         impl From<$primitive> for Sign {
             fn from(value: $primitive) -> Self {
                 match value {
@@ -144,7 +144,7 @@ macro_rules! sign_from {
             }
         }
     };
-    (@signed $primitive:ty) => {
+    (@signed $primitive:ty $(,)?) => {
         impl From<$primitive> for Sign {
             fn from(value: $primitive) -> Self {
                 match value.cmp(&0) {
