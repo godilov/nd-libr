@@ -11,17 +11,17 @@ macro_rules! num_impl {
     };
     ($primitive:ty $(,)?) => {
         impl Extension for $primitive {
-            fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+            fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
 
-            fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+            fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
 
-            fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+            fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self ^= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
@@ -347,8 +347,6 @@ pub mod prime {
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
-pub type Mask = u64;
-
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
@@ -527,39 +525,69 @@ pub trait Extension: Num
 where
     for<'s> &'s Self: Ops,
 {
-    fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self;
+    fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self;
+    fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self;
+    fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
+
+    fn bitor_mut(&mut self, mask: u64) -> &mut Self {
+        self.bitor_offset_mut(mask, 0);
+        self
+    }
+
+    fn bitand_mut(&mut self, mask: u64) -> &mut Self {
+        self.bitand_offset_mut(mask, 0);
+        self
+    }
+
+    fn bitxor_mut(&mut self, mask: u64) -> &mut Self {
+        self.bitxor_offset_mut(mask, 0);
+        self
+    }
 
     fn odd_mut(&mut self) -> &mut Self {
-        self.bitor_offset_mut(1, 0);
+        self.bitor_mut(1);
         self
     }
 
     fn even_mut(&mut self) -> &mut Self {
-        self.bitand_offset_mut(Mask::MAX - 1, 0);
+        self.bitand_mut(u64::MAX - 1);
         self
     }
 
     fn alt_mut(&mut self) -> &mut Self {
-        self.bitxor_offset_mut(1, 0);
+        self.bitxor_mut(1);
         self
     }
 
-    fn bitor_offset(mut self, mask: Mask, offset: usize) -> Self {
+    fn bitor_offset(mut self, mask: u64, offset: usize) -> Self {
         self.bitor_offset_mut(mask, offset);
         self
     }
 
-    fn bitand_offset(mut self, mask: Mask, offset: usize) -> Self {
+    fn bitand_offset(mut self, mask: u64, offset: usize) -> Self {
         self.bitand_offset_mut(mask, offset);
         self
     }
 
-    fn bitxor_offset(mut self, mask: Mask, offset: usize) -> Self {
+    fn bitxor_offset(mut self, mask: u64, offset: usize) -> Self {
         self.bitxor_offset_mut(mask, offset);
+        self
+    }
+
+    fn bitor(mut self, mask: u64) -> Self {
+        self.bitor_offset_mut(mask, 0);
+        self
+    }
+
+    fn bitand(mut self, mask: u64) -> Self {
+        self.bitand_offset_mut(mask, 0);
+        self
+    }
+
+    fn bitxor(mut self, mask: u64) -> Self {
+        self.bitxor_offset_mut(mask, 0);
         self
     }
 

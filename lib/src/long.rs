@@ -15,9 +15,7 @@ use zerocopy::{IntoBytes, transmute_mut};
 use crate::{
     arch::*,
     long::{bytes::*, num::*, radix::*, uops::*},
-    num::{
-        Extension as NumExtension, Mask, Num, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned,
-    },
+    num::{Extension as NumExtension, Num, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned},
     ops::*,
     *,
 };
@@ -456,6 +454,39 @@ macro_rules! shr_impl {
         res[L - offset - 1] = val_h | val_l;
 
         res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = $default);
+        res
+    }};
+}
+
+macro_rules! bit_offset_impl {
+    ($words:expr, $mask:expr, $offset:expr, $default:expr, $op:tt) => {{
+        let bits = u64::BITS as usize;
+
+        #[allow(unused_mut)]
+        let mut res = $words;
+
+        for idx in 0..(u64::BITS as usize).div_ceil(BITS) {
+            let shift = idx * BITS;
+            let mask = ($mask >> shift) as Single;
+
+            let shl = $offset % BITS;
+            let shr = bits - $offset % BITS;
+
+            if let Some(elem) = res.get_mut(($offset + shift) / BITS) {
+                *elem $op mask
+                    .checked_shl(shl as u32)
+                    .map(|val| val | $default >> shr)
+                    .unwrap_or($default);
+            }
+
+            if let Some(elem) = res.get_mut(($offset + shift) / BITS + 1) {
+                *elem $op mask
+                    .checked_shr(shr as u32)
+                    .map(|val| val | $default << shl)
+                    .unwrap_or($default);
+            }
+        }
+
         res
     }};
 }
@@ -1967,30 +1998,36 @@ impl<const L: usize> Num for Unsigned<L> {
 }
 
 impl<const L: usize> NumExtension for Signed<L> {
-    fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
-        todo!()
+    fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+        bit_offset_impl!(self.0, mask, offset, MIN, |=);
+        self
     }
 
-    fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
-        todo!()
+    fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+        bit_offset_impl!(self.0, mask, offset, MAX, &=);
+        self
     }
 
-    fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
-        todo!()
+    fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+        bit_offset_impl!(self.0, mask, offset, MIN, ^=);
+        self
     }
 }
 
 impl<const L: usize> NumExtension for Unsigned<L> {
-    fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
-        todo!()
+    fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+        bit_offset_impl!(self.0, mask, offset, MIN, |=);
+        self
     }
 
-    fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
-        todo!()
+    fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+        bit_offset_impl!(self.0, mask, offset, MAX, &=);
+        self
     }
 
-    fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
-        todo!()
+    fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+        bit_offset_impl!(self.0, mask, offset, MIN, ^=);
+        self
     }
 }
 
