@@ -6,10 +6,10 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use crate::{num::prime::*, ops::*};
 
 macro_rules! num_impl {
-    ($trait:ty, [$($primitive:ty),+] $(,)?) => {
-        $(num_impl!($trait, $primitive);)+
+    ([$($primitive:ty),+] $(,)?) => {
+        $(num_impl!($primitive);)+
     };
-    ($trait:ty, $primitive:ty $(,)?) => {
+    ($primitive:ty $(,)?) => {
         impl NumExt for $primitive {
             fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
@@ -32,18 +32,6 @@ macro_rules! num_impl {
                 <$primitive>::BITS as usize
             }
 
-            fn order(&self) -> usize {
-                self.ilog2() as usize
-            }
-
-            fn sqrt(&self) -> Self {
-                self.isqrt()
-            }
-
-            fn log(&self) -> Self {
-                self.ilog2() as $primitive
-            }
-
             fn is_even(&self) -> bool {
                 *self % 2 == 0
             }
@@ -51,13 +39,42 @@ macro_rules! num_impl {
 
         impl Static for $primitive {
             const BITS: usize = <$primitive>::BITS as usize;
+            const BYTES: usize = (<$primitive>::BITS as usize) / 8;
             const ZERO: Self = 0;
             const ONE: Self = 1;
             const MIN: Self = Self::MIN;
             const MAX: Self = Self::MAX;
         }
+    };
+}
 
-        impl $trait for $primitive {}
+macro_rules! signed_impl {
+    ([$($primitive:ty),+] $(,)?) => {
+        $(signed_impl!($primitive);)+
+    };
+    ($primitive:ty $(,)?) => {
+        impl Signed for $primitive {}
+    };
+}
+
+macro_rules! unsigned_impl {
+    ([$($primitive:ty),+] $(,)?) => {
+        $(unsigned_impl!($primitive);)+
+    };
+    ($primitive:ty $(,)?) => {
+        impl Unsigned for $primitive {
+            fn order(&self) -> usize {
+                self.ilog2() as usize
+            }
+
+            fn log(&self) -> Self {
+                self.ilog2() as $primitive
+            }
+
+            fn sqrt(&self) -> Self {
+                self.isqrt() as $primitive
+            }
+        }
     };
 }
 
@@ -409,12 +426,6 @@ where
 {
     fn bits(&self) -> usize;
 
-    fn order(&self) -> usize;
-
-    fn sqrt(&self) -> Self;
-
-    fn log(&self) -> Self;
-
     fn is_even(&self) -> bool;
 
     fn zero() -> Self {
@@ -597,6 +608,11 @@ pub trait Unsigned: Num + From<u8>
 where
     for<'s> &'s Self: Ops,
 {
+    fn order(&self) -> usize;
+
+    fn log(&self) -> Self;
+
+    fn sqrt(&self) -> Self;
 }
 
 pub trait Static: Num + Copy
@@ -604,6 +620,7 @@ where
     for<'s> &'s Self: Ops,
 {
     const BITS: usize;
+    const BYTES: usize;
     const ZERO: Self;
     const ONE: Self;
     const MIN: Self;
@@ -617,8 +634,11 @@ where
     const MOD: N;
 }
 
-num_impl!(Signed, [i8, i16, i32, i64, i128, isize]);
-num_impl!(Unsigned, [u8, u16, u32, u64, u128, usize]);
+num_impl!([i8, i16, i32, i64, i128, isize]);
+num_impl!([u8, u16, u32, u64, u128, usize]);
+
+signed_impl!([i8, i16, i32, i64, i128, isize]);
+unsigned_impl!([u8, u16, u32, u64, u128, usize]);
 
 #[cfg(target_pointer_width = "64")]
 prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 12));

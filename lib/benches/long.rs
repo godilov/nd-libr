@@ -166,37 +166,36 @@ fn default(c: &mut Criterion) {
     let mut group = get_group(c, "long::default");
 
     group.throughput(Throughput::Bits(4096));
-
     group.bench_function(BenchmarkId::new("S4096", 4096), |b| b.iter(|| Aligned(S4096::default())));
     group.bench_function(BenchmarkId::new("U4096", 4096), |b| b.iter(|| Aligned(U4096::default())));
 }
 
 fn from_bytes_const(c: &mut Criterion) {
+    const SVAL: Aligned<S4096> =
+        Aligned(S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes()));
+
+    const UVAL: Aligned<U4096> =
+        Aligned(U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes()));
+
     let mut group = get_group(c, "long::from_bytes::const");
 
     group.throughput(Throughput::Bits(128));
-
-    group.bench_function(BenchmarkId::new("S4096", 128), |b| {
-        b.iter(|| Aligned(S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes())))
-    });
-
-    group.bench_function(BenchmarkId::new("U4096", 128), |b| {
-        b.iter(|| Aligned(U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes())))
-    });
+    group.bench_function(BenchmarkId::new("S4096", 128), |b| b.iter(|| SVAL));
+    group.bench_function(BenchmarkId::new("U4096", 128), |b| b.iter(|| UVAL));
 }
 
 fn from_primitive_const(c: &mut Criterion) {
+    const SVAL: Aligned<S4096> =
+        Aligned(S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes()));
+
+    const UVAL: Aligned<U4096> =
+        Aligned(U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes()));
+
     let mut group = get_group(c, "long::from_primitive::const");
 
     group.throughput(Throughput::Bits(128));
-
-    group.bench_function(BenchmarkId::new("S4096", 128), |b| {
-        b.iter(|| Aligned(S4096::from_i128(116578228889707554089617590980330937198_i128)))
-    });
-
-    group.bench_function(BenchmarkId::new("U4096", 128), |b| {
-        b.iter(|| Aligned(U4096::from_u128(121940457858715132528838202027877031762_u128)))
-    });
+    group.bench_function(BenchmarkId::new("S4096", 128), |b| b.iter(|| SVAL));
+    group.bench_function(BenchmarkId::new("U4096", 128), |b| b.iter(|| UVAL));
 }
 
 fn from_bytes(c: &mut Criterion) {

@@ -15,7 +15,7 @@ use zerocopy::{IntoBytes, transmute_mut};
 use crate::{
     arch::*,
     long::{bytes::*, num::*, radix::*, uops::*},
-    num::Sign,
+    num::{Num, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned},
     ops::*,
     *,
 };
@@ -1181,6 +1181,24 @@ impl<const L: usize> Default for Bytes<L> {
     }
 }
 
+impl<const L: usize> From<bool> for Signed<L> {
+    fn from(value: bool) -> Self {
+        Self::from(value as i8)
+    }
+}
+
+impl<const L: usize> From<bool> for Unsigned<L> {
+    fn from(value: bool) -> Self {
+        Self::from(value as u8)
+    }
+}
+
+impl<const L: usize> From<bool> for Bytes<L> {
+    fn from(value: bool) -> Self {
+        Self::from(value as u8)
+    }
+}
+
 from_primitive!(@signed [i8, i16, i32, i64, i128, isize]);
 from_primitive!(@unsigned [u8, u16, u32, u64, u128, usize]);
 from_primitive!(@bytes [u8, u16, u32, u64, u128, usize]);
@@ -1924,6 +1942,80 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
+}
+
+impl<const L: usize> Num for Signed<L> {
+    fn bits(&self) -> usize {
+        L * BITS
+    }
+
+    fn is_even(&self) -> bool {
+        self.0[0].is_multiple_of(2)
+    }
+}
+
+impl<const L: usize> Num for Unsigned<L> {
+    fn bits(&self) -> usize {
+        L * BITS
+    }
+
+    fn is_even(&self) -> bool {
+        self.0[0].is_multiple_of(2)
+    }
+}
+
+impl<const L: usize> NumSigned for Signed<L> {}
+
+impl<const L: usize> NumUnsigned for Unsigned<L> {
+    fn order(&self) -> usize {
+        let len = get_len_arr(&self.0);
+
+        match len {
+            0 => 0,
+            l => (l - 1) * BITS + self.0[l - 1].order(),
+        }
+    }
+
+    fn log(&self) -> Self {
+        let len = get_len_arr(&self.0);
+
+        match len {
+            0 => Self::ZERO,
+            l => Self::from((l - 1) * BITS + self.0[l - 1].order()),
+        }
+    }
+
+    fn sqrt(&self) -> Self {
+        todo!()
+    }
+}
+
+impl<const L: usize> NumStatic for Signed<L> {
+    const BITS: usize = L * BITS;
+    const BYTES: usize = L * BYTES;
+    const MAX: Self = Self({
+        let mut res = [MAX; L];
+
+        res[L - 1] = MAX >> 1;
+        res
+    });
+    const MIN: Self = Self({
+        let mut res = [MIN; L];
+
+        res[L - 1] = 1 << (BITS - 1);
+        res
+    });
+    const ONE: Self = Self::from_isize(0);
+    const ZERO: Self = Self::from_isize(0);
+}
+
+impl<const L: usize> NumStatic for Unsigned<L> {
+    const BITS: usize = BITS;
+    const BYTES: usize = BYTES;
+    const MAX: Self = Self([MAX; L]);
+    const MIN: Self = Self([MIN; L]);
+    const ONE: Self = Self::from_usize(0);
+    const ZERO: Self = Self::from_usize(0);
 }
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
