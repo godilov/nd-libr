@@ -15,7 +15,9 @@ use zerocopy::{IntoBytes, transmute_mut};
 use crate::{
     arch::*,
     long::{bytes::*, num::*, radix::*, uops::*},
-    num::{Num, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned},
+    num::{
+        Extension as NumExtension, Mask, Num, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned,
+    },
     ops::*,
     *,
 };
@@ -1961,6 +1963,34 @@ impl<const L: usize> Num for Unsigned<L> {
 
     fn is_even(&self) -> bool {
         self.0[0].is_multiple_of(2)
+    }
+}
+
+impl<const L: usize> NumExtension for Signed<L> {
+    fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+        todo!()
+    }
+
+    fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+        todo!()
+    }
+
+    fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+        todo!()
+    }
+}
+
+impl<const L: usize> NumExtension for Unsigned<L> {
+    fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+        todo!()
+    }
+
+    fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+        todo!()
+    }
+
+    fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
+        todo!()
     }
 }
 

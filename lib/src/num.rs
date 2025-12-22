@@ -10,18 +10,18 @@ macro_rules! num_impl {
         $(num_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl NumExt for $primitive {
-            fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+        impl Extension for $primitive {
+            fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
                 *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
 
-            fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+            fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
                 *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
 
-            fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+            fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self {
                 *self ^= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
@@ -347,11 +347,13 @@ pub mod prime {
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
-pub struct Width<N: Num + NumExt + Static, const BITS: usize>(pub N)
+pub type Mask = u64;
+
+pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
-pub struct Modular<N: Num + NumExt + Static + Unsigned, M: Modulus<N>>(pub N, PhantomData<M>)
+pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, PhantomData<M>)
 where
     for<'s> &'s N: Ops;
 
@@ -361,62 +363,6 @@ pub enum Sign {
     ZERO = 0,
     NEG = -1,
     POS = 1,
-}
-
-pub trait NumExt: Num
-where
-    for<'s> &'s Self: Ops,
-{
-    fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
-
-    fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
-
-    fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
-
-    fn odd_mut(&mut self) -> &mut Self {
-        self.bitor_offset_mut(1, 0);
-        self
-    }
-
-    fn even_mut(&mut self) -> &mut Self {
-        self.bitand_offset_mut(u64::MAX - 1, 0);
-        self
-    }
-
-    fn alt_mut(&mut self) -> &mut Self {
-        self.bitxor_offset_mut(1, 0);
-        self
-    }
-
-    fn bitor_offset(mut self, mask: u64, offset: usize) -> Self {
-        self.bitor_offset_mut(mask, offset);
-        self
-    }
-
-    fn bitand_offset(mut self, mask: u64, offset: usize) -> Self {
-        self.bitand_offset_mut(mask, offset);
-        self
-    }
-
-    fn bitxor_offset(mut self, mask: u64, offset: usize) -> Self {
-        self.bitxor_offset_mut(mask, offset);
-        self
-    }
-
-    fn odd(mut self) -> Self {
-        self.odd_mut();
-        self
-    }
-
-    fn even(mut self) -> Self {
-        self.even_mut();
-        self
-    }
-
-    fn alt(mut self) -> Self {
-        self.alt_mut();
-        self
-    }
 }
 
 pub trait Num: Sized + Default + Display + Clone + Eq + Ord + From<bool>
@@ -486,7 +432,7 @@ where
 
     fn rand<R: ?Sized + Rng>(order: usize, rng: &mut R) -> Self
     where
-        Self: NumExt,
+        Self: Extension,
     {
         let shift = order - 1;
         let div = shift / u64::BITS as usize;
@@ -505,7 +451,7 @@ where
 
     fn rand_prime(order: usize) -> Self
     where
-        Self: NumExt + Primality,
+        Self: Extension + Primality,
     {
         let mut rng = rand::rng();
         let mut val = Self::rand(order, &mut rng).odd();
@@ -519,14 +465,14 @@ where
 
     fn rand_primes(order: usize, count: usize) -> Vec<Self>
     where
-        Self: NumExt + Primality,
+        Self: Extension + Primality,
     {
         (0..count).map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
     }
 
     fn rand_prime_par(order: usize) -> Self
     where
-        Self: Send + NumExt + Primality,
+        Self: Send + Extension + Primality,
     {
         let threads = std::thread::available_parallelism().map(|val| val.get()).unwrap_or(1);
 
@@ -538,7 +484,7 @@ where
 
     fn rand_primes_par(order: usize, count: usize) -> Vec<Self>
     where
-        Self: Send + NumExt + Primality,
+        Self: Send + Extension + Primality,
     {
         (0..count)
             .into_par_iter()
@@ -574,6 +520,62 @@ where
 
             !any && exp == one || exp == x
         })
+    }
+}
+
+pub trait Extension: Num
+where
+    for<'s> &'s Self: Ops,
+{
+    fn bitor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self;
+
+    fn bitand_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self;
+
+    fn bitxor_offset_mut(&mut self, mask: Mask, offset: usize) -> &mut Self;
+
+    fn odd_mut(&mut self) -> &mut Self {
+        self.bitor_offset_mut(1, 0);
+        self
+    }
+
+    fn even_mut(&mut self) -> &mut Self {
+        self.bitand_offset_mut(Mask::MAX - 1, 0);
+        self
+    }
+
+    fn alt_mut(&mut self) -> &mut Self {
+        self.bitxor_offset_mut(1, 0);
+        self
+    }
+
+    fn bitor_offset(mut self, mask: Mask, offset: usize) -> Self {
+        self.bitor_offset_mut(mask, offset);
+        self
+    }
+
+    fn bitand_offset(mut self, mask: Mask, offset: usize) -> Self {
+        self.bitand_offset_mut(mask, offset);
+        self
+    }
+
+    fn bitxor_offset(mut self, mask: Mask, offset: usize) -> Self {
+        self.bitxor_offset_mut(mask, offset);
+        self
+    }
+
+    fn odd(mut self) -> Self {
+        self.odd_mut();
+        self
+    }
+
+    fn even(mut self) -> Self {
+        self.even_mut();
+        self
+    }
+
+    fn alt(mut self) -> Self {
+        self.alt_mut();
+        self
     }
 }
 
@@ -627,7 +629,7 @@ where
     const MAX: Self;
 }
 
-pub trait Modulus<N: Num + NumExt + Static + Unsigned>
+pub trait Modulus<N: Num + Extension + Static + Unsigned>
 where
     for<'s> &'s N: Ops,
 {
