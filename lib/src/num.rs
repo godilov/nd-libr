@@ -1,4 +1,8 @@
-use std::{cmp::Ordering, fmt::Display, marker::PhantomData};
+use std::{
+    cmp::Ordering,
+    fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
+    marker::PhantomData,
+};
 
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -152,6 +156,38 @@ macro_rules! sign_from {
                     Ordering::Equal => Sign::ZERO,
                     Ordering::Greater => Sign::POS,
                 }
+            }
+        }
+    };
+}
+
+macro_rules! width_display_impl {
+    ([$($display:ident),+ $(,)?]) => {
+        $(width_display_impl!($display);)+
+    };
+    ($display:ident $(,)?) => {
+        impl<N: Num + Extension + Static + $display, const BITS: usize> $display for Width<N, BITS>
+        where
+            for<'s> &'s N: Ops,
+        {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(f)
+            }
+        }
+    };
+}
+
+macro_rules! modular_display_impl {
+    ([$($display:ident),+ $(,)?]) => {
+        $(modular_display_impl!($display);)+
+    };
+    ($display:ident $(,)?) => {
+        impl<N: Num + Extension + Unsigned + Static + $display, M: Modulus<N>> $display for Modular<N, M>
+        where
+            for<'s> &'s N: Ops,
+        {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(f)
             }
         }
     };
@@ -363,7 +399,7 @@ pub enum Sign {
     POS = 1,
 }
 
-pub trait Num: Sized + Default + Display + Clone + Eq + Ord + From<bool>
+pub trait Num: Sized + Default + Clone + Eq + Ord + From<bool>
 where
     for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self> + OpsFrom + OpsFrom<&'s Self, &'s Self>,
     for<'s> &'s Self: Ops,
@@ -678,3 +714,24 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
+
+impl<N: Num + Extension + Static, const BITS: usize> From<N> for Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    fn from(value: N) -> Self {
+        Width(value)
+    }
+}
+
+impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> From<N> for Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    fn from(value: N) -> Self {
+        Modular(value, PhantomData)
+    }
+}
+
+width_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
+modular_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
