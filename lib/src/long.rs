@@ -732,9 +732,9 @@ macro_rules! search {
     }};
 }
 
-macro_rules! len {
+macro_rules! length {
     ($words:expr) => {
-        len!($words, &0)
+        length!($words, &0)
     };
     ($words:expr, $zero:expr) => {{
         let mut res = 0;
@@ -2078,7 +2078,7 @@ impl<const L: usize> NumSigned for Signed<L> {}
 
 impl<const L: usize> NumUnsigned for Unsigned<L> {
     fn order(&self) -> usize {
-        let len = len!(&self.0);
+        let len = length!(&self.0);
 
         match len {
             0 => 0,
@@ -2087,7 +2087,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 
     fn log(&self) -> Self {
-        let len = len!(&self.0);
+        let len = length!(&self.0);
 
         match len {
             0 => Self::ZERO,
@@ -2391,7 +2391,7 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: u8) -> Result<Ve
         }
     }
 
-    res.truncate(len!(&res, &W::ZERO));
+    res.truncate(length!(&res, &W::ZERO));
 
     Ok(res)
 }
@@ -2404,7 +2404,7 @@ fn to_digits_iter<const L: usize, W: Word>(
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
-    let cnt = len!(words);
+    let cnt = length!(words);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsIter {
@@ -2454,7 +2454,7 @@ fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Res
         idx += 1;
     }
 
-    res.truncate(len!(&res, &W::ZERO));
+    res.truncate(length!(&res, &W::ZERO));
 
     Ok(res)
 }
@@ -2466,7 +2466,7 @@ fn into_digits_iter<const L: usize, W: Word>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = len!(&words);
+    let cnt = length!(&words);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsRadixIter { words, radix, len })
@@ -2552,7 +2552,7 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Re
 
     let prefix = radix.prefix;
     let width = radix.width as usize;
-    let len = len!(words);
+    let len = length!(words);
 
     let mut buf = vec![b'0'; len * width];
 
