@@ -732,6 +732,25 @@ macro_rules! search {
     }};
 }
 
+macro_rules! len {
+    ($words:expr) => {
+        len!($words, &0)
+    };
+    ($words:expr, $zero:expr) => {{
+        let mut res = 0;
+
+        for (i, word) in $words.iter().enumerate().rev() {
+            if word != $zero {
+                res = i;
+
+                break;
+            }
+        }
+
+        res
+    }};
+}
+
 pub mod radix {
     use super::*;
 
@@ -2059,7 +2078,7 @@ impl<const L: usize> NumSigned for Signed<L> {}
 
 impl<const L: usize> NumUnsigned for Unsigned<L> {
     fn order(&self) -> usize {
-        let len = get_len_arr(&self.0);
+        let len = len!(&self.0);
 
         match len {
             0 => 0,
@@ -2068,7 +2087,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 
     fn log(&self) -> Self {
-        let len = get_len_arr(&self.0);
+        let len = len!(&self.0);
 
         match len {
             0 => Self::ZERO,
@@ -2372,7 +2391,7 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: u8) -> Result<Ve
         }
     }
 
-    res.truncate(get_len_slice(&res));
+    res.truncate(len!(&res, &W::ZERO));
 
     Ok(res)
 }
@@ -2385,7 +2404,7 @@ fn to_digits_iter<const L: usize, W: Word>(
 
     let bits = exp as usize;
     let mask = (1 << bits) - 1;
-    let cnt = get_len_arr(words);
+    let cnt = len!(words);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsIter {
@@ -2435,7 +2454,7 @@ fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Res
         idx += 1;
     }
 
-    res.truncate(get_len_slice(&res));
+    res.truncate(len!(&res, &W::ZERO));
 
     Ok(res)
 }
@@ -2447,7 +2466,7 @@ fn into_digits_iter<const L: usize, W: Word>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = get_len_arr(&words);
+    let cnt = len!(&words);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsRadixIter { words, radix, len })
@@ -2533,7 +2552,7 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Re
 
     let prefix = radix.prefix;
     let width = radix.width as usize;
-    let len = get_len_arr(words);
+    let len = len!(words);
 
     let mut buf = vec![b'0'; len * width];
 
@@ -2802,26 +2821,6 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
         b'A'..=b'F' => Some(byte - b'A' + 10),
         _ => None,
     }
-}
-
-fn get_len_arr<W: Word, const L: usize>(words: &[W; L]) -> usize {
-    for (i, word) in words.iter().enumerate().rev() {
-        if word != &W::ZERO {
-            return i + 1;
-        }
-    }
-
-    0
-}
-
-fn get_len_slice<W: Word>(words: &[W]) -> usize {
-    for (i, word) in words.iter().enumerate().rev() {
-        if word != &W::ZERO {
-            return i + 1;
-        }
-    }
-
-    0
 }
 
 fn get_sign<W: Word, const L: usize>(words: &[W; L], sign: Sign) -> Sign {
