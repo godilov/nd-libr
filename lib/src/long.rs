@@ -2041,34 +2041,34 @@ impl<const L: usize> Num for Unsigned<L> {
 }
 
 impl<const L: usize> NumExtension for Signed<L> {
-    fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MIN, |=);
         self
     }
 
-    fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MAX, &=);
         self
     }
 
-    fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MIN, ^=);
         self
     }
 }
 
 impl<const L: usize> NumExtension for Unsigned<L> {
-    fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MIN, |=);
         self
     }
 
-    fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MAX, &=);
         self
     }
 
-    fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MIN, ^=);
         self
     }

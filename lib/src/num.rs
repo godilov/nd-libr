@@ -2,6 +2,10 @@ use std::{
     cmp::Ordering,
     fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
     marker::PhantomData,
+    ops::{
+        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Div,
+        DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign,
+    },
 };
 
 use rand::Rng;
@@ -15,17 +19,17 @@ macro_rules! num_impl {
     };
     ($primitive:ty $(,)?) => {
         impl Extension for $primitive {
-            fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+            fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
 
-            fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+            fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
 
-            fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self {
+            fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self ^= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
             }
@@ -188,6 +192,82 @@ macro_rules! modular_display_impl {
         {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 self.0.fmt(f)
+            }
+        }
+    };
+}
+
+macro_rules! width_ops_impl {
+    ([$($op:ident => $fn:ident),+ $(,)?]) => {
+        $(width_ops_impl!($op => $fn);)+
+    };
+    ($op:ident => $fn:ident $(,)?) => {
+        impl<U, N: Num + Extension + Static + $op<U, Output = N>, const BITS: usize> $op<U> for Width<N, BITS>
+        where
+            for<'s> &'s N: Ops,
+        {
+            type Output = Width<N, BITS>;
+
+            fn $fn(self, rhs: U) -> Self::Output {
+                let mut res = Width::from(self.0.$fn(rhs));
+
+                res.normalize();
+                res
+            }
+        }
+    };
+}
+
+macro_rules! modular_ops_impl {
+    ([$($op:ident => $fn:ident),+ $(,)?]) => {
+        $(modular_ops_impl!($op => $fn);)+
+    };
+    ($op:ident => $fn:ident $(,)?) => {
+        impl<U, N: Num + Extension + Unsigned + Static + $op<U, Output = N>, M: Modulus<N>> $op<U> for Modular<N, M>
+        where
+            for<'s> &'s N: Ops,
+        {
+            type Output = Modular<N, M>;
+
+            fn $fn(self, rhs: U) -> Self::Output {
+                let mut res = Modular::from(self.0.$fn(rhs));
+
+                res.normalize();
+                res
+            }
+        }
+    };
+}
+
+macro_rules! width_ops_mut_impl {
+    ([$($op:ident => $fn:ident),+ $(,)?]) => {
+        $(width_ops_mut_impl!($op => $fn);)+
+    };
+    ($op:ident => $fn:ident $(,)?) => {
+        impl<U, N: Num + Extension + Static + $op<U>, const BITS: usize> $op<U> for Width<N, BITS>
+        where
+            for<'s> &'s N: Ops,
+        {
+            fn $fn(&mut self, rhs: U) {
+                self.0.$fn(rhs);
+                self.normalize();
+            }
+        }
+    };
+}
+
+macro_rules! modular_ops_mut_impl {
+    ([$($op:ident => $fn:ident),+ $(,)?]) => {
+        $(modular_ops_mut_impl!($op => $fn);)+
+    };
+    ($op:ident => $fn:ident $(,)?) => {
+        impl<U, N: Num + Extension + Unsigned + Static + $op<U>, M: Modulus<N>> $op<U> for Modular<N, M>
+        where
+            for<'s> &'s N: Ops,
+        {
+            fn $fn(&mut self, rhs: U) {
+                self.0.$fn(rhs);
+                self.normalize();
             }
         }
     };
@@ -474,10 +554,10 @@ where
 
         let mut res = Self::zero();
 
-        res.bitor_offset_mut((1 << rem) | rng.next_u64() & ((1 << rem) - 1), shift - rem);
+        res.bitor_offset_mut_ext((1 << rem) | rng.next_u64() & ((1 << rem) - 1), shift - rem);
 
         for idx in 0..div {
-            res.bitor_offset_mut(rng.next_u64(), shift - rem - idx * div);
+            res.bitor_offset_mut_ext(rng.next_u64(), shift - rem - idx * div);
         }
 
         res
@@ -488,10 +568,10 @@ where
         Self: Extension + Primality,
     {
         let mut rng = rand::rng();
-        let mut val = Self::rand(order, &mut rng).odd();
+        let mut val = Self::rand(order, &mut rng).odd_ext();
 
         while !val.is_prime() {
-            val = Self::rand(order, &mut rng).odd();
+            val = Self::rand(order, &mut rng).odd_ext();
         }
 
         val
@@ -561,84 +641,84 @@ pub trait Extension: Num
 where
     for<'s> &'s Self: Ops,
 {
-    fn bitor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
+    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    fn bitand_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
+    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    fn bitxor_offset_mut(&mut self, mask: u64, offset: usize) -> &mut Self;
+    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    fn bitor_mut(&mut self, mask: u64) -> &mut Self {
-        self.bitor_offset_mut(mask, 0);
+    fn bitor_mut_ext(&mut self, mask: u64) -> &mut Self {
+        self.bitor_offset_mut_ext(mask, 0);
         self
     }
 
-    fn bitand_mut(&mut self, mask: u64) -> &mut Self {
-        self.bitand_offset_mut(mask, 0);
+    fn bitand_mut_ext(&mut self, mask: u64) -> &mut Self {
+        self.bitand_offset_mut_ext(mask, 0);
         self
     }
 
-    fn bitxor_mut(&mut self, mask: u64) -> &mut Self {
-        self.bitxor_offset_mut(mask, 0);
+    fn bitxor_mut_ext(&mut self, mask: u64) -> &mut Self {
+        self.bitxor_offset_mut_ext(mask, 0);
         self
     }
 
-    fn odd_mut(&mut self) -> &mut Self {
-        self.bitor_mut(1);
+    fn odd_mut_ext(&mut self) -> &mut Self {
+        self.bitor_mut_ext(1);
         self
     }
 
-    fn even_mut(&mut self) -> &mut Self {
-        self.bitand_mut(u64::MAX - 1);
+    fn even_mut_ext(&mut self) -> &mut Self {
+        self.bitand_mut_ext(u64::MAX - 1);
         self
     }
 
-    fn alt_mut(&mut self) -> &mut Self {
-        self.bitxor_mut(1);
+    fn alt_mut_ext(&mut self) -> &mut Self {
+        self.bitxor_mut_ext(1);
         self
     }
 
-    fn bitor_offset(mut self, mask: u64, offset: usize) -> Self {
-        self.bitor_offset_mut(mask, offset);
+    fn bitor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
+        self.bitor_offset_mut_ext(mask, offset);
         self
     }
 
-    fn bitand_offset(mut self, mask: u64, offset: usize) -> Self {
-        self.bitand_offset_mut(mask, offset);
+    fn bitand_offset_ext(mut self, mask: u64, offset: usize) -> Self {
+        self.bitand_offset_mut_ext(mask, offset);
         self
     }
 
-    fn bitxor_offset(mut self, mask: u64, offset: usize) -> Self {
-        self.bitxor_offset_mut(mask, offset);
+    fn bitxor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
+        self.bitxor_offset_mut_ext(mask, offset);
         self
     }
 
-    fn bitor(mut self, mask: u64) -> Self {
-        self.bitor_offset_mut(mask, 0);
+    fn bitor_ext(mut self, mask: u64) -> Self {
+        self.bitor_offset_mut_ext(mask, 0);
         self
     }
 
-    fn bitand(mut self, mask: u64) -> Self {
-        self.bitand_offset_mut(mask, 0);
+    fn bitand_ext(mut self, mask: u64) -> Self {
+        self.bitand_offset_mut_ext(mask, 0);
         self
     }
 
-    fn bitxor(mut self, mask: u64) -> Self {
-        self.bitxor_offset_mut(mask, 0);
+    fn bitxor_ext(mut self, mask: u64) -> Self {
+        self.bitxor_offset_mut_ext(mask, 0);
         self
     }
 
-    fn odd(mut self) -> Self {
-        self.odd_mut();
+    fn odd_ext(mut self) -> Self {
+        self.odd_mut_ext();
         self
     }
 
-    fn even(mut self) -> Self {
-        self.even_mut();
+    fn even_ext(mut self) -> Self {
+        self.even_mut_ext();
         self
     }
 
-    fn alt(mut self) -> Self {
-        self.alt_mut();
+    fn alt_ext(mut self) -> Self {
+        self.alt_mut_ext();
         self
     }
 }
@@ -733,15 +813,15 @@ where
     }
 }
 
-width_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
-modular_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
-
 impl<U, N: Num + Extension + Static + FromIterator<U>, const BITS: usize> FromIterator<U> for Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
     fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
-        Width::from(N::from_iter(iter)).normalized()
+        let mut res = Width::from(N::from_iter(iter));
+
+        res.normalize();
+        res
     }
 }
 
@@ -750,14 +830,141 @@ where
     for<'s> &'s N: Ops,
 {
     fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
-        Modular::from(N::from_iter(iter)).normalized()
+        let mut res = Modular::from(N::from_iter(iter));
+
+        res.normalize();
+        res
     }
 }
+
+impl<N: Num + Extension + Static, const BITS: usize> Deref for Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    type Target = N;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> Deref for Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    type Target = N;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<N: Num + Extension + Static, const BITS: usize> DerefMut for Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> DerefMut for Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<U, N: Num + Extension + Static + AsRef<U>, const BITS: usize> AsRef<U> for Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    fn as_ref(&self) -> &U {
+        self.0.as_ref()
+    }
+}
+
+impl<U, N: Num + Extension + Unsigned + Static + AsRef<U>, M: Modulus<N>> AsRef<U> for Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    fn as_ref(&self) -> &U {
+        self.0.as_ref()
+    }
+}
+
+impl<U, N: Num + Extension + Static + AsMut<U>, const BITS: usize> AsMut<U> for Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    fn as_mut(&mut self) -> &mut U {
+        self.0.as_mut()
+    }
+}
+
+impl<U, N: Num + Extension + Unsigned + Static + AsMut<U>, M: Modulus<N>> AsMut<U> for Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    fn as_mut(&mut self) -> &mut U {
+        self.0.as_mut()
+    }
+}
+
+width_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
+modular_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
+
+width_ops_impl!([
+    Add => add,
+    Sub => sub,
+    Mul => mul,
+    Div => div,
+    Rem => rem,
+    BitOr => bitor,
+    BitAnd => bitand,
+    BitXor => bitxor,
+]);
+
+modular_ops_impl!([
+    Add => add,
+    Sub => sub,
+    Mul => mul,
+    Div => div,
+    Rem => rem,
+    BitOr => bitor,
+    BitAnd => bitand,
+    BitXor => bitxor,
+]);
+
+width_ops_mut_impl!([
+    AddAssign => add_assign,
+    SubAssign => sub_assign,
+    MulAssign => mul_assign,
+    DivAssign => div_assign,
+    RemAssign => rem_assign,
+    BitOrAssign => bitor_assign,
+    BitAndAssign => bitand_assign,
+    BitXorAssign => bitxor_assign,
+]);
+
+modular_ops_mut_impl!([
+    AddAssign => add_assign,
+    SubAssign => sub_assign,
+    MulAssign => mul_assign,
+    DivAssign => div_assign,
+    RemAssign => rem_assign,
+    BitOrAssign => bitor_assign,
+    BitAndAssign => bitand_assign,
+    BitXorAssign => bitxor_assign,
+]);
 
 impl<N: Num + Extension + Static, const BITS: usize> Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
+    #[allow(unused)]
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
@@ -772,6 +979,7 @@ impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
+    #[allow(unused)]
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self

@@ -169,6 +169,18 @@ where
 {
 }
 
+impl<T> From<T> for Aligned<T> {
+    fn from(value: T) -> Self {
+        Aligned(value)
+    }
+}
+
+impl<U, V: FromIterator<U>> FromIterator<U> for Aligned<V> {
+    fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
+        Aligned::from(V::from_iter(iter))
+    }
+}
+
 impl<T> Deref for Aligned<T> {
     type Target = T;
 
@@ -180,18 +192,6 @@ impl<T> Deref for Aligned<T> {
 impl<T> DerefMut for Aligned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    }
-}
-
-impl<T> From<T> for Aligned<T> {
-    fn from(value: T) -> Self {
-        Aligned(value)
-    }
-}
-
-impl<U, V: FromIterator<U>> FromIterator<U> for Aligned<V> {
-    fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
-        Aligned::from(V::from_iter(iter))
     }
 }
 
