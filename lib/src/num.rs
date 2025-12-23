@@ -735,3 +735,49 @@ where
 
 width_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
 modular_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
+
+impl<U, N: Num + Extension + Static + FromIterator<U>, const BITS: usize> FromIterator<U> for Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
+        Width::from(N::from_iter(iter)).normalized()
+    }
+}
+
+impl<U, N: Num + Extension + Unsigned + Static + FromIterator<U>, M: Modulus<N>> FromIterator<U> for Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
+        Modular::from(N::from_iter(iter)).normalized()
+    }
+}
+
+impl<N: Num + Extension + Static, const BITS: usize> Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    pub(crate) fn normalized(mut self) -> Self {
+        self.normalize();
+        self
+    }
+
+    pub(crate) fn normalize(&mut self) -> Self {
+        todo!()
+    }
+}
+
+impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    pub(crate) fn normalized(mut self) -> Self {
+        self.normalize();
+        self
+    }
+
+    pub(crate) fn normalize(&mut self) -> Self {
+        todo!()
+    }
+}

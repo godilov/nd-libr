@@ -10,7 +10,7 @@ use std::{
 
 use ndproc::ops_impl;
 use thiserror::Error;
-use zerocopy::{IntoBytes, transmute_mut};
+use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
     arch::*,
@@ -1673,6 +1673,14 @@ impl<const L: usize> Signed<L> {
         self.0.as_mut_bytes()
     }
 
+    pub fn as_words<W: Word>(&self) -> &[W] {
+        transmute_ref!(&self.0[..]) as &[W]
+    }
+
+    pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
+        transmute_mut!(&mut self.0[..]) as &mut [W]
+    }
+
     pub fn sign(&self) -> Sign {
         sign(&self.0, Sign::POS, Sign::NEG)
     }
@@ -1722,6 +1730,14 @@ impl<const L: usize> Unsigned<L> {
         self.0.as_mut_bytes()
     }
 
+    pub fn as_words<W: Word>(&self) -> &[W] {
+        transmute_ref!(&self.0[..]) as &[W]
+    }
+
+    pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
+        transmute_mut!(&mut self.0[..]) as &mut [W]
+    }
+
     pub fn sign(&self) -> Sign {
         sign(&self.0, Sign::POS, Sign::POS)
     }
@@ -1761,6 +1777,14 @@ impl<const L: usize> Bytes<L> {
 
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
+    }
+
+    pub fn as_words<W: Word>(&self) -> &[W] {
+        transmute_ref!(&self.0[..]) as &[W]
+    }
+
+    pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
+        transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 

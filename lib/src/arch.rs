@@ -191,7 +191,7 @@ impl<T> From<T> for Aligned<T> {
 
 impl<U, V: FromIterator<U>> FromIterator<U> for Aligned<V> {
     fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
-        Aligned(V::from_iter(iter))
+        Aligned::from(V::from_iter(iter))
     }
 }
 
