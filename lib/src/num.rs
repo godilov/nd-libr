@@ -970,7 +970,7 @@ where
         self
     }
 
-    pub(crate) fn normalize(&mut self) -> Self {
+    pub(crate) fn normalize(&mut self) -> &mut Self {
         todo!()
     }
 }
@@ -985,7 +985,8 @@ where
         self
     }
 
-    pub(crate) fn normalize(&mut self) -> Self {
-        todo!()
+    pub(crate) fn normalize(&mut self) -> &mut Self {
+        *self %= M::MOD;
+        self
     }
 }
