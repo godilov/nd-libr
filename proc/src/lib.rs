@@ -710,6 +710,26 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+#[proc_macro_derive(Transparent)]
+pub fn transparent(stream: TokenStreamStd) -> TokenStreamStd {
+    todo!()
+}
+
+#[proc_macro_derive(TransparentFmt)]
+pub fn transparent_fmt(stream: TokenStreamStd) -> TokenStreamStd {
+    todo!()
+}
+
+#[proc_macro_derive(TransparentOps)]
+pub fn transparent_ops(stream: TokenStreamStd) -> TokenStreamStd {
+    todo!()
+}
+
+#[proc_macro_derive(TransparentOpsAssign)]
+pub fn transparent_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
+    todo!()
+}
+
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
         BinOp::AddAssign(_) => Ok(("add_assign", "std::ops::AddAssign")),
