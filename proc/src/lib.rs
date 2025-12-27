@@ -310,8 +310,8 @@ impl ToTokens for OpsImplMutable {
             };
 
             let generics = spec.generics.map(|val| val.split_for_impl());
-            let (implgen, wheregen) = match generics {
-                Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
+            let (gen_impl, gen_where) = match generics {
+                Some((gen_impl, _, gen_where)) => (Some(gen_impl), gen_where),
                 None => (None, None),
             };
 
@@ -327,7 +327,7 @@ impl ToTokens for OpsImplMutable {
             let lhs_ref = lhs_ref.map(|_| quote! { &mut });
 
             quote! {
-                impl #implgen #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #wheregen {
+                impl #gen_impl #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #gen_where {
                     fn #ident(&mut self, rhs: #rhs_ref #rhs_type ) {
                         (|#lhs_mut #lhs_ident: &mut #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs);
                     }
@@ -417,8 +417,8 @@ impl ToTokens for OpsImplBinary {
             };
 
             let generics = spec.generics.map(|val| val.split_for_impl());
-            let (implgen, wheregen) = match generics {
-                Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
+            let (gen_impl, gen_where) = match generics {
+                Some((gen_impl, _, gen_where)) => (Some(gen_impl), gen_where),
                 None => (None, None),
             };
 
@@ -433,7 +433,7 @@ impl ToTokens for OpsImplBinary {
             let expr = &spec.expr;
 
             quote! {
-                impl #implgen #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #wheregen {
+                impl #gen_impl #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #gen_where {
                     type Output = #op_type;
 
                     fn #ident(self, rhs: #rhs_ref #rhs_type) -> Self::Output {
@@ -525,8 +525,8 @@ impl ToTokens for OpsImplUnary {
             };
 
             let generics = spec.generics.map(|val| val.split_for_impl());
-            let (implgen, wheregen) = match generics {
-                Some((implgen, _, wheregen)) => (Some(implgen), wheregen),
+            let (gen_impl, gen_where) = match generics {
+                Some((gen_impl, _, gen_where)) => (Some(gen_impl), gen_where),
                 None => (None, None),
             };
 
@@ -538,7 +538,7 @@ impl ToTokens for OpsImplUnary {
             let expr = &spec.expr;
 
             quote! {
-                impl #implgen #path for #lhs_ref #lhs_type #wheregen {
+                impl #gen_impl #path for #lhs_ref #lhs_type #gen_where {
                     type Output = #op_type;
 
                     fn #ident(self) -> Self::Output {
@@ -732,7 +732,7 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     let input = parse_macro_input!(stream as DeriveInput);
 
-    let args = match get_forward_args(&input) {
+    let (expr, ty) = match get_forward_args(&input) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
@@ -818,7 +818,7 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
 }
 
-fn get_forward_args(input: &DeriveInput) -> Result<ForwardArgs> {
+fn get_forward_args(input: &DeriveInput) -> Result<(ExprField, Type)> {
     let mut iter = input
         .attrs
         .iter()
@@ -846,5 +846,7 @@ fn get_forward_args(input: &DeriveInput) -> Result<ForwardArgs> {
         _ => unreachable!(),
     };
 
-    parse2::<ForwardArgs>(attr.tokens.clone())
+    let ForwardArgs { expr, as_: _, ty } = parse2::<ForwardArgs>(attr.tokens.clone())?;
+
+    Ok((expr, ty))
 }
