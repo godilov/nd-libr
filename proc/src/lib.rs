@@ -710,23 +710,23 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-#[proc_macro_derive(Transparent)]
-pub fn transparent(stream: TokenStreamStd) -> TokenStreamStd {
+#[proc_macro_derive(ForwardStd)]
+pub fn forward(stream: TokenStreamStd) -> TokenStreamStd {
     todo!()
 }
 
-#[proc_macro_derive(TransparentFmt)]
-pub fn transparent_fmt(stream: TokenStreamStd) -> TokenStreamStd {
+#[proc_macro_derive(ForwardFmt)]
+pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
     todo!()
 }
 
-#[proc_macro_derive(TransparentOps)]
-pub fn transparent_ops(stream: TokenStreamStd) -> TokenStreamStd {
+#[proc_macro_derive(ForwardOps)]
+pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     todo!()
 }
 
-#[proc_macro_derive(TransparentOpsMut)]
-pub fn transparent_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
+#[proc_macro_derive(ForwardOpsMut)]
+pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
     todo!()
 }
 
