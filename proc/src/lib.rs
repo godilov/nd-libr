@@ -3,7 +3,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
     BinOp, DeriveInput, Error, Expr, ExprField, Generics, Ident, Item, Meta, Path, Result, Token, Type, UnOp,
-    bracketed, parenthesized,
+    WhereClause, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -78,7 +78,7 @@ struct OpsImplEntry<Op: Parse> {
 
 #[allow(dead_code)]
 struct OpsImpl<OpsSignature: Parse, Op: Parse> {
-    generics: Option<Generics>,
+    generics: Generics,
     signature: OpsSignature,
     colon: Token![,],
     entries: Punctuated<OpsImplEntry<Op>, Token![,]>,
@@ -86,7 +86,7 @@ struct OpsImpl<OpsSignature: Parse, Op: Parse> {
 
 #[allow(dead_code)]
 struct OpsImplAutoBin<OpsSignature: Parse, Op: Parse> {
-    generics: Option<Generics>,
+    generics: Generics,
     signature: OpsSignature,
     colon: Token![,],
     lhs_paren: Paren,
@@ -99,7 +99,7 @@ struct OpsImplAutoBin<OpsSignature: Parse, Op: Parse> {
 
 #[allow(dead_code)]
 struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
-    generics: Option<Generics>,
+    generics: Generics,
     signature: OpsSignature,
     colon: Token![,],
     lhs_paren: Paren,
@@ -214,15 +214,14 @@ impl<Op: Parse> Parse for OpsImplEntry<Op> {
 
 impl<OpsSinature: Parse, Op: Parse> Parse for OpsImpl<OpsSinature, Op> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let generics = input.parse().ok().map(|val: Generics| Generics {
-            lt_token: val.lt_token,
-            params: val.params,
-            gt_token: val.gt_token,
-            where_clause: input.parse().ok(),
-        });
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
 
         Ok(Self {
-            generics,
+            generics: Generics {
+                where_clause: gen_where,
+                ..gen_
+            },
             signature: input.parse()?,
             colon: input.parse()?,
             entries: input.parse_terminated(OpsImplEntry::parse, Token![,])?,
@@ -232,19 +231,18 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImpl<OpsSinature, Op> {
 
 impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoBin<OpsSinature, Op> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let generics = input.parse().ok().map(|val: Generics| Generics {
-            lt_token: val.lt_token,
-            params: val.params,
-            gt_token: val.gt_token,
-            where_clause: input.parse().ok(),
-        });
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
 
         let lhs_content;
         let rhs_content;
         let ops_content;
 
         Ok(Self {
-            generics,
+            generics: Generics {
+                where_clause: gen_where,
+                ..gen_
+            },
             signature: input.parse()?,
             colon: input.parse()?,
             lhs_paren: parenthesized!(lhs_content in input),
@@ -259,18 +257,17 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoBin<OpsSinature, Op> {
 
 impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let generics = input.parse().ok().map(|val: Generics| Generics {
-            lt_token: val.lt_token,
-            params: val.params,
-            gt_token: val.gt_token,
-            where_clause: input.parse().ok(),
-        });
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
 
         let lhs_content;
         let ops_content;
 
         Ok(Self {
-            generics,
+            generics: Generics {
+                where_clause: gen_where,
+                ..gen_
+            },
             signature: input.parse()?,
             colon: input.parse()?,
             lhs_paren: parenthesized!(lhs_content in input),
@@ -296,7 +293,7 @@ impl ToTokens for OpsImplMutable {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
             op: &'ops BinOp,
-            generics: Option<&'ops Generics>,
+            generics: &'ops Generics,
             signature: &'ops OpsSignatureMutable,
             expr: &'ops Expr,
         }
@@ -309,11 +306,7 @@ impl ToTokens for OpsImplMutable {
                 },
             };
 
-            let generics = spec.generics.map(|val| val.split_for_impl());
-            let (gen_impl, gen_where) = match generics {
-                Some((gen_impl, _, gen_where)) => (Some(gen_impl), gen_where),
-                None => (None, None),
-            };
+            let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
 
             let lhs_mut = &spec.signature.lhs_vmut;
             let lhs_ident = &spec.signature.lhs_ident;
@@ -347,7 +340,7 @@ impl ToTokens for OpsImplMutable {
         for entry in &self.entries {
             let spec = OpsSpec {
                 op: &entry.op,
-                generics: self.generics.as_ref(),
+                generics: &self.generics,
                 signature: &self.signature,
                 expr: &entry.expr,
             };
@@ -403,7 +396,7 @@ impl ToTokens for OpsImplBinary {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
             op: &'ops BinOp,
-            generics: Option<&'ops Generics>,
+            generics: &'ops Generics,
             signature: &'ops OpsSignatureBinary,
             expr: &'ops Expr,
         }
@@ -416,11 +409,7 @@ impl ToTokens for OpsImplBinary {
                 },
             };
 
-            let generics = spec.generics.map(|val| val.split_for_impl());
-            let (gen_impl, gen_where) = match generics {
-                Some((gen_impl, _, gen_where)) => (Some(gen_impl), gen_where),
-                None => (None, None),
-            };
+            let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
 
             let lhs_mut = &spec.signature.lhs_vmut;
             let lhs_ident = &spec.signature.lhs_ident;
@@ -455,7 +444,7 @@ impl ToTokens for OpsImplBinary {
         for entry in &self.entries {
             let spec = OpsSpec {
                 op: &entry.op,
-                generics: self.generics.as_ref(),
+                generics: &self.generics,
                 signature: &self.signature,
                 expr: &entry.expr,
             };
@@ -511,7 +500,7 @@ impl ToTokens for OpsImplUnary {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
             op: &'ops UnOp,
-            generics: Option<&'ops Generics>,
+            generics: &'ops Generics,
             signature: &'ops OpsSignatureUnary,
             expr: &'ops Expr,
         }
@@ -524,11 +513,7 @@ impl ToTokens for OpsImplUnary {
                 },
             };
 
-            let generics = spec.generics.map(|val| val.split_for_impl());
-            let (gen_impl, gen_where) = match generics {
-                Some((gen_impl, _, gen_where)) => (Some(gen_impl), gen_where),
-                None => (None, None),
-            };
+            let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
 
             let lhs_mut = &spec.signature.lhs_vmut;
             let lhs_ident = &spec.signature.lhs_ident;
@@ -557,7 +542,7 @@ impl ToTokens for OpsImplUnary {
         for entry in &self.entries {
             let spec = OpsSpec {
                 op: &entry.op,
-                generics: self.generics.as_ref(),
+                generics: &self.generics,
                 signature: &self.signature,
                 expr: &entry.expr,
             };
@@ -732,7 +717,7 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     let input = parse_macro_input!(stream as DeriveInput);
 
-    let (expr, ty) = match get_forward_args(&input) {
+    let (_expr, _ty) = match get_forward_args(&input) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
@@ -740,23 +725,23 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     quote! {}.into()
 }
 
-#[proc_macro_derive(ForwardFmt, attributes(forward_src))]
+#[proc_macro_derive(ForwardFmt, attributes(forward))]
 pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
-    let input = parse_macro_input!(stream as DeriveInput);
+    let _input = parse_macro_input!(stream as DeriveInput);
 
     todo!()
 }
 
-#[proc_macro_derive(ForwardOps, attributes(forward_src))]
+#[proc_macro_derive(ForwardOps, attributes(forward))]
 pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
-    let input = parse_macro_input!(stream as DeriveInput);
+    let _input = parse_macro_input!(stream as DeriveInput);
 
     todo!()
 }
 
-#[proc_macro_derive(ForwardOpsMut, attributes(forward_src))]
+#[proc_macro_derive(ForwardOpsMut, attributes(forward))]
 pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
-    let input = parse_macro_input!(stream as DeriveInput);
+    let _input = parse_macro_input!(stream as DeriveInput);
 
     todo!()
 }
