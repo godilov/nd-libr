@@ -725,8 +725,8 @@ pub fn transparent_ops(stream: TokenStreamStd) -> TokenStreamStd {
     todo!()
 }
 
-#[proc_macro_derive(TransparentOpsAssign)]
-pub fn transparent_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
+#[proc_macro_derive(TransparentOpsMut)]
+pub fn transparent_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
     todo!()
 }
 
