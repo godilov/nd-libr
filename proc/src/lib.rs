@@ -108,6 +108,13 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
     ops: Punctuated<Op, Token![,]>,
 }
 
+#[allow(dead_code)]
+struct ForwardArgs {
+    expr: ExprField,
+    as_: Token![as],
+    ty: Type,
+}
+
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
 type OpsImplBinary = OpsImpl<OpsSignatureBinary, BinOp>;
 type OpsImplUnary = OpsImpl<OpsSignatureUnary, UnOp>;
@@ -270,6 +277,16 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
             lhs_expr: lhs_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
             ops: ops_content.parse_terminated(Op::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for ForwardArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            expr: input.parse()?,
+            as_: input.parse()?,
+            ty: input.parse()?,
         })
     }
 }
@@ -715,7 +732,7 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     let input = parse_macro_input!(stream as DeriveInput);
 
-    let args = match get_forward_args(input) {
+    let args = match get_forward_args(&input) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
@@ -801,7 +818,7 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
 }
 
-fn get_forward_args(input: DeriveInput) -> Result<(ExprField, Type)> {
+fn get_forward_args(input: &DeriveInput) -> Result<ForwardArgs> {
     let mut iter = input
         .attrs
         .iter()
@@ -812,7 +829,7 @@ fn get_forward_args(input: DeriveInput) -> Result<(ExprField, Type)> {
         })
         .filter(|&attr| attr.path.is_ident("forward"));
 
-    let _attr = match [iter.next(), iter.next()] {
+    let attr = match [iter.next(), iter.next()] {
         [Some(val), None] => val,
         [None, None] => {
             return Err(Error::new(
@@ -829,5 +846,5 @@ fn get_forward_args(input: DeriveInput) -> Result<(ExprField, Type)> {
         _ => unreachable!(),
     };
 
-    todo!()
+    parse2::<ForwardArgs>(attr.tokens.clone())
 }
