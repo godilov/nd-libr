@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, DeriveInput, Error, Expr, Generics, Ident, Item, Meta, Path, Result, Token, Type, UnOp, bracketed,
-    parenthesized,
+    BinOp, DeriveInput, Error, Expr, ExprField, Generics, Ident, Item, Meta, Path, Result, Token, Type, UnOp,
+    bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -576,7 +576,7 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
-                Err(err) => err.to_compile_error().into(),
+                Err(err) => err.into_compile_error().into(),
             }
         },
         "@bin" => {
@@ -585,7 +585,7 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
-                Err(err) => err.to_compile_error().into(),
+                Err(err) => err.into_compile_error().into(),
             }
         },
         "@un" => {
@@ -594,10 +594,10 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
-                Err(err) => err.to_compile_error().into(),
+                Err(err) => err.into_compile_error().into(),
             }
         },
-        _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
+        _ => Error::new(Span::call_site(), ERROR).into_compile_error().into(),
     }
 }
 
@@ -630,7 +630,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
-                Err(err) => err.to_compile_error().into(),
+                Err(err) => err.into_compile_error().into(),
             }
         },
         "@bin" => {
@@ -655,7 +655,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
-                Err(err) => err.to_compile_error().into(),
+                Err(err) => err.into_compile_error().into(),
             }
         },
         "@un" => {
@@ -679,10 +679,10 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
-                Err(err) => err.to_compile_error().into(),
+                Err(err) => err.into_compile_error().into(),
             }
         },
-        _ => Error::new(Span::call_site(), ERROR).to_compile_error().into(),
+        _ => Error::new(Span::call_site(), ERROR).into_compile_error().into(),
     }
 }
 
@@ -715,29 +715,9 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     let input = parse_macro_input!(stream as DeriveInput);
 
-    let mut iter = input
-        .attrs
-        .iter()
-        .filter_map(|attr| match attr.meta {
-            Meta::Path(_) => None,
-            Meta::List(ref val) => Some(val),
-            Meta::NameValue(_) => None,
-        })
-        .filter(|&attr| attr.path.is_ident("forward"));
-
-    let _attr = match [iter.next(), iter.next()] {
-        [Some(val), None] => val,
-        [None, None] => {
-            return Error::new(Span::call_site(), "Failed to find valid 'forward' attribute: no entries")
-                .into_compile_error()
-                .into();
-        },
-        [Some(_), Some(_)] => {
-            return Error::new(Span::call_site(), "Failed to find valid 'forward' attribute: multiple entries")
-                .into_compile_error()
-                .into();
-        },
-        _ => unreachable!(),
+    let args = match get_forward_args(input) {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
     };
 
     quote! {}.into()
@@ -819,4 +799,35 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     }?;
 
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
+}
+
+fn get_forward_args(input: DeriveInput) -> Result<(ExprField, Type)> {
+    let mut iter = input
+        .attrs
+        .iter()
+        .filter_map(|attr| match attr.meta {
+            Meta::Path(_) => None,
+            Meta::List(ref val) => Some(val),
+            Meta::NameValue(_) => None,
+        })
+        .filter(|&attr| attr.path.is_ident("forward"));
+
+    let _attr = match [iter.next(), iter.next()] {
+        [Some(val), None] => val,
+        [None, None] => {
+            return Err(Error::new(
+                Span::call_site(),
+                "Failed to find valid 'forward' attribute: no entries",
+            ));
+        },
+        [Some(_), Some(_)] => {
+            return Err(Error::new(
+                Span::call_site(),
+                "Failed to find valid 'forward' attribute: multiple entries",
+            ));
+        },
+        _ => unreachable!(),
+    };
+
+    todo!()
 }
