@@ -2,7 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, Error, Expr, Generics, Ident, Item, Path, Result, Token, Type, UnOp, bracketed, parenthesized,
+    BinOp, DeriveInput, Error, Expr, Generics, Ident, Item, Meta, Path, Result, Token, Type, UnOp, bracketed,
+    parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -564,7 +565,7 @@ impl ToTokens for OpsImplUnary {
 
 #[proc_macro]
 pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
-    const ERROR: &str = "You must specify one of the identifiers: '@mut', '@bin', '@un'";
+    const ERROR: &str = "Failed to find one of identifiers: '@mut', '@bin', '@un'";
 
     let raw = parse_macro_input!(stream as OpsRaw);
 
@@ -602,7 +603,7 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro]
 pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
-    const ERROR: &str = "You must specify one of the identifiers: '@mut', '@bin', '@un'";
+    const ERROR: &str = "Failed to find one of identifiers: '@mut', '@bin', '@un'";
 
     let raw = parse_macro_input!(stream as OpsRaw);
 
@@ -710,23 +711,56 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-#[proc_macro_derive(ForwardStd)]
-pub fn forward(stream: TokenStreamStd) -> TokenStreamStd {
-    todo!()
+#[proc_macro_derive(ForwardStd, attributes(forward))]
+pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
+    let input = parse_macro_input!(stream as DeriveInput);
+
+    let mut iter = input
+        .attrs
+        .iter()
+        .filter_map(|attr| match attr.meta {
+            Meta::Path(_) => None,
+            Meta::List(ref val) => Some(val),
+            Meta::NameValue(_) => None,
+        })
+        .filter(|&attr| attr.path.is_ident("forward"));
+
+    let _attr = match [iter.next(), iter.next()] {
+        [Some(val), None] => val,
+        [None, None] => {
+            return Error::new(Span::call_site(), "Failed to find valid 'forward' attribute: no entries")
+                .into_compile_error()
+                .into();
+        },
+        [Some(_), Some(_)] => {
+            return Error::new(Span::call_site(), "Failed to find valid 'forward' attribute: multiple entries")
+                .into_compile_error()
+                .into();
+        },
+        _ => unreachable!(),
+    };
+
+    quote! {}.into()
 }
 
-#[proc_macro_derive(ForwardFmt)]
+#[proc_macro_derive(ForwardFmt, attributes(forward_src))]
 pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
+    let input = parse_macro_input!(stream as DeriveInput);
+
     todo!()
 }
 
-#[proc_macro_derive(ForwardOps)]
+#[proc_macro_derive(ForwardOps, attributes(forward_src))]
 pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
+    let input = parse_macro_input!(stream as DeriveInput);
+
     todo!()
 }
 
-#[proc_macro_derive(ForwardOpsMut)]
+#[proc_macro_derive(ForwardOpsMut, attributes(forward_src))]
 pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
+    let input = parse_macro_input!(stream as DeriveInput);
+
     todo!()
 }
 
@@ -744,7 +778,9 @@ fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
         BinOp::ShrAssign(_) => Ok(("shr_assign", "std::ops::ShrAssign")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!("Invalid 'op' for operation: '{op:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",),
+            format!(
+                "Failed to find valid op for operation: '{op:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",
+            ),
         )),
     }?;
 
@@ -765,7 +801,7 @@ fn get_std_path_binary(op: &BinOp) -> Result<(Ident, Path)> {
         BinOp::Shr(_) => Ok(("shr", "std::ops::Shr")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!("Invalid 'op' for operation: '{op:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",),
+            format!("Failed to find valid op for operation: '{op:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",),
         )),
     }?;
 
@@ -778,7 +814,7 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
         UnOp::Neg(_) => Ok(("neg", "std::ops::Neg")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!("Invalid 'op' for operation: '{op:?}'. Expected: -, !"),
+            format!("Failed to find valid op for operation: '{op:?}'. Expected: -, !"),
         )),
     }?;
 
