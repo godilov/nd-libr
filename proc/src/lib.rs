@@ -727,21 +727,36 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_derive(ForwardFmt, attributes(forward))]
 pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
-    let _input = parse_macro_input!(stream as DeriveInput);
+    let input = parse_macro_input!(stream as DeriveInput);
+
+    let (_expr, _ty) = match get_forward_args(&input) {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
 
     todo!()
 }
 
 #[proc_macro_derive(ForwardOps, attributes(forward))]
 pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
-    let _input = parse_macro_input!(stream as DeriveInput);
+    let input = parse_macro_input!(stream as DeriveInput);
+
+    let (_expr, _ty) = match get_forward_args(&input) {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
 
     todo!()
 }
 
 #[proc_macro_derive(ForwardOpsMut, attributes(forward))]
 pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
-    let _input = parse_macro_input!(stream as DeriveInput);
+    let input = parse_macro_input!(stream as DeriveInput);
+
+    let (_expr, _ty) = match get_forward_args(&input) {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
 
     todo!()
 }
