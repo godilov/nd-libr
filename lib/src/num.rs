@@ -8,6 +8,7 @@ use std::{
     },
 };
 
+use ndproc::ForwardStd;
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -463,10 +464,14 @@ pub mod prime {
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd)]
+#[forward(self.0 as N)]
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd)]
+#[forward(self.0 as N)]
 pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, PhantomData<M>)
 where
     for<'s> &'s N: Ops;
@@ -834,82 +839,6 @@ where
 
         res.normalize();
         res
-    }
-}
-
-impl<N: Num + Extension + Static, const BITS: usize> Deref for Width<N, BITS>
-where
-    for<'s> &'s N: Ops,
-{
-    type Target = N;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> Deref for Modular<N, M>
-where
-    for<'s> &'s N: Ops,
-{
-    type Target = N;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<N: Num + Extension + Static, const BITS: usize> DerefMut for Width<N, BITS>
-where
-    for<'s> &'s N: Ops,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> DerefMut for Modular<N, M>
-where
-    for<'s> &'s N: Ops,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<U, N: Num + Extension + Static + AsRef<U>, const BITS: usize> AsRef<U> for Width<N, BITS>
-where
-    for<'s> &'s N: Ops,
-{
-    fn as_ref(&self) -> &U {
-        self.0.as_ref()
-    }
-}
-
-impl<U, N: Num + Extension + Unsigned + Static + AsRef<U>, M: Modulus<N>> AsRef<U> for Modular<N, M>
-where
-    for<'s> &'s N: Ops,
-{
-    fn as_ref(&self) -> &U {
-        self.0.as_ref()
-    }
-}
-
-impl<U, N: Num + Extension + Static + AsMut<U>, const BITS: usize> AsMut<U> for Width<N, BITS>
-where
-    for<'s> &'s N: Ops,
-{
-    fn as_mut(&mut self) -> &mut U {
-        self.0.as_mut()
-    }
-}
-
-impl<U, N: Num + Extension + Unsigned + Static + AsMut<U>, M: Modulus<N>> AsMut<U> for Modular<N, M>
-where
-    for<'s> &'s N: Ops,
-{
-    fn as_mut(&mut self) -> &mut U {
-        self.0.as_mut()
     }
 }
 

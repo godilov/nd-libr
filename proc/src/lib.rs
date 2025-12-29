@@ -2,7 +2,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, DeriveInput, Error, Expr, ExprField, Generics, Ident, Item, Meta, Path, Result, Token, Type, UnOp,
+    BinOp, DeriveInput, Error, Expr, ExprCast, Generics, Ident, Item, Meta, Path, Result, Token, Type, UnOp,
     WhereClause, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
@@ -106,13 +106,6 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
     lhs_expr: Expr,
     ops_bracket: Bracket,
     ops: Punctuated<Op, Token![,]>,
-}
-
-#[allow(dead_code)]
-struct ForwardArgs {
-    expr: ExprField,
-    as_: Token![as],
-    ty: Type,
 }
 
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
@@ -274,16 +267,6 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
             lhs_expr: lhs_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
             ops: ops_content.parse_terminated(Op::parse, Token![,])?,
-        })
-    }
-}
-
-impl Parse for ForwardArgs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            expr: input.parse()?,
-            as_: input.parse()?,
-            ty: input.parse()?,
         })
     }
 }
@@ -717,12 +700,55 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     let input = parse_macro_input!(stream as DeriveInput);
 
-    let (_expr, _ty) = match get_forward_args(&input) {
+    let (expr, ty) = match get_forward_args(&input) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    quote! {}.into()
+    let ident = &input.ident;
+
+    let gen_params = &input.generics.params;
+
+    let (gen_impl, gen_type, gen_where) = input.generics.split_for_impl();
+
+    let as_ref: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val, #ty: AsRef<U> },
+        None => parse_quote! { where #ty: AsRef<U> },
+    };
+
+    let as_mut: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val, #ty: AsMut<U> },
+        None => parse_quote! { where #ty: AsMut<U> },
+    };
+
+    quote! {
+        impl #gen_impl Deref for #ident #gen_type #gen_where {
+            type Target = #ty;
+
+            fn deref(&self) -> &Self::Target {
+                &#expr
+            }
+        }
+
+        impl #gen_impl DerefMut for #ident #gen_type #gen_where {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut #expr
+            }
+        }
+
+        impl<U, #gen_params> AsRef<U> for #ident #gen_type #as_ref {
+            fn as_ref(&self) -> &U {
+                #expr.as_ref()
+            }
+        }
+
+        impl<U, #gen_params> AsMut<U> for #ident #gen_type #as_mut {
+            fn as_mut(&mut self) -> &mut U {
+                #expr.as_mut()
+            }
+        }
+    }
+    .into()
 }
 
 #[proc_macro_derive(ForwardFmt, attributes(forward))]
@@ -818,7 +844,7 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
 }
 
-fn get_forward_args(input: &DeriveInput) -> Result<(ExprField, Type)> {
+fn get_forward_args(input: &DeriveInput) -> Result<(Expr, Type)> {
     let mut iter = input
         .attrs
         .iter()
@@ -846,7 +872,12 @@ fn get_forward_args(input: &DeriveInput) -> Result<(ExprField, Type)> {
         _ => unreachable!(),
     };
 
-    let ForwardArgs { expr, as_: _, ty } = parse2::<ForwardArgs>(attr.tokens.clone())?;
+    let ExprCast {
+        attrs: _,
+        expr,
+        as_token: _,
+        ty,
+    } = parse2::<ExprCast>(attr.tokens.clone())?;
 
-    Ok((expr, ty))
+    Ok((*expr, *ty))
 }

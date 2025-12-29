@@ -6,6 +6,7 @@ use std::{
     },
 };
 
+use ndproc::ForwardStd;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 macro_rules! aligned_display_impl {
@@ -137,7 +138,8 @@ pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
 pub const RADIX: Double = Single::MAX as Double + 1;
 
 #[ndproc::align]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd)]
+#[forward(self.0 as T)]
 pub struct Aligned<T>(pub T);
 
 #[rustfmt::skip]
@@ -178,32 +180,6 @@ impl<T> From<T> for Aligned<T> {
 impl<U, V: FromIterator<U>> FromIterator<U> for Aligned<V> {
     fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
         Aligned::from(V::from_iter(iter))
-    }
-}
-
-impl<T> Deref for Aligned<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for Aligned<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<U, V: AsRef<U>> AsRef<U> for Aligned<V> {
-    fn as_ref(&self) -> &U {
-        self.0.as_ref()
-    }
-}
-
-impl<U, V: AsMut<U>> AsMut<U> for Aligned<V> {
-    fn as_mut(&mut self) -> &mut U {
-        self.0.as_mut()
     }
 }
 
