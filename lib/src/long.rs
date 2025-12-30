@@ -741,7 +741,7 @@ macro_rules! length {
 
         for (i, word) in $words.iter().enumerate().rev() {
             if word != $zero {
-                res = i;
+                res = i + 1;
 
                 break;
             }
