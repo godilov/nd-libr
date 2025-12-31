@@ -13,8 +13,8 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    arch::*,
-    long::{bytes::*, num::*, radix::*, uops::*},
+    arch::word::*,
+    long::{radix::*, uops::*},
     num::{Extension as NumExtension, Num, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned},
     ops::*,
     *,
@@ -22,19 +22,19 @@ use crate::{
 
 macro_rules! signed {
     ($bits:expr) => {
-        $crate::long::num::Signed<{ ($bits as usize).div_ceil($crate::arch::BITS as usize) }>
+        $crate::long::Signed<{ ($bits as usize).div_ceil($crate::arch::word::BITS as usize) }>
     };
 }
 
 macro_rules! unsigned {
     ($bits:expr) => {
-        $crate::long::num::Unsigned<{ ($bits as usize).div_ceil($crate::arch::BITS as usize) }>
+        $crate::long::Unsigned<{ ($bits as usize).div_ceil($crate::arch::word::BITS as usize) }>
     };
 }
 
 macro_rules! bytes {
     ($bits:expr) => {
-        $crate::long::bytes::Bytes<{ ($bits as usize).div_ceil($crate::arch::BITS as usize) }>
+        $crate::long::Bytes<{ ($bits as usize).div_ceil($crate::arch::word::BITS as usize) }>
     };
 }
 
@@ -774,41 +774,6 @@ pub mod radix {
     }
 }
 
-pub mod num {
-    use super::*;
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct Signed<const L: usize>(pub [Single; L]);
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct Unsigned<const L: usize>(pub [Single; L]);
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct SignedFixed<const L: usize>(pub [Single; L], pub usize);
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct UnsignedFixed<const L: usize>(pub [Single; L], pub usize);
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct SignedDyn(Vec<Single>, Sign);
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct UnsignedDyn(Vec<Single>);
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct SignedFixedDyn(Vec<Single>, Sign, usize);
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct UnsignedFixedDyn(Vec<Single>, usize);
-}
-
-pub mod bytes {
-    use super::*;
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct Bytes<const L: usize>(pub [Single; L]);
-}
-
 #[allow(unused)]
 mod uops {
     use super::*;
@@ -1036,6 +1001,33 @@ pub type B3072 = bytes!(3072);
 pub type B4096 = bytes!(4096);
 pub type B6144 = bytes!(6144);
 pub type B8192 = bytes!(8192);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Signed<const L: usize>(pub [Single; L]);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Unsigned<const L: usize>(pub [Single; L]);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SignedFixed<const L: usize>(pub [Single; L], pub usize);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnsignedFixed<const L: usize>(pub [Single; L], pub usize);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedDyn(Vec<Single>, Sign);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnsignedDyn(Vec<Single>);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedFixedDyn(Vec<Single>, Sign, usize);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnsignedFixedDyn(Vec<Single>, usize);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Bytes<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone)]
 pub struct DigitsIter<'words, const L: usize, W: Word> {

@@ -51,44 +51,84 @@ macro_rules! word_impl {
     };
 }
 
-#[cfg(all(target_pointer_width = "64", not(test)))]
-word_def!((u64, u128), {
-    pub(crate) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
-    pub(crate) const DEC_WIDTH: u8 = 19;
+pub mod word {
+    use super::*;
 
-    pub(crate) const OCT_RADIX: Double = 1 << 63;
-    pub(crate) const OCT_WIDTH: u8 = 21;
+    #[cfg(all(target_pointer_width = "64", not(test)))]
+    word_def!((u64, u128), {
+        pub(crate) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
+        pub(crate) const DEC_WIDTH: u8 = 19;
 
-    word_impl!([u8, u16, u32, u64, usize]);
-});
+        pub(crate) const OCT_RADIX: Double = 1 << 63;
+        pub(crate) const OCT_WIDTH: u8 = 21;
 
-#[cfg(all(target_pointer_width = "32", not(test)))]
-word_def!((u32, u64), {
-    pub(crate) const DEC_RADIX: Double = 1_000_000_000;
-    pub(crate) const DEC_WIDTH: u8 = 9;
+        word_impl!([u8, u16, u32, u64, usize]);
+    });
 
-    pub(crate) const OCT_RADIX: Double = 1 << 30;
-    pub(crate) const OCT_WIDTH: u8 = 10;
+    #[cfg(all(target_pointer_width = "32", not(test)))]
+    word_def!((u32, u64), {
+        pub(crate) const DEC_RADIX: Double = 1_000_000_000;
+        pub(crate) const DEC_WIDTH: u8 = 9;
 
-    word_impl!([u8, u16, u32, usize]);
-});
+        pub(crate) const OCT_RADIX: Double = 1 << 30;
+        pub(crate) const OCT_WIDTH: u8 = 10;
 
-#[cfg(test)]
-word_def!((u8, u16), {
-    pub(crate) const DEC_RADIX: Double = 100;
-    pub(crate) const DEC_WIDTH: u8 = 2;
+        word_impl!([u8, u16, u32, usize]);
+    });
 
-    pub(crate) const OCT_RADIX: Double = 1 << 6;
-    pub(crate) const OCT_WIDTH: u8 = 2;
+    #[cfg(test)]
+    word_def!((u8, u16), {
+        pub(crate) const DEC_RADIX: Double = 100;
+        pub(crate) const DEC_WIDTH: u8 = 2;
 
-    word_impl!([u8]);
-});
+        pub(crate) const OCT_RADIX: Double = 1 << 6;
+        pub(crate) const OCT_WIDTH: u8 = 2;
 
-pub const MAX: Single = Single::MAX;
-pub const MIN: Single = Single::MIN;
-pub const BITS: usize = Single::BITS as usize;
-pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
-pub const RADIX: Double = Single::MAX as Double + 1;
+        word_impl!([u8]);
+    });
+
+    pub const MAX: Single = Single::MAX;
+    pub const MIN: Single = Single::MIN;
+    pub const BITS: usize = Single::BITS as usize;
+    pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub const RADIX: Double = Single::MAX as Double + 1;
+
+    #[rustfmt::skip]
+    pub trait Word: Clone + Copy
+        + PartialEq + Eq
+        + PartialOrd + Ord
+        + Debug + Display + Binary + Octal + LowerHex + UpperHex
+        + FromBytes + IntoBytes + Immutable
+    {
+        const BITS: usize;
+        const BYTES: usize;
+        const ZERO: Self;
+        const ONE: Self;
+
+        fn from_single(value: Single) -> Self;
+        fn from_double(value: Double) -> Self;
+
+        fn as_single(self) -> Single;
+        fn as_double(self) -> Double;
+
+        fn order(self) -> usize;
+
+        fn is_pow2(self) -> bool;
+    }
+
+    pub trait WordsIterator: Clone + Iterator + ExactSizeIterator
+    where
+        <Self as Iterator>::Item: Word,
+    {
+    }
+
+    impl<Iter> WordsIterator for Iter
+    where
+        Iter: Clone + Iterator + ExactSizeIterator,
+        Iter::Item: Word,
+    {
+    }
+}
 
 #[ndproc::align]
 #[derive(
@@ -97,44 +137,8 @@ pub const RADIX: Double = Single::MAX as Double + 1;
 #[forward(self.0 as T)]
 pub struct Aligned<T>(pub T);
 
-#[rustfmt::skip]
-pub trait Word: Clone + Copy
-    + PartialEq + Eq
-    + PartialOrd + Ord
-    + Debug + Display + Binary + Octal + LowerHex + UpperHex
-    + FromBytes + IntoBytes + Immutable
-{
-    const BITS: usize;
-    const BYTES: usize;
-    const ZERO: Self;
-    const ONE: Self;
-
-    fn from_single(value: Single) -> Self;
-    fn from_double(value: Double) -> Self;
-
-    fn as_single(self) -> Single;
-    fn as_double(self) -> Double;
-
-    fn order(self) -> usize;
-
-    fn is_pow2(self) -> bool;
-}
-
-pub trait WordsIterator: Clone + Iterator + ExactSizeIterator
-where
-    <Self as Iterator>::Item: Word,
-{
-}
-
 impl<T> From<T> for Aligned<T> {
     fn from(value: T) -> Self {
         Aligned(value)
     }
-}
-
-impl<Iter> WordsIterator for Iter
-where
-    Iter: Clone + Iterator + ExactSizeIterator,
-    Iter::Item: Word,
-{
 }
