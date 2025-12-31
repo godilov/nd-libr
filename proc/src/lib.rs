@@ -722,7 +722,7 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     };
 
     quote! {
-        impl #gen_impl Deref for #ident #gen_type #gen_where {
+        impl #gen_impl std::ops::Deref for #ident #gen_type #gen_where {
             type Target = #ty;
 
             fn deref(&self) -> &Self::Target {
@@ -730,19 +730,19 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
             }
         }
 
-        impl #gen_impl DerefMut for #ident #gen_type #gen_where {
+        impl #gen_impl std::ops::DerefMut for #ident #gen_type #gen_where {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut #expr
             }
         }
 
-        impl<U, #gen_params> AsRef<U> for #ident #gen_type #as_ref {
+        impl<U, #gen_params> std::convert::AsRef<U> for #ident #gen_type #as_ref {
             fn as_ref(&self) -> &U {
                 #expr.as_ref()
             }
         }
 
-        impl<U, #gen_params> AsMut<U> for #ident #gen_type #as_mut {
+        impl<U, #gen_params> std::convert::AsMut<U> for #ident #gen_type #as_mut {
             fn as_mut(&mut self) -> &mut U {
                 #expr.as_mut()
             }
