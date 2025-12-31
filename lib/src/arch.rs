@@ -6,7 +6,7 @@ use std::{
     },
 };
 
-use ndproc::{ForwardFmt, ForwardStd};
+use ndproc::{ForwardFmt, ForwardOps, ForwardStd};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 macro_rules! aligned_ops_impl {
@@ -18,7 +18,7 @@ macro_rules! aligned_ops_impl {
             type Output = Aligned<V>;
 
             fn $fn(self, rhs: U) -> Self::Output {
-                Aligned(self.0.$fn(rhs))
+                Self::from(self.0.$fn(rhs))
             }
         }
     };
@@ -125,7 +125,7 @@ pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
 pub const RADIX: Double = Single::MAX as Double + 1;
 
 #[ndproc::align]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps)]
 #[forward(self.0 as T)]
 pub struct Aligned<T>(pub T);
 
@@ -169,17 +169,6 @@ impl<U, V: FromIterator<U>> FromIterator<U> for Aligned<V> {
         Aligned::from(V::from_iter(iter))
     }
 }
-
-aligned_ops_impl!([
-    Add => add,
-    Sub => sub,
-    Mul => mul,
-    Div => div,
-    Rem => rem,
-    BitOr => bitor,
-    BitAnd => bitand,
-    BitXor => bitxor,
-]);
 
 aligned_ops_mut_impl!([
     AddAssign => add_assign,
