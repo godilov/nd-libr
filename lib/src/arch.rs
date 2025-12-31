@@ -1,41 +1,7 @@
-use std::{
-    fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex},
-    ops::{
-        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
-        Rem, RemAssign, Sub, SubAssign,
-    },
-};
+use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndproc::{ForwardFmt, ForwardOps, ForwardStd};
+use ndproc::{ForwardFmt, ForwardOps, ForwardOpsMut, ForwardStd};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
-
-macro_rules! aligned_ops_impl {
-    ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(aligned_ops_impl!($op => $fn);)+
-    };
-    ($op:ident => $fn:ident $(,)?) => {
-        impl<U, V: $op<U, Output = V>> $op<U> for Aligned<V> {
-            type Output = Aligned<V>;
-
-            fn $fn(self, rhs: U) -> Self::Output {
-                Self::from(self.0.$fn(rhs))
-            }
-        }
-    };
-}
-
-macro_rules! aligned_ops_mut_impl {
-    ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(aligned_ops_mut_impl!($op => $fn);)+
-    };
-    ($op:ident => $fn:ident $(,)?) => {
-        impl<U, V: $op<U>> $op<U> for Aligned<V> {
-            fn $fn(&mut self, rhs: U) {
-                self.0.$fn(rhs);
-            }
-        }
-    };
-}
 
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($body:tt)* } $(,)?) => {
@@ -125,7 +91,9 @@ pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
 pub const RADIX: Double = Single::MAX as Double + 1;
 
 #[ndproc::align]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps, ForwardOpsMut,
+)]
 #[forward(self.0 as T)]
 pub struct Aligned<T>(pub T);
 
@@ -163,23 +131,6 @@ impl<T> From<T> for Aligned<T> {
         Aligned(value)
     }
 }
-
-impl<U, V: FromIterator<U>> FromIterator<U> for Aligned<V> {
-    fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
-        Aligned::from(V::from_iter(iter))
-    }
-}
-
-aligned_ops_mut_impl!([
-    AddAssign => add_assign,
-    SubAssign => sub_assign,
-    MulAssign => mul_assign,
-    DivAssign => div_assign,
-    RemAssign => rem_assign,
-    BitOrAssign => bitor_assign,
-    BitAndAssign => bitand_assign,
-    BitXorAssign => bitxor_assign,
-]);
 
 impl<Iter> WordsIterator for Iter
 where

@@ -712,13 +712,18 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     let (gen_impl, gen_type, gen_where) = input.generics.split_for_impl();
 
     let as_ref: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: AsRef<AsRefRet> },
-        None => parse_quote! { where #ty: AsRef<AsRefRet> },
+        Some(val) => parse_quote! { #val, #ty: std::convert::AsRef<AsRefRet> },
+        None => parse_quote! { where #ty: std::convert::AsRef<AsRefRet> },
     };
 
     let as_mut: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: AsMut<AsMutRet> },
-        None => parse_quote! { where #ty: AsMut<AsMutRet> },
+        Some(val) => parse_quote! { #val, #ty: std::convert::AsMut<AsMutRet> },
+        None => parse_quote! { where #ty: std::convert::AsMut<AsMutRet> },
+    };
+
+    let from_iter: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val, #ty: std::iter::FromIterator<Elem> },
+        None => parse_quote! { where #ty: std::iter::FromIterator<Elem> },
     };
 
     quote! {
@@ -745,6 +750,12 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
         impl<AsMutRet, #gen_params> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut {
             fn as_mut(&mut self) -> &mut AsMutRet {
                 #expr.as_mut()
+            }
+        }
+
+        impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
+            fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
+                Self::from(#ty::from_iter(iter))
             }
         }
     }
@@ -974,14 +985,136 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_derive(ForwardOpsMut, attributes(forward))]
 pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
+    fn forward_ops_impl(
+        input: &DeriveInput,
+        expr: &Expr,
+        op: Path,
+        op_fn: Ident,
+        op_where: WhereClause,
+    ) -> TokenStream {
+        let ident = &input.ident;
+
+        let gen_params = &input.generics.params;
+
+        let (_, gen_type, _) = input.generics.split_for_impl();
+
+        quote! {
+            impl<Rhs, #gen_params> #op for #ident #gen_type #op_where {
+                fn #op_fn(&mut self, rhs: Rhs) {
+                    #expr.#op_fn(rhs);
+                }
+            }
+        }
+    }
+
     let input = parse_macro_input!(stream as DeriveInput);
 
-    let (_expr, _ty) = match get_forward_args(&input) {
+    let (expr, ty) = match get_forward_args(&input) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    todo!()
+    let (_, _, gen_where) = input.generics.split_for_impl();
+
+    let add = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::AddAssign<Rhs> },
+        parse_quote! { add_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::AddAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::AddAssign<Rhs> },
+        },
+    );
+
+    let sub = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::SubAssign<Rhs> },
+        parse_quote! { sub_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::SubAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::SubAssign<Rhs> },
+        },
+    );
+
+    let mul = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::MulAssign<Rhs> },
+        parse_quote! { mul_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::MulAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::MulAssign<Rhs> },
+        },
+    );
+
+    let div = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::DivAssign<Rhs> },
+        parse_quote! { div_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::DivAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::DivAssign<Rhs> },
+        },
+    );
+
+    let rem = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::RemAssign<Rhs> },
+        parse_quote! { rem_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::RemAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::RemAssign<Rhs> },
+        },
+    );
+
+    let bitor = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::BitOrAssign<Rhs> },
+        parse_quote! { bitor_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::BitOrAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::BitOrAssign<Rhs> },
+        },
+    );
+
+    let bitand = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::BitAndAssign<Rhs> },
+        parse_quote! { bitand_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::BitAndAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::BitAndAssign<Rhs> },
+        },
+    );
+
+    let bitxor = forward_ops_impl(
+        &input,
+        &expr,
+        parse_quote! { std::ops::BitXorAssign<Rhs> },
+        parse_quote! { bitxor_assign },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::ops::BitXorAssign<Rhs> },
+            None => parse_quote! { where #ty: std::ops::BitXorAssign<Rhs> },
+        },
+    );
+
+    quote! {
+        #add
+        #sub
+        #mul
+        #div
+        #rem
+        #bitor
+        #bitand
+        #bitxor
+    }
+    .into()
 }
 
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {

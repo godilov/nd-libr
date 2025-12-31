@@ -773,7 +773,7 @@ where
     for<'s> &'s N: Ops,
 {
     fn from(value: N) -> Self {
-        Width(value)
+        Width(value).normalized()
     }
 }
 
@@ -782,31 +782,7 @@ where
     for<'s> &'s N: Ops,
 {
     fn from(value: N) -> Self {
-        Modular(value, PhantomData)
-    }
-}
-
-impl<U, N: Num + Extension + Static + FromIterator<U>, const BITS: usize> FromIterator<U> for Width<N, BITS>
-where
-    for<'s> &'s N: Ops,
-{
-    fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
-        let mut res = Width::from(N::from_iter(iter));
-
-        res.normalize();
-        res
-    }
-}
-
-impl<U, N: Num + Extension + Unsigned + Static + FromIterator<U>, M: Modulus<N>> FromIterator<U> for Modular<N, M>
-where
-    for<'s> &'s N: Ops,
-{
-    fn from_iter<T: IntoIterator<Item = U>>(iter: T) -> Self {
-        let mut res = Modular::from(N::from_iter(iter));
-
-        res.normalize();
-        res
+        Modular(value, PhantomData).normalized()
     }
 }
 
@@ -858,7 +834,6 @@ impl<N: Num + Extension + Static, const BITS: usize> Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
-    #[allow(unused)]
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
@@ -873,7 +848,6 @@ impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
-    #[allow(unused)]
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
