@@ -163,9 +163,9 @@ macro_rules! sign_from {
     };
 }
 
-macro_rules! width_ops_mut_impl {
+macro_rules! width_ops_assign_impl {
     ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(width_ops_mut_impl!($op => $fn);)+
+        $(width_ops_assign_impl!($op => $fn);)+
     };
     ($op:ident => $fn:ident $(,)?) => {
         impl<U, N: Num + Extension + Static + $op<U>, const BITS: usize> $op<U> for Width<N, BITS>
@@ -180,9 +180,9 @@ macro_rules! width_ops_mut_impl {
     };
 }
 
-macro_rules! modular_ops_mut_impl {
+macro_rules! modular_ops_assign_impl {
     ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(modular_ops_mut_impl!($op => $fn);)+
+        $(modular_ops_assign_impl!($op => $fn);)+
     };
     ($op:ident => $fn:ident $(,)?) => {
         impl<U, N: Num + Extension + Unsigned + Static + $op<U>, M: Modulus<N>> $op<U> for Modular<N, M>
@@ -741,7 +741,7 @@ where
     }
 }
 
-width_ops_mut_impl!([
+width_ops_assign_impl!([
     AddAssign => add_assign,
     SubAssign => sub_assign,
     MulAssign => mul_assign,
@@ -752,7 +752,7 @@ width_ops_mut_impl!([
     BitXorAssign => bitxor_assign,
 ]);
 
-modular_ops_mut_impl!([
+modular_ops_assign_impl!([
     AddAssign => add_assign,
     SubAssign => sub_assign,
     MulAssign => mul_assign,

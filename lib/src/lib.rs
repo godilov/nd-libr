@@ -73,7 +73,7 @@ mod tests {
         };
     }
 
-    macro_rules! assert_ops_mut {
+    macro_rules! assert_ops_assign {
         (@impl $op:tt $arg1:expr, $arg2:expr, $val:expr) => {{
             let mut val = $arg1;
 
@@ -82,28 +82,28 @@ mod tests {
             assert_eq!(val, $val);
         }};
         (@ref $arg1:expr, $arg2:expr, $fn:ident, $val1:expr, $val2:expr) => {
-            assert_ops_mut!(@impl += $arg1, $arg2, &mut $fn($val1 + $val2));
-            assert_ops_mut!(@impl -= $arg1, $arg2, &mut $fn($val1 - $val2));
-            assert_ops_mut!(@impl *= $arg1, $arg2, &mut $fn($val1 * $val2));
-            assert_ops_mut!(@impl /= $arg1, $arg2, &mut $fn($val1 / $val2));
-            assert_ops_mut!(@impl %= $arg1, $arg2, &mut $fn($val1 % $val2));
-            assert_ops_mut!(@impl |= $arg1, $arg2, &mut $fn($val1 | $val2));
-            assert_ops_mut!(@impl &= $arg1, $arg2, &mut $fn($val1 & $val2));
-            assert_ops_mut!(@impl ^= $arg1, $arg2, &mut $fn($val1 ^ $val2));
-            assert_ops_mut!(@impl <<= $arg1, $arg2, &mut $fn($val1 << $val2));
-            assert_ops_mut!(@impl >>= $arg1, $arg2, &mut $fn($val1 >> $val2));
+            assert_ops_assign!(@impl += $arg1, $arg2, &mut $fn($val1 + $val2));
+            assert_ops_assign!(@impl -= $arg1, $arg2, &mut $fn($val1 - $val2));
+            assert_ops_assign!(@impl *= $arg1, $arg2, &mut $fn($val1 * $val2));
+            assert_ops_assign!(@impl /= $arg1, $arg2, &mut $fn($val1 / $val2));
+            assert_ops_assign!(@impl %= $arg1, $arg2, &mut $fn($val1 % $val2));
+            assert_ops_assign!(@impl |= $arg1, $arg2, &mut $fn($val1 | $val2));
+            assert_ops_assign!(@impl &= $arg1, $arg2, &mut $fn($val1 & $val2));
+            assert_ops_assign!(@impl ^= $arg1, $arg2, &mut $fn($val1 ^ $val2));
+            assert_ops_assign!(@impl <<= $arg1, $arg2, &mut $fn($val1 << $val2));
+            assert_ops_assign!(@impl >>= $arg1, $arg2, &mut $fn($val1 >> $val2));
         };
         (@mut $arg1:expr, $arg2:expr, $fn:ident, $val1:expr, $val2:expr) => {
-            assert_ops_mut!(@impl += $arg1, $arg2, $fn($val1 + $val2));
-            assert_ops_mut!(@impl -= $arg1, $arg2, $fn($val1 - $val2));
-            assert_ops_mut!(@impl *= $arg1, $arg2, $fn($val1 * $val2));
-            assert_ops_mut!(@impl /= $arg1, $arg2, $fn($val1 / $val2));
-            assert_ops_mut!(@impl %= $arg1, $arg2, $fn($val1 % $val2));
-            assert_ops_mut!(@impl |= $arg1, $arg2, $fn($val1 | $val2));
-            assert_ops_mut!(@impl &= $arg1, $arg2, $fn($val1 & $val2));
-            assert_ops_mut!(@impl ^= $arg1, $arg2, $fn($val1 ^ $val2));
-            assert_ops_mut!(@impl <<= $arg1, $arg2, $fn($val1 << $val2));
-            assert_ops_mut!(@impl >>= $arg1, $arg2, $fn($val1 >> $val2));
+            assert_ops_assign!(@impl += $arg1, $arg2, $fn($val1 + $val2));
+            assert_ops_assign!(@impl -= $arg1, $arg2, $fn($val1 - $val2));
+            assert_ops_assign!(@impl *= $arg1, $arg2, $fn($val1 * $val2));
+            assert_ops_assign!(@impl /= $arg1, $arg2, $fn($val1 / $val2));
+            assert_ops_assign!(@impl %= $arg1, $arg2, $fn($val1 % $val2));
+            assert_ops_assign!(@impl |= $arg1, $arg2, $fn($val1 | $val2));
+            assert_ops_assign!(@impl &= $arg1, $arg2, $fn($val1 & $val2));
+            assert_ops_assign!(@impl ^= $arg1, $arg2, $fn($val1 ^ $val2));
+            assert_ops_assign!(@impl <<= $arg1, $arg2, $fn($val1 << $val2));
+            assert_ops_assign!(@impl >>= $arg1, $arg2, $fn($val1 >> $val2));
         };
     }
 
@@ -208,34 +208,34 @@ mod tests {
     }
 
     #[test]
-    fn ops_mut() {
+    fn ops_assign() {
         let val1 = 32i64;
         let val2 = 2i64;
 
-        assert_ops_mut!(@ref &mut A0(val1), &A0(val2), A0, val1, val2);
-        assert_ops_mut!(@ref &mut A0(val1), &B0(val2), A0, val1, val2);
-        assert_ops_mut!(@ref &mut A0(val1), A0(val2), A0, val1, val2);
-        assert_ops_mut!(@ref &mut A0(val1), B0(val2), A0, val1, val2);
+        assert_ops_assign!(@ref &mut A0(val1), &A0(val2), A0, val1, val2);
+        assert_ops_assign!(@ref &mut A0(val1), &B0(val2), A0, val1, val2);
+        assert_ops_assign!(@ref &mut A0(val1), A0(val2), A0, val1, val2);
+        assert_ops_assign!(@ref &mut A0(val1), B0(val2), A0, val1, val2);
 
-        assert_ops_mut!(@mut A0(val1), &A0(val2), A0, val1, val2);
-        assert_ops_mut!(@mut A0(val1), &B0(val2), A0, val1, val2);
-        assert_ops_mut!(@mut A0(val1), A0(val2), A0, val1, val2);
-        assert_ops_mut!(@mut A0(val1), B0(val2), A0, val1, val2);
+        assert_ops_assign!(@mut A0(val1), &A0(val2), A0, val1, val2);
+        assert_ops_assign!(@mut A0(val1), &B0(val2), A0, val1, val2);
+        assert_ops_assign!(@mut A0(val1), A0(val2), A0, val1, val2);
+        assert_ops_assign!(@mut A0(val1), B0(val2), A0, val1, val2);
     }
 
     #[test]
-    fn ops_gen_mut() {
+    fn ops_gen_assign() {
         let val1 = 32i64;
         let val2 = 2i64;
 
-        assert_ops_mut!(@ref &mut X0(val1), &X0(val2), X0, val1, val2);
-        assert_ops_mut!(@ref &mut X0(val1), &Y0(val2), X0, val1, val2);
-        assert_ops_mut!(@ref &mut X0(val1), X0(val2), X0, val1, val2);
-        assert_ops_mut!(@ref &mut X0(val1), Y0(val2), X0, val1, val2);
+        assert_ops_assign!(@ref &mut X0(val1), &X0(val2), X0, val1, val2);
+        assert_ops_assign!(@ref &mut X0(val1), &Y0(val2), X0, val1, val2);
+        assert_ops_assign!(@ref &mut X0(val1), X0(val2), X0, val1, val2);
+        assert_ops_assign!(@ref &mut X0(val1), Y0(val2), X0, val1, val2);
 
-        assert_ops_mut!(@mut X0(val1), &X0(val2), X0, val1, val2);
-        assert_ops_mut!(@mut X0(val1), &Y0(val2), X0, val1, val2);
-        assert_ops_mut!(@mut X0(val1), X0(val2), X0, val1, val2);
-        assert_ops_mut!(@mut X0(val1), Y0(val2), X0, val1, val2);
+        assert_ops_assign!(@mut X0(val1), &X0(val2), X0, val1, val2);
+        assert_ops_assign!(@mut X0(val1), &Y0(val2), X0, val1, val2);
+        assert_ops_assign!(@mut X0(val1), X0(val2), X0, val1, val2);
+        assert_ops_assign!(@mut X0(val1), Y0(val2), X0, val1, val2);
     }
 }

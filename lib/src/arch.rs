@@ -1,6 +1,6 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndproc::{ForwardFmt, ForwardOps, ForwardOpsMut, ForwardStd};
+use ndproc::{ForwardFmt, ForwardOps, ForwardOpsAssign, ForwardStd};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 macro_rules! word_def {
@@ -92,7 +92,7 @@ pub const RADIX: Double = Single::MAX as Double + 1;
 
 #[ndproc::align]
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps, ForwardOpsMut,
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps, ForwardOpsAssign,
 )]
 #[forward(self.0 as T)]
 pub struct Aligned<T>(pub T);

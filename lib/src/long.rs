@@ -3365,7 +3365,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn signed_ops_mut() {
+    fn signed_ops_assign() {
         assert_ops!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
@@ -3385,7 +3385,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn unsigned_ops_mut() {
+    fn unsigned_ops_assign() {
         assert_ops!(
             U64,
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
@@ -3405,7 +3405,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn signed_ops_primitive_native_mut() {
+    fn signed_ops_primitive_native_assign() {
         assert_ops_primitive!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
@@ -3425,7 +3425,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn unsigned_ops_primitive_native_mut() {
+    fn unsigned_ops_primitive_native_assign() {
         assert_ops_primitive!(
             U64,
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
@@ -3445,7 +3445,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn signed_ops_primitive_mut() {
+    fn signed_ops_primitive_assign() {
         assert_ops_primitive!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
@@ -3465,7 +3465,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn unsigned_ops_primitive_mut() {
+    fn unsigned_ops_primitive_assign() {
         assert_ops_primitive!(
             U64,
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
@@ -3511,7 +3511,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn signed_ops_shift_mut() {
+    fn signed_ops_shift_assign() {
         assert_ops_shift!(S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
             (|mut val: S64, shift: usize| { val <<= shift; val })(|val: i64, shift: usize| { S64::from(val << shift) }),
             (|mut val: S64, shift: usize| { val >>= shift; val })(|val: i64, shift: usize| { S64::from(val >> shift) }),
@@ -3520,7 +3520,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn unsigned_ops_shift_mut() {
+    fn unsigned_ops_shift_assign() {
         assert_ops_shift!(U64, (1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
             (|mut val: U64, shift: usize| { val <<= shift; val })(|val: u64, shift: usize| { U64::from(val << shift) }),
             (|mut val: U64, shift: usize| { val >>= shift; val })(|val: u64, shift: usize| { U64::from(val >> shift) }),
