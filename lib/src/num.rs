@@ -395,7 +395,7 @@ where
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps)]
 #[forward(self.0 as N)]
-pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, PhantomData<M>)
+pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
     for<'s> &'s N: Ops;
 
