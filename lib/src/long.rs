@@ -39,17 +39,11 @@ macro_rules! bytes {
 }
 
 macro_rules! from_primitive {
-    (@signed [$($primitive:ty),+ $(,)?]) => {
-        $(from_primitive!(@signed $primitive);)+
+    ($long:ident [$($primitive:ty),+ $(,)?]) => {
+        $(from_primitive!($long, $primitive);)+
     };
-    (@unsigned [$($primitive:ty),+ $(,)?]) => {
-        $(from_primitive!(@unsigned $primitive);)+
-    };
-    (@bytes [$($primitive:ty),+ $(,)?]) => {
-        $(from_primitive!(@bytes $primitive);)+
-    };
-    (@signed $primitive:ty $(,)?) => {
-        impl<const L: usize> From<$primitive> for Signed<L> {
+    ($long:ident, $primitive:ty $(,)?) => {
+        impl<const L: usize> From<$primitive> for $long<L> {
             #[allow(unused_comparisons)]
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
@@ -59,75 +53,22 @@ macro_rules! from_primitive {
             }
         }
     };
-    (@unsigned $primitive:ty $(,)?) => {
-        impl<const L: usize> From<$primitive> for Unsigned<L> {
-            fn from(value: $primitive) -> Self {
-                let bytes = value.to_le_bytes();
-                let res = from_arr(&bytes, 0);
-
-                Self(res)
-            }
-        }
-    };
-    (@bytes $primitive:ty $(,)?) => {
-        impl<const L: usize> From<$primitive> for Bytes<L> {
-            fn from(value: $primitive) -> Self {
-                let bytes = value.to_le_bytes();
-                let res = from_arr(&bytes, 0);
-
-                Self(res)
-            }
-        }
-    };
 }
 
 macro_rules! from_primitive_const {
-    (@signed [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
-        $(from_primitive_const!(@signed $fn, $primitive);)+
+    ([$(($fn:ident, $primitive:ty)),+ $(,)?]) => {
+        $(from_primitive_const!($fn, $primitive);)+
     };
-    (@unsigned [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
-        $(from_primitive_const!(@unsigned $fn, $primitive);)+
-    };
-    (@bytes [$(($fn:ident, $primitive:ty) $(,)?),+]) => {
-        $(from_primitive_const!(@unsigned $fn, $primitive);)+
-    };
-    (@signed $fn:ident, $primitive:ty $(,)?) => {
-        pub const fn $fn(val: $primitive) -> Self {
-            let default = if val >= 0 { 0 } else { MAX };
+    ($fn:ident, $primitive:ty $(,)?) => {
+        #[allow(unused_comparisons)]
+        pub const fn $fn(value: $primitive) -> Self {
+            let default = if value >= 0 { 0 } else { MAX };
 
-            let mut val = val.abs_diff(0);
+            let mut val = value as u128;
             let mut idx = 0;
             let mut res = [default; L];
 
-            while val > 0 {
-                res[idx] = val as Single;
-                idx += 1;
-                val = val.unbounded_shr(BITS as u32);
-            }
-
-            Self(res)
-        }
-    };
-    (@unsigned $fn:ident, $primitive:ty $(,)?) => {
-        pub const fn $fn(mut val: $primitive) -> Self {
-            let mut idx = 0;
-            let mut res = [0; L];
-
-            while val > 0 {
-                res[idx] = val as Single;
-                idx += 1;
-                val = val.unbounded_shr(BITS as u32);
-            }
-
-            Self(res)
-        }
-    };
-    (@bytes $fn:ident, $primitive:ty $(,)?) => {
-        pub const fn $fn(mut val: $primitive) -> Self {
-            let mut idx = 0;
-            let mut res = [0; L];
-
-            while val > 0 {
+            while idx < L && val > 0 {
                 res[idx] = val as Single;
                 idx += 1;
                 val = val.unbounded_shr(BITS as u32);
@@ -921,12 +862,10 @@ mod uops {
         dec_impl!(words)
     }
 
-    #[allow(unused_variables)]
     pub(super) fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         shl_impl!(*words, words, shift, default, |words: &[Single; L]| { [default; L] })
     }
 
-    #[allow(unused_variables)]
     pub(super) fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         shr_impl!(*words, words, shift, default, |words: &[Single; L]| { [default; L] })
     }
@@ -1251,9 +1190,9 @@ impl<const L: usize> From<bool> for Bytes<L> {
     }
 }
 
-from_primitive!(@signed [i8, i16, i32, i64, i128, isize]);
-from_primitive!(@unsigned [u8, u16, u32, u64, u128, usize]);
-from_primitive!(@bytes [u8, u16, u32, u64, u128, usize]);
+from_primitive!(Signed [i8, i16, i32, i64, i128, isize]);
+from_primitive!(Unsigned [u8, u16, u32, u64, u128, usize]);
+from_primitive!(Bytes [u8, u16, u32, u64, u128, usize]);
 
 impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Signed<L> {
     fn nd_from(value: &[W; N]) -> Self {
@@ -1671,7 +1610,7 @@ ops_impl!(@mut <const L: usize> |a: mut Bytes<L>, b: usize|,
     >>= { shr_mut(&mut a.0, b, 0); });
 
 impl<const L: usize> Signed<L> {
-    from_primitive_const!(@signed [
+    from_primitive_const!([
         (from_i8, i8),
         (from_i16, i16),
         (from_i32, i32),
@@ -1728,7 +1667,7 @@ impl<const L: usize> Signed<L> {
 }
 
 impl<const L: usize> Unsigned<L> {
-    from_primitive_const!(@unsigned [
+    from_primitive_const!([
         (from_u8, u8),
         (from_u16, u16),
         (from_u32, u32),
@@ -1777,7 +1716,7 @@ impl<const L: usize> Unsigned<L> {
 }
 
 impl<const L: usize> Bytes<L> {
-    from_primitive_const!(@bytes [
+    from_primitive_const!([
         (from_u8, u8),
         (from_u16, u16),
         (from_u32, u32),
@@ -2893,7 +2832,28 @@ mod tests {
     }
 
     #[test]
-    fn from_std() {
+    fn from_primitive() {
+        assert_eq!(
+            S64::from_i64(i64::MAX >> 4),
+            S64 {
+                0: (i64::MAX >> 4).to_le_bytes()
+            }
+        );
+
+        assert_eq!(
+            S64::from_i64(i64::MIN >> 4),
+            S64 {
+                0: (i64::MIN >> 4).to_le_bytes()
+            }
+        );
+
+        assert_eq!(
+            U64::from_u64(u64::MAX >> 4),
+            U64 {
+                0: (u64::MAX >> 4).to_le_bytes()
+            }
+        );
+
         for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
             let bytes = val.to_le_bytes();
 
