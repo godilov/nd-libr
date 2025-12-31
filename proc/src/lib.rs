@@ -985,7 +985,7 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_derive(ForwardOpsMut, attributes(forward))]
 pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
-    fn forward_ops_impl(
+    fn forward_ops_mut_impl(
         input: &DeriveInput,
         expr: &Expr,
         op: Path,
@@ -1016,7 +1016,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
 
     let (_, _, gen_where) = input.generics.split_for_impl();
 
-    let add = forward_ops_impl(
+    let add = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::AddAssign<Rhs> },
@@ -1027,7 +1027,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
         },
     );
 
-    let sub = forward_ops_impl(
+    let sub = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::SubAssign<Rhs> },
@@ -1038,7 +1038,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
         },
     );
 
-    let mul = forward_ops_impl(
+    let mul = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::MulAssign<Rhs> },
@@ -1049,7 +1049,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
         },
     );
 
-    let div = forward_ops_impl(
+    let div = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::DivAssign<Rhs> },
@@ -1060,7 +1060,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
         },
     );
 
-    let rem = forward_ops_impl(
+    let rem = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::RemAssign<Rhs> },
@@ -1071,7 +1071,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
         },
     );
 
-    let bitor = forward_ops_impl(
+    let bitor = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::BitOrAssign<Rhs> },
@@ -1082,7 +1082,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
         },
     );
 
-    let bitand = forward_ops_impl(
+    let bitand = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::BitAndAssign<Rhs> },
@@ -1093,7 +1093,7 @@ pub fn forward_ops_mut(stream: TokenStreamStd) -> TokenStreamStd {
         },
     );
 
-    let bitxor = forward_ops_impl(
+    let bitxor = forward_ops_mut_impl(
         &input,
         &expr,
         parse_quote! { std::ops::BitXorAssign<Rhs> },

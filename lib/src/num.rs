@@ -2,13 +2,10 @@ use std::{
     cmp::Ordering,
     fmt::Debug,
     marker::PhantomData,
-    ops::{
-        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
-        Rem, RemAssign, Sub, SubAssign,
-    },
+    ops::{AddAssign, BitAndAssign, BitOrAssign, BitXorAssign, DivAssign, MulAssign, RemAssign, SubAssign},
 };
 
-use ndproc::{ForwardFmt, ForwardStd};
+use ndproc::{ForwardFmt, ForwardOps, ForwardStd};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -161,48 +158,6 @@ macro_rules! sign_from {
                     Ordering::Equal => Sign::ZERO,
                     Ordering::Greater => Sign::POS,
                 }
-            }
-        }
-    };
-}
-
-macro_rules! width_ops_impl {
-    ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(width_ops_impl!($op => $fn);)+
-    };
-    ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + Extension + Static + $op<U, Output = N>, const BITS: usize> $op<U> for Width<N, BITS>
-        where
-            for<'s> &'s N: Ops,
-        {
-            type Output = Width<N, BITS>;
-
-            fn $fn(self, rhs: U) -> Self::Output {
-                let mut res = Width::from(self.0.$fn(rhs));
-
-                res.normalize();
-                res
-            }
-        }
-    };
-}
-
-macro_rules! modular_ops_impl {
-    ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(modular_ops_impl!($op => $fn);)+
-    };
-    ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + Extension + Unsigned + Static + $op<U, Output = N>, M: Modulus<N>> $op<U> for Modular<N, M>
-        where
-            for<'s> &'s N: Ops,
-        {
-            type Output = Modular<N, M>;
-
-            fn $fn(self, rhs: U) -> Self::Output {
-                let mut res = Modular::from(self.0.$fn(rhs));
-
-                res.normalize();
-                res
             }
         }
     };
@@ -432,13 +387,13 @@ pub mod prime {
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps)]
 #[forward(self.0 as N)]
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps)]
 #[forward(self.0 as N)]
 pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, PhantomData<M>)
 where
@@ -785,28 +740,6 @@ where
         Modular(value, PhantomData).normalized()
     }
 }
-
-width_ops_impl!([
-    Add => add,
-    Sub => sub,
-    Mul => mul,
-    Div => div,
-    Rem => rem,
-    BitOr => bitor,
-    BitAnd => bitand,
-    BitXor => bitxor,
-]);
-
-modular_ops_impl!([
-    Add => add,
-    Sub => sub,
-    Mul => mul,
-    Div => div,
-    Rem => rem,
-    BitOr => bitor,
-    BitAnd => bitand,
-    BitXor => bitxor,
-]);
 
 width_ops_mut_impl!([
     AddAssign => add_assign,
