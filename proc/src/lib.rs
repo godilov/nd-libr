@@ -753,14 +753,87 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_derive(ForwardFmt, attributes(forward))]
 pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
+    fn forward_fmt_impl(input: &DeriveInput, expr: &Expr, display: Path, display_where: WhereClause) -> TokenStream {
+        let ident = &input.ident;
+
+        let (gen_impl, gen_type, _) = input.generics.split_for_impl();
+
+        quote! {
+            impl #gen_impl #display for #ident #gen_type #display_where {
+                fn fmt(&self,f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    #expr.fmt(f)
+                }
+            }
+        }
+    }
+
     let input = parse_macro_input!(stream as DeriveInput);
 
-    let (_expr, _ty) = match get_forward_args(&input) {
+    let (expr, ty) = match get_forward_args(&input) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    todo!()
+    let (_, _, gen_where) = input.generics.split_for_impl();
+
+    let display = forward_fmt_impl(
+        &input,
+        &expr,
+        parse_quote! { std::fmt::Display },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::fmt::Display },
+            None => parse_quote! { where #ty: std::fmt::Display },
+        },
+    );
+
+    let binary = forward_fmt_impl(
+        &input,
+        &expr,
+        parse_quote! { std::fmt::Binary },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::fmt::Binary },
+            None => parse_quote! { where #ty: std::fmt::Binary },
+        },
+    );
+
+    let octal = forward_fmt_impl(
+        &input,
+        &expr,
+        parse_quote! { std::fmt::Octal },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::fmt::Octal },
+            None => parse_quote! { where #ty: std::fmt::Octal },
+        },
+    );
+
+    let lhex = forward_fmt_impl(
+        &input,
+        &expr,
+        parse_quote! { std::fmt::LowerHex },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::fmt::LowerHex },
+            None => parse_quote! { where #ty: std::fmt::LowerHex },
+        },
+    );
+
+    let uhex = forward_fmt_impl(
+        &input,
+        &expr,
+        parse_quote! { std::fmt::UpperHex },
+        match gen_where {
+            Some(val) => parse_quote! { #val, #ty: std::fmt::UpperHex },
+            None => parse_quote! { where #ty: std::fmt::UpperHex },
+        },
+    );
+
+    quote! {
+        #display
+        #binary
+        #octal
+        #lhex
+        #uhex
+    }
+    .into()
 }
 
 #[proc_macro_derive(ForwardOps, attributes(forward))]

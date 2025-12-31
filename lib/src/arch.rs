@@ -1,26 +1,13 @@
 use std::{
-    fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
+    fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex},
     ops::{
-        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Div,
-        DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign,
+        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
+        Rem, RemAssign, Sub, SubAssign,
     },
 };
 
-use ndproc::ForwardStd;
+use ndproc::{ForwardFmt, ForwardStd};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
-
-macro_rules! aligned_display_impl {
-    ([$($display:ident),+ $(,)?]) => {
-        $(aligned_display_impl!($display);)+
-    };
-    ($display:ident $(,)?) => {
-        impl<T: $display> $display for Aligned<T> {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt(f)
-            }
-        }
-    };
-}
 
 macro_rules! aligned_ops_impl {
     ([$($op:ident => $fn:ident),+ $(,)?]) => {
@@ -138,7 +125,7 @@ pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
 pub const RADIX: Double = Single::MAX as Double + 1;
 
 #[ndproc::align]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt)]
 #[forward(self.0 as T)]
 pub struct Aligned<T>(pub T);
 
@@ -182,8 +169,6 @@ impl<U, V: FromIterator<U>> FromIterator<U> for Aligned<V> {
         Aligned::from(V::from_iter(iter))
     }
 }
-
-aligned_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
 
 aligned_ops_impl!([
     Add => add,

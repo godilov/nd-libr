@@ -1,14 +1,14 @@
 use std::{
     cmp::Ordering,
-    fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
+    fmt::Debug,
     marker::PhantomData,
     ops::{
-        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Div,
-        DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign,
+        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
+        Rem, RemAssign, Sub, SubAssign,
     },
 };
 
-use ndproc::ForwardStd;
+use ndproc::{ForwardFmt, ForwardStd};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -161,38 +161,6 @@ macro_rules! sign_from {
                     Ordering::Equal => Sign::ZERO,
                     Ordering::Greater => Sign::POS,
                 }
-            }
-        }
-    };
-}
-
-macro_rules! width_display_impl {
-    ([$($display:ident),+ $(,)?]) => {
-        $(width_display_impl!($display);)+
-    };
-    ($display:ident $(,)?) => {
-        impl<N: Num + Extension + Static + $display, const BITS: usize> $display for Width<N, BITS>
-        where
-            for<'s> &'s N: Ops,
-        {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt(f)
-            }
-        }
-    };
-}
-
-macro_rules! modular_display_impl {
-    ([$($display:ident),+ $(,)?]) => {
-        $(modular_display_impl!($display);)+
-    };
-    ($display:ident $(,)?) => {
-        impl<N: Num + Extension + Unsigned + Static + $display, M: Modulus<N>> $display for Modular<N, M>
-        where
-            for<'s> &'s N: Ops,
-        {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt(f)
             }
         }
     };
@@ -464,13 +432,13 @@ pub mod prime {
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt)]
 #[forward(self.0 as N)]
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt)]
 #[forward(self.0 as N)]
 pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, PhantomData<M>)
 where
@@ -841,9 +809,6 @@ where
         res
     }
 }
-
-width_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
-modular_display_impl!([Display, Binary, Octal, LowerHex, UpperHex]);
 
 width_ops_impl!([
     Add => add,
