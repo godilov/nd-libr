@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, DeriveInput, Error, Expr, ExprCast, Generics, Ident, Item, Meta, Path, Result, Token, Type, UnOp,
-    WhereClause, bracketed, parenthesized,
+    BinOp, DeriveInput, Error, Expr, ExprCast, Generics, Ident, Item, ItemStruct, ItemTrait, Meta, Path, Result, Token,
+    Type, UnOp, WhereClause, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -1115,6 +1115,20 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
         #bitxor
     }
     .into()
+}
+
+#[proc_macro_attribute]
+pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let stream = parse_macro_input!(item as ItemTrait);
+
+    todo!()
+}
+
+#[proc_macro_attribute]
+pub fn forward_impl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let stream = parse_macro_input!(item as ItemStruct);
+
+    todo!()
 }
 
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
