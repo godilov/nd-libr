@@ -1121,14 +1121,20 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let stream = parse_macro_input!(item as ItemTrait);
 
-    todo!()
+    quote! {
+        #stream
+    }
+    .into()
 }
 
 #[proc_macro_attribute]
 pub fn forward_impl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let stream = parse_macro_input!(item as ItemStruct);
 
-    todo!()
+    quote! {
+        #stream
+    }
+    .into()
 }
 
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
