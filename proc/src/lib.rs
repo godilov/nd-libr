@@ -676,14 +676,6 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
 
     match item {
-        Item::Enum(item) => quote! {
-            #[cfg_attr(target_arch = "x86",     repr(align(64)))]
-            #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
-            #[cfg_attr(target_arch = "arm",     repr(align(64)))]
-            #[cfg_attr(target_arch = "aarch64", repr(align(128)))]
-            #item
-        }
-        .into(),
         Item::Struct(item) => quote! {
             #[cfg_attr(target_arch = "x86",     repr(align(64)))]
             #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
@@ -692,7 +684,25 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             #item
         }
         .into(),
-        _ => unimplemented!(),
+        Item::Enum(item) => quote! {
+            #[cfg_attr(target_arch = "x86",     repr(align(64)))]
+            #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
+            #[cfg_attr(target_arch = "arm",     repr(align(64)))]
+            #[cfg_attr(target_arch = "aarch64", repr(align(128)))]
+            #item
+        }
+        .into(),
+        Item::Union(item) => quote! {
+            #[cfg_attr(target_arch = "x86",     repr(align(64)))]
+            #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
+            #[cfg_attr(target_arch = "arm",     repr(align(64)))]
+            #[cfg_attr(target_arch = "aarch64", repr(align(128)))]
+            #item
+        }
+        .into(),
+        _ => Error::new(Span::call_site(), "Failed to align, supported items: struct, enum, union")
+            .into_compile_error()
+            .into(),
     }
 }
 
