@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    BinOp, DeriveInput, Error, Expr, ExprCast, Generics, Ident, Item, ItemStruct, ItemTrait, Meta, Path, Result, Token,
-    Type, UnOp, WhereClause, bracketed, parenthesized,
+    BinOp, Error, Expr, ExprField, Generics, Ident, Item, ItemStruct, ItemTrait, Path, Result, Token, Type, UnOp,
+    WhereClause, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -706,20 +706,19 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-#[proc_macro_derive(ForwardStd, attributes(forward))]
-pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
-    let input = parse_macro_input!(stream as DeriveInput);
+#[proc_macro_attribute]
+pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let item = parse_macro_input!(item as Item);
+    let expr = parse_macro_input!(attr as Expr);
 
-    let (expr, ty) = match get_forward_args(&input) {
+    let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let ident = &input.ident;
+    let gen_params = &generics.params;
 
-    let gen_params = &input.generics.params;
-
-    let (gen_impl, gen_type, gen_where) = input.generics.split_for_impl();
+    let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
     let as_ref: WhereClause = match gen_where {
         Some(val) => parse_quote! { #val, #ty: std::convert::AsRef<AsRefRet> },
@@ -737,29 +736,31 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     };
 
     quote! {
+        #item
+
         impl #gen_impl std::ops::Deref for #ident #gen_type #gen_where {
             type Target = #ty;
 
             fn deref(&self) -> &Self::Target {
-                &#expr
+                &#field
             }
         }
 
         impl #gen_impl std::ops::DerefMut for #ident #gen_type #gen_where {
             fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut #expr
+                &mut #field
             }
         }
 
         impl<AsRefRet, #gen_params> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref {
             fn as_ref(&self) -> &AsRefRet {
-                #expr.as_ref()
+                #field.as_ref()
             }
         }
 
         impl<AsMutRet, #gen_params> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut {
             fn as_mut(&mut self) -> &mut AsMutRet {
-                #expr.as_mut()
+                #field.as_mut()
             }
         }
 
@@ -772,34 +773,40 @@ pub fn forward_std(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[proc_macro_derive(ForwardFmt, attributes(forward))]
-pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
-    fn forward_fmt_impl(input: &DeriveInput, expr: &Expr, display: Path, display_where: WhereClause) -> TokenStream {
-        let ident = &input.ident;
-
-        let (gen_impl, gen_type, _) = input.generics.split_for_impl();
+#[proc_macro_attribute]
+pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    fn forward_fmt_impl(
+        ident: &Ident,
+        generics: &Generics,
+        field: &ExprField,
+        display: Path,
+        display_where: WhereClause,
+    ) -> TokenStream {
+        let (gen_impl, gen_type, _) = generics.split_for_impl();
 
         quote! {
             impl #gen_impl #display for #ident #gen_type #display_where {
                 fn fmt(&self,f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    #expr.fmt(f)
+                    #field.fmt(f)
                 }
             }
         }
     }
 
-    let input = parse_macro_input!(stream as DeriveInput);
+    let item = parse_macro_input!(item as Item);
+    let expr = parse_macro_input!(attr as Expr);
 
-    let (expr, ty) = match get_forward_args(&input) {
+    let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let (_, _, gen_where) = input.generics.split_for_impl();
+    let (_, _, gen_where) = generics.split_for_impl();
 
     let display = forward_fmt_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::fmt::Display },
         match gen_where {
             Some(val) => parse_quote! { #val, #ty: std::fmt::Display },
@@ -808,8 +815,9 @@ pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let binary = forward_fmt_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::fmt::Binary },
         match gen_where {
             Some(val) => parse_quote! { #val, #ty: std::fmt::Binary },
@@ -818,8 +826,9 @@ pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let octal = forward_fmt_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::fmt::Octal },
         match gen_where {
             Some(val) => parse_quote! { #val, #ty: std::fmt::Octal },
@@ -828,8 +837,9 @@ pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let lhex = forward_fmt_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::fmt::LowerHex },
         match gen_where {
             Some(val) => parse_quote! { #val, #ty: std::fmt::LowerHex },
@@ -838,8 +848,9 @@ pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let uhex = forward_fmt_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::fmt::UpperHex },
         match gen_where {
             Some(val) => parse_quote! { #val, #ty: std::fmt::UpperHex },
@@ -848,6 +859,7 @@ pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     quote! {
+        #item
         #display
         #binary
         #octal
@@ -857,44 +869,45 @@ pub fn forward_fmt(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[proc_macro_derive(ForwardOps, attributes(forward))]
-pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
+#[proc_macro_attribute]
+pub fn forward_ops(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     fn forward_ops_impl(
-        input: &DeriveInput,
-        expr: &Expr,
+        ident: &Ident,
+        generics: &Generics,
+        field: &ExprField,
         op: Path,
         op_fn: Ident,
         op_where: WhereClause,
     ) -> TokenStream {
-        let ident = &input.ident;
+        let gen_params = &generics.params;
 
-        let gen_params = &input.generics.params;
-
-        let (_, gen_type, _) = input.generics.split_for_impl();
+        let (_, gen_type, _) = generics.split_for_impl();
 
         quote! {
             impl<Rhs, #gen_params> #op for #ident #gen_type #op_where {
                 type Output = Self;
 
                 fn #op_fn(self, rhs: Rhs) -> Self::Output {
-                    Self::from(#expr.#op_fn(rhs))
+                    Self::from(#field.#op_fn(rhs))
                 }
             }
         }
     }
 
-    let input = parse_macro_input!(stream as DeriveInput);
+    let item = parse_macro_input!(item as Item);
+    let expr = parse_macro_input!(attr as Expr);
 
-    let (expr, ty) = match get_forward_args(&input) {
+    let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let (_, _, gen_where) = input.generics.split_for_impl();
+    let (_, _, gen_where) = generics.split_for_impl();
 
     let add = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::Add<Rhs> },
         parse_quote! { add },
         match gen_where {
@@ -904,8 +917,9 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let sub = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::Sub<Rhs> },
         parse_quote! { sub },
         match gen_where {
@@ -915,8 +929,9 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let mul = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::Mul<Rhs> },
         parse_quote! { mul },
         match gen_where {
@@ -926,8 +941,9 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let div = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::Div<Rhs> },
         parse_quote! { div },
         match gen_where {
@@ -937,8 +953,9 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let rem = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::Rem<Rhs> },
         parse_quote! { rem },
         match gen_where {
@@ -948,8 +965,9 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let bitor = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::BitOr<Rhs> },
         parse_quote! { bitor },
         match gen_where {
@@ -959,8 +977,9 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let bitand = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::BitAnd<Rhs> },
         parse_quote! { bitand },
         match gen_where {
@@ -970,8 +989,9 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let bitxor = forward_ops_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::BitXor<Rhs> },
         parse_quote! { bitxor },
         match gen_where {
@@ -981,6 +1001,7 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     quote! {
+        #item
         #add
         #sub
         #mul
@@ -993,42 +1014,43 @@ pub fn forward_ops(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[proc_macro_derive(ForwardOpsAssign, attributes(forward))]
-pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
+#[proc_macro_attribute]
+pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     fn forward_ops_assign_impl(
-        input: &DeriveInput,
-        expr: &Expr,
+        ident: &Ident,
+        generics: &Generics,
+        field: &ExprField,
         op: Path,
         op_fn: Ident,
         op_where: WhereClause,
     ) -> TokenStream {
-        let ident = &input.ident;
+        let gen_params = &generics.params;
 
-        let gen_params = &input.generics.params;
-
-        let (_, gen_type, _) = input.generics.split_for_impl();
+        let (_, gen_type, _) = generics.split_for_impl();
 
         quote! {
             impl<Rhs, #gen_params> #op for #ident #gen_type #op_where {
                 fn #op_fn(&mut self, rhs: Rhs) {
-                    #expr.#op_fn(rhs);
+                    #field.#op_fn(rhs);
                 }
             }
         }
     }
 
-    let input = parse_macro_input!(stream as DeriveInput);
+    let item = parse_macro_input!(item as Item);
+    let expr = parse_macro_input!(attr as Expr);
 
-    let (expr, ty) = match get_forward_args(&input) {
+    let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let (_, _, gen_where) = input.generics.split_for_impl();
+    let (_, _, gen_where) = generics.split_for_impl();
 
     let add = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::AddAssign<Rhs> },
         parse_quote! { add_assign },
         match gen_where {
@@ -1038,8 +1060,9 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let sub = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::SubAssign<Rhs> },
         parse_quote! { sub_assign },
         match gen_where {
@@ -1049,8 +1072,9 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let mul = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::MulAssign<Rhs> },
         parse_quote! { mul_assign },
         match gen_where {
@@ -1060,8 +1084,9 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let div = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::DivAssign<Rhs> },
         parse_quote! { div_assign },
         match gen_where {
@@ -1071,8 +1096,9 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let rem = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::RemAssign<Rhs> },
         parse_quote! { rem_assign },
         match gen_where {
@@ -1082,8 +1108,9 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let bitor = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::BitOrAssign<Rhs> },
         parse_quote! { bitor_assign },
         match gen_where {
@@ -1093,8 +1120,9 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let bitand = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::BitAndAssign<Rhs> },
         parse_quote! { bitand_assign },
         match gen_where {
@@ -1104,8 +1132,9 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     let bitxor = forward_ops_assign_impl(
-        &input,
-        &expr,
+        ident,
+        generics,
+        field,
         parse_quote! { std::ops::BitXorAssign<Rhs> },
         parse_quote! { bitxor_assign },
         match gen_where {
@@ -1115,6 +1144,7 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
     );
 
     quote! {
+        #item
         #add
         #sub
         #mul
@@ -1128,7 +1158,7 @@ pub fn forward_ops_assign(stream: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_def(_attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let stream = parse_macro_input!(item as ItemTrait);
 
     quote! {
@@ -1138,7 +1168,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 }
 
 #[proc_macro_attribute]
-pub fn forward_impl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_impl(_attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let stream = parse_macro_input!(item as ItemStruct);
 
     quote! {
@@ -1208,40 +1238,35 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
 }
 
-fn get_forward_args(input: &DeriveInput) -> Result<(Expr, Type)> {
-    let mut iter = input
-        .attrs
-        .iter()
-        .filter_map(|attr| match attr.meta {
-            Meta::Path(_) => None,
-            Meta::List(ref val) => Some(val),
-            Meta::NameValue(_) => None,
-        })
-        .filter(|&attr| attr.path.is_ident("forward"));
-
-    let attr = match [iter.next(), iter.next()] {
-        [Some(val), None] => val,
-        [None, None] => {
+fn get_forward_args<'item, 'expr>(
+    item: &'item Item,
+    expr: &'expr Expr,
+) -> Result<(&'item Ident, &'item Generics, &'expr ExprField, &'expr Type)> {
+    let (ident, generics) = match item {
+        Item::Struct(item) => (&item.ident, &item.generics),
+        Item::Enum(item) => (&item.ident, &item.generics),
+        Item::Union(item) => (&item.ident, &item.generics),
+        _ => {
             return Err(Error::new(
                 Span::call_site(),
-                "Failed to find valid 'forward' attribute: no entries",
+                "Failed to forward std, supported items: struct, enum, union",
             ));
         },
-        [Some(_), Some(_)] => {
-            return Err(Error::new(
-                Span::call_site(),
-                "Failed to find valid 'forward' attribute: multiple entries",
-            ));
-        },
-        _ => unreachable!(),
     };
 
-    let ExprCast {
-        attrs: _,
-        expr,
-        as_token: _,
-        ty,
-    } = parse2::<ExprCast>(attr.tokens.clone())?;
+    let (expr, ty) = match expr {
+        Expr::Cast(cast) => (cast.expr.as_ref(), cast.ty.as_ref()),
+        _ => {
+            return Err(Error::new(Span::call_site(), "Failed to forward, excpected cast expression"));
+        },
+    };
 
-    Ok((*expr, *ty))
+    let field = match expr {
+        Expr::Field(field) => field,
+        _ => {
+            return Err(Error::new(Span::call_site(), "Failed to forward, excpected field expression"));
+        },
+    };
+
+    Ok((ident, generics, field, ty))
 }

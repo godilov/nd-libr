@@ -5,7 +5,7 @@ use std::{
     ops::{AddAssign, BitAndAssign, BitOrAssign, BitXorAssign, DivAssign, MulAssign, RemAssign, SubAssign},
 };
 
-use ndproc::{ForwardFmt, ForwardOps, ForwardStd};
+use ndproc::{forward_fmt, forward_ops, forward_std};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -387,14 +387,18 @@ pub mod prime {
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps)]
-#[forward(self.0 as N)]
+#[forward_std(self.0 as N)]
+#[forward_fmt(self.0 as N)]
+#[forward_ops(self.0 as N)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ForwardStd, ForwardFmt, ForwardOps)]
-#[forward(self.0 as N)]
+#[forward_std(self.0 as N)]
+#[forward_fmt(self.0 as N)]
+#[forward_ops(self.0 as N)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
     for<'s> &'s N: Ops;
