@@ -1162,7 +1162,8 @@ fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
         _ => Err(Error::new(
             Span::call_site(),
             format!(
-                "Failed to find valid op for operation: '{op:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",
+                "Failed to find valid op for operation: '{:?}'. Expected: +=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=",
+                op
             ),
         )),
     }?;
@@ -1184,7 +1185,10 @@ fn get_std_path_binary(op: &BinOp) -> Result<(Ident, Path)> {
         BinOp::Shr(_) => Ok(("shr", "std::ops::Shr")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!("Failed to find valid op for operation: '{op:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",),
+            format!(
+                "Failed to find valid op for operation: '{:?}'. Expected: +, -, *, /, %, |, &, ^, <<, >>",
+                op
+            ),
         )),
     }?;
 
@@ -1197,7 +1201,7 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
         UnOp::Neg(_) => Ok(("neg", "std::ops::Neg")),
         _ => Err(Error::new(
             Span::call_site(),
-            format!("Failed to find valid op for operation: '{op:?}'. Expected: -, !"),
+            format!("Failed to find valid op for operation: '{:?}'. Expected: -, !", op),
         )),
     }?;
 
