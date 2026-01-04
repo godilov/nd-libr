@@ -1,9 +1,9 @@
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote};
+use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, Generics, Ident, Item, ItemStruct, ItemTrait, Path, Result, Token, Type, UnOp,
-    WhereClause, bracketed, parenthesized,
+    BinOp, Error, Expr, ExprField, Generics, Ident, Item, ItemTrait, Path, Result, Token, Type, UnOp, WhereClause,
+    bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -1158,21 +1158,30 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(_attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let stream = parse_macro_input!(item as ItemTrait);
+pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let item = parse_macro_input!(item as ItemTrait);
+
+    let ident = &item.ident;
+    let ident_macros = format_ident!("_forward_impl_{}", ident);
 
     quote! {
-        #stream
+        #item
+
+        #[macro_export]
+        macro_rules! #ident_macros {
+            () => {
+            };
+        }
     }
     .into()
 }
 
 #[proc_macro_attribute]
-pub fn forward_impl(_attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let stream = parse_macro_input!(item as ItemStruct);
+pub fn forward_impl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let item = parse_macro_input!(item as Item);
 
     quote! {
-        #stream
+        #item
     }
     .into()
 }
