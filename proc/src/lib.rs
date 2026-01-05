@@ -1169,7 +1169,7 @@ pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
         #[macro_export]
         macro_rules! #ident_macros {
-            () => {
+            ($ty:ty, $ty_forward:ty, $expr:expr, $expr_ref:expr, $expr_mut:expr) => {
             };
         }
     }
