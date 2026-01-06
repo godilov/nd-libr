@@ -108,6 +108,13 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
     ops: Punctuated<Op, Token![,]>,
 }
 
+#[allow(dead_code)]
+struct ForwardImpl {
+    expr: Expr,
+    comma: Token![,],
+    idents: Punctuated<Ident, Token![,]>,
+}
+
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
 type OpsImplBinary = OpsImpl<OpsSignatureBinary, BinOp>;
 type OpsImplUnary = OpsImpl<OpsSignatureUnary, UnOp>;
@@ -267,6 +274,16 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
             lhs_expr: lhs_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
             ops: ops_content.parse_terminated(Op::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for ForwardImpl {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            expr: input.parse()?,
+            comma: input.parse()?,
+            idents: input.parse_terminated(Ident::parse, Token![,])?,
         })
     }
 }
@@ -1164,12 +1181,16 @@ pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ident = &item.ident;
     let ident_macros = format_ident!("_forward_impl_{}", ident);
 
+    let (gen_impl, gen_trait, gen_where) = item.generics.split_for_impl();
+
     quote! {
         #item
 
+        #[doc(hidden)]
         #[macro_export]
         macro_rules! #ident_macros {
-            ($ty:ty, $ty_forward:ty, $expr:expr, $expr_ref:expr, $expr_mut:expr) => {
+            ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr) => {
+                impl #gen_impl #ident #gen_trait for $ty #gen_where {}
             };
         }
     }
@@ -1177,8 +1198,16 @@ pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_impl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_impl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
+    let forward = parse_macro_input!(attr as ForwardImpl);
+
+    let (_ident, _generics, _field, _ty) = match get_forward_args(&item, &forward.expr) {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
+
+    let _ = forward.idents.iter().map(|ident| format_ident!("_forward_impl_{}", ident));
 
     quote! {
         #item
