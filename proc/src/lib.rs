@@ -2,7 +2,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, Generics, Ident, Item, ItemTrait, Path, Result, Token, Type, UnOp, WhereClause,
+    BinOp, Error, Expr, ExprField, GenericParam, Generics, Ident, Item, Path, Result, Token, Type, UnOp, WhereClause,
     bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
@@ -1189,7 +1189,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = match get_normalized_item(item) {
         Item::Trait(item) => item,
         _ => {
-            return Error::new(Span::call_site(), "Failed to forward definition, expected trait")
+            return Error::new(Span::call_site(), "Failed to forward declaration, expected trait")
                 .into_compile_error()
                 .into();
         },
@@ -1201,8 +1201,13 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let gen_params = &item.generics.params;
     let (_, gen_type, gen_where) = item.generics.split_for_impl();
 
+    let gen_params: Punctuated<GenericParam, Token![,]> = match gen_params.is_empty() {
+        true => parse_quote! {},
+        false => parse_quote! { #gen_params, },
+    };
+
     let gen_where: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val },
+        Some(val) => parse_quote! { #val, },
         None => parse_quote! { where },
     };
 
@@ -1213,7 +1218,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[macro_export]
         macro_rules! #ident_macros {
             ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr, ($($gen_params:tt)+), ($($gen_where:tt)+),) => {
-                impl <#gen_params, $gen_params> #ident #gen_type for $ty #gen_where $gen_where {}
+                impl <#gen_params $gen_params> #ident #gen_type for $ty #gen_where $gen_where {}
             };
         }
     }
