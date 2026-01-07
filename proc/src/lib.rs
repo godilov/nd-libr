@@ -1234,6 +1234,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #item
 
         #[doc(hidden)]
+        #[allow(unused_macros)]
         macro_rules! #ident_macros {
             () => {};
             ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr, ($($gen_params:tt)+), ($($gen_where:tt)+),) => {
@@ -1241,6 +1242,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             };
         }
 
+        #[allow(unused_imports)]
         pub(crate) use #ident_macros;
     }
     .into()
