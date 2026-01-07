@@ -5,7 +5,7 @@ use std::{
     ops::{AddAssign, BitAndAssign, BitOrAssign, BitXorAssign, DivAssign, MulAssign, RemAssign, SubAssign},
 };
 
-use ndproc::{forward_def, forward_fmt, forward_impl, forward_ops, forward_std};
+use ndproc::{forward_decl, forward_def, forward_fmt, forward_ops, forward_std};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -390,7 +390,7 @@ pub mod prime {
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
-#[forward_impl(self.0 as N, Num, Extension, Static)]
+#[forward_def(self.0 as N, Num, Extension, Static)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
@@ -399,7 +399,7 @@ where
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
-#[forward_impl(self.0 as N, Num, Extension, Static, Unsigned)]
+#[forward_def(self.0 as N, Num, Extension, Static, Unsigned)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
@@ -413,7 +413,7 @@ pub enum Sign {
     POS = 1,
 }
 
-#[forward_def]
+#[forward_decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord + From<bool>
 where
     for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self> + OpsFrom + OpsFrom<&'s Self, &'s Self>,
@@ -572,7 +572,7 @@ where
     }
 }
 
-#[forward_def]
+#[forward_decl]
 pub trait Extension: Num
 where
     for<'s> &'s Self: Ops,
@@ -659,7 +659,7 @@ where
     }
 }
 
-#[forward_def]
+#[forward_decl]
 pub trait Signed: Num + From<i8>
 where
     for<'s> &'s Self: Ops,
@@ -687,7 +687,7 @@ where
     }
 }
 
-#[forward_def]
+#[forward_decl]
 pub trait Unsigned: Num + From<u8>
 where
     for<'s> &'s Self: Ops,
@@ -699,7 +699,7 @@ where
     fn sqrt(&self) -> Self;
 }
 
-#[forward_def]
+#[forward_decl]
 pub trait Static: Num + Copy
 where
     for<'s> &'s Self: Ops,

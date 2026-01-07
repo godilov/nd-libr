@@ -717,7 +717,7 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             #item
         }
         .into(),
-        _ => Error::new(Span::call_site(), "Failed to align, supported items: struct, enum, union")
+        _ => Error::new(Span::call_site(), "Failed to align, expected struct, enum or union")
             .into_compile_error()
             .into(),
     }
@@ -727,6 +727,8 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
     let expr = parse_macro_input!(attr as Expr);
+
+    let item = get_normalized_item(item);
 
     let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
@@ -812,6 +814,8 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
     let item = parse_macro_input!(item as Item);
     let expr = parse_macro_input!(attr as Expr);
+
+    let item = get_normalized_item(item);
 
     let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
@@ -913,6 +917,8 @@ pub fn forward_ops(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
     let item = parse_macro_input!(item as Item);
     let expr = parse_macro_input!(attr as Expr);
+
+    let item = get_normalized_item(item);
 
     let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
@@ -1057,6 +1063,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
     let item = parse_macro_input!(item as Item);
     let expr = parse_macro_input!(attr as Expr);
 
+    let item = get_normalized_item(item);
+
     let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
@@ -1175,8 +1183,17 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ItemTrait);
+pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let item = parse_macro_input!(item as Item);
+
+    let item = match get_normalized_item(item) {
+        Item::Trait(item) => item,
+        _ => {
+            return Error::new(Span::call_site(), "Failed to forward definition, expected trait")
+                .into_compile_error()
+                .into();
+        },
+    };
 
     let ident = &item.ident;
     let ident_macros = format_ident!("_forward_impl_{}", ident);
@@ -1204,13 +1221,27 @@ pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_impl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
     let forward = parse_macro_input!(attr as ForwardImpl);
 
     let (_ident, _generics, _field, _ty) = match get_forward_args(&item, &forward.expr) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
+    };
+
+    let item = match get_normalized_item(item) {
+        Item::Struct(item) => Item::from(item),
+        Item::Enum(item) => Item::from(item),
+        Item::Union(item) => Item::from(item),
+        _ => {
+            return Error::new(
+                Span::call_site(),
+                "Failed to forward definition, expected struct, enum or union",
+            )
+            .into_compile_error()
+            .into();
+        },
     };
 
     let _ = forward.idents.iter().map(|ident| format_ident!("_forward_impl_{}", ident));
@@ -1282,6 +1313,38 @@ fn get_std_path_unary(op: &UnOp) -> Result<(Ident, Path)> {
     Ok((parse_str::<Ident>(ident)?, parse_str::<Path>(path)?))
 }
 
+fn get_normalized_generics(mut generics: Generics) -> Generics {
+    generics.params.pop_punct();
+    generics.where_clause.as_mut().map(|clause| clause.predicates.pop_punct());
+    generics
+}
+
+fn get_normalized_item(item: Item) -> Item {
+    match item {
+        Item::Struct(mut item) => {
+            item.generics = get_normalized_generics(item.generics);
+
+            item.into()
+        },
+        Item::Enum(mut item) => {
+            item.generics = get_normalized_generics(item.generics);
+
+            item.into()
+        },
+        Item::Union(mut item) => {
+            item.generics = get_normalized_generics(item.generics);
+
+            item.into()
+        },
+        Item::Trait(mut item) => {
+            item.generics = get_normalized_generics(item.generics);
+
+            item.into()
+        },
+        _ => todo!(),
+    }
+}
+
 fn get_forward_args<'item, 'expr>(
     item: &'item Item,
     expr: &'expr Expr,
@@ -1293,7 +1356,7 @@ fn get_forward_args<'item, 'expr>(
         _ => {
             return Err(Error::new(
                 Span::call_site(),
-                "Failed to forward std, supported items: struct, enum, union",
+                "Failed to forward, expected struct, enum or union",
             ));
         },
     };
