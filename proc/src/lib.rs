@@ -1181,7 +1181,13 @@ pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ident = &item.ident;
     let ident_macros = format_ident!("_forward_impl_{}", ident);
 
-    let (gen_impl, gen_trait, gen_where) = item.generics.split_for_impl();
+    let gen_params = &item.generics.params;
+    let (_, gen_type, gen_where) = item.generics.split_for_impl();
+
+    let gen_where: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val },
+        None => parse_quote! { where },
+    };
 
     quote! {
         #item
@@ -1189,8 +1195,8 @@ pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[macro_export]
         macro_rules! #ident_macros {
-            ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr) => {
-                impl #gen_impl #ident #gen_trait for $ty #gen_where {}
+            ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr, ($($gen_params:tt)+), ($($gen_where:tt)+),) => {
+                impl <#gen_params, $gen_params> #ident #gen_type for $ty #gen_where $gen_where {}
             };
         }
     }
