@@ -3,16 +3,19 @@ use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, ExprField, GenericParam, Generics, Ident, Item, Path, Result, Token, TraitItem, Type, UnOp,
-    WhereClause, bracketed, parenthesized,
+    WhereClause, bracketed,
+    ext::IdentExt,
+    parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
     token::{Bracket, Paren},
 };
 
-struct OpsRaw {
-    id: String,
-    body: TokenStream,
+enum Ops {
+    Mutable(TokenStream),
+    Binary(TokenStream),
+    Unary(TokenStream),
 }
 
 #[allow(dead_code)]
@@ -123,19 +126,29 @@ type OpsImplAutoMutable = OpsImplAutoBin<OpsSignatureMutable, BinOp>;
 type OpsImplAutoBinary = OpsImplAutoBin<OpsSignatureBinary, BinOp>;
 type OpsImplAutoUnary = OpsImplAutoUn<OpsSignatureUnary, UnOp>;
 
-impl Parse for OpsRaw {
+impl Parse for Ops {
     fn parse(input: ParseStream) -> Result<Self> {
-        let _ = input.parse::<Token![@]>()?;
+        let _ = input.parse::<Token![@]>();
 
-        let ident = if input.peek(Token![mut]) {
-            input.parse::<Token![mut]>()?.into_token_stream()
-        } else {
-            input.parse::<Ident>()?.into_token_stream()
-        };
+        let ident = input.call(Ident::parse_any)?;
+        let tokens = input.parse::<TokenStream>()?;
 
-        let body = input.parse::<TokenStream>()?;
+        if ident == "mut" {
+            return Ok(Ops::Mutable(tokens));
+        }
 
-        Ok(Self { id: format!("@{ident}"), body })
+        if ident == "bin" {
+            return Ok(Ops::Binary(tokens));
+        }
+
+        if ident == "un" {
+            return Ok(Ops::Unary(tokens));
+        }
+
+        Err(Error::new(
+            Span::call_site(),
+            "Failed to parse ops identifier, expected @mut, @bin or @un",
+        ))
     }
 }
 
@@ -567,51 +580,43 @@ impl ToTokens for OpsImplUnary {
 
 #[proc_macro]
 pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
-    const ERROR: &str = "Failed to find one of identifiers: '@mut', '@bin', '@un'";
+    let ops = parse_macro_input!(stream as Ops);
 
-    let raw = parse_macro_input!(stream as OpsRaw);
-
-    match raw.id.as_str() {
-        "@mut" => {
-            let body = raw.body;
-            let ops = parse2::<OpsImplMutable>(body);
+    match ops {
+        Ops::Mutable(tokens) => {
+            let ops = parse2::<OpsImplMutable>(tokens);
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
                 Err(err) => err.into_compile_error().into(),
             }
         },
-        "@bin" => {
-            let body = raw.body;
-            let ops = parse2::<OpsImplBinary>(body);
+        Ops::Binary(tokens) => {
+            let ops = parse2::<OpsImplBinary>(tokens);
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
                 Err(err) => err.into_compile_error().into(),
             }
         },
-        "@un" => {
-            let body = raw.body;
-            let ops = parse2::<OpsImplUnary>(body);
+        Ops::Unary(tokens) => {
+            let ops = parse2::<OpsImplUnary>(tokens);
 
             match ops {
                 Ok(val) => quote! { #val }.into(),
                 Err(err) => err.into_compile_error().into(),
             }
         },
-        _ => Error::new(Span::call_site(), ERROR).into_compile_error().into(),
     }
 }
 
 #[proc_macro]
 pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
-    const ERROR: &str = "Failed to find one of identifiers: '@mut', '@bin', '@un'";
+    let ops = parse_macro_input!(stream as Ops);
 
-    let raw = parse_macro_input!(stream as OpsRaw);
-
-    match raw.id.as_str() {
-        "@mut" => {
-            let ops = parse2::<OpsImplAutoMutable>(raw.body).map(|val| OpsImplMutable {
+    match ops {
+        Ops::Mutable(tokens) => {
+            let ops = parse2::<OpsImplAutoMutable>(tokens).map(|val| OpsImplMutable {
                 generics: val.generics,
                 signature: val.signature,
                 colon: Default::default(),
@@ -635,8 +640,8 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                 Err(err) => err.into_compile_error().into(),
             }
         },
-        "@bin" => {
-            let ops = parse2::<OpsImplAutoBinary>(raw.body).map(|val| OpsImplBinary {
+        Ops::Binary(tokens) => {
+            let ops = parse2::<OpsImplAutoBinary>(tokens).map(|val| OpsImplBinary {
                 generics: val.generics,
                 signature: val.signature,
                 colon: Default::default(),
@@ -660,8 +665,8 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                 Err(err) => err.into_compile_error().into(),
             }
         },
-        "@un" => {
-            let ops = parse2::<OpsImplAutoUnary>(raw.body).map(|val| OpsImplUnary {
+        Ops::Unary(tokens) => {
+            let ops = parse2::<OpsImplAutoUnary>(tokens).map(|val| OpsImplUnary {
                 generics: val.generics,
                 signature: val.signature,
                 colon: Default::default(),
@@ -684,7 +689,6 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                 Err(err) => err.into_compile_error().into(),
             }
         },
-        _ => Error::new(Span::call_site(), ERROR).into_compile_error().into(),
     }
 }
 
