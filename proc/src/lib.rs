@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, GenericParam, Generics, Ident, Item, Path, Result, Token, Type, UnOp, WhereClause,
-    bracketed, parenthesized,
+    BinOp, Error, Expr, ExprField, GenericParam, Generics, Ident, Item, Path, Result, Token, TraitItem, Type, UnOp,
+    WhereClause, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
@@ -1196,7 +1196,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     };
 
     let ident = &item.ident;
-    let ident_macros = format_ident!("_forward_impl_{}", ident);
+    let ident_macros = format_ident!("forward_impl_{}", ident);
 
     let gen_params = &item.generics.params;
     let (_, gen_type, gen_where) = item.generics.split_for_impl();
@@ -1211,16 +1211,33 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => parse_quote! { where },
     };
 
+    let _types = item.items.iter().filter_map(|item| match item {
+        TraitItem::Type(item) => Some(item),
+        _ => None,
+    });
+
+    let _consts = item.items.iter().filter_map(|item| match item {
+        TraitItem::Const(item) => Some(item),
+        _ => None,
+    });
+
+    let _fns = item.items.iter().filter_map(|item| match item {
+        TraitItem::Fn(item) => Some(item),
+        _ => None,
+    });
+
     quote! {
         #item
 
         #[doc(hidden)]
-        #[macro_export]
         macro_rules! #ident_macros {
+            () => {};
             ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr, ($($gen_params:tt)+), ($($gen_where:tt)+),) => {
                 impl <#gen_params $gen_params> #ident #gen_type for $ty #gen_where $gen_where {}
             };
         }
+
+        pub(crate) use #ident_macros;
     }
     .into()
 }
@@ -1249,10 +1266,23 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         },
     };
 
-    let _ = forward.idents.iter().map(|ident| format_ident!("_forward_impl_{}", ident));
+    let quotes =
+        forward
+            .idents
+            .iter()
+            .map(|ident| format_ident!("forward_impl_{}", ident))
+            .fold(quote! {}, |acc, ident| {
+                quote! {
+                    #acc
+
+                    #ident!();
+                }
+            });
 
     quote! {
         #item
+
+        #quotes
     }
     .into()
 }
