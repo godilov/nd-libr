@@ -1212,20 +1212,51 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => parse_quote! { where },
     };
 
-    let _types = item.items.iter().filter_map(|item| match item {
-        TraitItem::Type(item) => Some(item),
-        _ => None,
-    });
+    let types = item
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            TraitItem::Type(item) => Some(item),
+            _ => None,
+        })
+        .map(|item| {
+            let attrs = &item.attrs;
+            let ident = &item.ident;
 
-    let _consts = item.items.iter().filter_map(|item| match item {
-        TraitItem::Const(item) => Some(item),
-        _ => None,
-    });
+            let (gen_impl, gen_type, _) = item.generics.split_for_impl();
 
-    let _fns = item.items.iter().filter_map(|item| match item {
-        TraitItem::Fn(item) => Some(item),
-        _ => None,
-    });
+            quote! {
+                #(#attrs)*
+                type #ident #gen_impl = <$ty_field>::#ident #gen_type;
+            }
+        });
+
+    let consts = item
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            TraitItem::Const(item) => Some(item),
+            _ => None,
+        })
+        .map(|item| {
+            let attrs = &item.attrs;
+            let ident = &item.ident;
+            let ty = &item.ty;
+
+            quote! {
+                #(#attrs)*
+                const #ident: #ty = <$ty_field>::#ident;
+            }
+        });
+
+    let fns = item
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            TraitItem::Fn(item) => Some(item),
+            _ => None,
+        })
+        .map(|item| quote! { #item });
 
     quote! {
         #item
@@ -1235,7 +1266,11 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         macro_rules! #ident_macros {
             () => {};
             ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr, ($($gen_params:tt)+), ($($gen_where:tt)+),) => {
-                impl <#gen_params $gen_params> #ident #gen_type for $ty #gen_where $gen_where {}
+                impl <#gen_params $gen_params> #ident #gen_type for $ty #gen_where $gen_where {
+                    #(#types)*
+                    #(#consts)*
+                    #(#fns)*
+                }
             };
         }
 
