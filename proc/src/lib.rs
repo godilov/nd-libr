@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, GenericParam, Generics, Ident, Item, Path, Result, Token, TraitItem, Type, UnOp,
-    WhereClause, bracketed,
+    BinOp, Error, Expr, ExprField, FnArg, GenericParam, Generics, Ident, Item, Path, Result, Token, TraitItem, Type,
+    UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1213,40 +1213,78 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     };
 
     let items = item.items.iter().filter_map(|item| match item {
-        TraitItem::Type(item) => Some({
-            let attrs = &item.attrs;
-            let ident = &item.ident;
+        TraitItem::Type(val) => Some({
+            let attrs = &val.attrs;
+            let ident = &val.ident;
 
-            let (gen_impl, gen_type, _) = item.generics.split_for_impl();
+            let (gen_impl, gen_type, _) = val.generics.split_for_impl();
 
             quote! {
                 #(#attrs)*
                 type #ident #gen_impl = <$ty_field>::#ident #gen_type;
             }
         }),
-        TraitItem::Const(item) => Some({
-            let attrs = &item.attrs;
-            let ident = &item.ident;
-            let ty = &item.ty;
+        TraitItem::Const(val) => Some({
+            let attrs = &val.attrs;
+            let ident = &val.ident;
+            let ty = &val.ty;
 
             quote! {
                 #(#attrs)*
                 const #ident: #ty = <$ty_field>::#ident;
             }
         }),
-        TraitItem::Fn(item) => Some({
-            let _attrs = &item.attrs;
-            let _constness = &item.sig.constness;
-            let _asyncness = &item.sig.asyncness;
-            let _unsafety = &item.sig.unsafety;
-            let _abi = &item.sig.abi;
-            let _ident = &item.sig.ident;
-            let _generics = &item.sig.generics;
-            let _args = &item.sig.inputs;
-            let _variadic = &item.sig.variadic;
-            let _ty = &item.sig.output;
+        TraitItem::Fn(val) => Some({
+            let attrs = &val.attrs;
+            let constness = &val.sig.constness;
+            let asyncness = &val.sig.asyncness;
+            let unsafety = &val.sig.unsafety;
+            let abi = &val.sig.abi;
+            let ident = &val.sig.ident;
+            let generics = &val.sig.generics;
+            let args = &val.sig.inputs;
+            let variadic = &val.sig.variadic;
+            let ty = &val.sig.output;
 
-            quote! {}
+            let args_self = args.iter().find_map(|arg| match arg {
+                FnArg::Receiver(val) => Some(val),
+                FnArg::Typed(_) => None,
+            });
+
+            let args_rest = args.iter().filter_map(|arg| match arg {
+                FnArg::Receiver(_) => None,
+                FnArg::Typed(val) => Some(&val.pat),
+            });
+
+            let expr = match args_self {
+                Some(arg) => {
+                    if arg.reference.is_some() && arg.mutability.is_some() {
+                        quote! {
+                            ($field_mut)(self).#ident(#(#args_rest),* #variadic)
+                        }
+                    } else if arg.reference.is_some() {
+                        quote! {
+                            ($field_ref)(self).#ident(#(#args_rest),* #variadic)
+                        }
+                    } else {
+                        quote! {
+                            ($field)(self).#ident(#(#args_rest),* #variadic)
+                        }
+                    }
+                },
+                None => quote! {
+                    quote! {
+                        <$ty_field>::#ident(#(#args_rest),* #variadic)
+                    }
+                },
+            };
+
+            quote! {
+                #(#attrs)*
+                #constness #asyncness #unsafety #abi fn #ident #generics (#args #variadic) -> #ty {
+                    #expr
+                }
+            }
         }),
         _ => None,
     });
