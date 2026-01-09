@@ -1212,14 +1212,8 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => parse_quote! { where },
     };
 
-    let types = item
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            TraitItem::Type(item) => Some(item),
-            _ => None,
-        })
-        .map(|item| {
+    let items = item.items.iter().filter_map(|item| match item {
+        TraitItem::Type(item) => Some({
             let attrs = &item.attrs;
             let ident = &item.ident;
 
@@ -1229,16 +1223,8 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                 #(#attrs)*
                 type #ident #gen_impl = <$ty_field>::#ident #gen_type;
             }
-        });
-
-    let consts = item
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            TraitItem::Const(item) => Some(item),
-            _ => None,
-        })
-        .map(|item| {
+        }),
+        TraitItem::Const(item) => Some({
             let attrs = &item.attrs;
             let ident = &item.ident;
             let ty = &item.ty;
@@ -1247,16 +1233,23 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                 #(#attrs)*
                 const #ident: #ty = <$ty_field>::#ident;
             }
-        });
+        }),
+        TraitItem::Fn(item) => Some({
+            let _attrs = &item.attrs;
+            let _constness = &item.sig.constness;
+            let _asyncness = &item.sig.asyncness;
+            let _unsafety = &item.sig.unsafety;
+            let _abi = &item.sig.abi;
+            let _ident = &item.sig.ident;
+            let _generics = &item.sig.generics;
+            let _args = &item.sig.inputs;
+            let _variadic = &item.sig.variadic;
+            let _ty = &item.sig.output;
 
-    let fns = item
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            TraitItem::Fn(item) => Some(item),
-            _ => None,
-        })
-        .map(|item| quote! { #item });
+            quote! {}
+        }),
+        _ => None,
+    });
 
     quote! {
         #item
@@ -1267,9 +1260,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             () => {};
             ($ty:ty, $ty_field:ty, $field:expr, $field_ref:expr, $field_mut:expr, ($($gen_params:tt)+), ($($gen_where:tt)+),) => {
                 impl <#gen_params $gen_params> #ident #gen_type for $ty #gen_where $gen_where {
-                    #(#types)*
-                    #(#consts)*
-                    #(#fns)*
+                    #(#items)*
                 }
             };
         }
