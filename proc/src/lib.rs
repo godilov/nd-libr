@@ -145,10 +145,7 @@ impl Parse for Ops {
             return Ok(Ops::Unary(tokens));
         }
 
-        Err(Error::new(
-            Span::call_site(),
-            "Failed to parse ops identifier, expected @mut, @bin or @un",
-        ))
+        Err(input.error("Failed to parse ops identifier, expected @mut, @bin or @un"))
     }
 }
 
