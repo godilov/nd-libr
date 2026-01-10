@@ -34,7 +34,7 @@ where
 {
 }
 
-pub trait OpsFrom<Lhs: Ops<Rhs, ShiftRhs> = Self, Rhs = Lhs, ShiftRhs = usize>
+pub trait FromOps<Lhs: Ops<Rhs, ShiftRhs> = Self, Rhs = Lhs, ShiftRhs = usize>
 where
     Self: From<<Lhs as Add<Rhs>>::Output>
         + From<<Lhs as Sub<Rhs>>::Output>
@@ -92,7 +92,7 @@ impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
 {
 }
 
-impl<Any, Lhs: Ops<Rhs, ShiftRhs>, Rhs, ShiftRhs> OpsFrom<Lhs, Rhs, ShiftRhs> for Any where
+impl<Any, Lhs: Ops<Rhs, ShiftRhs>, Rhs, ShiftRhs> FromOps<Lhs, Rhs, ShiftRhs> for Any where
     Any: From<<Lhs as Add<Rhs>>::Output>
         + From<<Lhs as Sub<Rhs>>::Output>
         + From<<Lhs as Mul<Rhs>>::Output>
