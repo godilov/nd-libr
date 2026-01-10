@@ -185,7 +185,7 @@ macro_rules! modular_ops_assign_impl {
         $(modular_ops_assign_impl!($op => $fn);)+
     };
     ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + Extension + Unsigned + Static + $op<U>, M: Modulus<N>> $op<U> for Modular<N, M>
+        impl<U, N: Num + Extension + Unsigned + Static + $op<U>, M: Default + Clone + Modulus<N>> $op<U> for Modular<N, M>
         where
             for<'s> &'s N: Ops,
         {
@@ -391,7 +391,7 @@ pub mod prime {
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
 #[forward_def(self.0 as N, Num, Extension, Static)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, Copy, Hash)]
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
@@ -399,9 +399,9 @@ where
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
-#[forward_def(self.0 as N, Num, Extension, Static, Unsigned)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Modular<N: Num + Extension + Static + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
+#[forward_def(self.0 as N, Num, Extension, Static)]
+#[derive(Default, Debug, Clone, Copy, Hash)]
+pub struct Modular<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>>(pub N, pub PhantomData<M>)
 where
     for<'s> &'s N: Ops;
 
@@ -734,21 +734,39 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
+impl<N: Num + Extension + Static, const BITS: usize> From<bool> for Width<N, BITS>
+where
+    for<'s> &'s N: Ops,
+{
+    fn from(value: bool) -> Self {
+        Self(N::from(value))
+    }
+}
+
 impl<N: Num + Extension + Static, const BITS: usize> From<N> for Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
     fn from(value: N) -> Self {
-        Width(value).normalized()
+        Self(value).normalized()
     }
 }
 
-impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> From<N> for Modular<N, M>
+impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<bool> for Modular<N, M>
+where
+    for<'s> &'s N: Ops,
+{
+    fn from(value: bool) -> Self {
+        Self(N::from(value), PhantomData)
+    }
+}
+
+impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<N> for Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
     fn from(value: N) -> Self {
-        Modular(value, PhantomData).normalized()
+        Self(value, PhantomData).normalized()
     }
 }
 
@@ -788,7 +806,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Unsigned + Static, M: Modulus<N>> Modular<N, M>
+impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {

@@ -134,7 +134,7 @@ pub mod word {
 #[ndproc::forward_fmt(self.0 as T)]
 #[ndproc::forward_ops(self.0 as T)]
 #[ndproc::forward_ops_assign(self.0 as T)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub struct Aligned<T>(pub T);
 
 impl<T> From<T> for Aligned<T> {
