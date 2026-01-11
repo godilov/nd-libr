@@ -49,8 +49,8 @@ where
 {
 }
 
-pub trait OpsNegFrom<Lhs: Neg = Self>: From<<Lhs as Neg>::Output> {}
-pub trait OpsNotFrom<Lhs: Not = Self>: From<<Lhs as Not>::Output> {}
+pub trait FromNeg<Lhs: Neg = Self>: From<<Lhs as Neg>::Output> {}
+pub trait FromNot<Lhs: Not = Self>: From<<Lhs as Not>::Output> {}
 
 pub trait IteratorExt: Iterator {
     fn collect_with<Collection>(&mut self, mut collection: Collection) -> Collection
@@ -106,7 +106,7 @@ impl<Any, Lhs: Ops<Rhs, ShiftRhs>, Rhs, ShiftRhs> FromOps<Lhs, Rhs, ShiftRhs> fo
 {
 }
 
-impl<Any, Lhs: Neg> OpsNegFrom<Lhs> for Any where Self: From<<Lhs as Neg>::Output> {}
-impl<Any, Lhs: Not> OpsNotFrom<Lhs> for Any where Self: From<<Lhs as Not>::Output> {}
+impl<Any, Lhs: Neg> FromNeg<Lhs> for Any where Self: From<<Lhs as Neg>::Output> {}
+impl<Any, Lhs: Not> FromNot<Lhs> for Any where Self: From<<Lhs as Not>::Output> {}
 
 impl<Iter: Iterator> IteratorExt for Iter {}

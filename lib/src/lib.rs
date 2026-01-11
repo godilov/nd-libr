@@ -156,8 +156,8 @@ mod tests {
     ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N>> where X3<N>: FromOps<N, N, N> |*a:  X3<N>, *b:  Y3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
     ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N>> where X3<N>: FromOps<N, N, N> |*a:  X3<N>, *b:  X3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
-    ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X0<N>: OpsNegFrom<N> + OpsNotFrom<N> |*a: &X0<N>| -> X0<N>, (a.0) [-, !]);
-    ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X1<N>: OpsNegFrom<N> + OpsNotFrom<N> |*a:  X1<N>| -> X1<N>, (a.0) [-, !]);
+    ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X0<N>: FromNeg<N> + FromNot<N> |*a: &X0<N>| -> X0<N>, (a.0) [-, !]);
+    ops_impl_auto!(@un <N: Sized + Copy + Neg + Not> where X1<N>: FromNeg<N> + FromNot<N> |*a:  X1<N>| -> X1<N>, (a.0) [-, !]);
 
     #[test]
     fn ops() {
