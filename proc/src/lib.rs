@@ -114,7 +114,7 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
 #[allow(dead_code)]
 struct ForwardDef {
     expr: Expr,
-    comma: Token![,],
+    comma: Token![:],
     idents: Punctuated<Ident, Token![,]>,
 }
 

@@ -390,7 +390,7 @@ pub mod prime {
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
-#[forward_def(self.0 as N, Num, Extension, Static)]
+#[forward_def(self.0 as N: Num, Extension, Static)]
 #[derive(Default, Debug, Clone, Copy, Hash)]
 pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
 where
@@ -399,7 +399,7 @@ where
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
-#[forward_def(self.0 as N, Num, Extension, Static)]
+#[forward_def(self.0 as N: Num, Extension, Static)]
 #[derive(Default, Debug, Clone, Copy, Hash)]
 pub struct Modular<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>>(pub N, pub PhantomData<M>)
 where
