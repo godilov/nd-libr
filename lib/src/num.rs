@@ -168,7 +168,7 @@ macro_rules! width_ops_assign_impl {
         $(width_ops_assign_impl!($op => $fn);)+
     };
     ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + Extension + Static + $op<U>, const BITS: usize> $op<U> for Width<N, BITS>
+        impl<U, N: Num + Extension + Unsigned + Static + $op<U>, const BITS: usize> $op<U> for Width<N, BITS>
         where
             for<'s> &'s N: Ops,
         {
@@ -185,7 +185,7 @@ macro_rules! modular_ops_assign_impl {
         $(modular_ops_assign_impl!($op => $fn);)+
     };
     ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + Extension + Static + Unsigned + $op<U>, M: Default + Clone + Modulus<N>> $op<U> for Modular<N, M>
+        impl<U, N: Num + Extension + Unsigned + Static + $op<U>, M: Default + Clone + Modulus<N>> $op<U> for Modular<N, M>
         where
             for<'s> &'s N: Ops,
         {
@@ -390,16 +390,18 @@ pub mod prime {
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
+#[forward_def(self.0 as N: Num, Extension, Static)]
 #[derive(Default, Debug, Clone, Copy)]
-pub struct Width<N: Num + Extension + Static, const BITS: usize>(pub N)
+pub struct Width<N: Num + Extension + Unsigned + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
+#[forward_def(self.0 as N: Num, Extension, Static)]
 #[derive(Default, Debug, Clone, Copy)]
-pub struct Modular<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>>(pub N, pub PhantomData<M>)
+pub struct Modular<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>>(pub N, pub PhantomData<M>)
 where
     for<'s> &'s N: Ops;
 
@@ -710,7 +712,7 @@ where
     const MAX: Self;
 }
 
-pub trait Modulus<N: Num + Extension + Static + Unsigned>
+pub trait Modulus<N: Num + Extension + Static + Unsigned>: Default + Debug + Clone + Copy
 where
     for<'s> &'s N: Ops,
 {
@@ -732,7 +734,7 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-impl<N: Num + Extension + Static, const BITS: usize> From<bool> for Width<N, BITS>
+impl<N: Num + Extension + Unsigned + Static, const BITS: usize> From<bool> for Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
@@ -741,7 +743,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Static, const BITS: usize> From<N> for Width<N, BITS>
+impl<N: Num + Extension + Unsigned + Static, const BITS: usize> From<N> for Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
@@ -750,7 +752,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>> From<bool> for Modular<N, M>
+impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<bool> for Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
@@ -759,7 +761,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>> From<N> for Modular<N, M>
+impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<N> for Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
@@ -790,7 +792,7 @@ modular_ops_assign_impl!([
     BitXorAssign => bitxor_assign,
 ]);
 
-impl<N: Num + Extension + Static, const BITS: usize> Width<N, BITS>
+impl<N: Num + Extension + Unsigned + Static, const BITS: usize> Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
@@ -804,7 +806,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>> Modular<N, M>
+impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
