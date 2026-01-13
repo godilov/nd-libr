@@ -34,8 +34,9 @@ where
 {
 }
 
-pub trait FromOps<Lhs: Ops<Rhs, ShiftRhs> = Self, Rhs = Lhs, ShiftRhs = usize>
+pub trait FromOps<Lhs = Self, Rhs = Lhs, ShiftRhs = usize>
 where
+    Lhs: Ops<Rhs, ShiftRhs>,
     Self: From<<Lhs as Add<Rhs>>::Output>
         + From<<Lhs as Sub<Rhs>>::Output>
         + From<<Lhs as Mul<Rhs>>::Output>
@@ -92,7 +93,9 @@ impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
 {
 }
 
-impl<Any, Lhs: Ops<Rhs, ShiftRhs>, Rhs, ShiftRhs> FromOps<Lhs, Rhs, ShiftRhs> for Any where
+impl<Any, Lhs, Rhs, ShiftRhs> FromOps<Lhs, Rhs, ShiftRhs> for Any
+where
+    Lhs: Ops<Rhs, ShiftRhs>,
     Any: From<<Lhs as Add<Rhs>>::Output>
         + From<<Lhs as Sub<Rhs>>::Output>
         + From<<Lhs as Mul<Rhs>>::Output>
@@ -102,7 +105,7 @@ impl<Any, Lhs: Ops<Rhs, ShiftRhs>, Rhs, ShiftRhs> FromOps<Lhs, Rhs, ShiftRhs> fo
         + From<<Lhs as BitAnd<Rhs>>::Output>
         + From<<Lhs as BitXor<Rhs>>::Output>
         + From<<Lhs as Shl<ShiftRhs>>::Output>
-        + From<<Lhs as Shr<ShiftRhs>>::Output>
+        + From<<Lhs as Shr<ShiftRhs>>::Output>,
 {
 }
 
