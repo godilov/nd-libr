@@ -185,7 +185,7 @@ macro_rules! modular_ops_assign_impl {
         $(modular_ops_assign_impl!($op => $fn);)+
     };
     ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + Extension + Unsigned + Static + $op<U>, M: Default + Clone + Modulus<N>> $op<U> for Modular<N, M>
+        impl<U, N: Num + Extension + Static + Unsigned + $op<U>, M: Default + Clone + Modulus<N>> $op<U> for Modular<N, M>
         where
             for<'s> &'s N: Ops,
         {
@@ -750,7 +750,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<bool> for Modular<N, M>
+impl<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>> From<bool> for Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
@@ -759,7 +759,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<N> for Modular<N, M>
+impl<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>> From<N> for Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
@@ -804,7 +804,7 @@ where
     }
 }
 
-impl<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>> Modular<N, M>
+impl<N: Num + Extension + Static + Unsigned, M: Default + Clone + Modulus<N>> Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
