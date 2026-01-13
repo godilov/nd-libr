@@ -815,19 +815,19 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
         impl #gen_impl std::cmp::Ord for #ident #gen_type #ord {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                #field.cmp(other.#member)
+                #field.cmp(&other.#member)
             }
         }
 
         impl #gen_impl std::cmp::PartialEq for #ident #gen_type #partial_eq {
             fn eq(&self, other: &Self) -> bool {
-                #field.eq(other.#member)
+                #field.eq(&other.#member)
             }
         }
 
         impl #gen_impl std::cmp::PartialOrd for #ident #gen_type #partial_ord {
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                #field.partial_cmp(other.#member)
+                #field.partial_cmp(&other.#member)
             }
         }
     }
