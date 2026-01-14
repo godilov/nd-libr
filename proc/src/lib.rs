@@ -1295,7 +1295,11 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let args_rest = args.iter().filter_map(|arg| match arg {
                 FnArg::Receiver(_) => None,
                 FnArg::Typed(val) => Some(match &*val.pat {
-                    Pat::Ident(val) => Some(&val.ident),
+                    Pat::Ident(val) => {
+                        let ident = &val.ident;
+
+                        Some(quote! { #ident.into() })
+                    },
                     _ => None,
                 }),
             });
