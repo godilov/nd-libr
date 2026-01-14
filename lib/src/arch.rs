@@ -131,6 +131,7 @@ pub mod word {
 
 #[ndproc::align]
 #[ndproc::forward_std(self.0 as T)]
+#[ndproc::forward_cmp(self.0 as T)]
 #[ndproc::forward_fmt(self.0 as T)]
 #[ndproc::forward_ops(self.0 as T)]
 #[ndproc::forward_ops_assign(self.0 as T)]

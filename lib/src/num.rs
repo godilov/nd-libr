@@ -5,7 +5,7 @@ use std::{
     ops::{AddAssign, BitAndAssign, BitOrAssign, BitXorAssign, DivAssign, MulAssign, RemAssign, SubAssign},
 };
 
-use ndproc::{forward_fmt, forward_ops, forward_std};
+use ndproc::{forward_cmp, forward_fmt, forward_ops, forward_std};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -453,6 +453,7 @@ pub mod prime {
 }
 
 #[forward_std(self.0 as N)]
+#[forward_cmp(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
 // #[forward_def(self.0 as N: Num)]
@@ -462,6 +463,7 @@ where
     for<'s> &'s N: Ops;
 
 #[forward_std(self.0 as N)]
+#[forward_cmp(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
 // #[forward_def(self.0 as N: Num)]

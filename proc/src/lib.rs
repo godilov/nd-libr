@@ -736,8 +736,6 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let member = &field.member;
-
     let gen_params = &generics.params;
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
@@ -754,26 +752,6 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
     let from_iter: WhereClause = match gen_where {
         Some(val) => parse_quote! { #val, #ty: std::iter::FromIterator<Elem> },
         None => parse_quote! { where #ty: std::iter::FromIterator<Elem> },
-    };
-
-    let partial_eq: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::PartialEq },
-        None => parse_quote! { where #ty: std::cmp::PartialEq },
-    };
-
-    let partial_ord: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::PartialOrd },
-        None => parse_quote! { where #ty: std::cmp::PartialOrd },
-    };
-
-    let eq: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::Eq },
-        None => parse_quote! { where #ty: std::cmp::Eq },
-    };
-
-    let ord: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::Ord },
-        None => parse_quote! { where #ty: std::cmp::Ord },
     };
 
     quote! {
@@ -810,6 +788,48 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                 Self::from(#ty::from_iter(iter))
             }
         }
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let item = parse_macro_input!(item as Item);
+    let expr = parse_macro_input!(attr as Expr);
+
+    let item = get_normalized_item(item);
+
+    let (ident, generics, field, ty) = match get_forward_args(&item, &expr) {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
+
+    let member = &field.member;
+
+    let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
+
+    let partial_ord: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val, #ty: std::cmp::PartialOrd },
+        None => parse_quote! { where #ty: std::cmp::PartialOrd },
+    };
+
+    let partial_eq: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val, #ty: std::cmp::PartialEq },
+        None => parse_quote! { where #ty: std::cmp::PartialEq },
+    };
+
+    let ord: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val, #ty: std::cmp::Ord },
+        None => parse_quote! { where #ty: std::cmp::Ord },
+    };
+
+    let eq: WhereClause = match gen_where {
+        Some(val) => parse_quote! { #val, #ty: std::cmp::Eq },
+        None => parse_quote! { where #ty: std::cmp::Eq },
+    };
+
+    quote! {
+        #item
 
         impl #gen_impl std::cmp::Eq for #ident #gen_type #eq {}
 
