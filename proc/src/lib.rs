@@ -1302,10 +1302,10 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let expr = match args_self {
                 Some(_) => quote! {
-                    self.0.#ident(#(#args_rest),* #variadic)
+                    self.0.#ident(#(#args_rest),* #variadic).into()
                 },
                 None => quote! {
-                    <$ty_field>::#ident(#(#args_rest),* #variadic)
+                    <$ty_field>::#ident(#(#args_rest),* #variadic).into()
                 },
             };
 

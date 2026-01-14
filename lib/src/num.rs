@@ -274,6 +274,69 @@ pub mod prime {
         fn as_count_check_estimate(&self) -> usize;
 
         fn as_limit_check_estimate(&self) -> usize;
+
+        fn is_prime(&self) -> bool {
+            let sqrt = self.sqrt();
+
+            Self::primes().take_while(|p| p <= &sqrt).all(|p| {
+                let one = Self::one();
+
+                let x = Self::from(self - &one);
+
+                let shr = Self::from(&x - &one);
+                let shr = Self::from(&x ^ &shr);
+                let shr = shr.order();
+
+                let mut any = false;
+                let mut pow = Self::from(&x >> shr);
+                let mut exp = p.pow_rem(pow.clone(), self);
+
+                while pow < x && one < exp && exp < x {
+                    any |= true;
+                    pow <<= 1;
+                    exp *= &exp.clone();
+                    exp %= self;
+                }
+
+                !any && exp == one || exp == x
+            })
+        }
+    }
+
+    pub trait PrimalityExtension: Send + Primality + Extension
+    where
+        for<'s> &'s Self: Ops,
+    {
+        fn rand_prime(order: usize) -> Self {
+            let mut rng = rand::rng();
+            let mut val = Self::rand(order, &mut rng).odd_ext();
+
+            while !val.is_prime() {
+                val = Self::rand(order, &mut rng).odd_ext();
+            }
+
+            val
+        }
+
+        fn rand_primes(order: usize, count: usize) -> Vec<Self> {
+            (0..count).map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
+        }
+
+        fn rand_prime_par(order: usize) -> Self {
+            let threads = std::thread::available_parallelism().map(|val| val.get()).unwrap_or(1);
+
+            (0..threads)
+                .into_par_iter()
+                .find_map_first(|_| Some(Self::rand_prime(order)))
+                .unwrap_or_default()
+        }
+
+        fn rand_primes_par(order: usize, count: usize) -> Vec<Self> {
+            (0..count)
+                .into_par_iter()
+                .map(|_| Self::rand_prime(order))
+                .collect::<Vec<Self>>()
+        }
     }
 
     struct PrimesFullIter<Prime: Primality>
@@ -385,12 +448,14 @@ pub mod prime {
 
     impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> where for<'s> &'s Prime: Ops {}
     impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops {}
+
+    impl<Any: Send + Primality + Extension> PrimalityExtension for Any where for<'s> &'s Any: Ops {}
 }
 
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
-#[forward_def(self.0 as N: Num, Extension, Static)]
+#[forward_def(self.0 as N: Num)]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Width<N: Num + Extension + Unsigned + Static, const BITS: usize>(pub N)
 where
@@ -399,7 +464,7 @@ where
 #[forward_std(self.0 as N)]
 #[forward_fmt(self.0 as N)]
 #[forward_ops(self.0 as N)]
-#[forward_def(self.0 as N: Num, Extension, Static)]
+#[forward_def(self.0 as N: Num)]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Modular<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>>(pub N, pub PhantomData<M>)
 where
@@ -477,98 +542,6 @@ where
         }
 
         res
-    }
-
-    fn rand<R: ?Sized + Rng>(order: usize, rng: &mut R) -> Self
-    where
-        Self: Extension,
-    {
-        let shift = order - 1;
-        let div = shift / u64::BITS as usize;
-        let rem = shift % u64::BITS as usize;
-
-        let mut res = Self::zero();
-
-        res.bitor_offset_mut_ext((1 << rem) | rng.next_u64() & ((1 << rem) - 1), shift - rem);
-
-        for idx in 0..div {
-            res.bitor_offset_mut_ext(rng.next_u64(), shift - rem - idx * div);
-        }
-
-        res
-    }
-
-    fn rand_prime(order: usize) -> Self
-    where
-        Self: Extension + Primality,
-    {
-        let mut rng = rand::rng();
-        let mut val = Self::rand(order, &mut rng).odd_ext();
-
-        while !val.is_prime() {
-            val = Self::rand(order, &mut rng).odd_ext();
-        }
-
-        val
-    }
-
-    fn rand_primes(order: usize, count: usize) -> Vec<Self>
-    where
-        Self: Extension + Primality,
-    {
-        (0..count).map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
-    }
-
-    fn rand_prime_par(order: usize) -> Self
-    where
-        Self: Send + Extension + Primality,
-    {
-        let threads = std::thread::available_parallelism().map(|val| val.get()).unwrap_or(1);
-
-        (0..threads)
-            .into_par_iter()
-            .find_map_first(|_| Some(Self::rand_prime(order)))
-            .unwrap_or_default()
-    }
-
-    fn rand_primes_par(order: usize, count: usize) -> Vec<Self>
-    where
-        Self: Send + Extension + Primality,
-    {
-        (0..count)
-            .into_par_iter()
-            .map(|_| Self::rand_prime(order))
-            .collect::<Vec<Self>>()
-    }
-
-    fn is_prime(&self) -> bool
-    where
-        Self: Primality,
-    {
-        let sqrt = self.sqrt();
-
-        Self::primes().take_while(|p| p <= &sqrt).all(|p| {
-            let one = Self::one();
-
-            let x = Self::from(self - &one);
-
-            let shr = Self::from(&x - &one);
-            let shr = Self::from(&x ^ &shr);
-            let shr = shr.order();
-
-            let mut any = false;
-            let mut pow = Self::from(&x >> shr);
-            let mut exp = p.pow_rem(pow.clone(), self);
-
-            while pow < x && one < exp && exp < x {
-                any |= true;
-                pow <<= 1;
-                exp *= &exp.clone();
-                exp %= self;
-            }
-
-            !any && exp == one || exp == x
-        })
     }
 }
 
@@ -656,6 +629,22 @@ where
     fn alt_ext(mut self) -> Self {
         self.alt_mut_ext();
         self
+    }
+
+    fn rand<R: ?Sized + Rng>(order: usize, rng: &mut R) -> Self {
+        let shift = order - 1;
+        let div = shift / u64::BITS as usize;
+        let rem = shift % u64::BITS as usize;
+
+        let mut res = Self::zero();
+
+        res.bitor_offset_mut_ext((1 << rem) | rng.next_u64() & ((1 << rem) - 1), shift - rem);
+
+        for idx in 0..div {
+            res.bitor_offset_mut_ext(rng.next_u64(), shift - rem - idx * div);
+        }
+
+        res
     }
 }
 
