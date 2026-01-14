@@ -1,5 +1,6 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
+use ndproc::{align, forward_cmp, forward_fmt, forward_ops, forward_ops_assign, forward_std};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 macro_rules! word_def {
@@ -129,12 +130,12 @@ pub mod word {
     }
 }
 
-#[ndproc::align]
-#[ndproc::forward_std(self.0 as T)]
-#[ndproc::forward_cmp(self.0 as T)]
-#[ndproc::forward_fmt(self.0 as T)]
-#[ndproc::forward_ops(self.0 as T)]
-#[ndproc::forward_ops_assign(self.0 as T)]
+#[align]
+#[forward_std(self.0 as T)]
+#[forward_cmp(self.0 as T)]
+#[forward_fmt(self.0 as T)]
+#[forward_ops(self.0 as T)]
+#[forward_ops_assign(self.0 as T)]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
