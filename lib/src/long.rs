@@ -1009,10 +1009,10 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignedFixed<const L: usize>(pub [Single; L], pub usize);
+pub struct SignedFixed<const L: usize, const N: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UnsignedFixed<const L: usize>(pub [Single; L], pub usize);
+pub struct UnsignedFixed<const L: usize, const N: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedDyn(Vec<Single>, Sign);
@@ -1021,10 +1021,10 @@ pub struct SignedDyn(Vec<Single>, Sign);
 pub struct UnsignedDyn(Vec<Single>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignedFixedDyn(Vec<Single>, Sign, usize);
+pub struct SignedFixedDyn<const N: usize>(Vec<Single>, Sign);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnsignedFixedDyn(Vec<Single>, usize);
+pub struct UnsignedFixedDyn<const N: usize>(Vec<Single>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
