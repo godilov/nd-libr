@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, FnArg, GenericParam, Generics, Ident, Item, Meta, Pat, Path, Result, Token,
-    TraitItem, Type, UnOp, WhereClause, bracketed,
+    BinOp, Error, Expr, ExprField, FnArg, GenericParam, Generics, Ident, Item, Pat, Path, Result, Token, TraitItem,
+    Type, UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -109,14 +109,6 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
     lhs_expr: Expr,
     ops_bracket: Bracket,
     ops: Punctuated<Op, Token![,]>,
-}
-
-#[allow(dead_code)]
-enum ForwardArg {
-    Forward,
-    ForwardRef,
-    ForwardMut,
-    ForarwdRaw,
 }
 
 #[allow(dead_code)]
@@ -1322,65 +1314,13 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let args_rest = args.iter().filter_map(|arg| match arg {
                 FnArg::Receiver(_) => None,
-                FnArg::Typed(val) => Some({
-                    let arg = val
-                        .attrs
-                        .iter()
-                        .find_map(|attr| match &attr.meta {
-                            Meta::Path(val) => {
-                                if val.is_ident("forward") {
-                                    return Some(ForwardArg::Forward);
-                                }
+                FnArg::Typed(val) => Some(match &*val.pat {
+                    Pat::Ident(val) => {
+                        let ident = &val.ident;
 
-                                if val.is_ident("forward_ref") {
-                                    return Some(ForwardArg::ForwardRef);
-                                }
-
-                                if val.is_ident("forward_mut") {
-                                    return Some(ForwardArg::ForwardMut);
-                                }
-
-                                None
-                            },
-                            Meta::List(_) => None,
-                            Meta::NameValue(_) => None,
-                        })
-                        .unwrap_or(ForwardArg::ForarwdRaw);
-
-                    match arg {
-                        ForwardArg::Forward => match &*val.pat {
-                            Pat::Ident(val) => {
-                                let ident = &val.ident;
-
-                                Some(quote! { #ident.$field })
-                            },
-                            _ => None,
-                        },
-                        ForwardArg::ForwardRef => match &*val.pat {
-                            Pat::Ident(val) => {
-                                let ident = &val.ident;
-
-                                Some(quote! { &#ident.$field })
-                            },
-                            _ => None,
-                        },
-                        ForwardArg::ForwardMut => match &*val.pat {
-                            Pat::Ident(val) => {
-                                let ident = &val.ident;
-
-                                Some(quote! { &mut #ident.$field })
-                            },
-                            _ => None,
-                        },
-                        ForwardArg::ForarwdRaw => match &*val.pat {
-                            Pat::Ident(val) => {
-                                let ident = &val.ident;
-
-                                Some(quote! { #ident })
-                            },
-                            _ => None,
-                        },
-                    }
+                        Some(quote! { #ident.into() })
+                    },
+                    _ => None,
                 }),
             });
 
