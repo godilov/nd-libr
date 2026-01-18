@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, FnArg, GenericParam, Generics, Ident, Item, Pat, Path, Result, Token, TraitItem,
-    Type, UnOp, WhereClause, bracketed,
+    BinOp, Error, Expr, ExprField, Generics, Ident, Item, Path, Result, Token, TraitItem, Type, UnOp, WhereClause,
+    bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1260,88 +1260,12 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ident = &item.ident;
     let macros = format_ident!("forward_impl_{}", ident);
 
-    let gen_params = &item.generics.params;
-    let (_, gen_type, gen_where) = item.generics.split_for_impl();
-
-    let gen_params: Punctuated<GenericParam, Token![,]> = match gen_params.is_empty() {
-        true => parse_quote! {},
-        false => parse_quote! { #gen_params, },
-    };
-
-    let gen_where: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, },
-        None => parse_quote! { where },
-    };
-
-    let items = item.items.iter().filter_map(|item| match item {
-        TraitItem::Type(val) => Some({
-            let attrs = &val.attrs;
-            let ident = &val.ident;
-
-            let (gen_impl, gen_type, _) = val.generics.split_for_impl();
-
-            quote! {
-                #(#attrs)*
-                type #ident #gen_impl = <$ty_field>::#ident #gen_type;
-            }
-        }),
-        TraitItem::Const(val) => Some({
-            let attrs = &val.attrs;
-            let ident = &val.ident;
-            let ty = &val.ty;
-
-            quote! {
-                #(#attrs)*
-                const #ident: #ty = <$ty_field>::#ident;
-            }
-        }),
-        TraitItem::Fn(val) => Some({
-            let attrs = &val.attrs;
-            let constness = &val.sig.constness;
-            let asyncness = &val.sig.asyncness;
-            let unsafety = &val.sig.unsafety;
-            let abi = &val.sig.abi;
-            let ident = &val.sig.ident;
-            let generics = &val.sig.generics;
-            let args = &val.sig.inputs;
-            let variadic = &val.sig.variadic;
-            let ty = &val.sig.output;
-
-            let args_self = args.iter().find_map(|arg| match arg {
-                FnArg::Receiver(val) => Some(val),
-                FnArg::Typed(_) => None,
-            });
-
-            let args_rest = args.iter().filter_map(|arg| match arg {
-                FnArg::Receiver(_) => None,
-                FnArg::Typed(val) => Some(match &*val.pat {
-                    Pat::Ident(val) => {
-                        let ident = &val.ident;
-
-                        Some(quote! { #ident.into() })
-                    },
-                    _ => None,
-                }),
-            });
-
-            let expr = match args_self {
-                Some(_) => quote! {
-                    self.$field.#ident(#(#args_rest),* #variadic).into()
-                },
-                None => quote! {
-                    <$ty_field>::#ident(#(#args_rest),* #variadic).into()
-                },
-            };
-
-            quote! {
-                #(#attrs)*
-                #constness #asyncness #unsafety #abi fn #ident #generics (#args #variadic) #ty {
-                    #expr
-                }
-            }
-        }),
-        _ => None,
-    });
+    let _ = item.items.iter().filter_map(|item| match item {
+        TraitItem::Type(_) => todo!(),
+        TraitItem::Const(_) => todo!(),
+        TraitItem::Fn(_) => todo!(),
+        _ => todo!(),
+    } as Option<()>);
 
     quote! {
         #item
@@ -1349,11 +1273,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            ($ty:ty, $ty_field:ty, ($($field:tt)+), ($($gen_params:tt)+), ($($gen_where:tt)+)) => {
-                impl <#gen_params $($gen_params)+> #ident #gen_type for $ty #gen_where $($gen_where)+ {
-                    #(#items)*
-                }
-            };
+            ($ty:ty, $ty_field:ty, ($($field:tt)+), ($($gen_params:tt)+), ($($gen_where:tt)+)) => {};
         }
 
         #[allow(unused_imports)]
@@ -1369,20 +1289,11 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
     let item = get_normalized_item(item);
 
-    let (ident, generics, field, ty) = match get_forward_args(&item, &def.expr) {
-        Ok(val) => val,
-        Err(err) => return err.into_compile_error().into(),
-    };
-
-    let gen_params = &generics.params;
-    let (_, gen_type, gen_where) = generics.split_for_impl();
-    let gen_where = gen_where.map(|clause| &clause.predicates);
-
     let quotes = def.idents.iter().map(|id| {
         let macros = format_ident!("forward_impl_{}", id);
 
         quote! {
-            #macros!(#ident #gen_type, #ty, (#field), (#gen_params), (#gen_where));
+            #macros!();
         }
     });
 
