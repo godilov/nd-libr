@@ -111,13 +111,6 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
     ops: Punctuated<Op, Token![,]>,
 }
 
-#[allow(dead_code)]
-struct ForwardDef {
-    expr: Expr,
-    comma: Token![:],
-    idents: Punctuated<Ident, Token![,]>,
-}
-
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
 type OpsImplBinary = OpsImpl<OpsSignatureBinary, BinOp>;
 type OpsImplUnary = OpsImpl<OpsSignatureUnary, UnOp>;
@@ -284,16 +277,6 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
             lhs_expr: lhs_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
             ops: ops_content.parse_terminated(Op::parse, Token![,])?,
-        })
-    }
-}
-
-impl Parse for ForwardDef {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            expr: input.parse()?,
-            comma: input.parse()?,
-            idents: input.parse_terminated(Ident::parse, Token![,])?,
         })
     }
 }
@@ -1283,24 +1266,13 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
-    let def = parse_macro_input!(attr as ForwardDef);
 
     let item = get_normalized_item(item);
 
-    let quotes = def.idents.iter().map(|id| {
-        let macros = format_ident!("forward_impl_{}", id);
-
-        quote! {
-            #macros!();
-        }
-    });
-
     quote! {
         #item
-
-        #(#quotes)*
     }
     .into()
 }
