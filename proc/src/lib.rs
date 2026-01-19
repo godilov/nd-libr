@@ -1229,6 +1229,14 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
 
 #[proc_macro_attribute]
 pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    fn forward_decl_case(ident: &Ident, stream: TokenStream) -> TokenStream {
+        quote! {
+            (#ident $ty:ty, $ty_field:ty, $($field:tt)+) => {
+                #stream
+            };
+        }
+    }
+
     let item = parse_macro_input!(item as Item);
 
     let item = match get_normalized_item(item) {
@@ -1243,12 +1251,37 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ident = &item.ident;
     let macros = format_ident!("forward_impl_{}", ident);
 
-    let _ = item.items.iter().filter_map(|item| match item {
-        TraitItem::Type(_) => todo!(),
-        TraitItem::Const(_) => todo!(),
-        TraitItem::Fn(_) => todo!(),
-        _ => todo!(),
-    } as Option<()>);
+    let cases = item.items.iter().filter_map(|item| match item {
+        TraitItem::Type(val) => Some({
+            let attrs = &val.attrs;
+            let ident = &val.ident;
+
+            let (gen_impl, gen_type, _) = val.generics.split_for_impl();
+
+            forward_decl_case(
+                ident,
+                quote! {
+                    #(#attrs)*
+                    type #ident #gen_impl = <$ty_field>::#ident #gen_type;
+                },
+            )
+        }),
+        TraitItem::Const(val) => Some({
+            let attrs = &val.attrs;
+            let ident = &val.ident;
+            let ty = &val.ty;
+
+            forward_decl_case(
+                ident,
+                quote! {
+                    #(#attrs)*
+                    const #ident: #ty = <$ty_field>::#ident;
+                },
+            )
+        }),
+        TraitItem::Fn(_) => Some(quote! {}),
+        _ => None,
+    });
 
     quote! {
         #item
@@ -1256,7 +1289,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            ($ty:ty, $ty_field:ty, ($($field:tt)+), ($($gen_params:tt)+), ($($gen_where:tt)+)) => {};
+            #(#cases)*
         }
 
         #[allow(unused_imports)]

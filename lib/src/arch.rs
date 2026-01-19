@@ -144,3 +144,18 @@ impl<T> From<T> for Aligned<T> {
         Aligned(value)
     }
 }
+
+struct X {}
+struct Y {}
+
+trait HelloWorld: Sized {
+    fn exec(self, x: (&str, &str), y: i32) {}
+}
+
+impl HelloWorld for X {
+    fn exec(self, val0: (&str, &str), x: i32) {}
+}
+
+impl HelloWorld for Y {
+    fn exec(self, val1: (&str, &str), x: i32) {}
+}
