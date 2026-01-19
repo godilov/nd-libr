@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, Generics, Ident, Item, Path, Result, Token, TraitItem, Type, UnOp, WhereClause,
-    bracketed,
+    BinOp, Error, Expr, ExprField, FnArg, Generics, Ident, Item, Path, Result, Token, TraitItem, Type, UnOp,
+    WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1279,7 +1279,47 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                 },
             )
         }),
-        TraitItem::Fn(_) => Some(quote! {}),
+        TraitItem::Fn(val) => Some({
+            let attrs = &val.attrs;
+            let constness = &val.sig.constness;
+            let asyncness = &val.sig.asyncness;
+            let unsafety = &val.sig.unsafety;
+            let abi = &val.sig.abi;
+            let ident = &val.sig.ident;
+            let generics = &val.sig.generics;
+            let args = &val.sig.inputs;
+            let variadic = &val.sig.variadic;
+            let ty = &val.sig.output;
+
+            let args_self = args.iter().find_map(|arg| match arg {
+                FnArg::Receiver(val) => Some(val),
+                FnArg::Typed(_) => None,
+            });
+
+            let args_rest = args.iter().filter_map(|arg| match arg {
+                FnArg::Receiver(_) => None,
+                FnArg::Typed(val) => Some(val),
+            });
+
+            let expr = match args_self {
+                Some(_) => quote! {
+                    self.$field.#ident(#(#args_rest),* #variadic).into()
+                },
+                None => quote! {
+                    <$ty_field>::#ident(#(#args_rest),* #variadic).into()
+                },
+            };
+
+            forward_decl_case(
+                ident,
+                quote! {
+                    #(#attrs)*
+                    #constness #asyncness #unsafety #abi fn #ident #generics (#args #variadic) #ty {
+                        #expr
+                    }
+                },
+            )
+        }),
         _ => None,
     });
 
