@@ -1404,11 +1404,13 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            #(#cases)*
-
             (* $ty:ty, $ty_field:ty, $($field:tt)+) => {
                 #(#macros!(#idents $ty, $ty_field, $field);)*
             };
+
+            #(#cases)*
+
+            () => {};
         }
 
         #[allow(unused_imports)]
@@ -1445,10 +1447,12 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         Err(err) => return err.into(),
     };
 
-    let _ = format_ident!("forward_impl_{}", ident);
+    let macros = format_ident!("forward_impl_{}", ident);
 
     quote! {
         #item
+
+        #macros!();
     }
     .into()
 }
