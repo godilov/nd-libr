@@ -1429,18 +1429,22 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         },
     };
 
-    let (_, path, _) = match item.trait_.as_ref().ok_or_else(|| {
-        Error::new(Span::call_site(), "Failed to forward definition, expected impl trait").into_compile_error()
-    }) {
+    let (_, path, _) = match item
+        .trait_
+        .as_ref()
+        .ok_or_else(|| Error::new(Span::call_site(), "Failed to forward definition, expected impl trait"))
+    {
         Ok(val) => val,
-        Err(err) => return err.into(),
+        Err(err) => return err.into_compile_error().into(),
     };
 
-    let ident = match path.segments.last().ok_or_else(|| {
-        Error::new(Span::call_site(), "Failed to forward definition, expected non empty trait").into_compile_error()
-    }) {
+    let ident = match path
+        .segments
+        .last()
+        .ok_or_else(|| Error::new(Span::call_site(), "Failed to forward definition, expected non empty trait"))
+    {
         Ok(val) => &val.ident,
-        Err(err) => return err.into(),
+        Err(err) => return err.into_compile_error().into(),
     };
 
     let macros = format_ident!("forward_impl_{}", ident);
