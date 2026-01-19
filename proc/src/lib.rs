@@ -2,7 +2,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, FnArg, Generics, Ident, Item, Path, Result, Token, TraitItem, Type, UnOp,
+    BinOp, Error, Expr, ExprField, FnArg, Generics, Ident, Item, LitInt, Path, Result, Token, TraitItem, Type, UnOp,
     WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
@@ -109,6 +109,33 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
     lhs_expr: Expr,
     ops_bracket: Bracket,
     ops: Punctuated<Op, Token![,]>,
+}
+
+#[allow(dead_code)]
+struct ForwardDef {
+    expr: Expr,
+    colon: Token![:],
+    args: ForwardDefArgs,
+}
+
+#[allow(dead_code)]
+enum ForwardDefArgs {
+    Asterisk(Token![*]),
+    Elems(Punctuated<ForwardDefElem, Token![,]>),
+}
+
+#[allow(dead_code)]
+struct ForwardDefElem {
+    ident: Ident,
+    expr: Option<ForwardDefElemExpr>,
+}
+
+#[allow(dead_code)]
+struct ForwardDefElemExpr {
+    paren: Paren,
+    idx: LitInt,
+    colon: Token![:],
+    expr: Expr,
 }
 
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
@@ -277,6 +304,47 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
             lhs_expr: lhs_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
             ops: ops_content.parse_terminated(Op::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for ForwardDef {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            expr: input.parse()?,
+            colon: input.parse()?,
+            args: input.parse()?,
+        })
+    }
+}
+
+impl Parse for ForwardDefArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        match input.parse::<Token![*]>() {
+            Ok(val) => Ok(ForwardDefArgs::Asterisk(val)),
+            Err(_) => Ok(ForwardDefArgs::Elems(input.parse_terminated(ForwardDefElem::parse, Token![,])?)),
+        }
+    }
+}
+
+impl Parse for ForwardDefElem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            ident: input.parse()?,
+            expr: input.parse().ok(),
+        })
+    }
+}
+
+impl Parse for ForwardDefElemExpr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            paren: parenthesized!(content in input),
+            idx: content.parse()?,
+            colon: content.parse()?,
+            expr: content.parse()?,
         })
     }
 }
