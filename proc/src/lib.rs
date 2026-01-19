@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, ExprField, FnArg, Generics, Ident, Item, LitInt, Path, Result, Token, TraitItem, Type, UnOp,
-    WhereClause, bracketed,
+    BinOp, Error, Expr, ExprField, FnArg, Generics, Ident, Item, LitInt, Pat, Path, Result, Token, TraitItem, Type,
+    UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1297,14 +1297,6 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
 
 #[proc_macro_attribute]
 pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    fn forward_decl_case(ident: &Ident, stream: TokenStream) -> TokenStream {
-        quote! {
-            (#ident $ty:ty, $ty_field:ty, $($field:tt)+) => {
-                #stream
-            };
-        }
-    }
-
     let item = parse_macro_input!(item as Item);
 
     let item = match get_normalized_item(item) {
@@ -1333,26 +1325,24 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let (gen_impl, gen_type, _) = val.generics.split_for_impl();
 
-            forward_decl_case(
-                ident,
-                quote! {
+            quote! {
+                (#ident $ty:ty, $($field:tt)+) => {
                     #(#attrs)*
-                    type #ident #gen_impl = <$ty_field>::#ident #gen_type;
-                },
-            )
+                    type #ident #gen_impl = <$ty>::#ident #gen_type;
+                };
+            }
         }),
         TraitItem::Const(val) => Some({
             let attrs = &val.attrs;
             let ident = &val.ident;
             let ty = &val.ty;
 
-            forward_decl_case(
-                ident,
-                quote! {
+            quote! {
+                (#ident $ty:ty, $($field:tt)+) => {
                     #(#attrs)*
-                    const #ident: #ty = <$ty_field>::#ident;
-                },
-            )
+                    const #ident: #ty = <$ty>::#ident;
+                };
+            }
         }),
         TraitItem::Fn(val) => Some({
             let attrs = &val.attrs;
@@ -1373,7 +1363,14 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let args_rest = args.iter().filter_map(|arg| match arg {
                 FnArg::Receiver(_) => None,
-                FnArg::Typed(val) => Some(val),
+                FnArg::Typed(val) => Some(match val.pat.as_ref() {
+                    Pat::Ident(val) => {
+                        let ident = &val.ident;
+
+                        Some(quote! { #ident.into() })
+                    },
+                    _ => None,
+                }),
             });
 
             let expr = match args_self {
@@ -1381,19 +1378,18 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                     self.$field.#ident(#(#args_rest),* #variadic).into()
                 },
                 None => quote! {
-                    <$ty_field>::#ident(#(#args_rest),* #variadic).into()
+                    <$ty>::#ident(#(#args_rest),* #variadic).into()
                 },
             };
 
-            forward_decl_case(
-                ident,
-                quote! {
+            quote! {
+                (#ident $ty:ty, $($field:tt)+) => {
                     #(#attrs)*
                     #constness #asyncness #unsafety #abi fn #ident #generics (#args #variadic) #ty {
                         #expr
                     }
-                },
-            )
+                };
+            }
         }),
         _ => None,
     });
@@ -1404,8 +1400,8 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            (* $ty:ty, $ty_field:ty, $($field:tt)+) => {
-                #(#macros!(#idents $ty, $ty_field, $field);)*
+            (* $ty:ty, $($field:tt)+) => {
+                #(#macros!(#idents $ty, $field);)*
             };
 
             #(#cases)*
