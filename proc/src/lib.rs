@@ -1308,7 +1308,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
 
     let item = match get_normalized_item(item) {
-        Item::Trait(item) => item,
+        Item::Trait(val) => val,
         _ => {
             return Error::new(Span::call_site(), "Failed to forward declaration, expected trait")
                 .into_compile_error()
@@ -1318,6 +1318,13 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
     let ident = &item.ident;
     let macros = format_ident!("forward_impl_{}", ident);
+
+    let idents = item.items.iter().filter_map(|item| match item {
+        TraitItem::Type(val) => Some(&val.ident),
+        TraitItem::Const(val) => Some(&val.ident),
+        TraitItem::Fn(val) => Some(&val.sig.ident),
+        _ => None,
+    });
 
     let cases = item.items.iter().filter_map(|item| match item {
         TraitItem::Type(val) => Some({
@@ -1398,6 +1405,10 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[allow(unused_macros)]
         macro_rules! #macros {
             #(#cases)*
+
+            (* $ty:ty, $ty_field:ty, $($field:tt)+) => {
+                #(#macros!(#idents $ty, $ty_field, $field);)*
+            };
         }
 
         #[allow(unused_imports)]
@@ -1407,10 +1418,34 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
+    let _ = parse_macro_input!(attr as ForwardDef);
 
-    let item = get_normalized_item(item);
+    let item = match get_normalized_item(item) {
+        Item::Impl(val) => val,
+        _ => {
+            return Error::new(Span::call_site(), "Failed to forward definition, expected impl")
+                .into_compile_error()
+                .into();
+        },
+    };
+
+    let (_, path, _) = match item.trait_.as_ref().ok_or_else(|| {
+        Error::new(Span::call_site(), "Failed to forward definition, expected impl trait").into_compile_error()
+    }) {
+        Ok(val) => val,
+        Err(err) => return err.into(),
+    };
+
+    let ident = match path.segments.last().ok_or_else(|| {
+        Error::new(Span::call_site(), "Failed to forward definition, expected non empty trait").into_compile_error()
+    }) {
+        Ok(val) => &val.ident,
+        Err(err) => return err.into(),
+    };
+
+    let _ = format_ident!("forward_impl_{}", ident);
 
     quote! {
         #item
