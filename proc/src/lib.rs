@@ -123,12 +123,6 @@ enum ItemData {
 }
 
 #[allow(dead_code)]
-enum ItemInterface {
-    Trait(ItemTrait),
-    Impl(ItemImpl),
-}
-
-#[allow(dead_code)]
 struct ForwardExpr {
     expr: Expr,
     with: kw::with,
@@ -355,29 +349,6 @@ impl Parse for ItemData {
             _ => Err(Error::new(
                 Span::call_site(),
                 "Failed to find data-item, expected struct, enum or union",
-            )),
-        }
-    }
-}
-
-impl Parse for ItemInterface {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let item = input.parse::<Item>()?;
-
-        match item {
-            Item::Trait(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Trait(val))
-            },
-            Item::Impl(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Impl(val))
-            },
-            _ => Err(Error::new(
-                Span::call_site(),
-                "Failed to find impl-item, expected trait or impl",
             )),
         }
     }
@@ -717,15 +688,6 @@ impl ToTokens for ItemData {
             ItemData::Struct(val) => val.to_tokens(tokens),
             ItemData::Enum(val) => val.to_tokens(tokens),
             ItemData::Union(val) => val.to_tokens(tokens),
-        }
-    }
-}
-
-impl ToTokens for ItemInterface {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            ItemInterface::Trait(val) => val.to_tokens(tokens),
-            ItemInterface::Impl(val) => val.to_tokens(tokens),
         }
     }
 }
