@@ -346,10 +346,7 @@ impl Parse for ItemData {
 
                 Ok(Self::Union(val))
             },
-            _ => Err(Error::new(
-                Span::call_site(),
-                "Failed to find data-item, expected struct, enum or union",
-            )),
+            _ => Err(input.error("Failed to find data-item, expected struct, enum or union")),
         }
     }
 }
@@ -1377,99 +1374,189 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         _ => None,
     });
 
-    let cases = item.items.iter().filter_map(|item| match item {
-        TraitItem::Type(val) => Some({
-            let attrs = &val.attrs;
-            let ident = &val.ident;
+    let cases = item
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            TraitItem::Type(val) => Some(Ok({
+                let attrs = &val.attrs;
+                let ident = &val.ident;
 
-            let (gen_impl, gen_type, _) = val.generics.split_for_impl();
+                let (gen_impl, gen_type, _) = val.generics.split_for_impl();
 
-            quote! {
-                (#ident $ty:ty, $expr:expr) => {
-                    #(#attrs)*
-                    type #ident #gen_impl = <$ty>::#ident #gen_type;
-                };
-            }
-        }),
-        TraitItem::Const(val) => Some({
-            let attrs = &val.attrs;
-            let ident = &val.ident;
-            let ty = &val.ty;
+                quote! {
+                    (#ident $ty:ty, $expr:expr) => {
+                        #(#attrs)*
+                        type #ident #gen_impl = <$ty>::#ident #gen_type;
+                    };
+                }
+            })),
+            TraitItem::Const(val) => Some(Ok({
+                let attrs = &val.attrs;
+                let ident = &val.ident;
+                let ty = &val.ty;
 
-            quote! {
-                (#ident $ty:ty, $expr:expr) => {
-                    #(#attrs)*
-                    const #ident: #ty = <$ty>::#ident;
-                };
-            }
-        }),
-        TraitItem::Fn(val) => Some({
-            let attrs = &val.attrs;
-            let constness = &val.sig.constness;
-            let asyncness = &val.sig.asyncness;
-            let unsafety = &val.sig.unsafety;
-            let abi = &val.sig.abi;
-            let ident = &val.sig.ident;
-            let generics = &val.sig.generics;
-            let args = &val.sig.inputs;
-            let ty = &val.sig.output;
+                quote! {
+                    (#ident $ty:ty, $expr:expr) => {
+                        #(#attrs)*
+                        const #ident: #ty = <$ty>::#ident;
+                    };
+                }
+            })),
+            TraitItem::Fn(val) => Some(Ok({
+                let attrs = &val.attrs;
+                let constness = &val.sig.constness;
+                let asyncness = &val.sig.asyncness;
+                let unsafety = &val.sig.unsafety;
+                let abi = &val.sig.abi;
+                let ident = &val.sig.ident;
+                let generics = &val.sig.generics;
+                let args = &val.sig.inputs;
+                let ty = &val.sig.output;
 
-            let args_self = args.iter().find_map(|arg| match arg {
-                FnArg::Receiver(val) => Some(val),
-                FnArg::Typed(_) => None,
-            });
-
-            let args_decl = args
-                .iter()
-                .filter_map(|arg| match arg {
-                    FnArg::Receiver(_) => None,
-                    FnArg::Typed(val) => Some(val),
-                })
-                .enumerate()
-                .map(|(idx, val)| {
-                    let attrs = &val.attrs;
-                    let ty = &val.ty;
-
-                    let ident = format_ident!("arg{}", idx);
-
-                    quote! { #(#attrs)* #ident: #ty }
+                let args_self = args.iter().find_map(|arg| match arg {
+                    FnArg::Receiver(val) => Some(val),
+                    FnArg::Typed(_) => None,
                 });
 
-            let args_def = args
-                .iter()
-                .filter_map(|arg| match arg {
-                    FnArg::Receiver(_) => None,
-                    FnArg::Typed(val) => Some(val),
-                })
-                .enumerate()
-                .map(|(idx, val)| {
-                    let ty = &val.ty;
+                let args_decl = args
+                    .iter()
+                    .filter_map(|arg| match arg {
+                        FnArg::Receiver(_) => None,
+                        FnArg::Typed(val) => Some(val),
+                    })
+                    .enumerate()
+                    .map(|(idx, val)| {
+                        let attrs = &val.attrs;
+                        let ty = &val.ty;
 
-                    let ident = format_ident!("arg{}", idx);
+                        let ident = format_ident!("arg{}", idx);
 
-                    quote! { #ident }
-                });
+                        quote! { #(#attrs)* #ident: #ty }
+                    });
 
-            let expr = match args_self {
-                Some(_) => quote! {
-                    ($expr)(self).#ident(#(#args_def),*).into()
-                },
-                None => quote! {
-                    <$ty>::#ident(#(#args_def),*).into()
-                },
-            };
+                let args_def = args
+                    .iter()
+                    .filter_map(|arg| match arg {
+                        FnArg::Receiver(_) => None,
+                        FnArg::Typed(val) => Some(val),
+                    })
+                    .enumerate()
+                    .map(|(idx, val)| {
+                        #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+                        enum Ownership {
+                            #[default]
+                            Raw,
+                            Ref,
+                            Mut,
+                        }
 
-            quote! {
-                (#ident $ty:ty, $expr:expr) => {
-                    #(#attrs)*
-                    #constness #asyncness #unsafety #abi fn #ident #generics (#(#args_decl),*) #ty {
-                        #expr
-                    }
+                        fn get_arg(idx: usize, ty: &Type, ownership: Ownership) -> Result<TokenStream> {
+                            match ty {
+                                Type::Path(val) => Ok({
+                                    let ident = format_ident!("arg{}", idx);
+
+                                    if val.path.segments.last().is_some_and(|x| x.ident == "Self") {
+                                        return Ok(match ownership {
+                                            Ownership::Raw => quote! { #ident.forward() },
+                                            Ownership::Ref => quote! { #ident.forward_ref() },
+                                            Ownership::Mut => quote! { #ident.forward_mut() },
+                                        });
+                                    }
+
+                                    quote! { #ident }
+                                }),
+                                Type::Array(val) => todo!(),
+                                Type::Slice(val) => todo!(),
+                                Type::Tuple(val) => Ok({
+                                    let args = val
+                                        .elems
+                                        .iter()
+                                        .map(|elem| get_arg(idx, elem, Ownership::Raw))
+                                        .collect::<Result<Vec<TokenStream>>>()?;
+
+                                    quote! { (#(#args),*) }
+                                }),
+                                Type::Group(val) => Ok({
+                                    let arg = get_arg(idx, &val.elem, Ownership::Raw)?;
+
+                                    quote! { #arg }
+                                }),
+                                Type::Paren(val) => Ok({
+                                    let arg = get_arg(idx, &val.elem, Ownership::Raw)?;
+
+                                    quote! { #arg }
+                                }),
+                                Type::Ptr(val) => Ok({
+                                    let arg = get_arg(
+                                        idx,
+                                        &val.elem,
+                                        if val.mutability.is_none() {
+                                            Ownership::Ref
+                                        } else {
+                                            Ownership::Mut
+                                        },
+                                    )?;
+
+                                    quote! { #arg }
+                                }),
+                                Type::Reference(val) => Ok({
+                                    let arg = get_arg(
+                                        idx,
+                                        &val.elem,
+                                        if val.mutability.is_none() {
+                                            Ownership::Ref
+                                        } else {
+                                            Ownership::Mut
+                                        },
+                                    )?;
+
+                                    quote! { #arg }
+                                }),
+                                _ => Err(Error::new(
+                                    Span::call_site(),
+                                    format!("Failed to forward arg {}: type is unsupported", idx),
+                                )),
+                            }
+                        }
+
+                        let arg = get_arg(idx, &val.ty, Ownership::Raw)?;
+
+                        Ok(quote! { #arg })
+                    })
+                    .collect::<Result<Vec<TokenStream>>>();
+
+                let args_def = match args_def {
+                    Ok(val) => val,
+                    Err(err) => return Some(Err(err)),
                 };
-            }
-        }),
-        _ => None,
-    });
+
+                let expr = match args_self {
+                    Some(_) => quote! {
+                        ($expr)(self).#ident(#(#args_def),*).into()
+                    },
+                    None => quote! {
+                        <$ty>::#ident(#(#args_def),*).into()
+                    },
+                };
+
+                quote! {
+                    (#ident $ty:ty, $expr:expr) => {
+                        #(#attrs)*
+                        #constness #asyncness #unsafety #abi fn #ident #generics (#(#args_decl),*) #ty {
+                            #expr
+                        }
+                    };
+                }
+            })),
+            _ => None,
+        })
+        .collect::<Result<Vec<TokenStream>>>();
+
+    let cases = match cases {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
 
     quote! {
         #item
