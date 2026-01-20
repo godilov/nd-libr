@@ -1466,8 +1466,6 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
                                     quote! { #ident }
                                 }),
-                                Type::Array(val) => todo!(),
-                                Type::Slice(val) => todo!(),
                                 Type::Tuple(val) => Ok({
                                     let args = val
                                         .elems
