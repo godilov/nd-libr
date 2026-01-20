@@ -3,8 +3,6 @@ use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 use ndproc::{align, forward_cmp, forward_fmt, forward_ops, forward_ops_assign, forward_std};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
-use crate::ForwardCmp;
-
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($body:tt)* } $(,)?) => {
         pub type Single = $single;

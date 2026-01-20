@@ -9,7 +9,7 @@ use ndproc::{forward_cmp, forward_fmt, forward_ops, forward_std};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{ForwardCmp, num::prime::*, ops::*};
+use crate::{num::prime::*, ops::*};
 
 macro_rules! num_impl {
     ([$($primitive:ty),+] $(,)?) => {

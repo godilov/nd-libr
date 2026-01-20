@@ -989,34 +989,48 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         None => parse_quote! { where #ty: std::cmp::Eq },
     };
 
-    quote! {
-        #item
+    let forward = quote! {
+        pub trait Forward {
+            type Type;
 
-        impl #gen_impl ForwardCmp for #ident #gen_type #gen_where {
+            fn forward(&self) -> &Self::Type;
+        }
+
+        impl #gen_impl Forward for #ident #gen_type #gen_where {
             type Type = #ty;
 
-            fn cmp_as(&self) -> &Self::Type {
+            fn forward(&self) -> &Self::Type {
                 &#expr
             }
         }
+    };
+
+    quote! {
+        #item
 
         impl #gen_impl std::cmp::Eq for #ident #gen_type #eq {}
 
         impl #gen_impl std::cmp::Ord for #ident #gen_type #ord {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                self.cmp_as().cmp(other.cmp_as())
+                #forward
+
+                self.forward().cmp(other.forward())
             }
         }
 
         impl #gen_impl std::cmp::PartialEq for #ident #gen_type #partial_eq {
             fn eq(&self, other: &Self) -> bool {
-                self.cmp_as().eq(other.cmp_as())
+                #forward
+
+                self.forward().eq(other.forward())
             }
         }
 
         impl #gen_impl std::cmp::PartialOrd for #ident #gen_type #partial_ord {
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                self.cmp_as().partial_cmp(other.cmp_as())
+                #forward
+
+                self.forward().partial_cmp(other.forward())
             }
         }
     }
@@ -1529,57 +1543,27 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    fn forward_def_data(_: ForwardDef, item: Item) -> TokenStreamStd {
+pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    fn _forward_def_data(_: ForwardDef, item: ItemData) -> TokenStreamStd {
         quote! {
             #item
         }
         .into()
     }
 
-    fn forward_def_impl(_: ForwardDef, item: ItemImpl) -> TokenStreamStd {
-        let (_, path, _) = match item
-            .trait_
-            .as_ref()
-            .ok_or_else(|| Error::new(Span::call_site(), "Failed to forward definition, expected impl trait"))
-        {
-            Ok(val) => val,
-            Err(err) => return err.into_compile_error().into(),
-        };
-
-        let ident = match path
-            .segments
-            .last()
-            .ok_or_else(|| Error::new(Span::call_site(), "Failed to forward definition, expected non empty trait"))
-        {
-            Ok(val) => &val.ident,
-            Err(err) => return err.into_compile_error().into(),
-        };
-
-        let macros = format_ident!("forward_impl_{}", ident);
-
+    fn _forward_def_impl(_: ForwardDef, item: ItemImpl) -> TokenStreamStd {
         quote! {
             #item
-
-            #macros!();
         }
         .into()
     }
 
     let item = parse_macro_input!(item as Item);
 
-    match item {
-        Item::Struct(val) => forward_def_data(parse_macro_input!(attr as ForwardDef), Item::Struct(val)),
-        Item::Enum(val) => forward_def_data(parse_macro_input!(attr as ForwardDef), Item::Enum(val)),
-        Item::Union(val) => forward_def_data(parse_macro_input!(attr as ForwardDef), Item::Union(val)),
-        Item::Impl(val) => forward_def_impl(parse_macro_input!(attr as ForwardDef), val),
-        _ => Error::new(
-            Span::call_site(),
-            "Failed to forward definition, expected impl, struct, enum or union",
-        )
-        .into_compile_error()
-        .into(),
+    quote! {
+        #item
     }
+    .into()
 }
 
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {

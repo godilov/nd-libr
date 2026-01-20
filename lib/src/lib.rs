@@ -13,13 +13,6 @@ pub trait NdTryFrom<T>: Sized {
     fn nd_try_from(value: T) -> Result<Self, Self::Error>;
 }
 
-#[doc(hidden)]
-pub trait ForwardCmp {
-    type Type;
-
-    fn cmp_as(&self) -> &Self::Type;
-}
-
 impl<U, V: From<U>> NdFrom<U> for V {
     fn nd_from(value: U) -> Self {
         V::from(value)
