@@ -951,21 +951,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         None => parse_quote! { where #ty: std::cmp::Eq },
     };
 
-    let forward = quote! {
-        pub trait Forward {
-            type Type;
-
-            fn forward(&self) -> &Self::Type;
-        }
-
-        impl #gen_impl Forward for #ident #gen_type #gen_where {
-            type Type = #ty;
-
-            fn forward(&self) -> &Self::Type {
-                &#expr
-            }
-        }
-    };
+    let forward = get_forward_impl(ident, generics, ty, expr);
 
     quote! {
         #item
@@ -976,7 +962,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
                 #forward
 
-                self.forward().cmp(other.forward())
+                self.forward_ref().cmp(other.forward_ref())
             }
         }
 
@@ -984,7 +970,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             fn eq(&self, other: &Self) -> bool {
                 #forward
 
-                self.forward().eq(other.forward())
+                self.forward_ref().eq(other.forward_ref())
             }
         }
 
@@ -992,7 +978,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
                 #forward
 
-                self.forward().partial_cmp(other.forward())
+                self.forward_ref().partial_cmp(other.forward_ref())
             }
         }
     }
@@ -1456,7 +1442,9 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                     FnArg::Typed(val) => Some(val),
                 })
                 .enumerate()
-                .map(|(idx, _)| {
+                .map(|(idx, val)| {
+                    let ty = &val.ty;
+
                     let ident = format_ident!("arg{}", idx);
 
                     quote! { #ident }
@@ -1593,4 +1581,36 @@ fn get_normalized_generics(mut generics: Generics) -> Generics {
     generics.params.pop_punct();
     generics.where_clause.as_mut().map(|clause| clause.predicates.pop_punct());
     generics
+}
+
+fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
+    let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
+
+    quote! {
+        pub trait Forward {
+            type Type;
+
+            fn forward(self) -> Self::Type;
+
+            fn forward_ref(&self) -> &Self::Type;
+
+            fn forward_mut(&mut self) -> &mut Self::Type;
+        }
+
+        impl #gen_impl Forward for #ident #gen_type #gen_where {
+            type Type = #ty;
+
+            fn forward(self) -> Self::Type {
+                #expr
+            }
+
+            fn forward_ref(&self) -> &Self::Type {
+                &#expr
+            }
+
+            fn forward_mut(&mut self) -> &mut Self::Type {
+                &mut #expr
+            }
+        }
+    }
 }
