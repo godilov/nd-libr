@@ -1399,7 +1399,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let (gen_impl, gen_type, _) = val.generics.split_for_impl();
 
             quote! {
-                (#ident $ty:ty, $($field:tt)+) => {
+                (#ident $ty:ty, $expr:expr) => {
                     #(#attrs)*
                     type #ident #gen_impl = <$ty>::#ident #gen_type;
                 };
@@ -1411,7 +1411,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let ty = &val.ty;
 
             quote! {
-                (#ident $ty:ty, $($field:tt)+) => {
+                (#ident $ty:ty, $expr:expr) => {
                     #(#attrs)*
                     const #ident: #ty = <$ty>::#ident;
                 };
@@ -1464,7 +1464,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let expr = match args_self {
                 Some(_) => quote! {
-                    self.$field.#ident(#(#args_def),*).into()
+                    ($expr)(self).#ident(#(#args_def),*).into()
                 },
                 None => quote! {
                     <$ty>::#ident(#(#args_def),*).into()
@@ -1472,7 +1472,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             };
 
             quote! {
-                (#ident $ty:ty, $($field:tt)+) => {
+                (#ident $ty:ty, $expr:expr) => {
                     #(#attrs)*
                     #constness #asyncness #unsafety #abi fn #ident #generics (#(#args_decl),*) #ty {
                         #expr
@@ -1489,8 +1489,8 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            (* $ty:ty, $($field:tt)+) => {
-                #(#macros!(#idents $ty, $field);)*
+            (* $ty:ty, $expr:expr) => {
+                #(#macros!(#idents $ty, $expr);)*
             };
 
             #(#cases)*
