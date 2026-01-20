@@ -1150,7 +1150,7 @@ pub fn forward_ops(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                 type Output = Self;
 
                 fn #op_fn(self, rhs: Rhs) -> Self::Output {
-                    Self::from(#expr.#op_fn(rhs))
+                    #expr.#op_fn(rhs).into()
                 }
             }
         }
