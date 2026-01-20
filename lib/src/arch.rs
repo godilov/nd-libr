@@ -3,6 +3,8 @@ use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 use ndproc::{align, forward_cmp, forward_fmt, forward_ops, forward_ops_assign, forward_std};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
+use crate::ForwardCmp;
+
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($body:tt)* } $(,)?) => {
         pub type Single = $single;
@@ -131,11 +133,11 @@ pub mod word {
 }
 
 #[align]
-#[forward_std(self.0 as T)]
-#[forward_cmp(self.0 as T)]
-#[forward_fmt(self.0 as T)]
-#[forward_ops(self.0 as T)]
-#[forward_ops_assign(self.0 as T)]
+#[forward_std(self.0 with T)]
+#[forward_cmp(self.0 with T)]
+#[forward_fmt(self.0 with T)]
+#[forward_ops(self.0 with T)]
+#[forward_ops_assign(self.0 with T)]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 

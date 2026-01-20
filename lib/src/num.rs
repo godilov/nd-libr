@@ -9,7 +9,7 @@ use ndproc::{forward_cmp, forward_fmt, forward_ops, forward_std};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{num::prime::*, ops::*};
+use crate::{ForwardCmp, num::prime::*, ops::*};
 
 macro_rules! num_impl {
     ([$($primitive:ty),+] $(,)?) => {
@@ -452,21 +452,21 @@ pub mod prime {
     impl<Any: Send + Primality + Extension> PrimalityExtension for Any where for<'s> &'s Any: Ops {}
 }
 
-#[forward_std(self.0 as N)]
-#[forward_cmp(self.0 as N)]
-#[forward_fmt(self.0 as N)]
-#[forward_ops(self.0 as N)]
-// #[forward_def(self.0 as N: Num)]
+#[forward_std(self.0 with N)]
+#[forward_cmp(self.0 with N)]
+#[forward_fmt(self.0 with N)]
+#[forward_ops(self.0 with N)]
+// #[forward_def(self.0 with N: Num)]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Width<N: Num + Extension + Unsigned + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
-#[forward_std(self.0 as N)]
-#[forward_cmp(self.0 as N)]
-#[forward_fmt(self.0 as N)]
-#[forward_ops(self.0 as N)]
-// #[forward_def(self.0 as N: Num)]
+#[forward_std(self.0 with N)]
+#[forward_cmp(self.0 with N)]
+#[forward_fmt(self.0 with N)]
+#[forward_ops(self.0 with N)]
+// #[forward_def(self.0 with N: Num)]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Modular<N: Num + Extension + Unsigned + Static, M: Default + Clone + Modulus<N>>(pub N, pub PhantomData<M>)
 where
