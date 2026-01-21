@@ -1554,8 +1554,32 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         ForwardDefItem::Impl(val) => {
             let ForwardDefImpl { expr: _, idents: _ } = parse_macro_input!(attr as ForwardDefImpl);
 
+            let attrs = &val.attrs;
+            let default = &val.defaultness;
+            let unsafety = &val.unsafety;
+            let generics = &val.generics;
+            let interface = &val.trait_;
+            let ty = &val.self_ty;
+            let items = &val.items;
+
+            let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
+
+            let interface = match interface {
+                Some(val) => {
+                    let x = &val.0;
+                    let y = &val.1;
+                    let z = &val.2;
+
+                    quote! { #x #y #z }
+                },
+                None => quote! {},
+            };
+
             quote! {
-                #val
+                #(#attrs)*
+                #default #unsafety impl #gen_impl #interface #ty #gen_type #gen_where {
+                    #(#items)*
+                }
             }
             .into()
         },
