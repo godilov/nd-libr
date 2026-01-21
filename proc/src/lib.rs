@@ -1454,7 +1454,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                         #[derive(Debug, Clone)]
                         enum Argument {
                             Raw(TokenStream),
-                            Forward(TokenStream),
+                            Alt(TokenStream),
                         }
 
                         fn get_arg(expr: TokenStream, ty: &Type, ownership: Ownership) -> Result<Argument> {
@@ -1462,17 +1462,17 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                                 Type::Path(val) => Ok({
                                     if val.path.segments.last().is_some_and(|seg| seg.ident == "Self") {
                                         return Ok(match ownership {
-                                            Ownership::Raw => Argument::Forward(quote! { #expr.forward() }),
-                                            Ownership::Ref => Argument::Forward(quote! { #expr.forward_ref() }),
-                                            Ownership::Mut => Argument::Forward(quote! { #expr.forward_mut() }),
+                                            Ownership::Raw => Argument::Alt(quote! { #expr.forward() }),
+                                            Ownership::Ref => Argument::Alt(quote! { #expr.forward_ref() }),
+                                            Ownership::Mut => Argument::Alt(quote! { #expr.forward_mut() }),
                                         });
                                     }
 
                                     if val.path.segments.first().is_some_and(|seg| seg.ident == "Self") {
-                                        return Ok(Argument::Raw(quote! { #expr.into() }));
+                                        return Ok(Argument::Alt(quote! { #expr.into() }));
                                     }
 
-                                    Argument::Raw(quote! { #expr })
+                                    Argument::Raw(expr)
                                 }),
                                 Type::Tuple(val) => Ok({
                                     let args = val
@@ -1484,36 +1484,34 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
                                     if args.iter().all(|arg| match arg {
                                         Argument::Raw(_) => true,
-                                        Argument::Forward(_) => false,
+                                        Argument::Alt(_) => false,
                                     }) {
                                         return Ok(Argument::Raw(expr));
                                     }
 
                                     let args = args.iter().map(|arg| match arg {
                                         Argument::Raw(val) => quote! { #val },
-                                        Argument::Forward(val) => quote! { #val },
+                                        Argument::Alt(val) => quote! { #val },
                                     });
 
-                                    Argument::Forward(quote! { #(#args),* })
+                                    Argument::Alt(quote! { #(#args),* })
                                 }),
                                 Type::Group(val) => get_arg(expr, &val.elem, Ownership::Raw),
                                 Type::Paren(val) => get_arg(expr, &val.elem, Ownership::Raw),
                                 Type::Ptr(val) => get_arg(
                                     expr,
                                     &val.elem,
-                                    if val.mutability.is_none() {
-                                        Ownership::Ref
-                                    } else {
-                                        Ownership::Mut
+                                    match val.mutability {
+                                        Some(_) => Ownership::Mut,
+                                        None => Ownership::Ref,
                                     },
                                 ),
                                 Type::Reference(val) => get_arg(
                                     expr,
                                     &val.elem,
-                                    if val.mutability.is_none() {
-                                        Ownership::Ref
-                                    } else {
-                                        Ownership::Mut
+                                    match val.mutability {
+                                        Some(_) => Ownership::Mut,
+                                        None => Ownership::Ref,
                                     },
                                 ),
                                 _ => todo!(),
@@ -1525,7 +1523,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
                         match get_arg(expr, &val.ty, Ownership::Raw)? {
                             Argument::Raw(_) => Ok(quote! { #ident }),
-                            Argument::Forward(val) => Ok(quote! { #val }),
+                            Argument::Alt(val) => Ok(quote! { #val }),
                         }
                     })
                     .collect::<Result<Vec<TokenStream>>>();
