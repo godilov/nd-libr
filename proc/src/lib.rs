@@ -1614,6 +1614,20 @@ fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArg
 
             Ok(ForwardArgument::Raw(expr.stream()))
         },
+        Type::Array(val) => match get_forward_argument(expr, &val.elem)? {
+            ForwardArgument::Raw(val) => Ok(ForwardArgument::Raw(val)),
+            ForwardArgument::Alt(_) => Err(Error::new(
+                Span::call_site(),
+                "Failed to forward argument, alternating in array is unsupported",
+            )),
+        },
+        Type::Slice(val) => match get_forward_argument(expr, &val.elem)? {
+            ForwardArgument::Raw(val) => Ok(ForwardArgument::Raw(val)),
+            ForwardArgument::Alt(_) => Err(Error::new(
+                Span::call_site(),
+                "Failed to forward argument, alternating in slice is unsupported",
+            )),
+        },
         Type::Tuple(val) => {
             let args = val
                 .elems
@@ -1652,6 +1666,18 @@ fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArg
             },
             &val.elem,
         ),
+        Type::Never(_) => Err(Error::new(
+            Span::call_site(),
+            "Failed to forward argument, never type is unsupported",
+        )),
+        Type::Macro(_) => Err(Error::new(
+            Span::call_site(),
+            "Failed to forward argument, macro type is unsupported",
+        )),
+        Type::BareFn(_) => Ok(ForwardArgument::Raw(expr.stream())),
+        Type::ImplTrait(_) => Ok(ForwardArgument::Raw(expr.stream())),
+        Type::TraitObject(_) => Ok(ForwardArgument::Raw(expr.stream())),
+        Type::Verbatim(_) => Err(Error::new(Span::call_site(), "Failed to forward argument, verbatim was found")),
         _ => todo!(),
     }
 }
