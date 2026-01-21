@@ -1018,7 +1018,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         None => parse_quote! { where #ty: std::cmp::Eq },
     };
 
-    let forward = get_forward_impl(ident, generics, ty, expr);
+    let forward_impl = get_forward_impl(ident, generics, ty, expr);
 
     quote! {
         #item
@@ -1027,7 +1027,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
         impl #gen_impl std::cmp::Ord for #ident #gen_type #ord {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                #forward
+                #forward_impl
 
                 self.forward_ref().cmp(other.forward_ref())
             }
@@ -1035,7 +1035,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
         impl #gen_impl std::cmp::PartialEq for #ident #gen_type #partial_eq {
             fn eq(&self, other: &Self) -> bool {
-                #forward
+                #forward_impl
 
                 self.forward_ref().eq(other.forward_ref())
             }
@@ -1043,7 +1043,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
         impl #gen_impl std::cmp::PartialOrd for #ident #gen_type #partial_ord {
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                #forward
+                #forward_impl
 
                 self.forward_ref().partial_cmp(other.forward_ref())
             }
@@ -1483,42 +1483,71 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_attribute]
 pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    fn forward_with(
+        stream: TokenStream,
+        interface: &Ident,
+        ident: &Ident,
+        generics: &Generics,
+        ty: &Type,
+        expr: &Expr,
+    ) -> TokenStream {
+        let forward_impl = get_forward_impl(ident, generics, ty, expr);
+        let forward_mod = format_ident!("__forward_impl_{}_{}", &interface, &ident);
+
+        quote! {
+            #[doc(hidden)]
+            mod #forward_mod {
+                #forward_impl
+                #stream
+            }
+        }
+    }
+
     let item = parse_macro_input!(item as ForwardDefItem);
 
     match item {
         ForwardDefItem::Struct(val) => {
-            let ForwardDefData { expr, idents: _ } = parse_macro_input!(attr as ForwardDefData);
+            let ForwardDefData { expr, idents } = parse_macro_input!(attr as ForwardDefData);
 
-            let forward = get_forward_impl_mod(&val.ident, &val.generics, &expr.ty, &expr.expr);
+            let forwards = idents
+                .idents
+                .iter()
+                .map(|ident| forward_with(quote! {}, ident, &val.ident, &val.generics, &expr.ty, &expr.expr));
 
             quote! {
-                #forward
-
                 #val
+
+                #(#forwards)*
             }
             .into()
         },
         ForwardDefItem::Enum(val) => {
-            let ForwardDefData { expr, idents: _ } = parse_macro_input!(attr as ForwardDefData);
+            let ForwardDefData { expr, idents } = parse_macro_input!(attr as ForwardDefData);
 
-            let forward = get_forward_impl_mod(&val.ident, &val.generics, &expr.ty, &expr.expr);
+            let forwards = idents
+                .idents
+                .iter()
+                .map(|ident| forward_with(quote! {}, ident, &val.ident, &val.generics, &expr.ty, &expr.expr));
 
             quote! {
-                #forward
-
                 #val
+
+                #(#forwards)*
             }
             .into()
         },
         ForwardDefItem::Union(val) => {
-            let ForwardDefData { expr, idents: _ } = parse_macro_input!(attr as ForwardDefData);
+            let ForwardDefData { expr, idents } = parse_macro_input!(attr as ForwardDefData);
 
-            let forward = get_forward_impl_mod(&val.ident, &val.generics, &expr.ty, &expr.expr);
+            let forwards = idents
+                .idents
+                .iter()
+                .map(|ident| forward_with(quote! {}, ident, &val.ident, &val.generics, &expr.ty, &expr.expr));
 
             quote! {
-                #forward
-
                 #val
+
+                #(#forwards)*
             }
             .into()
         },
@@ -1598,18 +1627,6 @@ fn get_normalized_generics(mut generics: Generics) -> Generics {
     generics.params.pop_punct();
     generics.where_clause.as_mut().map(|clause| clause.predicates.pop_punct());
     generics
-}
-
-fn get_forward_impl_mod(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
-    let forward = get_forward_impl(ident, generics, ty, expr);
-    let forward_mod = format_ident!("__forward_impl_{}", &ident);
-
-    quote! {
-        use #forward_mod::Forward as _;
-        mod #forward_mod {
-            #forward
-        }
-    }
 }
 
 fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
