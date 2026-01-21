@@ -1451,76 +1451,82 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                             Mut,
                         }
 
-                        fn get_arg(idx: usize, ty: &Type, ownership: Ownership) -> Result<TokenStream> {
+                        #[derive(Debug, Clone)]
+                        enum Argument {
+                            Raw(TokenStream),
+                            Forward(TokenStream),
+                        }
+
+                        fn get_arg(expr: TokenStream, ty: &Type, ownership: Ownership) -> Result<Argument> {
                             match ty {
                                 Type::Path(val) => Ok({
-                                    let ident = format_ident!("arg{}", idx);
-
-                                    if val.path.segments.last().is_some_and(|x| x.ident == "Self") {
+                                    if val.path.segments.last().is_some_and(|seg| seg.ident == "Self") {
                                         return Ok(match ownership {
-                                            Ownership::Raw => quote! { #ident.forward() },
-                                            Ownership::Ref => quote! { #ident.forward_ref() },
-                                            Ownership::Mut => quote! { #ident.forward_mut() },
+                                            Ownership::Raw => Argument::Forward(quote! { #expr.forward() }),
+                                            Ownership::Ref => Argument::Forward(quote! { #expr.forward_ref() }),
+                                            Ownership::Mut => Argument::Forward(quote! { #expr.forward_mut() }),
                                         });
                                     }
 
-                                    quote! { #ident }
+                                    if val.path.segments.first().is_some_and(|seg| seg.ident == "Self") {
+                                        return Ok(Argument::Raw(quote! { #expr.into() }));
+                                    }
+
+                                    Argument::Raw(quote! { #expr })
                                 }),
                                 Type::Tuple(val) => Ok({
                                     let args = val
                                         .elems
                                         .iter()
-                                        .map(|elem| get_arg(idx, elem, Ownership::Raw))
-                                        .collect::<Result<Vec<TokenStream>>>()?;
+                                        .enumerate()
+                                        .map(|(idx, elem)| get_arg(quote! { #expr.#idx }, elem, Ownership::Raw))
+                                        .collect::<Result<Vec<Argument>>>()?;
 
-                                    quote! { (#(#args),*) }
-                                }),
-                                Type::Group(val) => Ok({
-                                    let arg = get_arg(idx, &val.elem, Ownership::Raw)?;
+                                    if args.iter().all(|arg| match arg {
+                                        Argument::Raw(_) => true,
+                                        Argument::Forward(_) => false,
+                                    }) {
+                                        return Ok(Argument::Raw(expr));
+                                    }
 
-                                    quote! { #arg }
-                                }),
-                                Type::Paren(val) => Ok({
-                                    let arg = get_arg(idx, &val.elem, Ownership::Raw)?;
+                                    let args = args.iter().map(|arg| match arg {
+                                        Argument::Raw(val) => quote! { #val },
+                                        Argument::Forward(val) => quote! { #val },
+                                    });
 
-                                    quote! { #arg }
+                                    Argument::Forward(quote! { #(#args),* })
                                 }),
-                                Type::Ptr(val) => Ok({
-                                    let arg = get_arg(
-                                        idx,
-                                        &val.elem,
-                                        if val.mutability.is_none() {
-                                            Ownership::Ref
-                                        } else {
-                                            Ownership::Mut
-                                        },
-                                    )?;
-
-                                    quote! { #arg }
-                                }),
-                                Type::Reference(val) => Ok({
-                                    let arg = get_arg(
-                                        idx,
-                                        &val.elem,
-                                        if val.mutability.is_none() {
-                                            Ownership::Ref
-                                        } else {
-                                            Ownership::Mut
-                                        },
-                                    )?;
-
-                                    quote! { #arg }
-                                }),
-                                _ => Err(Error::new(
-                                    Span::call_site(),
-                                    format!("Failed to forward arg {}: type is unsupported", idx),
-                                )),
+                                Type::Group(val) => get_arg(expr, &val.elem, Ownership::Raw),
+                                Type::Paren(val) => get_arg(expr, &val.elem, Ownership::Raw),
+                                Type::Ptr(val) => get_arg(
+                                    expr,
+                                    &val.elem,
+                                    if val.mutability.is_none() {
+                                        Ownership::Ref
+                                    } else {
+                                        Ownership::Mut
+                                    },
+                                ),
+                                Type::Reference(val) => get_arg(
+                                    expr,
+                                    &val.elem,
+                                    if val.mutability.is_none() {
+                                        Ownership::Ref
+                                    } else {
+                                        Ownership::Mut
+                                    },
+                                ),
+                                _ => todo!(),
                             }
                         }
 
-                        let arg = get_arg(idx, &val.ty, Ownership::Raw)?;
+                        let ident = format_ident!("arg{}", idx);
+                        let expr = quote! { #ident };
 
-                        Ok(quote! { #arg })
+                        match get_arg(expr, &val.ty, Ownership::Raw)? {
+                            Argument::Raw(_) => Ok(quote! { #ident }),
+                            Argument::Forward(val) => Ok(quote! { #val }),
+                        }
                     })
                     .collect::<Result<Vec<TokenStream>>>();
 
