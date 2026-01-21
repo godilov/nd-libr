@@ -116,7 +116,7 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
 }
 
 #[allow(dead_code)]
-enum ItemData {
+enum ForwardItem {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
@@ -312,7 +312,7 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
     }
 }
 
-impl Parse for ItemData {
+impl Parse for ForwardItem {
     fn parse(input: ParseStream) -> Result<Self> {
         let item = input.parse::<Item>()?;
 
@@ -624,12 +624,12 @@ impl ToTokens for OpsImplUnary {
     }
 }
 
-impl ToTokens for ItemData {
+impl ToTokens for ForwardItem {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            ItemData::Struct(val) => val.to_tokens(tokens),
-            ItemData::Enum(val) => val.to_tokens(tokens),
-            ItemData::Union(val) => val.to_tokens(tokens),
+            ForwardItem::Struct(val) => val.to_tokens(tokens),
+            ForwardItem::Enum(val) => val.to_tokens(tokens),
+            ForwardItem::Union(val) => val.to_tokens(tokens),
         }
     }
 }
@@ -644,12 +644,12 @@ impl ToTokens for ForwardExpression {
     }
 }
 
-impl ItemData {
+impl ForwardItem {
     fn forward_args(&self) -> (&Ident, &Generics) {
         match self {
-            ItemData::Struct(val) => (&val.ident, &val.generics),
-            ItemData::Enum(val) => (&val.ident, &val.generics),
-            ItemData::Union(val) => (&val.ident, &val.generics),
+            ForwardItem::Struct(val) => (&val.ident, &val.generics),
+            ForwardItem::Enum(val) => (&val.ident, &val.generics),
+            ForwardItem::Union(val) => (&val.ident, &val.generics),
         }
     }
 }
@@ -830,7 +830,7 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_attribute]
 pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ItemData);
+    let item = parse_macro_input!(item as ForwardItem);
     let expr = parse_macro_input!(attr as ForwardExpr);
 
     let (ident, generics) = item.forward_args();
@@ -894,7 +894,7 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
 #[proc_macro_attribute]
 pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ItemData);
+    let item = parse_macro_input!(item as ForwardItem);
     let expr = parse_macro_input!(attr as ForwardExpr);
 
     let (ident, generics) = item.forward_args();
@@ -976,7 +976,7 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         }
     }
 
-    let item = parse_macro_input!(item as ItemData);
+    let item = parse_macro_input!(item as ForwardItem);
     let expr = parse_macro_input!(attr as ForwardExpr);
 
     let (ident, generics) = item.forward_args();
@@ -1075,7 +1075,7 @@ pub fn forward_ops(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         }
     }
 
-    let item = parse_macro_input!(item as ItemData);
+    let item = parse_macro_input!(item as ForwardItem);
     let expr = parse_macro_input!(attr as ForwardExpr);
 
     let (ident, generics) = item.forward_args();
@@ -1216,7 +1216,7 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
         }
     }
 
-    let item = parse_macro_input!(item as ItemData);
+    let item = parse_macro_input!(item as ForwardItem);
     let expr = parse_macro_input!(attr as ForwardExpr);
 
     let (ident, generics) = item.forward_args();
