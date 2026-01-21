@@ -2,8 +2,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, LitInt,
-    Path, Result, Token, TraitItem, Type, UnOp, WhereClause, bracketed,
+    BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemStruct, ItemTrait, ItemUnion, Path, Result, Token,
+    TraitItem, Type, UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -127,33 +127,6 @@ struct ForwardExpr {
     expr: Expr,
     with: kw::with,
     ty: Type,
-}
-
-#[allow(dead_code)]
-struct ForwardDef {
-    expr: Expr,
-    colon: Token![:],
-    args: ForwardDefArgs,
-}
-
-#[allow(dead_code)]
-enum ForwardDefArgs {
-    Asterisk(Token![*]),
-    Elems(Punctuated<ForwardDefElem, Token![,]>),
-}
-
-#[allow(dead_code)]
-struct ForwardDefElem {
-    ident: Ident,
-    expr: Option<ForwardDefElemExpr>,
-}
-
-#[allow(dead_code)]
-struct ForwardDefElemExpr {
-    paren: Paren,
-    idx: LitInt,
-    colon: Token![:],
-    expr: Expr,
 }
 
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
@@ -357,47 +330,6 @@ impl Parse for ForwardExpr {
             expr: input.parse()?,
             with: input.parse()?,
             ty: input.parse()?,
-        })
-    }
-}
-
-impl Parse for ForwardDef {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            expr: input.parse()?,
-            colon: input.parse()?,
-            args: input.parse()?,
-        })
-    }
-}
-
-impl Parse for ForwardDefArgs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        match input.parse::<Token![*]>() {
-            Ok(val) => Ok(ForwardDefArgs::Asterisk(val)),
-            Err(_) => Ok(ForwardDefArgs::Elems(input.parse_terminated(ForwardDefElem::parse, Token![,])?)),
-        }
-    }
-}
-
-impl Parse for ForwardDefElem {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            ident: input.parse()?,
-            expr: input.parse().ok(),
-        })
-    }
-}
-
-impl Parse for ForwardDefElemExpr {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-
-        Ok(Self {
-            paren: parenthesized!(content in input),
-            idx: content.parse()?,
-            colon: content.parse()?,
-            expr: content.parse()?,
         })
     }
 }
@@ -1583,20 +1515,6 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_attribute]
 pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    fn _forward_def_data(_: ForwardDef, item: ItemData) -> TokenStreamStd {
-        quote! {
-            #item
-        }
-        .into()
-    }
-
-    fn _forward_def_impl(_: ForwardDef, item: ItemImpl) -> TokenStreamStd {
-        quote! {
-            #item
-        }
-        .into()
-    }
-
     let item = parse_macro_input!(item as Item);
 
     quote! {
