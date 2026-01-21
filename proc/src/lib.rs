@@ -116,13 +116,18 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
 }
 
 #[allow(dead_code)]
+struct ForwardExpr {
+    expr: Expr,
+    with: kw::with,
+    ty: Type,
+}
+
 enum ForwardDeclItem {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
 }
 
-#[allow(dead_code)]
 enum ForwardDefItem {
     Struct(ItemStruct),
     Enum(ItemEnum),
@@ -131,10 +136,21 @@ enum ForwardDefItem {
 }
 
 #[allow(dead_code)]
-struct ForwardExpr {
-    expr: Expr,
-    with: kw::with,
-    ty: Type,
+struct ForwardDefData {
+    expr: ForwardExpr,
+    idents: ForwardDefIdents,
+}
+
+#[allow(dead_code)]
+struct ForwardDefImpl {
+    expr: ForwardExpr,
+    idents: Option<ForwardDefIdents>,
+}
+
+#[allow(dead_code)]
+struct ForwardDefIdents {
+    colon: Token![:],
+    idents: Punctuated<Ident, Token![,]>,
 }
 
 #[derive(Debug, Clone)]
@@ -320,6 +336,16 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
     }
 }
 
+impl Parse for ForwardExpr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            expr: input.parse()?,
+            with: input.parse()?,
+            ty: input.parse()?,
+        })
+    }
+}
+
 impl Parse for ForwardDeclItem {
     fn parse(input: ParseStream) -> Result<Self> {
         let item = input.parse::<Item>()?;
@@ -379,12 +405,29 @@ impl Parse for ForwardDefItem {
     }
 }
 
-impl Parse for ForwardExpr {
+impl Parse for ForwardDefData {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             expr: input.parse()?,
-            with: input.parse()?,
-            ty: input.parse()?,
+            idents: input.parse()?,
+        })
+    }
+}
+
+impl Parse for ForwardDefImpl {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            expr: input.parse()?,
+            idents: input.parse().ok(),
+        })
+    }
+}
+
+impl Parse for ForwardDefIdents {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            colon: input.parse()?,
+            idents: input.parse_terminated(Ident::parse, Token![,])?,
         })
     }
 }
@@ -697,6 +740,12 @@ impl ToTokens for ForwardExpression {
     }
 }
 
+impl ForwardExpr {
+    fn forward_args(&self) -> (&Expr, &Type) {
+        (&self.expr, &self.ty)
+    }
+}
+
 impl ForwardDeclItem {
     fn forward_args(&self) -> (&Ident, &Generics) {
         match self {
@@ -704,12 +753,6 @@ impl ForwardDeclItem {
             ForwardDeclItem::Enum(val) => (&val.ident, &val.generics),
             ForwardDeclItem::Union(val) => (&val.ident, &val.generics),
         }
-    }
-}
-
-impl ForwardExpr {
-    fn forward_args(&self) -> (&Expr, &Type) {
-        (&self.expr, &self.ty)
     }
 }
 
@@ -1439,13 +1482,40 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDefItem);
 
-    quote! {
-        #item
+    match item {
+        ForwardDefItem::Struct(val) => {
+            let _ = parse_macro_input!(attr as ForwardDefData);
+
+            quote! {
+                #val
+            }
+            .into()
+        },
+        ForwardDefItem::Enum(val) => {
+            let _ = parse_macro_input!(attr as ForwardDefData);
+
+            quote! {
+                #val
+            }
+            .into()
+        },
+        ForwardDefItem::Union(val) => {
+            let _ = parse_macro_input!(attr as ForwardDefData);
+
+            quote! {
+                #val
+            }
+            .into()
+        },
+        ForwardDefItem::Impl(_) => {
+            let _ = parse_macro_input!(attr as ForwardDefImpl);
+
+            quote! {}.into()
+        },
     }
-    .into()
 }
 
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
