@@ -3,7 +3,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemStruct, ItemTrait, ItemUnion, Path, Result, Token,
-    TraitItem, Type, UnOp, WhereClause, bracketed,
+    TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -127,6 +127,27 @@ struct ForwardExpr {
     expr: Expr,
     with: kw::with,
     ty: Type,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ForwardOwnership {
+    #[default]
+    Raw,
+    Ref,
+    Mut,
+}
+
+#[derive(Debug, Clone)]
+enum ForwardExpression {
+    Raw(TokenStream),
+    Ref(TokenStream),
+    Mut(TokenStream),
+}
+
+#[derive(Debug, Clone)]
+enum ForwardArgument {
+    Raw(TokenStream),
+    Alt(TokenStream),
 }
 
 type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
@@ -621,6 +642,16 @@ impl ToTokens for ItemData {
     }
 }
 
+impl ToTokens for ForwardExpression {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            ForwardExpression::Raw(val) => val.to_tokens(tokens),
+            ForwardExpression::Ref(val) => val.to_tokens(tokens),
+            ForwardExpression::Mut(val) => val.to_tokens(tokens),
+        }
+    }
+}
+
 impl ItemData {
     fn forward_args(&self) -> (&Ident, &Generics) {
         match self {
@@ -634,6 +665,25 @@ impl ItemData {
 impl ForwardExpr {
     fn forward_args(&self) -> (&Expr, &Type) {
         (&self.expr, &self.ty)
+    }
+}
+
+impl ForwardExpression {
+    fn stream(self) -> TokenStream {
+        match self {
+            ForwardExpression::Raw(val) => val,
+            ForwardExpression::Ref(val) => val,
+            ForwardExpression::Mut(val) => val,
+        }
+    }
+}
+
+impl ForwardArgument {
+    fn stream(self) -> TokenStream {
+        match self {
+            ForwardArgument::Raw(val) => val,
+            ForwardArgument::Alt(val) => val,
+        }
     }
 }
 
@@ -1310,179 +1360,9 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         .items
         .iter()
         .filter_map(|item| match item {
-            TraitItem::Type(val) => Some(Ok({
-                let attrs = &val.attrs;
-                let ident = &val.ident;
-
-                let (gen_impl, gen_type, _) = val.generics.split_for_impl();
-
-                quote! {
-                    (#ident $ty:ty, $expr:expr) => {
-                        #(#attrs)*
-                        type #ident #gen_impl = <$ty>::#ident #gen_type;
-                    };
-                }
-            })),
-            TraitItem::Const(val) => Some(Ok({
-                let attrs = &val.attrs;
-                let ident = &val.ident;
-                let ty = &val.ty;
-
-                quote! {
-                    (#ident $ty:ty, $expr:expr) => {
-                        #(#attrs)*
-                        const #ident: #ty = <$ty>::#ident;
-                    };
-                }
-            })),
-            TraitItem::Fn(val) => Some(Ok({
-                let attrs = &val.attrs;
-                let constness = &val.sig.constness;
-                let asyncness = &val.sig.asyncness;
-                let unsafety = &val.sig.unsafety;
-                let abi = &val.sig.abi;
-                let ident = &val.sig.ident;
-                let generics = &val.sig.generics;
-                let args = &val.sig.inputs;
-                let ty = &val.sig.output;
-
-                let args_self = args.iter().find_map(|arg| match arg {
-                    FnArg::Receiver(val) => Some(val),
-                    FnArg::Typed(_) => None,
-                });
-
-                let args_decl = args
-                    .iter()
-                    .filter_map(|arg| match arg {
-                        FnArg::Receiver(_) => None,
-                        FnArg::Typed(val) => Some(val),
-                    })
-                    .enumerate()
-                    .map(|(idx, val)| {
-                        let attrs = &val.attrs;
-                        let ty = &val.ty;
-
-                        let ident = format_ident!("arg{}", idx);
-
-                        quote! { #(#attrs)* #ident: #ty }
-                    });
-
-                let args_def = args
-                    .iter()
-                    .filter_map(|arg| match arg {
-                        FnArg::Receiver(_) => None,
-                        FnArg::Typed(val) => Some(val),
-                    })
-                    .enumerate()
-                    .map(|(idx, val)| {
-                        #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-                        enum Ownership {
-                            #[default]
-                            Raw,
-                            Ref,
-                            Mut,
-                        }
-
-                        #[derive(Debug, Clone)]
-                        enum Argument {
-                            Raw(TokenStream),
-                            Alt(TokenStream),
-                        }
-
-                        fn get_arg(expr: TokenStream, ty: &Type, ownership: Ownership) -> Result<Argument> {
-                            match ty {
-                                Type::Path(val) => Ok({
-                                    if val.path.segments.last().is_some_and(|seg| seg.ident == "Self") {
-                                        return Ok(match ownership {
-                                            Ownership::Raw => Argument::Alt(quote! { #expr.forward() }),
-                                            Ownership::Ref => Argument::Alt(quote! { #expr.forward_ref() }),
-                                            Ownership::Mut => Argument::Alt(quote! { #expr.forward_mut() }),
-                                        });
-                                    }
-
-                                    if val.path.segments.first().is_some_and(|seg| seg.ident == "Self") {
-                                        return Ok(Argument::Alt(quote! { #expr.into() }));
-                                    }
-
-                                    Argument::Raw(expr)
-                                }),
-                                Type::Tuple(val) => Ok({
-                                    let args = val
-                                        .elems
-                                        .iter()
-                                        .enumerate()
-                                        .map(|(idx, elem)| get_arg(quote! { #expr.#idx }, elem, Ownership::Raw))
-                                        .collect::<Result<Vec<Argument>>>()?;
-
-                                    if args.iter().all(|arg| match arg {
-                                        Argument::Raw(_) => true,
-                                        Argument::Alt(_) => false,
-                                    }) {
-                                        return Ok(Argument::Raw(expr));
-                                    }
-
-                                    let args = args.iter().map(|arg| match arg {
-                                        Argument::Raw(val) => quote! { #val },
-                                        Argument::Alt(val) => quote! { #val },
-                                    });
-
-                                    Argument::Alt(quote! { #(#args),* })
-                                }),
-                                Type::Group(val) => get_arg(expr, &val.elem, Ownership::Raw),
-                                Type::Paren(val) => get_arg(expr, &val.elem, Ownership::Raw),
-                                Type::Ptr(val) => get_arg(
-                                    expr,
-                                    &val.elem,
-                                    match val.mutability {
-                                        Some(_) => Ownership::Mut,
-                                        None => Ownership::Ref,
-                                    },
-                                ),
-                                Type::Reference(val) => get_arg(
-                                    expr,
-                                    &val.elem,
-                                    match val.mutability {
-                                        Some(_) => Ownership::Mut,
-                                        None => Ownership::Ref,
-                                    },
-                                ),
-                                _ => todo!(),
-                            }
-                        }
-
-                        let ident = format_ident!("arg{}", idx);
-                        let expr = quote! { #ident };
-
-                        match get_arg(expr, &val.ty, Ownership::Raw)? {
-                            Argument::Raw(_) => Ok(quote! { #ident }),
-                            Argument::Alt(val) => Ok(quote! { #val }),
-                        }
-                    })
-                    .collect::<Result<Vec<TokenStream>>>();
-
-                let args_def = match args_def {
-                    Ok(val) => val,
-                    Err(err) => return Some(Err(err)),
-                };
-
-                let expr = match args_self {
-                    Some(_) => quote! {
-                        ($expr)(self).#ident(#(#args_def),*).into()
-                    },
-                    None => quote! {
-                        <$ty>::#ident(#(#args_def),*).into()
-                    },
-                };
-
-                quote! {
-                    (#ident $ty:ty, $expr:expr) => {
-                        #(#attrs)*
-                        #constness #asyncness #unsafety #abi fn #ident #generics (#(#args_decl),*) #ty {
-                            #expr
-                        }
-                    };
-                }
-            })),
+            TraitItem::Type(val) => Some(Ok(get_forward_type(val))),
+            TraitItem::Const(val) => Some(Ok(get_forward_const(val))),
+            TraitItem::Fn(val) => Some(get_forward_fn(val)),
             _ => None,
         })
         .collect::<Result<Vec<TokenStream>>>();
@@ -1619,5 +1499,159 @@ fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) 
                 &mut #expr
             }
         }
+    }
+}
+
+fn get_forward_type(val: &TraitItemType) -> TokenStream {
+    let attrs = &val.attrs;
+    let ident = &val.ident;
+
+    let (gen_impl, gen_type, _) = val.generics.split_for_impl();
+
+    quote! {
+        (#ident $ty:ty, $expr:expr) => {
+            #(#attrs)*
+            type #ident #gen_impl = <$ty>::#ident #gen_type;
+        };
+    }
+}
+
+fn get_forward_const(val: &TraitItemConst) -> TokenStream {
+    let attrs = &val.attrs;
+    let ident = &val.ident;
+    let ty = &val.ty;
+
+    quote! {
+        (#ident $ty:ty, $expr:expr) => {
+            #(#attrs)*
+            const #ident: #ty = <$ty>::#ident;
+        };
+    }
+}
+
+fn get_forward_fn(val: &TraitItemFn) -> Result<TokenStream> {
+    let attrs = &val.attrs;
+    let constness = &val.sig.constness;
+    let asyncness = &val.sig.asyncness;
+    let unsafety = &val.sig.unsafety;
+    let abi = &val.sig.abi;
+    let ident = &val.sig.ident;
+    let generics = &val.sig.generics;
+    let args = &val.sig.inputs;
+    let ty = &val.sig.output;
+
+    let args_self = args.iter().find_map(|arg| match arg {
+        FnArg::Receiver(val) => Some(val),
+        FnArg::Typed(_) => None,
+    });
+
+    let args_decl = args
+        .iter()
+        .filter_map(|arg| match arg {
+            FnArg::Receiver(_) => None,
+            FnArg::Typed(val) => Some(val),
+        })
+        .enumerate()
+        .map(|(idx, val)| {
+            let attrs = &val.attrs;
+            let ty = &val.ty;
+
+            let ident = format_ident!("arg{}", idx);
+
+            quote! { #(#attrs)* #ident: #ty }
+        });
+
+    let args_def = args
+        .iter()
+        .filter_map(|arg| match arg {
+            FnArg::Receiver(_) => None,
+            FnArg::Typed(val) => Some(val),
+        })
+        .enumerate()
+        .map(|(idx, val)| {
+            let ident = format_ident!("arg{}", idx);
+            let expr = quote! { #ident };
+
+            let arg = get_forward_argument(ForwardExpression::Raw(expr), &val.ty);
+
+            Ok(arg?.stream())
+        })
+        .collect::<Result<Vec<TokenStream>>>()?;
+
+    let expr = match args_self {
+        Some(_) => quote! {
+            ($expr)(self).#ident(#(#args_def),*).into()
+        },
+        None => quote! {
+            <$ty>::#ident(#(#args_def),*).into()
+        },
+    };
+
+    Ok(quote! {
+        (#ident $ty:ty, $expr:expr) => {
+            #(#attrs)*
+            #constness #asyncness #unsafety #abi fn #ident #generics (#(#args_decl),*) #ty {
+                #expr
+            }
+        };
+    })
+}
+
+fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArgument> {
+    match ty {
+        Type::Path(val) => {
+            if val.path.segments.last().is_some_and(|seg| seg.ident == "Self") {
+                return Ok(match expr {
+                    ForwardExpression::Raw(val) => ForwardArgument::Alt(quote! { #val.forward() }),
+                    ForwardExpression::Ref(val) => ForwardArgument::Alt(quote! { #val.forward_ref() }),
+                    ForwardExpression::Mut(val) => ForwardArgument::Alt(quote! { #val.forward_mut() }),
+                });
+            }
+
+            if val.path.segments.first().is_some_and(|seg| seg.ident == "Self") {
+                return Ok(ForwardArgument::Alt(quote! { #expr.into() }));
+            }
+
+            Ok(ForwardArgument::Raw(expr.stream()))
+        },
+        Type::Tuple(val) => {
+            let args = val
+                .elems
+                .iter()
+                .enumerate()
+                .map(|(idx, elem)| get_forward_argument(ForwardExpression::Raw(quote! { #expr.#idx }), elem))
+                .collect::<Result<Vec<ForwardArgument>>>()?;
+
+            if args.iter().all(|arg| match arg {
+                ForwardArgument::Raw(_) => true,
+                ForwardArgument::Alt(_) => false,
+            }) {
+                return Ok(ForwardArgument::Raw(expr.stream()));
+            }
+
+            let args = args.iter().map(|arg| match arg {
+                ForwardArgument::Raw(val) => quote! { #val },
+                ForwardArgument::Alt(val) => quote! { #val },
+            });
+
+            Ok(ForwardArgument::Alt(quote! { #(#args),* }))
+        },
+        Type::Group(val) => get_forward_argument(ForwardExpression::Raw(expr.stream()), &val.elem),
+        Type::Paren(val) => get_forward_argument(ForwardExpression::Raw(expr.stream()), &val.elem),
+        Type::Ptr(val) => get_forward_argument(
+            match val.mutability {
+                Some(_) => ForwardExpression::Mut(expr.stream()),
+                None => ForwardExpression::Ref(expr.stream()),
+            },
+            &val.elem,
+        ),
+        Type::Reference(val) => get_forward_argument(
+            match val.mutability {
+                Some(_) => ForwardExpression::Mut(expr.stream()),
+                None => ForwardExpression::Ref(expr.stream()),
+            },
+            &val.elem,
+        ),
+        _ => todo!(),
     }
 }
