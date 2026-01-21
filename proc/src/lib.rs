@@ -1487,33 +1487,48 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
     match item {
         ForwardDefItem::Struct(val) => {
-            let _ = parse_macro_input!(attr as ForwardDefData);
+            let ForwardDefData { expr, idents: _ } = parse_macro_input!(attr as ForwardDefData);
+
+            let forward = get_forward_impl_mod(&val.ident, &val.generics, &expr.ty, &expr.expr);
 
             quote! {
+                #forward
+
                 #val
             }
             .into()
         },
         ForwardDefItem::Enum(val) => {
-            let _ = parse_macro_input!(attr as ForwardDefData);
+            let ForwardDefData { expr, idents: _ } = parse_macro_input!(attr as ForwardDefData);
+
+            let forward = get_forward_impl_mod(&val.ident, &val.generics, &expr.ty, &expr.expr);
 
             quote! {
+                #forward
+
                 #val
             }
             .into()
         },
         ForwardDefItem::Union(val) => {
-            let _ = parse_macro_input!(attr as ForwardDefData);
+            let ForwardDefData { expr, idents: _ } = parse_macro_input!(attr as ForwardDefData);
+
+            let forward = get_forward_impl_mod(&val.ident, &val.generics, &expr.ty, &expr.expr);
+
+            quote! {
+                #forward
+
+                #val
+            }
+            .into()
+        },
+        ForwardDefItem::Impl(val) => {
+            let ForwardDefImpl { expr: _, idents: _ } = parse_macro_input!(attr as ForwardDefImpl);
 
             quote! {
                 #val
             }
             .into()
-        },
-        ForwardDefItem::Impl(_) => {
-            let _ = parse_macro_input!(attr as ForwardDefImpl);
-
-            quote! {}.into()
         },
     }
 }
@@ -1613,6 +1628,18 @@ fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) 
             fn forward_mut(&mut self) -> &mut Self::Type {
                 &mut #expr
             }
+        }
+    }
+}
+
+fn get_forward_impl_mod(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
+    let forward = get_forward_impl(ident, generics, ty, expr);
+    let forward_mod = format_ident!("__forward_impl_{}", &ident);
+
+    quote! {
+        use #forward_mod::Forward as _;
+        mod #forward_mod {
+            #forward
         }
     }
 }
