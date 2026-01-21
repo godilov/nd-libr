@@ -129,14 +129,6 @@ struct ForwardExpr {
     ty: Type,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum ForwardOwnership {
-    #[default]
-    Raw,
-    Ref,
-    Mut,
-}
-
 #[derive(Debug, Clone)]
 enum ForwardExpression {
     Raw(TokenStream),
