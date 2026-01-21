@@ -1600,6 +1600,18 @@ fn get_normalized_generics(mut generics: Generics) -> Generics {
     generics
 }
 
+fn get_forward_impl_mod(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
+    let forward = get_forward_impl(ident, generics, ty, expr);
+    let forward_mod = format_ident!("__forward_impl_{}", &ident);
+
+    quote! {
+        use #forward_mod::Forward as _;
+        mod #forward_mod {
+            #forward
+        }
+    }
+}
+
 fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
@@ -1629,35 +1641,6 @@ fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) 
                 &mut #expr
             }
         }
-    }
-}
-
-fn get_forward_impl_mod(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
-    let forward = get_forward_impl(ident, generics, ty, expr);
-    let forward_mod = format_ident!("__forward_impl_{}", &ident);
-
-    quote! {
-        use #forward_mod::Forward as _;
-        mod #forward_mod {
-            #forward
-        }
-    }
-}
-
-fn get_forward_expr(recv: Option<&Receiver>, ident: &Ident, args: &[TokenStream]) -> TokenStream {
-    match recv {
-        Some(val) if val.reference.is_some() && val.mutability.is_some() => quote! {
-            self.forward_mut().#ident(#(#args),*).into()
-        },
-        Some(val) if val.reference.is_some() => quote! {
-            self.forward_ref().#ident(#(#args),*).into()
-        },
-        Some(_) => quote! {
-            self.forward().#ident(#(#args),*).into()
-        },
-        None => quote! {
-            <$ty>::#ident(#(#args),*).into()
-        },
     }
 }
 
@@ -1747,6 +1730,23 @@ fn get_forward_fn(val: &TraitItemFn) -> Result<TokenStream> {
             }
         };
     })
+}
+
+fn get_forward_expr(recv: Option<&Receiver>, ident: &Ident, args: &[TokenStream]) -> TokenStream {
+    match recv {
+        Some(val) if val.reference.is_some() && val.mutability.is_some() => quote! {
+            self.forward_mut().#ident(#(#args),*).into()
+        },
+        Some(val) if val.reference.is_some() => quote! {
+            self.forward_ref().#ident(#(#args),*).into()
+        },
+        Some(_) => quote! {
+            self.forward().#ident(#(#args),*).into()
+        },
+        None => quote! {
+            <$ty>::#ident(#(#args),*).into()
+        },
+    }
 }
 
 fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArgument> {
