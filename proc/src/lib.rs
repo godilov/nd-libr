@@ -3,7 +3,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Path,
-    Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause, bracketed,
+    Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1466,8 +1466,8 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            (* $ty:ty, $expr:expr) => {
-                #(#macros!(#idents $ty, $expr);)*
+            (* $ty:ty) => {
+                #(#macros!(#idents $ty);)*
             };
 
             #(#cases)*
@@ -1644,6 +1644,23 @@ fn get_forward_impl_mod(ident: &Ident, generics: &Generics, ty: &Type, expr: &Ex
     }
 }
 
+fn get_forward_expr(recv: Option<&Receiver>, ident: &Ident, args: &[TokenStream]) -> TokenStream {
+    match recv {
+        Some(val) if val.reference.is_some() && val.mutability.is_some() => quote! {
+            self.forward_mut().#ident(#(#args),*).into()
+        },
+        Some(val) if val.reference.is_some() => quote! {
+            self.forward_ref().#ident(#(#args),*).into()
+        },
+        Some(_) => quote! {
+            self.forward().#ident(#(#args),*).into()
+        },
+        None => quote! {
+            <$ty>::#ident(#(#args),*).into()
+        },
+    }
+}
+
 fn get_forward_type(val: &TraitItemType) -> TokenStream {
     let attrs = &val.attrs;
     let ident = &val.ident;
@@ -1651,7 +1668,7 @@ fn get_forward_type(val: &TraitItemType) -> TokenStream {
     let (gen_impl, gen_type, _) = val.generics.split_for_impl();
 
     quote! {
-        (#ident $ty:ty, $expr:expr) => {
+        (#ident $ty:ty) => {
             #(#attrs)*
             type #ident #gen_impl = <$ty>::#ident #gen_type;
         };
@@ -1664,7 +1681,7 @@ fn get_forward_const(val: &TraitItemConst) -> TokenStream {
     let ty = &val.ty;
 
     quote! {
-        (#ident $ty:ty, $expr:expr) => {
+        (#ident $ty:ty) => {
             #(#attrs)*
             const #ident: #ty = <$ty>::#ident;
         };
@@ -1682,12 +1699,12 @@ fn get_forward_fn(val: &TraitItemFn) -> Result<TokenStream> {
     let args = &val.sig.inputs;
     let ty = &val.sig.output;
 
-    let args_self = args.iter().find_map(|arg| match arg {
+    let recv = args.iter().find_map(|arg| match arg {
         FnArg::Receiver(val) => Some(val),
         FnArg::Typed(_) => None,
     });
 
-    let args_decl = args
+    let decl = args
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1703,7 +1720,7 @@ fn get_forward_fn(val: &TraitItemFn) -> Result<TokenStream> {
             quote! { #(#attrs)* #ident: #ty }
         });
 
-    let args_def = args
+    let def = args
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1720,19 +1737,12 @@ fn get_forward_fn(val: &TraitItemFn) -> Result<TokenStream> {
         })
         .collect::<Result<Vec<TokenStream>>>()?;
 
-    let expr = match args_self {
-        Some(_) => quote! {
-            ($expr)(self).#ident(#(#args_def),*).into()
-        },
-        None => quote! {
-            <$ty>::#ident(#(#args_def),*).into()
-        },
-    };
+    let expr = get_forward_expr(recv, ident, &def);
 
     Ok(quote! {
-        (#ident $ty:ty, $expr:expr) => {
+        (#ident $ty:ty) => {
             #(#attrs)*
-            #constness #asyncness #unsafety #abi fn #ident #generics (#(#args_decl),*) #ty {
+            #constness #asyncness #unsafety #abi fn #ident #generics (#(#decl),*) #ty {
                 #expr
             }
         };
