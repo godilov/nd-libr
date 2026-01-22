@@ -143,19 +143,19 @@ enum ForwardDefItem {
 #[allow(dead_code)]
 struct ForwardDefData {
     expr: ForwardExpr,
-    idents: ForwardDefIdents,
+    interfaces: ForwardDefInterfaces,
 }
 
 #[allow(dead_code)]
 struct ForwardDefImpl {
     expr: ForwardExpr,
-    idents: Option<ForwardDefIdents>,
+    interfaces: Option<ForwardDefInterfaces>,
 }
 
 #[allow(dead_code)]
-struct ForwardDefIdents {
+struct ForwardDefInterfaces {
     colon: Token![:],
-    idents: Punctuated<Ident, Token![,]>,
+    elems: Punctuated<Ident, Token![,]>,
 }
 
 #[derive(Debug, Clone)]
@@ -424,7 +424,7 @@ impl Parse for ForwardDefData {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             expr: input.parse()?,
-            idents: input.parse()?,
+            interfaces: input.parse()?,
         })
     }
 }
@@ -433,16 +433,16 @@ impl Parse for ForwardDefImpl {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             expr: input.parse()?,
-            idents: input.parse().ok(),
+            interfaces: input.parse().ok(),
         })
     }
 }
 
-impl Parse for ForwardDefIdents {
+impl Parse for ForwardDefInterfaces {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             colon: input.parse()?,
-            idents: input.parse_terminated(Ident::parse, Token![,])?,
+            elems: input.parse_terminated(Ident::parse, Token![,])?,
         })
     }
 }
@@ -1033,7 +1033,7 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         None => parse_quote! { where #ty: std::cmp::Eq },
     };
 
-    let forward_impl = get_forward_impl(ident, generics, ty, expr);
+    let forward_impl = get_forward_impl(ident, generics, expr, ty);
 
     quote! {
         #item
@@ -1524,15 +1524,49 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_attribute]
 pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    macro_rules! forward {
+        ($item:expr, $def:expr) => {{
+            let def = $def;
+
+            let expr = &def.expr.expr;
+            let ty = &def.expr.ty;
+
+            let ident = &$item.ident;
+            let gen_params = &$item.generics.params;
+            let (_, gen_type, gen_where) = $item.generics.split_for_impl();
+
+            let forwards = def.interfaces.elems.iter().map(|interface| {
+                let macros = format_ident!("forward_impl_{}", interface);
+
+                forward_with(
+                    quote! {
+                        #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
+                    },
+                    interface,
+                    &$item.ident,
+                    &$item.generics,
+                    expr,
+                    ty,
+                )
+            });
+
+            quote! {
+                #$item
+
+                #(#forwards)*
+            }
+            .into()
+        }};
+    }
     fn forward_with(
         stream: TokenStream,
         interface: &Ident,
         ident: &Ident,
         generics: &Generics,
-        ty: &Type,
         expr: &Expr,
+        ty: &Type,
     ) -> TokenStream {
-        let forward_impl = get_forward_impl(ident, generics, ty, expr);
+        let forward_impl = get_forward_impl(ident, generics, expr, ty);
         let forward_mod = format_ident!("__forward_impl_{}_{}", &interface, &ident);
 
         quote! {
@@ -1547,53 +1581,11 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
     let item = parse_macro_input!(item as ForwardDefItem);
 
     match item {
-        ForwardDefItem::Struct(val) => {
-            let ForwardDefData { expr, idents } = parse_macro_input!(attr as ForwardDefData);
-
-            let forwards = idents
-                .idents
-                .iter()
-                .map(|ident| forward_with(quote! {}, ident, &val.ident, &val.generics, &expr.ty, &expr.expr));
-
-            quote! {
-                #val
-
-                #(#forwards)*
-            }
-            .into()
-        },
-        ForwardDefItem::Enum(val) => {
-            let ForwardDefData { expr, idents } = parse_macro_input!(attr as ForwardDefData);
-
-            let forwards = idents
-                .idents
-                .iter()
-                .map(|ident| forward_with(quote! {}, ident, &val.ident, &val.generics, &expr.ty, &expr.expr));
-
-            quote! {
-                #val
-
-                #(#forwards)*
-            }
-            .into()
-        },
-        ForwardDefItem::Union(val) => {
-            let ForwardDefData { expr, idents } = parse_macro_input!(attr as ForwardDefData);
-
-            let forwards = idents
-                .idents
-                .iter()
-                .map(|ident| forward_with(quote! {}, ident, &val.ident, &val.generics, &expr.ty, &expr.expr));
-
-            quote! {
-                #val
-
-                #(#forwards)*
-            }
-            .into()
-        },
+        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
+        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
+        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
         ForwardDefItem::Impl(val) => {
-            let ForwardDefImpl { expr: _, idents: _ } = parse_macro_input!(attr as ForwardDefImpl);
+            let ForwardDefImpl { expr: _, interfaces: _ } = parse_macro_input!(attr as ForwardDefImpl);
 
             let attrs = &val.attrs;
             let default = &val.defaultness;
@@ -1694,7 +1686,7 @@ fn get_normalized_generics(mut generics: Generics) -> Generics {
     generics
 }
 
-fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) -> TokenStream {
+fn get_forward_impl(ident: &Ident, generics: &Generics, expr: &Expr, ty: &Type) -> TokenStream {
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
     quote! {
