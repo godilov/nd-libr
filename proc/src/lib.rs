@@ -1464,9 +1464,11 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         quote! {
             (#ident $ty:ty) => {
                 #stream
-            }
+            };
         }
     });
+
+    let streams = forwards.iter().map(|(_, stream)| stream);
 
     quote! {
         #item
@@ -1474,6 +1476,10 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
+            (@all $ty:ty) => {
+                #(#streams)*
+            };
+
             (* $ty:ty) => {
                 #(#macros!(#idents $ty);)*
             };
