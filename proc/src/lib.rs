@@ -1444,7 +1444,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         _ => None,
     });
 
-    let cases = item
+    let forwards = item
         .items
         .iter()
         .filter_map(|item| match item {
@@ -1453,12 +1453,20 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             TraitItem::Fn(val) => Some(get_forward_fn(val)),
             _ => None,
         })
-        .collect::<Result<Vec<TokenStream>>>();
+        .collect::<Result<Vec<(&Ident, TokenStream)>>>();
 
-    let cases = match cases {
+    let forwards = match forwards {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
+
+    let cases = forwards.iter().map(|(ident, stream)| {
+        quote! {
+            (#ident $ty:ty) => {
+                #stream
+            }
+        }
+    });
 
     quote! {
         #item
@@ -1685,34 +1693,36 @@ fn get_forward_impl(ident: &Ident, generics: &Generics, ty: &Type, expr: &Expr) 
     }
 }
 
-fn get_forward_type(val: &TraitItemType) -> TokenStream {
+fn get_forward_type(val: &TraitItemType) -> (&Ident, TokenStream) {
     let attrs = &val.attrs;
     let ident = &val.ident;
 
     let (gen_impl, gen_type, _) = val.generics.split_for_impl();
 
-    quote! {
-        (#ident $ty:ty) => {
+    (
+        ident,
+        quote! {
             #(#attrs)*
             type #ident #gen_impl = <$ty>::#ident #gen_type;
-        };
-    }
+        },
+    )
 }
 
-fn get_forward_const(val: &TraitItemConst) -> TokenStream {
+fn get_forward_const(val: &TraitItemConst) -> (&Ident, TokenStream) {
     let attrs = &val.attrs;
     let ident = &val.ident;
     let ty = &val.ty;
 
-    quote! {
-        (#ident $ty:ty) => {
+    (
+        ident,
+        quote! {
             #(#attrs)*
             const #ident: #ty = <$ty>::#ident;
-        };
-    }
+        },
+    )
 }
 
-fn get_forward_fn(val: &TraitItemFn) -> Result<TokenStream> {
+fn get_forward_fn(val: &TraitItemFn) -> Result<(&Ident, TokenStream)> {
     let attrs = &val.attrs;
     let constness = &val.sig.constness;
     let asyncness = &val.sig.asyncness;
@@ -1763,14 +1773,15 @@ fn get_forward_fn(val: &TraitItemFn) -> Result<TokenStream> {
 
     let expr = get_forward_expr(recv, ident, &def);
 
-    Ok(quote! {
-        (#ident $ty:ty) => {
+    Ok((
+        ident,
+        quote! {
             #(#attrs)*
             #constness #asyncness #unsafety #abi fn #ident #generics (#(#decl),*) #ty {
                 #expr
             }
-        };
-    })
+        },
+    ))
 }
 
 fn get_forward_expr(recv: Option<&Receiver>, ident: &Ident, args: &[TokenStream]) -> TokenStream {
