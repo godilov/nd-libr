@@ -15,7 +15,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 use crate::{
     arch::word::*,
     long::{radix::*, uops::*},
-    num::{Extension as NumExtension, Num, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned},
+    num::{Num, NumExtension, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned},
     ops::*,
     *,
 };
