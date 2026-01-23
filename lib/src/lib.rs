@@ -37,7 +37,7 @@ mod tests {
     #[forward_fmt(self.value with usize)]
     #[forward_ops(self.value with usize)]
     #[forward_ops_assign(self.value with usize)]
-    struct A {
+    struct Struct {
         value: usize,
     }
 
@@ -50,7 +50,7 @@ mod tests {
         fn function(value: usize) -> usize;
     }
 
-    impl From<usize> for A {
+    impl From<usize> for Struct {
         fn from(value: usize) -> Self {
             Self { value }
         }

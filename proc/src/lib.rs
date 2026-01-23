@@ -149,11 +149,17 @@ struct ForwardDefData {
 #[allow(dead_code)]
 struct ForwardDefImpl {
     expr: ForwardExpr,
-    interfaces: Option<ForwardDefInterfaces>,
+    idents: Option<ForwardDefIdents>,
 }
 
 #[allow(dead_code)]
 struct ForwardDefInterfaces {
+    colon: Token![:],
+    elems: Punctuated<Ident, Token![,]>,
+}
+
+#[allow(dead_code)]
+struct ForwardDefIdents {
     colon: Token![:],
     elems: Punctuated<Ident, Token![,]>,
 }
@@ -433,12 +439,21 @@ impl Parse for ForwardDefImpl {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             expr: input.parse()?,
-            interfaces: input.parse().ok(),
+            idents: input.parse().ok(),
         })
     }
 }
 
 impl Parse for ForwardDefInterfaces {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            colon: input.parse()?,
+            elems: input.parse_terminated(Ident::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for ForwardDefIdents {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             colon: input.parse()?,
@@ -1590,7 +1605,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
         ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
         ForwardDefItem::Impl(val) => {
-            let ForwardDefImpl { expr: _, interfaces: _ } = parse_macro_input!(attr as ForwardDefImpl);
+            let ForwardDefImpl { expr: _, idents: _ } = parse_macro_input!(attr as ForwardDefImpl);
 
             let attrs = &val.attrs;
             let default = &val.defaultness;
