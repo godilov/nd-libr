@@ -996,7 +996,7 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
         impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
             fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
-                Self::from(<#ty>::from_iter(iter))
+                <#ty>::from_iter(iter).into()
             }
         }
     }
@@ -1503,8 +1503,8 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            (@ $self:ty, $ty:ty, ($($gen_params:tt)+), ($($gen_where:tt)+)) => {
-                impl <#gen_params $($gen_params)+> #ident #gen_type for $self #gen_where $($gen_where)+ {
+            (@ $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
+                impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
                     #(#streams)*
                 }
             };
@@ -1573,9 +1573,12 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
         quote! {
             #[doc(hidden)]
+            #[allow(non_snake_case)]
             mod #forward_mod {
                 #forward_impl
                 #stream
+
+                use super::#ident;
             }
         }
     }

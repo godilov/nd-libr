@@ -26,3 +26,43 @@ impl<U, V: TryFrom<U>> NdTryFrom<U> for V {
         V::try_from(value)
     }
 }
+
+#[cfg(test)]
+#[allow(dead_code)]
+mod tests {
+    use ndproc::{forward_cmp, forward_decl, forward_fmt, forward_ops, forward_ops_assign, forward_std};
+
+    #[forward_std(self.value with usize)]
+    #[forward_cmp(self.value with usize)]
+    #[forward_fmt(self.value with usize)]
+    #[forward_ops(self.value with usize)]
+    #[forward_ops_assign(self.value with usize)]
+    struct A {
+        value: usize,
+    }
+
+    #[forward_decl]
+    trait Interface {
+        type Type;
+
+        const CONSTANT: usize;
+
+        fn function(value: usize) -> usize;
+    }
+
+    impl From<usize> for A {
+        fn from(value: usize) -> Self {
+            Self { value }
+        }
+    }
+
+    impl Interface for usize {
+        type Type = usize;
+
+        const CONSTANT: usize = 0;
+
+        fn function(value: usize) -> usize {
+            value
+        }
+    }
+}
