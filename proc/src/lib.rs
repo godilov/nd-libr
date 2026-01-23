@@ -155,7 +155,7 @@ struct ForwardDefImpl {
 #[allow(dead_code)]
 struct ForwardDefInterfaces {
     colon: Token![:],
-    elems: Punctuated<Ident, Token![,]>,
+    elems: Punctuated<Path, Token![,]>,
 }
 
 #[allow(dead_code)]
@@ -448,7 +448,7 @@ impl Parse for ForwardDefInterfaces {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             colon: input.parse()?,
-            elems: input.parse_terminated(Ident::parse, Token![,])?,
+            elems: input.parse_terminated(Path::parse, Token![,])?,
         })
     }
 }
@@ -1551,14 +1551,19 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             let gen_params = &item.generics.params;
             let (_, gen_type, gen_where) = item.generics.split_for_impl();
 
-            let forwards = def.interfaces.elems.iter().map(|interface| {
-                let macros = format_ident!("forward_impl_{}", interface);
+            let forwards = def.interfaces.elems.iter().map(|elem| {
+                let id = match elem.segments.last() {
+                    Some(val) => &val.ident,
+                    None => unreachable!(),
+                };
+
+                let macros = format_ident!("forward_impl_{}", &id);
 
                 forward_with(
                     quote! {
                         #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
                     },
-                    interface,
+                    elem,
                     &item.ident,
                     &item.generics,
                     expr,
@@ -1577,14 +1582,19 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
     fn forward_with(
         stream: TokenStream,
-        interface: &Ident,
+        interface: &Path,
         ident: &Ident,
         generics: &Generics,
         expr: &Expr,
         ty: &Type,
     ) -> TokenStream {
+        let id = match interface.segments.last() {
+            Some(val) => &val.ident,
+            None => unreachable!(),
+        };
+
         let forward_impl = get_forward_impl(ident, generics, expr, ty);
-        let forward_mod = format_ident!("__forward_impl_{}_{}", &interface, &ident);
+        let forward_mod = format_ident!("__forward_impl_{}_{}", &id, &ident);
 
         quote! {
             #[doc(hidden)]
@@ -1594,6 +1604,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                 #stream
 
                 use super::#ident;
+                use #interface;
             }
         }
     }
