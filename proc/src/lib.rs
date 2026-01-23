@@ -1559,6 +1559,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             .into()
         }};
     }
+
     fn forward_with(
         stream: TokenStream,
         interface: &Ident,
@@ -1611,7 +1612,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
             quote! {
                 #(#attrs)*
-                #default #unsafety impl #gen_impl #interface #ty #gen_type #gen_where {
+                #default #unsafety impl #gen_impl #interface #gen_type #ty #gen_where {
                     #(#items)*
                 }
             }
