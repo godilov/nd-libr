@@ -1462,13 +1462,13 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
 
 #[proc_macro_attribute]
 pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let ForwardDeclItem::Trait(item) = parse_macro_input!(item as ForwardDeclItem);
+    let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
 
-    let ident = &item.ident;
+    let ident = &interface.ident;
     let macros = format_ident!("__forward_impl_{}", ident);
 
-    let gen_params = &item.generics.params;
-    let (_, gen_type, gen_where) = &item.generics.split_for_impl();
+    let gen_params = &interface.generics.params;
+    let (_, gen_type, gen_where) = &interface.generics.split_for_impl();
 
     let gen_params: Punctuated<GenericParam, Token![,]> = match gen_params.is_empty() {
         true => parse_quote! {},
@@ -1480,20 +1480,20 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => parse_quote! { where },
     };
 
-    let idents = item.items.iter().filter_map(|item| match item {
+    let idents = interface.items.iter().filter_map(|item| match item {
         TraitItem::Type(val) => Some(&val.ident),
         TraitItem::Const(val) => Some(&val.ident),
         TraitItem::Fn(val) => Some(&val.sig.ident),
         _ => None,
     });
 
-    let forwards = item
+    let forwards = interface
         .items
         .iter()
         .filter_map(|item| match item {
-            TraitItem::Type(val) => Some(Ok(get_forward_type(val))),
-            TraitItem::Const(val) => Some(Ok(get_forward_const(val))),
-            TraitItem::Fn(val) => Some(get_forward_fn(val)),
+            TraitItem::Type(val) => Some(Ok(get_forward_type(&interface, val))),
+            TraitItem::Const(val) => Some(Ok(get_forward_const(&interface, val))),
+            TraitItem::Fn(val) => Some(get_forward_fn(&interface, val)),
             _ => None,
         })
         .collect::<Result<Vec<(&Ident, TokenStream)>>>();
@@ -1513,7 +1513,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     });
 
     quote! {
-        #item
+        #interface
 
         #[doc(hidden)]
         #[allow(unused_macros)]
@@ -1552,29 +1552,44 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             let gen_params = &item.generics.params;
             let (_, gen_type, gen_where) = item.generics.split_for_impl();
 
-            let forwards = def.interfaces.elems.iter().map(|interface| {
-                let id = match interface.segments.last() {
-                    Some(val) => &val.ident,
-                    None => unreachable!(),
-                };
+            let forwards = def
+                .interfaces
+                .elems
+                .iter()
+                .map(|interface| {
+                    let id = match interface.segments.last() {
+                        Some(val) => &val.ident,
+                        None => {
+                            return Err(Error::new(Span::call_site(), "Failed to forward definition, path is empty"));
+                        },
+                    };
 
-                let forward = get_forward_impl(ident, generics, expr, ty);
-                let module = format_ident!("__forward_impl_{}_{}", &id, &ident);
-                let macros = format_ident!("__forward_impl_{}", &id);
+                    let segs = interface.segments.iter().take(interface.segments.len().saturating_sub(1));
 
-                quote! {
-                    #[doc(hidden)]
-                    #[allow(non_snake_case)]
-                    mod #module {
-                        #forward
+                    let forward = get_forward_impl(ident, generics, expr, ty);
+                    let module = format_ident!("__forward_impl_{}_{}", &id, &ident);
+                    let macros = format_ident!("__forward_impl_{}", &id);
 
-                        #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
+                    Ok(quote! {
+                        #[doc(hidden)]
+                        #[allow(non_snake_case)]
+                        mod #module {
+                            #forward
 
-                        use super::#ident;
-                        use #interface;
-                    }
-                }
-            });
+                            #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
+
+                            use super::#ident;
+                            use #(#segs::)*#macros;
+                            use #interface;
+                        }
+                    })
+                })
+                .collect::<Result<Vec<TokenStream>>>();
+
+            let forwards = match forwards {
+                Ok(val) => val,
+                Err(err) => return err.into_compile_error().into(),
+            };
 
             quote! {
                 #item
@@ -1725,45 +1740,51 @@ fn get_forward_impl(ident: &Ident, generics: &Generics, expr: &Expr, ty: &Type) 
     }
 }
 
-fn get_forward_type(val: &TraitItemType) -> (&Ident, TokenStream) {
-    let attrs = &val.attrs;
-    let ident = &val.ident;
+fn get_forward_type<'item>(interface: &ItemTrait, item: &'item TraitItemType) -> (&'item Ident, TokenStream) {
+    let attrs = &item.attrs;
+    let ident = &item.ident;
 
-    let (gen_impl, gen_type, _) = val.generics.split_for_impl();
+    let (gen_impl, gen_type, _) = item.generics.split_for_impl();
 
-    (
-        ident,
-        quote! {
-            #(#attrs)*
-            type #ident #gen_impl = <$ty>::#ident #gen_type;
-        },
-    )
-}
-
-fn get_forward_const(val: &TraitItemConst) -> (&Ident, TokenStream) {
-    let attrs = &val.attrs;
-    let ident = &val.ident;
-    let ty = &val.ty;
+    let id = &interface.ident;
+    let (_, gen_type_id, _) = interface.generics.split_for_impl();
 
     (
         ident,
         quote! {
             #(#attrs)*
-            const #ident: #ty = <$ty>::#ident;
+            type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
         },
     )
 }
 
-fn get_forward_fn(val: &TraitItemFn) -> Result<(&Ident, TokenStream)> {
-    let attrs = &val.attrs;
-    let constness = &val.sig.constness;
-    let asyncness = &val.sig.asyncness;
-    let unsafety = &val.sig.unsafety;
-    let abi = &val.sig.abi;
-    let ident = &val.sig.ident;
-    let generics = &val.sig.generics;
-    let args = &val.sig.inputs;
-    let ty = &val.sig.output;
+fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) -> (&'item Ident, TokenStream) {
+    let attrs = &item.attrs;
+    let ident = &item.ident;
+    let ty = &item.ty;
+
+    let id = &interface.ident;
+    let (_, gen_type_id, _) = interface.generics.split_for_impl();
+
+    (
+        ident,
+        quote! {
+            #(#attrs)*
+            const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
+        },
+    )
+}
+
+fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'item Ident, TokenStream)> {
+    let attrs = &item.attrs;
+    let constness = &item.sig.constness;
+    let asyncness = &item.sig.asyncness;
+    let unsafety = &item.sig.unsafety;
+    let abi = &item.sig.abi;
+    let ident = &item.sig.ident;
+    let generics = &item.sig.generics;
+    let args = &item.sig.inputs;
+    let ty = &item.sig.output;
 
     let recv = args.iter().find_map(|arg| match arg {
         FnArg::Receiver(val) => Some(val),

@@ -30,13 +30,14 @@ impl<U, V: TryFrom<U>> NdTryFrom<U> for V {
 #[cfg(test)]
 #[allow(dead_code)]
 mod tests {
-    use ndproc::{forward_cmp, forward_decl, forward_fmt, forward_ops, forward_ops_assign, forward_std};
+    use ndproc::{forward_cmp, forward_decl, forward_def, forward_fmt, forward_ops, forward_ops_assign, forward_std};
 
     #[forward_std(self.value with usize)]
     #[forward_cmp(self.value with usize)]
     #[forward_fmt(self.value with usize)]
     #[forward_ops(self.value with usize)]
     #[forward_ops_assign(self.value with usize)]
+    #[forward_def(self.value with usize: crate::tests::Interface)]
     struct Struct {
         value: usize,
     }
