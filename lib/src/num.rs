@@ -1,11 +1,6 @@
-use std::{
-    cmp::Ordering,
-    fmt::Debug,
-    marker::PhantomData,
-    ops::{AddAssign, BitAndAssign, BitOrAssign, BitXorAssign, DivAssign, MulAssign, RemAssign, SubAssign},
-};
+use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
-use ndproc::{forward_cmp, forward_decl, forward_fmt, forward_ops, forward_std};
+use ndproc::{forward_cmp, forward_decl, forward_fmt, forward_ops, forward_ops_assign, forward_std};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -158,40 +153,6 @@ macro_rules! sign_from {
                     Ordering::Equal => Sign::ZERO,
                     Ordering::Greater => Sign::POS,
                 }
-            }
-        }
-    };
-}
-
-macro_rules! width_ops_assign_impl {
-    ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(width_ops_assign_impl!($op => $fn);)+
-    };
-    ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + NumExtension + Unsigned + Static + $op<U>, const BITS: usize> $op<U> for Width<N, BITS>
-        where
-            for<'s> &'s N: Ops,
-        {
-            fn $fn(&mut self, rhs: U) {
-                self.0.$fn(rhs);
-                self.normalize();
-            }
-        }
-    };
-}
-
-macro_rules! modular_ops_assign_impl {
-    ([$($op:ident => $fn:ident),+ $(,)?]) => {
-        $(modular_ops_assign_impl!($op => $fn);)+
-    };
-    ($op:ident => $fn:ident $(,)?) => {
-        impl<U, N: Num + NumExtension + Unsigned + Static + $op<U>, M: Default + Clone + Modulus<N>> $op<U> for Modular<N, M>
-        where
-            for<'s> &'s N: Ops,
-        {
-            fn $fn(&mut self, rhs: U) {
-                self.0.$fn(rhs);
-                self.normalize();
             }
         }
     };
@@ -456,7 +417,7 @@ pub mod prime {
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
-// #[forward_def(self.0 with N: Num)]
+#[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Width<N: Num + NumExtension + Unsigned + Static, const BITS: usize>(pub N)
 where
@@ -466,7 +427,7 @@ where
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
-// #[forward_def(self.0 with N: Num)]
+#[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Modular<N: Num + NumExtension + Unsigned + Static, M: Default + Clone + Modulus<N>>(
     pub N,
@@ -763,28 +724,6 @@ where
         Self(value, PhantomData).normalized()
     }
 }
-
-width_ops_assign_impl!([
-    AddAssign => add_assign,
-    SubAssign => sub_assign,
-    MulAssign => mul_assign,
-    DivAssign => div_assign,
-    RemAssign => rem_assign,
-    BitOrAssign => bitor_assign,
-    BitAndAssign => bitand_assign,
-    BitXorAssign => bitxor_assign,
-]);
-
-modular_ops_assign_impl!([
-    AddAssign => add_assign,
-    SubAssign => sub_assign,
-    MulAssign => mul_assign,
-    DivAssign => div_assign,
-    RemAssign => rem_assign,
-    BitOrAssign => bitor_assign,
-    BitAndAssign => bitand_assign,
-    BitXorAssign => bitxor_assign,
-]);
 
 impl<N: Num + NumExtension + Unsigned + Static, const BITS: usize> Width<N, BITS>
 where

@@ -15,6 +15,8 @@ use syn::{
 
 mod kw {
     syn::custom_keyword!(with);
+    syn::custom_keyword!(pre);
+    syn::custom_keyword!(post);
 }
 
 enum Ops {
@@ -121,6 +123,26 @@ struct ForwardExpr {
     expr: Expr,
     with: kw::with,
     ty: Type,
+}
+
+#[allow(dead_code)]
+struct ForwardAssign {
+    expr: ForwardExpr,
+    mods: Option<ForwardAssignModifiers>,
+}
+
+#[allow(dead_code)]
+struct ForwardAssignModifiers {
+    comma: Token![,],
+    pre: Option<ForwardModifier<kw::pre>>,
+    post: Option<ForwardModifier<kw::post>>,
+}
+
+#[allow(dead_code)]
+struct ForwardModifier<Mod: Parse> {
+    modifier: Mod,
+    colon: Token![:],
+    expr: Expr,
 }
 
 enum ForwardItem {
@@ -353,6 +375,35 @@ impl Parse for ForwardExpr {
             expr: input.parse()?,
             with: input.parse()?,
             ty: input.parse()?,
+        })
+    }
+}
+
+impl Parse for ForwardAssign {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            expr: input.parse()?,
+            mods: input.parse().ok(),
+        })
+    }
+}
+
+impl Parse for ForwardAssignModifiers {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            comma: input.parse()?,
+            pre: input.parse().ok(),
+            post: input.parse().ok(),
+        })
+    }
+}
+
+impl<Mod: Parse> Parse for ForwardModifier<Mod> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            modifier: input.parse()?,
+            colon: input.parse()?,
+            expr: input.parse()?,
         })
     }
 }
@@ -773,6 +824,19 @@ impl ToTokens for ForwardExpression {
 impl ForwardExpr {
     fn forward_args(&self) -> (&Expr, &Type) {
         (&self.expr, &self.ty)
+    }
+}
+
+impl ForwardAssign {
+    fn forward_args(&self) -> (&Expr, &Type) {
+        self.expr.forward_args()
+    }
+
+    fn forward_mods(&self) -> (Option<&Expr>, Option<&Expr>) {
+        match &self.mods {
+            Some(val) => (val.pre.as_ref().map(|x| &x.expr), val.post.as_ref().map(|x| &x.expr)),
+            None => (None, None),
+        }
     }
 }
 
@@ -1321,6 +1385,7 @@ pub fn forward_ops(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
 #[proc_macro_attribute]
 pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    #[allow(clippy::too_many_arguments)]
     fn forward_ops_assign_impl(
         ident: &Ident,
         generics: &Generics,
@@ -1328,6 +1393,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
         op: Path,
         op_fn: Ident,
         op_where: WhereClause,
+        op_pre: Option<&Expr>,
+        op_post: Option<&Expr>,
     ) -> TokenStream {
         let gen_params = &generics.params;
 
@@ -1336,15 +1403,18 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
         quote! {
             impl<Rhs, #gen_params> #op for #ident #gen_type #op_where {
                 fn #op_fn(&mut self, rhs: Rhs) {
+                    #op_pre;
                     #expr.#op_fn(rhs);
+                    #op_post;
                 }
             }
         }
     }
 
     let item = parse_macro_input!(item as ForwardItem);
-    let expr = parse_macro_input!(attr as ForwardExpr);
+    let expr = parse_macro_input!(attr as ForwardAssign);
 
+    let (pre, post) = expr.forward_mods();
     let (ident, generics) = item.forward_args();
     let (expr, ty) = expr.forward_args();
 
@@ -1360,6 +1430,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::AddAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::AddAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     let sub = forward_ops_assign_impl(
@@ -1372,6 +1444,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::SubAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::SubAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     let mul = forward_ops_assign_impl(
@@ -1384,6 +1458,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::MulAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::MulAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     let div = forward_ops_assign_impl(
@@ -1396,6 +1472,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::DivAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::DivAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     let rem = forward_ops_assign_impl(
@@ -1408,6 +1486,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::RemAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::RemAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     let bitor = forward_ops_assign_impl(
@@ -1420,6 +1500,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::BitOrAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::BitOrAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     let bitand = forward_ops_assign_impl(
@@ -1432,6 +1514,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::BitAndAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::BitAndAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     let bitxor = forward_ops_assign_impl(
@@ -1444,6 +1528,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
             Some(val) => parse_quote! { #val, #ty: std::ops::BitXorAssign<Rhs> },
             None => parse_quote! { where #ty: std::ops::BitXorAssign<Rhs> },
         },
+        pre,
+        post,
     );
 
     quote! {
