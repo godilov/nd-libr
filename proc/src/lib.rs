@@ -1552,8 +1552,8 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             let gen_params = &item.generics.params;
             let (_, gen_type, gen_where) = item.generics.split_for_impl();
 
-            let forwards = def.interfaces.elems.iter().map(|elem| {
-                let id = match elem.segments.last() {
+            let forwards = def.interfaces.elems.iter().map(|interface| {
+                let id = match interface.segments.last() {
                     Some(val) => &val.ident,
                     None => unreachable!(),
                 };
@@ -1571,7 +1571,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                         #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
 
                         use super::#ident;
-                        use #elem;
+                        use #interface;
                     }
                 }
             });
