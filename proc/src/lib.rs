@@ -1526,14 +1526,15 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
         ($item:expr, $def:expr) => {{
+            let item = $item;
             let def = $def;
 
             let expr = &def.expr.expr;
             let ty = &def.expr.ty;
 
-            let ident = &$item.ident;
-            let gen_params = &$item.generics.params;
-            let (_, gen_type, gen_where) = $item.generics.split_for_impl();
+            let ident = &item.ident;
+            let gen_params = &item.generics.params;
+            let (_, gen_type, gen_where) = item.generics.split_for_impl();
 
             let forwards = def.interfaces.elems.iter().map(|interface| {
                 let macros = format_ident!("forward_impl_{}", interface);
@@ -1543,15 +1544,15 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                         #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
                     },
                     interface,
-                    &$item.ident,
-                    &$item.generics,
+                    &item.ident,
+                    &item.generics,
                     expr,
                     ty,
                 )
             });
 
             quote! {
-                #$item
+                #item
 
                 #(#forwards)*
             }
