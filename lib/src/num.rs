@@ -418,7 +418,7 @@ pub mod prime {
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumExtension + Unsigned + Static, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
@@ -428,7 +428,7 @@ where
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumExtension + Unsigned + Static, M: Default + Clone + Modulus<N>>(
     pub N,
     pub PhantomData<M>,
@@ -444,7 +444,7 @@ pub enum Sign {
     POS = 1,
 }
 
-#[forward_decl]
+#[forward_decl(crate::ops::*)]
 pub trait Num: Sized + Default + Clone + Eq + Ord + From<bool>
 where
     for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self> + FromOps + FromOps<&'s Self>,

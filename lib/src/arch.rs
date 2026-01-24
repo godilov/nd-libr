@@ -136,7 +136,7 @@ pub mod word {
 #[forward_fmt(self.0 with T)]
 #[forward_ops(self.0 with T)]
 #[forward_ops_assign(self.0 with T)]
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
 impl<T> From<T> for Aligned<T> {
