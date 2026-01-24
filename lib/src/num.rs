@@ -436,7 +436,7 @@ pub mod prime {
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num where N: Num, for<'s> &'s N: Ops)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumExtension + Unsigned + Static, const BITS: usize>(pub N)
+pub struct Width<N: Num, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops;
 
@@ -447,10 +447,7 @@ where
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num where N: Num, for<'s> &'s N: Ops)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modular<N: Num + NumExtension + Unsigned + Static, M: Default + Clone + Modulus<N>>(
-    pub N,
-    pub PhantomData<M>,
-)
+pub struct Modular<N: Num, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
     for<'s> &'s N: Ops;
 
@@ -685,7 +682,7 @@ where
     const MAX: Self;
 }
 
-pub trait Modulus<N: Num + NumExtension + Static + Unsigned>: Default + Debug + Clone + Copy
+pub trait Modulus<N: Num>: Default + Debug + Clone + Copy
 where
     for<'s> &'s N: Ops,
 {
@@ -707,7 +704,7 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-impl<N: Num + NumExtension + Unsigned + Static, const BITS: usize> From<N> for Width<N, BITS>
+impl<N: Num, const BITS: usize> From<N> for Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
@@ -716,7 +713,7 @@ where
     }
 }
 
-impl<N: Num + NumExtension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<N> for Modular<N, M>
+impl<N: Num, M: Modulus<N>> From<N> for Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
@@ -725,7 +722,7 @@ where
     }
 }
 
-impl<N: Num + NumExtension + Unsigned + Static, const BITS: usize> Width<N, BITS>
+impl<N: Num, const BITS: usize> Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
@@ -739,7 +736,7 @@ where
     }
 }
 
-impl<N: Num + NumExtension + Unsigned + Static, M: Default + Clone + Modulus<N>> Modular<N, M>
+impl<N: Num, M: Modulus<N>> Modular<N, M>
 where
     for<'s> &'s N: Ops,
 {
