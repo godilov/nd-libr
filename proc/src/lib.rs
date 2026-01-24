@@ -1602,7 +1602,10 @@ pub fn forward_decl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamSt
     });
 
     let imports = match imports {
-        Some(val) => val.iter().map(|import| quote! { use #import; }).collect::<Vec<TokenStream>>(),
+        Some(val) => val
+            .iter()
+            .map(|import| quote! { #[allow(unused_imports)] use #import; })
+            .collect::<Vec<TokenStream>>(),
         None => vec![quote! {}],
     };
 
@@ -1684,7 +1687,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                     #macros!(@@);
                     #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
 
-                    use super::#ident;
+                    use super::*;
                     use #(#segs::)*#macros;
                     use #path;
                 }
