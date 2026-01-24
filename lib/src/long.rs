@@ -1959,6 +1959,14 @@ impl<const L: usize> Num for Signed<L> {
     fn is_even(&self) -> bool {
         self.0[0].is_multiple_of(2)
     }
+
+    fn zero() -> Self {
+        Self::from(0isize)
+    }
+
+    fn one() -> Self {
+        Self::from(1isize)
+    }
 }
 
 impl<const L: usize> Num for Unsigned<L> {
@@ -1968,6 +1976,14 @@ impl<const L: usize> Num for Unsigned<L> {
 
     fn is_even(&self) -> bool {
         self.0[0].is_multiple_of(2)
+    }
+
+    fn zero() -> Self {
+        Self::from(0usize)
+    }
+
+    fn one() -> Self {
+        Self::from(1usize)
     }
 }
 
@@ -2005,9 +2021,17 @@ impl<const L: usize> NumExtension for Unsigned<L> {
     }
 }
 
-impl<const L: usize> NumSigned for Signed<L> {}
+impl<const L: usize> NumSigned for Signed<L> {
+    fn new(value: isize) -> Self {
+        Self::from(value)
+    }
+}
 
 impl<const L: usize> NumUnsigned for Unsigned<L> {
+    fn new(value: usize) -> Self {
+        Self::from(value)
+    }
+
     fn order(&self) -> usize {
         let len = length!(&self.0);
 
