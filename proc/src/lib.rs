@@ -1971,6 +1971,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
     Ok((
         ident,
         quote! {
+            #[allow(unused_mut)]
             #(#attrs)*
             #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#decl),*) #ty {
                 #expr

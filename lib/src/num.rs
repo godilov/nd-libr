@@ -36,6 +36,14 @@ macro_rules! num_impl {
             fn is_even(&self) -> bool {
                 *self % 2 == 0
             }
+
+            fn zero() -> Self {
+                0
+            }
+
+            fn one() -> Self {
+                1
+            }
         }
 
         impl Static for $primitive {
@@ -54,7 +62,11 @@ macro_rules! signed_impl {
         $(signed_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl Signed for $primitive {}
+        impl Signed for $primitive {
+            fn new(value: isize) -> Self {
+                value as Self
+            }
+        }
     };
 }
 
@@ -64,6 +76,10 @@ macro_rules! unsigned_impl {
     };
     ($primitive:ty $(,)?) => {
         impl Unsigned for $primitive {
+            fn new(value: usize) -> Self {
+                value as Self
+            }
+
             fn order(&self) -> usize {
                 self.ilog2() as usize
             }
@@ -180,7 +196,7 @@ pub mod prime {
             for<'s> &'s Prime: Ops,
         {
             PrimesFullIter {
-                next: Prime::from(2),
+                next: Prime::new(2),
                 primes: Vec::with_capacity(count.as_count_check_estimate()),
                 count: count.as_count_estimate(),
                 limit: None,
@@ -192,7 +208,7 @@ pub mod prime {
             for<'s> &'s Prime: Ops,
         {
             PrimesFullIter {
-                next: Prime::from(2),
+                next: Prime::new(2),
                 primes: Vec::with_capacity(limit.as_limit_check_estimate()),
                 count: limit.as_limit_estimate(),
                 limit: Some(limit),
@@ -204,7 +220,7 @@ pub mod prime {
             for<'s> &'s Prime: Ops,
         {
             PrimesFastIter {
-                next: Prime::from(2),
+                next: Prime::new(2),
                 count: count.as_count_estimate(),
                 limit: None,
             }
@@ -215,7 +231,7 @@ pub mod prime {
             for<'s> &'s Prime: Ops,
         {
             PrimesFastIter {
-                next: Prime::from(2),
+                next: Prime::new(2),
                 count: limit.as_limit_estimate(),
                 limit: Some(limit),
             }
@@ -334,9 +350,9 @@ pub mod prime {
                 self.primes.push(self.next.clone());
             }
 
-            let zero = Prime::from(0);
-            let one = Prime::from(1);
-            let two = Prime::from(2);
+            let zero = Prime::new(0);
+            let one = Prime::new(1);
+            let two = Prime::new(2);
 
             let offset = Prime::from(&self.next & &one);
             let offset = Prime::from(&offset + &one);
@@ -379,8 +395,8 @@ pub mod prime {
                 return None;
             }
 
-            let one = Prime::from(1);
-            let two = Prime::from(2);
+            let one = Prime::new(1);
+            let two = Prime::new(2);
 
             let offset = Prime::from(&self.next & &one);
             let offset = Prime::from(&offset + &one);
@@ -445,7 +461,7 @@ pub enum Sign {
 }
 
 #[forward_decl(crate::ops::*)]
-pub trait Num: Sized + Default + Clone + Eq + Ord + From<bool>
+pub trait Num: Sized + Default + Clone + Eq + Ord
 where
     for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self> + FromOps + FromOps<&'s Self>,
     for<'s> &'s Self: Ops,
@@ -454,13 +470,9 @@ where
 
     fn is_even(&self) -> bool;
 
-    fn zero() -> Self {
-        false.into()
-    }
+    fn zero() -> Self;
 
-    fn one() -> Self {
-        true.into()
-    }
+    fn one() -> Self;
 
     fn gcd(self, val: Self) -> Self {
         let zero = Self::zero();
@@ -615,13 +627,15 @@ where
 }
 
 #[forward_decl]
-pub trait Signed: Num + From<i8>
+pub trait Signed: Num
 where
     for<'s> &'s Self: Ops,
 {
+    fn new(value: isize) -> Self;
+
     fn gcde(&self, val: &Self) -> (Self, Self, Self) {
-        let zero = Self::from(0);
-        let one = Self::from(1);
+        let zero = Self::zero();
+        let one = Self::one();
 
         let a = self;
         let b = val;
@@ -643,10 +657,12 @@ where
 }
 
 #[forward_decl]
-pub trait Unsigned: Num + From<u8>
+pub trait Unsigned: Num
 where
     for<'s> &'s Self: Ops,
 {
+    fn new(value: usize) -> Self;
+
     fn order(&self) -> usize;
 
     fn log(&self) -> Self;
@@ -689,30 +705,12 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-impl<N: Num + NumExtension + Unsigned + Static, const BITS: usize> From<bool> for Width<N, BITS>
-where
-    for<'s> &'s N: Ops,
-{
-    fn from(value: bool) -> Self {
-        Self(N::from(value))
-    }
-}
-
 impl<N: Num + NumExtension + Unsigned + Static, const BITS: usize> From<N> for Width<N, BITS>
 where
     for<'s> &'s N: Ops,
 {
     fn from(value: N) -> Self {
         Self(value).normalized()
-    }
-}
-
-impl<N: Num + NumExtension + Unsigned + Static, M: Default + Clone + Modulus<N>> From<bool> for Modular<N, M>
-where
-    for<'s> &'s N: Ops,
-{
-    fn from(value: bool) -> Self {
-        Self(N::from(value), PhantomData)
     }
 }
 
