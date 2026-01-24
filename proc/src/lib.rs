@@ -4,7 +4,7 @@ use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, FnArg, GenericParam, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait,
     ItemUnion, Path, Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp,
-    UseTree, WhereClause, bracketed,
+    UseTree, WhereClause, WherePredicate, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -182,13 +182,19 @@ struct ForwardDefImpl {
 #[allow(dead_code)]
 struct ForwardDefInterfaces {
     colon: Token![:],
-    elems: Punctuated<Path, Token![,]>,
+    elems: Punctuated<ForwardDefInterface, Token![,]>,
 }
 
 #[allow(dead_code)]
 struct ForwardDefIdents {
     colon: Token![:],
     elems: Punctuated<Ident, Token![,]>,
+}
+
+#[allow(dead_code)]
+struct ForwardDefInterface {
+    path: Path,
+    conditions: WhereClause,
 }
 
 #[derive(Debug, Clone)]
@@ -512,7 +518,7 @@ impl Parse for ForwardDefInterfaces {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             colon: input.parse()?,
-            elems: input.parse_terminated(Path::parse, Token![,])?,
+            elems: input.parse_terminated(ForwardDefInterface::parse, Token![,])?,
         })
     }
 }
@@ -522,6 +528,15 @@ impl Parse for ForwardDefIdents {
         Ok(Self {
             colon: input.parse()?,
             elems: input.parse_terminated(Ident::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for ForwardDefInterface {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            path: input.parse()?,
+            conditions: input.parse()?,
         })
     }
 }
@@ -1666,18 +1681,31 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                 .elems
                 .iter()
                 .map(|interface| {
-                    let id = match interface.segments.last() {
+                    let path = &interface.path;
+                    let conditions = &interface.conditions;
+                    let predicates = &conditions.predicates;
+
+                    let id = match path.segments.last() {
                         Some(val) => &val.ident,
                         None => {
                             return Err(Error::new(Span::call_site(), "Failed to forward definition, path is empty"));
                         },
                     };
 
-                    let segs = interface.segments.iter().take(interface.segments.len().saturating_sub(1));
+                    let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
 
                     let forward = get_forward_impl(ident, generics, expr, ty);
                     let module = format_ident!("__forward_impl_{}_{}", &id, &ident);
                     let macros = format_ident!("__forward_impl_{}", &id);
+
+                    let gen_where: Punctuated<WherePredicate, Token![,]> = match gen_where {
+                        Some(val) => {
+                            let preds = &val.predicates;
+
+                            parse_quote! { #preds, #predicates }
+                        },
+                        None => parse_quote! { #predicates },
+                    };
 
                     Ok(quote! {
                         #[doc(hidden)]
@@ -1690,7 +1718,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
                             use super::#ident;
                             use #(#segs::)*#macros;
-                            use #interface;
+                            use #path;
                         }
                     })
                 })

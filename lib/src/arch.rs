@@ -136,6 +136,7 @@ pub mod word {
 #[forward_fmt(self.0 with T)]
 #[forward_ops(self.0 with T)]
 #[forward_ops_assign(self.0 with T)]
+// #[forward_def(self.0 with T: crate::num::Num where T: Num, for<'s> &'s T: Ops)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
