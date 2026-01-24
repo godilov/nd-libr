@@ -4,7 +4,7 @@ use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, FnArg, GenericParam, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait,
     ItemUnion, Path, Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp,
-    UseTree, WhereClause, WherePredicate, bracketed,
+    WhereClause, WherePredicate, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -160,11 +160,6 @@ enum ForwardDefItem {
     Enum(ItemEnum),
     Union(ItemUnion),
     Impl(ItemImpl),
-}
-
-#[allow(dead_code)]
-struct ForwardDeclImports {
-    elems: Option<Punctuated<UseTree, Token![,]>>,
 }
 
 #[allow(dead_code)]
@@ -475,14 +470,6 @@ impl Parse for ForwardDefItem {
             },
             _ => Err(input.error("Failed to find correct item, expected struct, enum, union or impl")),
         }
-    }
-}
-
-impl Parse for ForwardDeclImports {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            elems: input.parse_terminated(UseTree::parse, Token![,]).ok(),
-        })
     }
 }
 
@@ -1549,9 +1536,8 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
 }
 
 #[proc_macro_attribute]
-pub fn forward_decl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
-    let ForwardDeclImports { elems: imports } = parse_macro_input!(attr as ForwardDeclImports);
 
     let ident = &interface.ident;
     let macros = format_ident!("__forward_impl_{}", ident);
@@ -1601,24 +1587,12 @@ pub fn forward_decl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamSt
         }
     });
 
-    let imports = match imports {
-        Some(val) => val
-            .iter()
-            .map(|import| quote! { #[allow(unused_imports)] use #import; })
-            .collect::<Vec<TokenStream>>(),
-        None => vec![quote! {}],
-    };
-
     quote! {
         #interface
 
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            (@@) => {
-                #(#imports)*
-            };
-
             (@ $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
                 impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
                     #(#streams)*
@@ -1684,7 +1658,6 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                 mod #module {
                     #forward
 
-                    #macros!(@@);
                     #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
 
                     use super::*;

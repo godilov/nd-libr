@@ -434,7 +434,11 @@ pub mod prime {
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
-#[forward_def(self.0 with N: crate::num::Num where N: Num, for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num, const BITS: usize>(pub N)
 where
@@ -445,7 +449,11 @@ where
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
-#[forward_def(self.0 with N: crate::num::Num where N: Num, for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops)]
+#[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
@@ -459,7 +467,7 @@ pub enum Sign {
     POS = 1,
 }
 
-#[forward_decl(crate::ops::*)]
+#[forward_decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord
 where
     for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self> + FromOps + FromOps<&'s Self>,
