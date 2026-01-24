@@ -1623,7 +1623,7 @@ pub fn forward_decl(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamSt
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            (@imports) => {
+            (@@) => {
                 #(#imports)*
             };
 
@@ -1685,7 +1685,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
                         mod #module {
                             #forward
 
-                            #macros!(@imports);
+                            #macros!(@@);
                             #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
 
                             use super::#ident;
