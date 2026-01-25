@@ -3,8 +3,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Path,
-    Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause,
-    WherePredicate, bracketed,
+    Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1019,19 +1018,19 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
     let gen_params = &generics.params;
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
-    let as_ref: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::convert::AsRef<AsRefRet> },
-        None => parse_quote! { where #ty: std::convert::AsRef<AsRefRet> },
+    let as_ref = match gen_where {
+        Some(val) => quote! { #val, #ty: std::convert::AsRef<AsRefRet> },
+        None => quote! { where #ty: std::convert::AsRef<AsRefRet> },
     };
 
-    let as_mut: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::convert::AsMut<AsMutRet> },
-        None => parse_quote! { where #ty: std::convert::AsMut<AsMutRet> },
+    let as_mut = match gen_where {
+        Some(val) => quote! { #val, #ty: std::convert::AsMut<AsMutRet> },
+        None => quote! { where #ty: std::convert::AsMut<AsMutRet> },
     };
 
-    let from_iter: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::iter::FromIterator<Elem> },
-        None => parse_quote! { where #ty: std::iter::FromIterator<Elem> },
+    let from_iter = match gen_where {
+        Some(val) => quote! { #val, #ty: std::iter::FromIterator<Elem> },
+        None => quote! { where #ty: std::iter::FromIterator<Elem> },
     };
 
     quote! {
@@ -1082,24 +1081,24 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
-    let partial_ord: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::PartialOrd },
-        None => parse_quote! { where #ty: std::cmp::PartialOrd },
+    let partial_ord = match gen_where {
+        Some(val) => quote! { #val, #ty: std::cmp::PartialOrd },
+        None => quote! { where #ty: std::cmp::PartialOrd },
     };
 
-    let partial_eq: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::PartialEq },
-        None => parse_quote! { where #ty: std::cmp::PartialEq },
+    let partial_eq = match gen_where {
+        Some(val) => quote! { #val, #ty: std::cmp::PartialEq },
+        None => quote! { where #ty: std::cmp::PartialEq },
     };
 
-    let ord: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::Ord },
-        None => parse_quote! { where #ty: std::cmp::Ord },
+    let ord = match gen_where {
+        Some(val) => quote! { #val, #ty: std::cmp::Ord },
+        None => quote! { where #ty: std::cmp::Ord },
     };
 
-    let eq: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, #ty: std::cmp::Eq },
-        None => parse_quote! { where #ty: std::cmp::Eq },
+    let eq = match gen_where {
+        Some(val) => quote! { #val, #ty: std::cmp::Eq },
+        None => quote! { where #ty: std::cmp::Eq },
     };
 
     let forward_impl = get_forward_impl(ident, generics, expr, ty);
@@ -1636,11 +1635,22 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             let path = &def.path;
             let predicates = &def.conditions.predicates;
 
+            let gen_where = match gen_where {
+                Some(val) => {
+                    let preds = &val.predicates;
+
+                    quote! { #preds, #predicates }
+                },
+                None => quote! { #predicates },
+            };
+
             let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
             let id = match path.segments.last() {
                 Some(val) => &val.ident,
                 None => {
-                    return Error::new(Span::call_site(), "Failed to forward definition, path is empty").into_compile_error().into();
+                    return Error::new(Span::call_site(), "Failed to forward definition, path is empty")
+                        .into_compile_error()
+                        .into();
                 },
             };
 
@@ -1648,21 +1658,11 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             let module = format_ident!("__forward_impl_{}_{}", &id, &ident);
             let macros = format_ident!("__forward_impl_{}", &id);
 
-            let gen_where: Punctuated<WherePredicate, Token![,]> = match gen_where {
-                Some(val) => {
-                    let preds = &val.predicates;
-
-                    parse_quote! { #preds, #predicates }
-                },
-                None => parse_quote! { #predicates },
-            };
-
             quote! {
                 #item
 
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                #[allow(unused_imports)]
                 mod #module {
                     #forward
 
