@@ -434,6 +434,7 @@ impl Parse for ForwardDeclItem {
         let mut item = input.parse::<ItemTrait>()?;
 
         item.generics = get_normalized_generics(item.generics);
+        item.supertraits.pop_punct();
 
         Ok(Self::Trait(item))
     }
@@ -1545,14 +1546,20 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let gen_params = &interface.generics.params;
     let (_, gen_type, gen_where) = &interface.generics.split_for_impl();
 
+    let supertraits = &interface.supertraits;
+    let supertraits = match interface.supertraits.len() {
+        0 => quote! {},
+        _ => quote! { Self: #supertraits, },
+    };
+
     let gen_params = match gen_params.is_empty() {
         true => quote! {},
         false => quote! { #gen_params, },
     };
 
     let gen_where = match gen_where {
-        Some(val) => quote! { #val, },
-        None => quote! { where },
+        Some(val) => quote! { #val, #supertraits },
+        None => quote! { where #supertraits },
     };
 
     let idents = interface.items.iter().filter_map(|item| match item {
