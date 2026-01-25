@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
-use ndproc::{forward_cmp, forward_decl, forward_fmt, forward_ops, forward_ops_assign, forward_std};
+use ndproc::{forward_cmp, forward_decl, forward_def, forward_fmt, forward_ops, forward_ops_assign, forward_std};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -429,7 +429,7 @@ pub mod prime {
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
-// #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
@@ -444,7 +444,7 @@ where
 #[forward_fmt(self.0 with N)]
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
-// #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]

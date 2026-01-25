@@ -2,9 +2,9 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, FnArg, GenericParam, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait,
-    ItemUnion, Path, Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp,
-    WhereClause, WherePredicate, bracketed,
+    BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Path,
+    Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause,
+    WherePredicate, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1545,14 +1545,14 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let gen_params = &interface.generics.params;
     let (_, gen_type, gen_where) = &interface.generics.split_for_impl();
 
-    let gen_params: Punctuated<GenericParam, Token![,]> = match gen_params.is_empty() {
-        true => parse_quote! {},
-        false => parse_quote! { #gen_params, },
+    let gen_params = match gen_params.is_empty() {
+        true => quote! {},
+        false => quote! { #gen_params, },
     };
 
-    let gen_where: WhereClause = match gen_where {
-        Some(val) => parse_quote! { #val, },
-        None => parse_quote! { where },
+    let gen_where = match gen_where {
+        Some(val) => quote! { #val, },
+        None => quote! { where },
     };
 
     let idents = interface.items.iter().filter_map(|item| match item {
