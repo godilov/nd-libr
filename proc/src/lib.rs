@@ -1655,6 +1655,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
+                #[allow(unused_imports)]
                 mod #module {
                     #forward
 
