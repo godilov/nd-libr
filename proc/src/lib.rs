@@ -3,7 +3,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Path,
-    Receiver, Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause, bracketed,
+    Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1718,6 +1718,11 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
     }
 }
 
+#[proc_macro_attribute]
+pub fn forward_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    item
+}
+
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
         BinOp::AddAssign(_) => Ok(("add_assign", "std::ops::AddAssign")),
@@ -1901,7 +1906,50 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         })
         .collect::<Result<Vec<TokenStream>>>()?;
 
-    let expr = get_forward_expr(recv, ident, &def);
+    let forward_self = attrs.iter().any(|attr| attr.path().is_ident("forward_self"));
+
+    let expr = match recv {
+        Some(val) if val.reference.is_some() && val.mutability.is_some() => {
+            if forward_self {
+                quote! {
+                    self.forward_mut().#ident(#(#def),*);
+                    self
+                }
+            } else {
+                quote! {
+                    self.forward_mut().#ident(#(#def),*).into()
+                }
+            }
+        },
+        Some(val) if val.reference.is_some() => {
+            if forward_self {
+                quote! {
+                    self.forward_ref().#ident(#(#def),*);
+                    self
+                }
+            } else {
+                quote! {
+                    self.forward_ref().#ident(#(#def),*).into()
+                }
+            }
+        },
+        Some(_) => {
+            if forward_self {
+                quote! {
+                    self.forward().#ident(#(#def),*);
+                    self
+                }
+            } else {
+                quote! {
+                    self.forward().#ident(#(#def),*).into()
+                }
+            }
+        },
+        None => quote! {
+            <$ty>::#ident(#(#def),*).into()
+        },
+    };
+
     let recv = match recv {
         Some(val) => quote! { #val, },
         None => quote! {},
@@ -1917,23 +1965,6 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
             }
         },
     ))
-}
-
-fn get_forward_expr(recv: Option<&Receiver>, ident: &Ident, args: &[TokenStream]) -> TokenStream {
-    match recv {
-        Some(val) if val.reference.is_some() && val.mutability.is_some() => quote! {
-            self.forward_mut().#ident(#(#args),*).into()
-        },
-        Some(val) if val.reference.is_some() => quote! {
-            self.forward_ref().#ident(#(#args),*).into()
-        },
-        Some(_) => quote! {
-            self.forward().#ident(#(#args),*).into()
-        },
-        None => quote! {
-            <$ty>::#ident(#(#args),*).into()
-        },
-    }
 }
 
 fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArgument> {

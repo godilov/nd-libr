@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
-use ndproc::{forward_cmp, forward_decl, forward_def, forward_fmt, forward_ops, forward_ops_assign, forward_std};
+use ndproc::{
+    forward_cmp, forward_decl, forward_def, forward_fmt, forward_ops, forward_ops_assign, forward_self, forward_std,
+};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -430,7 +432,7 @@ pub mod prime {
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops<N>)]
@@ -445,7 +447,7 @@ where
 #[forward_ops(self.0 with N)]
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops<N>)]
@@ -530,37 +532,46 @@ pub trait NumExtension: Num
 where
     for<'s> &'s Self: Ops<Self>,
 {
+    #[forward_self]
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
+    #[forward_self]
     fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
+    #[forward_self]
     fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
+    #[forward_self]
     fn bitor_mut_ext(&mut self, mask: u64) -> &mut Self {
         self.bitor_offset_mut_ext(mask, 0);
         self
     }
 
+    #[forward_self]
     fn bitand_mut_ext(&mut self, mask: u64) -> &mut Self {
         self.bitand_offset_mut_ext(mask, 0);
         self
     }
 
+    #[forward_self]
     fn bitxor_mut_ext(&mut self, mask: u64) -> &mut Self {
         self.bitxor_offset_mut_ext(mask, 0);
         self
     }
 
+    #[forward_self]
     fn odd_mut_ext(&mut self) -> &mut Self {
         self.bitor_mut_ext(1);
         self
     }
 
+    #[forward_self]
     fn even_mut_ext(&mut self) -> &mut Self {
         self.bitand_mut_ext(u64::MAX - 1);
         self
     }
 
+    #[forward_self]
     fn alt_mut_ext(&mut self) -> &mut Self {
         self.bitxor_mut_ext(1);
         self
