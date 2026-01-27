@@ -166,7 +166,7 @@ struct ForwardDefData {
     expr: ForwardExpr,
     colon: Token![:],
     path: Path,
-    conditions: WhereClause,
+    conditions: Option<WhereClause>,
 }
 
 #[allow(dead_code)]
@@ -1633,7 +1633,7 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             let expr = &def.expr.expr;
             let ty = &def.expr.ty;
             let path = &def.path;
-            let predicates = &def.conditions.predicates;
+            let predicates = def.conditions.as_ref().map(|conditions| &conditions.predicates);
 
             let gen_where = match gen_where {
                 Some(val) => {
@@ -1716,6 +1716,11 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             .into()
         },
     }
+}
+
+#[proc_macro_attribute]
+pub fn forward_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    item
 }
 
 #[proc_macro_attribute]
@@ -1906,42 +1911,55 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         })
         .collect::<Result<Vec<TokenStream>>>()?;
 
+    let forward_into = attrs.iter().any(|attr| attr.path().is_ident("forward_into"));
     let forward_self = attrs.iter().any(|attr| attr.path().is_ident("forward_self"));
 
     let expr = match recv {
         Some(val) if val.reference.is_some() && val.mutability.is_some() => {
-            if forward_self {
+            if forward_into {
+                quote! {
+                    self.forward_mut().#ident(#(#def),*).into()
+                }
+            } else if forward_self {
                 quote! {
                     self.forward_mut().#ident(#(#def),*);
                     self
                 }
             } else {
                 quote! {
-                    self.forward_mut().#ident(#(#def),*).into()
+                    self.forward_mut().#ident(#(#def),*)
                 }
             }
         },
         Some(val) if val.reference.is_some() => {
-            if forward_self {
+            if forward_into {
+                quote! {
+                    self.forward_ref().#ident(#(#def),*).into()
+                }
+            } else if forward_self {
                 quote! {
                     self.forward_ref().#ident(#(#def),*);
                     self
                 }
             } else {
                 quote! {
-                    self.forward_ref().#ident(#(#def),*).into()
+                    self.forward_ref().#ident(#(#def),*)
                 }
             }
         },
         Some(_) => {
-            if forward_self {
+            if forward_into {
+                quote! {
+                    self.forward().#ident(#(#def),*).into()
+                }
+            } else if forward_self {
                 quote! {
                     self.forward().#ident(#(#def),*);
                     self
                 }
             } else {
                 quote! {
-                    self.forward().#ident(#(#def),*).into()
+                    self.forward().#ident(#(#def),*)
                 }
             }
         },

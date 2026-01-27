@@ -1509,21 +1509,17 @@ impl<const L: usize> UpperHex for Bytes<L> {
 
 ops_impl!(@un <const L: usize> |a: &Signed<L>| -> Signed::<L>,
     - Signed::<L>(neg(&a.0)),
-    ! Signed::<L>(not(&a.0)),
-);
+    ! Signed::<L>(not(&a.0)));
 
 ops_impl!(@un <const L: usize> |a: &Unsigned<L>| -> Unsigned::<L>,
-    ! Unsigned::<L>(not(&a.0)),
-);
+    ! Unsigned::<L>(not(&a.0)));
 
 ops_impl!(@un <const L: usize> |mut a: Signed<L>| -> Signed::<L>,
     - { neg_mut(&mut a.0); a },
-    ! { not_mut(&mut a.0); a },
-);
+    ! { not_mut(&mut a.0); a });
 
 ops_impl!(@un <const L: usize> |mut a: Unsigned<L>| -> Unsigned::<L>,
-    ! { not_mut(&mut a.0); a },
-);
+    ! { not_mut(&mut a.0); a });
 
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign, * Sign::from((a as i8) * (b as i8)));
 

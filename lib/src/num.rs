@@ -1,7 +1,8 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndproc::{
-    forward_cmp, forward_decl, forward_def, forward_fmt, forward_ops, forward_ops_assign, forward_self, forward_std,
+    forward_cmp, forward_decl, forward_def, forward_fmt, forward_into, forward_ops, forward_ops_assign, forward_self,
+    forward_std,
 };
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -474,10 +475,13 @@ where
 
     fn is_even(&self) -> bool;
 
+    #[forward_into]
     fn zero() -> Self;
 
+    #[forward_into]
     fn one() -> Self;
 
+    #[forward_into]
     fn gcd(self, val: Self) -> Self {
         let zero = Self::zero();
 
@@ -497,6 +501,7 @@ where
         a
     }
 
+    #[forward_into]
     fn lcm(mut self, val: Self) -> Self {
         let gcd = Self::gcd(self.clone(), val.clone());
 
@@ -505,6 +510,7 @@ where
         self
     }
 
+    #[forward_into]
     fn pow_rem(self, mut pow: Self, rem: &Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
@@ -577,46 +583,55 @@ where
         self
     }
 
+    #[forward_into]
     fn bitor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
         self.bitor_offset_mut_ext(mask, offset);
         self
     }
 
+    #[forward_into]
     fn bitand_offset_ext(mut self, mask: u64, offset: usize) -> Self {
         self.bitand_offset_mut_ext(mask, offset);
         self
     }
 
+    #[forward_into]
     fn bitxor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
         self.bitxor_offset_mut_ext(mask, offset);
         self
     }
 
+    #[forward_into]
     fn bitor_ext(mut self, mask: u64) -> Self {
         self.bitor_offset_mut_ext(mask, 0);
         self
     }
 
+    #[forward_into]
     fn bitand_ext(mut self, mask: u64) -> Self {
         self.bitand_offset_mut_ext(mask, 0);
         self
     }
 
+    #[forward_into]
     fn bitxor_ext(mut self, mask: u64) -> Self {
         self.bitxor_offset_mut_ext(mask, 0);
         self
     }
 
+    #[forward_into]
     fn odd_ext(mut self) -> Self {
         self.odd_mut_ext();
         self
     }
 
+    #[forward_into]
     fn even_ext(mut self) -> Self {
         self.even_mut_ext();
         self
     }
 
+    #[forward_into]
     fn alt_ext(mut self) -> Self {
         self.alt_mut_ext();
         self
@@ -646,6 +661,7 @@ where
 {
     fn new(value: isize) -> Self;
 
+    #[forward_into]
     fn gcde(&self, val: &Self) -> (Self, Self, Self) {
         let zero = Self::zero();
         let one = Self::one();
@@ -674,12 +690,15 @@ pub trait Unsigned: Num
 where
     for<'s> &'s Self: Ops<Self>,
 {
+    #[forward_into]
     fn new(value: usize) -> Self;
 
     fn order(&self) -> usize;
 
+    #[forward_into]
     fn log(&self) -> Self;
 
+    #[forward_into]
     fn sqrt(&self) -> Self;
 }
 
