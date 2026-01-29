@@ -41,7 +41,7 @@ Macroses `ndproc::ops_impl` and `ndproc::ops_impl_auto` implements all standard 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct A<N>(N);
 
-/// Implements `std::ops::Neg` and `std::ops::Not` for every A<N>
+/// Implements `std::ops::Neg` and `std::ops::Not` for A<N>
 /// Condition: N is Neg and Not
 /// Condition: N ref is Neg and Not
 /// Note: asterisk in `*op` specifies implementation by value and by reference
@@ -51,7 +51,7 @@ ops_impl!(@un <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
     - A::<N>(-op.0),
     ! A::<N>(!op.0));
 
-/// Implements `std::ops::Add`, `std::ops::Sub`, `std::ops::Mul`, `std::ops::Div`, `std::ops::Rem` for every A<N>
+/// Implements `std::ops::Add`, `std::ops::Sub`, `std::ops::Mul`, `std::ops::Div`, `std::ops::Rem` for A<N>
 /// Condition: N is Ops
 /// Condition: N ref is Ops<N>
 /// Note: asterisk in `*a` and `*b` specifies implementation by value and by reference
@@ -132,7 +132,19 @@ impl X for Impl {
 
 ```
 
-### Composability
+### Composable
+
+Type `ndlibr::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
+
+- `x86`: 64 bytes
+- `x86_64`: 64 bytes
+- `arm`: 64 bytes
+- `aarch64`: 128 bytes
+
+Types `ndlibr::num::Width` and `ndlibr::num::Modular` specifies numbers and forwards implementation for most of standard Rust traits.
+
+- `Width<N, BITS>`: number `N` width `BITS`
+- `Modular<N, M>`: number `N` modulo `M::MOD`
 
 ```rust
 
