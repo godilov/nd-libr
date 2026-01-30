@@ -1,5 +1,7 @@
 # nd-libr
 
+A Rust general-facilities library
+
 ## Features
 
 ### Ops
