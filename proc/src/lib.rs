@@ -2,8 +2,9 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    BinOp, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Path,
-    Result, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp, WhereClause, bracketed,
+    BinOp, Error, Expr, ExprClosure, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait,
+    ItemUnion, Meta, Path, Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp,
+    WhereClause, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -1728,6 +1729,11 @@ pub fn forward_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+#[proc_macro_attribute]
+pub fn forward_with(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    item
+}
+
 fn get_std_path_mut(op: &BinOp) -> Result<(Ident, Path)> {
     let (ident, path) = match op {
         BinOp::AddAssign(_) => Ok(("add_assign", "std::ops::AddAssign")),
@@ -1863,22 +1869,33 @@ fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) 
 }
 
 fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'item Ident, TokenStream)> {
-    let attrs = &item.attrs;
-    let constness = &item.sig.constness;
-    let asyncness = &item.sig.asyncness;
-    let unsafety = &item.sig.unsafety;
-    let abi = &item.sig.abi;
-    let ident = &item.sig.ident;
-    let generics = &item.sig.generics;
-    let args = &item.sig.inputs;
-    let ty = &item.sig.output;
+    let TraitItemFn {
+        attrs,
+        sig,
+        default: _,
+        semi_token: _,
+    } = &item;
 
-    let recv = args.iter().find_map(|arg| match arg {
+    let Signature {
+        constness,
+        asyncness,
+        unsafety,
+        abi,
+        fn_token: _,
+        ident,
+        generics,
+        paren_token: _,
+        inputs,
+        variadic: _,
+        output,
+    } = sig;
+
+    let recv = inputs.iter().find_map(|arg| match arg {
         FnArg::Receiver(val) => Some(val),
         FnArg::Typed(_) => None,
     });
 
-    let decl = args
+    let decl = inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1894,7 +1911,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
             quote! { #(#attrs)* #ident: #ty }
         });
 
-    let def = args
+    let def = inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1913,6 +1930,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
 
     let forward_into = attrs.iter().any(|attr| attr.path().is_ident("forward_into"));
     let forward_self = attrs.iter().any(|attr| attr.path().is_ident("forward_self"));
+    let forward_with = attrs.iter().find(|attr| attr.path().is_ident("forward_with"));
 
     let expr = match recv {
         Some(val) if val.reference.is_some() && val.mutability.is_some() => {
@@ -1924,6 +1942,26 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 quote! {
                     self.forward_mut().#ident(#(#def),*);
                     self
+                }
+            } else if let Some(forward_with) = forward_with {
+                let ExprClosure {
+                    attrs,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_with_closure(&forward_with.meta)?;
+
+                quote! {
+                    #(#attrs)*
+                    #lifetimes #constness #movability #asyncness #capture |#inputs| #output #body
+                    (self.forward_mut().#ident(#(#def),*))
                 }
             } else {
                 quote! {
@@ -1941,6 +1979,26 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     self.forward_ref().#ident(#(#def),*);
                     self
                 }
+            } else if let Some(forward_with) = forward_with {
+                let ExprClosure {
+                    attrs,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_with_closure(&forward_with.meta)?;
+
+                quote! {
+                    #(#attrs)*
+                    #lifetimes #constness #movability #asyncness #capture |#inputs| #output #body
+                    (self.forward_ref().#ident(#(#def),*))
+                }
             } else {
                 quote! {
                     self.forward_ref().#ident(#(#def),*)
@@ -1956,6 +2014,26 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 quote! {
                     self.forward().#ident(#(#def),*);
                     self
+                }
+            } else if let Some(forward_with) = forward_with {
+                let ExprClosure {
+                    attrs,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_with_closure(&forward_with.meta)?;
+
+                quote! {
+                    #(#attrs)*
+                    #lifetimes #constness #movability #asyncness #capture |#inputs| #output #body
+                    (self.forward().#ident(#(#def),*))
                 }
             } else {
                 quote! {
@@ -1978,11 +2056,25 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         quote! {
             #[allow(unused_mut)]
             #(#attrs)*
-            #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#decl),*) #ty {
+            #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#decl),*) #output {
                 #expr
             }
         },
     ))
+}
+
+fn get_forward_with_closure(meta: &Meta) -> Result<ExprClosure> {
+    match meta {
+        Meta::Path(_) => Err(Error::new(
+            Span::call_site(),
+            "Failed to forward with, expected closure expression",
+        )),
+        Meta::List(val) => syn::parse2::<ExprClosure>(val.tokens.clone()),
+        Meta::NameValue(_) => Err(Error::new(
+            Span::call_site(),
+            "Failed to forward with, expected closure expression",
+        )),
+    }
 }
 
 fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArgument> {

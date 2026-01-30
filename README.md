@@ -132,7 +132,7 @@ impl X for Impl {
 
 ```
 
-### Composable
+### Composable Types
 
 Type `ndlibr::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
 
