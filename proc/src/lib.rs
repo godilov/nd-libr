@@ -25,102 +25,120 @@ enum Ops {
     Unary(TokenStream),
 }
 
-#[allow(dead_code)]
 struct OpsSignatureMutable {
+    #[allow(unused)]
     lhs_token: Token![|],
     lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
+    #[allow(unused)]
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
+    #[allow(unused)]
     lhs_mut: Token![mut],
     lhs_type: Type,
+    #[allow(unused)]
     delim: Token![,],
     rhs_vmut: Option<Token![mut]>,
     rhs_star: Option<Token![*]>,
     rhs_ident: Ident,
+    #[allow(unused)]
     rhs_colon: Token![:],
     rhs_ref: Option<Token![&]>,
     rhs_type: Type,
+    #[allow(unused)]
     rhs_token: Token![|],
 }
 
-#[allow(dead_code)]
 struct OpsSignatureBinary {
+    #[allow(unused)]
     lhs_token: Token![|],
     lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
+    #[allow(unused)]
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
     lhs_type: Type,
+    #[allow(unused)]
     delim: Token![,],
     rhs_vmut: Option<Token![mut]>,
+    #[allow(unused)]
     rhs_star: Option<Token![*]>,
     rhs_ident: Ident,
+    #[allow(unused)]
     rhs_colon: Token![:],
     rhs_ref: Option<Token![&]>,
     rhs_type: Type,
+    #[allow(unused)]
     rhs_token: Token![|],
+    #[allow(unused)]
     arrow: Token![->],
-    op_type: Type,
+    ty: Type,
 }
 
-#[allow(dead_code)]
 struct OpsSignatureUnary {
+    #[allow(unused)]
     lhs_token: Token![|],
     lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
+    #[allow(unused)]
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
     lhs_type: Type,
+    #[allow(unused)]
     rhs_token: Token![|],
+    #[allow(unused)]
     arrow: Token![->],
-    op_type: Type,
+    ty: Type,
 }
 
-#[allow(dead_code)]
 struct OpsImplEntry<Op: Parse> {
     op: Op,
     expr: Expr,
 }
 
-#[allow(dead_code)]
 struct OpsImpl<OpsSignature: Parse, Op: Parse> {
     generics: Generics,
     signature: OpsSignature,
+    #[allow(unused)]
     colon: Token![,],
     entries: Punctuated<OpsImplEntry<Op>, Token![,]>,
 }
 
-#[allow(dead_code)]
 struct OpsImplAutoBin<OpsSignature: Parse, Op: Parse> {
     generics: Generics,
     signature: OpsSignature,
+    #[allow(unused)]
     colon: Token![,],
+    #[allow(unused)]
     lhs_paren: Paren,
     lhs_expr: Expr,
+    #[allow(unused)]
     rhs_paren: Paren,
     rhs_expr: Expr,
+    #[allow(unused)]
     ops_bracket: Bracket,
     ops: Punctuated<Op, Token![,]>,
 }
 
-#[allow(dead_code)]
 struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
     generics: Generics,
     signature: OpsSignature,
+    #[allow(unused)]
     colon: Token![,],
+    #[allow(unused)]
     lhs_paren: Paren,
     lhs_expr: Expr,
+    #[allow(unused)]
     ops_bracket: Bracket,
     ops: Punctuated<Op, Token![,]>,
 }
 
-#[allow(dead_code)]
 struct Forward {
     expr: Expr,
+    #[allow(unused)]
     with: kw::with,
     ty: Type,
 }
@@ -142,23 +160,25 @@ enum ForwardDefItem {
     Impl(ItemImpl),
 }
 
-#[allow(dead_code)]
 struct ForwardDataDef {
     fwd: Forward,
+    #[allow(unused)]
     colon: Token![:],
     path: Path,
     conditions: Option<WhereClause>,
 }
 
-#[allow(dead_code)]
 struct ForwardImplDef {
+    #[allow(unused)]
     fwd: Forward,
+    #[allow(unused)]
     idents: Option<ForwardIdents>,
 }
 
-#[allow(dead_code)]
 struct ForwardIdents {
+    #[allow(unused)]
     colon: Token![:],
+    #[allow(unused)]
     elems: Punctuated<Ident, Token![,]>,
 }
 
@@ -248,7 +268,7 @@ impl Parse for OpsSignatureBinary {
             rhs_type: input.parse()?,
             rhs_token: input.parse()?,
             arrow: input.parse()?,
-            op_type: input.parse()?,
+            ty: input.parse()?,
         })
     }
 }
@@ -265,7 +285,7 @@ impl Parse for OpsSignatureUnary {
             lhs_type: input.parse()?,
             rhs_token: input.parse()?,
             arrow: input.parse()?,
-            op_type: input.parse()?,
+            ty: input.parse()?,
         })
     }
 }
@@ -487,7 +507,7 @@ impl ToTokens for OpsImplMutable {
 
             quote! {
                 impl #gen_impl #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #gen_where {
-                    fn #ident(&mut self, rhs: #rhs_ref #rhs_type ) {
+                    fn #ident(&mut self, rhs: #rhs_ref #rhs_type) {
                         (|#lhs_mut #lhs_ident: &mut #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs);
                     }
                 }
@@ -583,7 +603,7 @@ impl ToTokens for OpsImplBinary {
             let rhs_mut = &spec.signature.rhs_vmut;
             let rhs_ident = &spec.signature.rhs_ident;
             let rhs_type = &spec.signature.rhs_type;
-            let op_type = &spec.signature.op_type;
+            let op_type = &spec.signature.ty;
 
             let expr = &spec.expr;
 
@@ -684,7 +704,7 @@ impl ToTokens for OpsImplUnary {
             let lhs_mut = &spec.signature.lhs_vmut;
             let lhs_ident = &spec.signature.lhs_ident;
             let lhs_type = &spec.signature.lhs_type;
-            let op_type = &spec.signature.op_type;
+            let op_type = &spec.signature.ty;
 
             let expr = &spec.expr;
 
