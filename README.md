@@ -96,11 +96,12 @@ Macroses `ndproc::forward_decl` and `ndproc::forward_def` conditionally implemen
 - `forward_decl`: Used on user-defined trait to generate forwarding
 - `forward_def`: Used on user-defined structs, enums, unions to generate forwarding implementation
 
-Macroses `ndproc::forward_into` and `ndproc::forward_self` specifies forwarding result expression.
+Macroses `ndproc::forward_into`, `ndproc::forward_self` and `ndproc::forward_with` specifies forwarding result expression.
 
 - Raw: returns raw result
 - `forward_into`: returns `expr.call().into()`. Useful for `fn() -> Self`
 - `forward_self`: returns `expr.call(); expr`. Useful for `fn() -> &mut Self`
+- `forward_with`: returns `(closure)(expr.call())`. Useful for `fn() -> (Self, Self)`
 
 ```rust
 #[forward_def(self.0 with Impl: crate::X)]
