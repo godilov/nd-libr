@@ -119,33 +119,38 @@ struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
 }
 
 #[allow(dead_code)]
-struct ForwardExpr {
+struct Forward {
     expr: Expr,
     with: kw::with,
     ty: Type,
 }
 
 #[allow(dead_code)]
-struct ForwardAssign {
-    expr: ForwardExpr,
-    mods: Option<ForwardAssignModifiers>,
+struct ForwardOps {
+    fwd: Forward,
 }
 
 #[allow(dead_code)]
-struct ForwardAssignModifiers {
+struct ForwardOpsAssign {
+    fwd: Forward,
+    mods: Option<ForwardOpsAssignMods>,
+}
+
+#[allow(dead_code)]
+struct ForwardOpsAssignMods {
     comma: Token![,],
-    pre: Option<ForwardModifier<kw::pre>>,
-    post: Option<ForwardModifier<kw::post>>,
+    pre: Option<ForwardOpsAssignMod<kw::pre>>,
+    post: Option<ForwardOpsAssignMod<kw::post>>,
 }
 
 #[allow(dead_code)]
-struct ForwardModifier<Mod: Parse> {
+struct ForwardOpsAssignMod<Mod: Parse> {
     modifier: Mod,
     colon: Token![:],
     expr: Expr,
 }
 
-enum ForwardItem {
+enum ForwardDataItem {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
@@ -163,21 +168,21 @@ enum ForwardDefItem {
 }
 
 #[allow(dead_code)]
-struct ForwardDefData {
-    expr: ForwardExpr,
+struct ForwardDataDef {
+    fwd: Forward,
     colon: Token![:],
     path: Path,
     conditions: Option<WhereClause>,
 }
 
 #[allow(dead_code)]
-struct ForwardDefImpl {
-    expr: ForwardExpr,
-    idents: Option<ForwardDefIdents>,
+struct ForwardImplDef {
+    fwd: Forward,
+    idents: Option<ForwardIdents>,
 }
 
 #[allow(dead_code)]
-struct ForwardDefIdents {
+struct ForwardIdents {
     colon: Token![:],
     elems: Punctuated<Ident, Token![,]>,
 }
@@ -365,7 +370,7 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
     }
 }
 
-impl Parse for ForwardExpr {
+impl Parse for Forward {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             expr: input.parse()?,
@@ -375,16 +380,22 @@ impl Parse for ForwardExpr {
     }
 }
 
-impl Parse for ForwardAssign {
+impl Parse for ForwardOps {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self { fwd: input.parse()? })
+    }
+}
+
+impl Parse for ForwardOpsAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
-            expr: input.parse()?,
+            fwd: input.parse()?,
             mods: input.parse().ok(),
         })
     }
 }
 
-impl Parse for ForwardAssignModifiers {
+impl Parse for ForwardOpsAssignMods {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             comma: input.parse()?,
@@ -394,7 +405,7 @@ impl Parse for ForwardAssignModifiers {
     }
 }
 
-impl<Mod: Parse> Parse for ForwardModifier<Mod> {
+impl<Mod: Parse> Parse for ForwardOpsAssignMod<Mod> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             modifier: input.parse()?,
@@ -404,7 +415,7 @@ impl<Mod: Parse> Parse for ForwardModifier<Mod> {
     }
 }
 
-impl Parse for ForwardItem {
+impl Parse for ForwardDataItem {
     fn parse(input: ParseStream) -> Result<Self> {
         let item = input.parse::<Item>()?;
 
@@ -474,10 +485,10 @@ impl Parse for ForwardDefItem {
     }
 }
 
-impl Parse for ForwardDefData {
+impl Parse for ForwardDataDef {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
-            expr: input.parse()?,
+            fwd: input.parse()?,
             colon: input.parse()?,
             path: input.parse()?,
             conditions: input.parse()?,
@@ -485,16 +496,16 @@ impl Parse for ForwardDefData {
     }
 }
 
-impl Parse for ForwardDefImpl {
+impl Parse for ForwardImplDef {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
-            expr: input.parse()?,
+            fwd: input.parse()?,
             idents: input.parse().ok(),
         })
     }
 }
 
-impl Parse for ForwardDefIdents {
+impl Parse for ForwardIdents {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             colon: input.parse()?,
@@ -780,12 +791,12 @@ impl ToTokens for OpsImplUnary {
     }
 }
 
-impl ToTokens for ForwardItem {
+impl ToTokens for ForwardDataItem {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            ForwardItem::Struct(val) => val.to_tokens(tokens),
-            ForwardItem::Enum(val) => val.to_tokens(tokens),
-            ForwardItem::Union(val) => val.to_tokens(tokens),
+            ForwardDataItem::Struct(val) => val.to_tokens(tokens),
+            ForwardDataItem::Enum(val) => val.to_tokens(tokens),
+            ForwardDataItem::Union(val) => val.to_tokens(tokens),
         }
     }
 }
@@ -811,15 +822,21 @@ impl ToTokens for ForwardExpression {
     }
 }
 
-impl ForwardExpr {
+impl Forward {
     fn forward_args(&self) -> (&Expr, &Type) {
         (&self.expr, &self.ty)
     }
 }
 
-impl ForwardAssign {
+impl ForwardOps {
     fn forward_args(&self) -> (&Expr, &Type) {
-        self.expr.forward_args()
+        (&self.fwd.expr, &self.fwd.ty)
+    }
+}
+
+impl ForwardOpsAssign {
+    fn forward_args(&self) -> (&Expr, &Type) {
+        (&self.fwd.expr, &self.fwd.ty)
     }
 
     fn forward_mods(&self) -> (Option<&Expr>, Option<&Expr>) {
@@ -830,12 +847,12 @@ impl ForwardAssign {
     }
 }
 
-impl ForwardItem {
+impl ForwardDataItem {
     fn forward_args(&self) -> (&Ident, &Generics) {
         match self {
-            ForwardItem::Struct(val) => (&val.ident, &val.generics),
-            ForwardItem::Enum(val) => (&val.ident, &val.generics),
-            ForwardItem::Union(val) => (&val.ident, &val.generics),
+            ForwardDataItem::Struct(val) => (&val.ident, &val.generics),
+            ForwardDataItem::Enum(val) => (&val.ident, &val.generics),
+            ForwardDataItem::Union(val) => (&val.ident, &val.generics),
         }
     }
 }
@@ -1010,11 +1027,11 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro_attribute]
 pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ForwardItem);
-    let expr = parse_macro_input!(attr as ForwardExpr);
+    let item = parse_macro_input!(item as ForwardDataItem);
+    let fwd = parse_macro_input!(attr as Forward);
 
     let (ident, generics) = item.forward_args();
-    let (expr, ty) = expr.forward_args();
+    let (expr, ty) = fwd.forward_args();
 
     let gen_params = &generics.params;
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
@@ -1074,11 +1091,11 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
 #[proc_macro_attribute]
 pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ForwardItem);
-    let expr = parse_macro_input!(attr as ForwardExpr);
+    let item = parse_macro_input!(item as ForwardDataItem);
+    let fwd = parse_macro_input!(attr as Forward);
 
     let (ident, generics) = item.forward_args();
-    let (expr, ty) = expr.forward_args();
+    let (expr, ty) = fwd.forward_args();
 
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
@@ -1156,11 +1173,11 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         }
     }
 
-    let item = parse_macro_input!(item as ForwardItem);
-    let expr = parse_macro_input!(attr as ForwardExpr);
+    let item = parse_macro_input!(item as ForwardDataItem);
+    let fwd = parse_macro_input!(attr as Forward);
 
     let (ident, generics) = item.forward_args();
-    let (expr, ty) = expr.forward_args();
+    let (expr, ty) = fwd.forward_args();
 
     let (_, _, gen_where) = generics.split_for_impl();
 
@@ -1255,11 +1272,11 @@ pub fn forward_ops(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         }
     }
 
-    let item = parse_macro_input!(item as ForwardItem);
-    let expr = parse_macro_input!(attr as ForwardExpr);
+    let item = parse_macro_input!(item as ForwardDataItem);
+    let ops = parse_macro_input!(attr as ForwardOps);
 
     let (ident, generics) = item.forward_args();
-    let (expr, ty) = expr.forward_args();
+    let (expr, ty) = ops.forward_args();
 
     let (_, _, gen_where) = generics.split_for_impl();
 
@@ -1401,12 +1418,12 @@ pub fn forward_ops_assign(attr: TokenStreamStd, item: TokenStreamStd) -> TokenSt
         }
     }
 
-    let item = parse_macro_input!(item as ForwardItem);
-    let expr = parse_macro_input!(attr as ForwardAssign);
+    let item = parse_macro_input!(item as ForwardDataItem);
+    let ops = parse_macro_input!(attr as ForwardOpsAssign);
 
-    let (pre, post) = expr.forward_mods();
     let (ident, generics) = item.forward_args();
-    let (expr, ty) = expr.forward_args();
+    let (expr, ty) = ops.forward_args();
+    let (pre, post) = ops.forward_mods();
 
     let (_, _, gen_where) = generics.split_for_impl();
 
@@ -1631,8 +1648,8 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
             let gen_params = &item.generics.params;
             let (_, gen_type, gen_where) = item.generics.split_for_impl();
 
-            let expr = &def.expr.expr;
-            let ty = &def.expr.ty;
+            let expr = &def.fwd.expr;
+            let ty = &def.fwd.ty;
             let path = &def.path;
             let predicates = def.conditions.as_ref().map(|conditions| &conditions.predicates);
 
@@ -1681,11 +1698,11 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
     let item = parse_macro_input!(item as ForwardDefItem);
 
     match item {
-        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
-        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
-        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardDefData)),
+        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardDataDef)),
+        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardDataDef)),
+        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardDataDef)),
         ForwardDefItem::Impl(val) => {
-            let ForwardDefImpl { expr: _, idents: _ } = parse_macro_input!(attr as ForwardDefImpl);
+            let ForwardImplDef { fwd: _, idents: _ } = parse_macro_input!(attr as ForwardImplDef);
 
             let attrs = &val.attrs;
             let default = &val.defaultness;
