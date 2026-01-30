@@ -137,8 +137,6 @@ pub mod word {
 #[forward_std(self.0 with T)]
 #[forward_cmp(self.0 with T)]
 #[forward_fmt(self.0 with T)]
-#[forward_ops(self.0 with T)]
-#[forward_ops_assign(self.0 with T)]
 #[forward_def(self.0 with T: crate::num::Num            where T: Num,           for<'s> &'s T: Ops<T>)]
 #[forward_def(self.0 with T: crate::num::NumExtension   where T: NumExtension,  for<'s> &'s T: Ops<T>)]
 #[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'s> &'s T: Ops<T>)]

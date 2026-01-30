@@ -1,8 +1,7 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndproc::{
-    forward_cmp, forward_decl, forward_def, forward_fmt, forward_into, forward_ops, forward_ops_assign, forward_self,
-    forward_std, forward_with,
+    forward_cmp, forward_decl, forward_def, forward_fmt, forward_into, forward_self, forward_std, forward_with,
 };
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -430,8 +429,6 @@ pub mod prime {
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_ops(self.0 with N)]
-#[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
@@ -445,8 +442,6 @@ where
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_ops(self.0 with N)]
-#[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
@@ -779,7 +774,7 @@ where
     }
 
     pub(crate) fn normalize(&mut self) -> &mut Self {
-        *self %= M::MOD;
+        self.0 %= M::MOD;
         self
     }
 }

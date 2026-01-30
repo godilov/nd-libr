@@ -66,21 +66,16 @@ ops_impl!(@bin <N: Clone + Copy + Ops> where for<'s> &'s N: Ops<N>
 
 ### Forward Generation
 
-Macroses `ndproc::forward_std`, `ndproc::forward_cmp`, `ndproc::forward_fmt`, `ndproc::forward_ops` and `ndproc::forward_ops_assign` conditionally implements standard Rust traits by forwarding to `expr`.
+Macroses `ndproc::forward_std`, `ndproc::forward_cmp` and `ndproc::forward_fmt` conditionally implements standard Rust traits by forwarding to `expr`.
 
-- `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`
+- `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`, requires `From<T>`
 - `forward_cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
 - `forward_fmt`: Implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`
-- `forward_ops`: Implements `Add`, `Sub`, `Mul`, `Div`, `Rem`, `BitOr`, `BitAnd`, `BitXor`
-- `forward_ops_assign`: Implements `AddAssign`, `SubAssign`, `MulAssign`, `DivAssign`, `RemAssign`, `BitOrAssign`, `BitAndAssign`, `BitXorAssign`
-- Requires to implement `From<T>`: `forward_std`, `forward_ops`
 
 ```rust
 #[forward_std(self.0 with T)]
 #[forward_cmp(self.0 with T)]
 #[forward_fmt(self.0 with T)]
-#[forward_ops(self.0 with T)]
-#[forward_ops_assign(self.0 with T)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct A<T>(pub T);
 
