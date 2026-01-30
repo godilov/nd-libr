@@ -2,7 +2,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndproc::{
     forward_cmp, forward_decl, forward_def, forward_fmt, forward_into, forward_ops, forward_ops_assign, forward_self,
-    forward_std,
+    forward_std, forward_with,
 };
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -434,8 +434,8 @@ pub mod prime {
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops<N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num, const BITS: usize>(pub N)
@@ -449,8 +449,8 @@ where
 #[forward_ops_assign(self.0 with N, post: self.normalize())]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
+#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
 // #[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops<N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num, M: Modulus<N>>(pub N, pub PhantomData<M>)
@@ -661,7 +661,7 @@ where
 {
     fn new(value: isize) -> Self;
 
-    #[forward_into]
+    #[forward_with(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
     fn gcde(&self, val: &Self) -> (Self, Self, Self) {
         let zero = Self::zero();
         let one = Self::one();

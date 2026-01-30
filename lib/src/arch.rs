@@ -141,8 +141,8 @@ pub mod word {
 #[forward_ops_assign(self.0 with T)]
 #[forward_def(self.0 with T: crate::num::Num            where T: Num,           for<'s> &'s T: Ops<T>)]
 #[forward_def(self.0 with T: crate::num::NumExtension   where T: NumExtension,  for<'s> &'s T: Ops<T>)]
-// #[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'s> &'s T: Ops<T>)]
-// #[forward_def(self.0 with T: crate::num::Unsigned       where T: Unsigned,      for<'s> &'s T: Ops<T>)]
+#[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'s> &'s T: Ops<T>)]
+#[forward_def(self.0 with T: crate::num::Unsigned       where T: Unsigned,      for<'s> &'s T: Ops<T>)]
 // #[forward_def(self.0 with T: crate::num::Static         where T: Static,        for<'s> &'s T: Ops<T>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);

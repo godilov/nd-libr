@@ -1945,7 +1945,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 }
             } else if let Some(forward_with) = forward_with {
                 let ExprClosure {
-                    attrs,
+                    attrs: _,
                     lifetimes,
                     constness,
                     movability,
@@ -1959,8 +1959,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 } = get_forward_with_closure(&forward_with.meta)?;
 
                 quote! {
-                    #(#attrs)*
-                    #lifetimes #constness #movability #asyncness #capture |#inputs| #output #body
+                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
                     (self.forward_mut().#ident(#(#def),*))
                 }
             } else {
@@ -1981,7 +1980,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 }
             } else if let Some(forward_with) = forward_with {
                 let ExprClosure {
-                    attrs,
+                    attrs: _,
                     lifetimes,
                     constness,
                     movability,
@@ -1995,8 +1994,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 } = get_forward_with_closure(&forward_with.meta)?;
 
                 quote! {
-                    #(#attrs)*
-                    #lifetimes #constness #movability #asyncness #capture |#inputs| #output #body
+                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
                     (self.forward_ref().#ident(#(#def),*))
                 }
             } else {
@@ -2017,7 +2015,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 }
             } else if let Some(forward_with) = forward_with {
                 let ExprClosure {
-                    attrs,
+                    attrs: _,
                     lifetimes,
                     constness,
                     movability,
@@ -2031,8 +2029,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 } = get_forward_with_closure(&forward_with.meta)?;
 
                 quote! {
-                    #(#attrs)*
-                    #lifetimes #constness #movability #asyncness #capture |#inputs| #output #body
+                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
                     (self.forward().#ident(#(#def),*))
                 }
             } else {
