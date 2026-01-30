@@ -125,20 +125,6 @@ struct Forward {
     ty: Type,
 }
 
-#[allow(dead_code)]
-struct ForwardOpsAssignMods {
-    comma: Token![,],
-    pre: Option<ForwardOpsAssignMod<kw::pre>>,
-    post: Option<ForwardOpsAssignMod<kw::post>>,
-}
-
-#[allow(dead_code)]
-struct ForwardOpsAssignMod<Mod: Parse> {
-    modifier: Mod,
-    colon: Token![:],
-    expr: Expr,
-}
-
 enum ForwardDataItem {
     Struct(ItemStruct),
     Enum(ItemEnum),
@@ -365,26 +351,6 @@ impl Parse for Forward {
             expr: input.parse()?,
             with: input.parse()?,
             ty: input.parse()?,
-        })
-    }
-}
-
-impl Parse for ForwardOpsAssignMods {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            comma: input.parse()?,
-            pre: input.parse().ok(),
-            post: input.parse().ok(),
-        })
-    }
-}
-
-impl<Mod: Parse> Parse for ForwardOpsAssignMod<Mod> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            modifier: input.parse()?,
-            colon: input.parse()?,
-            expr: input.parse()?,
         })
     }
 }
