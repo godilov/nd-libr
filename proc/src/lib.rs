@@ -30,7 +30,7 @@ struct OpsDef<Signature: OpsSignature> {
     signature: Signature,
     #[allow(unused)]
     colon: Token![,],
-    impls: Punctuated<OpsImpl<Signature::Op>, Token![,]>,
+    impls: Punctuated<OpsImpl<Signature>, Token![,]>,
 }
 
 struct OpsDefAutoBin<Signature: OpsSignature> {
@@ -131,8 +131,8 @@ struct OpsSignatureUnary {
     ty: Type,
 }
 
-struct OpsImpl<Op: Parse> {
-    op: Op,
+struct OpsImpl<Signature: OpsSignature> {
+    op: Signature::Op,
     expr: Expr,
 }
 
@@ -306,7 +306,7 @@ impl Parse for OpsSignatureUnary {
     }
 }
 
-impl<Op: Parse> Parse for OpsImpl<Op> {
+impl<Signature: OpsSignature> Parse for OpsImpl<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
@@ -873,12 +873,12 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImpl::<BinOp> {
+                        OpsImpl::<OpsSignatureMutable> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs; }},
                         }
                     })
-                    .collect::<Punctuated<OpsImpl<BinOp>, Token![,]>>(),
+                    .collect::<Punctuated<OpsImpl<OpsSignatureMutable>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
@@ -900,12 +900,12 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImpl::<BinOp> {
+                        OpsImpl::<OpsSignatureBinary> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs }},
                         }
                     })
-                    .collect::<Punctuated<OpsImpl<BinOp>, Token![,]>>(),
+                    .collect::<Punctuated<OpsImpl<OpsSignatureBinary>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
@@ -926,12 +926,12 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                     .map(|op| {
                         let expr = &auto.self_expr;
 
-                        OpsImpl::<UnOp> {
+                        OpsImpl::<OpsSignatureUnary> {
                             op,
                             expr: parse_quote! {{ #op #expr }},
                         }
                     })
-                    .collect::<Punctuated<OpsImpl<UnOp>, Token![,]>>(),
+                    .collect::<Punctuated<OpsImpl<OpsSignatureUnary>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
