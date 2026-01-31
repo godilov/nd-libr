@@ -819,32 +819,18 @@ impl ForwardArgument {
 
 #[proc_macro]
 pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
-    let ops = parse_macro_input!(stream as Ops);
-
-    match ops {
-        Ops::Mutable(tokens) => {
-            let ops = parse2::<OpsImplMutable>(tokens);
-
-            match ops {
-                Ok(val) => quote! { #val }.into(),
-                Err(err) => err.into_compile_error().into(),
-            }
+    match parse_macro_input!(stream as Ops) {
+        Ops::Mutable(tokens) => match parse2::<OpsImplMutable>(tokens) {
+            Ok(val) => quote! { #val }.into(),
+            Err(err) => err.into_compile_error().into(),
         },
-        Ops::Binary(tokens) => {
-            let ops = parse2::<OpsImplBinary>(tokens);
-
-            match ops {
-                Ok(val) => quote! { #val }.into(),
-                Err(err) => err.into_compile_error().into(),
-            }
+        Ops::Binary(tokens) => match parse2::<OpsImplBinary>(tokens) {
+            Ok(val) => quote! { #val }.into(),
+            Err(err) => err.into_compile_error().into(),
         },
-        Ops::Unary(tokens) => {
-            let ops = parse2::<OpsImplUnary>(tokens);
-
-            match ops {
-                Ok(val) => quote! { #val }.into(),
-                Err(err) => err.into_compile_error().into(),
-            }
+        Ops::Unary(tokens) => match parse2::<OpsImplUnary>(tokens) {
+            Ok(val) => quote! { #val }.into(),
+            Err(err) => err.into_compile_error().into(),
         },
     }
 }
@@ -855,16 +841,21 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
     match ops {
         Ops::Mutable(tokens) => {
-            let ops = parse2::<OpsImplAutoMutable>(tokens).map(|val| OpsImplMutable {
-                generics: val.generics,
-                signature: val.signature,
+            let ops = match parse2::<OpsImplAutoMutable>(tokens) {
+                Ok(val) => val,
+                Err(err) => return err.into_compile_error().into(),
+            };
+
+            let ops = OpsImplMutable {
+                generics: ops.generics,
+                signature: ops.signature,
                 colon: Default::default(),
-                entries: val
+                entries: ops
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &val.lhs_expr;
-                        let rhs = &val.rhs_expr;
+                        let lhs = &ops.lhs_expr;
+                        let rhs = &ops.rhs_expr;
 
                         OpsImplEntry::<BinOp> {
                             op,
@@ -872,24 +863,26 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         }
                     })
                     .collect::<Punctuated<OpsImplEntry<BinOp>, Token![,]>>(),
-            });
+            };
 
-            match ops {
-                Ok(val) => quote! { #val }.into(),
-                Err(err) => err.into_compile_error().into(),
-            }
+            quote! { #ops }.into()
         },
         Ops::Binary(tokens) => {
-            let ops = parse2::<OpsImplAutoBinary>(tokens).map(|val| OpsImplBinary {
-                generics: val.generics,
-                signature: val.signature,
+            let ops = match parse2::<OpsImplAutoBinary>(tokens) {
+                Ok(val) => val,
+                Err(err) => return err.into_compile_error().into(),
+            };
+
+            let ops = OpsImplBinary {
+                generics: ops.generics,
+                signature: ops.signature,
                 colon: Default::default(),
-                entries: val
+                entries: ops
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &val.lhs_expr;
-                        let rhs = &val.rhs_expr;
+                        let lhs = &ops.lhs_expr;
+                        let rhs = &ops.rhs_expr;
 
                         OpsImplEntry::<BinOp> {
                             op,
@@ -897,23 +890,25 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         }
                     })
                     .collect::<Punctuated<OpsImplEntry<BinOp>, Token![,]>>(),
-            });
+            };
 
-            match ops {
-                Ok(val) => quote! { #val }.into(),
-                Err(err) => err.into_compile_error().into(),
-            }
+            quote! { #ops }.into()
         },
         Ops::Unary(tokens) => {
-            let ops = parse2::<OpsImplAutoUnary>(tokens).map(|val| OpsImplUnary {
-                generics: val.generics,
-                signature: val.signature,
+            let ops = match parse2::<OpsImplAutoUnary>(tokens) {
+                Ok(val) => val,
+                Err(err) => return err.into_compile_error().into(),
+            };
+
+            let ops = OpsImplUnary {
+                generics: ops.generics,
+                signature: ops.signature,
                 colon: Default::default(),
-                entries: val
+                entries: ops
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &val.lhs_expr;
+                        let lhs = &ops.lhs_expr;
 
                         OpsImplEntry::<UnOp> {
                             op,
@@ -921,12 +916,9 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         }
                     })
                     .collect::<Punctuated<OpsImplEntry<UnOp>, Token![,]>>(),
-            });
+            };
 
-            match ops {
-                Ok(val) => quote! { #val }.into(),
-                Err(err) => err.into_compile_error().into(),
-            }
+            quote! { #ops }.into()
         },
     }
 }
