@@ -70,7 +70,7 @@ ops_impl!(@bin <N: Clone + Copy + Ops> where for<'s> &'s N: Ops<N>
 
 Macroses `ndproc::forward_std`, `ndproc::forward_cmp` and `ndproc::forward_fmt` conditionally implements standard Rust traits by forwarding to `expr`.
 
-- `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`, requires `From<T>`
+- `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
 - `forward_cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
 - `forward_fmt`: Implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`
 
