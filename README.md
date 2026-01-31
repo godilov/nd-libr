@@ -146,11 +146,21 @@ assert_eq!(std::mem::size_of::<B16>(), 16.div_ceil(word) * word);
 
 Types and aliases can be used with `ndlibr::num::Width` and `ndlibr::num::Modular` [types](#composable-types) for precise control.
 
+#### Interface (Compile-time)
+
+- `from_i8`, `from_i16`, `from_i32`, `from_i64`, `from_i128`, `from_isize` - constructors from signed integers (`Signed`)
+- `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - constructors from unsigned integers (`Unsigned`, `Bytes`)
+- `from_bytes` - constructor from bytes slice (`Signed`, `Unsigned`, `Bytes`)
+
 #### Interface
 
-- `Signed`: `from_i8`, `from_i16`, `from_i32`, `from_i64`, `from_i128`, `from_isize` - compile-time constructors from signed integers
-- `Unsigned`: `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - compile-time constructors from unsigned integers
-- `Bytes`: `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - compile-time constructors from unsigned integers
+- `nd_from`, `nd_try_from` - constructors from arrays and slices (`Signed`, `Unsigned`, `Bytes`)
+  - `nd_from` - overflow is trimmed
+  - `nd_try_from` - overflow is errored
+  - Supported types: `&[W; N]`, `&[W]`, where `W` is unsigned primitive up-to native word size
+
+- `PartialEq`, `Eq` - const-time equality (`Signed`, `Unsigned`, `Bytes`)
+- `PartialOrd`, `Ord` - const-time equality (`Signed`, `Unsigned`, `Bytes`)
 
 ### Prime Numbers
 
