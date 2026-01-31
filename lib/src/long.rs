@@ -38,6 +38,35 @@ macro_rules! bytes {
     };
 }
 
+macro_rules! eq_const {
+    ($a:expr, $b:expr) => {{
+        let diff = $a.rev().zip($b.rev()).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
+
+        std::hint::black_box(diff) == 0
+    }};
+}
+
+macro_rules! cmp_const {
+    ($a:expr, $b:expr) => {{
+        let (lt, gt) = $a.rev().zip($b.rev()).map(|(a, b)| ((a < b) as i8, (a > b) as i8)).fold(
+            (0i8, 0i8),
+            |(lt_, gt_), (lt, gt)| {
+                let ltr = lt_ | (lt & (gt_ == 0) as i8);
+                let gtr = gt_ | (gt & (lt_ == 0) as i8);
+
+                (ltr, gtr)
+            },
+        );
+
+        match lt - gt {
+            -1 => Ordering::Greater,
+            0 => Ordering::Equal,
+            1 => Ordering::Less,
+            _ => unreachable!(),
+        }
+    }};
+}
+
 macro_rules! from_primitive {
     ($long:ident [$($primitive:ty),+ $(,)?]) => {
         $(from_primitive!($long, $primitive);)+
@@ -1002,10 +1031,10 @@ pub type B4096 = bytes!(4096);
 pub type B6144 = bytes!(6144);
 pub type B8192 = bytes!(8192);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1026,7 +1055,7 @@ pub struct SignedFixedDyn<const N: usize>(Vec<Single>, Sign);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsignedFixedDyn<const N: usize>(Vec<Single>);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone)]
@@ -1271,19 +1300,19 @@ impl<const L: usize, W: Word> NdTryFrom<&[W]> for Bytes<L> {
 }
 
 impl<const L: usize, W: Word> FromIterator<W> for Signed<L> {
-    fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
+    fn from_iter<Iter: IntoIterator<Item = W>>(iter: Iter) -> Self {
         Self(from_iter(iter.into_iter()))
     }
 }
 
 impl<const L: usize, W: Word> FromIterator<W> for Unsigned<L> {
-    fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
+    fn from_iter<Iter: IntoIterator<Item = W>>(iter: Iter) -> Self {
         Self(from_iter(iter.into_iter()))
     }
 }
 
 impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
-    fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
+    fn from_iter<Iter: IntoIterator<Item = W>>(iter: Iter) -> Self {
         Self(from_iter(iter.into_iter()))
     }
 }
@@ -1312,39 +1341,84 @@ impl<const L: usize> FromStr for Bytes<L> {
     }
 }
 
-impl<const L: usize> AsRef<[u8]> for Signed<L> {
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
+impl<const L: usize, W: Word> AsRef<[W]> for Signed<L> {
+    fn as_ref(&self) -> &[W] {
+        self.as_words()
     }
 }
 
-impl<const L: usize> AsRef<[u8]> for Unsigned<L> {
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
+impl<const L: usize, W: Word> AsRef<[W]> for Unsigned<L> {
+    fn as_ref(&self) -> &[W] {
+        self.as_words()
     }
 }
 
-impl<const L: usize> AsRef<[u8]> for Bytes<L> {
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
+impl<const L: usize, W: Word> AsRef<[W]> for Bytes<L> {
+    fn as_ref(&self) -> &[W] {
+        self.as_words()
     }
 }
 
-impl<const L: usize> AsMut<[u8]> for Signed<L> {
-    fn as_mut(&mut self) -> &mut [u8] {
-        self.as_bytes_mut()
+impl<const L: usize, W: Word> AsMut<[W]> for Signed<L> {
+    fn as_mut(&mut self) -> &mut [W] {
+        self.as_words_mut()
     }
 }
 
-impl<const L: usize> AsMut<[u8]> for Unsigned<L> {
-    fn as_mut(&mut self) -> &mut [u8] {
-        self.as_bytes_mut()
+impl<const L: usize, W: Word> AsMut<[W]> for Unsigned<L> {
+    fn as_mut(&mut self) -> &mut [W] {
+        self.as_words_mut()
     }
 }
 
-impl<const L: usize> AsMut<[u8]> for Bytes<L> {
-    fn as_mut(&mut self) -> &mut [u8] {
-        self.as_bytes_mut()
+impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
+    fn as_mut(&mut self) -> &mut [W] {
+        self.as_words_mut()
+    }
+}
+
+impl<const L: usize> Eq for Signed<L> {}
+
+impl<const L: usize> Eq for Unsigned<L> {}
+
+impl<const L: usize> Eq for Bytes<L> {}
+
+impl<const L: usize> Ord for Signed<L> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let xs = self.sign();
+        let ys = other.sign();
+
+        let xu = self.abs().unsigned();
+        let yu = other.abs().unsigned();
+
+        let s_cmp = xs.cmp(&ys);
+        let v_cmp = xu.cmp(&yu);
+
+        s_cmp.then(v_cmp)
+    }
+}
+
+impl<const L: usize> Ord for Unsigned<L> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        cmp_const!(self.0.iter(), other.0.iter())
+    }
+}
+
+impl<const L: usize> PartialEq for Signed<L> {
+    fn eq(&self, other: &Self) -> bool {
+        eq_const!(self.0.iter(), other.0.iter())
+    }
+}
+
+impl<const L: usize> PartialEq for Unsigned<L> {
+    fn eq(&self, other: &Self) -> bool {
+        eq_const!(self.0.iter(), other.0.iter())
+    }
+}
+
+impl<const L: usize> PartialEq for Bytes<L> {
+    fn eq(&self, other: &Self) -> bool {
+        eq_const!(self.0.iter(), other.0.iter())
     }
 }
 
@@ -1357,35 +1431,6 @@ impl<const L: usize> PartialOrd for Signed<L> {
 impl<const L: usize> PartialOrd for Unsigned<L> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-impl<const L: usize> Ord for Signed<L> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let x = self.sign();
-        let y = other.sign();
-
-        if x != y {
-            return x.cmp(&y);
-        }
-
-        let ord = self.0.iter().rev().cmp(other.0.iter().rev());
-
-        match x {
-            Sign::ZERO => ord,
-            Sign::NEG => match ord {
-                Ordering::Less => Ordering::Greater,
-                Ordering::Equal => Ordering::Equal,
-                Ordering::Greater => Ordering::Less,
-            },
-            Sign::POS => ord,
-        }
-    }
-}
-
-impl<const L: usize> Ord for Unsigned<L> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.iter().rev().cmp(other.0.iter().rev())
     }
 }
 
