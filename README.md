@@ -120,9 +120,37 @@ impl X for Impl {
 
 ### Long Numbers
 
-```rust
+Types `ndlib::long::Signed`, `ndlib::long::Unsigned` and `ndlib::long::Bytes` specifies long-numbers and long-bytes of fixed length, specified in native words.
 
+```rust
+let word = std::mem::size_of::<usize>();
+
+assert_eq!(std::mem::size_of::<Signed<8>>(), 8 * word);
+assert_eq!(std::mem::size_of::<Unsigned<8>>(), 8 * word);
+assert_eq!(std::mem::size_of::<Bytes<8>>(), 8 * word);
 ```
+
+Aliases `S256`, `S512`, `U256`, `U512`, `B256`, `B512` and others specifies long-numbers and long-bytes of at least specified length.
+
+```rust
+let word = std::mem::size_of::<usize>();
+
+assert_eq!(std::mem::size_of::<S8>(), 8.div_ceil(word) * word);
+assert_eq!(std::mem::size_of::<U8>(), 8.div_ceil(word) * word);
+assert_eq!(std::mem::size_of::<B8>(), 8.div_ceil(word) * word);
+
+assert_eq!(std::mem::size_of::<S16>(), 16.div_ceil(word) * word);
+assert_eq!(std::mem::size_of::<U16>(), 16.div_ceil(word) * word);
+assert_eq!(std::mem::size_of::<B16>(), 16.div_ceil(word) * word);
+```
+
+Types and aliases can be used with `ndlibr::num::Width` and `ndlibr::num::Modular` [types](#composable-types) for precise control.
+
+#### Interface
+
+- `Signed`: `from_i8`, `from_i16`, `from_i32`, `from_i64`, `from_i128`, `from_isize` - compile-time constructors from signed integers
+- `Unsigned`: `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - compile-time constructors from unsigned integers
+- `Bytes`: `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - compile-time constructors from unsigned integers
 
 ### Prime Numbers
 
@@ -145,7 +173,9 @@ Types `ndlibr::num::Width` and `ndlibr::num::Modular` specifies numbers and forw
 - `Modular<N, M>`: number `N` modulo `M::MOD`
 
 ```rust
-
+let s1337 = Width<S1536, 1337>::default(); // Signed of length 1337-bits and allocated size of at least 1536-bits
+let u1337 = Width<U1536, 1337>::default(); // Unsigned of length 1337-bits and allocated size of at least 1536-bits
+let b1337 = Width<B1536, 1337>::default(); // Bytes of length 1337-bits and allocated size of at least 1536-bits
 ```
 
 ## Dev Requirements
