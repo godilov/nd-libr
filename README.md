@@ -120,7 +120,7 @@ impl X for Impl {
 
 ### Long Numbers
 
-Types `ndlib::long::Signed`, `ndlib::long::Unsigned` and `ndlib::long::Bytes` specifies long-numbers and long-bytes of fixed length, specified in native words.
+Types `ndlib::long::Signed`, `ndlib::long::Unsigned` and `ndlib::long::Bytes` specifies long-numbers and long-bytes of fixed length, specified in native words. By default, all representations are little-endian.
 
 ```rust
 let word = std::mem::size_of::<usize>();
@@ -159,37 +159,56 @@ Types and aliases can be used with `ndlib::num::Width` and `ndlib::num::Modular`
   - Unsigned primitives (`Unsigned`, `Bytes`)
   - Booleans (`Signed`, `Unsigned`, `Bytes`)
 - `NdFrom::nd_from` - [conversions](#conversions) from arrays and slices (**overflow is wrapped**)
-  - Supported types: arrays and slices of unsigned primitive up-to native word size
+  - Supported types: arrays and slices of unsigned primitives up-to native word size
 - `NdTryFrom::nd_try_from` - [conversions](#conversions) from arrays and slices (**overflow is checked**)
-  - Supported types: arrays and slices of unsigned primitive up-to native word size
+  - Supported types: arrays and slices of unsigned primitives up-to native word size
 - `FromIterator::from_iter` - conversion from iterators (**overflow is wrapped**)
-  - Supported types: iters of unsigned primitive up-to native word size
+  - Supported types: iters of unsigned primitives up-to native word size
 - `FromStr::from_str` - conversions from string slices (**overflow is checked**)
   - Without-prefix - dec interpretation
   - `0b`/`0B`-prefix - bin interpretation
   - `0o`/`0O`-prefix - oct interpretation
   - `0x`/`0X`-prefix - hex interpretation (case-insensitive)
-- `AsRef<[W]>` - conversion to ref slice of unsigned primitive up-to native word size
-- `AsMut<[W]>` - conversion to mut slice of unsigned primitive up-to native word size
+- `AsRef<[W]>` - conversion to ref slice of unsigned primitives up-to native word size
+- `AsMut<[W]>` - conversion to mut slice of unsigned primitives up-to native word size
 - `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex` - conversions to string
   - `Display` as dec for `Signed`, `Unsigned`
   - `Display` as hex for `Bytes`
 
-#### API (Conversions Extra)
+#### API (Conversions Extra Impl)
 
-Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specifies implementation for conversion from digits.
+Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specifies implementation for conversion from/to/into digits.
 
-- `ExpImpl` - specifies digits radix as `2 ** exp`
+- `ExpImpl` - specifies digits radix as `1 << exp`
 - `RadixImpl` - specifies digits radix as raw
 
+#### API (Conversions Extra)
+
 - `FromDigits::from_digits` - conversion from digits (as slice) of arbitrary radix/exp
-  - Supported types: slices of unsigned primitive up-to native word size
+  - Supported types: slices of unsigned primitives up-to native word size
 - `FromDigitsIter::from_digits_iter` - conversion from digits (as iter) of arbitrary radix/exp
-  - Supported types: iters of unsigned primitive up-to native word size
-- `ToDigits::to_digits` - conversion to digits (as vec) or arbitrary exp
-- `ToDigitsIter::to_digits_iter` - conversion to digits (as iter) or arbitrary exp
-- `IntoDigits::into_digits` - conversion into digits (as vec) or arbitrary radix
-- `IntoDigitsIter::into_digits_iter` - conversion into digits (as iter) or arbitrary radix
+  - Supported types: iters of unsigned primitives up-to native word size
+- `ToDigits::to_digits` - conversion to digits vec of arbitrary exp
+- `ToDigitsIter::to_digits_iter` - conversion to digits iter of arbitrary exp
+- `IntoDigits::into_digits` - conversion into digits vec of arbitrary radix
+- `IntoDigitsIter::into_digits_iter` - conversion into digits iter of arbitrary radix
+
+```rust
+let s1024exp   = S1024::from_digits(&[1, 3, 3, 7], ExpImpl { exp: 3u8 })?;     // Value: (1 * 2^0) + (3 * 2^3) + (3 * 2^6) + (7 * 2^9)
+let u1024exp   = U1024::from_digits(&[1, 3, 3, 7], ExpImpl { exp: 3u8 })?;     // Value: (1 * 2^0) + (3 * 2^3) + (3 * 2^6) + (7 * 2^9)
+let s1024radix = S1024::from_digits(&[1, 3, 3, 7], RadixImpl { radix: 9u8 })?; // Value: (1 * 9^0) + (3 * 9^1) + (3 * 9^2) + (7 * 9^3)
+let u1024radix = U1024::from_digits(&[1, 3, 3, 7], RadixImpl { radix: 9u8 })?; // Value: (1 * 9^0) + (3 * 9^1) + (3 * 9^2) + (7 * 9^3)
+
+let s1024v = s1024exp.to_digits(ExpImpl { exp: 3u8 })?;      // Vec:  [1, 3, 3, 7]
+let u1024v = u1024exp.to_digits(ExpImpl { exp: 3u8 })?;      // Vec:  [1, 3, 3, 7]
+let s1024i = s1024exp.to_digits_iter(ExpImpl { exp: 3u8 })?; // Iter: [1, 3, 3, 7]
+let u1024i = u1024exp.to_digits_iter(ExpImpl { exp: 3u8 })?; // Iter: [1, 3, 3, 7]
+
+let s1024v = s1024radix.into_digits(RadixImpl { radix: 9u8 })?;    // Vec:  [1, 3, 3, 7]
+let u1024v = u1024radix.into_digits(RadixImpl { radix: 9u8 })?;    // Vec:  [1, 3, 3, 7]
+let s1024i = s1024radix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
+let u1024i = u1024radix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
+```
 
 #### API (Eq/Cmp)
 
