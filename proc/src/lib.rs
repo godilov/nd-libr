@@ -25,6 +25,14 @@ enum Ops {
     Unary(TokenStream),
 }
 
+struct OpsImpl<OpsSignature: Parse, Op: Parse> {
+    generics: Generics,
+    signature: OpsSignature,
+    #[allow(unused)]
+    colon: Token![,],
+    entries: Punctuated<OpsImplEntry<Op>, Token![,]>,
+}
+
 struct OpsSignatureMutable {
     #[allow(unused)]
     lhs_token: Token![|],
@@ -97,14 +105,6 @@ struct OpsSignatureUnary {
 struct OpsImplEntry<Op: Parse> {
     op: Op,
     expr: Expr,
-}
-
-struct OpsImpl<OpsSignature: Parse, Op: Parse> {
-    generics: Generics,
-    signature: OpsSignature,
-    #[allow(unused)]
-    colon: Token![,],
-    entries: Punctuated<OpsImplEntry<Op>, Token![,]>,
 }
 
 struct OpsImplAutoBin<OpsSignature: Parse, Op: Parse> {
@@ -841,21 +841,21 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
     match ops {
         Ops::Mutable(tokens) => {
-            let ops = match parse2::<OpsImplAutoMutable>(tokens) {
+            let auto = match parse2::<OpsImplAutoMutable>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
             };
 
             let ops = OpsImplMutable {
-                generics: ops.generics,
-                signature: ops.signature,
+                generics: auto.generics,
+                signature: auto.signature,
                 colon: Default::default(),
-                entries: ops
+                entries: auto
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &ops.lhs_expr;
-                        let rhs = &ops.rhs_expr;
+                        let lhs = &auto.lhs_expr;
+                        let rhs = &auto.rhs_expr;
 
                         OpsImplEntry::<BinOp> {
                             op,
@@ -868,21 +868,21 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             quote! { #ops }.into()
         },
         Ops::Binary(tokens) => {
-            let ops = match parse2::<OpsImplAutoBinary>(tokens) {
+            let auto = match parse2::<OpsImplAutoBinary>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
             };
 
             let ops = OpsImplBinary {
-                generics: ops.generics,
-                signature: ops.signature,
+                generics: auto.generics,
+                signature: auto.signature,
                 colon: Default::default(),
-                entries: ops
+                entries: auto
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &ops.lhs_expr;
-                        let rhs = &ops.rhs_expr;
+                        let lhs = &auto.lhs_expr;
+                        let rhs = &auto.rhs_expr;
 
                         OpsImplEntry::<BinOp> {
                             op,
@@ -895,20 +895,20 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             quote! { #ops }.into()
         },
         Ops::Unary(tokens) => {
-            let ops = match parse2::<OpsImplAutoUnary>(tokens) {
+            let auto = match parse2::<OpsImplAutoUnary>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
             };
 
             let ops = OpsImplUnary {
-                generics: ops.generics,
-                signature: ops.signature,
+                generics: auto.generics,
+                signature: auto.signature,
                 colon: Default::default(),
-                entries: ops
+                entries: auto
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &ops.lhs_expr;
+                        let lhs = &auto.lhs_expr;
 
                         OpsImplEntry::<UnOp> {
                             op,

@@ -1524,7 +1524,7 @@ ops_impl!(@un <const L: usize> |mut a: Unsigned<L>| -> Unsigned::<L>,
 ops_impl!(@bin |a: Sign, b: Sign| -> Sign, * Sign::from((a as i8) * (b as i8)));
 
 ops_impl!(@bin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<L>,
-    + Signed::<L>(add_long(&a.0, &b.0)),
+    + Signed::<L>(add_long(&a.0, &b.0)), // where Self (???): Add<???>
     - Signed::<L>(sub_long(&a.0, &b.0)),
     * Signed::<L>(mul_long(&a.0, &b.0)),
     / Signed::<L>(div_long(&a.abs().0, &b.abs().0).0).signed(a.sign() * b.sign()),
