@@ -185,8 +185,10 @@ Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specify implementation
 #### API (Conversions Extra)
 
 - `FromDigits::from_digits` - conversion from digits (as slice) of arbitrary radix/exp
+  - For `RadixImpl`, with radix being power of 2, exp implementation is automatically used
   - Supported types: slices of unsigned primitives up-to native word size
 - `FromDigitsIter::from_digits_iter` - conversion from digits (as iter) of arbitrary radix/exp
+  - For `RadixImpl`, with radix being power of 2, exp implementation is automatically used
   - Supported types: iters of unsigned primitives up-to native word size
 - `ToDigits::to_digits` - conversion to digits vec of arbitrary exp
 - `ToDigitsIter::to_digits_iter` - conversion to digits iter of arbitrary exp
