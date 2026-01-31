@@ -148,7 +148,7 @@ Types and aliases can be used with `ndlib::num::Width` and `ndlib::num::Modular`
 
 #### API (Compile-time)
 
-- `from_i8`, `from_i16`, `from_i32`, `from_i64`, `from_i128`, `from_isize` - convresions from signed primitives (`Signed`)
+- `from_i8`, `from_i16`, `from_i32`, `from_i64`, `from_i128`, `from_isize` - conversions from signed primitives (`Signed`)
 - `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - conversions from unsigned primitives (`Unsigned`, `Bytes`)
 - `from_bytes` - conversion from bytes slice (`Signed`, `Unsigned`, `Bytes`)
 
