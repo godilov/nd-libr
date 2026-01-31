@@ -173,9 +173,9 @@ Types `ndlibr::num::Width` and `ndlibr::num::Modular` specifies numbers and forw
 - `Modular<N, M>`: number `N` modulo `M::MOD`
 
 ```rust
-let s1337 = Width<S1536, 1337>::default(); // Signed of length 1337-bits and allocated size of at least 1536-bits
-let u1337 = Width<U1536, 1337>::default(); // Unsigned of length 1337-bits and allocated size of at least 1536-bits
-let b1337 = Width<B1536, 1337>::default(); // Bytes of length 1337-bits and allocated size of at least 1536-bits
+let s1337 = Width::<S1536, 1337>::default(); // Signed of length 1337-bits and allocated size of at least 1536-bits
+let u1337 = Width::<U1536, 1337>::default(); // Unsigned of length 1337-bits and allocated size of at least 1536-bits
+let b1337 = Width::<B1536, 1337>::default(); // Bytes of length 1337-bits and allocated size of at least 1536-bits
 ```
 
 ## Dev Requirements
