@@ -6,7 +6,7 @@ A Rust general-facilities library
 
 ### Ops
 
-Traits `ndlib::ops::Ops` and `ndlib::ops::OpsAssign` describes all standard Rust operations for types and auto-implemented for every applicable type.
+Traits `ndlib::ops::Ops` and `ndlib::ops::OpsAssign` describe all standard Rust operations for types and auto-implemented for every applicable type.
 
 ```rust
 /// T supports all binary `std::ops::*` by value
@@ -37,7 +37,7 @@ where
 
 ### Ops Generation
 
-Macroses `ndproc::ops_impl` and `ndproc::ops_impl_auto` implements all standard Rust operations for types.
+Macroses `ndproc::ops_impl` and `ndproc::ops_impl_auto` implement all standard Rust operations for types.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -68,7 +68,7 @@ ops_impl!(@bin <N: Clone + Copy + Ops> where for<'s> &'s N: Ops<N>
 
 ### Forward Generation
 
-Macroses `ndproc::forward_std`, `ndproc::forward_cmp` and `ndproc::forward_fmt` conditionally implements standard Rust traits by forwarding to `expr`.
+Macroses `ndproc::forward_std`, `ndproc::forward_cmp` and `ndproc::forward_fmt` conditionally implement standard Rust traits by forwarding to `expr`.
 
 - `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
 - `forward_cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
@@ -88,12 +88,12 @@ impl<T> From<T> for A<T> {
 }
 ```
 
-Macroses `ndproc::forward_decl` and `ndproc::forward_def` conditionally implements user-defined traits by forwarding to inner field.
+Macroses `ndproc::forward_decl` and `ndproc::forward_def` conditionally implement user-defined traits by forwarding to inner field.
 
 - `forward_decl`: Used on user-defined trait to generate forwarding
 - `forward_def`: Used on user-defined structs, enums, unions to generate forwarding implementation
 
-Macroses `ndproc::forward_into`, `ndproc::forward_self` and `ndproc::forward_with` specifies forwarding result expression.
+Macroses `ndproc::forward_into`, `ndproc::forward_self` and `ndproc::forward_with` specify forwarding result expression.
 
 - Raw: returns raw result
 - `forward_into`: returns `expr.call().into()`. Useful for `fn() -> Self`
@@ -120,7 +120,7 @@ impl X for Impl {
 
 ### Long Numbers
 
-Types `ndlib::long::Signed`, `ndlib::long::Unsigned` and `ndlib::long::Bytes` specifies long-numbers and long-bytes of fixed length, specified in native words. By default, all representations are little-endian.
+Types `ndlib::long::Signed`, `ndlib::long::Unsigned` and `ndlib::long::Bytes` specify long-numbers and long-bytes of fixed length, specified in native words. By default, all representations are little-endian.
 
 ```rust
 let word = std::mem::size_of::<usize>();
@@ -130,7 +130,7 @@ assert_eq!(std::mem::size_of::<Unsigned<8>>(), 8 * word);
 assert_eq!(std::mem::size_of::<Bytes<8>>(), 8 * word);
 ```
 
-Aliases `S256`, `S512`, `U256`, `U512`, `B256`, `B512` and others specifies long-numbers and long-bytes of at least specified length.
+Aliases `S256`, `S512`, `U256`, `U512`, `B256`, `B512` and others specify long-numbers and long-bytes of at least specified length.
 
 ```rust
 let word = std::mem::size_of::<usize>();
@@ -177,7 +177,7 @@ Types and aliases can be used with `ndlib::num::Width` and `ndlib::num::Modular`
 
 #### API (Conversions Extra Impl)
 
-Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specifies implementation for conversion from/to/into digits.
+Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specify implementation for conversion from/to/into digits.
 
 - `ExpImpl` - specifies digits radix as `1 << exp`
 - `RadixImpl` - specifies digits radix as raw
@@ -216,6 +216,20 @@ let u1024i = u1024radix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 
 - `PartialOrd`, `Ord` - const-time cmp (`Signed`, `Unsigned`)
 
 #### API (Ops)
+
+Types `ndlib::num::Signed`, `ndlib::num::Unsigned` and `ndlib::num::Bytes` implement all[^1] standard Rust operations in const-time (**overflow is wrapped**).
+
+- `Signed`: all unary/binary/mutable operations with `Signed` and all signed primitives
+- `Unsigned`: all unary/binary/mutable operaions with `Unsigned` and all unsigned primitives
+- `Bytes`: all unary/binary/mutable operations with `Bytes` and all unsigned primitives
+- All operations are implemented for all combinations of value/reference types
+
+Operations with primitive support:
+
+- Primitive as Rhs - all operations
+- Primitive as Lhs - add and mul operations
+
+[^1]: Type `Bytes` implements only operations with bitwise/shift semantics
 
 ### Prime Numbers
 
