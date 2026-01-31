@@ -27,12 +27,20 @@ macro_rules! word_impl {
             const ZERO: Self = 0;
             const ONE: Self = 1;
 
+            fn from_usize(value: usize) -> Self {
+                value as Self
+            }
+
             fn from_single(value: Single) -> Self {
                 value as Self
             }
 
             fn from_double(value: Double) -> Self {
                 value as Self
+            }
+
+            fn as_usize(self) -> usize {
+                self as usize
             }
 
             fn as_single(self) -> Single {
@@ -108,9 +116,11 @@ pub mod word {
         const ZERO: Self;
         const ONE: Self;
 
+        fn from_usize(value: usize) -> Self;
         fn from_single(value: Single) -> Self;
         fn from_double(value: Double) -> Self;
 
+        fn as_usize(self) -> usize;
         fn as_single(self) -> Single;
         fn as_double(self) -> Double;
 

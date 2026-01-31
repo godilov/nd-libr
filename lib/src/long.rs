@@ -2221,21 +2221,18 @@ fn from_iter<const L: usize, W: Word, Iter: Iterator<Item = W>>(iter: Iter) -> [
     res
 }
 
-fn from_digits_validate<W: Word, Words>(mut digits: Words, radix: W) -> Result<(), FromDigitsError>
+fn from_digits_validate<W: Word, Words>(digits: Words, radix: W) -> Result<(), FromDigitsError>
 where
     Words: WordsIterator<Item = W>,
 {
-    if radix.as_single() < 2 {
-        return Err(FromDigitsError::InvalidRadix {
-            radix: radix.as_single() as usize,
-        });
+    let radix = radix.as_usize();
+
+    if radix < 2 {
+        return Err(FromDigitsError::InvalidRadix { radix });
     }
 
-    if let Some(digit) = digits.find(|&digit| digit >= radix) {
-        return Err(FromDigitsError::InvalidDigit {
-            digit: digit.as_single() as usize,
-            radix: radix.as_single() as usize,
-        });
+    if let Some(digit) = digits.map(|digit| digit.as_usize()).find(|&digit| digit >= radix) {
+        return Err(FromDigitsError::InvalidDigit { digit, radix });
     }
 
     Ok(())
@@ -2260,7 +2257,7 @@ fn from_str_validate(s: &str, radix: u8) -> Result<(), FromStrError> {
 }
 
 fn to_digits_validate<W: Word>(exp: W) -> Result<(), ToDigitsError> {
-    let exp = exp.as_single() as usize;
+    let exp = exp.as_usize();
 
     if exp == 0 || exp >= W::BITS {
         return Err(ToDigitsError::InvalidExponent { exp });
@@ -2270,7 +2267,7 @@ fn to_digits_validate<W: Word>(exp: W) -> Result<(), ToDigitsError> {
 }
 
 fn into_digits_validate<W: Word>(radix: W) -> Result<(), IntoDigitsError> {
-    let radix = radix.as_single() as usize;
+    let radix = radix.as_usize();
 
     if radix < 2 {
         return Err(IntoDigitsError::InvalidRadix { radix });
@@ -2280,7 +2277,7 @@ fn into_digits_validate<W: Word>(radix: W) -> Result<(), IntoDigitsError> {
 }
 
 fn from_digits<const L: usize, W: Word>(digits: &[W], exp: W) -> Result<[Single; L], FromDigitsError> {
-    let exp = exp.as_single() as usize;
+    let exp = exp.as_usize();
 
     if exp >= W::BITS {
         return Err(FromDigitsError::InvalidExponent { exp });
@@ -2297,7 +2294,7 @@ fn from_digits_iter<const L: usize, W: Word, Words>(digits: Words, exp: W) -> Re
 where
     Words: WordsIterator<Item = W>,
 {
-    let exp = exp.as_single() as usize;
+    let exp = exp.as_usize();
 
     if exp >= W::BITS {
         return Err(FromDigitsError::InvalidExponent { exp });
@@ -2371,7 +2368,7 @@ fn from_str_radix<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Sin
 fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec<W>, ToDigitsError> {
     to_digits_validate(exp)?;
 
-    let bits = exp.as_single() as usize;
+    let bits = exp.as_usize();
     let mask = (1 << bits) - 1;
     let len = (words.len() * BITS + bits - 1) / bits;
 
@@ -2401,7 +2398,7 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec
 fn to_digits_iter<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<DigitsIter<'_, L, W>, ToDigitsError> {
     to_digits_validate(exp)?;
 
-    let bits = exp.as_single() as usize;
+    let bits = exp.as_usize();
     let mask = (1 << bits) - 1;
     let cnt = length!(words);
     let len = (cnt * BITS + bits - 1) / bits;
@@ -2471,7 +2468,7 @@ fn into_digits_iter<const L: usize, W: Word>(
     Ok(DigitsRadixIter { words, radix, len })
 }
 
-fn write_dec(mut cursor: Cursor<&mut [u8]>, word: Single, width: usize) -> std::fmt::Result {
+fn write_dec(mut cursor: Cursor<&mut [u8]>, word: usize, width: usize) -> std::fmt::Result {
     match cursor.write_fmt(format_args!("{word:0width$}")) {
         Ok(()) => (),
         Err(_) => return Err(std::fmt::Error),
@@ -2480,7 +2477,7 @@ fn write_dec(mut cursor: Cursor<&mut [u8]>, word: Single, width: usize) -> std::
     Ok(())
 }
 
-fn write_bin(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std::fmt::Result {
+fn write_bin(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     let buf = cursor.into_inner();
 
     #[allow(clippy::unnecessary_cast)]
@@ -2492,7 +2489,7 @@ fn write_bin(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std::
     Ok(())
 }
 
-fn write_oct(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std::fmt::Result {
+fn write_oct(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     let buf = cursor.into_inner();
 
     #[allow(clippy::unnecessary_cast)]
@@ -2504,7 +2501,7 @@ fn write_oct(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std::
     Ok(())
 }
 
-fn write_lhex(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std::fmt::Result {
+fn write_lhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     const HEX: [u8; 16] = [
         b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
     ];
@@ -2512,14 +2509,14 @@ fn write_lhex(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std:
     let buf = cursor.into_inner();
 
     for byte in buf[..width].iter_mut().rev() {
-        *byte = HEX[(word % 16) as usize];
+        *byte = HEX[word % 16];
         word /= 16;
     }
 
     Ok(())
 }
 
-fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std::fmt::Result {
+fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     const HEX: [u8; 16] = [
         b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F',
     ];
@@ -2527,14 +2524,14 @@ fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: Single, width: usize) -> std:
     let buf = cursor.into_inner();
 
     for byte in buf[..width].iter_mut().rev() {
-        *byte = HEX[(word % 16) as usize];
+        *byte = HEX[word % 16];
         word /= 16;
     }
 
     Ok(())
 }
 
-fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
+fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     words: &[Single; L],
     radix: Radix,
@@ -2558,7 +2555,7 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Re
     for (i, &word) in words[..len].iter().enumerate() {
         let offset = (len - i - 1) * width;
 
-        func(Cursor::new(&mut buf[offset..]), word, width)?;
+        func(Cursor::new(&mut buf[offset..]), word.as_usize(), width)?;
     }
 
     let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
@@ -2570,7 +2567,7 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Re
     write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
-fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, Single, usize) -> std::fmt::Result>(
+fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     words: Words,
     radix: Radix,
@@ -2597,7 +2594,7 @@ where
     for (i, word) in words.enumerate() {
         let offset = (len - i - 1) * width;
 
-        func(Cursor::new(&mut buf[offset..]), word.as_single(), width)?;
+        func(Cursor::new(&mut buf[offset..]), word.as_usize(), width)?;
     }
 
     let offset = buf.iter().take_while(|&byte| byte == &b'0').count();

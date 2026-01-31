@@ -6,7 +6,7 @@ A Rust general-facilities library
 
 ### Ops
 
-Traits `ndlibr::ops::Ops` and `ndlibr::ops::OpsAssign` describes all standard Rust operations for types and auto-implemented for every applicable type.
+Traits `ndlib::ops::Ops` and `ndlib::ops::OpsAssign` describes all standard Rust operations for types and auto-implemented for every applicable type.
 
 ```rust
 /// T supports all binary `std::ops::*` by value
@@ -144,23 +144,59 @@ assert_eq!(std::mem::size_of::<U16>(), 16.div_ceil(word) * word);
 assert_eq!(std::mem::size_of::<B16>(), 16.div_ceil(word) * word);
 ```
 
-Types and aliases can be used with `ndlibr::num::Width` and `ndlibr::num::Modular` [types](#composable-types) for precise control.
+Types and aliases can be used with `ndlib::num::Width` and `ndlib::num::Modular` [types](#composable-types) for precise control.
 
-#### Interface (Compile-time)
+#### API (Compile-time)
 
-- `from_i8`, `from_i16`, `from_i32`, `from_i64`, `from_i128`, `from_isize` - constructors from signed integers (`Signed`)
-- `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - constructors from unsigned integers (`Unsigned`, `Bytes`)
-- `from_bytes` - constructor from bytes slice (`Signed`, `Unsigned`, `Bytes`)
+- `from_i8`, `from_i16`, `from_i32`, `from_i64`, `from_i128`, `from_isize` - convresions from signed primitives (`Signed`)
+- `from_u8`, `from_u16`, `from_u32`, `from_u64`, `from_u128`, `from_usize` - conversions from unsigned primitives (`Unsigned`, `Bytes`)
+- `from_bytes` - conversion from bytes slice (`Signed`, `Unsigned`, `Bytes`)
 
-#### Interface
+#### API (Conversions)
 
-- `nd_from`, `nd_try_from` - constructors from arrays and slices (`Signed`, `Unsigned`, `Bytes`)
-  - `nd_from` - overflow is trimmed (requires `ndlib::NdFrom`)
-  - `nd_try_from` - overflow is errored (requires `ndlib::NdTryFrom`)
-  - Supported types: `&[W; N]`, `&[W]`, where `W` is unsigned primitive up-to native word size
+- `From::from` - conversions from primitives (**overflow is wrapped**)
+  - Signed primitives (`Signed`)
+  - Unsigned primitives (`Unsigned`, `Bytes`)
+  - Booleans (`Signed`, `Unsigned`, `Bytes`)
+- `NdFrom::nd_from` - [conversions](#conversions) from arrays and slices (**overflow is wrapped**)
+  - Supported types: arrays and slices of unsigned primitive up-to native word size
+- `NdTryFrom::nd_try_from` - [conversions](#conversions) from arrays and slices (**overflow is checked**)
+  - Supported types: arrays and slices of unsigned primitive up-to native word size
+- `FromIterator::from_iter` - conversion from iterators (**overflow is wrapped**)
+  - Supported types: iters of unsigned primitive up-to native word size
+- `FromStr::from_str` - conversions from string slices (**overflow is checked**)
+  - Without-prefix - dec interpretation
+  - `0b`/`0B`-prefix - bin interpretation
+  - `0o`/`0O`-prefix - oct interpretation
+  - `0x`/`0X`-prefix - hex interpretation (case-insensitive)
+- `AsRef<[W]>` - conversion to ref slice of unsigned primitive up-to native word size
+- `AsMut<[W]>` - conversion to mut slice of unsigned primitive up-to native word size
+- `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex` - conversions to string
+  - `Display` as dec for `Signed`, `Unsigned`
+  - `Display` as hex for `Bytes`
 
-- `PartialEq`, `Eq` - const-time equality (`Signed`, `Unsigned`, `Bytes`)
-- `PartialOrd`, `Ord` - const-time equality (`Signed`, `Unsigned`, `Bytes`)
+#### API (Conversions Extra)
+
+Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specifies implementation for conversion from digits.
+
+- `ExpImpl` - specifies digits radix as `2 ** exp`
+- `RadixImpl` - specifies digits radix as raw
+
+- `FromDigits::from_digits` - conversion from digits (as slice) of arbitrary radix/exp
+  - Supported types: slices of unsigned primitive up-to native word size
+- `FromDigitsIter::from_digits_iter` - conversion from digits (as iter) of arbitrary radix/exp
+  - Supported types: iters of unsigned primitive up-to native word size
+- `ToDigits::to_digits` - conversion to digits (as vec) or arbitrary exp
+- `ToDigitsIter::to_digits_iter` - conversion to digits (as iter) or arbitrary exp
+- `IntoDigits::into_digits` - conversion into digits (as vec) or arbitrary radix
+- `IntoDigitsIter::into_digits_iter` - conversion into digits (as iter) or arbitrary radix
+
+#### API (Eq/Cmp)
+
+- `PartialEq`, `Eq` - const-time eq (`Signed`, `Unsigned`, `Bytes`)
+- `PartialOrd`, `Ord` - const-time cmp (`Signed`, `Unsigned`)
+
+#### API (Ops)
 
 ### Prime Numbers
 
@@ -170,14 +206,14 @@ Types and aliases can be used with `ndlibr::num::Width` and `ndlibr::num::Modula
 
 ### Composable Types
 
-Type `ndlibr::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
+Type `ndlib::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
 
 - `x86`: 64 bytes
 - `x86_64`: 64 bytes
 - `arm`: 64 bytes
 - `aarch64`: 128 bytes
 
-Types `ndlibr::num::Width` and `ndlibr::num::Modular` specifies numbers and forwards implementation for most of standard Rust traits.
+Types `ndlib::num::Width` and `ndlib::num::Modular` specifies numbers and forwards implementation for most of standard Rust traits.
 
 - `Width<N, BITS>`: number `N` width `BITS`
 - `Modular<N, M>`: number `N` modulo `M::MOD`
@@ -187,6 +223,20 @@ let s1337 = Width::<S1536, 1337>::default(); // Signed of length 1337-bits and s
 let u1337 = Width::<U1536, 1337>::default(); // Unsigned of length 1337-bits and statically allocated size of at least 1536-bits
 let b1337 = Width::<B1536, 1337>::default(); // Bytes of length 1337-bits and statically allocated size of at least 1536-bits
 ```
+
+### Conversions
+
+Traits `ndlib::NdFrom` and `ndlib::NdTryFrom` describes conversion from types.
+
+- Like `std::convert::From` and `std::convert::TryFrom`, they can be used for conversion
+- Unlike `std::convert::From` and `std::convert::TryFrom`, they can be used [simultaneously](https://github.com/rust-lang/rust/issues/50133)
+
+Relations:
+
+- `From` does auto-implement `NdFrom`
+- `TryFrom` does auto-implement `NdTryFrom`
+- `From` does auto-implement `TryFrom`
+- `NdFrom` does **not** auto-implement `NdTryFrom`
 
 ## Dev Requirements
 
