@@ -25,12 +25,41 @@ enum Ops {
     Unary(TokenStream),
 }
 
-struct OpsImpl<OpsSignature: Parse, Op: Parse> {
+struct OpsDef<OpsSignature: Parse, Op: Parse> {
     generics: Generics,
     signature: OpsSignature,
     #[allow(unused)]
     colon: Token![,],
-    entries: Punctuated<OpsImplEntry<Op>, Token![,]>,
+    impls: Punctuated<OpsImpl<Op>, Token![,]>,
+}
+
+struct OpsDefAutoBin<OpsSignature: Parse, Op: Parse> {
+    generics: Generics,
+    signature: OpsSignature,
+    #[allow(unused)]
+    colon: Token![,],
+    #[allow(unused)]
+    lhs_paren: Paren,
+    lhs_expr: Expr,
+    #[allow(unused)]
+    rhs_paren: Paren,
+    rhs_expr: Expr,
+    #[allow(unused)]
+    ops_bracket: Bracket,
+    ops: Punctuated<Op, Token![,]>,
+}
+
+struct OpsDefAutoUn<OpsSignature: Parse, Op: Parse> {
+    generics: Generics,
+    signature: OpsSignature,
+    #[allow(unused)]
+    colon: Token![,],
+    #[allow(unused)]
+    self_paren: Paren,
+    self_expr: Expr,
+    #[allow(unused)]
+    ops_bracket: Bracket,
+    ops: Punctuated<Op, Token![,]>,
 }
 
 struct OpsSignatureMutable {
@@ -102,38 +131,9 @@ struct OpsSignatureUnary {
     ty: Type,
 }
 
-struct OpsImplEntry<Op: Parse> {
+struct OpsImpl<Op: Parse> {
     op: Op,
     expr: Expr,
-}
-
-struct OpsImplAutoBin<OpsSignature: Parse, Op: Parse> {
-    generics: Generics,
-    signature: OpsSignature,
-    #[allow(unused)]
-    colon: Token![,],
-    #[allow(unused)]
-    lhs_paren: Paren,
-    lhs_expr: Expr,
-    #[allow(unused)]
-    rhs_paren: Paren,
-    rhs_expr: Expr,
-    #[allow(unused)]
-    ops_bracket: Bracket,
-    ops: Punctuated<Op, Token![,]>,
-}
-
-struct OpsImplAutoUn<OpsSignature: Parse, Op: Parse> {
-    generics: Generics,
-    signature: OpsSignature,
-    #[allow(unused)]
-    colon: Token![,],
-    #[allow(unused)]
-    lhs_paren: Paren,
-    lhs_expr: Expr,
-    #[allow(unused)]
-    ops_bracket: Bracket,
-    ops: Punctuated<Op, Token![,]>,
 }
 
 struct Forward {
@@ -195,13 +195,13 @@ enum ForwardArgument {
     Alt(TokenStream),
 }
 
-type OpsImplMutable = OpsImpl<OpsSignatureMutable, BinOp>;
-type OpsImplBinary = OpsImpl<OpsSignatureBinary, BinOp>;
-type OpsImplUnary = OpsImpl<OpsSignatureUnary, UnOp>;
+type OpsDefMutable = OpsDef<OpsSignatureMutable, BinOp>;
+type OpsDefBinary = OpsDef<OpsSignatureBinary, BinOp>;
+type OpsDefUnary = OpsDef<OpsSignatureUnary, UnOp>;
 
-type OpsImplAutoMutable = OpsImplAutoBin<OpsSignatureMutable, BinOp>;
-type OpsImplAutoBinary = OpsImplAutoBin<OpsSignatureBinary, BinOp>;
-type OpsImplAutoUnary = OpsImplAutoUn<OpsSignatureUnary, UnOp>;
+type OpsDefAutoMutable = OpsDefAutoBin<OpsSignatureMutable, BinOp>;
+type OpsDefAutoBinary = OpsDefAutoBin<OpsSignatureBinary, BinOp>;
+type OpsDefAutoUnary = OpsDefAutoUn<OpsSignatureUnary, UnOp>;
 
 impl Parse for Ops {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -290,7 +290,7 @@ impl Parse for OpsSignatureUnary {
     }
 }
 
-impl<Op: Parse> Parse for OpsImplEntry<Op> {
+impl<Op: Parse> Parse for OpsImpl<Op> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
@@ -299,7 +299,7 @@ impl<Op: Parse> Parse for OpsImplEntry<Op> {
     }
 }
 
-impl<OpsSinature: Parse, Op: Parse> Parse for OpsImpl<OpsSinature, Op> {
+impl<OpsSinature: Parse, Op: Parse> Parse for OpsDef<OpsSinature, Op> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -311,12 +311,12 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImpl<OpsSinature, Op> {
             },
             signature: input.parse()?,
             colon: input.parse()?,
-            entries: input.parse_terminated(OpsImplEntry::parse, Token![,])?,
+            impls: input.parse_terminated(OpsImpl::parse, Token![,])?,
         })
     }
 }
 
-impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoBin<OpsSinature, Op> {
+impl<OpsSinature: Parse, Op: Parse> Parse for OpsDefAutoBin<OpsSinature, Op> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -342,12 +342,12 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoBin<OpsSinature, Op> {
     }
 }
 
-impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
+impl<OpsSinature: Parse, Op: Parse> Parse for OpsDefAutoUn<OpsSinature, Op> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
 
-        let lhs_content;
+        let self_content;
         let ops_content;
 
         Ok(Self {
@@ -357,8 +357,8 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsImplAutoUn<OpsSinature, Op> {
             },
             signature: input.parse()?,
             colon: input.parse()?,
-            lhs_paren: parenthesized!(lhs_content in input),
-            lhs_expr: lhs_content.parse()?,
+            self_paren: parenthesized!(self_content in input),
+            self_expr: self_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
             ops: ops_content.parse_terminated(Op::parse, Token![,])?,
         })
@@ -474,7 +474,7 @@ impl Parse for ForwardIdents {
     }
 }
 
-impl ToTokens for OpsImplMutable {
+impl ToTokens for OpsDefMutable {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
@@ -523,7 +523,7 @@ impl ToTokens for OpsImplMutable {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in &self.entries {
+        for entry in &self.impls {
             let spec = OpsSpec {
                 op: &entry.op,
                 generics: &self.generics,
@@ -577,7 +577,7 @@ impl ToTokens for OpsImplMutable {
     }
 }
 
-impl ToTokens for OpsImplBinary {
+impl ToTokens for OpsDefBinary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
@@ -627,7 +627,7 @@ impl ToTokens for OpsImplBinary {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in &self.entries {
+        for entry in &self.impls {
             let spec = OpsSpec {
                 op: &entry.op,
                 generics: &self.generics,
@@ -681,7 +681,7 @@ impl ToTokens for OpsImplBinary {
     }
 }
 
-impl ToTokens for OpsImplUnary {
+impl ToTokens for OpsDefUnary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
@@ -725,7 +725,7 @@ impl ToTokens for OpsImplUnary {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in &self.entries {
+        for entry in &self.impls {
             let spec = OpsSpec {
                 op: &entry.op,
                 generics: &self.generics,
@@ -820,15 +820,15 @@ impl ForwardArgument {
 #[proc_macro]
 pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
-        Ops::Mutable(tokens) => match parse2::<OpsImplMutable>(tokens) {
+        Ops::Mutable(tokens) => match parse2::<OpsDefMutable>(tokens) {
             Ok(val) => quote! { #val }.into(),
             Err(err) => err.into_compile_error().into(),
         },
-        Ops::Binary(tokens) => match parse2::<OpsImplBinary>(tokens) {
+        Ops::Binary(tokens) => match parse2::<OpsDefBinary>(tokens) {
             Ok(val) => quote! { #val }.into(),
             Err(err) => err.into_compile_error().into(),
         },
-        Ops::Unary(tokens) => match parse2::<OpsImplUnary>(tokens) {
+        Ops::Unary(tokens) => match parse2::<OpsDefUnary>(tokens) {
             Ok(val) => quote! { #val }.into(),
             Err(err) => err.into_compile_error().into(),
         },
@@ -841,81 +841,81 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
     match ops {
         Ops::Mutable(tokens) => {
-            let auto = match parse2::<OpsImplAutoMutable>(tokens) {
+            let auto = match parse2::<OpsDefAutoMutable>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
             };
 
-            let ops = OpsImplMutable {
+            let ops = OpsDefMutable {
                 generics: auto.generics,
                 signature: auto.signature,
                 colon: Default::default(),
-                entries: auto
+                impls: auto
                     .ops
                     .into_iter()
                     .map(|op| {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImplEntry::<BinOp> {
+                        OpsImpl::<BinOp> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs; }},
                         }
                     })
-                    .collect::<Punctuated<OpsImplEntry<BinOp>, Token![,]>>(),
+                    .collect::<Punctuated<OpsImpl<BinOp>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
         },
         Ops::Binary(tokens) => {
-            let auto = match parse2::<OpsImplAutoBinary>(tokens) {
+            let auto = match parse2::<OpsDefAutoBinary>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
             };
 
-            let ops = OpsImplBinary {
+            let ops = OpsDefBinary {
                 generics: auto.generics,
                 signature: auto.signature,
                 colon: Default::default(),
-                entries: auto
+                impls: auto
                     .ops
                     .into_iter()
                     .map(|op| {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImplEntry::<BinOp> {
+                        OpsImpl::<BinOp> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs }},
                         }
                     })
-                    .collect::<Punctuated<OpsImplEntry<BinOp>, Token![,]>>(),
+                    .collect::<Punctuated<OpsImpl<BinOp>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
         },
         Ops::Unary(tokens) => {
-            let auto = match parse2::<OpsImplAutoUnary>(tokens) {
+            let auto = match parse2::<OpsDefAutoUnary>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
             };
 
-            let ops = OpsImplUnary {
+            let ops = OpsDefUnary {
                 generics: auto.generics,
                 signature: auto.signature,
                 colon: Default::default(),
-                entries: auto
+                impls: auto
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &auto.lhs_expr;
+                        let expr = &auto.self_expr;
 
-                        OpsImplEntry::<UnOp> {
+                        OpsImpl::<UnOp> {
                             op,
-                            expr: parse_quote! {{ #op #lhs }},
+                            expr: parse_quote! {{ #op #expr }},
                         }
                     })
-                    .collect::<Punctuated<OpsImplEntry<UnOp>, Token![,]>>(),
+                    .collect::<Punctuated<OpsImpl<UnOp>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
