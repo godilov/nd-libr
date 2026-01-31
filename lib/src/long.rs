@@ -58,7 +58,7 @@ macro_rules! cmp_const {
             },
         );
 
-        match lt - gt {
+        match std::hint::black_box(lt - gt) {
             -1 => Ordering::Greater,
             0 => Ordering::Equal,
             1 => Ordering::Less,
