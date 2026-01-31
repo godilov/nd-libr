@@ -155,8 +155,8 @@ Types and aliases can be used with `ndlibr::num::Width` and `ndlibr::num::Modula
 #### Interface
 
 - `nd_from`, `nd_try_from` - constructors from arrays and slices (`Signed`, `Unsigned`, `Bytes`)
-  - `nd_from` - overflow is trimmed
-  - `nd_try_from` - overflow is errored
+  - `nd_from` - overflow is trimmed (requires `ndlib::NdFrom`)
+  - `nd_try_from` - overflow is errored (requires `ndlib::NdTryFrom`)
   - Supported types: `&[W; N]`, `&[W]`, where `W` is unsigned primitive up-to native word size
 
 - `PartialEq`, `Eq` - const-time equality (`Signed`, `Unsigned`, `Bytes`)
