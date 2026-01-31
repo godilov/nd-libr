@@ -25,17 +25,17 @@ enum Ops {
     Unary(TokenStream),
 }
 
-struct OpsDef<OpsSignature: Parse, Op: Parse> {
+struct OpsDef<Signature: OpsSignature> {
     generics: Generics,
-    signature: OpsSignature,
+    signature: Signature,
     #[allow(unused)]
     colon: Token![,],
-    impls: Punctuated<OpsImpl<Op>, Token![,]>,
+    impls: Punctuated<OpsImpl<Signature::Op>, Token![,]>,
 }
 
-struct OpsDefAutoBin<OpsSignature: Parse, Op: Parse> {
+struct OpsDefAutoBin<Signature: OpsSignature> {
     generics: Generics,
-    signature: OpsSignature,
+    signature: Signature,
     #[allow(unused)]
     colon: Token![,],
     #[allow(unused)]
@@ -46,12 +46,12 @@ struct OpsDefAutoBin<OpsSignature: Parse, Op: Parse> {
     rhs_expr: Expr,
     #[allow(unused)]
     ops_bracket: Bracket,
-    ops: Punctuated<Op, Token![,]>,
+    ops: Punctuated<Signature::Op, Token![,]>,
 }
 
-struct OpsDefAutoUn<OpsSignature: Parse, Op: Parse> {
+struct OpsDefAutoUn<Signature: OpsSignature> {
     generics: Generics,
-    signature: OpsSignature,
+    signature: Signature,
     #[allow(unused)]
     colon: Token![,],
     #[allow(unused)]
@@ -59,7 +59,7 @@ struct OpsDefAutoUn<OpsSignature: Parse, Op: Parse> {
     self_expr: Expr,
     #[allow(unused)]
     ops_bracket: Bracket,
-    ops: Punctuated<Op, Token![,]>,
+    ops: Punctuated<Signature::Op, Token![,]>,
 }
 
 struct OpsSignatureMutable {
@@ -195,13 +195,29 @@ enum ForwardArgument {
     Alt(TokenStream),
 }
 
-type OpsDefMutable = OpsDef<OpsSignatureMutable, BinOp>;
-type OpsDefBinary = OpsDef<OpsSignatureBinary, BinOp>;
-type OpsDefUnary = OpsDef<OpsSignatureUnary, UnOp>;
+type OpsDefMutable = OpsDef<OpsSignatureMutable>;
+type OpsDefBinary = OpsDef<OpsSignatureBinary>;
+type OpsDefUnary = OpsDef<OpsSignatureUnary>;
 
-type OpsDefAutoMutable = OpsDefAutoBin<OpsSignatureMutable, BinOp>;
-type OpsDefAutoBinary = OpsDefAutoBin<OpsSignatureBinary, BinOp>;
-type OpsDefAutoUnary = OpsDefAutoUn<OpsSignatureUnary, UnOp>;
+type OpsDefAutoMutable = OpsDefAutoBin<OpsSignatureMutable>;
+type OpsDefAutoBinary = OpsDefAutoBin<OpsSignatureBinary>;
+type OpsDefAutoUnary = OpsDefAutoUn<OpsSignatureUnary>;
+
+trait OpsSignature: Parse {
+    type Op: Parse;
+}
+
+impl OpsSignature for OpsSignatureMutable {
+    type Op = BinOp;
+}
+
+impl OpsSignature for OpsSignatureBinary {
+    type Op = BinOp;
+}
+
+impl OpsSignature for OpsSignatureUnary {
+    type Op = UnOp;
+}
 
 impl Parse for Ops {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -299,7 +315,7 @@ impl<Op: Parse> Parse for OpsImpl<Op> {
     }
 }
 
-impl<OpsSinature: Parse, Op: Parse> Parse for OpsDef<OpsSinature, Op> {
+impl<Signature: OpsSignature> Parse for OpsDef<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -316,7 +332,7 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsDef<OpsSinature, Op> {
     }
 }
 
-impl<OpsSinature: Parse, Op: Parse> Parse for OpsDefAutoBin<OpsSinature, Op> {
+impl<Signature: OpsSignature> Parse for OpsDefAutoBin<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -337,12 +353,12 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsDefAutoBin<OpsSinature, Op> {
             rhs_paren: parenthesized!(rhs_content in input),
             rhs_expr: rhs_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
-            ops: ops_content.parse_terminated(Op::parse, Token![,])?,
+            ops: ops_content.parse_terminated(Signature::Op::parse, Token![,])?,
         })
     }
 }
 
-impl<OpsSinature: Parse, Op: Parse> Parse for OpsDefAutoUn<OpsSinature, Op> {
+impl<Signature: OpsSignature> Parse for OpsDefAutoUn<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -360,7 +376,7 @@ impl<OpsSinature: Parse, Op: Parse> Parse for OpsDefAutoUn<OpsSinature, Op> {
             self_paren: parenthesized!(self_content in input),
             self_expr: self_content.parse()?,
             ops_bracket: bracketed!(ops_content in input),
-            ops: ops_content.parse_terminated(Op::parse, Token![,])?,
+            ops: ops_content.parse_terminated(Signature::Op::parse, Token![,])?,
         })
     }
 }
