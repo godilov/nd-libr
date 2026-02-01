@@ -242,6 +242,13 @@ Type `ndlib::num::prime::Primes` is empty and exposes functions to generate prim
 - `Primes::by_count_fast` - iterate prime numbers by count (Miller-Rabin)
 - `Primes::by_limit_fast` - iterate prime numbers by limit (Miller-Rabin)
 
+Traits `ndlib::num::prime::Primality` and `ndlib::num::prime::PrimalityExtension` describe prime number container types and facilities.
+
+- `Primality::primes` - prime numbers to check against (Miller-Rabin)
+- `Primality::is_prime` - prime numbes check (Miller-Rabin)
+- `PrimalityExtension::rand_prime` - generate prime number of binary order
+- `PrimalityExtension::rand_primes` - generate prime numbers of binary order and count
+
 ### Composable Types
 
 Type `ndlib::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
