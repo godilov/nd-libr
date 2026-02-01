@@ -196,20 +196,20 @@ Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specify implementation
 - `IntoDigitsIter::into_digits_iter` - conversion into digits iter of arbitrary radix
 
 ```rust
-let s1024exp   = S1024::from_digits(&[1, 3, 3, 7], ExpImpl { exp: 3u8 })?;     // Value: (1 * 2^0) + (3 * 2^3) + (3 * 2^6) + (7 * 2^9)
-let u1024exp   = U1024::from_digits(&[1, 3, 3, 7], ExpImpl { exp: 3u8 })?;     // Value: (1 * 2^0) + (3 * 2^3) + (3 * 2^6) + (7 * 2^9)
-let s1024radix = S1024::from_digits(&[1, 3, 3, 7], RadixImpl { radix: 9u8 })?; // Value: (1 * 9^0) + (3 * 9^1) + (3 * 9^2) + (7 * 9^3)
-let u1024radix = U1024::from_digits(&[1, 3, 3, 7], RadixImpl { radix: 9u8 })?; // Value: (1 * 9^0) + (3 * 9^1) + (3 * 9^2) + (7 * 9^3)
+let sexp   = S1024::from_digits(&[1, 3, 3, 7], ExpImpl { exp: 3u8 })?;     // Value: (1 * 2^0) + (3 * 2^3) + (3 * 2^6) + (7 * 2^9)
+let uexp   = U1024::from_digits(&[1, 3, 3, 7], ExpImpl { exp: 3u8 })?;     // Value: (1 * 2^0) + (3 * 2^3) + (3 * 2^6) + (7 * 2^9)
+let sradix = S1024::from_digits(&[1, 3, 3, 7], RadixImpl { radix: 9u8 })?; // Value: (1 * 9^0) + (3 * 9^1) + (3 * 9^2) + (7 * 9^3)
+let uradix = U1024::from_digits(&[1, 3, 3, 7], RadixImpl { radix: 9u8 })?; // Value: (1 * 9^0) + (3 * 9^1) + (3 * 9^2) + (7 * 9^3)
 
-let s1024v = s1024exp.to_digits(ExpImpl { exp: 3u8 })?;      // Vec:  [1, 3, 3, 7]
-let u1024v = u1024exp.to_digits(ExpImpl { exp: 3u8 })?;      // Vec:  [1, 3, 3, 7]
-let s1024i = s1024exp.to_digits_iter(ExpImpl { exp: 3u8 })?; // Iter: [1, 3, 3, 7]
-let u1024i = u1024exp.to_digits_iter(ExpImpl { exp: 3u8 })?; // Iter: [1, 3, 3, 7]
+let sv = sexp.to_digits(ExpImpl { exp: 3u8 })?;      // Vec:  [1, 3, 3, 7]
+let uv = uexp.to_digits(ExpImpl { exp: 3u8 })?;      // Vec:  [1, 3, 3, 7]
+let si = sexp.to_digits_iter(ExpImpl { exp: 3u8 })?; // Iter: [1, 3, 3, 7]
+let ui = uexp.to_digits_iter(ExpImpl { exp: 3u8 })?; // Iter: [1, 3, 3, 7]
 
-let s1024v = s1024radix.into_digits(RadixImpl { radix: 9u8 })?;    // Vec:  [1, 3, 3, 7]
-let u1024v = u1024radix.into_digits(RadixImpl { radix: 9u8 })?;    // Vec:  [1, 3, 3, 7]
-let s1024i = s1024radix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
-let u1024i = u1024radix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
+let sv = sradix.into_digits(RadixImpl { radix: 9u8 })?;    // Vec:  [1, 3, 3, 7]
+let uv = uradix.into_digits(RadixImpl { radix: 9u8 })?;    // Vec:  [1, 3, 3, 7]
+let si = sradix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
+let ui = uradix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
 ```
 
 #### API (Eq/Cmp)
