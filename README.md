@@ -235,9 +235,12 @@ Operations with primitive support:
 
 ### Prime Numbers
 
-```rust
+Type `ndlib::num::prime::Primes` is empty and exposes functions to generate prime numbers.
 
-```
+- `Primes::by_count_full` - iterate prime numbers by count (divisibility by prime numbers up to square root)
+- `Primes::by_limit_full` - iterate prime numbers by limit (divisibility by prime numbers up to square root)
+- `Primes::by_count_fast` - iterate prime numbers by count (Miller-Rabin)
+- `Primes::by_limit_fast` - iterate prime numbers by limit (Miller-Rabin)
 
 ### Composable Types
 
