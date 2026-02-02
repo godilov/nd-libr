@@ -699,6 +699,20 @@ where
     const MAX: Self;
 }
 
+pub trait Zero: Num
+where
+    for<'s> &'s Self: Ops<Self>,
+{
+    const ZERO: Self;
+}
+
+pub trait One: Num
+where
+    for<'s> &'s Self: Ops<Self>,
+{
+    const ONE: Self;
+}
+
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy
 where
     for<'s> &'s N: Ops<N>,
