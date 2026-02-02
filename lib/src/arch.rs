@@ -155,6 +155,15 @@ pub mod word {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
+#[forward_decl]
+pub trait Static {
+    /// Allocation size in bits: std::mem::size_of::<Self>()
+    const BITS: usize;
+
+    /// Allocation size in bytes: std::mem::size_of::<Self>() / 8
+    const BYTES: usize;
+}
+
 impl<T> From<T> for Aligned<T> {
     fn from(value: T) -> Self {
         Aligned(value)
