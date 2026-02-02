@@ -48,11 +48,7 @@ macro_rules! num_impl {
             }
         }
 
-        impl Static for $primitive {
-            const BITS: usize = <$primitive>::BITS as usize;
-            const BYTES: usize = (<$primitive>::BITS as usize) / 8;
-            const ZERO: Self = 0;
-            const ONE: Self = 1;
+        impl Finite for $primitive {
             const MIN: Self = Self::MIN;
             const MAX: Self = Self::MAX;
         }
@@ -433,7 +429,6 @@ pub mod prime {
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops<N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num, const BITS: usize>(pub N)
 where
@@ -446,7 +441,6 @@ where
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
-// #[forward_def(self.0 with N: crate::num::Static         where N: Static,        for<'s> &'s N: Ops<N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
@@ -697,15 +691,10 @@ where
     fn sqrt(&self) -> Self;
 }
 
-#[forward_decl]
-pub trait Static: Num + Copy
+pub trait Finite: Num
 where
     for<'s> &'s Self: Ops<Self>,
 {
-    const BITS: usize;
-    const BYTES: usize;
-    const ZERO: Self;
-    const ONE: Self;
     const MIN: Self;
     const MAX: Self;
 }

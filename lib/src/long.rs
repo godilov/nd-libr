@@ -15,7 +15,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 use crate::{
     arch::word::*,
     long::{radix::*, uops::*},
-    num::{Num, NumExtension, Sign, Signed as NumSigned, Static as NumStatic, Unsigned as NumUnsigned},
+    num::{Finite as NumStatic, Num, NumExtension, Sign, Signed as NumSigned, Unsigned as NumUnsigned},
     ops::*,
     *,
 };
@@ -2086,7 +2086,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
         let len = length!(&self.0);
 
         match len {
-            0 => Self::ZERO,
+            0 => Self::zero(),
             l => Self::from((l - 1) * BITS + self.0[l - 1].order()),
         }
     }
@@ -2097,8 +2097,6 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 }
 
 impl<const L: usize> NumStatic for Signed<L> {
-    const BITS: usize = L * BITS;
-    const BYTES: usize = L * BYTES;
     const MAX: Self = Self({
         let mut res = [MAX; L];
 
@@ -2111,17 +2109,11 @@ impl<const L: usize> NumStatic for Signed<L> {
         res[L - 1] = 1 << (BITS - 1);
         res
     });
-    const ONE: Self = Self::from_isize(0);
-    const ZERO: Self = Self::from_isize(0);
 }
 
 impl<const L: usize> NumStatic for Unsigned<L> {
-    const BITS: usize = BITS;
-    const BYTES: usize = BYTES;
     const MAX: Self = Self([MAX; L]);
     const MIN: Self = Self([MIN; L]);
-    const ONE: Self = Self::from_usize(0);
-    const ZERO: Self = Self::from_usize(0);
 }
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
