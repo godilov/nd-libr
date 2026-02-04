@@ -427,10 +427,9 @@ pub mod prime {
 #[forward_fmt(self.0 with N)]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
-#[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num, const BITS: usize>(pub N)
+pub struct Width<N: Num + NumExtension + Unsigned, const BITS: usize>(pub N)
 where
     for<'s> &'s N: Ops<N>;
 
@@ -439,10 +438,9 @@ where
 #[forward_fmt(self.0 with N)]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<N>)]
-#[forward_def(self.0 with N: crate::num::Signed         where N: Signed,        for<'s> &'s N: Ops<N>)]
 #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<N>)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modular<N: Num, M: Modulus<N>>(pub N, pub PhantomData<M>)
+pub struct Modular<N: Num + NumExtension + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
     for<'s> &'s N: Ops<N>;
 
@@ -735,7 +733,7 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-impl<N: Num, const BITS: usize> From<N> for Width<N, BITS>
+impl<N: Num + NumExtension + Unsigned, const BITS: usize> From<N> for Width<N, BITS>
 where
     for<'s> &'s N: Ops<N>,
 {
@@ -744,7 +742,7 @@ where
     }
 }
 
-impl<N: Num, M: Modulus<N>> From<N> for Modular<N, M>
+impl<N: Num + NumExtension + Unsigned, M: Modulus<N>> From<N> for Modular<N, M>
 where
     for<'s> &'s N: Ops<N>,
 {
@@ -753,7 +751,7 @@ where
     }
 }
 
-impl<N: Num, const BITS: usize> Width<N, BITS>
+impl<N: Num + NumExtension + Unsigned, const BITS: usize> Width<N, BITS>
 where
     for<'s> &'s N: Ops<N>,
 {
@@ -767,7 +765,7 @@ where
     }
 }
 
-impl<N: Num, M: Modulus<N>> Modular<N, M>
+impl<N: Num + NumExtension + Unsigned, M: Modulus<N>> Modular<N, M>
 where
     for<'s> &'s N: Ops<N>,
 {
