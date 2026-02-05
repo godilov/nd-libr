@@ -4,13 +4,13 @@ use quote::{ToTokens, format_ident, quote};
 use syn::{
     BinOp, Error, Expr, ExprClosure, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait,
     ItemUnion, Meta, Path, Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, UnOp,
-    WhereClause, bracketed,
+    WhereClause, braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote, parse_str, parse2,
     punctuated::Punctuated,
-    token::{Bracket, Paren},
+    token::{Brace, Bracket, Paren},
 };
 
 mod kw {
@@ -136,6 +136,31 @@ struct OpsImpl<Signature: OpsSignature> {
     expr: Expr,
 }
 
+struct OpsImplExtended<Signature: OpsSignature> {
+    op: Signature::Op,
+    #[allow(unused)]
+    brace: Brace,
+    elems: Punctuated<OpsImplExtendedElem, Token![,]>,
+}
+
+struct OpsImplExtendedElem {
+    qualifier: OpsImplQualifier,
+    expr: Expr,
+    conditions: WhereClause,
+}
+
+struct OpsImplQualifier {
+    #[allow(unused)]
+    paren: Paren,
+    lhs: OpsImplQualifierKind,
+    rhs: OpsImplQualifierKind,
+}
+
+enum OpsImplQualifierKind {
+    Raw,
+    Ref,
+}
+
 struct Forward {
     expr: Expr,
     #[allow(unused)]
@@ -242,6 +267,72 @@ impl Parse for Ops {
     }
 }
 
+impl<Signature: OpsSignature> Parse for OpsDef<Signature> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
+
+        Ok(Self {
+            generics: Generics {
+                where_clause: gen_where,
+                ..gen_
+            },
+            signature: input.parse()?,
+            colon: input.parse()?,
+            impls: input.parse_terminated(OpsImpl::parse, Token![,])?,
+        })
+    }
+}
+
+impl<Signature: OpsSignature> Parse for OpsDefAutoBin<Signature> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
+
+        let lhs_content;
+        let rhs_content;
+        let ops_content;
+
+        Ok(Self {
+            generics: Generics {
+                where_clause: gen_where,
+                ..gen_
+            },
+            signature: input.parse()?,
+            colon: input.parse()?,
+            lhs_paren: parenthesized!(lhs_content in input),
+            lhs_expr: lhs_content.parse()?,
+            rhs_paren: parenthesized!(rhs_content in input),
+            rhs_expr: rhs_content.parse()?,
+            ops_bracket: bracketed!(ops_content in input),
+            ops: ops_content.parse_terminated(Signature::Op::parse, Token![,])?,
+        })
+    }
+}
+
+impl<Signature: OpsSignature> Parse for OpsDefAutoUn<Signature> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
+
+        let self_content;
+        let ops_content;
+
+        Ok(Self {
+            generics: Generics {
+                where_clause: gen_where,
+                ..gen_
+            },
+            signature: input.parse()?,
+            colon: input.parse()?,
+            self_paren: parenthesized!(self_content in input),
+            self_expr: self_content.parse()?,
+            ops_bracket: bracketed!(ops_content in input),
+            ops: ops_content.parse_terminated(Signature::Op::parse, Token![,])?,
+        })
+    }
+}
+
 impl Parse for OpsSignatureMutable {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
@@ -315,69 +406,51 @@ impl<Signature: OpsSignature> Parse for OpsImpl<Signature> {
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsDef<Signature> {
+impl<Signature: OpsSignature> Parse for OpsImplExtended<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
+        let content;
 
         Ok(Self {
-            generics: Generics {
-                where_clause: gen_where,
-                ..gen_
-            },
-            signature: input.parse()?,
-            colon: input.parse()?,
-            impls: input.parse_terminated(OpsImpl::parse, Token![,])?,
+            op: input.parse()?,
+            brace: braced!(content in input),
+            elems: content.parse_terminated(OpsImplExtendedElem::parse, Token![,])?,
         })
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsDefAutoBin<Signature> {
+impl Parse for OpsImplExtendedElem {
     fn parse(input: ParseStream) -> Result<Self> {
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
-
-        let lhs_content;
-        let rhs_content;
-        let ops_content;
-
         Ok(Self {
-            generics: Generics {
-                where_clause: gen_where,
-                ..gen_
-            },
-            signature: input.parse()?,
-            colon: input.parse()?,
-            lhs_paren: parenthesized!(lhs_content in input),
-            lhs_expr: lhs_content.parse()?,
-            rhs_paren: parenthesized!(rhs_content in input),
-            rhs_expr: rhs_content.parse()?,
-            ops_bracket: bracketed!(ops_content in input),
-            ops: ops_content.parse_terminated(Signature::Op::parse, Token![,])?,
+            qualifier: input.parse()?,
+            expr: input.parse()?,
+            conditions: input.parse()?,
         })
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsDefAutoUn<Signature> {
+impl Parse for OpsImplQualifier {
     fn parse(input: ParseStream) -> Result<Self> {
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
-
-        let self_content;
-        let ops_content;
+        let content;
 
         Ok(Self {
-            generics: Generics {
-                where_clause: gen_where,
-                ..gen_
-            },
-            signature: input.parse()?,
-            colon: input.parse()?,
-            self_paren: parenthesized!(self_content in input),
-            self_expr: self_content.parse()?,
-            ops_bracket: bracketed!(ops_content in input),
-            ops: ops_content.parse_terminated(Signature::Op::parse, Token![,])?,
+            paren: parenthesized!(content in input),
+            lhs: content.parse()?,
+            rhs: content.parse()?,
         })
+    }
+}
+
+impl Parse for OpsImplQualifierKind {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Token![_]) {
+            return input.parse::<Token![_]>().map(|_| OpsImplQualifierKind::Raw);
+        } else if lookahead.peek(Token![&]) {
+            return input.parse::<Token![&]>().map(|_| OpsImplQualifierKind::Ref);
+        }
+
+        Err(lookahead.error())
     }
 }
 
