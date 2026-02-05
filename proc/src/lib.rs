@@ -1031,7 +1031,7 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
         impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
             fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
-                <#ty>::from_iter(iter).into()
+                Self::from(<#ty>::from_iter(iter))
             }
         }
     }

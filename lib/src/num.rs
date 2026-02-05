@@ -711,6 +711,28 @@ where
     const ONE: Self;
 }
 
+pub trait FiniteDyn: Num
+where
+    for<'s> &'s Self: Ops<Self>,
+{
+    fn min() -> Self;
+    fn max() -> Self;
+}
+
+pub trait ZeroDyn: Num
+where
+    for<'s> &'s Self: Ops<Self>,
+{
+    fn zero() -> Self;
+}
+
+pub trait OneDyn: Num
+where
+    for<'s> &'s Self: Ops<Self>,
+{
+    fn one() -> Self;
+}
+
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy
 where
     for<'s> &'s N: Ops<N>,

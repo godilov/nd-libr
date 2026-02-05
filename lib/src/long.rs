@@ -15,7 +15,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 use crate::{
     arch::word::*,
     long::{radix::*, uops::*},
-    num::{Finite as NumStatic, Num, NumExtension, Sign, Signed as NumSigned, Unsigned as NumUnsigned},
+    num::{Finite, Num, NumExtension, Sign, Signed as NumSigned, Unsigned as NumUnsigned},
     ops::*,
     *,
 };
@@ -2090,7 +2090,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 }
 
-impl<const L: usize> NumStatic for Signed<L> {
+impl<const L: usize> Finite for Signed<L> {
     const MAX: Self = Self({
         let mut res = [MAX; L];
 
@@ -2105,7 +2105,7 @@ impl<const L: usize> NumStatic for Signed<L> {
     });
 }
 
-impl<const L: usize> NumStatic for Unsigned<L> {
+impl<const L: usize> Finite for Unsigned<L> {
     const MAX: Self = Self([MAX; L]);
     const MIN: Self = Self([MIN; L]);
 }
