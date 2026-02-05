@@ -14,6 +14,7 @@ use syn::{
 };
 
 mod kw {
+    syn::custom_keyword!(ext);
     syn::custom_keyword!(with);
     syn::custom_keyword!(pre);
     syn::custom_keyword!(post);
@@ -144,23 +145,32 @@ struct OpsImplStandard<Signature: OpsSignature> {
 struct OpsImplExtended<Signature: OpsSignature> {
     op: Signature::Op,
     #[allow(unused)]
+    ext: kw::ext,
+    #[allow(unused)]
     brace: Brace,
-    elems: Punctuated<OpsImplExtendedElem, Token![,]>,
+    elems: Punctuated<OpsImplExtendedElem<Signature>, Token![,]>,
 }
 
-struct OpsImplExtendedElem {
-    qualifier: OpsImplQualifier,
+struct OpsImplExtendedElem<Signature: OpsSignature> {
+    qualifier: Signature::Qualifier,
     expr: Expr,
     conditions: WhereClause,
 }
 
-struct OpsImplQualifier {
+struct OpsImplBinQualifier {
     #[allow(unused)]
     paren: Paren,
     lhs: OpsImplQualifierKind,
     rhs: OpsImplQualifierKind,
 }
 
+struct OpsImplUnQualifier {
+    #[allow(unused)]
+    paren: Paren,
+    value: OpsImplQualifierKind,
+}
+
+#[derive(Clone, Copy)]
 enum OpsImplQualifierKind {
     Raw,
     Ref,
@@ -235,18 +245,22 @@ type OpsDefAutoUnary = OpsDefAutoUn<OpsSignatureUnary>;
 
 trait OpsSignature: Parse {
     type Op: Parse;
+    type Qualifier: Parse;
 }
 
 impl OpsSignature for OpsSignatureMutable {
     type Op = BinOp;
+    type Qualifier = OpsImplBinQualifier;
 }
 
 impl OpsSignature for OpsSignatureBinary {
     type Op = BinOp;
+    type Qualifier = OpsImplBinQualifier;
 }
 
 impl OpsSignature for OpsSignatureUnary {
     type Op = UnOp;
+    type Qualifier = OpsImplUnQualifier;
 }
 
 impl Parse for Ops {
@@ -404,7 +418,11 @@ impl Parse for OpsSignatureUnary {
 
 impl<Signature: OpsSignature> Parse for OpsImpl<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self::Standard(input.parse()?))
+        if !input.peek2(kw::ext) {
+            Ok(Self::Standard(input.parse()?))
+        } else {
+            Ok(Self::Extended(input.parse()?))
+        }
     }
 }
 
@@ -423,13 +441,14 @@ impl<Signature: OpsSignature> Parse for OpsImplExtended<Signature> {
 
         Ok(Self {
             op: input.parse()?,
+            ext: input.parse()?,
             brace: braced!(content in input),
-            elems: content.parse_terminated(OpsImplExtendedElem::parse, Token![,])?,
+            elems: content.parse_terminated(OpsImplExtendedElem::<Signature>::parse, Token![,])?,
         })
     }
 }
 
-impl Parse for OpsImplExtendedElem {
+impl<Signature: OpsSignature> Parse for OpsImplExtendedElem<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             qualifier: input.parse()?,
@@ -439,7 +458,7 @@ impl Parse for OpsImplExtendedElem {
     }
 }
 
-impl Parse for OpsImplQualifier {
+impl Parse for OpsImplBinQualifier {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -447,6 +466,17 @@ impl Parse for OpsImplQualifier {
             paren: parenthesized!(content in input),
             lhs: content.parse()?,
             rhs: content.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsImplUnQualifier {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            paren: parenthesized!(content in input),
+            value: content.parse()?,
         })
     }
 }
@@ -582,6 +612,7 @@ impl ToTokens for OpsDefMutable {
             generics: &'ops Generics,
             signature: &'ops OpsSignatureMutable,
             expr: &'ops Expr,
+            conditions: Option<&'ops WhereClause>,
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
@@ -623,7 +654,7 @@ impl ToTokens for OpsDefMutable {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in self.impls.iter().filter_map(|entry| match entry {
+        for entry in self.impls.iter().filter_map(|elem| match elem {
             OpsImpl::Standard(val) => Some(val),
             OpsImpl::Extended(_) => None,
         }) {
@@ -632,6 +663,7 @@ impl ToTokens for OpsDefMutable {
                 generics: &self.generics,
                 signature: &self.signature,
                 expr: &entry.expr,
+                conditions: None,
             };
 
             match (lhs, rhs) {
@@ -677,6 +709,41 @@ impl ToTokens for OpsDefMutable {
                 },
             }
         }
+
+        for entry in self.impls.iter().filter_map(|elem| match elem {
+            OpsImpl::Standard(_) => None,
+            OpsImpl::Extended(val) => Some(val),
+        }) {
+            for elem in &entry.elems {
+                let spec = OpsSpec {
+                    op: &entry.op,
+                    generics: &self.generics,
+                    signature: &self.signature,
+                    expr: &elem.expr,
+                    conditions: Some(&elem.conditions),
+                };
+
+                match (elem.qualifier.lhs, elem.qualifier.rhs) {
+                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Raw) => {
+                        tokens.extend(get_impl(spec, none, none));
+                    },
+                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Ref) => {
+                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, none, some));
+                    },
+                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Raw) => {
+                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, some, none));
+                    },
+                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Ref) => {
+                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, none, some));
+                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, some, some));
+                    },
+                }
+            }
+        }
     }
 }
 
@@ -688,6 +755,7 @@ impl ToTokens for OpsDefBinary {
             generics: &'ops Generics,
             signature: &'ops OpsSignatureBinary,
             expr: &'ops Expr,
+            conditions: Option<&'ops WhereClause>,
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
@@ -730,15 +798,16 @@ impl ToTokens for OpsDefBinary {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in self.impls.iter().filter_map(|entry| match entry {
+        for elem in self.impls.iter().filter_map(|elem| match elem {
             OpsImpl::Standard(val) => Some(val),
             OpsImpl::Extended(_) => None,
         }) {
             let spec = OpsSpec {
-                op: &entry.op,
+                op: &elem.op,
                 generics: &self.generics,
                 signature: &self.signature,
-                expr: &entry.expr,
+                expr: &elem.expr,
+                conditions: None,
             };
 
             match (lhs, rhs) {
@@ -784,6 +853,41 @@ impl ToTokens for OpsDefBinary {
                 },
             }
         }
+
+        for entry in self.impls.iter().filter_map(|elem| match elem {
+            OpsImpl::Standard(_) => None,
+            OpsImpl::Extended(val) => Some(val),
+        }) {
+            for elem in &entry.elems {
+                let spec = OpsSpec {
+                    op: &entry.op,
+                    generics: &self.generics,
+                    signature: &self.signature,
+                    expr: &elem.expr,
+                    conditions: Some(&elem.conditions),
+                };
+
+                match (elem.qualifier.lhs, elem.qualifier.rhs) {
+                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Raw) => {
+                        tokens.extend(get_impl(spec, none, none));
+                    },
+                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Ref) => {
+                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, none, some));
+                    },
+                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Raw) => {
+                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, some, none));
+                    },
+                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Ref) => {
+                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, none, some));
+                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, some, some));
+                    },
+                }
+            }
+        }
     }
 }
 
@@ -795,6 +899,7 @@ impl ToTokens for OpsDefUnary {
             generics: &'ops Generics,
             signature: &'ops OpsSignatureUnary,
             expr: &'ops Expr,
+            conditions: Option<&'ops WhereClause>,
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>) -> TokenStream {
@@ -831,15 +936,16 @@ impl ToTokens for OpsDefUnary {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in self.impls.iter().filter_map(|entry| match entry {
+        for elem in self.impls.iter().filter_map(|elem| match elem {
             OpsImpl::Standard(val) => Some(val),
             OpsImpl::Extended(_) => None,
         }) {
             let spec = OpsSpec {
-                op: &entry.op,
+                op: &elem.op,
                 generics: &self.generics,
                 signature: &self.signature,
-                expr: &entry.expr,
+                expr: &elem.expr,
+                conditions: None,
             };
 
             match lhs {
@@ -855,6 +961,31 @@ impl ToTokens for OpsDefUnary {
                 false => {
                     tokens.extend(get_impl(spec, none));
                 },
+            }
+        }
+
+        for entry in self.impls.iter().filter_map(|elem| match elem {
+            OpsImpl::Standard(_) => None,
+            OpsImpl::Extended(val) => Some(val),
+        }) {
+            for elem in &entry.elems {
+                let spec = OpsSpec {
+                    op: &entry.op,
+                    generics: &self.generics,
+                    signature: &self.signature,
+                    expr: &elem.expr,
+                    conditions: Some(&elem.conditions),
+                };
+
+                match elem.qualifier.value {
+                    OpsImplQualifierKind::Raw => {
+                        tokens.extend(get_impl(spec, none));
+                    },
+                    OpsImplQualifierKind::Ref => {
+                        tokens.extend(get_impl(spec, none));
+                        tokens.extend(get_impl(spec, some));
+                    },
+                }
             }
         }
     }
