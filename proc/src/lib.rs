@@ -131,7 +131,12 @@ struct OpsSignatureUnary {
     ty: Type,
 }
 
-struct OpsImpl<Signature: OpsSignature> {
+enum OpsImpl<Signature: OpsSignature> {
+    Standard(OpsImplStandard<Signature>),
+    Extended(OpsImplExtended<Signature>),
+}
+
+struct OpsImplStandard<Signature: OpsSignature> {
     op: Signature::Op,
     expr: Expr,
 }
@@ -399,6 +404,12 @@ impl Parse for OpsSignatureUnary {
 
 impl<Signature: OpsSignature> Parse for OpsImpl<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self::Standard(input.parse()?))
+    }
+}
+
+impl<Signature: OpsSignature> Parse for OpsImplStandard<Signature> {
+    fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
             expr: input.parse()?,
@@ -612,7 +623,10 @@ impl ToTokens for OpsDefMutable {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in &self.impls {
+        for entry in self.impls.iter().filter_map(|entry| match entry {
+            OpsImpl::Standard(val) => Some(val),
+            OpsImpl::Extended(_) => None,
+        }) {
             let spec = OpsSpec {
                 op: &entry.op,
                 generics: &self.generics,
@@ -716,7 +730,10 @@ impl ToTokens for OpsDefBinary {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in &self.impls {
+        for entry in self.impls.iter().filter_map(|entry| match entry {
+            OpsImpl::Standard(val) => Some(val),
+            OpsImpl::Extended(_) => None,
+        }) {
             let spec = OpsSpec {
                 op: &entry.op,
                 generics: &self.generics,
@@ -814,7 +831,10 @@ impl ToTokens for OpsDefUnary {
         let some = Some(Default::default());
         let none = None;
 
-        for entry in &self.impls {
+        for entry in self.impls.iter().filter_map(|entry| match entry {
+            OpsImpl::Standard(val) => Some(val),
+            OpsImpl::Extended(_) => None,
+        }) {
             let spec = OpsSpec {
                 op: &entry.op,
                 generics: &self.generics,
@@ -946,10 +966,10 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImpl::<OpsSignatureMutable> {
+                        OpsImpl::Standard(OpsImplStandard::<OpsSignatureMutable> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs; }},
-                        }
+                        })
                     })
                     .collect::<Punctuated<OpsImpl<OpsSignatureMutable>, Token![,]>>(),
             };
@@ -973,10 +993,10 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImpl::<OpsSignatureBinary> {
+                        OpsImpl::Standard(OpsImplStandard::<OpsSignatureBinary> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs }},
-                        }
+                        })
                     })
                     .collect::<Punctuated<OpsImpl<OpsSignatureBinary>, Token![,]>>(),
             };
@@ -999,10 +1019,10 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                     .map(|op| {
                         let expr = &auto.self_expr;
 
-                        OpsImpl::<OpsSignatureUnary> {
+                        OpsImpl::Standard(OpsImplStandard::<OpsSignatureUnary> {
                             op,
                             expr: parse_quote! {{ #op #expr }},
-                        }
+                        })
                     })
                     .collect::<Punctuated<OpsImpl<OpsSignatureUnary>, Token![,]>>(),
             };
