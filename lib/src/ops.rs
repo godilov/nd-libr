@@ -46,7 +46,7 @@ pub trait IteratorExt: Iterator {
     }
 }
 
-impl<Type, Lhs, Rhs, ShiftRhs> Ops<Rhs, ShiftRhs> for Lhs
+impl<Lhs, Rhs, ShiftRhs, Type> Ops<Rhs, ShiftRhs> for Lhs
 where
     Self: Sized
         + Add<Rhs, Output = Type>

@@ -455,7 +455,7 @@ pub enum Sign {
 #[forward_decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord
 where
-    for<'s> Self: Ops + OpsAssign + OpsAssign<&'s Self>,
+    for<'s> Self: Ops<Type = Self> + OpsAssign + OpsAssign<&'s Self>,
     for<'s> &'s Self: Ops<Type = Self>,
 {
     fn bits(&self) -> usize;

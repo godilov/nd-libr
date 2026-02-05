@@ -160,10 +160,21 @@ impl<T> From<T> for Aligned<T> {
     }
 }
 
+// impl<T> std::ops::Add<&Aligned<T>> for &Aligned<T>
+// where
+//     for<'t> &'t T: std::ops::Add<&'t T, Output = T>,
+// {
+//     type Output = Aligned<T>;
+//
+//     fn add(self, rhs: &Aligned<T>) -> Self::Output {
+//         (|a: &Aligned<T>, b: &Aligned<T>| Aligned::<T>::from(Aligned(&a.0 + &b.0)))(self, rhs)
+//     }
+// }
+
 // ops_impl!(@bin <T> |*a: &Aligned<T>, *b: &Aligned<T>| -> Aligned::<T>,
 // + ext {
-//     (& &) Aligned(&a.0 + &b.0) where for<'t> &'t T: Add<&'t T, Output = T>;
-//     (& _) Aligned(&a.0 + b.0) where for<'t> &'t T: Add<T, Output = T>;
-//     (_ &) Aligned(a.0 + &b.0) where for<'t> T: Add<&'t T, Output = T>;
-//     (_ _) Aligned(a.0 + b.0) where T: Add<T, Output = T>;
+//     (&&) Aligned(&a.0 + &b.0) where for<'t> &'t T: std::ops::Add<&'t T, Output = T>;
+//     (&^) Aligned(&a.0 + b.0) where for<'t> &'t T: std::ops::Add<T, Output = T>;
+//     (^&) Aligned(a.0 + &b.0) where for<'t> T: std::ops::Add<&'t T, Output = T>;
+//     (^^) Aligned(a.0 + b.0) where T: std::ops::Add<T, Output = T>;
 // });

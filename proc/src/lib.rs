@@ -485,8 +485,8 @@ impl Parse for OpsImplQualifierKind {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(Token![_]) {
-            return input.parse::<Token![_]>().map(|_| OpsImplQualifierKind::Raw);
+        if lookahead.peek(Token![^]) {
+            return input.parse::<Token![^]>().map(|_| OpsImplQualifierKind::Raw);
         } else if lookahead.peek(Token![&]) {
             return input.parse::<Token![&]>().map(|_| OpsImplQualifierKind::Ref);
         }
