@@ -292,10 +292,10 @@ impl<Signature: OpsSignature> Parse for OpsDef<Signature> {
         let gen_where = input.parse::<Option<WhereClause>>()?;
 
         Ok(Self {
-            generics: Generics {
+            generics: get_normalized_generics(Generics {
                 where_clause: gen_where,
                 ..gen_
-            },
+            }),
             signature: input.parse()?,
             colon: input.parse()?,
             impls: input.parse_terminated(OpsImpl::parse, Token![,])?,
@@ -625,6 +625,20 @@ impl ToTokens for OpsDefMutable {
 
             let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
 
+            let predicates = match spec.conditions {
+                Some(val) => {
+                    let predicates = &val.predicates;
+
+                    quote! { #predicates }
+                },
+                None => quote! {},
+            };
+
+            let gen_where = match gen_where {
+                Some(val) => quote! { #val, #predicates },
+                None => quote! { where #predicates },
+            };
+
             let lhs_mut = &spec.signature.lhs_vmut;
             let lhs_ident = &spec.signature.lhs_ident;
             let lhs_type = &spec.signature.lhs_type;
@@ -767,6 +781,20 @@ impl ToTokens for OpsDefBinary {
             };
 
             let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
+
+            let predicates = match spec.conditions {
+                Some(val) => {
+                    let predicates = &val.predicates;
+
+                    quote! { #predicates }
+                },
+                None => quote! {},
+            };
+
+            let gen_where = match gen_where {
+                Some(val) => quote! { #val, #predicates },
+                None => quote! { where #predicates },
+            };
 
             let lhs_mut = &spec.signature.lhs_vmut;
             let lhs_ident = &spec.signature.lhs_ident;
@@ -911,6 +939,20 @@ impl ToTokens for OpsDefUnary {
             };
 
             let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
+
+            let predicates = match spec.conditions {
+                Some(val) => {
+                    let predicates = &val.predicates;
+
+                    quote! { #predicates }
+                },
+                None => quote! {},
+            };
+
+            let gen_where = match gen_where {
+                Some(val) => quote! { #val, #predicates },
+                None => quote! { where #predicates },
+            };
 
             let lhs_mut = &spec.signature.lhs_vmut;
             let lhs_ident = &spec.signature.lhs_ident;
