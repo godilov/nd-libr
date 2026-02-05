@@ -742,17 +742,12 @@ impl ToTokens for OpsDefMutable {
                         tokens.extend(get_impl(spec, none, none));
                     },
                     (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Ref) => {
-                        tokens.extend(get_impl(spec, none, none));
                         tokens.extend(get_impl(spec, none, some));
                     },
                     (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Raw) => {
-                        tokens.extend(get_impl(spec, none, none));
                         tokens.extend(get_impl(spec, some, none));
                     },
                     (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Ref) => {
-                        tokens.extend(get_impl(spec, none, none));
-                        tokens.extend(get_impl(spec, none, some));
-                        tokens.extend(get_impl(spec, some, none));
                         tokens.extend(get_impl(spec, some, some));
                     },
                 }
@@ -900,17 +895,12 @@ impl ToTokens for OpsDefBinary {
                         tokens.extend(get_impl(spec, none, none));
                     },
                     (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Ref) => {
-                        tokens.extend(get_impl(spec, none, none));
                         tokens.extend(get_impl(spec, none, some));
                     },
                     (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Raw) => {
-                        tokens.extend(get_impl(spec, none, none));
                         tokens.extend(get_impl(spec, some, none));
                     },
                     (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Ref) => {
-                        tokens.extend(get_impl(spec, none, none));
-                        tokens.extend(get_impl(spec, none, some));
-                        tokens.extend(get_impl(spec, some, none));
                         tokens.extend(get_impl(spec, some, some));
                     },
                 }
@@ -1024,7 +1014,6 @@ impl ToTokens for OpsDefUnary {
                         tokens.extend(get_impl(spec, none));
                     },
                     OpsImplQualifierKind::Ref => {
-                        tokens.extend(get_impl(spec, none));
                         tokens.extend(get_impl(spec, some));
                     },
                 }
