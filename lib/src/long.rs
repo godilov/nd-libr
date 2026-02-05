@@ -1037,23 +1037,17 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 #[derive(Debug, Clone, Copy)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignedFixed<const L: usize, const N: usize>(pub [Single; L]);
+#[derive(Debug, Clone, Copy)]
+pub struct SignedSimd<const L: usize>(pub [Single; L]);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UnsignedFixed<const L: usize, const N: usize>(pub [Single; L]);
+#[derive(Debug, Clone, Copy)]
+pub struct UnsignedSimd<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedDyn(Vec<Single>, Sign);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsignedDyn(Vec<Single>);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignedFixedDyn<const N: usize>(Vec<Single>, Sign);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnsignedFixedDyn<const N: usize>(Vec<Single>);
 
 #[derive(Debug, Clone, Copy)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
