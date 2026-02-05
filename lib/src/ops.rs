@@ -3,20 +3,21 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
-pub trait Ops<Type = Self, Rhs = Self, ShiftRhs = usize>
+pub trait Ops<Rhs = Self, ShiftRhs = usize>
 where
     Self: Sized
-        + Add<Rhs, Output = Type>
-        + Sub<Rhs, Output = Type>
-        + Mul<Rhs, Output = Type>
-        + Div<Rhs, Output = Type>
-        + Rem<Rhs, Output = Type>
-        + BitOr<Rhs, Output = Type>
-        + BitAnd<Rhs, Output = Type>
-        + BitXor<Rhs, Output = Type>
-        + Shl<ShiftRhs, Output = Type>
-        + Shr<ShiftRhs, Output = Type>,
+        + Add<Rhs, Output = Self::Type>
+        + Sub<Rhs, Output = Self::Type>
+        + Mul<Rhs, Output = Self::Type>
+        + Div<Rhs, Output = Self::Type>
+        + Rem<Rhs, Output = Self::Type>
+        + BitOr<Rhs, Output = Self::Type>
+        + BitAnd<Rhs, Output = Self::Type>
+        + BitXor<Rhs, Output = Self::Type>
+        + Shl<ShiftRhs, Output = Self::Type>
+        + Shr<ShiftRhs, Output = Self::Type>,
 {
+    type Type;
 }
 
 pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>
@@ -45,7 +46,8 @@ pub trait IteratorExt: Iterator {
     }
 }
 
-impl<Type, Lhs, Rhs, ShiftRhs> Ops<Type, Rhs, ShiftRhs> for Lhs where
+impl<Type, Lhs, Rhs, ShiftRhs> Ops<Rhs, ShiftRhs> for Lhs
+where
     Self: Sized
         + Add<Rhs, Output = Type>
         + Sub<Rhs, Output = Type>
@@ -56,8 +58,9 @@ impl<Type, Lhs, Rhs, ShiftRhs> Ops<Type, Rhs, ShiftRhs> for Lhs where
         + BitAnd<Rhs, Output = Type>
         + BitXor<Rhs, Output = Type>
         + Shl<ShiftRhs, Output = Type>
-        + Shr<ShiftRhs, Output = Type>
+        + Shr<ShiftRhs, Output = Type>,
 {
+    type Type = Type;
 }
 
 impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
@@ -196,14 +199,14 @@ mod tests {
     ops_impl_auto!(@mut <N: Sized + Copy + OpsAssign<N, N>> |*a:  mut X3<N>, *b:  Y3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
     ops_impl_auto!(@mut <N: Sized + Copy + OpsAssign<N, N>> |*a:  mut X3<N>, *b:  X3<N>|, (a.0) (b.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a: &X0<N>, *b: &Y0<N>| -> X0::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a: &X0<N>, *b: &X0<N>| -> X0::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a: &X1<N>, *b:  Y1<N>| -> X1::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a: &X1<N>, *b:  X1<N>| -> X1::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a:  X2<N>, *b: &Y2<N>| -> X2::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a:  X2<N>, *b: &X2<N>| -> X2::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a:  X3<N>, *b:  Y3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, N>> |*a:  X3<N>, *b:  X3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a: &X0<N>, *b: &Y0<N>| -> X0::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a: &X0<N>, *b: &X0<N>| -> X0::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a: &X1<N>, *b:  Y1<N>| -> X1::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a: &X1<N>, *b:  X1<N>| -> X1::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a:  X2<N>, *b: &Y2<N>| -> X2::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a:  X2<N>, *b: &X2<N>| -> X2::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a:  X3<N>, *b:  Y3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@bin <N: Sized + Copy + Ops<N, N, Type = N>> |*a:  X3<N>, *b:  X3<N>| -> X3::<N>, (a.0) (b.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
     ops_impl_auto!(@un <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> |*a: &X0<N>| -> X0<N>, (a.0) [-, !]);
     ops_impl_auto!(@un <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> |*a:  X1<N>| -> X1<N>, (a.0) [-, !]);

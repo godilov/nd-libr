@@ -148,7 +148,7 @@ struct OpsImplExtended<Signature: OpsSignature> {
     ext: kw::ext,
     #[allow(unused)]
     brace: Brace,
-    elems: Punctuated<OpsImplExtendedElem<Signature>, Token![,]>,
+    elems: Punctuated<OpsImplExtendedElem<Signature>, Token![;]>,
 }
 
 struct OpsImplExtendedElem<Signature: OpsSignature> {
@@ -443,7 +443,7 @@ impl<Signature: OpsSignature> Parse for OpsImplExtended<Signature> {
             op: input.parse()?,
             ext: input.parse()?,
             brace: braced!(content in input),
-            elems: content.parse_terminated(OpsImplExtendedElem::<Signature>::parse, Token![,])?,
+            elems: content.parse_terminated(OpsImplExtendedElem::<Signature>::parse, Token![;])?,
         })
     }
 }

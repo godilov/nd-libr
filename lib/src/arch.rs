@@ -147,10 +147,10 @@ pub mod word {
 #[forward_std(self.0 with T)]
 #[forward_cmp(self.0 with T)]
 #[forward_fmt(self.0 with T)]
-#[forward_def(self.0 with T: crate::num::Num            where T: Num,           for<'s> &'s T: Ops<T>)]
-#[forward_def(self.0 with T: crate::num::NumExtension   where T: NumExtension,  for<'s> &'s T: Ops<T>)]
-#[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'s> &'s T: Ops<T>)]
-#[forward_def(self.0 with T: crate::num::Unsigned       where T: Unsigned,      for<'s> &'s T: Ops<T>)]
+#[forward_def(self.0 with T: crate::num::Num            where T: Num,           for<'s> &'s T: Ops<Type = T>)]
+#[forward_def(self.0 with T: crate::num::NumExtension   where T: NumExtension,  for<'s> &'s T: Ops<Type = T>)]
+#[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'s> &'s T: Ops<Type = T>)]
+#[forward_def(self.0 with T: crate::num::Unsigned       where T: Unsigned,      for<'s> &'s T: Ops<Type = T>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
@@ -159,3 +159,11 @@ impl<T> From<T> for Aligned<T> {
         Aligned(value)
     }
 }
+
+// ops_impl!(@bin <T> |*a: &Aligned<T>, *b: &Aligned<T>| -> Aligned::<T>,
+// + ext {
+//     (& &) Aligned(&a.0 + &b.0) where for<'t> &'t T: Add<&'t T, Output = T>;
+//     (& _) Aligned(&a.0 + b.0) where for<'t> &'t T: Add<T, Output = T>;
+//     (_ &) Aligned(a.0 + &b.0) where for<'t> T: Add<&'t T, Output = T>;
+//     (_ _) Aligned(a.0 + b.0) where T: Add<T, Output = T>;
+// });
