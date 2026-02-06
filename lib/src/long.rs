@@ -13,11 +13,10 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
+    IteratorExt, NdFrom, NdTryFrom,
     arch::word::*,
     long::{radix::*, uops::*},
     num::{Finite, Num, NumExtension, Sign, Signed as NumSigned, Unsigned as NumUnsigned},
-    ops::*,
-    *,
 };
 
 macro_rules! signed {

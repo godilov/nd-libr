@@ -35,17 +35,6 @@ where
 {
 }
 
-pub trait IteratorExt: Iterator {
-    fn collect_with<Collection>(&mut self, mut collection: Collection) -> Collection
-    where
-        Self: Sized,
-        for<'item> &'item mut Collection: IntoIterator<Item = &'item mut Self::Item>,
-    {
-        collection.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
-        collection
-    }
-}
-
 impl<Lhs, Rhs, ShiftRhs, Type> Ops<Rhs, ShiftRhs> for Lhs
 where
     Self: Sized
@@ -76,8 +65,6 @@ impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
         + ShrAssign<ShiftRhs>
 {
 }
-
-impl<Iter: Iterator> IteratorExt for Iter {}
 
 #[cfg(test)]
 #[allow(dead_code)]

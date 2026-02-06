@@ -13,6 +13,17 @@ pub trait NdTryFrom<T>: Sized {
     fn nd_try_from(value: T) -> Result<Self, Self::Error>;
 }
 
+pub trait IteratorExt: Iterator {
+    fn collect_with<Collection>(&mut self, mut collection: Collection) -> Collection
+    where
+        Self: Sized,
+        for<'item> &'item mut Collection: IntoIterator<Item = &'item mut Self::Item>,
+    {
+        collection.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
+        collection
+    }
+}
+
 impl<U, V: From<U>> NdFrom<U> for V {
     fn nd_from(value: U) -> Self {
         V::from(value)
@@ -26,3 +37,5 @@ impl<U, V: TryFrom<U>> NdTryFrom<U> for V {
         V::try_from(value)
     }
 }
+
+impl<Iter: Iterator> IteratorExt for Iter {}
