@@ -191,7 +191,7 @@ pub mod prime {
     impl Primes {
         pub fn by_count_full<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
         where
-            for<'s> &'s Prime: Ops<Type = Prime>,
+            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
         {
             PrimesFullIter {
                 next: Prime::new(2),
@@ -203,7 +203,7 @@ pub mod prime {
 
         pub fn by_limit_full<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
         where
-            for<'s> &'s Prime: Ops<Type = Prime>,
+            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
         {
             PrimesFullIter {
                 next: Prime::new(2),
@@ -215,7 +215,7 @@ pub mod prime {
 
         pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
         where
-            for<'s> &'s Prime: Ops<Type = Prime>,
+            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
         {
             PrimesFastIter {
                 next: Prime::new(2),
@@ -226,7 +226,7 @@ pub mod prime {
 
         pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
         where
-            for<'s> &'s Prime: Ops<Type = Prime>,
+            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
         {
             PrimesFastIter {
                 next: Prime::new(2),
@@ -238,7 +238,7 @@ pub mod prime {
 
     pub trait Primality: Unsigned
     where
-        for<'s> &'s Self: Ops<Type = Self>,
+        for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
     {
         fn primes() -> impl Iterator<Item = Self>;
 
@@ -280,7 +280,7 @@ pub mod prime {
 
     pub trait PrimalityExtension: Send + Primality + NumExtension
     where
-        for<'s> &'s Self: Ops<Type = Self>,
+        for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
     {
         fn rand_prime(order: usize) -> Self {
             let mut rng = rand::rng();
@@ -316,7 +316,7 @@ pub mod prime {
 
     struct PrimesFullIter<Prime: Primality>
     where
-        for<'s> &'s Prime: Ops<Type = Prime>,
+        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
     {
         next: Prime,
         primes: Vec<Prime>,
@@ -326,7 +326,7 @@ pub mod prime {
 
     struct PrimesFastIter<Prime: Primality>
     where
-        for<'s> &'s Prime: Ops<Type = Prime>,
+        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
     {
         next: Prime,
         count: usize,
@@ -335,7 +335,7 @@ pub mod prime {
 
     impl<Prime: Primality> Iterator for PrimesFullIter<Prime>
     where
-        for<'s> &'s Prime: Ops<Type = Prime>,
+        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
     {
         type Item = Prime;
 
@@ -379,7 +379,7 @@ pub mod prime {
 
     impl<Prime: Primality> Iterator for PrimesFastIter<Prime>
     where
-        for<'s> &'s Prime: Ops<Type = Prime>,
+        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
     {
         type Item = Prime;
 
@@ -416,33 +416,43 @@ pub mod prime {
         }
     }
 
-    impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> where for<'s> &'s Prime: Ops<Type = Prime> {}
-    impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where for<'s> &'s Prime: Ops<Type = Prime> {}
+    impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> where
+        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>
+    {
+    }
 
-    impl<Any: Send + Primality + NumExtension> PrimalityExtension for Any where for<'s> &'s Any: Ops<Type = Any> {}
+    impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where
+        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>
+    {
+    }
+
+    impl<Any: Send + Primality + NumExtension> PrimalityExtension for Any where
+        for<'rhs, 'lhs> &'lhs Any: Ops<&'rhs Any, Type = Any>
+    {
+    }
 }
 
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<Type = N>)]
-#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<Type = N>)]
+#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumExtension + Unsigned, const BITS: usize>(pub N)
 where
-    for<'s> &'s N: Ops<Type = N>;
+    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>;
 
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'s> &'s N: Ops<Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'s> &'s N: Ops<Type = N>)]
-#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'s> &'s N: Ops<Type = N>)]
+#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumExtension + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
-    for<'s> &'s N: Ops<Type = N>;
+    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -455,8 +465,8 @@ pub enum Sign {
 #[forward_decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord
 where
-    for<'s> Self: Ops<Type = Self> + OpsAssign + OpsAssign<&'s Self>,
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs> Self: Ops<Type = Self> + OpsAssign + OpsAssign<&'rhs Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     fn bits(&self) -> usize;
 
@@ -523,7 +533,7 @@ where
 #[forward_decl]
 pub trait NumExtension: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     #[forward_self]
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
@@ -644,7 +654,7 @@ where
 #[forward_decl]
 pub trait Signed: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     fn new(value: isize) -> Self;
 
@@ -675,7 +685,7 @@ where
 #[forward_decl]
 pub trait Unsigned: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     #[forward_into]
     fn new(value: usize) -> Self;
@@ -691,7 +701,7 @@ where
 
 pub trait Finite: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     const MIN: Self;
     const MAX: Self;
@@ -699,21 +709,21 @@ where
 
 pub trait Zero: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     const ZERO: Self;
 }
 
 pub trait One: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     const ONE: Self;
 }
 
 pub trait FiniteDyn: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     fn min() -> Self;
     fn max() -> Self;
@@ -721,21 +731,21 @@ where
 
 pub trait ZeroDyn: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     fn zero() -> Self;
 }
 
 pub trait OneDyn: Num
 where
-    for<'s> &'s Self: Ops<Type = Self>,
+    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
     fn one() -> Self;
 }
 
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy
 where
-    for<'s> &'s N: Ops<Type = N>,
+    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
     const MOD: N;
 }
@@ -757,7 +767,7 @@ sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 impl<N: Num + NumExtension + Unsigned, const BITS: usize> From<N> for Width<N, BITS>
 where
-    for<'s> &'s N: Ops<Type = N>,
+    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
     fn from(value: N) -> Self {
         Self(value).normalized()
@@ -766,7 +776,7 @@ where
 
 impl<N: Num + NumExtension + Unsigned, M: Modulus<N>> From<N> for Modular<N, M>
 where
-    for<'s> &'s N: Ops<Type = N>,
+    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
     fn from(value: N) -> Self {
         Self(value, PhantomData).normalized()
@@ -775,7 +785,7 @@ where
 
 impl<N: Num + NumExtension + Unsigned, const BITS: usize> Width<N, BITS>
 where
-    for<'s> &'s N: Ops<Type = N>,
+    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
@@ -789,7 +799,7 @@ where
 
 impl<N: Num + NumExtension + Unsigned, M: Modulus<N>> Modular<N, M>
 where
-    for<'s> &'s N: Ops<Type = N>,
+    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();

@@ -17,7 +17,7 @@ fn add_mul<T: Ops>(a: T, b: T, c: T) -> T {
 /// T supports all binary `std::ops::*` by value and by reference
 fn add_mul_ref<T: Ops>(a: &T, b: &T, c: &T) -> T
 where
-    for<'s> &'s T: Ops<Type = T>,
+    for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>,
 {
     &(a + b) * c
 }
@@ -26,8 +26,8 @@ where
 /// T supports all mutable `std::ops::*` by value and by reference
 fn add_mul_mut<T>(x: &mut T, a: &T, b: &T, c: &T)
 where
-    for<'s> T: Ops<Type = T> + OpsAssign + OpsAssign<&'s T>,
-    for<'s> &'s T: Ops<Type = T>,
+    for<'rhs> T: Ops<Type = T> + OpsAssign + OpsAssign<&'lhs T>,
+    for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>,
 {
     *x += a;
     *x += b;
@@ -45,19 +45,19 @@ struct A<N>(N);
 
 /// Implements `std::ops::Neg` and `std::ops::Not` for A<N>
 /// Condition: N is Neg and Not
-/// Condition: N ref is Neg and Not
+/// Condition: &N is Neg and Not
 /// Note: asterisk in `*op` specifies implementation by value and by reference
 ops_impl!(@un <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
-    for<'s> &'s N: Neg<Output = N> + Not<Output = N>
+    for<'lhs> &'lhs N: Neg<Output = N> + Not<Output = N>
     |*op: &A<N>| -> A::<N>,
     - A::<N>(-op.0),
     ! A::<N>(!op.0));
 
 /// Implements `std::ops::Add`, `std::ops::Sub`, `std::ops::Mul`, `std::ops::Div`, `std::ops::Rem` for A<N>
 /// Condition: N is Ops
-/// Condition: N ref is Ops<Type = N>
+/// Condition: &N is Ops<&N, Type = N>
 /// Note: asterisk in `*a` and `*b` specifies implementation by value and by reference
-ops_impl!(@bin <N: Clone + Copy + Ops> where for<'s> &'s N: Ops<Type = N>
+ops_impl!(@bin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
     |*a: &A<N>, *b: &A<N>| -> A::<N>,
     + A::<N>(a.0 + b.0),
     - A::<N>(a.0 - b.0),

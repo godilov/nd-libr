@@ -147,10 +147,10 @@ pub mod word {
 #[forward_std(self.0 with T)]
 #[forward_cmp(self.0 with T)]
 #[forward_fmt(self.0 with T)]
-#[forward_def(self.0 with T: crate::num::Num            where T: Num,           for<'s> &'s T: Ops<Type = T>)]
-#[forward_def(self.0 with T: crate::num::NumExtension   where T: NumExtension,  for<'s> &'s T: Ops<Type = T>)]
-#[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'s> &'s T: Ops<Type = T>)]
-#[forward_def(self.0 with T: crate::num::Unsigned       where T: Unsigned,      for<'s> &'s T: Ops<Type = T>)]
+#[forward_def(self.0 with T: crate::num::Num            where T: Num,           for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
+#[forward_def(self.0 with T: crate::num::NumExtension   where T: NumExtension,  for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
+#[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
+#[forward_def(self.0 with T: crate::num::Unsigned       where T: Unsigned,      for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
@@ -160,17 +160,6 @@ impl<T> From<T> for Aligned<T> {
     }
 }
 
-// impl<T> std::ops::Add<&Aligned<T>> for &Aligned<T>
-// where
-//     for<'t> &'t T: std::ops::Add<&'t T, Output = T>,
-// {
-//     type Output = Aligned<T>;
-//
-//     fn add(self, rhs: &Aligned<T>) -> Self::Output {
-//         (|a: &Aligned<T>, b: &Aligned<T>| Aligned::<T>::from(Aligned(&a.0 + &b.0)))(self, rhs)
-//     }
-// }
-
 // ops_impl!(@bin <T> |*a: &Aligned<T>, *b: &Aligned<T>| -> Aligned::<T>,
 // + ext {
 //     (&&) Aligned(&a.0 + &b.0) where for<'t> &'t T: std::ops::Add<&'t T, Output = T>;
@@ -178,3 +167,48 @@ impl<T> From<T> for Aligned<T> {
 //     (^&) Aligned(a.0 + &b.0) where for<'t> T: std::ops::Add<&'t T, Output = T>;
 //     (^^) Aligned(a.0 + b.0) where T: std::ops::Add<T, Output = T>;
 // });
+
+// use std::ops::{Add, Sub};
+//
+// pub trait Ops<Rhs = Self>
+// where
+//     Self: Sized
+//         + Add<Rhs, Output = Self::Type>
+//         + Sub<Rhs, Output = Self::Type>,
+// {
+//     type Type;
+// }
+//
+// impl<Lhs, Rhs, Type> Ops<Rhs> for Lhs
+// where
+//     Self: Sized
+//         + Add<Rhs, Output = Type>
+//         + Sub<Rhs, Output = Type>,
+// {
+//     type Type = Type;
+// }
+//
+// pub trait Num: Sized + Default + Clone + Eq + Ord
+// where
+//     for<'rhs> Self: Ops<Type = Self>,
+//     for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
+// {
+// }
+//
+// #[derive(Debug, Default, Clone, Copy)]
+// pub struct Width<N: Num, const BITS: usize>(pub N)
+// where
+//     for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>;
+//
+// pub struct A<T>(T);
+//
+// impl<T> Add<&A<T>> for &A<T>
+// where
+//     for<'rhs, 'lhs> &'lhs T: Add<&'rhs T, Output = T>,
+// {
+//     type Output = A<T>;
+//
+//     fn add(self, rhs: &A<T>) -> Self::Output {
+//         A(&self.0 + &rhs.0)
+//     }
+// }
