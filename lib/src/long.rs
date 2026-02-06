@@ -16,7 +16,7 @@ use crate::{
     IteratorExt, NdFrom, NdTryFrom,
     arch::word::*,
     long::{radix::*, uops::*},
-    num::{Finite, Num, NumExtension, Sign, Signed as NumSigned, Unsigned as NumUnsigned},
+    num::{Max, Min, Num, NumExtension, Sign, Signed as NumSigned, Unsigned as NumUnsigned},
 };
 
 macro_rules! signed {
@@ -2089,13 +2089,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 }
 
-impl<const L: usize> Finite for Signed<L> {
-    const MAX: Self = Self({
-        let mut res = [MAX; L];
-
-        res[L - 1] = MAX >> 1;
-        res
-    });
+impl<const L: usize> Min for Signed<L> {
     const MIN: Self = Self({
         let mut res = [MIN; L];
 
@@ -2104,9 +2098,21 @@ impl<const L: usize> Finite for Signed<L> {
     });
 }
 
-impl<const L: usize> Finite for Unsigned<L> {
-    const MAX: Self = Self([MAX; L]);
+impl<const L: usize> Max for Signed<L> {
+    const MAX: Self = Self({
+        let mut res = [MAX; L];
+
+        res[L - 1] = MAX >> 1;
+        res
+    });
+}
+
+impl<const L: usize> Min for Unsigned<L> {
     const MIN: Self = Self([MIN; L]);
+}
+
+impl<const L: usize> Max for Unsigned<L> {
+    const MAX: Self = Self([MAX; L]);
 }
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {

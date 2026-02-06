@@ -48,8 +48,19 @@ macro_rules! num_impl {
             }
         }
 
-        impl Finite for $primitive {
+        impl Zero for $primitive {
+            const ZERO: Self = 0;
+        }
+
+        impl One for $primitive {
+            const ONE: Self = 1;
+        }
+
+        impl Min for $primitive {
             const MIN: Self = Self::MIN;
+        }
+
+        impl Max for $primitive {
             const MAX: Self = Self::MAX;
         }
     };
@@ -699,47 +710,35 @@ where
     fn sqrt(&self) -> Self;
 }
 
-pub trait Finite: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait Min {
     const MIN: Self;
+}
+
+pub trait Max {
     const MAX: Self;
 }
 
-pub trait Zero: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait Zero {
     const ZERO: Self;
 }
 
-pub trait One: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait One {
     const ONE: Self;
 }
 
-pub trait FiniteDyn: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait MinDyn {
     fn min() -> Self;
+}
+
+pub trait MaxDyn {
     fn max() -> Self;
 }
 
-pub trait ZeroDyn: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait ZeroDyn {
     fn zero() -> Self;
 }
 
-pub trait OneDyn: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait OneDyn {
     fn one() -> Self;
 }
 
