@@ -4,13 +4,12 @@ use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
 };
 use ndlib::{
-    NdFrom,
+    IteratorExt, NdFrom,
     arch::Aligned,
     long::{
         ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, S4096, ToDigits, ToDigitsIter,
         U4096,
     },
-    ops::IteratorExt,
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
