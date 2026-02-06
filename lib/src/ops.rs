@@ -3,6 +3,18 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
+pub trait NdNeg<S = Self> {
+    type Type;
+
+    fn neg(value: &S) -> Self::Type;
+}
+
+pub trait NdNot<S = Self> {
+    type Type;
+
+    fn not(value: &S) -> Self::Type;
+}
+
 pub trait NdAdd<Lhs = Self, Rhs = Self> {
     type Type;
 
@@ -66,61 +78,61 @@ pub trait NdShr<Lhs = Self, Rhs = usize> {
 pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn add(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn add_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn sub(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn sub_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn mul(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn mul_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn div(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn div_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn rem(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn rem_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn bitor(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn bitor_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn bitand(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn bitand_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
-    fn bitxor(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn bitxor_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
     type Type;
 
-    fn shl(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn shl_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
     type Type;
 
-    fn shr(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn shr_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 #[rustfmt::skip]
@@ -135,7 +147,7 @@ pub trait NdOps<Lhs = Self, Rhs = Self>:
 }
 
 #[rustfmt::skip]
-pub trait NdOpsBit<Lhs = Self, Rhs = Self>: 
+pub trait NdOpsBitwise<Lhs = Self, Rhs = Self>:
     NdBitOr<Lhs, Rhs, Type = Self::All>
     + NdBitAnd<Lhs, Rhs, Type = Self::All>
     + NdBitXor<Lhs, Rhs, Type = Self::All>
