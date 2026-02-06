@@ -16,7 +16,7 @@ use crate::{
     IteratorExt, NdFrom, NdTryFrom,
     arch::word::*,
     long::{radix::*, uops::*},
-    num::{Max, Min, Num, NumExtension, Sign, Signed as NumSigned, Unsigned as NumUnsigned},
+    num::{Max, Min, Num, NumExtension, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero},
 };
 
 macro_rules! signed {
@@ -2089,6 +2089,19 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 }
 
+impl<const L: usize> Zero for Signed<L> {
+    const ZERO: Self = Self([0; L]);
+}
+
+impl<const L: usize> One for Signed<L> {
+    const ONE: Self = Self({
+        let mut res = [MIN; L];
+
+        res[0] = 1;
+        res
+    });
+}
+
 impl<const L: usize> Min for Signed<L> {
     const MIN: Self = Self({
         let mut res = [MIN; L];
@@ -2103,6 +2116,19 @@ impl<const L: usize> Max for Signed<L> {
         let mut res = [MAX; L];
 
         res[L - 1] = MAX >> 1;
+        res
+    });
+}
+
+impl<const L: usize> Zero for Unsigned<L> {
+    const ZERO: Self = Self([0; L]);
+}
+
+impl<const L: usize> One for Unsigned<L> {
+    const ONE: Self = Self({
+        let mut res = [MIN; L];
+
+        res[0] = 1;
         res
     });
 }
