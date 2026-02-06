@@ -810,3 +810,27 @@ where
         self
     }
 }
+
+impl<Any: Zero> ZeroDyn for Any {
+    fn zero() -> Self {
+        Any::ZERO
+    }
+}
+
+impl<Any: One> OneDyn for Any {
+    fn one() -> Self {
+        Any::ONE
+    }
+}
+
+impl<Any: Min> MinDyn for Any {
+    fn min() -> Self {
+        Any::MIN
+    }
+}
+
+impl<Any: Max> MaxDyn for Any {
+    fn max() -> Self {
+        Any::MAX
+    }
+}
