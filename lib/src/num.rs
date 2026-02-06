@@ -710,14 +710,6 @@ where
     fn sqrt(&self) -> Self;
 }
 
-pub trait Min {
-    const MIN: Self;
-}
-
-pub trait Max {
-    const MAX: Self;
-}
-
 pub trait Zero {
     const ZERO: Self;
 }
@@ -726,12 +718,12 @@ pub trait One {
     const ONE: Self;
 }
 
-pub trait MinDyn {
-    fn min() -> Self;
+pub trait Min {
+    const MIN: Self;
 }
 
-pub trait MaxDyn {
-    fn max() -> Self;
+pub trait Max {
+    const MAX: Self;
 }
 
 pub trait ZeroDyn {
@@ -740,6 +732,14 @@ pub trait ZeroDyn {
 
 pub trait OneDyn {
     fn one() -> Self;
+}
+
+pub trait MinDyn {
+    fn min() -> Self;
+}
+
+pub trait MaxDyn {
+    fn max() -> Self;
 }
 
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy
