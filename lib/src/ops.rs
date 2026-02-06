@@ -3,155 +3,181 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
-pub trait NdAdd<Rhs = Self, Lhs = Self> {
+pub trait NdAdd<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn add(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdSub<Rhs = Self, Lhs = Self> {
+pub trait NdSub<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn sub(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdMul<Rhs = Self, Lhs = Self> {
+pub trait NdMul<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn mul(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdDiv<Rhs = Self, Lhs = Self> {
+pub trait NdDiv<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn div(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdRem<Rhs = Self, Lhs = Self> {
+pub trait NdRem<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn rem(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdBitOr<Rhs = Self, Lhs = Self> {
+pub trait NdBitOr<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn bitor(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdBitAnd<Rhs = Self, Lhs = Self> {
+pub trait NdBitAnd<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn bitand(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdBitXor<Rhs = Self, Lhs = Self> {
+pub trait NdBitXor<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn bitxor(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdShl<Rhs = usize, Lhs = Self> {
+pub trait NdShl<Lhs = Self, Rhs = usize> {
     type Type;
 
     fn shl(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdShr<Rhs = usize, Lhs = Self> {
+pub trait NdShr<Lhs = Self, Rhs = usize> {
     type Type;
 
     fn shr(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdAddAssign<Rhs = Self, Lhs = Self> {
+pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn add(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdSubAssign<Rhs = Self, Lhs = Self> {
+pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn sub(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdMulAssign<Rhs = Self, Lhs = Self> {
+pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn mul(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdDivAssign<Rhs = Self, Lhs = Self> {
+pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn div(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdRemAssign<Rhs = Self, Lhs = Self> {
+pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn rem(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdBitOrAssign<Rhs = Self, Lhs = Self> {
+pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn bitor(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdBitAndAssign<Rhs = Self, Lhs = Self> {
+pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn bitand(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdBitXorAssign<Rhs = Self, Lhs = Self> {
+pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
     type Type;
 
     fn bitxor(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdShlAssign<Rhs = usize, Lhs = Self> {
+pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
     type Type;
 
     fn shl(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait NdShrAssign<Rhs = usize, Lhs = Self> {
+pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
     type Type;
 
     fn shr(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
 }
 
-pub trait Ops<Rhs = Self, ShiftRhs = usize>
-where
-    Self: Sized
-        + Add<Rhs, Output = Self::Type>
-        + Sub<Rhs, Output = Self::Type>
-        + Mul<Rhs, Output = Self::Type>
-        + Div<Rhs, Output = Self::Type>
-        + Rem<Rhs, Output = Self::Type>
-        + BitOr<Rhs, Output = Self::Type>
-        + BitAnd<Rhs, Output = Self::Type>
-        + BitXor<Rhs, Output = Self::Type>
-        + Shl<ShiftRhs, Output = Self::Type>
-        + Shr<ShiftRhs, Output = Self::Type>,
+#[rustfmt::skip]
+pub trait NdOps<Lhs = Self, Rhs = Self>:
+    NdAdd<Lhs, Rhs, Type = Self::All>
+    + NdSub<Lhs, Rhs, Type = Self::All>
+    + NdMul<Lhs, Rhs, Type = Self::All>
+    + NdDiv<Lhs, Rhs, Type = Self::All>
+    + NdRem<Lhs, Rhs, Type = Self::All>
+{
+    type All;
+}
+
+#[rustfmt::skip]
+pub trait NdOpsBit<Lhs = Self, Rhs = Self>: 
+    NdBitOr<Lhs, Rhs, Type = Self::All>
+    + NdBitAnd<Lhs, Rhs, Type = Self::All>
+    + NdBitXor<Lhs, Rhs, Type = Self::All>
+{
+    type All;
+}
+
+#[rustfmt::skip]
+pub trait NdOpsShift<Lhs = Self, Rhs = usize>:
+    NdShl<Lhs, Rhs, Type = Self::All>
+    + NdShr<Lhs, Rhs, Type = Self::All>
+{
+    type All;
+}
+
+pub trait Ops<Rhs = Self, ShiftRhs = usize>:
+    Sized
+    + Add<Rhs, Output = Self::Type>
+    + Sub<Rhs, Output = Self::Type>
+    + Mul<Rhs, Output = Self::Type>
+    + Div<Rhs, Output = Self::Type>
+    + Rem<Rhs, Output = Self::Type>
+    + BitOr<Rhs, Output = Self::Type>
+    + BitAnd<Rhs, Output = Self::Type>
+    + BitXor<Rhs, Output = Self::Type>
+    + Shl<ShiftRhs, Output = Self::Type>
+    + Shr<ShiftRhs, Output = Self::Type>
 {
     type Type;
 }
 
-pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>
-where
-    Self: AddAssign<Rhs>
-        + SubAssign<Rhs>
-        + MulAssign<Rhs>
-        + DivAssign<Rhs>
-        + RemAssign<Rhs>
-        + BitOrAssign<Rhs>
-        + BitAndAssign<Rhs>
-        + BitXorAssign<Rhs>
-        + ShlAssign<ShiftRhs>
-        + ShrAssign<ShiftRhs>,
+pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>:
+    AddAssign<Rhs>
+    + SubAssign<Rhs>
+    + MulAssign<Rhs>
+    + DivAssign<Rhs>
+    + RemAssign<Rhs>
+    + BitOrAssign<Rhs>
+    + BitAndAssign<Rhs>
+    + BitXorAssign<Rhs>
+    + ShlAssign<ShiftRhs>
+    + ShrAssign<ShiftRhs>
 {
 }
 
