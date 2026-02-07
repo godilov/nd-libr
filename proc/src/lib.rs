@@ -24,6 +24,9 @@ enum Ops {
     Mutable(TokenStream),
     Binary(TokenStream),
     Unary(TokenStream),
+    NdMutable(TokenStream),
+    NdBinary(TokenStream),
+    NdUnary(TokenStream),
 }
 
 struct OpsDef<Signature: OpsSignature> {
@@ -280,6 +283,18 @@ impl Parse for Ops {
 
         if ident == "un" {
             return Ok(Ops::Unary(tokens));
+        }
+
+        if ident == "ndmut" {
+            return Ok(Ops::NdMutable(tokens));
+        }
+
+        if ident == "ndbin" {
+            return Ok(Ops::NdBinary(tokens));
+        }
+
+        if ident == "ndun" {
+            return Ok(Ops::NdUnary(tokens));
         }
 
         Err(input.error("Failed to parse ops identifier, expected @mut, @bin or @un"))
@@ -1103,6 +1118,9 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
             Ok(val) => quote! { #val }.into(),
             Err(err) => err.into_compile_error().into(),
         },
+        _ => {
+            todo!()
+        },
     }
 }
 
@@ -1190,6 +1208,9 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             };
 
             quote! { #ops }.into()
+        },
+        _ => {
+            todo!()
         },
     }
 }
