@@ -24,8 +24,11 @@ enum Ops {
     Mutable(TokenStream),
     Binary(TokenStream),
     Unary(TokenStream),
+    #[allow(unused)]
     NdMutable(TokenStream),
+    #[allow(unused)]
     NdBinary(TokenStream),
+    #[allow(unused)]
     NdUnary(TokenStream),
 }
 
