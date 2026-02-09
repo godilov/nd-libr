@@ -42,9 +42,9 @@ enum Ops {
 #[allow(clippy::large_enum_variant)]
 #[allow(clippy::enum_variant_names)]
 enum OpsAuto {
-    StdMutable(OpsImplAutoBinary<OpsKindMutable>),
-    StdBinary(OpsImplAutoBinary<OpsKindBinary>),
-    StdUnary(OpsImplAutoUnary<OpsKindUnary>),
+    StdMutable(OpsImplAuto<OpsKindMutable>),
+    StdBinary(OpsImplAuto<OpsKindBinary>),
+    StdUnary(OpsImplAuto<OpsKindUnary>),
 }
 
 struct OpsKindMutable;
@@ -59,30 +59,12 @@ struct OpsImpl<Kind: OpsKind> {
     definitions: Punctuated<OpsDefinition<Kind>, Token![,]>,
 }
 
-struct OpsImplAutoBinary<Kind: OpsKind> {
+struct OpsImplAuto<Kind: OpsKind> {
     generics: Generics,
     signature: Kind::Signature,
     #[allow(unused)]
     colon: Token![,],
-    #[allow(unused)]
-    lhs_paren: Paren,
-    lhs_expr: Expr,
-    #[allow(unused)]
-    rhs_paren: Paren,
-    rhs_expr: Expr,
-    #[allow(unused)]
-    ops_bracket: Bracket,
-    ops: Punctuated<Kind::Operation, Token![,]>,
-}
-
-struct OpsImplAutoUnary<Kind: OpsKind> {
-    generics: Generics,
-    signature: Kind::Signature,
-    #[allow(unused)]
-    colon: Token![,],
-    #[allow(unused)]
-    self_paren: Paren,
-    self_expr: Expr,
+    expression: Kind::Expression,
     #[allow(unused)]
     ops_bracket: Bracket,
     ops: Punctuated<Kind::Operation, Token![,]>,
@@ -155,6 +137,30 @@ struct OpsSignatureUnary {
     #[allow(unused)]
     arrow: Token![->],
     ty: Type,
+}
+
+struct OpsExpressionMutable {
+    #[allow(unused)]
+    lhs_paren: Paren,
+    lhs_expr: Expr,
+    #[allow(unused)]
+    rhs_paren: Paren,
+    rhs_expr: Expr,
+}
+
+struct OpsExpressionBinary {
+    #[allow(unused)]
+    lhs_paren: Paren,
+    lhs_expr: Expr,
+    #[allow(unused)]
+    rhs_paren: Paren,
+    rhs_expr: Expr,
+}
+
+struct OpsExpressionUnary {
+    #[allow(unused)]
+    self_paren: Paren,
+    self_expr: Expr,
 }
 
 enum OpsDefinition<Kind: OpsKind> {
@@ -271,6 +277,7 @@ enum ForwardArgument {
 trait OpsKind {
     type Operation: Parse;
     type Signature: Parse;
+    type Expression: Parse;
     type Qualifier: Parse;
 }
 
@@ -278,6 +285,7 @@ trait OpsKind {
 impl OpsKind for OpsKindMutable {
     type Operation = BinOp;
     type Signature = OpsSignatureMutable;
+    type Expression = OpsExpressionMutable;
     type Qualifier = OpsQualifierMutable;
 }
 
@@ -285,6 +293,7 @@ impl OpsKind for OpsKindMutable {
 impl OpsKind for OpsKindBinary {
     type Operation = BinOp;
     type Signature = OpsSignatureBinary;
+    type Expression = OpsExpressionBinary;
     type Qualifier = OpsQualifierBinary;
 }
 
@@ -292,6 +301,7 @@ impl OpsKind for OpsKindBinary {
 impl OpsKind for OpsKindUnary {
     type Operation = UnOp;
     type Signature = OpsSignatureUnary;
+    type Expression = OpsExpressionUnary;
     type Qualifier = OpsQualifierUnary;
 }
 
@@ -324,13 +334,13 @@ impl Parse for OpsAuto {
 
         if lookahead.peek(kw::stdmut) {
             input.parse::<kw::stdmut>()?;
-            input.parse::<OpsImplAutoBinary<OpsKindMutable>>().map(Self::StdMutable)
+            input.parse::<OpsImplAuto<OpsKindMutable>>().map(Self::StdMutable)
         } else if lookahead.peek(kw::stdbin) {
             input.parse::<kw::stdbin>()?;
-            input.parse::<OpsImplAutoBinary<OpsKindBinary>>().map(Self::StdBinary)
+            input.parse::<OpsImplAuto<OpsKindBinary>>().map(Self::StdBinary)
         } else if lookahead.peek(kw::stdun) {
             input.parse::<kw::stdun>()?;
-            input.parse::<OpsImplAutoUnary<OpsKindUnary>>().map(Self::StdUnary)
+            input.parse::<OpsImplAuto<OpsKindUnary>>().map(Self::StdUnary)
         } else {
             Err(lookahead.error())
         }
@@ -354,14 +364,12 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
     }
 }
 
-impl<Kind: OpsKind> Parse for OpsImplAutoBinary<Kind> {
+impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
 
-        let lhs_content;
-        let rhs_content;
-        let ops_content;
+        let content;
 
         Ok(Self {
             generics: Generics {
@@ -370,35 +378,9 @@ impl<Kind: OpsKind> Parse for OpsImplAutoBinary<Kind> {
             },
             signature: input.parse()?,
             colon: input.parse()?,
-            lhs_paren: parenthesized!(lhs_content in input),
-            lhs_expr: lhs_content.parse()?,
-            rhs_paren: parenthesized!(rhs_content in input),
-            rhs_expr: rhs_content.parse()?,
-            ops_bracket: bracketed!(ops_content in input),
-            ops: ops_content.parse_terminated(Kind::Operation::parse, Token![,])?,
-        })
-    }
-}
-
-impl<Kind: OpsKind> Parse for OpsImplAutoUnary<Kind> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
-
-        let self_content;
-        let ops_content;
-
-        Ok(Self {
-            generics: Generics {
-                where_clause: gen_where,
-                ..gen_
-            },
-            signature: input.parse()?,
-            colon: input.parse()?,
-            self_paren: parenthesized!(self_content in input),
-            self_expr: self_content.parse()?,
-            ops_bracket: bracketed!(ops_content in input),
-            ops: ops_content.parse_terminated(Kind::Operation::parse, Token![,])?,
+            expression: input.parse()?,
+            ops_bracket: bracketed!(content in input),
+            ops: content.parse_terminated(Kind::Operation::parse, Token![,])?,
         })
     }
 }
@@ -462,6 +444,45 @@ impl Parse for OpsSignatureUnary {
             rhs_token: input.parse()?,
             arrow: input.parse()?,
             ty: input.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsExpressionMutable {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lhs_content;
+        let rhs_content;
+
+        Ok(Self {
+            lhs_paren: parenthesized!(lhs_content in input),
+            lhs_expr: lhs_content.parse()?,
+            rhs_paren: parenthesized!(rhs_content in input),
+            rhs_expr: rhs_content.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsExpressionBinary {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lhs_content;
+        let rhs_content;
+
+        Ok(Self {
+            lhs_paren: parenthesized!(lhs_content in input),
+            lhs_expr: lhs_content.parse()?,
+            rhs_paren: parenthesized!(rhs_content in input),
+            rhs_expr: rhs_content.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsExpressionUnary {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            self_paren: parenthesized!(content in input),
+            self_expr: content.parse()?,
         })
     }
 }
@@ -1137,8 +1158,8 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &ops.lhs_expr;
-                        let rhs = &ops.rhs_expr;
+                        let lhs = &ops.expression.lhs_expr;
+                        let rhs = &ops.expression.rhs_expr;
 
                         OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindMutable> {
                             op,
@@ -1159,8 +1180,8 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let lhs = &ops.lhs_expr;
-                        let rhs = &ops.rhs_expr;
+                        let lhs = &ops.expression.lhs_expr;
+                        let rhs = &ops.expression.rhs_expr;
 
                         OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindBinary> {
                             op,
@@ -1181,7 +1202,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                     .ops
                     .into_iter()
                     .map(|op| {
-                        let expr = &ops.self_expr;
+                        let expr = &ops.expression.self_expr;
 
                         OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindUnary> {
                             op,
