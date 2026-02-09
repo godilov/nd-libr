@@ -21,9 +21,9 @@ mod kw {
 }
 
 enum Ops {
-    Mutable(TokenStream),
-    Binary(TokenStream),
-    Unary(TokenStream),
+    StdMutable(TokenStream),
+    StdBinary(TokenStream),
+    StdUnary(TokenStream),
     #[allow(unused)]
     NdMutable(TokenStream),
     #[allow(unused)]
@@ -32,15 +32,15 @@ enum Ops {
     NdUnary(TokenStream),
 }
 
-struct OpsDef<Signature: OpsSignature> {
+struct OpsImpl<Signature: OpsSignature> {
     generics: Generics,
     signature: Signature,
     #[allow(unused)]
     colon: Token![,],
-    impls: Punctuated<OpsImpl<Signature>, Token![,]>,
+    definitions: Punctuated<OpsDefinition<Signature>, Token![,]>,
 }
 
-struct OpsDefAutoBin<Signature: OpsSignature> {
+struct OpsImplAutoBinary<Signature: OpsSignature> {
     generics: Generics,
     signature: Signature,
     #[allow(unused)]
@@ -56,7 +56,7 @@ struct OpsDefAutoBin<Signature: OpsSignature> {
     ops: Punctuated<Signature::Op, Token![,]>,
 }
 
-struct OpsDefAutoUn<Signature: OpsSignature> {
+struct OpsImplAutoUnary<Signature: OpsSignature> {
     generics: Generics,
     signature: Signature,
     #[allow(unused)]
@@ -138,46 +138,46 @@ struct OpsSignatureUnary {
     ty: Type,
 }
 
-enum OpsImpl<Signature: OpsSignature> {
-    Standard(OpsImplStandard<Signature>),
-    Extended(OpsImplExtended<Signature>),
+enum OpsDefinition<Signature: OpsSignature> {
+    Standard(OpsDefinitionStandard<Signature>),
+    Extended(OpsDefinitionExtended<Signature>),
 }
 
-struct OpsImplStandard<Signature: OpsSignature> {
+struct OpsDefinitionStandard<Signature: OpsSignature> {
     op: Signature::Op,
     expr: Expr,
 }
 
-struct OpsImplExtended<Signature: OpsSignature> {
+struct OpsDefinitionExtended<Signature: OpsSignature> {
     op: Signature::Op,
     #[allow(unused)]
     ext: kw::ext,
     #[allow(unused)]
     brace: Brace,
-    elems: Punctuated<OpsImplExtendedElem<Signature>, Token![;]>,
+    elems: Punctuated<OpsDefinitionExtendedElem<Signature>, Token![;]>,
 }
 
-struct OpsImplExtendedElem<Signature: OpsSignature> {
+struct OpsDefinitionExtendedElem<Signature: OpsSignature> {
     qualifier: Signature::Qualifier,
     expr: Expr,
     conditions: WhereClause,
 }
 
-struct OpsImplBinQualifier {
+struct OpsQualifierBinary {
     #[allow(unused)]
     paren: Paren,
-    lhs: OpsImplQualifierKind,
-    rhs: OpsImplQualifierKind,
+    lhs: OpsQualifier,
+    rhs: OpsQualifier,
 }
 
-struct OpsImplUnQualifier {
+struct OpsQualifierUnary {
     #[allow(unused)]
     paren: Paren,
-    value: OpsImplQualifierKind,
+    value: OpsQualifier,
 }
 
 #[derive(Clone, Copy)]
-enum OpsImplQualifierKind {
+enum OpsQualifier {
     Raw,
     Ref,
 }
@@ -206,7 +206,7 @@ enum ForwardDefItem {
     Impl(ItemImpl),
 }
 
-struct ForwardDataDef {
+struct ForwardData {
     fwd: Forward,
     #[allow(unused)]
     colon: Token![:],
@@ -214,7 +214,7 @@ struct ForwardDataDef {
     conditions: Option<WhereClause>,
 }
 
-struct ForwardImplDef {
+struct ForwardImpl {
     #[allow(unused)]
     fwd: Forward,
     #[allow(unused)]
@@ -241,13 +241,13 @@ enum ForwardArgument {
     Alt(TokenStream),
 }
 
-type OpsDefMutable = OpsDef<OpsSignatureMutable>;
-type OpsDefBinary = OpsDef<OpsSignatureBinary>;
-type OpsDefUnary = OpsDef<OpsSignatureUnary>;
+type OpsDefMutable = OpsImpl<OpsSignatureMutable>;
+type OpsDefBinary = OpsImpl<OpsSignatureBinary>;
+type OpsDefUnary = OpsImpl<OpsSignatureUnary>;
 
-type OpsDefAutoMutable = OpsDefAutoBin<OpsSignatureMutable>;
-type OpsDefAutoBinary = OpsDefAutoBin<OpsSignatureBinary>;
-type OpsDefAutoUnary = OpsDefAutoUn<OpsSignatureUnary>;
+type OpsDefAutoMutable = OpsImplAutoBinary<OpsSignatureMutable>;
+type OpsDefAutoBinary = OpsImplAutoBinary<OpsSignatureBinary>;
+type OpsDefAutoUnary = OpsImplAutoUnary<OpsSignatureUnary>;
 
 trait OpsSignature: Parse {
     type Op: Parse;
@@ -256,17 +256,17 @@ trait OpsSignature: Parse {
 
 impl OpsSignature for OpsSignatureMutable {
     type Op = BinOp;
-    type Qualifier = OpsImplBinQualifier;
+    type Qualifier = OpsQualifierBinary;
 }
 
 impl OpsSignature for OpsSignatureBinary {
     type Op = BinOp;
-    type Qualifier = OpsImplBinQualifier;
+    type Qualifier = OpsQualifierBinary;
 }
 
 impl OpsSignature for OpsSignatureUnary {
     type Op = UnOp;
-    type Qualifier = OpsImplUnQualifier;
+    type Qualifier = OpsQualifierUnary;
 }
 
 impl Parse for Ops {
@@ -277,15 +277,15 @@ impl Parse for Ops {
         let tokens = input.parse::<TokenStream>()?;
 
         if ident == "mut" {
-            return Ok(Ops::Mutable(tokens));
+            return Ok(Ops::StdMutable(tokens));
         }
 
         if ident == "bin" {
-            return Ok(Ops::Binary(tokens));
+            return Ok(Ops::StdBinary(tokens));
         }
 
         if ident == "un" {
-            return Ok(Ops::Unary(tokens));
+            return Ok(Ops::StdUnary(tokens));
         }
 
         if ident == "ndmut" {
@@ -304,7 +304,7 @@ impl Parse for Ops {
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsDef<Signature> {
+impl<Signature: OpsSignature> Parse for OpsImpl<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -316,12 +316,12 @@ impl<Signature: OpsSignature> Parse for OpsDef<Signature> {
             }),
             signature: input.parse()?,
             colon: input.parse()?,
-            impls: input.parse_terminated(OpsImpl::parse, Token![,])?,
+            definitions: input.parse_terminated(OpsDefinition::parse, Token![,])?,
         })
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsDefAutoBin<Signature> {
+impl<Signature: OpsSignature> Parse for OpsImplAutoBinary<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -347,7 +347,7 @@ impl<Signature: OpsSignature> Parse for OpsDefAutoBin<Signature> {
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsDefAutoUn<Signature> {
+impl<Signature: OpsSignature> Parse for OpsImplAutoUnary<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -434,7 +434,7 @@ impl Parse for OpsSignatureUnary {
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsImpl<Signature> {
+impl<Signature: OpsSignature> Parse for OpsDefinition<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         if !input.peek2(kw::ext) {
             Ok(Self::Standard(input.parse()?))
@@ -444,7 +444,7 @@ impl<Signature: OpsSignature> Parse for OpsImpl<Signature> {
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsImplStandard<Signature> {
+impl<Signature: OpsSignature> Parse for OpsDefinitionStandard<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
@@ -453,7 +453,7 @@ impl<Signature: OpsSignature> Parse for OpsImplStandard<Signature> {
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsImplExtended<Signature> {
+impl<Signature: OpsSignature> Parse for OpsDefinitionExtended<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -461,12 +461,12 @@ impl<Signature: OpsSignature> Parse for OpsImplExtended<Signature> {
             op: input.parse()?,
             ext: input.parse()?,
             brace: braced!(content in input),
-            elems: content.parse_terminated(OpsImplExtendedElem::<Signature>::parse, Token![;])?,
+            elems: content.parse_terminated(OpsDefinitionExtendedElem::<Signature>::parse, Token![;])?,
         })
     }
 }
 
-impl<Signature: OpsSignature> Parse for OpsImplExtendedElem<Signature> {
+impl<Signature: OpsSignature> Parse for OpsDefinitionExtendedElem<Signature> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             qualifier: input.parse()?,
@@ -476,7 +476,7 @@ impl<Signature: OpsSignature> Parse for OpsImplExtendedElem<Signature> {
     }
 }
 
-impl Parse for OpsImplBinQualifier {
+impl Parse for OpsQualifierBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -488,7 +488,7 @@ impl Parse for OpsImplBinQualifier {
     }
 }
 
-impl Parse for OpsImplUnQualifier {
+impl Parse for OpsQualifierUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -499,14 +499,14 @@ impl Parse for OpsImplUnQualifier {
     }
 }
 
-impl Parse for OpsImplQualifierKind {
+impl Parse for OpsQualifier {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
 
         if lookahead.peek(Token![^]) {
-            return input.parse::<Token![^]>().map(|_| OpsImplQualifierKind::Raw);
+            return input.parse::<Token![^]>().map(|_| OpsQualifier::Raw);
         } else if lookahead.peek(Token![&]) {
-            return input.parse::<Token![&]>().map(|_| OpsImplQualifierKind::Ref);
+            return input.parse::<Token![&]>().map(|_| OpsQualifier::Ref);
         }
 
         Err(lookahead.error())
@@ -593,7 +593,7 @@ impl Parse for ForwardDefItem {
     }
 }
 
-impl Parse for ForwardDataDef {
+impl Parse for ForwardData {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             fwd: input.parse()?,
@@ -604,7 +604,7 @@ impl Parse for ForwardDataDef {
     }
 }
 
-impl Parse for ForwardImplDef {
+impl Parse for ForwardImpl {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             fwd: input.parse()?,
@@ -677,29 +677,29 @@ impl ToTokens for OpsDefMutable {
             }
         }
 
-        let lstar = self.signature.lhs_star.is_some();
-        let rstar = self.signature.rhs_star.is_some();
+        let lhs_star = self.signature.lhs_star.is_some();
+        let rhs_star = self.signature.rhs_star.is_some();
 
-        let lhs = self.signature.lhs_ref.is_some();
-        let rhs = self.signature.rhs_ref.is_some();
+        let lhs_ref = self.signature.lhs_ref.is_some();
+        let rhs_ref = self.signature.rhs_ref.is_some();
 
         let some = Some(Default::default());
         let none = None;
 
-        for entry in self.impls.iter().filter_map(|elem| match elem {
-            OpsImpl::Standard(val) => Some(val),
-            OpsImpl::Extended(_) => None,
+        for definition in self.definitions.iter().filter_map(|elem| match elem {
+            OpsDefinition::Standard(val) => Some(val),
+            OpsDefinition::Extended(_) => None,
         }) {
             let spec = OpsSpec {
-                op: &entry.op,
+                op: &definition.op,
                 generics: &self.generics,
                 signature: &self.signature,
-                expr: &entry.expr,
+                expr: &definition.expr,
                 conditions: None,
             };
 
-            match (lhs, rhs) {
-                (true, true) => match (lstar, rstar) {
+            match (lhs_ref, rhs_ref) {
+                (true, true) => match (lhs_star, rhs_star) {
                     (true, true) => {
                         tokens.extend(get_impl(spec, some, some));
                         tokens.extend(get_impl(spec, some, none));
@@ -718,7 +718,7 @@ impl ToTokens for OpsDefMutable {
                         tokens.extend(get_impl(spec, some, some));
                     },
                 },
-                (true, false) => match lstar {
+                (true, false) => match lhs_star {
                     true => {
                         tokens.extend(get_impl(spec, some, none));
                         tokens.extend(get_impl(spec, none, none));
@@ -727,7 +727,7 @@ impl ToTokens for OpsDefMutable {
                         tokens.extend(get_impl(spec, some, none));
                     },
                 },
-                (false, true) => match rstar {
+                (false, true) => match rhs_star {
                     true => {
                         tokens.extend(get_impl(spec, none, some));
                         tokens.extend(get_impl(spec, none, none));
@@ -742,13 +742,13 @@ impl ToTokens for OpsDefMutable {
             }
         }
 
-        for entry in self.impls.iter().filter_map(|elem| match elem {
-            OpsImpl::Standard(_) => None,
-            OpsImpl::Extended(val) => Some(val),
+        for definition in self.definitions.iter().filter_map(|elem| match elem {
+            OpsDefinition::Standard(_) => None,
+            OpsDefinition::Extended(val) => Some(val),
         }) {
-            for elem in &entry.elems {
+            for elem in &definition.elems {
                 let spec = OpsSpec {
-                    op: &entry.op,
+                    op: &definition.op,
                     generics: &self.generics,
                     signature: &self.signature,
                     expr: &elem.expr,
@@ -756,16 +756,16 @@ impl ToTokens for OpsDefMutable {
                 };
 
                 match (elem.qualifier.lhs, elem.qualifier.rhs) {
-                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Raw) => {
+                    (OpsQualifier::Raw, OpsQualifier::Raw) => {
                         tokens.extend(get_impl(spec, none, none));
                     },
-                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Ref) => {
+                    (OpsQualifier::Raw, OpsQualifier::Ref) => {
                         tokens.extend(get_impl(spec, none, some));
                     },
-                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Raw) => {
+                    (OpsQualifier::Ref, OpsQualifier::Raw) => {
                         tokens.extend(get_impl(spec, some, none));
                     },
-                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Ref) => {
+                    (OpsQualifier::Ref, OpsQualifier::Ref) => {
                         tokens.extend(get_impl(spec, some, some));
                     },
                 }
@@ -830,29 +830,29 @@ impl ToTokens for OpsDefBinary {
             }
         }
 
-        let lstar = self.signature.lhs_star.is_some();
-        let rstar = self.signature.lhs_star.is_some();
+        let lhs_star = self.signature.lhs_star.is_some();
+        let rhs_star = self.signature.lhs_star.is_some();
 
-        let lhs = self.signature.lhs_ref.is_some();
-        let rhs = self.signature.rhs_ref.is_some();
+        let lhs_ref = self.signature.lhs_ref.is_some();
+        let rhs_ref = self.signature.rhs_ref.is_some();
 
         let some = Some(Default::default());
         let none = None;
 
-        for elem in self.impls.iter().filter_map(|elem| match elem {
-            OpsImpl::Standard(val) => Some(val),
-            OpsImpl::Extended(_) => None,
+        for definition in self.definitions.iter().filter_map(|elem| match elem {
+            OpsDefinition::Standard(val) => Some(val),
+            OpsDefinition::Extended(_) => None,
         }) {
             let spec = OpsSpec {
-                op: &elem.op,
+                op: &definition.op,
                 generics: &self.generics,
                 signature: &self.signature,
-                expr: &elem.expr,
+                expr: &definition.expr,
                 conditions: None,
             };
 
-            match (lhs, rhs) {
-                (true, true) => match (lstar, rstar) {
+            match (lhs_ref, rhs_ref) {
+                (true, true) => match (lhs_star, rhs_star) {
                     (true, true) => {
                         tokens.extend(get_impl(spec, some, some));
                         tokens.extend(get_impl(spec, some, none));
@@ -871,7 +871,7 @@ impl ToTokens for OpsDefBinary {
                         tokens.extend(get_impl(spec, some, some));
                     },
                 },
-                (true, false) => match lstar {
+                (true, false) => match lhs_star {
                     true => {
                         tokens.extend(get_impl(spec, some, none));
                         tokens.extend(get_impl(spec, none, none));
@@ -880,7 +880,7 @@ impl ToTokens for OpsDefBinary {
                         tokens.extend(get_impl(spec, some, none));
                     },
                 },
-                (false, true) => match rstar {
+                (false, true) => match rhs_star {
                     true => {
                         tokens.extend(get_impl(spec, none, some));
                         tokens.extend(get_impl(spec, none, none));
@@ -895,13 +895,13 @@ impl ToTokens for OpsDefBinary {
             }
         }
 
-        for entry in self.impls.iter().filter_map(|elem| match elem {
-            OpsImpl::Standard(_) => None,
-            OpsImpl::Extended(val) => Some(val),
+        for definition in self.definitions.iter().filter_map(|elem| match elem {
+            OpsDefinition::Standard(_) => None,
+            OpsDefinition::Extended(val) => Some(val),
         }) {
-            for elem in &entry.elems {
+            for elem in &definition.elems {
                 let spec = OpsSpec {
-                    op: &entry.op,
+                    op: &definition.op,
                     generics: &self.generics,
                     signature: &self.signature,
                     expr: &elem.expr,
@@ -909,16 +909,16 @@ impl ToTokens for OpsDefBinary {
                 };
 
                 match (elem.qualifier.lhs, elem.qualifier.rhs) {
-                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Raw) => {
+                    (OpsQualifier::Raw, OpsQualifier::Raw) => {
                         tokens.extend(get_impl(spec, none, none));
                     },
-                    (OpsImplQualifierKind::Raw, OpsImplQualifierKind::Ref) => {
+                    (OpsQualifier::Raw, OpsQualifier::Ref) => {
                         tokens.extend(get_impl(spec, none, some));
                     },
-                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Raw) => {
+                    (OpsQualifier::Ref, OpsQualifier::Raw) => {
                         tokens.extend(get_impl(spec, some, none));
                     },
-                    (OpsImplQualifierKind::Ref, OpsImplQualifierKind::Ref) => {
+                    (OpsQualifier::Ref, OpsQualifier::Ref) => {
                         tokens.extend(get_impl(spec, some, some));
                     },
                 }
@@ -980,26 +980,26 @@ impl ToTokens for OpsDefUnary {
             }
         }
 
-        let lstar = self.signature.lhs_star.is_some();
-        let lhs = self.signature.lhs_ref.is_some();
+        let lhs_star = self.signature.lhs_star.is_some();
+        let lhs_ref = self.signature.lhs_ref.is_some();
 
         let some = Some(Default::default());
         let none = None;
 
-        for elem in self.impls.iter().filter_map(|elem| match elem {
-            OpsImpl::Standard(val) => Some(val),
-            OpsImpl::Extended(_) => None,
+        for definition in self.definitions.iter().filter_map(|elem| match elem {
+            OpsDefinition::Standard(val) => Some(val),
+            OpsDefinition::Extended(_) => None,
         }) {
             let spec = OpsSpec {
-                op: &elem.op,
+                op: &definition.op,
                 generics: &self.generics,
                 signature: &self.signature,
-                expr: &elem.expr,
+                expr: &definition.expr,
                 conditions: None,
             };
 
-            match lhs {
-                true => match lstar {
+            match lhs_ref {
+                true => match lhs_star {
                     true => {
                         tokens.extend(get_impl(spec, some));
                         tokens.extend(get_impl(spec, none));
@@ -1014,13 +1014,13 @@ impl ToTokens for OpsDefUnary {
             }
         }
 
-        for entry in self.impls.iter().filter_map(|elem| match elem {
-            OpsImpl::Standard(_) => None,
-            OpsImpl::Extended(val) => Some(val),
+        for definition in self.definitions.iter().filter_map(|elem| match elem {
+            OpsDefinition::Standard(_) => None,
+            OpsDefinition::Extended(val) => Some(val),
         }) {
-            for elem in &entry.elems {
+            for elem in &definition.elems {
                 let spec = OpsSpec {
-                    op: &entry.op,
+                    op: &definition.op,
                     generics: &self.generics,
                     signature: &self.signature,
                     expr: &elem.expr,
@@ -1028,10 +1028,10 @@ impl ToTokens for OpsDefUnary {
                 };
 
                 match elem.qualifier.value {
-                    OpsImplQualifierKind::Raw => {
+                    OpsQualifier::Raw => {
                         tokens.extend(get_impl(spec, none));
                     },
-                    OpsImplQualifierKind::Ref => {
+                    OpsQualifier::Ref => {
                         tokens.extend(get_impl(spec, some));
                     },
                 }
@@ -1109,15 +1109,15 @@ impl ForwardArgument {
 #[proc_macro]
 pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
-        Ops::Mutable(tokens) => match parse2::<OpsDefMutable>(tokens) {
+        Ops::StdMutable(tokens) => match parse2::<OpsDefMutable>(tokens) {
             Ok(val) => quote! { #val }.into(),
             Err(err) => err.into_compile_error().into(),
         },
-        Ops::Binary(tokens) => match parse2::<OpsDefBinary>(tokens) {
+        Ops::StdBinary(tokens) => match parse2::<OpsDefBinary>(tokens) {
             Ok(val) => quote! { #val }.into(),
             Err(err) => err.into_compile_error().into(),
         },
-        Ops::Unary(tokens) => match parse2::<OpsDefUnary>(tokens) {
+        Ops::StdUnary(tokens) => match parse2::<OpsDefUnary>(tokens) {
             Ok(val) => quote! { #val }.into(),
             Err(err) => err.into_compile_error().into(),
         },
@@ -1132,7 +1132,7 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
     let ops = parse_macro_input!(stream as Ops);
 
     match ops {
-        Ops::Mutable(tokens) => {
+        Ops::StdMutable(tokens) => {
             let auto = match parse2::<OpsDefAutoMutable>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
@@ -1142,24 +1142,24 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                 generics: auto.generics,
                 signature: auto.signature,
                 colon: Default::default(),
-                impls: auto
+                definitions: auto
                     .ops
                     .into_iter()
                     .map(|op| {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImpl::Standard(OpsImplStandard::<OpsSignatureMutable> {
+                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsSignatureMutable> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs; }},
                         })
                     })
-                    .collect::<Punctuated<OpsImpl<OpsSignatureMutable>, Token![,]>>(),
+                    .collect::<Punctuated<OpsDefinition<OpsSignatureMutable>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
         },
-        Ops::Binary(tokens) => {
+        Ops::StdBinary(tokens) => {
             let auto = match parse2::<OpsDefAutoBinary>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
@@ -1169,24 +1169,24 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                 generics: auto.generics,
                 signature: auto.signature,
                 colon: Default::default(),
-                impls: auto
+                definitions: auto
                     .ops
                     .into_iter()
                     .map(|op| {
                         let lhs = &auto.lhs_expr;
                         let rhs = &auto.rhs_expr;
 
-                        OpsImpl::Standard(OpsImplStandard::<OpsSignatureBinary> {
+                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsSignatureBinary> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs }},
                         })
                     })
-                    .collect::<Punctuated<OpsImpl<OpsSignatureBinary>, Token![,]>>(),
+                    .collect::<Punctuated<OpsDefinition<OpsSignatureBinary>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
         },
-        Ops::Unary(tokens) => {
+        Ops::StdUnary(tokens) => {
             let auto = match parse2::<OpsDefAutoUnary>(tokens) {
                 Ok(val) => val,
                 Err(err) => return err.into_compile_error().into(),
@@ -1196,18 +1196,18 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                 generics: auto.generics,
                 signature: auto.signature,
                 colon: Default::default(),
-                impls: auto
+                definitions: auto
                     .ops
                     .into_iter()
                     .map(|op| {
                         let expr = &auto.self_expr;
 
-                        OpsImpl::Standard(OpsImplStandard::<OpsSignatureUnary> {
+                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsSignatureUnary> {
                             op,
                             expr: parse_quote! {{ #op #expr }},
                         })
                     })
-                    .collect::<Punctuated<OpsImpl<OpsSignatureUnary>, Token![,]>>(),
+                    .collect::<Punctuated<OpsDefinition<OpsSignatureUnary>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
@@ -1561,19 +1561,19 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 #[proc_macro_attribute]
 pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
-        ($item:expr, $def:expr) => {{
+        ($item:expr, $attr:expr) => {{
             let item = $item;
-            let def = $def;
+            let attr = $attr;
 
             let ident = &item.ident;
             let generics = &item.generics;
             let gen_params = &item.generics.params;
             let (_, gen_type, gen_where) = item.generics.split_for_impl();
 
-            let expr = &def.fwd.expr;
-            let ty = &def.fwd.ty;
-            let path = &def.path;
-            let predicates = def.conditions.as_ref().map(|conditions| &conditions.predicates);
+            let expr = &attr.fwd.expr;
+            let ty = &attr.fwd.ty;
+            let path = &attr.path;
+            let predicates = attr.conditions.as_ref().map(|conditions| &conditions.predicates);
 
             let gen_where = match gen_where {
                 Some(val) => {
@@ -1620,11 +1620,11 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
     let item = parse_macro_input!(item as ForwardDefItem);
 
     match item {
-        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardDataDef)),
-        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardDataDef)),
-        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardDataDef)),
+        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
+        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
+        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
         ForwardDefItem::Impl(val) => {
-            let ForwardImplDef { fwd: _, idents: _ } = parse_macro_input!(attr as ForwardImplDef);
+            let ForwardImpl { fwd: _, idents: _ } = parse_macro_input!(attr as ForwardImpl);
 
             let attrs = &val.attrs;
             let default = &val.defaultness;
@@ -1834,7 +1834,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         FnArg::Typed(_) => None,
     });
 
-    let decl = inputs
+    let declarations = inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1850,7 +1850,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
             quote! { #(#attrs)* #ident: #ty }
         });
 
-    let def = inputs
+    let definitions = inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1875,11 +1875,11 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         Some(val) if val.reference.is_some() && val.mutability.is_some() => {
             if forward_into {
                 quote! {
-                    self.forward_mut().#ident(#(#def),*).into()
+                    self.forward_mut().#ident(#(#definitions),*).into()
                 }
             } else if forward_self {
                 quote! {
-                    self.forward_mut().#ident(#(#def),*);
+                    self.forward_mut().#ident(#(#definitions),*);
                     self
                 }
             } else if let Some(forward_with) = forward_with {
@@ -1899,22 +1899,22 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
 
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
-                    (self.forward_mut().#ident(#(#def),*))
+                    (self.forward_mut().#ident(#(#definitions),*))
                 }
             } else {
                 quote! {
-                    self.forward_mut().#ident(#(#def),*)
+                    self.forward_mut().#ident(#(#definitions),*)
                 }
             }
         },
         Some(val) if val.reference.is_some() => {
             if forward_into {
                 quote! {
-                    self.forward_ref().#ident(#(#def),*).into()
+                    self.forward_ref().#ident(#(#definitions),*).into()
                 }
             } else if forward_self {
                 quote! {
-                    self.forward_ref().#ident(#(#def),*);
+                    self.forward_ref().#ident(#(#definitions),*);
                     self
                 }
             } else if let Some(forward_with) = forward_with {
@@ -1934,22 +1934,22 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
 
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
-                    (self.forward_ref().#ident(#(#def),*))
+                    (self.forward_ref().#ident(#(#definitions),*))
                 }
             } else {
                 quote! {
-                    self.forward_ref().#ident(#(#def),*)
+                    self.forward_ref().#ident(#(#definitions),*)
                 }
             }
         },
         Some(_) => {
             if forward_into {
                 quote! {
-                    self.forward().#ident(#(#def),*).into()
+                    self.forward().#ident(#(#definitions),*).into()
                 }
             } else if forward_self {
                 quote! {
-                    self.forward().#ident(#(#def),*);
+                    self.forward().#ident(#(#definitions),*);
                     self
                 }
             } else if let Some(forward_with) = forward_with {
@@ -1969,16 +1969,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
 
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
-                    (self.forward().#ident(#(#def),*))
+                    (self.forward().#ident(#(#definitions),*))
                 }
             } else {
                 quote! {
-                    self.forward().#ident(#(#def),*)
+                    self.forward().#ident(#(#definitions),*)
                 }
             }
         },
         None => quote! {
-            <$ty>::#ident(#(#def),*).into()
+            <$ty>::#ident(#(#definitions),*).into()
         },
     };
 
@@ -1992,7 +1992,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         quote! {
             #[allow(unused_mut)]
             #(#attrs)*
-            #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#decl),*) #output {
+            #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#declarations),*) #output {
                 #expr
             }
         },
