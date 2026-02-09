@@ -73,11 +73,11 @@ struct OpsSignatureMutable {
     #[allow(unused)]
     lhs_token: Token![|],
     lhs_vmut: Option<Token![mut]>,
-    lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
     #[allow(unused)]
     lhs_colon: Token![:],
-    lhs_ref: Option<Token![&]>,
+    #[allow(unused)]
+    lhs_ref: Token![&],
     #[allow(unused)]
     lhs_mut: Token![mut],
     lhs_type: Type,
@@ -375,10 +375,9 @@ impl Parse for OpsSignatureMutable {
         Ok(Self {
             lhs_token: input.parse()?,
             lhs_vmut: input.parse().ok(),
-            lhs_star: input.parse().ok(),
             lhs_ident: input.parse()?,
             lhs_colon: input.parse()?,
-            lhs_ref: input.parse().ok(),
+            lhs_ref: input.parse()?,
             lhs_mut: input.parse()?,
             lhs_type: input.parse()?,
             delim: input.parse()?,
@@ -633,7 +632,7 @@ impl ToTokens for OpsDefMutable {
             conditions: Option<&'ops WhereClause>,
         }
 
-        fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
+        fn get_impl(spec: OpsSpec, rhs_ref: Option<Token![&]>) -> TokenStream {
             let (ident, path) = match get_std_path_mut(spec.op) {
                 Ok(val) => val,
                 Err(err) => {
@@ -666,10 +665,8 @@ impl ToTokens for OpsDefMutable {
 
             let expr = &spec.expr;
 
-            let lhs_ref = lhs_ref.map(|_| quote! { &mut });
-
             quote! {
-                impl #gen_impl #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #gen_where {
+                impl #gen_impl #path<#rhs_ref #rhs_type> for #lhs_type #gen_where {
                     fn #ident(&mut self, rhs: #rhs_ref #rhs_type) {
                         (|#lhs_mut #lhs_ident: &mut #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs);
                     }
@@ -677,10 +674,7 @@ impl ToTokens for OpsDefMutable {
             }
         }
 
-        let lhs_star = self.signature.lhs_star.is_some();
         let rhs_star = self.signature.rhs_star.is_some();
-
-        let lhs_ref = self.signature.lhs_ref.is_some();
         let rhs_ref = self.signature.rhs_ref.is_some();
 
         let some = Some(Default::default());
@@ -698,46 +692,18 @@ impl ToTokens for OpsDefMutable {
                 conditions: None,
             };
 
-            match (lhs_ref, rhs_ref) {
-                (true, true) => match (lhs_star, rhs_star) {
-                    (true, true) => {
-                        tokens.extend(get_impl(spec, some, some));
-                        tokens.extend(get_impl(spec, some, none));
-                        tokens.extend(get_impl(spec, none, some));
-                        tokens.extend(get_impl(spec, none, none));
-                    },
-                    (true, false) => {
-                        tokens.extend(get_impl(spec, some, some));
-                        tokens.extend(get_impl(spec, none, some));
-                    },
-                    (false, true) => {
-                        tokens.extend(get_impl(spec, some, some));
-                        tokens.extend(get_impl(spec, some, none));
-                    },
-                    (false, false) => {
-                        tokens.extend(get_impl(spec, some, some));
-                    },
-                },
-                (true, false) => match lhs_star {
+            match rhs_ref {
+                true => match rhs_star {
                     true => {
-                        tokens.extend(get_impl(spec, some, none));
-                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, some));
+                        tokens.extend(get_impl(spec, none));
                     },
                     false => {
-                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, some));
                     },
                 },
-                (false, true) => match rhs_star {
-                    true => {
-                        tokens.extend(get_impl(spec, none, some));
-                        tokens.extend(get_impl(spec, none, none));
-                    },
-                    false => {
-                        tokens.extend(get_impl(spec, none, some));
-                    },
-                },
-                (false, false) => {
-                    tokens.extend(get_impl(spec, none, none));
+                false => {
+                    tokens.extend(get_impl(spec, none));
                 },
             }
         }
@@ -757,16 +723,16 @@ impl ToTokens for OpsDefMutable {
 
                 match (elem.qualifier.lhs, elem.qualifier.rhs) {
                     (OpsQualifier::Raw, OpsQualifier::Raw) => {
-                        tokens.extend(get_impl(spec, none, none));
+                        tokens.extend(get_impl(spec, none));
                     },
                     (OpsQualifier::Raw, OpsQualifier::Ref) => {
-                        tokens.extend(get_impl(spec, none, some));
+                        tokens.extend(get_impl(spec, some));
                     },
                     (OpsQualifier::Ref, OpsQualifier::Raw) => {
-                        tokens.extend(get_impl(spec, some, none));
+                        tokens.extend(get_impl(spec, none));
                     },
                     (OpsQualifier::Ref, OpsQualifier::Ref) => {
-                        tokens.extend(get_impl(spec, some, some));
+                        tokens.extend(get_impl(spec, some));
                     },
                 }
             }
