@@ -163,6 +163,14 @@ struct OpsDefinitionExtendedElem<Signature: OpsSignature> {
     conditions: WhereClause,
 }
 
+struct OpsQualifierMutable {
+    #[allow(unused)]
+    paren: Paren,
+    #[allow(unused)]
+    lhs: Token![&],
+    rhs: OpsQualifier,
+}
+
 struct OpsQualifierBinary {
     #[allow(unused)]
     paren: Paren,
@@ -256,7 +264,7 @@ trait OpsSignature: Parse {
 
 impl OpsSignature for OpsSignatureMutable {
     type Op = BinOp;
-    type Qualifier = OpsQualifierBinary;
+    type Qualifier = OpsQualifierMutable;
 }
 
 impl OpsSignature for OpsSignatureBinary {
@@ -471,6 +479,18 @@ impl<Signature: OpsSignature> Parse for OpsDefinitionExtendedElem<Signature> {
             qualifier: input.parse()?,
             expr: input.parse()?,
             conditions: input.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsQualifierMutable {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            paren: parenthesized!(content in input),
+            lhs: content.parse()?,
+            rhs: content.parse()?,
         })
     }
 }
@@ -721,17 +741,11 @@ impl ToTokens for OpsDefMutable {
                     conditions: Some(&elem.conditions),
                 };
 
-                match (elem.qualifier.lhs, elem.qualifier.rhs) {
-                    (OpsQualifier::Raw, OpsQualifier::Raw) => {
+                match elem.qualifier.rhs {
+                    OpsQualifier::Raw => {
                         tokens.extend(get_impl(spec, none));
                     },
-                    (OpsQualifier::Raw, OpsQualifier::Ref) => {
-                        tokens.extend(get_impl(spec, some));
-                    },
-                    (OpsQualifier::Ref, OpsQualifier::Raw) => {
-                        tokens.extend(get_impl(spec, none));
-                    },
-                    (OpsQualifier::Ref, OpsQualifier::Ref) => {
+                    OpsQualifier::Ref => {
                         tokens.extend(get_impl(spec, some));
                     },
                 }
