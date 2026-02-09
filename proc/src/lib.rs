@@ -72,7 +72,7 @@ struct OpsImplAuto<Kind: OpsKind> {
 
 struct OpsSignatureMutable {
     #[allow(unused)]
-    lhs_token: Token![|],
+    paren: Paren,
     lhs_vmut: Option<Token![mut]>,
     lhs_ident: Ident,
     #[allow(unused)]
@@ -91,13 +91,11 @@ struct OpsSignatureMutable {
     rhs_colon: Token![:],
     rhs_ref: Option<Token![&]>,
     rhs_type: Type,
-    #[allow(unused)]
-    rhs_token: Token![|],
 }
 
 struct OpsSignatureBinary {
     #[allow(unused)]
-    lhs_token: Token![|],
+    paren: Paren,
     lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
@@ -116,15 +114,13 @@ struct OpsSignatureBinary {
     rhs_ref: Option<Token![&]>,
     rhs_type: Type,
     #[allow(unused)]
-    rhs_token: Token![|],
-    #[allow(unused)]
     arrow: Token![->],
     ty: Type,
 }
 
 struct OpsSignatureUnary {
     #[allow(unused)]
-    lhs_token: Token![|],
+    paren: Paren,
     lhs_vmut: Option<Token![mut]>,
     lhs_star: Option<Token![*]>,
     lhs_ident: Ident,
@@ -132,8 +128,6 @@ struct OpsSignatureUnary {
     lhs_colon: Token![:],
     lhs_ref: Option<Token![&]>,
     lhs_type: Type,
-    #[allow(unused)]
-    rhs_token: Token![|],
     #[allow(unused)]
     arrow: Token![->],
     ty: Type,
@@ -433,44 +427,46 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
 
 impl Parse for OpsSignatureMutable {
     fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
         Ok(Self {
-            lhs_token: input.parse()?,
-            lhs_vmut: input.parse().ok(),
-            lhs_ident: input.parse()?,
-            lhs_colon: input.parse()?,
-            lhs_ref: input.parse()?,
-            lhs_mut: input.parse()?,
-            lhs_type: input.parse()?,
-            delim: input.parse()?,
-            rhs_vmut: input.parse().ok(),
-            rhs_star: input.parse().ok(),
-            rhs_ident: input.parse()?,
-            rhs_colon: input.parse()?,
-            rhs_ref: input.parse().ok(),
-            rhs_type: input.parse()?,
-            rhs_token: input.parse()?,
+            paren: parenthesized!(content in input),
+            lhs_vmut: content.parse().ok(),
+            lhs_ident: content.parse()?,
+            lhs_colon: content.parse()?,
+            lhs_ref: content.parse()?,
+            lhs_mut: content.parse()?,
+            lhs_type: content.parse()?,
+            delim: content.parse()?,
+            rhs_vmut: content.parse().ok(),
+            rhs_star: content.parse().ok(),
+            rhs_ident: content.parse()?,
+            rhs_colon: content.parse()?,
+            rhs_ref: content.parse().ok(),
+            rhs_type: content.parse()?,
         })
     }
 }
 
 impl Parse for OpsSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
         Ok(Self {
-            lhs_token: input.parse()?,
-            lhs_vmut: input.parse().ok(),
-            lhs_star: input.parse().ok(),
-            lhs_ident: input.parse()?,
-            lhs_colon: input.parse()?,
-            lhs_ref: input.parse().ok(),
-            lhs_type: input.parse()?,
-            delim: input.parse()?,
-            rhs_vmut: input.parse().ok(),
-            rhs_star: input.parse().ok(),
-            rhs_ident: input.parse()?,
-            rhs_colon: input.parse()?,
-            rhs_ref: input.parse().ok(),
-            rhs_type: input.parse()?,
-            rhs_token: input.parse()?,
+            paren: parenthesized!(content in input),
+            lhs_vmut: content.parse().ok(),
+            lhs_star: content.parse().ok(),
+            lhs_ident: content.parse()?,
+            lhs_colon: content.parse()?,
+            lhs_ref: content.parse().ok(),
+            lhs_type: content.parse()?,
+            delim: content.parse()?,
+            rhs_vmut: content.parse().ok(),
+            rhs_star: content.parse().ok(),
+            rhs_ident: content.parse()?,
+            rhs_colon: content.parse()?,
+            rhs_ref: content.parse().ok(),
+            rhs_type: content.parse()?,
             arrow: input.parse()?,
             ty: input.parse()?,
         })
@@ -479,15 +475,16 @@ impl Parse for OpsSignatureBinary {
 
 impl Parse for OpsSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
         Ok(Self {
-            lhs_token: input.parse()?,
-            lhs_vmut: input.parse().ok(),
-            lhs_star: input.parse().ok(),
-            lhs_ident: input.parse()?,
-            lhs_colon: input.parse()?,
-            lhs_ref: input.parse().ok(),
-            lhs_type: input.parse()?,
-            rhs_token: input.parse()?,
+            paren: parenthesized!(content in input),
+            lhs_vmut: content.parse().ok(),
+            lhs_star: content.parse().ok(),
+            lhs_ident: content.parse()?,
+            lhs_colon: content.parse()?,
+            lhs_ref: content.parse().ok(),
+            lhs_type: content.parse()?,
             arrow: input.parse()?,
             ty: input.parse()?,
         })

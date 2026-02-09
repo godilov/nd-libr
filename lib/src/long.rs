@@ -196,7 +196,7 @@ macro_rules! ops_primitive_native_impl {
         $(ops_primitive_native_impl!(@bytes $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
-        ops_impl!(@stdbin <const L: usize> |*a: &Signed<L>, b: $primitive| -> Signed::<L>,
+        ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: $primitive) -> Signed::<L>,
             + Signed::<L>(add_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
             - Signed::<L>(sub_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
             * Signed::<L>(mul_signed(&a.0, (b.unsigned_abs() as Single, Sign::from(b)))),
@@ -206,7 +206,7 @@ macro_rules! ops_primitive_native_impl {
             & Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
             ^ Signed::<L>(bit_single(&a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
 
-        ops_impl!(@stdmut <const L: usize> |a: &mut Signed<L>, b: $primitive|,
+        ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: $primitive),
             += add_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
             -= sub_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
             *= mul_signed_mut(&mut a.0, (b.unsigned_abs() as Single, Sign::from(b))),
@@ -217,7 +217,7 @@ macro_rules! ops_primitive_native_impl {
             ^= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
     };
     (@stdunsigned $primitive:ty $(,)?) => {
-        ops_impl!(@stdbin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
+        ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, b: $primitive) -> Unsigned::<L>,
             + Unsigned::<L>(add_single(&a.0, b as Single)),
             - Unsigned::<L>(sub_single(&a.0, b as Single)),
             * Unsigned::<L>(mul_single(&a.0, b as Single)),
@@ -227,7 +227,7 @@ macro_rules! ops_primitive_native_impl {
             & Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop & bop)),
             ^ Unsigned::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop ^ bop)));
 
-        ops_impl!(@stdmut <const L: usize> |a: &mut Unsigned<L>, b: $primitive|,
+        ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, b: $primitive),
             += add_single_mut(&mut a.0, b as Single),
             -= sub_single_mut(&mut a.0, b as Single),
             *= mul_single_mut(&mut a.0, b as Single),
@@ -238,12 +238,12 @@ macro_rules! ops_primitive_native_impl {
             ^= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop ^ bop));
     };
     (@bytes $primitive:ty $(,)?) => {
-        ops_impl!(@stdbin <const L: usize> |*a: &Bytes<L>, b: $primitive| -> Bytes::<L>,
+        ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, b: $primitive) -> Bytes::<L>,
             | Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop | bop)),
             & Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop & bop)),
             ^ Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop ^ bop)));
 
-        ops_impl!(@stdmut <const L: usize> |a: &mut Bytes<L>, b: $primitive|,
+        ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, b: $primitive),
             |= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop | bop),
             &= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop & bop),
             ^= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop ^ bop));
@@ -261,7 +261,7 @@ macro_rules! ops_primitive_impl {
         $(ops_primitive_impl!(@bytes $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
-        ops_impl!(@stdbin <const L: usize> |*a: &Signed<L>, b: $primitive| -> Signed::<L>,
+        ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: $primitive) -> Signed::<L>,
             + Signed::<L>(add_long(&a.0, &Signed::<L>::from(b).0)),
             - Signed::<L>(sub_long(&a.0, &Signed::<L>::from(b).0)),
             * Signed::<L>(mul_long(&a.0, &Signed::<L>::from(b).0)),
@@ -271,7 +271,7 @@ macro_rules! ops_primitive_impl {
             & Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop)),
             ^ Signed::<L>(bit_long(&a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop)));
 
-        ops_impl!(@stdmut <const L: usize> |a: &mut Signed<L>, b: $primitive|,
+        ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: $primitive),
             += add_long_mut(&mut a.0, &Signed::<L>::from(b).0),
             -= sub_long_mut(&mut a.0, &Signed::<L>::from(b).0),
             *= mul_long_mut(&mut a.0, &Signed::<L>::from(b).0),
@@ -282,7 +282,7 @@ macro_rules! ops_primitive_impl {
             ^= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop));
     };
     (@stdunsigned $primitive:ty $(,)?) => {
-        ops_impl!(@stdbin <const L: usize> |*a: &Unsigned<L>, b: $primitive| -> Unsigned::<L>,
+        ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, b: $primitive) -> Unsigned::<L>,
             + Unsigned::<L>(add_long(&a.0, &Unsigned::<L>::from(b).0)),
             - Unsigned::<L>(sub_long(&a.0, &Unsigned::<L>::from(b).0)),
             * Unsigned::<L>(mul_long(&a.0, &Unsigned::<L>::from(b).0)),
@@ -292,7 +292,7 @@ macro_rules! ops_primitive_impl {
             & Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop & bop)),
             ^ Unsigned::<L>(bit_long(&a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop ^ bop)));
 
-        ops_impl!(@stdmut <const L: usize> |a: &mut Unsigned<L>, b: $primitive|,
+        ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, b: $primitive),
             += add_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
             -= sub_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
             *= mul_long_mut(&mut a.0, &Unsigned::<L>::from(b).0),
@@ -303,12 +303,12 @@ macro_rules! ops_primitive_impl {
             ^= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop ^ bop));
     };
     (@bytes $primitive:ty $(,)?) => {
-        ops_impl!(@stdbin <const L: usize> |*a: &Bytes<L>, b: $primitive| -> Bytes::<L>,
+        ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, b: $primitive) -> Bytes::<L>,
             | Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop | bop)),
             & Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop & bop)),
             ^ Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop ^ bop)));
 
-        ops_impl!(@stdmut <const L: usize> |a: &mut Bytes<L>, b: $primitive|,
+        ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, b: $primitive),
             |= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop | bop),
             &= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop & bop),
             ^= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop ^ bop));
@@ -1545,23 +1545,23 @@ impl<const L: usize> UpperHex for Bytes<L> {
     }
 }
 
-ops_impl!(@stdun <const L: usize> |a: &Signed<L>| -> Signed::<L>,
+ops_impl!(@stdun <const L: usize> (a: &Signed<L>) -> Signed::<L>,
     - Signed::<L>(neg(&a.0)),
     ! Signed::<L>(not(&a.0)));
 
-ops_impl!(@stdun <const L: usize> |a: &Unsigned<L>| -> Unsigned::<L>,
+ops_impl!(@stdun <const L: usize> (a: &Unsigned<L>) -> Unsigned::<L>,
     ! Unsigned::<L>(not(&a.0)));
 
-ops_impl!(@stdun <const L: usize> |mut a: Signed<L>| -> Signed::<L>,
+ops_impl!(@stdun <const L: usize> (mut a: Signed<L>) -> Signed::<L>,
     - { neg_mut(&mut a.0); a },
     ! { not_mut(&mut a.0); a });
 
-ops_impl!(@stdun <const L: usize> |mut a: Unsigned<L>| -> Unsigned::<L>,
+ops_impl!(@stdun <const L: usize> (mut a: Unsigned<L>) -> Unsigned::<L>,
     ! { not_mut(&mut a.0); a });
 
-ops_impl!(@stdbin |a: Sign, b: Sign| -> Sign, * Sign::from((a as i8) * (b as i8)));
+ops_impl!(@stdbin (a: Sign, b: Sign) -> Sign, * Sign::from((a as i8) * (b as i8)));
 
-ops_impl!(@stdbin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<L>,
+ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, *b: &Signed<L>) -> Signed::<L>,
     + Signed::<L>(add_long(&a.0, &b.0)),
     - Signed::<L>(sub_long(&a.0, &b.0)),
     * Signed::<L>(mul_long(&a.0, &b.0)),
@@ -1571,7 +1571,7 @@ ops_impl!(@stdbin <const L: usize> |*a: &Signed<L>, *b: &Signed<L>| -> Signed::<
     & Signed::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Signed::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@stdbin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsigned::<L>,
+ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, *b: &Unsigned<L>) -> Unsigned::<L>,
     + Unsigned::<L>(add_long(&a.0, &b.0)),
     - Unsigned::<L>(sub_long(&a.0, &b.0)),
     * Unsigned::<L>(mul_long(&a.0, &b.0)),
@@ -1581,12 +1581,12 @@ ops_impl!(@stdbin <const L: usize> |*a: &Unsigned<L>, *b: &Unsigned<L>| -> Unsig
     & Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@stdbin <const L: usize> |*a: &Bytes<L>, *b: &Bytes<L>| -> Bytes::<L>,
+ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, *b: &Bytes<L>) -> Bytes::<L>,
     | Bytes::<L>(bit_long(&a.0, &b.0, |aop, bop| aop | bop)),
     & Bytes::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Bytes::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@stdmut <const L: usize> |a: &mut Signed<L>, *b: &Signed<L>|,
+ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, *b: &Signed<L>),
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
     *= mul_long_mut(&mut a.0, &b.0),
@@ -1596,7 +1596,7 @@ ops_impl!(@stdmut <const L: usize> |a: &mut Signed<L>, *b: &Signed<L>|,
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@stdmut <const L: usize> |a: &mut Unsigned<L>, *b: &Unsigned<L>|,
+ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, *b: &Unsigned<L>),
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
     *= mul_long_mut(&mut a.0, &b.0),
@@ -1606,32 +1606,32 @@ ops_impl!(@stdmut <const L: usize> |a: &mut Unsigned<L>, *b: &Unsigned<L>|,
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@stdmut <const L: usize> |a: &mut Bytes<L>, *b: &Bytes<L>|,
+ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, *b: &Bytes<L>),
     |= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop | bop),
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@stdbin <const L: usize> |*a: &Signed<L>, b: usize| -> Signed::<L>,
+ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: usize) -> Signed::<L>,
     << Signed::<L>(shl_signed(&a.0, b)),
     >> Signed::<L>(shr_signed(&a.0, b)));
 
-ops_impl!(@stdbin <const L: usize> |*a: &Unsigned<L>, b: usize| -> Unsigned::<L>,
+ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, b: usize) -> Unsigned::<L>,
     << Unsigned::<L>(shl(&a.0, b, 0)),
     >> Unsigned::<L>(shr(&a.0, b, 0)));
 
-ops_impl!(@stdbin <const L: usize> |*a: &Bytes<L>, b: usize| -> Bytes::<L>,
+ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, b: usize) -> Bytes::<L>,
     << Bytes::<L>(shl(&a.0, b, 0)),
     >> Bytes::<L>(shr(&a.0, b, 0)));
 
-ops_impl!(@stdmut <const L: usize> |a: &mut Signed<L>, b: usize|,
+ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: usize),
     <<= { shl_signed_mut(&mut a.0, b); },
     >>= { shr_signed_mut(&mut a.0, b); });
 
-ops_impl!(@stdmut <const L: usize> |a: &mut Unsigned<L>, b: usize|,
+ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, b: usize),
     <<= { shl_mut(&mut a.0, b, 0); },
     >>= { shr_mut(&mut a.0, b, 0); });
 
-ops_impl!(@stdmut <const L: usize> |a: &mut Bytes<L>, b: usize|,
+ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, b: usize),
     <<= { shl_mut(&mut a.0, b, 0); },
     >>= { shr_mut(&mut a.0, b, 0); });
 

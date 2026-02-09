@@ -47,9 +47,9 @@ struct A<N>(N);
 /// Condition: N is Neg and Not
 /// Condition: &N is Neg and Not
 /// Note: asterisk in `*op` specifies implementation by value and by reference
-ops_impl!(@un <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
+ops_impl!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
     for<'lhs> &'lhs N: Neg<Output = N> + Not<Output = N>
-    |*op: &A<N>| -> A::<N>,
+    (*op: &A<N>) -> A::<N>,
     - A::<N>(-op.0),
     ! A::<N>(!op.0));
 
@@ -57,13 +57,25 @@ ops_impl!(@un <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
 /// Condition: N is Ops
 /// Condition: &N is Ops<&N, Type = N>
 /// Note: asterisk in `*a` and `*b` specifies implementation by value and by reference
-ops_impl!(@bin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
-    |*a: &A<N>, *b: &A<N>| -> A::<N>,
+ops_impl!(@stdbin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
+    (*a: &A<N>, *b: &A<N>) -> A::<N>,
     + A::<N>(a.0 + b.0),
     - A::<N>(a.0 - b.0),
     * A::<N>(a.0 * b.0),
     / A::<N>(a.0 / b.0),
     % A::<N>(a.0 % b.0));
+
+/// Implements `std::ops::AddAssign`, `std::ops::SubAssign`, `std::ops::MulAssign`, `std::ops::DivAssign`, `std::ops::RemAssign` for A<N>
+/// Condition: N is Ops
+/// Condition: &N is Ops<&N, Type = N>
+/// Note: asterisk in `*b` specifies implementation by value and by reference
+ops_impl!(@stdmut <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
+    (a: &mut A<N>, *b: &A<N>) -> A::<N>,
+    += { a.0 += b.0; },
+    -= { a.0 -= b.0; },
+    *= { a.0 *= b.0; },
+    /= { a.0 /= b.0; },
+    %= { a.0 %= b.0; });
 ```
 
 ### Forward Generation
