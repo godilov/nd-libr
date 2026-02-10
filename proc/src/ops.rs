@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
-    Expr, Generics, Ident, Path, Result, Token, Type, WhereClause, braced, bracketed, parenthesized,
+    Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, braced, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_quote,
     punctuated::Punctuated,
@@ -24,35 +24,46 @@ mod kw {
 
 #[allow(clippy::large_enum_variant)]
 pub enum Ops {
-    StdMutable(OpsImpl<OpsKindStdMutable>),
-    StdBinary(OpsImpl<OpsKindStdBinary>),
-    StdUnary(OpsImpl<OpsKindStdUnary>),
-    NdMutable,
-    NdBinary,
-    NdUnary,
+    StdMutable(OpsStdImpl<OpsStdKindMutable>),
+    StdBinary(OpsStdImpl<OpsStdKindBinary>),
+    StdUnary(OpsStdImpl<OpsStdKindUnary>),
+    NdMutable(OpsNdImpl<OpsNdKindMutable>),
+    NdBinary(OpsNdImpl<OpsNdKindBinary>),
+    NdUnary(OpsNdImpl<OpsNdKindUnary>),
 }
 
 #[allow(clippy::large_enum_variant)]
 #[allow(clippy::enum_variant_names)]
 pub enum OpsAuto {
-    StdMutable(OpsImplAuto<OpsKindStdMutable>),
-    StdBinary(OpsImplAuto<OpsKindStdBinary>),
-    StdUnary(OpsImplAuto<OpsKindStdUnary>),
+    StdMutable(OpsImplAuto<OpsStdKindMutable>),
+    StdBinary(OpsImplAuto<OpsStdKindBinary>),
+    StdUnary(OpsImplAuto<OpsStdKindUnary>),
+    NdMutable(OpsImplAuto<OpsNdKindMutable>),
+    NdBinary(OpsImplAuto<OpsNdKindBinary>),
+    NdUnary(OpsImplAuto<OpsNdKindUnary>),
 }
 
-pub struct OpsKindStdMutable;
-pub struct OpsKindStdBinary;
-pub struct OpsKindStdUnary;
-pub struct OpsKindNdMutable;
-pub struct OpsKindNdBinary;
-pub struct OpsKindNdUnary;
+pub struct OpsStdKindMutable;
+pub struct OpsStdKindBinary;
+pub struct OpsStdKindUnary;
+pub struct OpsNdKindMutable;
+pub struct OpsNdKindBinary;
+pub struct OpsNdKindUnary;
 
 #[allow(unused)]
-pub struct OpsImpl<Kind: OpsKind> {
+pub struct OpsStdImpl<Kind: OpsStdKind> {
     pub generics: Generics,
     pub signature: Kind::Signature,
     pub colon: Token![,],
     pub definitions: Punctuated<OpsDefinition<Kind>, Token![,]>,
+}
+
+#[allow(unused)]
+pub struct OpsNdImpl<Kind: OpsNdKind> {
+    pub generics: Generics,
+    pub signature: Kind::Signature,
+    pub colon: Token![,],
+    pub definitions: Punctuated<OpsDefinitionStandard<Kind>, Token![,]>,
 }
 
 #[allow(unused)]
@@ -66,7 +77,7 @@ pub struct OpsImplAuto<Kind: OpsKind> {
 }
 
 #[allow(unused)]
-pub struct OpsSignatureMutable {
+pub struct OpsStdSignatureMutable {
     pub paren: Paren,
     pub lhs_vmut: Option<Token![mut]>,
     pub lhs_ident: Ident,
@@ -74,7 +85,7 @@ pub struct OpsSignatureMutable {
     pub lhs_ref: Token![&],
     pub lhs_mut: Token![mut],
     pub lhs_type: Type,
-    pub delim: Token![,],
+    pub comma: Token![,],
     pub rhs_star: Option<Token![*]>,
     pub rhs_vmut: Option<Token![mut]>,
     pub rhs_ident: Ident,
@@ -84,7 +95,7 @@ pub struct OpsSignatureMutable {
 }
 
 #[allow(unused)]
-pub struct OpsSignatureBinary {
+pub struct OpsStdSignatureBinary {
     pub paren: Paren,
     pub lhs_star: Option<Token![*]>,
     pub lhs_vmut: Option<Token![mut]>,
@@ -92,7 +103,7 @@ pub struct OpsSignatureBinary {
     pub lhs_colon: Token![:],
     pub lhs_ref: Option<Token![&]>,
     pub lhs_type: Type,
-    pub delim: Token![,],
+    pub comma: Token![,],
     pub rhs_star: Option<Token![*]>,
     pub rhs_vmut: Option<Token![mut]>,
     pub rhs_ident: Ident,
@@ -104,26 +115,43 @@ pub struct OpsSignatureBinary {
 }
 
 #[allow(unused)]
-pub struct OpsSignatureUnary {
+pub struct OpsStdSignatureUnary {
     pub paren: Paren,
-    pub lhs_star: Option<Token![*]>,
-    pub lhs_vmut: Option<Token![mut]>,
-    pub lhs_ident: Ident,
-    pub lhs_colon: Token![:],
-    pub lhs_ref: Option<Token![&]>,
-    pub lhs_type: Type,
+    pub self_star: Option<Token![*]>,
+    pub self_vmut: Option<Token![mut]>,
+    pub self_ident: Ident,
+    pub self_colon: Token![:],
+    pub self_ref: Option<Token![&]>,
+    pub self_type: Type,
     pub arrow: Token![->],
     pub ty: Type,
 }
 
 #[allow(unused)]
-pub struct OpsSignatureNdMutable {}
+pub struct OpsNdSignatureMutable {
+    pub paren: Paren,
+    pub lhs_pat: PatType,
+    pub comma: Token![,],
+    pub rhs_pat: PatType,
+}
 
 #[allow(unused)]
-pub struct OpsSignatureNdBinary {}
+pub struct OpsNdSignatureBinary {
+    pub paren: Paren,
+    pub lhs_pat: PatType,
+    pub comma: Token![,],
+    pub rhs_pat: PatType,
+    pub arrow: Token![->],
+    pub ty: Type,
+}
 
 #[allow(unused)]
-pub struct OpsSignatureNdUnary {}
+pub struct OpsNdSignatureUnary {
+    pub paren: Paren,
+    pub self_pat: PatType,
+    pub arrow: Token![->],
+    pub ty: Type,
+}
 
 #[allow(unused)]
 pub struct OpsExpressionMutable {
@@ -147,7 +175,7 @@ pub struct OpsExpressionUnary {
     pub self_expr: Expr,
 }
 
-pub enum OpsDefinition<Kind: OpsKind> {
+pub enum OpsDefinition<Kind: OpsStdKind> {
     Standard(OpsDefinitionStandard<Kind>),
     Extended(OpsDefinitionExtended<Kind>),
 }
@@ -159,7 +187,7 @@ pub struct OpsDefinitionStandard<Kind: OpsKind> {
 }
 
 #[allow(unused)]
-pub struct OpsDefinitionExtended<Kind: OpsKind> {
+pub struct OpsDefinitionExtended<Kind: OpsStdKind> {
     pub op: Kind::Operation,
     pub ext: kw::ext,
     pub brace: Brace,
@@ -167,7 +195,7 @@ pub struct OpsDefinitionExtended<Kind: OpsKind> {
 }
 
 #[allow(unused)]
-pub struct OpsDefinitionExtendedElem<Kind: OpsKind> {
+pub struct OpsDefinitionExtendedElem<Kind: OpsStdKind> {
     pub qualifier: Kind::Qualifier,
     pub expr: Expr,
     pub conditions: WhereClause,
@@ -234,35 +262,68 @@ pub enum OpsUnary {
 }
 
 pub trait OpsKind {
+    type Expression: Parse;
     type Operation: Parse;
     type Signature: Parse;
-    type Expression: Parse;
+}
+
+pub trait OpsStdKind: OpsKind {
     type Qualifier: Parse;
 }
 
-#[rustfmt::skip]
-impl OpsKind for OpsKindStdMutable {
-    type Operation = OpsMutable;
-    type Signature = OpsSignatureMutable;
+pub trait OpsNdKind: OpsKind {}
+
+impl OpsKind for OpsStdKindMutable {
     type Expression = OpsExpressionMutable;
+    type Operation = OpsMutable;
+    type Signature = OpsStdSignatureMutable;
+}
+
+impl OpsKind for OpsStdKindBinary {
+    type Expression = OpsExpressionBinary;
+    type Operation = OpsBinary;
+    type Signature = OpsStdSignatureBinary;
+}
+
+impl OpsKind for OpsStdKindUnary {
+    type Expression = OpsExpressionUnary;
+    type Operation = OpsUnary;
+    type Signature = OpsStdSignatureUnary;
+}
+
+impl OpsKind for OpsNdKindMutable {
+    type Expression = OpsExpressionMutable;
+    type Operation = OpsMutable;
+    type Signature = OpsNdSignatureMutable;
+}
+
+impl OpsKind for OpsNdKindBinary {
+    type Expression = OpsExpressionBinary;
+    type Operation = OpsBinary;
+    type Signature = OpsNdSignatureBinary;
+}
+
+impl OpsKind for OpsNdKindUnary {
+    type Expression = OpsExpressionUnary;
+    type Operation = OpsUnary;
+    type Signature = OpsNdSignatureUnary;
+}
+
+impl OpsStdKind for OpsStdKindMutable {
     type Qualifier = OpsQualifierMutable;
 }
 
-#[rustfmt::skip]
-impl OpsKind for OpsKindStdBinary {
-    type Operation = OpsBinary;
-    type Signature = OpsSignatureBinary;
-    type Expression = OpsExpressionBinary;
+impl OpsStdKind for OpsStdKindBinary {
     type Qualifier = OpsQualifierBinary;
 }
 
-#[rustfmt::skip]
-impl OpsKind for OpsKindStdUnary {
-    type Operation = OpsUnary;
-    type Signature = OpsSignatureUnary;
-    type Expression = OpsExpressionUnary;
+impl OpsStdKind for OpsStdKindUnary {
     type Qualifier = OpsQualifierUnary;
 }
+
+impl OpsNdKind for OpsNdKindMutable {}
+impl OpsNdKind for OpsNdKindBinary {}
+impl OpsNdKind for OpsNdKindUnary {}
 
 impl Parse for Ops {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -272,25 +333,22 @@ impl Parse for Ops {
 
         if lookahead.peek(kw::stdmut) {
             input.parse::<kw::stdmut>()?;
-            input.parse::<OpsImpl<OpsKindStdMutable>>().map(Self::StdMutable)
+            input.parse::<OpsStdImpl<OpsStdKindMutable>>().map(Self::StdMutable)
         } else if lookahead.peek(kw::stdbin) {
             input.parse::<kw::stdbin>()?;
-            input.parse::<OpsImpl<OpsKindStdBinary>>().map(Self::StdBinary)
+            input.parse::<OpsStdImpl<OpsStdKindBinary>>().map(Self::StdBinary)
         } else if lookahead.peek(kw::stdun) {
             input.parse::<kw::stdun>()?;
-            input.parse::<OpsImpl<OpsKindStdUnary>>().map(Self::StdUnary)
+            input.parse::<OpsStdImpl<OpsStdKindUnary>>().map(Self::StdUnary)
         } else if lookahead.peek(kw::ndmut) {
             input.parse::<kw::ndmut>()?;
-
-            Ok(Self::NdMutable)
+            input.parse::<OpsNdImpl<OpsNdKindMutable>>().map(Self::NdMutable)
         } else if lookahead.peek(kw::ndbin) {
             input.parse::<kw::ndbin>()?;
-
-            Ok(Self::NdBinary)
+            input.parse::<OpsNdImpl<OpsNdKindBinary>>().map(Self::NdBinary)
         } else if lookahead.peek(kw::ndun) {
             input.parse::<kw::ndun>()?;
-
-            Ok(Self::NdUnary)
+            input.parse::<OpsNdImpl<OpsNdKindUnary>>().map(Self::NdUnary)
         } else {
             Err(lookahead.error())
         }
@@ -305,20 +363,29 @@ impl Parse for OpsAuto {
 
         if lookahead.peek(kw::stdmut) {
             input.parse::<kw::stdmut>()?;
-            input.parse::<OpsImplAuto<OpsKindStdMutable>>().map(Self::StdMutable)
+            input.parse::<OpsImplAuto<OpsStdKindMutable>>().map(Self::StdMutable)
         } else if lookahead.peek(kw::stdbin) {
             input.parse::<kw::stdbin>()?;
-            input.parse::<OpsImplAuto<OpsKindStdBinary>>().map(Self::StdBinary)
+            input.parse::<OpsImplAuto<OpsStdKindBinary>>().map(Self::StdBinary)
         } else if lookahead.peek(kw::stdun) {
             input.parse::<kw::stdun>()?;
-            input.parse::<OpsImplAuto<OpsKindStdUnary>>().map(Self::StdUnary)
+            input.parse::<OpsImplAuto<OpsStdKindUnary>>().map(Self::StdUnary)
+        } else if lookahead.peek(kw::ndmut) {
+            input.parse::<kw::ndmut>()?;
+            input.parse::<OpsImplAuto<OpsNdKindMutable>>().map(Self::NdMutable)
+        } else if lookahead.peek(kw::ndbin) {
+            input.parse::<kw::ndbin>()?;
+            input.parse::<OpsImplAuto<OpsNdKindBinary>>().map(Self::NdBinary)
+        } else if lookahead.peek(kw::ndun) {
+            input.parse::<kw::ndun>()?;
+            input.parse::<OpsImplAuto<OpsNdKindUnary>>().map(Self::NdUnary)
         } else {
             Err(lookahead.error())
         }
     }
 }
 
-impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
+impl<Kind: OpsStdKind> Parse for OpsStdImpl<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -331,6 +398,23 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
             signature: input.parse()?,
             colon: input.parse()?,
             definitions: input.parse_terminated(OpsDefinition::parse, Token![,])?,
+        })
+    }
+}
+
+impl<Kind: OpsNdKind> Parse for OpsNdImpl<Kind> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
+
+        Ok(Self {
+            generics: get_normalized_generics(Generics {
+                where_clause: gen_where,
+                ..gen_
+            }),
+            signature: input.parse()?,
+            colon: input.parse()?,
+            definitions: input.parse_terminated(OpsDefinitionStandard::parse, Token![,])?,
         })
     }
 }
@@ -356,7 +440,7 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
     }
 }
 
-impl Parse for OpsSignatureMutable {
+impl Parse for OpsStdSignatureMutable {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -368,7 +452,7 @@ impl Parse for OpsSignatureMutable {
             lhs_ref: content.parse()?,
             lhs_mut: content.parse()?,
             lhs_type: content.parse()?,
-            delim: content.parse()?,
+            comma: content.parse()?,
             rhs_star: content.parse().ok(),
             rhs_vmut: content.parse().ok(),
             rhs_ident: content.parse()?,
@@ -379,7 +463,7 @@ impl Parse for OpsSignatureMutable {
     }
 }
 
-impl Parse for OpsSignatureBinary {
+impl Parse for OpsStdSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -391,7 +475,7 @@ impl Parse for OpsSignatureBinary {
             lhs_colon: content.parse()?,
             lhs_ref: content.parse().ok(),
             lhs_type: content.parse()?,
-            delim: content.parse()?,
+            comma: content.parse()?,
             rhs_star: content.parse().ok(),
             rhs_vmut: content.parse().ok(),
             rhs_ident: content.parse()?,
@@ -404,21 +488,39 @@ impl Parse for OpsSignatureBinary {
     }
 }
 
-impl Parse for OpsSignatureUnary {
+impl Parse for OpsStdSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
         Ok(Self {
             paren: parenthesized!(content in input),
-            lhs_star: content.parse().ok(),
-            lhs_vmut: content.parse().ok(),
-            lhs_ident: content.parse()?,
-            lhs_colon: content.parse()?,
-            lhs_ref: content.parse().ok(),
-            lhs_type: content.parse()?,
+            self_star: content.parse().ok(),
+            self_vmut: content.parse().ok(),
+            self_ident: content.parse()?,
+            self_colon: content.parse()?,
+            self_ref: content.parse().ok(),
+            self_type: content.parse()?,
             arrow: input.parse()?,
             ty: input.parse()?,
         })
+    }
+}
+
+impl Parse for OpsNdSignatureMutable {
+    fn parse(_: ParseStream) -> Result<Self> {
+        todo!()
+    }
+}
+
+impl Parse for OpsNdSignatureBinary {
+    fn parse(_: ParseStream) -> Result<Self> {
+        todo!()
+    }
+}
+
+impl Parse for OpsNdSignatureUnary {
+    fn parse(_: ParseStream) -> Result<Self> {
+        todo!()
     }
 }
 
@@ -461,7 +563,7 @@ impl Parse for OpsExpressionUnary {
     }
 }
 
-impl<Kind: OpsKind> Parse for OpsDefinition<Kind> {
+impl<Kind: OpsStdKind> Parse for OpsDefinition<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         if !input.peek2(kw::ext) {
             Ok(Self::Standard(input.parse()?))
@@ -480,7 +582,7 @@ impl<Kind: OpsKind> Parse for OpsDefinitionStandard<Kind> {
     }
 }
 
-impl<Kind: OpsKind> Parse for OpsDefinitionExtended<Kind> {
+impl<Kind: OpsStdKind> Parse for OpsDefinitionExtended<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -493,7 +595,7 @@ impl<Kind: OpsKind> Parse for OpsDefinitionExtended<Kind> {
     }
 }
 
-impl<Kind: OpsKind> Parse for OpsDefinitionExtendedElem<Kind> {
+impl<Kind: OpsStdKind> Parse for OpsDefinitionExtendedElem<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             qualifier: input.parse()?,
@@ -628,13 +730,13 @@ impl Parse for OpsUnary {
     }
 }
 
-impl ToTokens for OpsImpl<OpsKindStdMutable> {
+impl ToTokens for OpsStdImpl<OpsStdKindMutable> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
             op: &'ops OpsMutable,
             generics: &'ops Generics,
-            signature: &'ops OpsSignatureMutable,
+            signature: &'ops OpsStdSignatureMutable,
             expr: &'ops Expr,
             conditions: Option<&'ops WhereClause>,
         }
@@ -737,13 +839,13 @@ impl ToTokens for OpsImpl<OpsKindStdMutable> {
     }
 }
 
-impl ToTokens for OpsImpl<OpsKindStdBinary> {
+impl ToTokens for OpsStdImpl<OpsStdKindBinary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
             op: &'ops OpsBinary,
             generics: &'ops Generics,
-            signature: &'ops OpsSignatureBinary,
+            signature: &'ops OpsStdSignatureBinary,
             expr: &'ops Expr,
             conditions: Option<&'ops WhereClause>,
         }
@@ -886,13 +988,13 @@ impl ToTokens for OpsImpl<OpsKindStdBinary> {
     }
 }
 
-impl ToTokens for OpsImpl<OpsKindStdUnary> {
+impl ToTokens for OpsStdImpl<OpsStdKindUnary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
             op: &'ops OpsUnary,
             generics: &'ops Generics,
-            signature: &'ops OpsSignatureUnary,
+            signature: &'ops OpsStdSignatureUnary,
             expr: &'ops Expr,
             conditions: Option<&'ops WhereClause>,
         }
@@ -917,26 +1019,26 @@ impl ToTokens for OpsImpl<OpsKindStdUnary> {
                 None => quote! { where #predicates },
             };
 
-            let lhs_mut = &spec.signature.lhs_vmut;
-            let lhs_ident = &spec.signature.lhs_ident;
-            let lhs_type = &spec.signature.lhs_type;
+            let self_mut = &spec.signature.self_vmut;
+            let self_ident = &spec.signature.self_ident;
+            let self_type = &spec.signature.self_type;
             let op_type = &spec.signature.ty;
 
             let expr = &spec.expr;
 
             quote! {
-                impl #gen_impl #path for #lhs_ref #lhs_type #gen_where {
+                impl #gen_impl #path for #lhs_ref #self_type #gen_where {
                     type Output = #op_type;
 
                     fn #ident(self) -> Self::Output {
-                        (|#lhs_mut #lhs_ident: #lhs_ref #lhs_type| { (#expr).into() })(self)
+                        (|#self_mut #self_ident: #lhs_ref #self_type| { (#expr).into() })(self)
                     }
                 }
             }
         }
 
-        let lhs_star = self.signature.lhs_star.is_some();
-        let lhs_ref = self.signature.lhs_ref.is_some();
+        let self_star = self.signature.self_star.is_some();
+        let self_ref = self.signature.self_ref.is_some();
 
         let some = Some(Default::default());
         let none = None;
@@ -953,8 +1055,8 @@ impl ToTokens for OpsImpl<OpsKindStdUnary> {
                 conditions: None,
             };
 
-            match lhs_ref {
-                true => match lhs_star {
+            match self_ref {
+                true => match self_star {
                     true => {
                         tokens.extend(get_impl(spec, some));
                         tokens.extend(get_impl(spec, none));
