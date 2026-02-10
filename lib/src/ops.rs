@@ -3,16 +3,16 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
-pub trait NdNeg<S = Self> {
+pub trait NdNeg<Value = Self> {
     type Type;
 
-    fn neg(value: &S) -> Self::Type;
+    fn neg(value: &Value) -> Self::Type;
 }
 
-pub trait NdNot<S = Self> {
+pub trait NdNot<Value = Self> {
     type Type;
 
-    fn not(value: &S) -> Self::Type;
+    fn not(value: &Value) -> Self::Type;
 }
 
 pub trait NdAdd<Lhs = Self, Rhs = Self> {
