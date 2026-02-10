@@ -1123,6 +1123,74 @@ impl ToTokens for OpsUnary {
     }
 }
 
+impl From<OpsImplAuto<OpsStdKindMutable>> for OpsImpl<OpsStdKindMutable> {
+    fn from(value: OpsImplAuto<OpsStdKindMutable>) -> Self {
+        OpsImpl::<OpsStdKindMutable> {
+            generics: value.generics,
+            signature: value.signature,
+            colon: Default::default(),
+            definitions: value
+                .ops
+                .into_iter()
+                .map(|op| {
+                    let lhs = &value.expression.lhs_expr;
+                    let rhs = &value.expression.rhs_expr;
+
+                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsMutable> {
+                        op,
+                        expr: parse_quote! {{ #lhs #op #rhs; }},
+                    })
+                })
+                .collect(),
+        }
+    }
+}
+
+impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
+    fn from(value: OpsImplAuto<OpsStdKindBinary>) -> Self {
+        OpsImpl::<OpsStdKindBinary> {
+            generics: value.generics,
+            signature: value.signature,
+            colon: Default::default(),
+            definitions: value
+                .ops
+                .into_iter()
+                .map(|op| {
+                    let lhs = &value.expression.lhs_expr;
+                    let rhs = &value.expression.rhs_expr;
+
+                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsBinary> {
+                        op,
+                        expr: parse_quote! {{ #lhs #op #rhs }},
+                    })
+                })
+                .collect(),
+        }
+    }
+}
+
+impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
+    fn from(value: OpsImplAuto<OpsStdKindUnary>) -> Self {
+        OpsImpl::<OpsStdKindUnary> {
+            generics: value.generics,
+            signature: value.signature,
+            colon: Default::default(),
+            definitions: value
+                .ops
+                .into_iter()
+                .map(|op| {
+                    let expr = &value.expression.self_expr;
+
+                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsUnary> {
+                        op,
+                        expr: parse_quote! {{ #op #expr }},
+                    })
+                })
+                .collect(),
+        }
+    }
+}
+
 impl OpsMutable {
     fn get_ident(&self) -> Ident {
         match self {

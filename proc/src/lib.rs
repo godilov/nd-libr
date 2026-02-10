@@ -8,10 +8,7 @@ use crate::{
         Forward, ForwardData, ForwardDataItem, ForwardDeclItem, ForwardDefItem, ForwardImpl, get_forward_const,
         get_forward_fn, get_forward_impl, get_forward_type,
     },
-    ops::{
-        Ops, OpsAuto, OpsBinary, OpsDefinition, OpsDefinitionStandard, OpsImpl, OpsMutable, OpsStdKindBinary,
-        OpsStdKindMutable, OpsStdKindUnary, OpsUnary,
-    },
+    ops::{Ops, OpsAuto, OpsImpl, OpsStdKindBinary, OpsStdKindMutable, OpsStdKindUnary},
 };
 
 mod forward;
@@ -33,67 +30,17 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {
         OpsAuto::StdMutable(ops) => {
-            let ops = OpsImpl::<OpsStdKindMutable> {
-                generics: ops.generics,
-                signature: ops.signature,
-                colon: Default::default(),
-                definitions: ops
-                    .ops
-                    .into_iter()
-                    .map(|op| {
-                        let lhs = &ops.expression.lhs_expr;
-                        let rhs = &ops.expression.rhs_expr;
-
-                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsMutable> {
-                            op,
-                            expr: parse_quote! {{ #lhs #op #rhs; }},
-                        })
-                    })
-                    .collect(),
-            };
+            let ops = OpsImpl::<OpsStdKindMutable>::from(ops);
 
             quote! { #ops }.into()
         },
         OpsAuto::StdBinary(ops) => {
-            let ops = OpsImpl::<OpsStdKindBinary> {
-                generics: ops.generics,
-                signature: ops.signature,
-                colon: Default::default(),
-                definitions: ops
-                    .ops
-                    .into_iter()
-                    .map(|op| {
-                        let lhs = &ops.expression.lhs_expr;
-                        let rhs = &ops.expression.rhs_expr;
-
-                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsBinary> {
-                            op,
-                            expr: parse_quote! {{ #lhs #op #rhs }},
-                        })
-                    })
-                    .collect(),
-            };
+            let ops = OpsImpl::<OpsStdKindBinary>::from(ops);
 
             quote! { #ops }.into()
         },
         OpsAuto::StdUnary(ops) => {
-            let ops = OpsImpl::<OpsStdKindUnary> {
-                generics: ops.generics,
-                signature: ops.signature,
-                colon: Default::default(),
-                definitions: ops
-                    .ops
-                    .into_iter()
-                    .map(|op| {
-                        let expr = &ops.expression.self_expr;
-
-                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsUnary> {
-                            op,
-                            expr: parse_quote! {{ #op #expr }},
-                        })
-                    })
-                    .collect(),
-            };
+            let ops = OpsImpl::<OpsStdKindUnary>::from(ops);
 
             quote! { #ops }.into()
         },
