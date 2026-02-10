@@ -1352,19 +1352,69 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
 
 impl From<OpsImplAuto<OpsNdKindMutable>> for OpsImpl<OpsNdKindMutable> {
     fn from(value: OpsImplAuto<OpsNdKindMutable>) -> Self {
-        todo!()
+        OpsImpl::<OpsNdKindMutable> {
+            generics: value.generics,
+            signature: value.signature,
+            colon: Default::default(),
+            definitions: value
+                .ops
+                .into_iter()
+                .map(|op| {
+                    let lhs = &value.expression.lhs_expr;
+                    let rhs = &value.expression.rhs_expr;
+
+                    OpsDefinitionStandard::<OpsMutable> {
+                        op,
+                        expr: parse_quote! {{ #lhs #op #rhs; }},
+                    }
+                })
+                .collect(),
+        }
     }
 }
 
 impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
     fn from(value: OpsImplAuto<OpsNdKindBinary>) -> Self {
-        todo!()
+        OpsImpl::<OpsNdKindBinary> {
+            generics: value.generics,
+            signature: value.signature,
+            colon: Default::default(),
+            definitions: value
+                .ops
+                .into_iter()
+                .map(|op| {
+                    let lhs = &value.expression.lhs_expr;
+                    let rhs = &value.expression.rhs_expr;
+
+                    OpsDefinitionStandard::<OpsBinary> {
+                        op,
+                        expr: parse_quote! {{ #lhs #op #rhs }},
+                    }
+                })
+                .collect(),
+        }
     }
 }
 
 impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
     fn from(value: OpsImplAuto<OpsNdKindUnary>) -> Self {
-        todo!()
+        OpsImpl::<OpsNdKindUnary> {
+            generics: value.generics,
+            signature: value.signature,
+            colon: Default::default(),
+            definitions: value
+                .ops
+                .into_iter()
+                .map(|op| {
+                    let expr = &value.expression.self_expr;
+
+                    OpsDefinitionStandard::<OpsUnary> {
+                        op,
+                        expr: parse_quote! {{ #op #expr }},
+                    }
+                })
+                .collect(),
+        }
     }
 }
 
