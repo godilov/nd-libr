@@ -11,7 +11,10 @@ use crate::{
         Forward, ForwardData, ForwardDataItem, ForwardDeclItem, ForwardDefItem, ForwardImpl, get_forward_const,
         get_forward_fn, get_forward_impl, get_forward_type,
     },
-    ops::{Ops, OpsAuto, OpsDefinition, OpsDefinitionStandard, OpsImpl, OpsKindBinary, OpsKindMutable, OpsKindUnary},
+    ops::{
+        Ops, OpsAuto, OpsDefinition, OpsDefinitionStandard, OpsImpl, OpsKindStdBinary, OpsKindStdMutable,
+        OpsKindStdUnary,
+    },
 };
 
 mod forward;
@@ -33,7 +36,7 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {
         OpsAuto::StdMutable(ops) => {
-            let ops = OpsImpl::<OpsKindMutable> {
+            let ops = OpsImpl::<OpsKindStdMutable> {
                 generics: ops.generics,
                 signature: ops.signature,
                 colon: Default::default(),
@@ -44,18 +47,18 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         let lhs = &ops.expression.lhs_expr;
                         let rhs = &ops.expression.rhs_expr;
 
-                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindMutable> {
+                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindStdMutable> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs; }},
                         })
                     })
-                    .collect::<Punctuated<OpsDefinition<OpsKindMutable>, Token![,]>>(),
+                    .collect::<Punctuated<OpsDefinition<OpsKindStdMutable>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
         },
         OpsAuto::StdBinary(ops) => {
-            let ops = OpsImpl::<OpsKindBinary> {
+            let ops = OpsImpl::<OpsKindStdBinary> {
                 generics: ops.generics,
                 signature: ops.signature,
                 colon: Default::default(),
@@ -66,18 +69,18 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                         let lhs = &ops.expression.lhs_expr;
                         let rhs = &ops.expression.rhs_expr;
 
-                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindBinary> {
+                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindStdBinary> {
                             op,
                             expr: parse_quote! {{ #lhs #op #rhs }},
                         })
                     })
-                    .collect::<Punctuated<OpsDefinition<OpsKindBinary>, Token![,]>>(),
+                    .collect::<Punctuated<OpsDefinition<OpsKindStdBinary>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
         },
         OpsAuto::StdUnary(ops) => {
-            let ops = OpsImpl::<OpsKindUnary> {
+            let ops = OpsImpl::<OpsKindStdUnary> {
                 generics: ops.generics,
                 signature: ops.signature,
                 colon: Default::default(),
@@ -87,12 +90,12 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
                     .map(|op| {
                         let expr = &ops.expression.self_expr;
 
-                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindUnary> {
+                        OpsDefinition::Standard(OpsDefinitionStandard::<OpsKindStdUnary> {
                             op,
                             expr: parse_quote! {{ #op #expr }},
                         })
                     })
-                    .collect::<Punctuated<OpsDefinition<OpsKindUnary>, Token![,]>>(),
+                    .collect::<Punctuated<OpsDefinition<OpsKindStdUnary>, Token![,]>>(),
             };
 
             quote! { #ops }.into()
