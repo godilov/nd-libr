@@ -1,7 +1,7 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, braced, bracketed, parenthesized,
+    Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, braced, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_quote,
     punctuated::Punctuated,
@@ -123,16 +123,20 @@ pub struct OpsStdSignatureUnary {
 pub struct OpsNdSignatureMutable {
     pub paren: Paren,
     pub lhs_pat: PatType,
+    pub lhs_ty: Type,
     pub comma: Token![,],
     pub rhs_pat: PatType,
+    pub rhs_ty: Type,
 }
 
 #[allow(unused)]
 pub struct OpsNdSignatureBinary {
     pub paren: Paren,
     pub lhs_pat: PatType,
+    pub lhs_ty: Type,
     pub comma: Token![,],
     pub rhs_pat: PatType,
+    pub rhs_ty: Type,
     pub arrow: Token![->],
     pub ty: Type,
 }
@@ -141,6 +145,7 @@ pub struct OpsNdSignatureBinary {
 pub struct OpsNdSignatureUnary {
     pub paren: Paren,
     pub self_pat: PatType,
+    pub self_ty: Type,
     pub arrow: Token![->],
     pub ty: Type,
 }
@@ -470,11 +475,38 @@ impl Parse for OpsNdSignatureMutable {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let paren = parenthesized!(content in input);
+        let lhs_pat: PatType = content.parse()?;
+        let comma = content.parse()?;
+        let rhs_pat: PatType = content.parse()?;
+
+        let lhs_ty = match *lhs_pat.ty {
+            Type::Reference(ref val) if val.mutability.is_some() => (*val.elem).clone(),
+            _ => {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "Failed to parse signature, lhs expected to be mutable reference",
+                ));
+            },
+        };
+
+        let rhs_ty = match *rhs_pat.ty {
+            Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
+            _ => {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "Failed to parse signature, rhs expected to be reference",
+                ));
+            },
+        };
+
         Ok(Self {
-            paren: parenthesized!(content in input),
-            lhs_pat: content.parse()?,
-            comma: content.parse()?,
-            rhs_pat: content.parse()?,
+            paren,
+            lhs_pat,
+            lhs_ty,
+            comma,
+            rhs_pat,
+            rhs_ty,
         })
     }
 }
@@ -483,13 +515,42 @@ impl Parse for OpsNdSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let paren = parenthesized!(content in input);
+        let lhs_pat: PatType = content.parse()?;
+        let comma = content.parse()?;
+        let rhs_pat: PatType = content.parse()?;
+        let arrow = content.parse()?;
+        let ty = content.parse()?;
+
+        let lhs_ty = match *lhs_pat.ty {
+            Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
+            _ => {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "Failed to parse signature, lhs expected to be reference",
+                ));
+            },
+        };
+
+        let rhs_ty = match *rhs_pat.ty {
+            Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
+            _ => {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "Failed to parse signature, rhs expected to be reference",
+                ));
+            },
+        };
+
         Ok(Self {
-            paren: parenthesized!(content in input),
-            lhs_pat: content.parse()?,
-            comma: content.parse()?,
-            rhs_pat: content.parse()?,
-            arrow: content.parse()?,
-            ty: content.parse()?,
+            paren,
+            lhs_pat,
+            lhs_ty,
+            comma,
+            rhs_pat,
+            rhs_ty,
+            arrow,
+            ty,
         })
     }
 }
@@ -498,11 +559,27 @@ impl Parse for OpsNdSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let paren = parenthesized!(content in input);
+        let self_pat: PatType = content.parse()?;
+        let arrow = content.parse()?;
+        let ty = content.parse()?;
+
+        let self_ty = match *self_pat.ty {
+            Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
+            _ => {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "Failed to parse signature, self expected to be reference",
+                ));
+            },
+        };
+
         Ok(Self {
-            paren: parenthesized!(content in input),
-            self_pat: content.parse()?,
-            arrow: content.parse()?,
-            ty: content.parse()?,
+            paren,
+            self_pat,
+            self_ty,
+            arrow,
+            ty,
         })
     }
 }
@@ -1080,6 +1157,88 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
     }
 }
 
+impl ToTokens for OpsImpl<OpsNdKindMutable> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        for definition in &self.definitions {
+            let ident = definition.op.get_ident();
+            let path = definition.op.get_nd_path();
+
+            let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+
+            let lhs_pat = &self.signature.lhs_pat;
+            let rhs_pat = &self.signature.rhs_pat;
+            let lhs_ty = &self.signature.lhs_ty;
+            let rhs_ty = &self.signature.rhs_ty;
+
+            let expr = &definition.expr;
+
+            tokens.extend(quote! {
+                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #lhs_ty #gen_where {
+                    fn #ident(#lhs_pat, #rhs_pat) {
+                        #expr
+                    }
+                }
+            })
+        }
+    }
+}
+
+impl ToTokens for OpsImpl<OpsNdKindBinary> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        for definition in &self.definitions {
+            let ident = definition.op.get_ident();
+            let path = definition.op.get_nd_path();
+
+            let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+
+            let lhs_pat = &self.signature.lhs_pat;
+            let rhs_pat = &self.signature.rhs_pat;
+            let lhs_ty = &self.signature.lhs_ty;
+            let rhs_ty = &self.signature.rhs_ty;
+            let ty = &self.signature.ty;
+
+            let expr = &definition.expr;
+
+            tokens.extend(quote! {
+                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #lhs_ty #gen_where {
+                    type Type = #ty;
+
+                    fn #ident(#lhs_pat, #rhs_pat) -> Self::Type {
+                        #expr
+                    }
+                }
+            })
+        }
+    }
+}
+
+impl ToTokens for OpsImpl<OpsNdKindUnary> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        for definition in &self.definitions {
+            let ident = definition.op.get_ident();
+            let path = definition.op.get_nd_path();
+
+            let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+
+            let self_pat = &self.signature.self_pat;
+            let self_ty = &self.signature.self_ty;
+            let ty = &self.signature.ty;
+
+            let expr = &definition.expr;
+
+            tokens.extend(quote! {
+                impl #gen_impl #path<#self_ty> for #self_ty #gen_where {
+                    type Type = #ty;
+
+                    fn #ident(#self_pat) -> Self::Type {
+                        #expr
+                    }
+                }
+            })
+        }
+    }
+}
+
 impl ToTokens for OpsMutable {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
@@ -1191,6 +1350,24 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
     }
 }
 
+impl From<OpsImplAuto<OpsNdKindMutable>> for OpsImpl<OpsNdKindMutable> {
+    fn from(value: OpsImplAuto<OpsNdKindMutable>) -> Self {
+        todo!()
+    }
+}
+
+impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
+    fn from(value: OpsImplAuto<OpsNdKindBinary>) -> Self {
+        todo!()
+    }
+}
+
+impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
+    fn from(value: OpsImplAuto<OpsNdKindUnary>) -> Self {
+        todo!()
+    }
+}
+
 impl OpsMutable {
     fn get_ident(&self) -> Ident {
         match self {
@@ -1219,6 +1396,21 @@ impl OpsMutable {
             OpsMutable::BitXor(_) => parse_quote! { std::ops::BitXorAssign },
             OpsMutable::Shl(_) => parse_quote! { std::ops::ShlAssign },
             OpsMutable::Shr(_) => parse_quote! { std::ops::ShrAssign },
+        }
+    }
+
+    fn get_nd_path(&self) -> Path {
+        match self {
+            OpsMutable::Add(_) => parse_quote! { NdAddAssign },
+            OpsMutable::Sub(_) => parse_quote! { NdSubAssign },
+            OpsMutable::Mul(_) => parse_quote! { NdMulAssign },
+            OpsMutable::Div(_) => parse_quote! { NdDivAssign },
+            OpsMutable::Rem(_) => parse_quote! { NdRemAssign },
+            OpsMutable::BitOr(_) => parse_quote! { NdBitOrAssign },
+            OpsMutable::BitAnd(_) => parse_quote! { NdBitAndAssign },
+            OpsMutable::BitXor(_) => parse_quote! { NdBitXorAssign },
+            OpsMutable::Shl(_) => parse_quote! { NdShlAssign },
+            OpsMutable::Shr(_) => parse_quote! { NdShrAssign },
         }
     }
 }
@@ -1253,6 +1445,21 @@ impl OpsBinary {
             OpsBinary::Shr(_) => parse_quote! { std::ops::Shr },
         }
     }
+
+    fn get_nd_path(&self) -> Path {
+        match self {
+            OpsBinary::Add(_) => parse_quote! { NdAdd },
+            OpsBinary::Sub(_) => parse_quote! { NdSub },
+            OpsBinary::Mul(_) => parse_quote! { NdMul },
+            OpsBinary::Div(_) => parse_quote! { NdDiv },
+            OpsBinary::Rem(_) => parse_quote! { NdRem },
+            OpsBinary::BitOr(_) => parse_quote! { NdBitOr },
+            OpsBinary::BitAnd(_) => parse_quote! { NdBitAnd },
+            OpsBinary::BitXor(_) => parse_quote! { NdBitXor },
+            OpsBinary::Shl(_) => parse_quote! { NdShl },
+            OpsBinary::Shr(_) => parse_quote! { NdShr },
+        }
+    }
 }
 
 impl OpsUnary {
@@ -1267,6 +1474,13 @@ impl OpsUnary {
         match self {
             OpsUnary::Neg(_) => parse_quote! { std::ops::Neg },
             OpsUnary::Not(_) => parse_quote! { std::ops::Not },
+        }
+    }
+
+    fn get_nd_path(&self) -> Path {
+        match self {
+            OpsUnary::Neg(_) => parse_quote! { NdNeg },
+            OpsUnary::Not(_) => parse_quote! { NdNot },
         }
     }
 }

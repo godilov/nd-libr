@@ -8,7 +8,10 @@ use crate::{
         Forward, ForwardData, ForwardDataItem, ForwardDeclItem, ForwardDefItem, ForwardImpl, get_forward_const,
         get_forward_fn, get_forward_impl, get_forward_type,
     },
-    ops::{Ops, OpsAuto, OpsImpl, OpsStdKindBinary, OpsStdKindMutable, OpsStdKindUnary},
+    ops::{
+        Ops, OpsAuto, OpsImpl, OpsNdKindBinary, OpsNdKindMutable, OpsNdKindUnary, OpsStdKindBinary, OpsStdKindMutable,
+        OpsStdKindUnary,
+    },
 };
 
 mod forward;
@@ -20,9 +23,9 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
         Ops::StdMutable(ops) => quote! { #ops }.into(),
         Ops::StdBinary(ops) => quote! { #ops }.into(),
         Ops::StdUnary(ops) => quote! { #ops }.into(),
-        Ops::NdMutable(_) => quote! {}.into(),
-        Ops::NdBinary(_) => quote! {}.into(),
-        Ops::NdUnary(_) => quote! {}.into(),
+        Ops::NdMutable(ops) => quote! { #ops }.into(),
+        Ops::NdBinary(ops) => quote! { #ops }.into(),
+        Ops::NdUnary(ops) => quote! { #ops }.into(),
     }
 }
 
@@ -44,9 +47,21 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
             quote! { #ops }.into()
         },
-        OpsAuto::NdMutable(_) => quote! {}.into(),
-        OpsAuto::NdBinary(_) => quote! {}.into(),
-        OpsAuto::NdUnary(_) => quote! {}.into(),
+        OpsAuto::NdMutable(ops) => {
+            let ops = OpsImpl::<OpsNdKindMutable>::from(ops);
+
+            quote! { #ops }.into()
+        },
+        OpsAuto::NdBinary(ops) => {
+            let ops = OpsImpl::<OpsNdKindBinary>::from(ops);
+
+            quote! { #ops }.into()
+        },
+        OpsAuto::NdUnary(ops) => {
+            let ops = OpsImpl::<OpsNdKindUnary>::from(ops);
+
+            quote! { #ops }.into()
+        },
     }
 }
 

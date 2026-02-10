@@ -76,63 +76,43 @@ pub trait NdShr<Lhs = Self, Rhs = usize> {
 }
 
 pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn add_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn add_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn sub_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn sub_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn mul_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn mul_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn div_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn div_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn rem_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn rem_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn bitor_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn bitor_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn bitand_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn bitand_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
-    type Type;
-
-    fn bitxor_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn bitxor_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
-    type Type;
-
-    fn shl_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn shl_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
-    type Type;
-
-    fn shr_assign(lhs: &mut Lhs, rhs: &Rhs) -> Self::Type;
+    fn shr_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 #[rustfmt::skip]
