@@ -24,12 +24,12 @@ mod kw {
 
 #[allow(clippy::large_enum_variant)]
 pub enum Ops {
-    StdMutable(OpsStdImpl<OpsStdKindMutable>),
-    StdBinary(OpsStdImpl<OpsStdKindBinary>),
-    StdUnary(OpsStdImpl<OpsStdKindUnary>),
-    NdMutable(OpsNdImpl<OpsNdKindMutable>),
-    NdBinary(OpsNdImpl<OpsNdKindBinary>),
-    NdUnary(OpsNdImpl<OpsNdKindUnary>),
+    StdMutable(OpsImpl<OpsStdKindMutable>),
+    StdBinary(OpsImpl<OpsStdKindBinary>),
+    StdUnary(OpsImpl<OpsStdKindUnary>),
+    NdMutable(OpsImpl<OpsNdKindMutable>),
+    NdBinary(OpsImpl<OpsNdKindBinary>),
+    NdUnary(OpsImpl<OpsNdKindUnary>),
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -51,19 +51,11 @@ pub struct OpsNdKindBinary;
 pub struct OpsNdKindUnary;
 
 #[allow(unused)]
-pub struct OpsStdImpl<Kind: OpsStdKind> {
+pub struct OpsImpl<Kind: OpsKind> {
     pub generics: Generics,
     pub signature: Kind::Signature,
     pub colon: Token![,],
-    pub definitions: Punctuated<OpsDefinition<Kind>, Token![,]>,
-}
-
-#[allow(unused)]
-pub struct OpsNdImpl<Kind: OpsNdKind> {
-    pub generics: Generics,
-    pub signature: Kind::Signature,
-    pub colon: Token![,],
-    pub definitions: Punctuated<OpsDefinitionStandard<Kind>, Token![,]>,
+    pub definitions: Punctuated<Kind::Definition, Token![,]>,
 }
 
 #[allow(unused)]
@@ -175,28 +167,28 @@ pub struct OpsExpressionUnary {
     pub self_expr: Expr,
 }
 
-pub enum OpsDefinition<Kind: OpsStdKind> {
-    Standard(OpsDefinitionStandard<Kind>),
-    Extended(OpsDefinitionExtended<Kind>),
+pub enum OpsDefinition<Operation: Parse, Qualifier: Parse> {
+    Standard(OpsDefinitionStandard<Operation>),
+    Extended(OpsDefinitionExtended<Operation, Qualifier>),
 }
 
 #[allow(unused)]
-pub struct OpsDefinitionStandard<Kind: OpsKind> {
-    pub op: Kind::Operation,
+pub struct OpsDefinitionStandard<Operation: Parse> {
+    pub op: Operation,
     pub expr: Expr,
 }
 
 #[allow(unused)]
-pub struct OpsDefinitionExtended<Kind: OpsStdKind> {
-    pub op: Kind::Operation,
+pub struct OpsDefinitionExtended<Operation: Parse, Qualifier: Parse> {
+    pub op: Operation,
     pub ext: kw::ext,
     pub brace: Brace,
-    pub elems: Punctuated<OpsDefinitionExtendedElem<Kind>, Token![;]>,
+    pub elems: Punctuated<OpsDefinitionExtendedElem<Qualifier>, Token![;]>,
 }
 
 #[allow(unused)]
-pub struct OpsDefinitionExtendedElem<Kind: OpsStdKind> {
-    pub qualifier: Kind::Qualifier,
+pub struct OpsDefinitionExtendedElem<Qualifier: Parse> {
+    pub qualifier: Qualifier,
     pub expr: Expr,
     pub conditions: WhereClause,
 }
@@ -262,68 +254,53 @@ pub enum OpsUnary {
 }
 
 pub trait OpsKind {
+    type Definition: Parse;
     type Expression: Parse;
     type Operation: Parse;
     type Signature: Parse;
 }
 
-pub trait OpsStdKind: OpsKind {
-    type Qualifier: Parse;
-}
-
-pub trait OpsNdKind: OpsKind {}
-
 impl OpsKind for OpsStdKindMutable {
+    type Definition = OpsDefinition<Self::Operation, OpsQualifierMutable>;
     type Expression = OpsExpressionMutable;
     type Operation = OpsMutable;
     type Signature = OpsStdSignatureMutable;
 }
 
 impl OpsKind for OpsStdKindBinary {
+    type Definition = OpsDefinition<Self::Operation, OpsQualifierBinary>;
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsStdSignatureBinary;
 }
 
 impl OpsKind for OpsStdKindUnary {
+    type Definition = OpsDefinition<Self::Operation, OpsQualifierUnary>;
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsStdSignatureUnary;
 }
 
 impl OpsKind for OpsNdKindMutable {
+    type Definition = OpsDefinitionStandard<Self::Operation>;
     type Expression = OpsExpressionMutable;
     type Operation = OpsMutable;
     type Signature = OpsNdSignatureMutable;
 }
 
 impl OpsKind for OpsNdKindBinary {
+    type Definition = OpsDefinitionStandard<Self::Operation>;
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsNdSignatureBinary;
 }
 
 impl OpsKind for OpsNdKindUnary {
+    type Definition = OpsDefinitionStandard<Self::Operation>;
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsNdSignatureUnary;
 }
-
-impl OpsStdKind for OpsStdKindMutable {
-    type Qualifier = OpsQualifierMutable;
-}
-
-impl OpsStdKind for OpsStdKindBinary {
-    type Qualifier = OpsQualifierBinary;
-}
-
-impl OpsStdKind for OpsStdKindUnary {
-    type Qualifier = OpsQualifierUnary;
-}
-
-impl OpsNdKind for OpsNdKindMutable {}
-impl OpsNdKind for OpsNdKindBinary {}
-impl OpsNdKind for OpsNdKindUnary {}
 
 impl Parse for Ops {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -333,22 +310,22 @@ impl Parse for Ops {
 
         if lookahead.peek(kw::stdmut) {
             input.parse::<kw::stdmut>()?;
-            input.parse::<OpsStdImpl<OpsStdKindMutable>>().map(Self::StdMutable)
+            input.parse::<OpsImpl<OpsStdKindMutable>>().map(Self::StdMutable)
         } else if lookahead.peek(kw::stdbin) {
             input.parse::<kw::stdbin>()?;
-            input.parse::<OpsStdImpl<OpsStdKindBinary>>().map(Self::StdBinary)
+            input.parse::<OpsImpl<OpsStdKindBinary>>().map(Self::StdBinary)
         } else if lookahead.peek(kw::stdun) {
             input.parse::<kw::stdun>()?;
-            input.parse::<OpsStdImpl<OpsStdKindUnary>>().map(Self::StdUnary)
+            input.parse::<OpsImpl<OpsStdKindUnary>>().map(Self::StdUnary)
         } else if lookahead.peek(kw::ndmut) {
             input.parse::<kw::ndmut>()?;
-            input.parse::<OpsNdImpl<OpsNdKindMutable>>().map(Self::NdMutable)
+            input.parse::<OpsImpl<OpsNdKindMutable>>().map(Self::NdMutable)
         } else if lookahead.peek(kw::ndbin) {
             input.parse::<kw::ndbin>()?;
-            input.parse::<OpsNdImpl<OpsNdKindBinary>>().map(Self::NdBinary)
+            input.parse::<OpsImpl<OpsNdKindBinary>>().map(Self::NdBinary)
         } else if lookahead.peek(kw::ndun) {
             input.parse::<kw::ndun>()?;
-            input.parse::<OpsNdImpl<OpsNdKindUnary>>().map(Self::NdUnary)
+            input.parse::<OpsImpl<OpsNdKindUnary>>().map(Self::NdUnary)
         } else {
             Err(lookahead.error())
         }
@@ -385,7 +362,7 @@ impl Parse for OpsAuto {
     }
 }
 
-impl<Kind: OpsStdKind> Parse for OpsStdImpl<Kind> {
+impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
@@ -397,24 +374,7 @@ impl<Kind: OpsStdKind> Parse for OpsStdImpl<Kind> {
             }),
             signature: input.parse()?,
             colon: input.parse()?,
-            definitions: input.parse_terminated(OpsDefinition::parse, Token![,])?,
-        })
-    }
-}
-
-impl<Kind: OpsNdKind> Parse for OpsNdImpl<Kind> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
-
-        Ok(Self {
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
-            signature: input.parse()?,
-            colon: input.parse()?,
-            definitions: input.parse_terminated(OpsDefinitionStandard::parse, Token![,])?,
+            definitions: input.parse_terminated(Kind::Definition::parse, Token![,])?,
         })
     }
 }
@@ -507,20 +467,43 @@ impl Parse for OpsStdSignatureUnary {
 }
 
 impl Parse for OpsNdSignatureMutable {
-    fn parse(_: ParseStream) -> Result<Self> {
-        todo!()
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            paren: parenthesized!(content in input),
+            lhs_pat: content.parse()?,
+            comma: content.parse()?,
+            rhs_pat: content.parse()?,
+        })
     }
 }
 
 impl Parse for OpsNdSignatureBinary {
-    fn parse(_: ParseStream) -> Result<Self> {
-        todo!()
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            paren: parenthesized!(content in input),
+            lhs_pat: content.parse()?,
+            comma: content.parse()?,
+            rhs_pat: content.parse()?,
+            arrow: content.parse()?,
+            ty: content.parse()?,
+        })
     }
 }
 
 impl Parse for OpsNdSignatureUnary {
-    fn parse(_: ParseStream) -> Result<Self> {
-        todo!()
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            paren: parenthesized!(content in input),
+            self_pat: content.parse()?,
+            arrow: content.parse()?,
+            ty: content.parse()?,
+        })
     }
 }
 
@@ -563,7 +546,7 @@ impl Parse for OpsExpressionUnary {
     }
 }
 
-impl<Kind: OpsStdKind> Parse for OpsDefinition<Kind> {
+impl<Operation: Parse, Qualifier: Parse> Parse for OpsDefinition<Operation, Qualifier> {
     fn parse(input: ParseStream) -> Result<Self> {
         if !input.peek2(kw::ext) {
             Ok(Self::Standard(input.parse()?))
@@ -573,7 +556,7 @@ impl<Kind: OpsStdKind> Parse for OpsDefinition<Kind> {
     }
 }
 
-impl<Kind: OpsKind> Parse for OpsDefinitionStandard<Kind> {
+impl<Operation: Parse> Parse for OpsDefinitionStandard<Operation> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
@@ -582,7 +565,7 @@ impl<Kind: OpsKind> Parse for OpsDefinitionStandard<Kind> {
     }
 }
 
-impl<Kind: OpsStdKind> Parse for OpsDefinitionExtended<Kind> {
+impl<Operation: Parse, Qualifier: Parse> Parse for OpsDefinitionExtended<Operation, Qualifier> {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -590,12 +573,12 @@ impl<Kind: OpsStdKind> Parse for OpsDefinitionExtended<Kind> {
             op: input.parse()?,
             ext: input.parse()?,
             brace: braced!(content in input),
-            elems: content.parse_terminated(OpsDefinitionExtendedElem::<Kind>::parse, Token![;])?,
+            elems: content.parse_terminated(OpsDefinitionExtendedElem::<Qualifier>::parse, Token![;])?,
         })
     }
 }
 
-impl<Kind: OpsStdKind> Parse for OpsDefinitionExtendedElem<Kind> {
+impl<Qualifier: Parse> Parse for OpsDefinitionExtendedElem<Qualifier> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             qualifier: input.parse()?,
@@ -730,7 +713,7 @@ impl Parse for OpsUnary {
     }
 }
 
-impl ToTokens for OpsStdImpl<OpsStdKindMutable> {
+impl ToTokens for OpsImpl<OpsStdKindMutable> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
@@ -839,7 +822,7 @@ impl ToTokens for OpsStdImpl<OpsStdKindMutable> {
     }
 }
 
-impl ToTokens for OpsStdImpl<OpsStdKindBinary> {
+impl ToTokens for OpsImpl<OpsStdKindBinary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
@@ -988,7 +971,7 @@ impl ToTokens for OpsStdImpl<OpsStdKindBinary> {
     }
 }
 
-impl ToTokens for OpsStdImpl<OpsStdKindUnary> {
+impl ToTokens for OpsImpl<OpsStdKindUnary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
