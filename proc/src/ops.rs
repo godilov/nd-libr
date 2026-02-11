@@ -52,6 +52,7 @@ pub struct OpsNdKindUnary;
 
 #[allow(unused)]
 pub struct OpsImpl<Kind: OpsKind> {
+    pub specifier: Kind::Specifier,
     pub generics: Generics,
     pub signature: Kind::Signature,
     pub colon: Token![,],
@@ -60,6 +61,7 @@ pub struct OpsImpl<Kind: OpsKind> {
 
 #[allow(unused)]
 pub struct OpsImplAuto<Kind: OpsKind> {
+    pub specifier: Kind::Specifier,
     pub generics: Generics,
     pub signature: Kind::Signature,
     pub colon: Token![,],
@@ -258,10 +260,16 @@ pub enum OpsUnary {
     Not(Token![!]),
 }
 
+pub struct OpsNoop;
+pub struct OpsPath {
+    crate_token: Option<Token![crate]>,
+}
+
 pub trait OpsKind {
     type Definition: Parse;
     type Expression: Parse;
     type Operation: Parse;
+    type Specifier: Parse;
     type Signature: Parse;
 }
 
@@ -270,6 +278,7 @@ impl OpsKind for OpsStdKindMutable {
     type Expression = OpsExpressionMutable;
     type Operation = OpsMutable;
     type Signature = OpsStdSignatureMutable;
+    type Specifier = OpsNoop;
 }
 
 impl OpsKind for OpsStdKindBinary {
@@ -277,6 +286,7 @@ impl OpsKind for OpsStdKindBinary {
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsStdSignatureBinary;
+    type Specifier = OpsNoop;
 }
 
 impl OpsKind for OpsStdKindUnary {
@@ -284,6 +294,7 @@ impl OpsKind for OpsStdKindUnary {
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsStdSignatureUnary;
+    type Specifier = OpsNoop;
 }
 
 impl OpsKind for OpsNdKindMutable {
@@ -291,6 +302,7 @@ impl OpsKind for OpsNdKindMutable {
     type Expression = OpsExpressionMutable;
     type Operation = OpsMutable;
     type Signature = OpsNdSignatureMutable;
+    type Specifier = OpsPath;
 }
 
 impl OpsKind for OpsNdKindBinary {
@@ -298,6 +310,7 @@ impl OpsKind for OpsNdKindBinary {
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsNdSignatureBinary;
+    type Specifier = OpsPath;
 }
 
 impl OpsKind for OpsNdKindUnary {
@@ -305,6 +318,7 @@ impl OpsKind for OpsNdKindUnary {
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsNdSignatureUnary;
+    type Specifier = OpsPath;
 }
 
 impl Parse for Ops {
@@ -373,6 +387,7 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
         let gen_where = input.parse::<Option<WhereClause>>()?;
 
         Ok(Self {
+            specifier: input.parse()?,
             generics: get_normalized_generics(Generics {
                 where_clause: gen_where,
                 ..gen_
@@ -392,6 +407,7 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
         let content;
 
         Ok(Self {
+            specifier: input.parse()?,
             generics: Generics {
                 where_clause: gen_where,
                 ..gen_
@@ -790,6 +806,20 @@ impl Parse for OpsUnary {
     }
 }
 
+impl Parse for OpsNoop {
+    fn parse(_: ParseStream) -> Result<Self> {
+        Ok(Self)
+    }
+}
+
+impl Parse for OpsPath {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            crate_token: input.parse().ok(),
+        })
+    }
+}
+
 impl ToTokens for OpsImpl<OpsStdKindMutable> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
@@ -1160,8 +1190,9 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 impl ToTokens for OpsImpl<OpsNdKindMutable> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
+            let token = self.specifier.crate_token;
             let ident = definition.op.get_ident();
-            let path = definition.op.get_nd_path();
+            let path = definition.op.get_nd_path(token);
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
 
@@ -1186,8 +1217,9 @@ impl ToTokens for OpsImpl<OpsNdKindMutable> {
 impl ToTokens for OpsImpl<OpsNdKindBinary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
+            let token = self.specifier.crate_token;
             let ident = definition.op.get_ident();
-            let path = definition.op.get_nd_path();
+            let path = definition.op.get_nd_path(token);
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
 
@@ -1215,8 +1247,9 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
 impl ToTokens for OpsImpl<OpsNdKindUnary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
+            let token = self.specifier.crate_token;
             let ident = definition.op.get_ident();
-            let path = definition.op.get_nd_path();
+            let path = definition.op.get_nd_path(token);
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
 
@@ -1285,6 +1318,7 @@ impl ToTokens for OpsUnary {
 impl From<OpsImplAuto<OpsStdKindMutable>> for OpsImpl<OpsStdKindMutable> {
     fn from(value: OpsImplAuto<OpsStdKindMutable>) -> Self {
         OpsImpl::<OpsStdKindMutable> {
+            specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
@@ -1308,6 +1342,7 @@ impl From<OpsImplAuto<OpsStdKindMutable>> for OpsImpl<OpsStdKindMutable> {
 impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
     fn from(value: OpsImplAuto<OpsStdKindBinary>) -> Self {
         OpsImpl::<OpsStdKindBinary> {
+            specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
@@ -1331,6 +1366,7 @@ impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
 impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
     fn from(value: OpsImplAuto<OpsStdKindUnary>) -> Self {
         OpsImpl::<OpsStdKindUnary> {
+            specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
@@ -1353,6 +1389,7 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
 impl From<OpsImplAuto<OpsNdKindMutable>> for OpsImpl<OpsNdKindMutable> {
     fn from(value: OpsImplAuto<OpsNdKindMutable>) -> Self {
         OpsImpl::<OpsNdKindMutable> {
+            specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
@@ -1376,6 +1413,7 @@ impl From<OpsImplAuto<OpsNdKindMutable>> for OpsImpl<OpsNdKindMutable> {
 impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
     fn from(value: OpsImplAuto<OpsNdKindBinary>) -> Self {
         OpsImpl::<OpsNdKindBinary> {
+            specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
@@ -1399,6 +1437,7 @@ impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
 impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
     fn from(value: OpsImplAuto<OpsNdKindUnary>) -> Self {
         OpsImpl::<OpsNdKindUnary> {
+            specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
@@ -1449,18 +1488,20 @@ impl OpsMutable {
         }
     }
 
-    fn get_nd_path(&self) -> Path {
+    fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndlib });
+
         match self {
-            OpsMutable::Add(_) => parse_quote! { NdAddAssign },
-            OpsMutable::Sub(_) => parse_quote! { NdSubAssign },
-            OpsMutable::Mul(_) => parse_quote! { NdMulAssign },
-            OpsMutable::Div(_) => parse_quote! { NdDivAssign },
-            OpsMutable::Rem(_) => parse_quote! { NdRemAssign },
-            OpsMutable::BitOr(_) => parse_quote! { NdBitOrAssign },
-            OpsMutable::BitAnd(_) => parse_quote! { NdBitAndAssign },
-            OpsMutable::BitXor(_) => parse_quote! { NdBitXorAssign },
-            OpsMutable::Shl(_) => parse_quote! { NdShlAssign },
-            OpsMutable::Shr(_) => parse_quote! { NdShrAssign },
+            OpsMutable::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
+            OpsMutable::Sub(_) => parse_quote! { #prefix::ops::NdSubAssign },
+            OpsMutable::Mul(_) => parse_quote! { #prefix::ops::NdMulAssign },
+            OpsMutable::Div(_) => parse_quote! { #prefix::ops::NdDivAssign },
+            OpsMutable::Rem(_) => parse_quote! { #prefix::ops::NdRemAssign },
+            OpsMutable::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
+            OpsMutable::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
+            OpsMutable::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
+            OpsMutable::Shl(_) => parse_quote! { #prefix::ops::NdShlAssign },
+            OpsMutable::Shr(_) => parse_quote! { #prefix::ops::NdShrAssign },
         }
     }
 }
@@ -1496,18 +1537,20 @@ impl OpsBinary {
         }
     }
 
-    fn get_nd_path(&self) -> Path {
+    fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndlib });
+
         match self {
-            OpsBinary::Add(_) => parse_quote! { NdAdd },
-            OpsBinary::Sub(_) => parse_quote! { NdSub },
-            OpsBinary::Mul(_) => parse_quote! { NdMul },
-            OpsBinary::Div(_) => parse_quote! { NdDiv },
-            OpsBinary::Rem(_) => parse_quote! { NdRem },
-            OpsBinary::BitOr(_) => parse_quote! { NdBitOr },
-            OpsBinary::BitAnd(_) => parse_quote! { NdBitAnd },
-            OpsBinary::BitXor(_) => parse_quote! { NdBitXor },
-            OpsBinary::Shl(_) => parse_quote! { NdShl },
-            OpsBinary::Shr(_) => parse_quote! { NdShr },
+            OpsBinary::Add(_) => parse_quote! { #prefix::ops::NdAdd },
+            OpsBinary::Sub(_) => parse_quote! { #prefix::ops::NdSub },
+            OpsBinary::Mul(_) => parse_quote! { #prefix::ops::NdMul },
+            OpsBinary::Div(_) => parse_quote! { #prefix::ops::NdDiv },
+            OpsBinary::Rem(_) => parse_quote! { #prefix::ops::NdRem },
+            OpsBinary::BitOr(_) => parse_quote! { #prefix::ops::NdBitOr },
+            OpsBinary::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAnd },
+            OpsBinary::BitXor(_) => parse_quote! { #prefix::ops::NdBitXor },
+            OpsBinary::Shl(_) => parse_quote! { #prefix::ops::NdShl },
+            OpsBinary::Shr(_) => parse_quote! { #prefix::ops::NdShr },
         }
     }
 }
@@ -1527,10 +1570,12 @@ impl OpsUnary {
         }
     }
 
-    fn get_nd_path(&self) -> Path {
+    fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndlib });
+
         match self {
-            OpsUnary::Neg(_) => parse_quote! { NdNeg },
-            OpsUnary::Not(_) => parse_quote! { NdNot },
+            OpsUnary::Neg(_) => parse_quote! { #prefix::ops::NdNeg },
+            OpsUnary::Not(_) => parse_quote! { #prefix::ops::NdNot },
         }
     }
 }
