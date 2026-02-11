@@ -73,37 +73,27 @@ pub struct OpsImplAuto<Kind: OpsKind> {
 #[allow(unused)]
 pub struct OpsStdSignatureAssign {
     pub paren: Paren,
-    pub lhs_vmut: Option<Token![mut]>,
-    pub lhs_ident: Ident,
-    pub lhs_colon: Token![:],
-    pub lhs_ref: Token![&],
-    pub lhs_mut: Token![mut],
-    pub lhs_type: Type,
+    pub lhs_pat: PatType,
+    pub lhs_ty: Type,
     pub comma: Token![,],
     pub rhs_star: Option<Token![*]>,
-    pub rhs_vmut: Option<Token![mut]>,
-    pub rhs_ident: Ident,
-    pub rhs_colon: Token![:],
+    pub rhs_pat: PatType,
     pub rhs_ref: Option<Token![&]>,
-    pub rhs_type: Type,
+    pub rhs_ty: Type,
 }
 
 #[allow(unused)]
 pub struct OpsStdSignatureBinary {
     pub paren: Paren,
     pub lhs_star: Option<Token![*]>,
-    pub lhs_vmut: Option<Token![mut]>,
-    pub lhs_ident: Ident,
-    pub lhs_colon: Token![:],
+    pub lhs_pat: PatType,
     pub lhs_ref: Option<Token![&]>,
-    pub lhs_type: Type,
+    pub lhs_ty: Type,
     pub comma: Token![,],
     pub rhs_star: Option<Token![*]>,
-    pub rhs_vmut: Option<Token![mut]>,
-    pub rhs_ident: Ident,
-    pub rhs_colon: Token![:],
+    pub rhs_pat: PatType,
     pub rhs_ref: Option<Token![&]>,
-    pub rhs_type: Type,
+    pub rhs_ty: Type,
     pub arrow: Token![->],
     pub ty: Type,
 }
@@ -112,11 +102,9 @@ pub struct OpsStdSignatureBinary {
 pub struct OpsStdSignatureUnary {
     pub paren: Paren,
     pub self_star: Option<Token![*]>,
-    pub self_vmut: Option<Token![mut]>,
-    pub self_ident: Ident,
-    pub self_colon: Token![:],
+    pub self_pat: PatType,
     pub self_ref: Option<Token![&]>,
-    pub self_type: Type,
+    pub self_ty: Type,
     pub arrow: Token![->],
     pub ty: Type,
 }
@@ -425,21 +413,44 @@ impl Parse for OpsStdSignatureAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let paren = parenthesized!(content in input);
+        let lhs_pat: PatType = content.parse()?;
+        let comma = content.parse()?;
+        let rhs_star = content.parse()?;
+        let rhs_pat: PatType = content.parse()?;
+
+        let lhs_ty = match *lhs_pat.ty {
+            Type::Reference(ref val) if val.mutability.is_some() => (*val.elem).clone(),
+            _ => {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "Failed to parse signature, lhs expected to be mutable reference",
+                ));
+            },
+        };
+
+        let (rhs_ty, rhs_ref) = match *rhs_pat.ty {
+            Type::Reference(ref val) => match val.mutability {
+                Some(_) => {
+                    return Err(Error::new(
+                        Span::call_site(),
+                        "Failed to parse signature, rhs expected to be reference",
+                    ));
+                },
+                None => ((*val.elem).clone(), Some(Default::default())),
+            },
+            ref val => (val.clone(), None),
+        };
+
         Ok(Self {
-            paren: parenthesized!(content in input),
-            lhs_vmut: content.parse().ok(),
-            lhs_ident: content.parse()?,
-            lhs_colon: content.parse()?,
-            lhs_ref: content.parse()?,
-            lhs_mut: content.parse()?,
-            lhs_type: content.parse()?,
-            comma: content.parse()?,
-            rhs_star: content.parse().ok(),
-            rhs_vmut: content.parse().ok(),
-            rhs_ident: content.parse()?,
-            rhs_colon: content.parse()?,
-            rhs_ref: content.parse().ok(),
-            rhs_type: content.parse()?,
+            paren,
+            lhs_pat,
+            lhs_ty,
+            comma,
+            rhs_star,
+            rhs_pat,
+            rhs_ref,
+            rhs_ty,
         })
     }
 }
@@ -448,23 +459,54 @@ impl Parse for OpsStdSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let paren = parenthesized!(content in input);
+        let lhs_star = content.parse()?;
+        let lhs_pat: PatType = content.parse()?;
+        let comma = content.parse()?;
+        let rhs_star = content.parse()?;
+        let rhs_pat: PatType = content.parse()?;
+        let arrow = input.parse()?;
+        let ty = input.parse()?;
+
+        let (lhs_ty, lhs_ref) = match *lhs_pat.ty {
+            Type::Reference(ref val) => match val.mutability {
+                Some(_) => {
+                    return Err(Error::new(
+                        Span::call_site(),
+                        "Failed to parse signature, lhs expected to be reference",
+                    ));
+                },
+                None => ((*val.elem).clone(), Some(Default::default())),
+            },
+            ref val => (val.clone(), None),
+        };
+
+        let (rhs_ty, rhs_ref) = match *rhs_pat.ty {
+            Type::Reference(ref val) => match val.mutability {
+                Some(_) => {
+                    return Err(Error::new(
+                        Span::call_site(),
+                        "Failed to parse signature, rhs expected to be reference",
+                    ));
+                },
+                None => ((*val.elem).clone(), Some(Default::default())),
+            },
+            ref val => (val.clone(), None),
+        };
+
         Ok(Self {
-            paren: parenthesized!(content in input),
-            lhs_star: content.parse().ok(),
-            lhs_vmut: content.parse().ok(),
-            lhs_ident: content.parse()?,
-            lhs_colon: content.parse()?,
-            lhs_ref: content.parse().ok(),
-            lhs_type: content.parse()?,
-            comma: content.parse()?,
-            rhs_star: content.parse().ok(),
-            rhs_vmut: content.parse().ok(),
-            rhs_ident: content.parse()?,
-            rhs_colon: content.parse()?,
-            rhs_ref: content.parse().ok(),
-            rhs_type: content.parse()?,
-            arrow: input.parse()?,
-            ty: input.parse()?,
+            paren,
+            lhs_star,
+            lhs_pat,
+            lhs_ref,
+            lhs_ty,
+            comma,
+            rhs_star,
+            rhs_pat,
+            rhs_ref,
+            rhs_ty,
+            arrow,
+            ty,
         })
     }
 }
@@ -473,16 +515,33 @@ impl Parse for OpsStdSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let paren = parenthesized!(content in input);
+        let self_star = content.parse()?;
+        let self_pat: PatType = content.parse()?;
+        let arrow = input.parse()?;
+        let ty = input.parse()?;
+
+        let (self_ty, self_ref) = match *self_pat.ty {
+            Type::Reference(ref val) => match val.mutability {
+                Some(_) => {
+                    return Err(Error::new(
+                        Span::call_site(),
+                        "Failed to parse signature, self expected to be reference",
+                    ));
+                },
+                None => ((*val.elem).clone(), Some(Default::default())),
+            },
+            ref val => (val.clone(), None),
+        };
+
         Ok(Self {
-            paren: parenthesized!(content in input),
-            self_star: content.parse().ok(),
-            self_vmut: content.parse().ok(),
-            self_ident: content.parse()?,
-            self_colon: content.parse()?,
-            self_ref: content.parse().ok(),
-            self_type: content.parse()?,
-            arrow: input.parse()?,
-            ty: input.parse()?,
+            paren,
+            self_star,
+            self_pat,
+            self_ref,
+            self_ty,
+            arrow,
+            ty,
         })
     }
 }
@@ -851,19 +910,17 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
                 None => quote! { where #predicates },
             };
 
-            let lhs_mut = &spec.signature.lhs_vmut;
-            let lhs_ident = &spec.signature.lhs_ident;
-            let lhs_type = &spec.signature.lhs_type;
-            let rhs_mut = &spec.signature.rhs_vmut;
-            let rhs_ident = &spec.signature.rhs_ident;
-            let rhs_type = &spec.signature.rhs_type;
+            let lhs_pat = &spec.signature.lhs_pat;
+            let lhs_ty = &spec.signature.lhs_ty;
+            let rhs_pat = &spec.signature.rhs_pat.pat;
+            let rhs_ty = &spec.signature.rhs_ty;
 
             let expr = &spec.expr;
 
             quote! {
-                impl #gen_impl #path<#rhs_ref #rhs_type> for #lhs_type #gen_where {
-                    fn #ident(&mut self, rhs: #rhs_ref #rhs_type) {
-                        (|#lhs_mut #lhs_ident: &mut #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #expr })(self, rhs);
+                impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ty #gen_where {
+                    fn #ident(&mut self, rhs: #rhs_ref #rhs_ty) {
+                        (|#lhs_pat, #rhs_pat: #rhs_ref #rhs_ty| { #expr })(self, rhs);
                     }
                 }
             }
@@ -960,22 +1017,20 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
                 None => quote! { where #predicates },
             };
 
-            let lhs_mut = &spec.signature.lhs_vmut;
-            let lhs_ident = &spec.signature.lhs_ident;
-            let lhs_type = &spec.signature.lhs_type;
-            let rhs_mut = &spec.signature.rhs_vmut;
-            let rhs_ident = &spec.signature.rhs_ident;
-            let rhs_type = &spec.signature.rhs_type;
+            let lhs_pat = &spec.signature.lhs_pat.pat;
+            let lhs_ty = &spec.signature.lhs_ty;
+            let rhs_pat = &spec.signature.rhs_pat.pat;
+            let rhs_ty = &spec.signature.rhs_ty;
             let op_type = &spec.signature.ty;
 
             let expr = &spec.expr;
 
             quote! {
-                impl #gen_impl #path<#rhs_ref #rhs_type> for #lhs_ref #lhs_type #gen_where {
+                impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ref #lhs_ty #gen_where {
                     type Output = #op_type;
 
-                    fn #ident(self, rhs: #rhs_ref #rhs_type) -> Self::Output {
-                        (|#lhs_mut #lhs_ident: #lhs_ref #lhs_type, #rhs_mut #rhs_ident: #rhs_ref #rhs_type| { #op_type::from(#expr) })(self, rhs)
+                    fn #ident(self, rhs: #rhs_ref #rhs_ty) -> Self::Output {
+                        (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { #op_type::from(#expr) })(self, rhs)
                     }
                 }
             }
@@ -1109,19 +1164,18 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                 None => quote! { where #predicates },
             };
 
-            let self_mut = &spec.signature.self_vmut;
-            let self_ident = &spec.signature.self_ident;
-            let self_type = &spec.signature.self_type;
+            let self_pat = &spec.signature.self_pat.pat;
+            let self_ty = &spec.signature.self_ty;
             let op_type = &spec.signature.ty;
 
             let expr = &spec.expr;
 
             quote! {
-                impl #gen_impl #path for #lhs_ref #self_type #gen_where {
+                impl #gen_impl #path for #lhs_ref #self_ty #gen_where {
                     type Output = #op_type;
 
                     fn #ident(self) -> Self::Output {
-                        (|#self_mut #self_ident: #lhs_ref #self_type| { (#expr).into() })(self)
+                        (|#self_pat: #lhs_ref #self_ty| { (#expr).into() })(self)
                     }
                 }
             }
