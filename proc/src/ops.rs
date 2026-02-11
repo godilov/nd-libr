@@ -371,11 +371,12 @@ impl Parse for OpsAuto {
 
 impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
+        let specifier = input.parse()?;
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
 
         Ok(Self {
-            specifier: input.parse()?,
+            specifier,
             generics: get_normalized_generics(Generics {
                 where_clause: gen_where,
                 ..gen_
@@ -389,13 +390,14 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
 
 impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
+        let specifier = input.parse()?;
         let gen_ = input.parse::<Generics>()?;
         let gen_where = input.parse::<Option<WhereClause>>()?;
 
         let content;
 
         Ok(Self {
-            specifier: input.parse()?,
+            specifier,
             generics: Generics {
                 where_clause: gen_where,
                 ..gen_
@@ -594,8 +596,8 @@ impl Parse for OpsNdSignatureBinary {
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
         let rhs_pat: PatType = content.parse()?;
-        let arrow = content.parse()?;
-        let ty = content.parse()?;
+        let arrow = input.parse()?;
+        let ty = input.parse()?;
 
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
@@ -636,8 +638,8 @@ impl Parse for OpsNdSignatureUnary {
 
         let paren = parenthesized!(content in input);
         let self_pat: PatType = content.parse()?;
-        let arrow = content.parse()?;
-        let ty = content.parse()?;
+        let arrow = input.parse()?;
+        let ty = input.parse()?;
 
         let self_ty = match *self_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
