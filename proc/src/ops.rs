@@ -24,10 +24,10 @@ mod kw {
 
 #[allow(clippy::large_enum_variant)]
 pub enum Ops {
-    StdMutable(OpsImpl<OpsStdKindMutable>),
+    StdAssign(OpsImpl<OpsStdKindAssign>),
     StdBinary(OpsImpl<OpsStdKindBinary>),
     StdUnary(OpsImpl<OpsStdKindUnary>),
-    NdMutable(OpsImpl<OpsNdKindMutable>),
+    NdAssign(OpsImpl<OpsNdKindAssign>),
     NdBinary(OpsImpl<OpsNdKindBinary>),
     NdUnary(OpsImpl<OpsNdKindUnary>),
 }
@@ -35,18 +35,18 @@ pub enum Ops {
 #[allow(clippy::large_enum_variant)]
 #[allow(clippy::enum_variant_names)]
 pub enum OpsAuto {
-    StdMutable(OpsImplAuto<OpsStdKindMutable>),
+    StdAssign(OpsImplAuto<OpsStdKindAssign>),
     StdBinary(OpsImplAuto<OpsStdKindBinary>),
     StdUnary(OpsImplAuto<OpsStdKindUnary>),
-    NdMutable(OpsImplAuto<OpsNdKindMutable>),
+    NdAssign(OpsImplAuto<OpsNdKindAssign>),
     NdBinary(OpsImplAuto<OpsNdKindBinary>),
     NdUnary(OpsImplAuto<OpsNdKindUnary>),
 }
 
-pub struct OpsStdKindMutable;
+pub struct OpsStdKindAssign;
 pub struct OpsStdKindBinary;
 pub struct OpsStdKindUnary;
-pub struct OpsNdKindMutable;
+pub struct OpsNdKindAssign;
 pub struct OpsNdKindBinary;
 pub struct OpsNdKindUnary;
 
@@ -71,7 +71,7 @@ pub struct OpsImplAuto<Kind: OpsKind> {
 }
 
 #[allow(unused)]
-pub struct OpsStdSignatureMutable {
+pub struct OpsStdSignatureAssign {
     pub paren: Paren,
     pub lhs_vmut: Option<Token![mut]>,
     pub lhs_ident: Ident,
@@ -122,7 +122,7 @@ pub struct OpsStdSignatureUnary {
 }
 
 #[allow(unused)]
-pub struct OpsNdSignatureMutable {
+pub struct OpsNdSignatureAssign {
     pub paren: Paren,
     pub lhs_pat: PatType,
     pub lhs_ty: Type,
@@ -153,7 +153,7 @@ pub struct OpsNdSignatureUnary {
 }
 
 #[allow(unused)]
-pub struct OpsExpressionMutable {
+pub struct OpsExpressionAssign {
     pub lhs_paren: Paren,
     pub lhs_expr: Expr,
     pub rhs_paren: Paren,
@@ -201,7 +201,7 @@ pub struct OpsDefinitionExtendedElem<Qualifier: Parse> {
 }
 
 #[allow(unused)]
-pub struct OpsQualifierMutable {
+pub struct OpsQualifierAssign {
     pub paren: Paren,
     pub lhs: Token![&],
     pub rhs: OpsQualifier,
@@ -227,7 +227,7 @@ pub enum OpsQualifier {
 }
 
 #[derive(Clone, Copy)]
-pub enum OpsMutable {
+pub enum OpsAssign {
     Add(Token![+=]),
     Sub(Token![-=]),
     Mul(Token![*=]),
@@ -273,11 +273,11 @@ pub trait OpsKind {
     type Signature: Parse;
 }
 
-impl OpsKind for OpsStdKindMutable {
-    type Definition = OpsDefinition<Self::Operation, OpsQualifierMutable>;
-    type Expression = OpsExpressionMutable;
-    type Operation = OpsMutable;
-    type Signature = OpsStdSignatureMutable;
+impl OpsKind for OpsStdKindAssign {
+    type Definition = OpsDefinition<Self::Operation, OpsQualifierAssign>;
+    type Expression = OpsExpressionAssign;
+    type Operation = OpsAssign;
+    type Signature = OpsStdSignatureAssign;
     type Specifier = OpsNoop;
 }
 
@@ -297,11 +297,11 @@ impl OpsKind for OpsStdKindUnary {
     type Specifier = OpsNoop;
 }
 
-impl OpsKind for OpsNdKindMutable {
+impl OpsKind for OpsNdKindAssign {
     type Definition = OpsDefinitionStandard<Self::Operation>;
-    type Expression = OpsExpressionMutable;
-    type Operation = OpsMutable;
-    type Signature = OpsNdSignatureMutable;
+    type Expression = OpsExpressionAssign;
+    type Operation = OpsAssign;
+    type Signature = OpsNdSignatureAssign;
     type Specifier = OpsPath;
 }
 
@@ -329,7 +329,7 @@ impl Parse for Ops {
 
         if lookahead.peek(kw::stdmut) {
             input.parse::<kw::stdmut>()?;
-            input.parse::<OpsImpl<OpsStdKindMutable>>().map(Self::StdMutable)
+            input.parse::<OpsImpl<OpsStdKindAssign>>().map(Self::StdAssign)
         } else if lookahead.peek(kw::stdbin) {
             input.parse::<kw::stdbin>()?;
             input.parse::<OpsImpl<OpsStdKindBinary>>().map(Self::StdBinary)
@@ -338,7 +338,7 @@ impl Parse for Ops {
             input.parse::<OpsImpl<OpsStdKindUnary>>().map(Self::StdUnary)
         } else if lookahead.peek(kw::ndmut) {
             input.parse::<kw::ndmut>()?;
-            input.parse::<OpsImpl<OpsNdKindMutable>>().map(Self::NdMutable)
+            input.parse::<OpsImpl<OpsNdKindAssign>>().map(Self::NdAssign)
         } else if lookahead.peek(kw::ndbin) {
             input.parse::<kw::ndbin>()?;
             input.parse::<OpsImpl<OpsNdKindBinary>>().map(Self::NdBinary)
@@ -359,7 +359,7 @@ impl Parse for OpsAuto {
 
         if lookahead.peek(kw::stdmut) {
             input.parse::<kw::stdmut>()?;
-            input.parse::<OpsImplAuto<OpsStdKindMutable>>().map(Self::StdMutable)
+            input.parse::<OpsImplAuto<OpsStdKindAssign>>().map(Self::StdAssign)
         } else if lookahead.peek(kw::stdbin) {
             input.parse::<kw::stdbin>()?;
             input.parse::<OpsImplAuto<OpsStdKindBinary>>().map(Self::StdBinary)
@@ -368,7 +368,7 @@ impl Parse for OpsAuto {
             input.parse::<OpsImplAuto<OpsStdKindUnary>>().map(Self::StdUnary)
         } else if lookahead.peek(kw::ndmut) {
             input.parse::<kw::ndmut>()?;
-            input.parse::<OpsImplAuto<OpsNdKindMutable>>().map(Self::NdMutable)
+            input.parse::<OpsImplAuto<OpsNdKindAssign>>().map(Self::NdAssign)
         } else if lookahead.peek(kw::ndbin) {
             input.parse::<kw::ndbin>()?;
             input.parse::<OpsImplAuto<OpsNdKindBinary>>().map(Self::NdBinary)
@@ -421,7 +421,7 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
     }
 }
 
-impl Parse for OpsStdSignatureMutable {
+impl Parse for OpsStdSignatureAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -487,7 +487,7 @@ impl Parse for OpsStdSignatureUnary {
     }
 }
 
-impl Parse for OpsNdSignatureMutable {
+impl Parse for OpsNdSignatureAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -600,7 +600,7 @@ impl Parse for OpsNdSignatureUnary {
     }
 }
 
-impl Parse for OpsExpressionMutable {
+impl Parse for OpsExpressionAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let lhs_content;
         let rhs_content;
@@ -681,7 +681,7 @@ impl<Qualifier: Parse> Parse for OpsDefinitionExtendedElem<Qualifier> {
     }
 }
 
-impl Parse for OpsQualifierMutable {
+impl Parse for OpsQualifierAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -732,7 +732,7 @@ impl Parse for OpsQualifier {
     }
 }
 
-impl Parse for OpsMutable {
+impl Parse for OpsAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
 
@@ -820,13 +820,13 @@ impl Parse for OpsPath {
     }
 }
 
-impl ToTokens for OpsImpl<OpsStdKindMutable> {
+impl ToTokens for OpsImpl<OpsStdKindAssign> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
-            op: &'ops OpsMutable,
+            op: &'ops OpsAssign,
             generics: &'ops Generics,
-            signature: &'ops OpsStdSignatureMutable,
+            signature: &'ops OpsStdSignatureAssign,
             expr: &'ops Expr,
             conditions: Option<&'ops WhereClause>,
         }
@@ -1187,7 +1187,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
     }
 }
 
-impl ToTokens for OpsImpl<OpsNdKindMutable> {
+impl ToTokens for OpsImpl<OpsNdKindAssign> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
             let token = self.specifier.crate_token;
@@ -1272,19 +1272,19 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
     }
 }
 
-impl ToTokens for OpsMutable {
+impl ToTokens for OpsAssign {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            OpsMutable::Add(op) => tokens.extend(quote! { #op }),
-            OpsMutable::Sub(op) => tokens.extend(quote! { #op }),
-            OpsMutable::Mul(op) => tokens.extend(quote! { #op }),
-            OpsMutable::Div(op) => tokens.extend(quote! { #op }),
-            OpsMutable::Rem(op) => tokens.extend(quote! { #op }),
-            OpsMutable::BitOr(op) => tokens.extend(quote! { #op }),
-            OpsMutable::BitXor(op) => tokens.extend(quote! { #op }),
-            OpsMutable::BitAnd(op) => tokens.extend(quote! { #op }),
-            OpsMutable::Shl(op) => tokens.extend(quote! { #op }),
-            OpsMutable::Shr(op) => tokens.extend(quote! { #op }),
+            OpsAssign::Add(op) => tokens.extend(quote! { #op }),
+            OpsAssign::Sub(op) => tokens.extend(quote! { #op }),
+            OpsAssign::Mul(op) => tokens.extend(quote! { #op }),
+            OpsAssign::Div(op) => tokens.extend(quote! { #op }),
+            OpsAssign::Rem(op) => tokens.extend(quote! { #op }),
+            OpsAssign::BitOr(op) => tokens.extend(quote! { #op }),
+            OpsAssign::BitXor(op) => tokens.extend(quote! { #op }),
+            OpsAssign::BitAnd(op) => tokens.extend(quote! { #op }),
+            OpsAssign::Shl(op) => tokens.extend(quote! { #op }),
+            OpsAssign::Shr(op) => tokens.extend(quote! { #op }),
         }
     }
 }
@@ -1315,9 +1315,9 @@ impl ToTokens for OpsUnary {
     }
 }
 
-impl From<OpsImplAuto<OpsStdKindMutable>> for OpsImpl<OpsStdKindMutable> {
-    fn from(value: OpsImplAuto<OpsStdKindMutable>) -> Self {
-        OpsImpl::<OpsStdKindMutable> {
+impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
+    fn from(value: OpsImplAuto<OpsStdKindAssign>) -> Self {
+        OpsImpl::<OpsStdKindAssign> {
             specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
@@ -1329,7 +1329,7 @@ impl From<OpsImplAuto<OpsStdKindMutable>> for OpsImpl<OpsStdKindMutable> {
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
 
-                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsMutable> {
+                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsAssign> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs; }},
                     })
@@ -1386,9 +1386,9 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
     }
 }
 
-impl From<OpsImplAuto<OpsNdKindMutable>> for OpsImpl<OpsNdKindMutable> {
-    fn from(value: OpsImplAuto<OpsNdKindMutable>) -> Self {
-        OpsImpl::<OpsNdKindMutable> {
+impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
+    fn from(value: OpsImplAuto<OpsNdKindAssign>) -> Self {
+        OpsImpl::<OpsNdKindAssign> {
             specifier: value.specifier,
             generics: value.generics,
             signature: value.signature,
@@ -1400,7 +1400,7 @@ impl From<OpsImplAuto<OpsNdKindMutable>> for OpsImpl<OpsNdKindMutable> {
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
 
-                    OpsDefinitionStandard::<OpsMutable> {
+                    OpsDefinitionStandard::<OpsAssign> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs; }},
                     }
@@ -1457,34 +1457,34 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
     }
 }
 
-impl OpsMutable {
+impl OpsAssign {
     fn get_ident(&self) -> Ident {
         match self {
-            OpsMutable::Add(_) => parse_quote! { add_assign },
-            OpsMutable::Sub(_) => parse_quote! { sub_assign },
-            OpsMutable::Mul(_) => parse_quote! { mul_assign },
-            OpsMutable::Div(_) => parse_quote! { div_assign },
-            OpsMutable::Rem(_) => parse_quote! { rem_assign },
-            OpsMutable::BitOr(_) => parse_quote! { bitor_assign },
-            OpsMutable::BitAnd(_) => parse_quote! { bitand_assign },
-            OpsMutable::BitXor(_) => parse_quote! { bitxor_assign },
-            OpsMutable::Shl(_) => parse_quote! { shl_assign },
-            OpsMutable::Shr(_) => parse_quote! { shr_assign },
+            OpsAssign::Add(_) => parse_quote! { add_assign },
+            OpsAssign::Sub(_) => parse_quote! { sub_assign },
+            OpsAssign::Mul(_) => parse_quote! { mul_assign },
+            OpsAssign::Div(_) => parse_quote! { div_assign },
+            OpsAssign::Rem(_) => parse_quote! { rem_assign },
+            OpsAssign::BitOr(_) => parse_quote! { bitor_assign },
+            OpsAssign::BitAnd(_) => parse_quote! { bitand_assign },
+            OpsAssign::BitXor(_) => parse_quote! { bitxor_assign },
+            OpsAssign::Shl(_) => parse_quote! { shl_assign },
+            OpsAssign::Shr(_) => parse_quote! { shr_assign },
         }
     }
 
     fn get_path(&self) -> Path {
         match self {
-            OpsMutable::Add(_) => parse_quote! { std::ops::AddAssign },
-            OpsMutable::Sub(_) => parse_quote! { std::ops::SubAssign },
-            OpsMutable::Mul(_) => parse_quote! { std::ops::MulAssign },
-            OpsMutable::Div(_) => parse_quote! { std::ops::DivAssign },
-            OpsMutable::Rem(_) => parse_quote! { std::ops::RemAssign },
-            OpsMutable::BitOr(_) => parse_quote! { std::ops::BitOrAssign },
-            OpsMutable::BitAnd(_) => parse_quote! { std::ops::BitAndAssign },
-            OpsMutable::BitXor(_) => parse_quote! { std::ops::BitXorAssign },
-            OpsMutable::Shl(_) => parse_quote! { std::ops::ShlAssign },
-            OpsMutable::Shr(_) => parse_quote! { std::ops::ShrAssign },
+            OpsAssign::Add(_) => parse_quote! { std::ops::AddAssign },
+            OpsAssign::Sub(_) => parse_quote! { std::ops::SubAssign },
+            OpsAssign::Mul(_) => parse_quote! { std::ops::MulAssign },
+            OpsAssign::Div(_) => parse_quote! { std::ops::DivAssign },
+            OpsAssign::Rem(_) => parse_quote! { std::ops::RemAssign },
+            OpsAssign::BitOr(_) => parse_quote! { std::ops::BitOrAssign },
+            OpsAssign::BitAnd(_) => parse_quote! { std::ops::BitAndAssign },
+            OpsAssign::BitXor(_) => parse_quote! { std::ops::BitXorAssign },
+            OpsAssign::Shl(_) => parse_quote! { std::ops::ShlAssign },
+            OpsAssign::Shr(_) => parse_quote! { std::ops::ShrAssign },
         }
     }
 
@@ -1492,16 +1492,16 @@ impl OpsMutable {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndlib });
 
         match self {
-            OpsMutable::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
-            OpsMutable::Sub(_) => parse_quote! { #prefix::ops::NdSubAssign },
-            OpsMutable::Mul(_) => parse_quote! { #prefix::ops::NdMulAssign },
-            OpsMutable::Div(_) => parse_quote! { #prefix::ops::NdDivAssign },
-            OpsMutable::Rem(_) => parse_quote! { #prefix::ops::NdRemAssign },
-            OpsMutable::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
-            OpsMutable::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
-            OpsMutable::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
-            OpsMutable::Shl(_) => parse_quote! { #prefix::ops::NdShlAssign },
-            OpsMutable::Shr(_) => parse_quote! { #prefix::ops::NdShrAssign },
+            OpsAssign::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
+            OpsAssign::Sub(_) => parse_quote! { #prefix::ops::NdSubAssign },
+            OpsAssign::Mul(_) => parse_quote! { #prefix::ops::NdMulAssign },
+            OpsAssign::Div(_) => parse_quote! { #prefix::ops::NdDivAssign },
+            OpsAssign::Rem(_) => parse_quote! { #prefix::ops::NdRemAssign },
+            OpsAssign::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
+            OpsAssign::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
+            OpsAssign::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
+            OpsAssign::Shl(_) => parse_quote! { #prefix::ops::NdShlAssign },
+            OpsAssign::Shr(_) => parse_quote! { #prefix::ops::NdShrAssign },
         }
     }
 }

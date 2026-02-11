@@ -9,7 +9,7 @@ use crate::{
         get_forward_fn, get_forward_impl, get_forward_type,
     },
     ops::{
-        Ops, OpsAuto, OpsImpl, OpsNdKindBinary, OpsNdKindMutable, OpsNdKindUnary, OpsStdKindBinary, OpsStdKindMutable,
+        Ops, OpsAuto, OpsImpl, OpsNdKindAssign, OpsNdKindBinary, OpsNdKindUnary, OpsStdKindAssign, OpsStdKindBinary,
         OpsStdKindUnary,
     },
 };
@@ -20,10 +20,10 @@ mod ops;
 #[proc_macro]
 pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
-        Ops::StdMutable(ops) => quote! { #ops }.into(),
+        Ops::StdAssign(ops) => quote! { #ops }.into(),
         Ops::StdBinary(ops) => quote! { #ops }.into(),
         Ops::StdUnary(ops) => quote! { #ops }.into(),
-        Ops::NdMutable(ops) => quote! { #ops }.into(),
+        Ops::NdAssign(ops) => quote! { #ops }.into(),
         Ops::NdBinary(ops) => quote! { #ops }.into(),
         Ops::NdUnary(ops) => quote! { #ops }.into(),
     }
@@ -32,8 +32,8 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 #[proc_macro]
 pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {
-        OpsAuto::StdMutable(ops) => {
-            let ops = OpsImpl::<OpsStdKindMutable>::from(ops);
+        OpsAuto::StdAssign(ops) => {
+            let ops = OpsImpl::<OpsStdKindAssign>::from(ops);
 
             quote! { #ops }.into()
         },
@@ -47,8 +47,8 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
 
             quote! { #ops }.into()
         },
-        OpsAuto::NdMutable(ops) => {
-            let ops = OpsImpl::<OpsNdKindMutable>::from(ops);
+        OpsAuto::NdAssign(ops) => {
+            let ops = OpsImpl::<OpsNdKindAssign>::from(ops);
 
             quote! { #ops }.into()
         },
@@ -63,6 +63,21 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
             quote! { #ops }.into()
         },
     }
+}
+
+#[proc_macro_derive(NdOpsAssign)]
+pub fn nd_ops_assign_impl(_stream: TokenStreamStd) -> TokenStreamStd {
+    quote! {}.into()
+}
+
+#[proc_macro_derive(NdOpsBinary)]
+pub fn nd_ops_binary_impl(_stream: TokenStreamStd) -> TokenStreamStd {
+    quote! {}.into()
+}
+
+#[proc_macro_derive(NdOpsUnary)]
+pub fn nd_ops_unary_impl(_stream: TokenStreamStd) -> TokenStreamStd {
+    quote! {}.into()
 }
 
 #[proc_macro_attribute]
