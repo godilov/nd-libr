@@ -37,7 +37,7 @@ where
 
 ### Ops Generation
 
-Macroses `ndproc::ops_impl` and `ndproc::ops_impl_auto` implement all standard Rust operations for types.
+Macroses `ndproc::ops_impl` and `ndproc::ops_impl_auto` implement all standard Rust operations for types (std-kind).
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
