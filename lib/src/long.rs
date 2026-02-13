@@ -17,6 +17,7 @@ use crate::{
     arch::word::*,
     long::{radix::*, uops::*},
     num::{Max, Min, Num, NumExtension, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero},
+    ops::{NdNeg, NdNot},
 };
 
 macro_rules! signed {
@@ -1583,12 +1584,19 @@ impl<const L: usize> UpperHex for Bytes<L> {
     }
 }
 
-ops_impl!(@stdun <const L: usize> (a: &Signed<L>) -> Signed::<L>,
+ops_impl!(@ndun crate for Signed<L> <const L: usize> (a: &Signed<L>) -> Signed::<L>,
     - Signed::<L>(neg(&a.0)),
     ! Signed::<L>(not(&a.0)));
 
-ops_impl!(@stdun <const L: usize> (a: &Unsigned<L>) -> Unsigned::<L>,
+ops_impl!(@ndun crate for Unsigned<L> <const L: usize> (a: &Unsigned<L>) -> Unsigned::<L>,
     ! Unsigned::<L>(not(&a.0)));
+
+ops_impl!(@stdun <const L: usize> (a: &Signed<L>) -> Signed::<L>,
+    - <Signed::<L> as NdNeg>::neg(a),
+    ! <Signed::<L> as NdNot>::not(a));
+
+ops_impl!(@stdun <const L: usize> (a: &Unsigned<L>) -> Unsigned::<L>,
+    ! <Unsigned::<L> as NdNot>::not(a));
 
 ops_impl!(@stdun <const L: usize> (mut a: Signed<L>) -> Signed::<L>,
     - { neg_mut(&mut a.0); a },
@@ -1596,8 +1604,6 @@ ops_impl!(@stdun <const L: usize> (mut a: Signed<L>) -> Signed::<L>,
 
 ops_impl!(@stdun <const L: usize> (mut a: Unsigned<L>) -> Unsigned::<L>,
     ! { not_mut(&mut a.0); a });
-
-ops_impl!(@stdbin (a: Sign, b: Sign) -> Sign, * Sign::from((a as i8) * (b as i8)));
 
 ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, *b: &Signed<L>) -> Signed::<L>,
     + Signed::<L>(add_long(&a.0, &b.0)),
