@@ -70,6 +70,15 @@ pub struct OpsImplAuto<Kind: OpsKind> {
     pub ops: Punctuated<Kind::Operation, Token![,]>,
 }
 
+pub struct OpsStdSpecifier;
+
+#[allow(unused)]
+pub struct OpsNdSpecifier {
+    crate_token: Option<Token![crate]>,
+    for_token: Token![for],
+    ty: Type,
+}
+
 #[allow(unused)]
 pub struct OpsStdSignatureAssign {
     pub paren: Paren,
@@ -248,11 +257,6 @@ pub enum OpsUnary {
     Not(Token![!]),
 }
 
-pub struct OpsNoop;
-pub struct OpsPath {
-    crate_token: Option<Token![crate]>,
-}
-
 pub trait OpsKind {
     type Definition: Parse;
     type Expression: Parse;
@@ -266,7 +270,7 @@ impl OpsKind for OpsStdKindAssign {
     type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsStdSignatureAssign;
-    type Specifier = OpsNoop;
+    type Specifier = OpsStdSpecifier;
 }
 
 impl OpsKind for OpsStdKindBinary {
@@ -274,7 +278,7 @@ impl OpsKind for OpsStdKindBinary {
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsStdSignatureBinary;
-    type Specifier = OpsNoop;
+    type Specifier = OpsStdSpecifier;
 }
 
 impl OpsKind for OpsStdKindUnary {
@@ -282,7 +286,7 @@ impl OpsKind for OpsStdKindUnary {
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsStdSignatureUnary;
-    type Specifier = OpsNoop;
+    type Specifier = OpsStdSpecifier;
 }
 
 impl OpsKind for OpsNdKindAssign {
@@ -290,7 +294,7 @@ impl OpsKind for OpsNdKindAssign {
     type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsNdSignatureAssign;
-    type Specifier = OpsPath;
+    type Specifier = OpsNdSpecifier;
 }
 
 impl OpsKind for OpsNdKindBinary {
@@ -298,7 +302,7 @@ impl OpsKind for OpsNdKindBinary {
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsNdSignatureBinary;
-    type Specifier = OpsPath;
+    type Specifier = OpsNdSpecifier;
 }
 
 impl OpsKind for OpsNdKindUnary {
@@ -306,7 +310,7 @@ impl OpsKind for OpsNdKindUnary {
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsNdSignatureUnary;
-    type Specifier = OpsPath;
+    type Specifier = OpsNdSpecifier;
 }
 
 impl Parse for Ops {
@@ -407,6 +411,22 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
             expression: input.parse()?,
             ops_bracket: bracketed!(content in input),
             ops: content.parse_terminated(Kind::Operation::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for OpsStdSpecifier {
+    fn parse(_: ParseStream) -> Result<Self> {
+        Ok(Self)
+    }
+}
+
+impl Parse for OpsNdSpecifier {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            crate_token: input.parse().ok(),
+            for_token: input.parse()?,
+            ty: input.parse()?,
         })
     }
 }
@@ -867,20 +887,6 @@ impl Parse for OpsUnary {
     }
 }
 
-impl Parse for OpsNoop {
-    fn parse(_: ParseStream) -> Result<Self> {
-        Ok(Self)
-    }
-}
-
-impl Parse for OpsPath {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            crate_token: input.parse().ok(),
-        })
-    }
-}
-
 impl ToTokens for OpsImpl<OpsStdKindAssign> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
@@ -1252,6 +1258,7 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
 
+            let ty = &self.specifier.ty;
             let lhs_pat = &self.signature.lhs_pat;
             let rhs_pat = &self.signature.rhs_pat;
             let lhs_ty = &self.signature.lhs_ty;
@@ -1260,7 +1267,7 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
             let expr = &definition.expr;
 
             tokens.extend(quote! {
-                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #lhs_ty #gen_where {
+                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #ty #gen_where {
                     fn #ident(#lhs_pat, #rhs_pat) {
                         #expr
                     }
@@ -1279,17 +1286,18 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
 
+            let ty = &self.specifier.ty;
             let lhs_pat = &self.signature.lhs_pat;
             let rhs_pat = &self.signature.rhs_pat;
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
-            let ty = &self.signature.ty;
+            let sig_ty = &self.signature.ty;
 
             let expr = &definition.expr;
 
             tokens.extend(quote! {
-                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #lhs_ty #gen_where {
-                    type Type = #ty;
+                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #ty #gen_where {
+                    type Type = #sig_ty;
 
                     fn #ident(#lhs_pat, #rhs_pat) -> Self::Type {
                         #expr
@@ -1309,15 +1317,16 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
 
+            let ty = &self.specifier.ty;
             let self_pat = &self.signature.self_pat;
             let self_ty = &self.signature.self_ty;
-            let ty = &self.signature.ty;
+            let sig_ty = &self.signature.ty;
 
             let expr = &definition.expr;
 
             tokens.extend(quote! {
-                impl #gen_impl #path<#self_ty> for #self_ty #gen_where {
-                    type Type = #ty;
+                impl #gen_impl #path<#self_ty> for #ty #gen_where {
+                    type Type = #sig_ty;
 
                     fn #ident(#self_pat) -> Self::Type {
                         #expr

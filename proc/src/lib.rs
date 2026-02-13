@@ -65,21 +65,6 @@ pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-#[proc_macro_derive(NdOpsAssign)]
-pub fn nd_ops_assign_impl(_stream: TokenStreamStd) -> TokenStreamStd {
-    quote! {}.into()
-}
-
-#[proc_macro_derive(NdOpsBinary)]
-pub fn nd_ops_binary_impl(_stream: TokenStreamStd) -> TokenStreamStd {
-    quote! {}.into()
-}
-
-#[proc_macro_derive(NdOpsUnary)]
-pub fn nd_ops_unary_impl(_stream: TokenStreamStd) -> TokenStreamStd {
-    quote! {}.into()
-}
-
 #[proc_macro_attribute]
 pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
