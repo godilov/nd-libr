@@ -3,6 +3,27 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
+use ndproc::ops_impl_auto;
+
+macro_rules! nd_ops_impl {
+    (@signed [$($primitive:ty),+ $(,)?]) => {
+        $(nd_ops_impl!(@signed $primitive);)+
+    };
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
+        $(nd_ops_impl!(@unsigned $primitive);)+
+    };
+    (@signed $primitive:ty $(,)?) => {
+        ops_impl_auto!(@ndun crate for $primitive (&a: &$primitive) -> $primitive, (a) [-, !]);
+        ops_impl_auto!(@ndbin crate for $primitive (&a: &$primitive, &b: &$primitive) -> $primitive, (a) (b) [+, -, *, /, %, |, &, ^]);
+        ops_impl_auto!(@ndmut crate for $primitive (a: &mut $primitive, &b: &$primitive), (*a) (b) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+    };
+    (@unsigned $primitive:ty $(,)?) => {
+        ops_impl_auto!(@ndun crate for $primitive (&a: &$primitive) -> $primitive, (a) [!]);
+        ops_impl_auto!(@ndbin crate for $primitive (&a: &$primitive, &b: &$primitive) -> $primitive, (a) (b) [+, -, *, /, %, |, &, ^]);
+        ops_impl_auto!(@ndmut crate for $primitive (a: &mut $primitive, &b: &$primitive), (*a) (b) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+    };
+}
+
 pub trait NdNeg<Value = Self> {
     type Type;
 
@@ -203,6 +224,9 @@ impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
         + ShrAssign<ShiftRhs>
 {
 }
+
+nd_ops_impl!(@signed [i8, i16, i32, i64, i128]);
+nd_ops_impl!(@unsigned [u8, u16, u32, u64, u128]);
 
 #[cfg(test)]
 #[allow(dead_code)]
