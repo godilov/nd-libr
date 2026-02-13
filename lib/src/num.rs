@@ -444,9 +444,9 @@ pub mod prime {
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Num      where N: Num,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,   for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned, for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumExt + Unsigned, const BITS: usize>(pub N)
 where
@@ -455,9 +455,9 @@ where
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Num      where N: Num,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,   for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned, for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumExt + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where

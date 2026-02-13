@@ -147,10 +147,10 @@ pub mod word {
 #[forward_std(self.0 with T)]
 #[forward_cmp(self.0 with T)]
 #[forward_fmt(self.0 with T)]
-#[forward_def(self.0 with T: crate::num::Num            where T: Num,           for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
-#[forward_def(self.0 with T: crate::num::NumExt   where T: NumExt,  for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
-#[forward_def(self.0 with T: crate::num::Signed         where T: Signed,        for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
-#[forward_def(self.0 with T: crate::num::Unsigned       where T: Unsigned,      for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
+#[forward_def(self.0 with T: crate::num::Num      where T: Num,      for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
+#[forward_def(self.0 with T: crate::num::NumExt   where T: NumExt,   for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
+#[forward_def(self.0 with T: crate::num::Signed   where T: Signed,   for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
+#[forward_def(self.0 with T: crate::num::Unsigned where T: Unsigned, for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
