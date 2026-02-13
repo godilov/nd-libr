@@ -14,13 +14,21 @@ macro_rules! nd_ops_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ops_impl_auto!(@ndun crate for $primitive (&a: &$primitive) -> $primitive, (a) [-, !]);
+
         ops_impl_auto!(@ndbin crate for $primitive (&a: &$primitive, &b: &$primitive) -> $primitive, (a) (b) [+, -, *, /, %, |, &, ^]);
         ops_impl_auto!(@ndmut crate for $primitive (a: &mut $primitive, &b: &$primitive), (*a) (b) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+
+        ops_impl_auto!(@ndbin crate for $primitive (&a: &$primitive, b: usize) -> $primitive, (a) (b) [<<, >>]);
+        ops_impl_auto!(@ndmut crate for $primitive (a: &mut $primitive, b: usize), (*a) (b) [<<=, >>=]);
     };
     (@unsigned $primitive:ty $(,)?) => {
         ops_impl_auto!(@ndun crate for $primitive (&a: &$primitive) -> $primitive, (a) [!]);
+
         ops_impl_auto!(@ndbin crate for $primitive (&a: &$primitive, &b: &$primitive) -> $primitive, (a) (b) [+, -, *, /, %, |, &, ^]);
         ops_impl_auto!(@ndmut crate for $primitive (a: &mut $primitive, &b: &$primitive), (*a) (b) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+
+        ops_impl_auto!(@ndbin crate for $primitive (&a: &$primitive, b: usize) -> $primitive, (a) (b) [<<, >>]);
+        ops_impl_auto!(@ndmut crate for $primitive (a: &mut $primitive, b: usize), (*a) (b) [<<=, >>=]);
     };
 }
 
@@ -256,8 +264,8 @@ impl<Any, Lhs, Rhs, ShiftRhs> NdOpsAssign<Lhs, Rhs, ShiftRhs> for Any where
 {
 }
 
-nd_ops_impl!(@signed [i8, i16, i32, i64, i128]);
-nd_ops_impl!(@unsigned [u8, u16, u32, u64, u128]);
+nd_ops_impl!(@signed [i8, i16, i32, i64, i128, isize]);
+nd_ops_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 #[cfg(test)]
 #[allow(dead_code)]
