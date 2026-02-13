@@ -67,7 +67,7 @@ pub struct OpsImplAuto<Kind: OpsKind> {
     pub colon: Token![,],
     pub expression: Kind::Expression,
     pub ops_bracket: Bracket,
-    pub ops: Punctuated<Kind::Operation, Token![,]>,
+    pub ops: Punctuated<OpsDefinitionAuto<Kind::Operation>, Token![,]>,
 }
 
 pub struct OpsStdSpecifier;
@@ -175,6 +175,12 @@ pub struct OpsExpressionUnary {
 pub struct OpsDefinition<Operation: Parse> {
     pub op: Operation,
     pub expr: Expr,
+    pub conditions: Option<WhereClause>,
+}
+
+#[allow(unused)]
+pub struct OpsDefinitionAuto<Operation: Parse> {
+    pub op: Operation,
     pub conditions: Option<WhereClause>,
 }
 
@@ -358,7 +364,7 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
             colon: input.parse()?,
             expression: input.parse()?,
             ops_bracket: bracketed!(content in input),
-            ops: content.parse_terminated(Kind::Operation::parse, Token![,])?,
+            ops: content.parse_terminated(OpsDefinitionAuto::parse, Token![,])?,
         })
     }
 }
@@ -648,6 +654,15 @@ impl<Operation: Parse> Parse for OpsDefinition<Operation> {
         Ok(Self {
             op: input.parse()?,
             expr: input.parse()?,
+            conditions: input.parse()?,
+        })
+    }
+}
+
+impl<Operation: Parse> Parse for OpsDefinitionAuto<Operation> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            op: input.parse()?,
             conditions: input.parse()?,
         })
     }
@@ -1188,14 +1203,16 @@ impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
             definitions: value
                 .ops
                 .into_iter()
-                .map(|op| {
+                .map(|definition| {
+                    let op = definition.op;
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
+                    let conditions = definition.conditions;
 
                     OpsDefinition::<OpsAssign> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs; }},
-                        conditions: None,
+                        conditions,
                     }
                 })
                 .collect(),
@@ -1213,14 +1230,16 @@ impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
             definitions: value
                 .ops
                 .into_iter()
-                .map(|op| {
+                .map(|definition| {
+                    let op = definition.op;
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
+                    let conditions = definition.conditions;
 
                     OpsDefinition::<OpsBinary> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs }},
-                        conditions: None,
+                        conditions,
                     }
                 })
                 .collect(),
@@ -1238,13 +1257,15 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
             definitions: value
                 .ops
                 .into_iter()
-                .map(|op| {
+                .map(|definition| {
+                    let op = definition.op;
                     let expr = &value.expression.self_expr;
+                    let conditions = definition.conditions;
 
                     OpsDefinition::<OpsUnary> {
                         op,
                         expr: parse_quote! {{ #op #expr }},
-                        conditions: None,
+                        conditions,
                     }
                 })
                 .collect(),
@@ -1262,14 +1283,16 @@ impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
             definitions: value
                 .ops
                 .into_iter()
-                .map(|op| {
+                .map(|definition| {
+                    let op = definition.op;
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
+                    let conditions = definition.conditions;
 
                     OpsDefinition::<OpsAssign> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs; }},
-                        conditions: None,
+                        conditions,
                     }
                 })
                 .collect(),
@@ -1287,14 +1310,16 @@ impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
             definitions: value
                 .ops
                 .into_iter()
-                .map(|op| {
+                .map(|definition| {
+                    let op = definition.op;
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
+                    let conditions = definition.conditions;
 
                     OpsDefinition::<OpsBinary> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs }},
-                        conditions: None,
+                        conditions,
                     }
                 })
                 .collect(),
@@ -1312,13 +1337,15 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
             definitions: value
                 .ops
                 .into_iter()
-                .map(|op| {
+                .map(|definition| {
+                    let op = definition.op;
                     let expr = &value.expression.self_expr;
+                    let conditions = definition.conditions;
 
                     OpsDefinition::<OpsUnary> {
                         op,
                         expr: parse_quote! {{ #op #expr }},
-                        conditions: None,
+                        conditions,
                     }
                 })
                 .collect(),
