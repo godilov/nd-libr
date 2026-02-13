@@ -14,7 +14,7 @@ macro_rules! num_impl {
         $(num_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl NumExtension for $primitive {
+        impl NumExt for $primitive {
             fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
                 *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
                 self
@@ -290,7 +290,7 @@ pub mod prime {
         }
     }
 
-    pub trait PrimalityExtension: Send + Primality + NumExtension
+    pub trait PrimalityExt: Send + Primality + NumExt
     where
         for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
     {
@@ -438,20 +438,17 @@ pub mod prime {
     {
     }
 
-    impl<Any: Send + Primality + NumExtension> PrimalityExtension for Any where
-        for<'rhs, 'lhs> &'lhs Any: Ops<&'rhs Any, Type = Any>
-    {
-    }
+    impl<Any: Send + Primality + NumExt> PrimalityExt for Any where for<'rhs, 'lhs> &'lhs Any: Ops<&'rhs Any, Type = Any> {}
 }
 
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumExtension + Unsigned, const BITS: usize>(pub N)
+pub struct Width<N: Num + NumExt + Unsigned, const BITS: usize>(pub N)
 where
     for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>;
 
@@ -459,10 +456,10 @@ where
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
 #[forward_def(self.0 with N: crate::num::Num            where N: Num,           for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExtension   where N: NumExtension,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,  for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[forward_def(self.0 with N: crate::num::Unsigned       where N: Unsigned,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modular<N: Num + NumExtension + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
+pub struct Modular<N: Num + NumExt + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
 where
     for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>;
 
@@ -543,7 +540,7 @@ where
 }
 
 #[forward_decl]
-pub trait NumExtension: Num
+pub trait NumExt: Num
 where
     for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
 {
@@ -767,7 +764,7 @@ sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ops_impl!(@stdbin (a: Sign, b: Sign) -> Sign, * Sign::from((a as i8) * (b as i8)));
 
-impl<N: Num + NumExtension + Unsigned, const BITS: usize> From<N> for Width<N, BITS>
+impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS>
 where
     for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
@@ -776,7 +773,7 @@ where
     }
 }
 
-impl<N: Num + NumExtension + Unsigned, M: Modulus<N>> From<N> for Modular<N, M>
+impl<N: Num + NumExt + Unsigned, M: Modulus<N>> From<N> for Modular<N, M>
 where
     for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
@@ -785,7 +782,7 @@ where
     }
 }
 
-impl<N: Num + NumExtension + Unsigned, const BITS: usize> Width<N, BITS>
+impl<N: Num + NumExt + Unsigned, const BITS: usize> Width<N, BITS>
 where
     for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {
@@ -799,7 +796,7 @@ where
     }
 }
 
-impl<N: Num + NumExtension + Unsigned, M: Modulus<N>> Modular<N, M>
+impl<N: Num + NumExt + Unsigned, M: Modulus<N>> Modular<N, M>
 where
     for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
 {

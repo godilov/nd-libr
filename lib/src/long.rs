@@ -16,7 +16,7 @@ use crate::{
     IteratorExt, NdFrom, NdTryFrom,
     arch::word::*,
     long::{radix::*, uops::*},
-    num::{Max, Min, Num, NumExtension, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero},
+    num::{Max, Min, Num, NumExt, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero},
     ops::{
         NdAdd, NdAddAssign, NdBitAnd, NdBitAndAssign, NdBitOr, NdBitOrAssign, NdBitXor, NdBitXorAssign, NdDiv,
         NdDivAssign, NdMul, NdMulAssign, NdNeg, NdNot, NdRem, NdRemAssign, NdShl, NdShlAssign, NdShr, NdShrAssign,
@@ -2239,7 +2239,7 @@ impl<const L: usize> Num for Unsigned<L> {
     }
 }
 
-impl<const L: usize> NumExtension for Signed<L> {
+impl<const L: usize> NumExt for Signed<L> {
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MIN, |=);
         self
@@ -2256,7 +2256,7 @@ impl<const L: usize> NumExtension for Signed<L> {
     }
 }
 
-impl<const L: usize> NumExtension for Unsigned<L> {
+impl<const L: usize> NumExt for Unsigned<L> {
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
         bit_offset_impl!(self.0, mask, offset, MIN, |=);
         self

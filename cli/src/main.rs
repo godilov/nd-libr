@@ -2,7 +2,7 @@ use std::{fs::File, path::PathBuf};
 
 use anyhow::Error;
 use clap::{Parser, Subcommand};
-use ndlib::num::prime::{PrimalityExtension, Primes};
+use ndlib::num::prime::{PrimalityExt, Primes};
 
 #[derive(Parser)]
 #[command(version, about, long_about)]
