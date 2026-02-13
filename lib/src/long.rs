@@ -207,16 +207,16 @@ macro_rules! nd_ops_primitive_native_impl {
             * Signed::<L>(mul_signed(&lhs.0, (rhs.unsigned_abs() as Single, Sign::from(rhs)))),
             / Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
             % Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()),
-            | Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
-            & Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
-            ^ Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
+            | Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop)),
+            & Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop)),
+            ^ Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndbin crate for Signed<L> <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed::<L>,
             + Signed::<L>(add_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
             * Signed::<L>(mul_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
-            | Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
-            & Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
-            ^ Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
+            | Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop)),
+            & Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop)),
+            ^ Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndmut crate for Signed<L> <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive),
             += add_signed_mut(&mut lhs.0, (rhs.unsigned_abs() as Single, Sign::from(rhs))),
@@ -224,9 +224,9 @@ macro_rules! nd_ops_primitive_native_impl {
             *= mul_signed_mut(&mut lhs.0, (rhs.unsigned_abs() as Single, Sign::from(rhs))),
             /= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()); },
-            |= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |aop, bop| aop | bop),
-            &= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |aop, bop| aop & bop),
-            ^= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
+            |= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop),
+            &= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop),
+            ^= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop));
     };
     (@unsigned $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (lhs: &Unsigned<L>, &rhs: &$primitive) -> Unsigned::<L>,
@@ -235,16 +235,16 @@ macro_rules! nd_ops_primitive_native_impl {
             * Unsigned::<L>(mul_single(&lhs.0, rhs as Single)),
             / Unsigned::<L>(div_single(&lhs.0, rhs as Single).0),
             % Unsigned::<L>(div_single(&lhs.0, rhs as Single).1),
-            | Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |aop, bop| aop | bop)),
-            & Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |aop, bop| aop & bop)),
-            ^ Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |aop, bop| aop ^ bop)));
+            | Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop | rop)),
+            & Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop & rop)),
+            ^ Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned::<L>,
             + Unsigned::<L>(add_single(&rhs.0, lhs as Single)),
             * Unsigned::<L>(mul_single(&rhs.0, lhs as Single)),
-            | Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop | bop)),
-            & Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop & bop)),
-            ^ Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop ^ bop)));
+            | Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
+            & Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
+            ^ Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndmut crate for Unsigned<L> <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive),
             += add_single_mut(&mut lhs.0, rhs as Single),
@@ -252,25 +252,25 @@ macro_rules! nd_ops_primitive_native_impl {
             *= mul_single_mut(&mut lhs.0, rhs as Single),
             /= div_single_mut(&mut lhs.0, rhs as Single),
             %= rem_single_mut(&mut lhs.0, rhs as Single),
-            |= bit_single_mut(&mut lhs.0, rhs as Single, 0, |aop, bop| aop | bop),
-            &= bit_single_mut(&mut lhs.0, rhs as Single, 0, |aop, bop| aop & bop),
-            ^= bit_single_mut(&mut lhs.0, rhs as Single, 0, |aop, bop| aop ^ bop));
+            |= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop | rop),
+            &= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop & rop),
+            ^= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop));
     };
     (@bytes $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes::<L>,
-            | Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |aop, bop| aop | bop)),
-            & Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |aop, bop| aop & bop)),
-            ^ Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |aop, bop| aop ^ bop)));
+            | Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop | rop)),
+            & Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop & rop)),
+            ^ Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes::<L>,
-            | Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop | bop)),
-            & Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop & bop)),
-            ^ Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop ^ bop)));
+            | Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
+            & Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
+            ^ Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndmut crate for Bytes<L> <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive),
-            |= bit_single_mut(&mut lhs.0, rhs as Single, 0, |aop, bop| aop | bop),
-            &= bit_single_mut(&mut lhs.0, rhs as Single, 0, |aop, bop| aop & bop),
-            ^= bit_single_mut(&mut lhs.0, rhs as Single, 0, |aop, bop| aop ^ bop));
+            |= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop | rop),
+            &= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop & rop),
+            ^= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop));
     };
 }
 
@@ -291,16 +291,16 @@ macro_rules! nd_ops_primitive_impl {
             * Signed::<L>(mul_long(&lhs.0, &Signed::<L>::from(rhs).0)),
             / Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.abs()).0).0).signed(lhs.sign() * Sign::from(rhs)),
             % Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.abs()).0).1).signed(lhs.sign()),
-            | Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |aop, bop| aop | bop)),
-            & Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |aop, bop| aop & bop)),
-            ^ Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |aop, bop| aop ^ bop)));
+            | Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop | rop)),
+            & Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop & rop)),
+            ^ Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndbin crate for Signed<L> <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed::<L>,
             + Signed::<L>(add_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
             * Signed::<L>(mul_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
-            | Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |aop, bop| aop | bop)),
-            & Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |aop, bop| aop & bop)),
-            ^ Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop)));
+            | Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop)),
+            & Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop)),
+            ^ Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndmut crate for Signed<L> <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive),
             += add_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
@@ -308,9 +308,9 @@ macro_rules! nd_ops_primitive_impl {
             *= mul_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
             /= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.abs()).0).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.abs()).0).1).signed(lhs.sign()); },
-            |= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |aop, bop| aop | bop),
-            &= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |aop, bop| aop & bop),
-            ^= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |aop, bop| aop ^ bop));
+            |= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop | rop),
+            &= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop & rop),
+            ^= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop ^ rop));
     };
     (@unsigned $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (lhs: &Unsigned<L>, &rhs: &$primitive) -> Unsigned::<L>,
@@ -319,16 +319,16 @@ macro_rules! nd_ops_primitive_impl {
             * Unsigned::<L>(mul_long(&lhs.0, &Unsigned::<L>::from(rhs).0)),
             / Unsigned::<L>(div_long(&lhs.0, &Unsigned::<L>::from(rhs).0).0),
             % Unsigned::<L>(div_long(&lhs.0, &Unsigned::<L>::from(rhs).0).1),
-            | Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |aop, bop| aop | bop)),
-            & Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |aop, bop| aop & bop)),
-            ^ Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |aop, bop| aop ^ bop)));
+            | Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop | rop)),
+            & Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop & rop)),
+            ^ Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned::<L>,
             + Unsigned::<L>(add_single(&rhs.0, lhs as Single)),
             * Unsigned::<L>(mul_single(&rhs.0, lhs as Single)),
-            | Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop | bop)),
-            & Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop & bop)),
-            ^ Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop ^ bop)));
+            | Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
+            & Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
+            ^ Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndmut crate for Unsigned<L> <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive),
             += add_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
@@ -336,25 +336,25 @@ macro_rules! nd_ops_primitive_impl {
             *= mul_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             /= div_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             %= rem_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            |= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |aop, bop| aop | bop),
-            &= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |aop, bop| aop & bop),
-            ^= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |aop, bop| aop ^ bop));
+            |= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop | rop),
+            &= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop & rop),
+            ^= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop ^ rop));
     };
     (@bytes $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes::<L>,
-            | Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |aop, bop| aop | bop)),
-            & Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |aop, bop| aop & bop)),
-            ^ Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |aop, bop| aop ^ bop)));
+            | Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop | rop)),
+            & Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop & rop)),
+            ^ Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes::<L>,
-            | Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop | bop)),
-            & Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop & bop)),
-            ^ Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |aop, bop| aop ^ bop)));
+            | Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
+            & Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
+            ^ Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)));
 
         ops_impl!(@ndmut crate for Bytes<L> <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive),
-            |= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |aop, bop| aop | bop),
-            &= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |aop, bop| aop & bop),
-            ^= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |aop, bop| aop ^ bop));
+            |= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop | rop),
+            &= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop & rop),
+            ^= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop ^ rop));
     };
 }
 
@@ -1697,9 +1697,9 @@ ops_impl!(@ndbin crate for Signed<L> <const L: usize> (lhs: &Signed<L>, rhs: &Si
     * Signed::<L>(mul_long(&lhs.0, &rhs.0)),
     / Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
     % Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
-    | Signed::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop | bop)),
-    & Signed::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop & bop)),
-    ^ Signed::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop ^ bop)));
+    | Signed::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop | rop)),
+    & Signed::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop & rop)),
+    ^ Signed::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)));
 
 ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned::<L>,
     + Unsigned::<L>(add_long(&lhs.0, &rhs.0)),
@@ -1707,14 +1707,14 @@ ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (lhs: &Unsigned<L>, rhs:
     * Unsigned::<L>(mul_long(&lhs.0, &rhs.0)),
     / Unsigned::<L>(div_long(&lhs.0, &rhs.0).0),
     % Unsigned::<L>(div_long(&lhs.0, &rhs.0).1),
-    | Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop | bop)),
-    & Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop & bop)),
-    ^ Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop ^ bop)));
+    | Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop | rop)),
+    & Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop & rop)),
+    ^ Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)));
 
 ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes::<L>,
-    | Bytes::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop | bop)),
-    & Bytes::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop & bop)),
-    ^ Bytes::<L>(bit_long(&lhs.0, &rhs.0, |aop, bop| aop ^ bop)));
+    | Bytes::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop | rop)),
+    & Bytes::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop & rop)),
+    ^ Bytes::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)));
 
 ops_impl!(@ndmut crate for Signed<L> <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>),
     += add_long_mut(&mut lhs.0, &rhs.0),
@@ -1722,9 +1722,9 @@ ops_impl!(@ndmut crate for Signed<L> <const L: usize> (lhs: &mut Signed<L>, rhs:
     *= mul_long_mut(&mut lhs.0, &rhs.0),
     /= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
     %= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
-    |= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop | bop),
-    &= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop & bop),
-    ^= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop ^ bop));
+    |= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop | rop),
+    &= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop & rop),
+    ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop));
 
 ops_impl!(@ndmut crate for Unsigned<L> <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>),
     += add_long_mut(&mut lhs.0, &rhs.0),
@@ -1732,14 +1732,14 @@ ops_impl!(@ndmut crate for Unsigned<L> <const L: usize> (lhs: &mut Unsigned<L>, 
     *= mul_long_mut(&mut lhs.0, &rhs.0),
     /= div_long_mut(&mut lhs.0, &rhs.0),
     %= rem_long_mut(&mut lhs.0, &rhs.0),
-    |= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop | bop),
-    &= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop & bop),
-    ^= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop ^ bop));
+    |= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop | rop),
+    &= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop & rop),
+    ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop));
 
 ops_impl!(@ndmut crate for Bytes<L> <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>),
-    |= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop | bop),
-    &= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop & bop),
-    ^= bit_long_mut(&mut lhs.0, &rhs.0, |aop, bop| aop ^ bop));
+    |= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop | rop),
+    &= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop & rop),
+    ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop));
 
 ops_impl!(@ndbin crate for Signed<L> <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed::<L>,
     << Signed::<L>(shl_signed(&lhs.0, rhs)),
