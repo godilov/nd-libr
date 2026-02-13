@@ -1,11 +1,11 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, braced, bracketed, parenthesized,
+    Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_quote,
     punctuated::Punctuated,
-    token::{Brace, Bracket, Paren},
+    token::{Bracket, Paren},
 };
 
 use crate::get_normalized_generics;
@@ -56,7 +56,7 @@ pub struct OpsImpl<Kind: OpsKind> {
     pub generics: Generics,
     pub signature: Kind::Signature,
     pub colon: Token![,],
-    pub definitions: Punctuated<Kind::Definition, Token![,]>,
+    pub definitions: Punctuated<OpsDefinition<Kind::Operation>, Token![,]>,
 }
 
 #[allow(unused)]
@@ -171,56 +171,11 @@ pub struct OpsExpressionUnary {
     pub self_expr: Expr,
 }
 
-pub enum OpsDefinition<Operation: Parse, Qualifier: Parse> {
-    Standard(OpsDefinitionStandard<Operation>),
-    Extended(OpsDefinitionExtended<Operation, Qualifier>),
-}
-
 #[allow(unused)]
-pub struct OpsDefinitionStandard<Operation: Parse> {
+pub struct OpsDefinition<Operation: Parse> {
     pub op: Operation,
     pub expr: Expr,
-}
-
-#[allow(unused)]
-pub struct OpsDefinitionExtended<Operation: Parse, Qualifier: Parse> {
-    pub op: Operation,
-    pub ext: kw::ext,
-    pub brace: Brace,
-    pub elems: Punctuated<OpsDefinitionExtendedElem<Qualifier>, Token![;]>,
-}
-
-#[allow(unused)]
-pub struct OpsDefinitionExtendedElem<Qualifier: Parse> {
-    pub qualifier: Qualifier,
-    pub expr: Expr,
-    pub conditions: WhereClause,
-}
-
-#[allow(unused)]
-pub struct OpsQualifierAssign {
-    pub paren: Paren,
-    pub lhs: Token![&],
-    pub rhs: OpsQualifier,
-}
-
-#[allow(unused)]
-pub struct OpsQualifierBinary {
-    pub paren: Paren,
-    pub lhs: OpsQualifier,
-    pub rhs: OpsQualifier,
-}
-
-#[allow(unused)]
-pub struct OpsQualifierUnary {
-    pub paren: Paren,
-    pub value: OpsQualifier,
-}
-
-#[derive(Clone, Copy)]
-pub enum OpsQualifier {
-    Raw,
-    Ref,
+    pub conditions: Option<WhereClause>,
 }
 
 #[derive(Clone, Copy)]
@@ -258,7 +213,6 @@ pub enum OpsUnary {
 }
 
 pub trait OpsKind {
-    type Definition: Parse;
     type Expression: Parse;
     type Operation: Parse;
     type Specifier: Parse;
@@ -266,7 +220,6 @@ pub trait OpsKind {
 }
 
 impl OpsKind for OpsStdKindAssign {
-    type Definition = OpsDefinition<Self::Operation, OpsQualifierAssign>;
     type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsStdSignatureAssign;
@@ -274,7 +227,6 @@ impl OpsKind for OpsStdKindAssign {
 }
 
 impl OpsKind for OpsStdKindBinary {
-    type Definition = OpsDefinition<Self::Operation, OpsQualifierBinary>;
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsStdSignatureBinary;
@@ -282,7 +234,6 @@ impl OpsKind for OpsStdKindBinary {
 }
 
 impl OpsKind for OpsStdKindUnary {
-    type Definition = OpsDefinition<Self::Operation, OpsQualifierUnary>;
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsStdSignatureUnary;
@@ -290,7 +241,6 @@ impl OpsKind for OpsStdKindUnary {
 }
 
 impl OpsKind for OpsNdKindAssign {
-    type Definition = OpsDefinitionStandard<Self::Operation>;
     type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsNdSignatureAssign;
@@ -298,7 +248,6 @@ impl OpsKind for OpsNdKindAssign {
 }
 
 impl OpsKind for OpsNdKindBinary {
-    type Definition = OpsDefinitionStandard<Self::Operation>;
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsNdSignatureBinary;
@@ -306,7 +255,6 @@ impl OpsKind for OpsNdKindBinary {
 }
 
 impl OpsKind for OpsNdKindUnary {
-    type Definition = OpsDefinitionStandard<Self::Operation>;
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsNdSignatureUnary;
@@ -387,7 +335,7 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
             }),
             signature: input.parse()?,
             colon: input.parse()?,
-            definitions: input.parse_terminated(Kind::Definition::parse, Token![,])?,
+            definitions: input.parse_terminated(OpsDefinition::parse, Token![,])?,
         })
     }
 }
@@ -695,96 +643,13 @@ impl Parse for OpsExpressionUnary {
     }
 }
 
-impl<Operation: Parse, Qualifier: Parse> Parse for OpsDefinition<Operation, Qualifier> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        if !input.peek2(kw::ext) {
-            Ok(Self::Standard(input.parse()?))
-        } else {
-            Ok(Self::Extended(input.parse()?))
-        }
-    }
-}
-
-impl<Operation: Parse> Parse for OpsDefinitionStandard<Operation> {
+impl<Operation: Parse> Parse for OpsDefinition<Operation> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
-            expr: input.parse()?,
-        })
-    }
-}
-
-impl<Operation: Parse, Qualifier: Parse> Parse for OpsDefinitionExtended<Operation, Qualifier> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-
-        Ok(Self {
-            op: input.parse()?,
-            ext: input.parse()?,
-            brace: braced!(content in input),
-            elems: content.parse_terminated(OpsDefinitionExtendedElem::<Qualifier>::parse, Token![;])?,
-        })
-    }
-}
-
-impl<Qualifier: Parse> Parse for OpsDefinitionExtendedElem<Qualifier> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            qualifier: input.parse()?,
             expr: input.parse()?,
             conditions: input.parse()?,
         })
-    }
-}
-
-impl Parse for OpsQualifierAssign {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-
-        Ok(Self {
-            paren: parenthesized!(content in input),
-            lhs: content.parse()?,
-            rhs: content.parse()?,
-        })
-    }
-}
-
-impl Parse for OpsQualifierBinary {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-
-        Ok(Self {
-            paren: parenthesized!(content in input),
-            lhs: content.parse()?,
-            rhs: content.parse()?,
-        })
-    }
-}
-
-impl Parse for OpsQualifierUnary {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-
-        Ok(Self {
-            paren: parenthesized!(content in input),
-            value: content.parse()?,
-        })
-    }
-}
-
-impl Parse for OpsQualifier {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Token![^]) {
-            input.parse::<Token![^]>()?;
-            input.parse::<Token![^]>().map(|_| OpsQualifier::Raw)
-        } else if lookahead.peek(Token![&]) {
-            input.parse::<Token![&]>()?;
-            input.parse::<Token![&]>().map(|_| OpsQualifier::Ref)
-        } else {
-            Err(lookahead.error())
-        }
     }
 }
 
@@ -916,16 +781,13 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
         let some = Some(Default::default());
         let none = None;
 
-        for definition in self.definitions.iter().filter_map(|elem| match elem {
-            OpsDefinition::Standard(val) => Some(val),
-            OpsDefinition::Extended(_) => None,
-        }) {
+        for definition in &self.definitions {
             let spec = OpsSpec {
                 op: &definition.op,
                 generics: &self.generics,
                 signature: &self.signature,
                 expr: &definition.expr,
-                conditions: None,
+                conditions: definition.conditions.as_ref(),
             };
 
             match rhs_ref {
@@ -941,30 +803,6 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
                 false => {
                     tokens.extend(get_impl(spec, none));
                 },
-            }
-        }
-
-        for definition in self.definitions.iter().filter_map(|elem| match elem {
-            OpsDefinition::Standard(_) => None,
-            OpsDefinition::Extended(val) => Some(val),
-        }) {
-            for elem in &definition.elems {
-                let spec = OpsSpec {
-                    op: &definition.op,
-                    generics: &self.generics,
-                    signature: &self.signature,
-                    expr: &elem.expr,
-                    conditions: Some(&elem.conditions),
-                };
-
-                match elem.qualifier.rhs {
-                    OpsQualifier::Raw => {
-                        tokens.extend(get_impl(spec, none));
-                    },
-                    OpsQualifier::Ref => {
-                        tokens.extend(get_impl(spec, some));
-                    },
-                }
             }
         }
     }
@@ -1030,16 +868,13 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
         let some = Some(Default::default());
         let none = None;
 
-        for definition in self.definitions.iter().filter_map(|elem| match elem {
-            OpsDefinition::Standard(val) => Some(val),
-            OpsDefinition::Extended(_) => None,
-        }) {
+        for definition in &self.definitions {
             let spec = OpsSpec {
                 op: &definition.op,
                 generics: &self.generics,
                 signature: &self.signature,
                 expr: &definition.expr,
-                conditions: None,
+                conditions: definition.conditions.as_ref(),
             };
 
             match (lhs_ref, rhs_ref) {
@@ -1083,36 +918,6 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
                 (false, false) => {
                     tokens.extend(get_impl(spec, none, none));
                 },
-            }
-        }
-
-        for definition in self.definitions.iter().filter_map(|elem| match elem {
-            OpsDefinition::Standard(_) => None,
-            OpsDefinition::Extended(val) => Some(val),
-        }) {
-            for elem in &definition.elems {
-                let spec = OpsSpec {
-                    op: &definition.op,
-                    generics: &self.generics,
-                    signature: &self.signature,
-                    expr: &elem.expr,
-                    conditions: Some(&elem.conditions),
-                };
-
-                match (elem.qualifier.lhs, elem.qualifier.rhs) {
-                    (OpsQualifier::Raw, OpsQualifier::Raw) => {
-                        tokens.extend(get_impl(spec, none, none));
-                    },
-                    (OpsQualifier::Raw, OpsQualifier::Ref) => {
-                        tokens.extend(get_impl(spec, none, some));
-                    },
-                    (OpsQualifier::Ref, OpsQualifier::Raw) => {
-                        tokens.extend(get_impl(spec, some, none));
-                    },
-                    (OpsQualifier::Ref, OpsQualifier::Ref) => {
-                        tokens.extend(get_impl(spec, some, some));
-                    },
-                }
             }
         }
     }
@@ -1173,16 +978,13 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
         let some = Some(Default::default());
         let none = None;
 
-        for definition in self.definitions.iter().filter_map(|elem| match elem {
-            OpsDefinition::Standard(val) => Some(val),
-            OpsDefinition::Extended(_) => None,
-        }) {
+        for definition in &self.definitions {
             let spec = OpsSpec {
                 op: &definition.op,
                 generics: &self.generics,
                 signature: &self.signature,
                 expr: &definition.expr,
-                conditions: None,
+                conditions: definition.conditions.as_ref(),
             };
 
             match self_ref {
@@ -1200,30 +1002,6 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                 },
             }
         }
-
-        for definition in self.definitions.iter().filter_map(|elem| match elem {
-            OpsDefinition::Standard(_) => None,
-            OpsDefinition::Extended(val) => Some(val),
-        }) {
-            for elem in &definition.elems {
-                let spec = OpsSpec {
-                    op: &definition.op,
-                    generics: &self.generics,
-                    signature: &self.signature,
-                    expr: &elem.expr,
-                    conditions: Some(&elem.conditions),
-                };
-
-                match elem.qualifier.value {
-                    OpsQualifier::Raw => {
-                        tokens.extend(get_impl(spec, none));
-                    },
-                    OpsQualifier::Ref => {
-                        tokens.extend(get_impl(spec, some));
-                    },
-                }
-            }
-        }
     }
 }
 
@@ -1235,6 +1013,20 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
             let path = definition.op.get_nd_path(token);
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+
+            let predicates = match &definition.conditions {
+                Some(val) => {
+                    let predicates = &val.predicates;
+
+                    quote! { #predicates }
+                },
+                None => quote! {},
+            };
+
+            let gen_where = match gen_where {
+                Some(val) => quote! { #val, #predicates },
+                None => quote! { where #predicates },
+            };
 
             let ty = &self.specifier.ty;
             let lhs_pat = &self.signature.lhs_pat;
@@ -1263,6 +1055,20 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
             let path = definition.op.get_nd_path(token);
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+
+            let predicates = match &definition.conditions {
+                Some(val) => {
+                    let predicates = &val.predicates;
+
+                    quote! { #predicates }
+                },
+                None => quote! {},
+            };
+
+            let gen_where = match gen_where {
+                Some(val) => quote! { #val, #predicates },
+                None => quote! { where #predicates },
+            };
 
             let ty = &self.specifier.ty;
             let lhs_pat = &self.signature.lhs_pat;
@@ -1294,6 +1100,20 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
             let path = definition.op.get_nd_path(token);
 
             let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+
+            let predicates = match &definition.conditions {
+                Some(val) => {
+                    let predicates = &val.predicates;
+
+                    quote! { #predicates }
+                },
+                None => quote! {},
+            };
+
+            let gen_where = match gen_where {
+                Some(val) => quote! { #val, #predicates },
+                None => quote! { where #predicates },
+            };
 
             let ty = &self.specifier.ty;
             let self_pat = &self.signature.self_pat;
@@ -1372,10 +1192,11 @@ impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
 
-                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsAssign> {
+                    OpsDefinition::<OpsAssign> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs; }},
-                    })
+                        conditions: None,
+                    }
                 })
                 .collect(),
         }
@@ -1396,10 +1217,11 @@ impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
 
-                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsBinary> {
+                    OpsDefinition::<OpsBinary> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs }},
-                    })
+                        conditions: None,
+                    }
                 })
                 .collect(),
         }
@@ -1419,10 +1241,11 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
                 .map(|op| {
                     let expr = &value.expression.self_expr;
 
-                    OpsDefinition::Standard(OpsDefinitionStandard::<OpsUnary> {
+                    OpsDefinition::<OpsUnary> {
                         op,
                         expr: parse_quote! {{ #op #expr }},
-                    })
+                        conditions: None,
+                    }
                 })
                 .collect(),
         }
@@ -1443,9 +1266,10 @@ impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
 
-                    OpsDefinitionStandard::<OpsAssign> {
+                    OpsDefinition::<OpsAssign> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs; }},
+                        conditions: None,
                     }
                 })
                 .collect(),
@@ -1467,9 +1291,10 @@ impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
                     let lhs = &value.expression.lhs_expr;
                     let rhs = &value.expression.rhs_expr;
 
-                    OpsDefinitionStandard::<OpsBinary> {
+                    OpsDefinition::<OpsBinary> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs }},
+                        conditions: None,
                     }
                 })
                 .collect(),
@@ -1490,9 +1315,10 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
                 .map(|op| {
                     let expr = &value.expression.self_expr;
 
-                    OpsDefinitionStandard::<OpsUnary> {
+                    OpsDefinition::<OpsUnary> {
                         op,
                         expr: parse_quote! {{ #op #expr }},
+                        conditions: None,
                     }
                 })
                 .collect(),
