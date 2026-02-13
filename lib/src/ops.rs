@@ -136,32 +136,33 @@ pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
     fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
 }
 
-#[rustfmt::skip]
-pub trait NdOps<Lhs = Self, Rhs = Self>:
+pub trait NdOps<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
     NdAdd<Lhs, Rhs, Type = Self::All>
     + NdSub<Lhs, Rhs, Type = Self::All>
     + NdMul<Lhs, Rhs, Type = Self::All>
     + NdDiv<Lhs, Rhs, Type = Self::All>
     + NdRem<Lhs, Rhs, Type = Self::All>
-{
-    type All;
-}
-
-#[rustfmt::skip]
-pub trait NdOpsBitwise<Lhs = Self, Rhs = Self>:
-    NdBitOr<Lhs, Rhs, Type = Self::All>
+    + NdBitOr<Lhs, Rhs, Type = Self::All>
     + NdBitAnd<Lhs, Rhs, Type = Self::All>
     + NdBitXor<Lhs, Rhs, Type = Self::All>
+    + NdShl<Lhs, ShiftRhs, Type = Self::All>
+    + NdShr<Lhs, ShiftRhs, Type = Self::All>
 {
     type All;
 }
 
-#[rustfmt::skip]
-pub trait NdOpsShift<Lhs = Self, Rhs = usize>:
-    NdShl<Lhs, Rhs, Type = Self::All>
-    + NdShr<Lhs, Rhs, Type = Self::All>
+pub trait NdOpsAssign<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+    NdAddAssign<Lhs, Rhs>
+    + NdSubAssign<Lhs, Rhs>
+    + NdMulAssign<Lhs, Rhs>
+    + NdDivAssign<Lhs, Rhs>
+    + NdRemAssign<Lhs, Rhs>
+    + NdBitOrAssign<Lhs, Rhs>
+    + NdBitAndAssign<Lhs, Rhs>
+    + NdBitXorAssign<Lhs, Rhs>
+    + NdShlAssign<Lhs, ShiftRhs>
+    + NdShrAssign<Lhs, ShiftRhs>
 {
-    type All;
 }
 
 pub trait Ops<Rhs = Self, ShiftRhs = usize>:
@@ -222,6 +223,36 @@ impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
         + BitXorAssign<Rhs>
         + ShlAssign<ShiftRhs>
         + ShrAssign<ShiftRhs>
+{
+}
+
+impl<Any, Lhs, Rhs, ShiftRhs, Type> NdOps<Lhs, Rhs, ShiftRhs> for Any
+where
+    Any: NdAdd<Lhs, Rhs, Type = Type>
+        + NdSub<Lhs, Rhs, Type = Type>
+        + NdMul<Lhs, Rhs, Type = Type>
+        + NdDiv<Lhs, Rhs, Type = Type>
+        + NdRem<Lhs, Rhs, Type = Type>
+        + NdBitOr<Lhs, Rhs, Type = Type>
+        + NdBitAnd<Lhs, Rhs, Type = Type>
+        + NdBitXor<Lhs, Rhs, Type = Type>
+        + NdShl<Lhs, ShiftRhs, Type = Type>
+        + NdShr<Lhs, ShiftRhs, Type = Type>,
+{
+    type All = Type;
+}
+
+impl<Any, Lhs, Rhs, ShiftRhs> NdOpsAssign<Lhs, Rhs, ShiftRhs> for Any where
+    Any: NdAddAssign<Lhs, Rhs>
+        + NdSubAssign<Lhs, Rhs>
+        + NdMulAssign<Lhs, Rhs>
+        + NdDivAssign<Lhs, Rhs>
+        + NdRemAssign<Lhs, Rhs>
+        + NdBitOrAssign<Lhs, Rhs>
+        + NdBitAndAssign<Lhs, Rhs>
+        + NdBitXorAssign<Lhs, Rhs>
+        + NdShlAssign<Lhs, ShiftRhs>
+        + NdShrAssign<Lhs, ShiftRhs>
 {
 }
 
