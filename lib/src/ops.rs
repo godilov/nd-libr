@@ -175,6 +175,7 @@ pub trait NdOpsAssign<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
 
 pub trait Ops<Rhs = Self, ShiftRhs = usize>:
     Sized
+    + Copy
     + Add<Rhs, Output = Self::Type>
     + Sub<Rhs, Output = Self::Type>
     + Mul<Rhs, Output = Self::Type>
@@ -206,6 +207,8 @@ pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>:
 impl<Lhs, Rhs, ShiftRhs, Type> Ops<Rhs, ShiftRhs> for Lhs
 where
     Self: Sized
+        + Clone
+        + Copy
         + Add<Rhs, Output = Type>
         + Sub<Rhs, Output = Type>
         + Mul<Rhs, Output = Type>

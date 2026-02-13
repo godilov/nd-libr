@@ -201,10 +201,7 @@ pub mod prime {
     pub struct Primes;
 
     impl Primes {
-        pub fn by_count_full<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
-        where
-            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-        {
+        pub fn by_count_full<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
             PrimesFullIter {
                 next: Prime::new(2),
                 primes: Vec::with_capacity(count.as_count_check_estimate()),
@@ -213,10 +210,7 @@ pub mod prime {
             }
         }
 
-        pub fn by_limit_full<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
-        where
-            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-        {
+        pub fn by_limit_full<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
             PrimesFullIter {
                 next: Prime::new(2),
                 primes: Vec::with_capacity(limit.as_limit_check_estimate()),
@@ -225,10 +219,7 @@ pub mod prime {
             }
         }
 
-        pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime>
-        where
-            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-        {
+        pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
             PrimesFastIter {
                 next: Prime::new(2),
                 count: count.as_count_estimate(),
@@ -236,10 +227,7 @@ pub mod prime {
             }
         }
 
-        pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime>
-        where
-            for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-        {
+        pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
             PrimesFastIter {
                 next: Prime::new(2),
                 count: limit.as_limit_estimate(),
@@ -248,10 +236,7 @@ pub mod prime {
         }
     }
 
-    pub trait Primality: Unsigned
-    where
-        for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-    {
+    pub trait Primality: Unsigned {
         fn primes() -> impl Iterator<Item = Self>;
 
         fn as_count_estimate(&self) -> usize;
@@ -268,21 +253,24 @@ pub mod prime {
             Self::primes().take_while(|p| p <= &sqrt).all(|p| {
                 let one = Self::one();
 
-                let x = self - &one;
+                let x = Self::sub(self, &one);
 
-                let shr = &x - &one;
-                let shr = &x ^ &shr;
+                let shr = Self::sub(&x, &one);
+                let shr = Self::bitxor(&x, &shr);
                 let shr = shr.order();
 
                 let mut any = false;
-                let mut pow = &x >> shr;
+                let mut pow = Self::shr(&x, shr);
                 let mut exp = p.pow_rem(pow.clone(), self);
 
                 while pow < x && one < exp && exp < x {
                     any |= true;
-                    pow <<= 1;
-                    exp *= &exp.clone();
-                    exp %= self;
+
+                    let val = exp.clone();
+
+                    Self::shl_assign(&mut pow, 1);
+                    Self::mul_assign(&mut exp, &val);
+                    Self::rem_assign(&mut exp, self);
                 }
 
                 !any && exp == one || exp == x
@@ -290,10 +278,7 @@ pub mod prime {
         }
     }
 
-    pub trait PrimalityExt: Send + Primality + NumExt
-    where
-        for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-    {
+    pub trait PrimalityExt: Send + Primality + NumExt {
         fn rand_prime(order: usize) -> Self {
             let mut rng = rand::rng();
             let mut val = Self::rand(order, &mut rng).odd_ext();
@@ -326,29 +311,20 @@ pub mod prime {
         }
     }
 
-    struct PrimesFullIter<Prime: Primality>
-    where
-        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-    {
+    struct PrimesFullIter<Prime: Primality> {
         next: Prime,
         primes: Vec<Prime>,
         count: usize,
         limit: Option<Prime>,
     }
 
-    struct PrimesFastIter<Prime: Primality>
-    where
-        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-    {
+    struct PrimesFastIter<Prime: Primality> {
         next: Prime,
         count: usize,
         limit: Option<Prime>,
     }
 
-    impl<Prime: Primality> Iterator for PrimesFullIter<Prime>
-    where
-        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-    {
+    impl<Prime: Primality> Iterator for PrimesFullIter<Prime> {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
@@ -364,13 +340,18 @@ pub mod prime {
             let one = Prime::new(1);
             let two = Prime::new(2);
 
-            let offset = &self.next & &one;
-            let offset = &offset + &one;
+            let offset = Prime::bitand(&self.next, &one);
+            let offset = Prime::add(&offset, &one);
 
-            let mut val = &self.next + &offset;
+            let mut val = Prime::add(&self.next, &offset);
 
-            while self.primes.iter().take_while(|&p| p * p <= val).any(|p| &val % p == zero) {
-                val += &two;
+            while self
+                .primes
+                .iter()
+                .take_while(|&p| Prime::mul(p, p) <= val)
+                .any(|p| Prime::rem(&val, p) == zero)
+            {
+                Prime::add_assign(&mut val, &two);
 
                 if self.limit.as_ref().is_some_and(|limit| &val > limit) {
                     self.count = 0;
@@ -389,10 +370,7 @@ pub mod prime {
         }
     }
 
-    impl<Prime: Primality> Iterator for PrimesFastIter<Prime>
-    where
-        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>,
-    {
+    impl<Prime: Primality> Iterator for PrimesFastIter<Prime> {
         type Item = Prime;
 
         fn next(&mut self) -> Option<Self::Item> {
@@ -403,13 +381,13 @@ pub mod prime {
             let one = Prime::new(1);
             let two = Prime::new(2);
 
-            let offset = &self.next & &one;
-            let offset = &offset + &one;
+            let offset = Prime::bitand(&self.next, &one);
+            let offset = Prime::add(&offset, &one);
 
-            let mut val = &self.next + &offset;
+            let mut val = Prime::add(&self.next, &offset);
 
             while !val.is_prime() {
-                val += &two;
+                Prime::add_assign(&mut val, &two);
 
                 if self.limit.as_ref().is_some_and(|limit| &val > limit) {
                     self.count = 0;
@@ -428,40 +406,29 @@ pub mod prime {
         }
     }
 
-    impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> where
-        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>
-    {
-    }
+    impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> {}
+    impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> {}
 
-    impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> where
-        for<'rhs, 'lhs> &'lhs Prime: Ops<&'rhs Prime, Type = Prime>
-    {
-    }
-
-    impl<Any: Send + Primality + NumExt> PrimalityExt for Any where for<'rhs, 'lhs> &'lhs Any: Ops<&'rhs Any, Type = Any> {}
+    impl<Any: Send + Primality + NumExt> PrimalityExt for Any {}
 }
 
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num      where N: Num,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,   for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned, for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Num      where N: Num)]
+#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt)]
+#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumExt + Unsigned, const BITS: usize>(pub N)
-where
-    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>;
+pub struct Width<N: Num + NumExt + Unsigned, const BITS: usize>(pub N);
 
 #[forward_std(self.0 with N)]
 #[forward_cmp(self.0 with N)]
 #[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num      where N: Num,      for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt,   for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
-#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned, for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>)]
+#[forward_def(self.0 with N: crate::num::Num      where N: Num)]
+#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt)]
+#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modular<N: Num + NumExt + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>)
-where
-    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>;
+pub struct Modular<N: Num + NumExt + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -472,11 +439,7 @@ pub enum Sign {
 }
 
 #[forward_decl]
-pub trait Num: Sized + Default + Clone + Eq + Ord
-where
-    for<'rhs> Self: Ops<Type = Self> + OpsAssign + OpsAssign<&'rhs Self>,
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAssign {
     fn bits(&self) -> usize;
 
     fn is_even(&self) -> bool;
@@ -498,7 +461,7 @@ where
         };
 
         while b != zero {
-            let rem = &a % &b;
+            let rem = Self::rem(&a, &b);
 
             a = b;
             b = rem;
@@ -511,8 +474,9 @@ where
     fn lcm(mut self, val: Self) -> Self {
         let gcd = Self::gcd(self.clone(), val.clone());
 
-        self /= &gcd;
-        self *= &val;
+        Self::div_assign(&mut self, &gcd);
+        Self::mul_assign(&mut self, &val);
+
         self
     }
 
@@ -526,13 +490,14 @@ where
 
         while pow != zero {
             if !pow.is_even() {
-                res *= &acc;
-                res %= rem;
+                Self::mul_assign(&mut res, &acc);
+                Self::rem_assign(&mut res, rem);
             }
 
-            acc = &acc * &acc;
-            acc %= rem;
-            pow >>= 1;
+            acc = Self::mul(&acc, &acc);
+
+            Self::rem_assign(&mut acc, rem);
+            Self::shr_assign(&mut pow, 1);
         }
 
         res
@@ -540,10 +505,7 @@ where
 }
 
 #[forward_decl]
-pub trait NumExt: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait NumExt: Num {
     #[forward_self]
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
@@ -661,10 +623,7 @@ where
 }
 
 #[forward_decl]
-pub trait Signed: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait Signed: Num {
     fn new(value: isize) -> Self;
 
     #[forward_with(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
@@ -679,23 +638,20 @@ where
             return (a.clone(), one, zero);
         }
 
-        let rem = a % b;
+        let rem = Self::rem(a, b);
 
         let (g, x, y) = Self::gcde(b, &rem);
 
-        let val = a / b;
-        let val = &val * &y;
-        let val = &x - &val;
+        let val = Self::div(a, b);
+        let val = Self::mul(&val, &y);
+        let val = Self::sub(&x, &val);
 
         (g, y, val)
     }
 }
 
 #[forward_decl]
-pub trait Unsigned: Num
-where
-    for<'rhs, 'lhs> &'lhs Self: Ops<&'rhs Self, Type = Self>,
-{
+pub trait Unsigned: Num {
     #[forward_into]
     fn new(value: usize) -> Self;
 
@@ -740,10 +696,7 @@ pub trait MaxDyn {
     fn max() -> Self;
 }
 
-pub trait Modulus<N: Num>: Default + Debug + Clone + Copy
-where
-    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
-{
+pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
     const MOD: N;
 }
 
@@ -764,28 +717,19 @@ sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ops_impl!(@stdbin (a: Sign, b: Sign) -> Sign, * Sign::from((a as i8) * (b as i8)));
 
-impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS>
-where
-    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
-{
+impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {
         Self(value).normalized()
     }
 }
 
-impl<N: Num + NumExt + Unsigned, M: Modulus<N>> From<N> for Modular<N, M>
-where
-    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
-{
+impl<N: Num + NumExt + Unsigned, M: Modulus<N>> From<N> for Modular<N, M> {
     fn from(value: N) -> Self {
         Self(value, PhantomData).normalized()
     }
 }
 
-impl<N: Num + NumExt + Unsigned, const BITS: usize> Width<N, BITS>
-where
-    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
-{
+impl<N: Num + NumExt + Unsigned, const BITS: usize> Width<N, BITS> {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
@@ -796,17 +740,15 @@ where
     }
 }
 
-impl<N: Num + NumExt + Unsigned, M: Modulus<N>> Modular<N, M>
-where
-    for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>,
-{
+impl<N: Num + NumExt + Unsigned, M: Modulus<N>> Modular<N, M> {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
     }
 
     pub(crate) fn normalize(&mut self) -> &mut Self {
-        self.0 %= M::MOD;
+        N::rem_assign(&mut self.0, &M::MOD);
+
         self
     }
 }
