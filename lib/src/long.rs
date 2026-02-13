@@ -43,16 +43,16 @@ macro_rules! bytes {
 }
 
 macro_rules! eq_const {
-    ($a:expr, $b:expr) => {{
-        let diff = $a.rev().zip($b.rev()).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
+    ($lhs:expr, $rhs:expr) => {{
+        let diff = $lhs.rev().zip($rhs.rev()).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
 
         std::hint::black_box(diff) == 0
     }};
 }
 
 macro_rules! cmp_const {
-    ($a:expr, $b:expr) => {{
-        let (lt, gt) = $a.rev().zip($b.rev()).map(|(a, b)| ((a < b) as i8, (a > b) as i8)).fold(
+    ($lhs:expr, $rhs:expr) => {{
+        let (lt, gt) = $lhs.rev().zip($rhs.rev()).map(|(a, b)| ((a < b) as i8, (a > b) as i8)).fold(
             (0i8, 0i8),
             |(lt_, gt_), (lt, gt)| {
                 let ltr = lt_ | (lt & (gt_ == 0) as i8);
@@ -588,8 +588,8 @@ macro_rules! bit_offset_impl {
 }
 
 macro_rules! add_long_impl {
-    ($a:expr, $b:expr) => {
-        $a.zip($b).scan(0, |acc, (a, b)| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.zip($rhs).scan(0, |acc, (a, b)| {
             let val = a as Double + b as Double + *acc;
 
             *acc = val / RADIX;
@@ -600,8 +600,8 @@ macro_rules! add_long_impl {
 }
 
 macro_rules! sub_long_impl {
-    ($a:expr, $b:expr) => {
-        $a.zip($b).scan(0, |acc, (a, b)| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.zip($rhs).scan(0, |acc, (a, b)| {
             let val = RADIX + a as Double - b as Double - *acc;
 
             *acc = (val < RADIX) as Double;
@@ -612,8 +612,8 @@ macro_rules! sub_long_impl {
 }
 
 macro_rules! add_single_impl {
-    ($a:expr, $b:expr) => {
-        $a.scan($b as Double, |acc, a| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.scan($rhs as Double, |acc, a| {
             let val = a as Double + *acc;
 
             *acc = val / RADIX;
@@ -621,11 +621,11 @@ macro_rules! add_single_impl {
             Some(val as Single)
         })
     };
-    (@overflow $a:expr, $b:expr, $acc:expr) => {
-        $a.scan($b as Double, |_, a| {
-            let val = a as Double + $acc;
+    (@overflow $lhs:expr, $rhs:expr, $lhscc:expr) => {
+        $lhs.scan($rhs as Double, |_, a| {
+            let val = a as Double + $lhscc;
 
-            $acc = val / RADIX;
+            $lhscc = val / RADIX;
 
             Some(val as Single)
         })
@@ -633,8 +633,8 @@ macro_rules! add_single_impl {
 }
 
 macro_rules! sub_single_impl {
-    ($a:expr, $b:expr) => {
-        $a.scan($b as Double, |acc, a| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.scan($rhs as Double, |acc, a| {
             let val = RADIX + a as Double - *acc;
 
             *acc = (val < RADIX) as Double;
@@ -645,20 +645,20 @@ macro_rules! sub_single_impl {
 }
 
 macro_rules! mul_single_impl {
-    ($a:expr, $b:expr) => {
-        $a.scan(0, |acc, a| {
-            let val = a as Double * $b as Double + *acc;
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.scan(0, |acc, a| {
+            let val = a as Double * $rhs as Double + *acc;
 
             *acc = val / RADIX;
 
             Some(val as Single)
         })
     };
-    (@overflow $a:expr, $b:expr, $acc:expr) => {{
-        $a.scan(0, |_, a| {
-            let val = a as Double * $b as Double + $acc;
+    (@overflow $lhs:expr, $rhs:expr, $lhscc:expr) => {{
+        $lhs.scan(0, |_, a| {
+            let val = a as Double * $rhs as Double + $lhscc;
 
-            $acc = val / RADIX;
+            $lhscc = val / RADIX;
 
             Some(val as Single)
         })
@@ -666,8 +666,8 @@ macro_rules! mul_single_impl {
 }
 
 macro_rules! add_long_mut_impl {
-    ($a:expr, $b:expr) => {
-        $a.zip($b).fold(0, |acc, (ptr, val)| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.zip($rhs).fold(0, |acc, (ptr, val)| {
             let v = *ptr as Double + val as Double + acc;
 
             *ptr = v as Single;
@@ -678,8 +678,8 @@ macro_rules! add_long_mut_impl {
 }
 
 macro_rules! sub_long_mut_impl {
-    ($a:expr, $b:expr) => {
-        $a.zip($b).fold(0, |acc, (ptr, val)| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.zip($rhs).fold(0, |acc, (ptr, val)| {
             let v = RADIX + *ptr as Double - val as Double - acc;
 
             *ptr = v as Single;
@@ -690,8 +690,8 @@ macro_rules! sub_long_mut_impl {
 }
 
 macro_rules! add_single_mut_impl {
-    ($a:expr, $b:expr) => {
-        $a.fold($b as Double, |acc, ptr| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.fold($rhs as Double, |acc, ptr| {
             let v = *ptr as Double + acc;
 
             *ptr = v as Single;
@@ -702,8 +702,8 @@ macro_rules! add_single_mut_impl {
 }
 
 macro_rules! sub_single_mut_impl {
-    ($a:expr, $b:expr) => {
-        $a.fold($b as Double, |acc, ptr| {
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.fold($rhs as Double, |acc, ptr| {
             let v = RADIX + *ptr as Double - acc;
 
             *ptr = v as Single;
@@ -714,9 +714,9 @@ macro_rules! sub_single_mut_impl {
 }
 
 macro_rules! mul_single_mut_impl {
-    ($a:expr, $b:expr) => {
-        $a.fold(0, |acc, ptr| {
-            let v = *ptr as Double * $b as Double + acc;
+    ($lhs:expr, $rhs:expr) => {
+        $lhs.fold(0, |acc, ptr| {
+            let v = *ptr as Double * $rhs as Double + acc;
 
             *ptr = v as Single;
 
@@ -726,9 +726,9 @@ macro_rules! mul_single_mut_impl {
 }
 
 macro_rules! div_long_impl {
-    ($a:expr, $b:expr) => {{
+    ($lhs:expr, $rhs:expr) => {{
         #[allow(unused_mut)]
-        let mut div = $a;
+        let mut div = $lhs;
         let mut rem = [0; L];
 
         for val in div.iter_mut().rev() {
@@ -737,7 +737,7 @@ macro_rules! div_long_impl {
             let digit = search!(@upper 0, RADIX, |m: Double| {
                 let mut acc = 0;
 
-                let mul = mul_single_impl!(@overflow $b, m, acc).collect_with([0; L]);
+                let mul = mul_single_impl!(@overflow $rhs, m, acc).collect_with([0; L]);
 
                 if acc > 0 {
                     return Ordering::Greater;
@@ -752,7 +752,7 @@ macro_rules! div_long_impl {
 
             if digit > 0 {
                 let rem_iter = rem.iter_mut();
-                let mul_iter = mul_single_impl!($b, digit);
+                let mul_iter = mul_single_impl!($rhs, digit);
 
                 sub_long_mut_impl!(rem_iter, mul_iter);
             }
@@ -763,20 +763,20 @@ macro_rules! div_long_impl {
 }
 
 macro_rules! div_single_impl {
-    ($a:expr, $b:expr) => {{
+    ($lhs:expr, $rhs:expr) => {{
         #[allow(unused_mut)]
-        let mut div = $a;
+        let mut div = $lhs;
         let mut rem = 0 as Double;
 
         for val in div.iter_mut().rev() {
             rem <<= BITS;
             rem |= *val as Double;
 
-            let digit = search!(@upper 0, RADIX, |m: Double| { (m * $b as Double).cmp(&rem) });
+            let digit = search!(@upper 0, RADIX, |m: Double| { (m * $rhs as Double).cmp(&rem) });
             let digit = digit.saturating_sub(1) as Single;
 
             *val = digit;
-            rem -= digit as Double * $b as Double;
+            rem -= digit as Double * $rhs as Double;
         }
 
         (div, rem)
@@ -3510,14 +3510,14 @@ mod tests {
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|a: S64, b: S64| { a + b })(|a: i64, b: i64| { S64::from(a.wrapping_add(b)) }),
-                (|a: S64, b: S64| { a - b })(|a: i64, b: i64| { S64::from(a.wrapping_sub(b)) }),
-                (|a: S64, b: S64| { a * b })(|a: i64, b: i64| { S64::from(a.wrapping_mul(b)) }),
-                (|a: S64, b: S64| { a / b })(|a: i64, b: i64| { S64::from(a / b) }),
-                (|a: S64, b: S64| { a % b })(|a: i64, b: i64| { S64::from(a % b) }),
-                (|a: S64, b: S64| { a | b })(|a: i64, b: i64| { S64::from(a | b) }),
-                (|a: S64, b: S64| { a & b })(|a: i64, b: i64| { S64::from(a & b) }),
-                (|a: S64, b: S64| { a ^ b })(|a: i64, b: i64| { S64::from(a ^ b) }),
+                (|lhs: S64, rhs: S64| { lhs + rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_add(rhs)) }),
+                (|lhs: S64, rhs: S64| { lhs - rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_sub(rhs)) }),
+                (|lhs: S64, rhs: S64| { lhs * rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_mul(rhs)) }),
+                (|lhs: S64, rhs: S64| { lhs / rhs })(|lhs: i64, rhs: i64| { S64::from(lhs / rhs) }),
+                (|lhs: S64, rhs: S64| { lhs % rhs })(|lhs: i64, rhs: i64| { S64::from(lhs % rhs) }),
+                (|lhs: S64, rhs: S64| { lhs | rhs })(|lhs: i64, rhs: i64| { S64::from(lhs | rhs) }),
+                (|lhs: S64, rhs: S64| { lhs & rhs })(|lhs: i64, rhs: i64| { S64::from(lhs & rhs) }),
+                (|lhs: S64, rhs: S64| { lhs ^ rhs })(|lhs: i64, rhs: i64| { S64::from(lhs ^ rhs) }),
             ]
         );
     }
@@ -3529,14 +3529,14 @@ mod tests {
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             (1..u64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|a: U64, b: U64| { a + b })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
-                (|a: U64, b: U64| { a - b })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
-                (|a: U64, b: U64| { a * b })(|a: u64, b: u64| { U64::from(a.wrapping_mul(b)) }),
-                (|a: U64, b: U64| { a / b })(|a: u64, b: u64| { U64::from(a / b) }),
-                (|a: U64, b: U64| { a % b })(|a: u64, b: u64| { U64::from(a % b) }),
-                (|a: U64, b: U64| { a | b })(|a: u64, b: u64| { U64::from(a | b) }),
-                (|a: U64, b: U64| { a & b })(|a: u64, b: u64| { U64::from(a & b) }),
-                (|a: U64, b: U64| { a ^ b })(|a: u64, b: u64| { U64::from(a ^ b) }),
+                (|lhs: U64, rhs: U64| { lhs + rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_add(rhs)) }),
+                (|lhs: U64, rhs: U64| { lhs - rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_sub(rhs)) }),
+                (|lhs: U64, rhs: U64| { lhs * rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_mul(rhs)) }),
+                (|lhs: U64, rhs: U64| { lhs / rhs })(|lhs: u64, rhs: u64| { U64::from(lhs / rhs) }),
+                (|lhs: U64, rhs: U64| { lhs % rhs })(|lhs: u64, rhs: u64| { U64::from(lhs % rhs) }),
+                (|lhs: U64, rhs: U64| { lhs | rhs })(|lhs: u64, rhs: u64| { U64::from(lhs | rhs) }),
+                (|lhs: U64, rhs: U64| { lhs & rhs })(|lhs: u64, rhs: u64| { U64::from(lhs & rhs) }),
+                (|lhs: U64, rhs: U64| { lhs ^ rhs })(|lhs: u64, rhs: u64| { U64::from(lhs ^ rhs) }),
             ]
         );
     }
@@ -3548,14 +3548,14 @@ mod tests {
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i8::MIN..i8::MAX).filter(|&x| x != 0),
             [
-                (|a: S64, b: i8| { a + b })(|a: i64, b: i8| { S64::from(a.wrapping_add(b as i64)) }),
-                (|a: S64, b: i8| { a - b })(|a: i64, b: i8| { S64::from(a.wrapping_sub(b as i64)) }),
-                (|a: S64, b: i8| { a * b })(|a: i64, b: i8| { S64::from(a.wrapping_mul(b as i64)) }),
-                (|a: S64, b: i8| { a / b })(|a: i64, b: i8| { S64::from(a / b as i64) }),
-                (|a: S64, b: i8| { a % b })(|a: i64, b: i8| { S64::from(a % b as i64) }),
-                (|a: S64, b: i8| { a | b })(|a: i64, b: i8| { S64::from(a | b as i64) }),
-                (|a: S64, b: i8| { a & b })(|a: i64, b: i8| { S64::from(a & b as i64) }),
-                (|a: S64, b: i8| { a ^ b })(|a: i64, b: i8| { S64::from(a ^ b as i64) }),
+                (|lhs: S64, rhs: i8| { lhs + rhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_add(rhs as i64)) }),
+                (|lhs: S64, rhs: i8| { lhs - rhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_sub(rhs as i64)) }),
+                (|lhs: S64, rhs: i8| { lhs * rhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_mul(rhs as i64)) }),
+                (|lhs: S64, rhs: i8| { lhs / rhs })(|lhs: i64, rhs: i8| { S64::from(lhs / rhs as i64) }),
+                (|lhs: S64, rhs: i8| { lhs % rhs })(|lhs: i64, rhs: i8| { S64::from(lhs % rhs as i64) }),
+                (|lhs: S64, rhs: i8| { lhs | rhs })(|lhs: i64, rhs: i8| { S64::from(lhs | rhs as i64) }),
+                (|lhs: S64, rhs: i8| { lhs & rhs })(|lhs: i64, rhs: i8| { S64::from(lhs & rhs as i64) }),
+                (|lhs: S64, rhs: i8| { lhs ^ rhs })(|lhs: i64, rhs: i8| { S64::from(lhs ^ rhs as i64) }),
             ]
         );
     }
@@ -3567,14 +3567,14 @@ mod tests {
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             1..u8::MAX,
             [
-                (|a: U64, b: u8| { a + b })(|a: u64, b: u8| { U64::from(a.wrapping_add(b as u64)) }),
-                (|a: U64, b: u8| { a - b })(|a: u64, b: u8| { U64::from(a.wrapping_sub(b as u64)) }),
-                (|a: U64, b: u8| { a * b })(|a: u64, b: u8| { U64::from(a.wrapping_mul(b as u64)) }),
-                (|a: U64, b: u8| { a / b })(|a: u64, b: u8| { U64::from(a / b as u64) }),
-                (|a: U64, b: u8| { a % b })(|a: u64, b: u8| { U64::from(a % b as u64) }),
-                (|a: U64, b: u8| { a | b })(|a: u64, b: u8| { U64::from(a | b as u64) }),
-                (|a: U64, b: u8| { a & b })(|a: u64, b: u8| { U64::from(a & b as u64) }),
-                (|a: U64, b: u8| { a ^ b })(|a: u64, b: u8| { U64::from(a ^ b as u64) }),
+                (|lhs: U64, rhs: u8| { lhs + rhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_add(rhs as u64)) }),
+                (|lhs: U64, rhs: u8| { lhs - rhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_sub(rhs as u64)) }),
+                (|lhs: U64, rhs: u8| { lhs * rhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_mul(rhs as u64)) }),
+                (|lhs: U64, rhs: u8| { lhs / rhs })(|lhs: u64, rhs: u8| { U64::from(lhs / rhs as u64) }),
+                (|lhs: U64, rhs: u8| { lhs % rhs })(|lhs: u64, rhs: u8| { U64::from(lhs % rhs as u64) }),
+                (|lhs: U64, rhs: u8| { lhs | rhs })(|lhs: u64, rhs: u8| { U64::from(lhs | rhs as u64) }),
+                (|lhs: U64, rhs: u8| { lhs & rhs })(|lhs: u64, rhs: u8| { U64::from(lhs & rhs as u64) }),
+                (|lhs: U64, rhs: u8| { lhs ^ rhs })(|lhs: u64, rhs: u8| { U64::from(lhs ^ rhs as u64) }),
             ]
         );
     }
@@ -3586,14 +3586,14 @@ mod tests {
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|a: S64, b: i64| { a + b })(|a: i64, b: i64| { S64::from(a.wrapping_add(b)) }),
-                (|a: S64, b: i64| { a - b })(|a: i64, b: i64| { S64::from(a.wrapping_sub(b)) }),
-                (|a: S64, b: i64| { a * b })(|a: i64, b: i64| { S64::from(a.wrapping_mul(b)) }),
-                (|a: S64, b: i64| { a / b })(|a: i64, b: i64| { S64::from(a / b) }),
-                (|a: S64, b: i64| { a % b })(|a: i64, b: i64| { S64::from(a % b) }),
-                (|a: S64, b: i64| { a | b })(|a: i64, b: i64| { S64::from(a | b) }),
-                (|a: S64, b: i64| { a & b })(|a: i64, b: i64| { S64::from(a & b) }),
-                (|a: S64, b: i64| { a ^ b })(|a: i64, b: i64| { S64::from(a ^ b) }),
+                (|lhs: S64, rhs: i64| { lhs + rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_add(rhs)) }),
+                (|lhs: S64, rhs: i64| { lhs - rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_sub(rhs)) }),
+                (|lhs: S64, rhs: i64| { lhs * rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_mul(rhs)) }),
+                (|lhs: S64, rhs: i64| { lhs / rhs })(|lhs: i64, rhs: i64| { S64::from(lhs / rhs) }),
+                (|lhs: S64, rhs: i64| { lhs % rhs })(|lhs: i64, rhs: i64| { S64::from(lhs % rhs) }),
+                (|lhs: S64, rhs: i64| { lhs | rhs })(|lhs: i64, rhs: i64| { S64::from(lhs | rhs) }),
+                (|lhs: S64, rhs: i64| { lhs & rhs })(|lhs: i64, rhs: i64| { S64::from(lhs & rhs) }),
+                (|lhs: S64, rhs: i64| { lhs ^ rhs })(|lhs: i64, rhs: i64| { S64::from(lhs ^ rhs) }),
             ]
         );
     }
@@ -3605,14 +3605,14 @@ mod tests {
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             (1..u64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|a: U64, b: u64| { a + b })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
-                (|a: U64, b: u64| { a - b })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
-                (|a: U64, b: u64| { a * b })(|a: u64, b: u64| { U64::from(a.wrapping_mul(b)) }),
-                (|a: U64, b: u64| { a / b })(|a: u64, b: u64| { U64::from(a / b) }),
-                (|a: U64, b: u64| { a % b })(|a: u64, b: u64| { U64::from(a % b) }),
-                (|a: U64, b: u64| { a | b })(|a: u64, b: u64| { U64::from(a | b) }),
-                (|a: U64, b: u64| { a & b })(|a: u64, b: u64| { U64::from(a & b) }),
-                (|a: U64, b: u64| { a ^ b })(|a: u64, b: u64| { U64::from(a ^ b) }),
+                (|lhs: U64, rhs: u64| { lhs + rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_add(rhs)) }),
+                (|lhs: U64, rhs: u64| { lhs - rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_sub(rhs)) }),
+                (|lhs: U64, rhs: u64| { lhs * rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_mul(rhs)) }),
+                (|lhs: U64, rhs: u64| { lhs / rhs })(|lhs: u64, rhs: u64| { U64::from(lhs / rhs) }),
+                (|lhs: U64, rhs: u64| { lhs % rhs })(|lhs: u64, rhs: u64| { U64::from(lhs % rhs) }),
+                (|lhs: U64, rhs: u64| { lhs | rhs })(|lhs: u64, rhs: u64| { U64::from(lhs | rhs) }),
+                (|lhs: U64, rhs: u64| { lhs & rhs })(|lhs: u64, rhs: u64| { U64::from(lhs & rhs) }),
+                (|lhs: U64, rhs: u64| { lhs ^ rhs })(|lhs: u64, rhs: u64| { U64::from(lhs ^ rhs) }),
             ]
         );
     }
@@ -3625,14 +3625,14 @@ mod tests {
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|mut a: S64, b: S64| { a += b; a })(|a: i64, b: i64| { S64::from(a.wrapping_add(b)) }),
-                (|mut a: S64, b: S64| { a -= b; a })(|a: i64, b: i64| { S64::from(a.wrapping_sub(b)) }),
-                (|mut a: S64, b: S64| { a *= b; a })(|a: i64, b: i64| { S64::from(a.wrapping_mul(b)) }),
-                (|mut a: S64, b: S64| { a /= b; a })(|a: i64, b: i64| { S64::from(a / b) }),
-                (|mut a: S64, b: S64| { a %= b; a })(|a: i64, b: i64| { S64::from(a % b) }),
-                (|mut a: S64, b: S64| { a |= b; a })(|a: i64, b: i64| { S64::from(a | b) }),
-                (|mut a: S64, b: S64| { a &= b; a })(|a: i64, b: i64| { S64::from(a & b) }),
-                (|mut a: S64, b: S64| { a ^= b; a })(|a: i64, b: i64| { S64::from(a ^ b) }),
+                (|mut lhs: S64, rhs: S64| { lhs += rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_add(rhs)) }),
+                (|mut lhs: S64, rhs: S64| { lhs -= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_sub(rhs)) }),
+                (|mut lhs: S64, rhs: S64| { lhs *= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_mul(rhs)) }),
+                (|mut lhs: S64, rhs: S64| { lhs /= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs / rhs) }),
+                (|mut lhs: S64, rhs: S64| { lhs %= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs % rhs) }),
+                (|mut lhs: S64, rhs: S64| { lhs |= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs | rhs) }),
+                (|mut lhs: S64, rhs: S64| { lhs &= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs & rhs) }),
+                (|mut lhs: S64, rhs: S64| { lhs ^= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs ^ rhs) }),
             ]
         );
     }
@@ -3645,14 +3645,14 @@ mod tests {
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             (1..u64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|mut a: U64, b: U64| { a += b; a })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
-                (|mut a: U64, b: U64| { a -= b; a })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
-                (|mut a: U64, b: U64| { a *= b; a })(|a: u64, b: u64| { U64::from(a.wrapping_mul(b)) }),
-                (|mut a: U64, b: U64| { a /= b; a })(|a: u64, b: u64| { U64::from(a / b) }),
-                (|mut a: U64, b: U64| { a %= b; a })(|a: u64, b: u64| { U64::from(a % b) }),
-                (|mut a: U64, b: U64| { a |= b; a })(|a: u64, b: u64| { U64::from(a | b) }),
-                (|mut a: U64, b: U64| { a &= b; a })(|a: u64, b: u64| { U64::from(a & b) }),
-                (|mut a: U64, b: U64| { a ^= b; a })(|a: u64, b: u64| { U64::from(a ^ b) }),
+                (|mut lhs: U64, rhs: U64| { lhs += rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_add(rhs)) }),
+                (|mut lhs: U64, rhs: U64| { lhs -= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_sub(rhs)) }),
+                (|mut lhs: U64, rhs: U64| { lhs *= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_mul(rhs)) }),
+                (|mut lhs: U64, rhs: U64| { lhs /= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs / rhs) }),
+                (|mut lhs: U64, rhs: U64| { lhs %= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs % rhs) }),
+                (|mut lhs: U64, rhs: U64| { lhs |= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs | rhs) }),
+                (|mut lhs: U64, rhs: U64| { lhs &= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs & rhs) }),
+                (|mut lhs: U64, rhs: U64| { lhs ^= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs ^ rhs) }),
             ]
         );
     }
@@ -3665,14 +3665,14 @@ mod tests {
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i8::MIN..i8::MAX).filter(|&x| x != 0),
             [
-                (|mut a: S64, b: i8| { a += b; a })(|a: i64, b: i8| { S64::from(a.wrapping_add(b as i64)) }),
-                (|mut a: S64, b: i8| { a -= b; a })(|a: i64, b: i8| { S64::from(a.wrapping_sub(b as i64)) }),
-                (|mut a: S64, b: i8| { a *= b; a })(|a: i64, b: i8| { S64::from(a.wrapping_mul(b as i64)) }),
-                (|mut a: S64, b: i8| { a /= b; a })(|a: i64, b: i8| { S64::from(a / b as i64) }),
-                (|mut a: S64, b: i8| { a %= b; a })(|a: i64, b: i8| { S64::from(a % b as i64) }),
-                (|mut a: S64, b: i8| { a |= b; a })(|a: i64, b: i8| { S64::from(a | b as i64) }),
-                (|mut a: S64, b: i8| { a &= b; a })(|a: i64, b: i8| { S64::from(a & b as i64) }),
-                (|mut a: S64, b: i8| { a ^= b; a })(|a: i64, b: i8| { S64::from(a ^ b as i64) }),
+                (|mut lhs: S64, rhs: i8| { lhs += rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_add(rhs as i64)) }),
+                (|mut lhs: S64, rhs: i8| { lhs -= rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_sub(rhs as i64)) }),
+                (|mut lhs: S64, rhs: i8| { lhs *= rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_mul(rhs as i64)) }),
+                (|mut lhs: S64, rhs: i8| { lhs /= rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs / rhs as i64) }),
+                (|mut lhs: S64, rhs: i8| { lhs %= rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs % rhs as i64) }),
+                (|mut lhs: S64, rhs: i8| { lhs |= rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs | rhs as i64) }),
+                (|mut lhs: S64, rhs: i8| { lhs &= rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs & rhs as i64) }),
+                (|mut lhs: S64, rhs: i8| { lhs ^= rhs; lhs })(|lhs: i64, rhs: i8| { S64::from(lhs ^ rhs as i64) }),
             ]
         );
     }
@@ -3685,14 +3685,14 @@ mod tests {
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             1..u8::MAX,
             [
-                (|mut a: U64, b: u8| { a += b; a })(|a: u64, b: u8| { U64::from(a.wrapping_add(b as u64)) }),
-                (|mut a: U64, b: u8| { a -= b; a })(|a: u64, b: u8| { U64::from(a.wrapping_sub(b as u64)) }),
-                (|mut a: U64, b: u8| { a *= b; a })(|a: u64, b: u8| { U64::from(a.wrapping_mul(b as u64)) }),
-                (|mut a: U64, b: u8| { a /= b; a })(|a: u64, b: u8| { U64::from(a / b as u64) }),
-                (|mut a: U64, b: u8| { a %= b; a })(|a: u64, b: u8| { U64::from(a % b as u64) }),
-                (|mut a: U64, b: u8| { a |= b; a })(|a: u64, b: u8| { U64::from(a | b as u64) }),
-                (|mut a: U64, b: u8| { a &= b; a })(|a: u64, b: u8| { U64::from(a & b as u64) }),
-                (|mut a: U64, b: u8| { a ^= b; a })(|a: u64, b: u8| { U64::from(a ^ b as u64) }),
+                (|mut lhs: U64, rhs: u8| { lhs += rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_add(rhs as u64)) }),
+                (|mut lhs: U64, rhs: u8| { lhs -= rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_sub(rhs as u64)) }),
+                (|mut lhs: U64, rhs: u8| { lhs *= rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_mul(rhs as u64)) }),
+                (|mut lhs: U64, rhs: u8| { lhs /= rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs / rhs as u64) }),
+                (|mut lhs: U64, rhs: u8| { lhs %= rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs % rhs as u64) }),
+                (|mut lhs: U64, rhs: u8| { lhs |= rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs | rhs as u64) }),
+                (|mut lhs: U64, rhs: u8| { lhs &= rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs & rhs as u64) }),
+                (|mut lhs: U64, rhs: u8| { lhs ^= rhs; lhs })(|lhs: u64, rhs: u8| { U64::from(lhs ^ rhs as u64) }),
             ]
         );
     }
@@ -3705,14 +3705,14 @@ mod tests {
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|mut a: S64, b: i64| { a += b; a })(|a: i64, b: i64| { S64::from(a.wrapping_add(b)) }),
-                (|mut a: S64, b: i64| { a -= b; a })(|a: i64, b: i64| { S64::from(a.wrapping_sub(b)) }),
-                (|mut a: S64, b: i64| { a *= b; a })(|a: i64, b: i64| { S64::from(a.wrapping_mul(b)) }),
-                (|mut a: S64, b: i64| { a /= b; a })(|a: i64, b: i64| { S64::from(a / b) }),
-                (|mut a: S64, b: i64| { a %= b; a })(|a: i64, b: i64| { S64::from(a % b) }),
-                (|mut a: S64, b: i64| { a |= b; a })(|a: i64, b: i64| { S64::from(a | b) }),
-                (|mut a: S64, b: i64| { a &= b; a })(|a: i64, b: i64| { S64::from(a & b) }),
-                (|mut a: S64, b: i64| { a ^= b; a })(|a: i64, b: i64| { S64::from(a ^ b) }),
+                (|mut lhs: S64, rhs: i64| { lhs += rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_add(rhs)) }),
+                (|mut lhs: S64, rhs: i64| { lhs -= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_sub(rhs)) }),
+                (|mut lhs: S64, rhs: i64| { lhs *= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_mul(rhs)) }),
+                (|mut lhs: S64, rhs: i64| { lhs /= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs / rhs) }),
+                (|mut lhs: S64, rhs: i64| { lhs %= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs % rhs) }),
+                (|mut lhs: S64, rhs: i64| { lhs |= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs | rhs) }),
+                (|mut lhs: S64, rhs: i64| { lhs &= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs & rhs) }),
+                (|mut lhs: S64, rhs: i64| { lhs ^= rhs; lhs })(|lhs: i64, rhs: i64| { S64::from(lhs ^ rhs) }),
             ]
         );
     }
@@ -3725,59 +3725,59 @@ mod tests {
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             (1..u64::MAX).step_by(PRIMES_56BIT[1]),
             [
-                (|mut a: U64, b: u64| { a += b; a })(|a: u64, b: u64| { U64::from(a.wrapping_add(b)) }),
-                (|mut a: U64, b: u64| { a -= b; a })(|a: u64, b: u64| { U64::from(a.wrapping_sub(b)) }),
-                (|mut a: U64, b: u64| { a *= b; a })(|a: u64, b: u64| { U64::from(a.wrapping_mul(b)) }),
-                (|mut a: U64, b: u64| { a /= b; a })(|a: u64, b: u64| { U64::from(a / b) }),
-                (|mut a: U64, b: u64| { a %= b; a })(|a: u64, b: u64| { U64::from(a % b) }),
-                (|mut a: U64, b: u64| { a |= b; a })(|a: u64, b: u64| { U64::from(a | b) }),
-                (|mut a: U64, b: u64| { a &= b; a })(|a: u64, b: u64| { U64::from(a & b) }),
-                (|mut a: U64, b: u64| { a ^= b; a })(|a: u64, b: u64| { U64::from(a ^ b) }),
+                (|mut lhs: U64, rhs: u64| { lhs += rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_add(rhs)) }),
+                (|mut lhs: U64, rhs: u64| { lhs -= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_sub(rhs)) }),
+                (|mut lhs: U64, rhs: u64| { lhs *= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_mul(rhs)) }),
+                (|mut lhs: U64, rhs: u64| { lhs /= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs / rhs) }),
+                (|mut lhs: U64, rhs: u64| { lhs %= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs % rhs) }),
+                (|mut lhs: U64, rhs: u64| { lhs |= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs | rhs) }),
+                (|mut lhs: U64, rhs: u64| { lhs &= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs & rhs) }),
+                (|mut lhs: U64, rhs: u64| { lhs ^= rhs; lhs })(|lhs: u64, rhs: u64| { U64::from(lhs ^ rhs) }),
             ]
         );
     }
 
     #[test]
-    fn signed_ops_shift() {
+    fn signed_ops_rhs() {
         assert_ops_shift!(
             S64,
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]),
             0..64,
             [
-                (|val: S64, shift: usize| { val << shift })(|val: i64, shift: usize| { S64::from(val << shift) }),
-                (|val: S64, shift: usize| { val >> shift })(|val: i64, shift: usize| { S64::from(val >> shift) }),
+                (|lhs: S64, rhs: usize| { lhs << rhs })(|lhs: i64, rhs: usize| { S64::from(lhs << rhs) }),
+                (|lhs: S64, rhs: usize| { lhs >> rhs })(|lhs: i64, rhs: usize| { S64::from(lhs >> rhs) }),
             ]
         );
     }
 
     #[test]
-    fn unsigned_ops_shift() {
+    fn unsigned_ops_rhs() {
         assert_ops_shift!(
             U64,
             (1..u64::MAX).step_by(PRIMES_48BIT[0]),
             0..64,
             [
-                (|val: U64, shift: usize| { val << shift })(|val: u64, shift: usize| { U64::from(val << shift) }),
-                (|val: U64, shift: usize| { val >> shift })(|val: u64, shift: usize| { U64::from(val >> shift) }),
+                (|lhs: U64, rhs: usize| { lhs << rhs })(|lhs: u64, rhs: usize| { U64::from(lhs << rhs) }),
+                (|lhs: U64, rhs: usize| { lhs >> rhs })(|lhs: u64, rhs: usize| { U64::from(lhs >> rhs) }),
             ]
         );
     }
 
     #[test]
     #[rustfmt::skip]
-    fn signed_ops_shift_assign() {
+    fn signed_ops_rhs_assign() {
         assert_ops_shift!(S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|mut val: S64, shift: usize| { val <<= shift; val })(|val: i64, shift: usize| { S64::from(val << shift) }),
-            (|mut val: S64, shift: usize| { val >>= shift; val })(|val: i64, shift: usize| { S64::from(val >> shift) }),
+            (|mut lhs: S64, rhs: usize| { lhs <<= rhs; lhs })(|lhs: i64, rhs: usize| { S64::from(lhs << rhs) }),
+            (|mut lhs: S64, rhs: usize| { lhs >>= rhs; lhs })(|lhs: i64, rhs: usize| { S64::from(lhs >> rhs) }),
         ]);
     }
 
     #[test]
     #[rustfmt::skip]
-    fn unsigned_ops_shift_assign() {
+    fn unsigned_ops_rhs_assign() {
         assert_ops_shift!(U64, (1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|mut val: U64, shift: usize| { val <<= shift; val })(|val: u64, shift: usize| { U64::from(val << shift) }),
-            (|mut val: U64, shift: usize| { val >>= shift; val })(|val: u64, shift: usize| { U64::from(val >> shift) }),
+            (|mut lhs: U64, rhs: usize| { lhs <<= rhs; lhs })(|lhs: u64, rhs: usize| { U64::from(lhs << rhs) }),
+            (|mut lhs: U64, rhs: usize| { lhs >>= rhs; lhs })(|lhs: u64, rhs: usize| { U64::from(lhs >> rhs) }),
         ]);
     }
 }
