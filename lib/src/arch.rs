@@ -160,7 +160,6 @@ impl<T> From<T> for Aligned<T> {
     }
 }
 
-ops_impl!(@ndun crate for Aligned<T> <T> (a: &Aligned<T>) -> Aligned::<T>,
-    - Aligned::<T>(T::neg(&a.0)) where [T: NdNeg<Type = T>],
-    ! Aligned::<T>(T::not(&a.0)) where [T: NdNot<Type = T>],
-);
+ops_impl!(@ndun crate for Aligned<T> <T> (value: &Aligned<T>) -> Aligned::<T>,
+    - Aligned::<T>(T::neg(&value.0)) where [T: NdNeg<Type = T>],
+    ! Aligned::<T>(T::not(&value.0)) where [T: NdNot<Type = T>]);

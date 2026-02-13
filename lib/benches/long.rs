@@ -653,67 +653,67 @@ fn to_str(c: &mut Criterion) {
 
 fn ops(c: &mut Criterion) {
     ops_impl!(c, [
-        "long::ops::add"    (4096, 4096): |a: &S4096, b: &S4096| a + b, |a: &U4096, b: &U4096| a + b,
-        "long::ops::sub"    (4096, 4096): |a: &S4096, b: &S4096| a - b, |a: &U4096, b: &U4096| a - b,
-        "long::ops::mul"    (4096, 4096): |a: &S4096, b: &S4096| a * b, |a: &U4096, b: &U4096| a * b,
-        "long::ops::div"    (4096, 2048): |a: &S4096, b: &S4096| a / b, |a: &U4096, b: &U4096| a / b,
-        "long::ops::rem"    (4096, 2048): |a: &S4096, b: &S4096| a % b, |a: &U4096, b: &U4096| a % b,
-        "long::ops::bitor"  (4096, 4096): |a: &S4096, b: &S4096| a | b, |a: &U4096, b: &U4096| a | b,
-        "long::ops::bitand" (4096, 4096): |a: &S4096, b: &S4096| a & b, |a: &U4096, b: &U4096| a & b,
-        "long::ops::bitxor" (4096, 4096): |a: &S4096, b: &S4096| a ^ b, |a: &U4096, b: &U4096| a ^ b,
+        "long::ops::add"    (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs + rhs, |lhs: &U4096, rhs: &U4096| lhs + rhs,
+        "long::ops::sub"    (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs - rhs, |lhs: &U4096, rhs: &U4096| lhs - rhs,
+        "long::ops::mul"    (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs * rhs, |lhs: &U4096, rhs: &U4096| lhs * rhs,
+        "long::ops::div"    (4096, 2048): |lhs: &S4096, rhs: &S4096| lhs / rhs, |lhs: &U4096, rhs: &U4096| lhs / rhs,
+        "long::ops::rem"    (4096, 2048): |lhs: &S4096, rhs: &S4096| lhs % rhs, |lhs: &U4096, rhs: &U4096| lhs % rhs,
+        "long::ops::bitor"  (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs | rhs, |lhs: &U4096, rhs: &U4096| lhs | rhs,
+        "long::ops::bitand" (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs & rhs, |lhs: &U4096, rhs: &U4096| lhs & rhs,
+        "long::ops::bitxor" (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs ^ rhs, |lhs: &U4096, rhs: &U4096| lhs ^ rhs,
     ]);
 }
 
 fn ops_assign(c: &mut Criterion) {
     ops_impl!(c, [
-        "long::ops::assign::add"    (4096, 4096): |a: &S4096, b: &S4096| { let mut a = *a; a += b }, |a: &U4096, b: &U4096| { let mut a = *a; a += b },
-        "long::ops::assign::sub"    (4096, 4096): |a: &S4096, b: &S4096| { let mut a = *a; a -= b }, |a: &U4096, b: &U4096| { let mut a = *a; a -= b },
-        "long::ops::assign::mul"    (4096, 4096): |a: &S4096, b: &S4096| { let mut a = *a; a *= b }, |a: &U4096, b: &U4096| { let mut a = *a; a *= b },
-        "long::ops::assign::div"    (4096, 2048): |a: &S4096, b: &S4096| { let mut a = *a; a /= b }, |a: &U4096, b: &U4096| { let mut a = *a; a /= b },
-        "long::ops::assign::rem"    (4096, 2048): |a: &S4096, b: &S4096| { let mut a = *a; a %= b }, |a: &U4096, b: &U4096| { let mut a = *a; a %= b },
-        "long::ops::assign::bitor"  (4096, 4096): |a: &S4096, b: &S4096| { let mut a = *a; a |= b }, |a: &U4096, b: &U4096| { let mut a = *a; a |= b },
-        "long::ops::assign::bitand" (4096, 4096): |a: &S4096, b: &S4096| { let mut a = *a; a &= b }, |a: &U4096, b: &U4096| { let mut a = *a; a &= b },
-        "long::ops::assign::bitxor" (4096, 4096): |a: &S4096, b: &S4096| { let mut a = *a; a ^= b }, |a: &U4096, b: &U4096| { let mut a = *a; a ^= b },
+        "long::ops::assign::add"    (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs += rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs += rhs },
+        "long::ops::assign::sub"    (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs -= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs -= rhs },
+        "long::ops::assign::mul"    (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs *= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs *= rhs },
+        "long::ops::assign::div"    (4096, 2048): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs /= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs /= rhs },
+        "long::ops::assign::rem"    (4096, 2048): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs %= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs %= rhs },
+        "long::ops::assign::bitor"  (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs |= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs |= rhs },
+        "long::ops::assign::bitand" (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs &= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs &= rhs },
+        "long::ops::assign::bitxor" (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs ^= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs ^= rhs },
     ]);
 }
 
 fn ops_single(c: &mut Criterion) {
     ops_single_impl!(c, [
-        "long::ops::single::add":    |a: &S4096, b: i64| a + b, |a: &U4096, b: u64| a + b,
-        "long::ops::single::sub":    |a: &S4096, b: i64| a - b, |a: &U4096, b: u64| a - b,
-        "long::ops::single::mul":    |a: &S4096, b: i64| a * b, |a: &U4096, b: u64| a * b,
-        "long::ops::single::div":    |a: &S4096, b: i64| a / b, |a: &U4096, b: u64| a / b,
-        "long::ops::single::rem":    |a: &S4096, b: i64| a % b, |a: &U4096, b: u64| a % b,
-        "long::ops::single::bitor":  |a: &S4096, b: i64| a | b, |a: &U4096, b: u64| a | b,
-        "long::ops::single::bitand": |a: &S4096, b: i64| a & b, |a: &U4096, b: u64| a & b,
-        "long::ops::single::bitxor": |a: &S4096, b: i64| a ^ b, |a: &U4096, b: u64| a ^ b,
+        "long::ops::single::add":    |lhs: &S4096, rhs: i64| lhs + rhs, |lhs: &U4096, rhs: u64| lhs + rhs,
+        "long::ops::single::sub":    |lhs: &S4096, rhs: i64| lhs - rhs, |lhs: &U4096, rhs: u64| lhs - rhs,
+        "long::ops::single::mul":    |lhs: &S4096, rhs: i64| lhs * rhs, |lhs: &U4096, rhs: u64| lhs * rhs,
+        "long::ops::single::div":    |lhs: &S4096, rhs: i64| lhs / rhs, |lhs: &U4096, rhs: u64| lhs / rhs,
+        "long::ops::single::rem":    |lhs: &S4096, rhs: i64| lhs % rhs, |lhs: &U4096, rhs: u64| lhs % rhs,
+        "long::ops::single::bitor":  |lhs: &S4096, rhs: i64| lhs | rhs, |lhs: &U4096, rhs: u64| lhs | rhs,
+        "long::ops::single::bitand": |lhs: &S4096, rhs: i64| lhs & rhs, |lhs: &U4096, rhs: u64| lhs & rhs,
+        "long::ops::single::bitxor": |lhs: &S4096, rhs: i64| lhs ^ rhs, |lhs: &U4096, rhs: u64| lhs ^ rhs,
     ]);
 }
 
 fn ops_single_assign(c: &mut Criterion) {
     ops_single_impl!(c, [
-        "long::ops::single::assign::add":    |a: &S4096, b: i64| { let mut a = *a; a += b }, |a: &U4096, b: u64| { let mut a = *a; a += b },
-        "long::ops::single::assign::sub":    |a: &S4096, b: i64| { let mut a = *a; a -= b }, |a: &U4096, b: u64| { let mut a = *a; a -= b },
-        "long::ops::single::assign::mul":    |a: &S4096, b: i64| { let mut a = *a; a *= b }, |a: &U4096, b: u64| { let mut a = *a; a *= b },
-        "long::ops::single::assign::div":    |a: &S4096, b: i64| { let mut a = *a; a /= b }, |a: &U4096, b: u64| { let mut a = *a; a /= b },
-        "long::ops::single::assign::rem":    |a: &S4096, b: i64| { let mut a = *a; a %= b }, |a: &U4096, b: u64| { let mut a = *a; a %= b },
-        "long::ops::single::assign::bitor":  |a: &S4096, b: i64| { let mut a = *a; a |= b }, |a: &U4096, b: u64| { let mut a = *a; a |= b },
-        "long::ops::single::assign::bitand": |a: &S4096, b: i64| { let mut a = *a; a &= b }, |a: &U4096, b: u64| { let mut a = *a; a &= b },
-        "long::ops::single::assign::bitxor": |a: &S4096, b: i64| { let mut a = *a; a ^= b }, |a: &U4096, b: u64| { let mut a = *a; a ^= b },
+        "long::ops::single::assign::add":    |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs += rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs += rhs },
+        "long::ops::single::assign::sub":    |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs -= rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs -= rhs },
+        "long::ops::single::assign::mul":    |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs *= rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs *= rhs },
+        "long::ops::single::assign::div":    |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs /= rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs /= rhs },
+        "long::ops::single::assign::rem":    |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs %= rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs %= rhs },
+        "long::ops::single::assign::bitor":  |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs |= rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs |= rhs },
+        "long::ops::single::assign::bitand": |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs &= rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs &= rhs },
+        "long::ops::single::assign::bitxor": |lhs: &S4096, rhs: i64| { let mut lhs = *lhs; lhs ^= rhs }, |lhs: &U4096, rhs: u64| { let mut lhs = *lhs; lhs ^= rhs },
     ]);
 }
 
 fn ops_shift(c: &mut Criterion) {
     ops_shift_impl!(c, [
-        "long::ops::shl": |a: &S4096| a << 1021, |a: &U4096| a << 1021,
-        "long::ops::shr": |a: &S4096| a >> 1021, |a: &U4096| a >> 1021,
+        "long::ops::shl": |value: &S4096| value << 1021, |value: &U4096| value << 1021,
+        "long::ops::shr": |value: &S4096| value >> 1021, |value: &U4096| value >> 1021,
     ]);
 }
 
 fn ops_shift_assign(c: &mut Criterion) {
     ops_shift_impl!(c, [
-        "long::ops::assign::shl": |a: &S4096| { let mut a = *a; a <<= 1021 }, |a: &U4096| { let mut a = *a; a <<= 1021 },
-        "long::ops::assign::shr": |a: &S4096| { let mut a = *a; a >>= 1021 }, |a: &U4096| { let mut a = *a; a >>= 1021 },
+        "long::ops::assign::shl": |value: &S4096| { let mut value = *value; value <<= 1021 }, |value: &U4096| { let mut value = *value; value <<= 1021 },
+        "long::ops::assign::shr": |value: &S4096| { let mut value = *value; value >>= 1021 }, |value: &U4096| { let mut value = *value; value >>= 1021 },
     ]);
 }
 

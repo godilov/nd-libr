@@ -46,36 +46,36 @@ struct A<N>(N);
 /// Implements `std::ops::Neg` and `std::ops::Not` for A<N>
 /// Condition: N is Neg and Not
 /// Condition: &N is Neg and Not
-/// Note: asterisk in `*op` specifies implementation by value and by reference
+/// Note: asterisk in `*value` specifies implementation by value and by reference
 ops_impl!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
     for<'lhs> &'lhs N: Neg<Output = N> + Not<Output = N>
-    (*op: &A<N>) -> A::<N>,
-    - A::<N>(-op.0),
-    ! A::<N>(!op.0));
+    (*value: &A<N>) -> A::<N>,
+    - A::<N>(-value.0),
+    ! A::<N>(!value.0));
 
 /// Implements `std::ops::Add`, `std::ops::Sub`, `std::ops::Mul`, `std::ops::Div`, `std::ops::Rem` for A<N>
 /// Condition: N is Ops
 /// Condition: &N is Ops<&N, Type = N>
-/// Note: asterisk in `*a` and `*b` specifies implementation by value and by reference
+/// Note: asterisk in `*lhs` and `*rhs` specifies implementation by value and by reference
 ops_impl!(@stdbin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
-    (*a: &A<N>, *b: &A<N>) -> A::<N>,
-    + A::<N>(a.0 + b.0),
-    - A::<N>(a.0 - b.0),
-    * A::<N>(a.0 * b.0),
-    / A::<N>(a.0 / b.0),
-    % A::<N>(a.0 % b.0));
+    (*lhs: &A<N>, *rhs: &A<N>) -> A::<N>,
+    + A::<N>(lhs.0 + rhs.0),
+    - A::<N>(lhs.0 - rhs.0),
+    * A::<N>(lhs.0 * rhs.0),
+    / A::<N>(lhs.0 / rhs.0),
+    % A::<N>(lhs.0 % rhs.0));
 
 /// Implements `std::ops::AddAssign`, `std::ops::SubAssign`, `std::ops::MulAssign`, `std::ops::DivAssign`, `std::ops::RemAssign` for A<N>
 /// Condition: N is Ops
 /// Condition: &N is Ops<&N, Type = N>
-/// Note: asterisk in `*b` specifies implementation by value and by reference
+/// Note: asterisk in `*rhs` specifies implementation by value and by reference
 ops_impl!(@stdmut <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
-    (a: &mut A<N>, *b: &A<N>) -> A::<N>,
-    += { a.0 += b.0; },
-    -= { a.0 -= b.0; },
-    *= { a.0 *= b.0; },
-    /= { a.0 /= b.0; },
-    %= { a.0 %= b.0; });
+    (lhs: &mut A<N>, *rhs: &A<N>) -> A::<N>,
+    += { lhs.0 += rhs.0; },
+    -= { lhs.0 -= rhs.0; },
+    *= { lhs.0 *= rhs.0; },
+    /= { lhs.0 /= rhs.0; },
+    %= { lhs.0 %= rhs.0; });
 ```
 
 ### Forward Generation

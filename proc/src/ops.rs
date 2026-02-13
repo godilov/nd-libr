@@ -893,7 +893,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
         }
 
         let lhs_star = self.signature.lhs_star.is_some();
-        let rhs_star = self.signature.lhs_star.is_some();
+        let rhs_star = self.signature.rhs_star.is_some();
 
         let lhs_ref = self.signature.lhs_ref.is_some();
         let rhs_ref = self.signature.rhs_ref.is_some();
