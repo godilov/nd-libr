@@ -190,15 +190,15 @@ macro_rules! from_str_impl {
     }};
 }
 
-macro_rules! ops_primitive_native_impl {
+macro_rules! nd_ops_primitive_native_impl {
     (@signed [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_native_impl!(@signed $primitive);)+
+        $(nd_ops_primitive_native_impl!(@signed $primitive);)+
     };
     (@unsigned [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_native_impl!(@unsigned $primitive);)+
+        $(nd_ops_primitive_native_impl!(@unsigned $primitive);)+
     };
     (@bytes [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_native_impl!(@bytes $primitive);)+
+        $(nd_ops_primitive_native_impl!(@bytes $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Signed<L> <const L: usize> (a: &Signed<L>, &b: &$primitive) -> Signed::<L>,
@@ -227,33 +227,6 @@ macro_rules! ops_primitive_native_impl {
             |= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop | bop),
             &= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop & bop),
             ^= bit_single_mut(&mut a.0, b as Single, if b >= 0 { 0 } else { MAX }, |aop, bop| aop ^ bop));
-
-        ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: $primitive) -> Signed::<L>,
-            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&a, &b),
-            - <Signed<L> as NdSub<Signed<L>, $primitive>>::sub(&a, &b),
-            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&a, &b),
-            / <Signed<L> as NdDiv<Signed<L>, $primitive>>::div(&a, &b),
-            % <Signed<L> as NdRem<Signed<L>, $primitive>>::rem(&a, &b),
-            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&a, &b),
-            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&a, &b),
-            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdbin <const L: usize> (b: $primitive, *a: &Signed<L>) -> Signed::<L>,
-            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&a, &b),
-            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&a, &b),
-            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&a, &b),
-            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&a, &b),
-            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: $primitive),
-            += <Signed<L> as NdAddAssign<Signed<L>, $primitive>>::add_assign(a, &b),
-            -= <Signed<L> as NdSubAssign<Signed<L>, $primitive>>::sub_assign(a, &b),
-            *= <Signed<L> as NdMulAssign<Signed<L>, $primitive>>::mul_assign(a, &b),
-            /= <Signed<L> as NdDivAssign<Signed<L>, $primitive>>::div_assign(a, &b),
-            %= <Signed<L> as NdRemAssign<Signed<L>, $primitive>>::rem_assign(a, &b),
-            |= <Signed<L> as NdBitOrAssign<Signed<L>, $primitive>>::bitor_assign(a, &b),
-            &= <Signed<L> as NdBitAndAssign<Signed<L>, $primitive>>::bitand_assign(a, &b),
-            ^= <Signed<L> as NdBitXorAssign<Signed<L>, $primitive>>::bitxor_assign(a, &b));
     };
     (@unsigned $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (a: &Unsigned<L>, &b: &$primitive) -> Unsigned::<L>,
@@ -282,33 +255,6 @@ macro_rules! ops_primitive_native_impl {
             |= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop | bop),
             &= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop & bop),
             ^= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop ^ bop));
-
-        ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, b: $primitive) -> Unsigned::<L>,
-            + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::add(&a, &b),
-            - <Unsigned<L> as NdSub<Unsigned<L>, $primitive>>::sub(&a, &b),
-            * <Unsigned<L> as NdMul<Unsigned<L>, $primitive>>::mul(&a, &b),
-            / <Unsigned<L> as NdDiv<Unsigned<L>, $primitive>>::div(&a, &b),
-            % <Unsigned<L> as NdRem<Unsigned<L>, $primitive>>::rem(&a, &b),
-            | <Unsigned<L> as NdBitOr<Unsigned<L>, $primitive>>::bitor(&a, &b),
-            & <Unsigned<L> as NdBitAnd<Unsigned<L>, $primitive>>::bitand(&a, &b),
-            ^ <Unsigned<L> as NdBitXor<Unsigned<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdbin <const L: usize> (b: $primitive, *a: &Unsigned<L>) -> Unsigned::<L>,
-            + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::add(&a, &b),
-            * <Unsigned<L> as NdMul<Unsigned<L>, $primitive>>::mul(&a, &b),
-            | <Unsigned<L> as NdBitOr<Unsigned<L>, $primitive>>::bitor(&a, &b),
-            & <Unsigned<L> as NdBitAnd<Unsigned<L>, $primitive>>::bitand(&a, &b),
-            ^ <Unsigned<L> as NdBitXor<Unsigned<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, b: $primitive),
-            += <Unsigned<L> as NdAddAssign<Unsigned<L>, $primitive>>::add_assign(a, &b),
-            -= <Unsigned<L> as NdSubAssign<Unsigned<L>, $primitive>>::sub_assign(a, &b),
-            *= <Unsigned<L> as NdMulAssign<Unsigned<L>, $primitive>>::mul_assign(a, &b),
-            /= <Unsigned<L> as NdDivAssign<Unsigned<L>, $primitive>>::div_assign(a, &b),
-            %= <Unsigned<L> as NdRemAssign<Unsigned<L>, $primitive>>::rem_assign(a, &b),
-            |= <Unsigned<L> as NdBitOrAssign<Unsigned<L>, $primitive>>::bitor_assign(a, &b),
-            &= <Unsigned<L> as NdBitAndAssign<Unsigned<L>, $primitive>>::bitand_assign(a, &b),
-            ^= <Unsigned<L> as NdBitXorAssign<Unsigned<L>, $primitive>>::bitxor_assign(a, &b));
     };
     (@bytes $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (a: &Bytes<L>, &b: &$primitive) -> Bytes::<L>,
@@ -325,33 +271,18 @@ macro_rules! ops_primitive_native_impl {
             |= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop | bop),
             &= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop & bop),
             ^= bit_single_mut(&mut a.0, b as Single, 0, |aop, bop| aop ^ bop));
-
-        ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, b: $primitive) -> Bytes::<L>,
-            | <Bytes<L> as NdBitOr<Bytes<L>, $primitive>>::bitor(&a, &b),
-            & <Bytes<L> as NdBitAnd<Bytes<L>, $primitive>>::bitand(&a, &b),
-            ^ <Bytes<L> as NdBitXor<Bytes<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdbin <const L: usize> (b: $primitive, *a: &Bytes<L>) -> Bytes::<L>,
-            | <Bytes<L> as NdBitOr<Bytes<L>, $primitive>>::bitor(&a, &b),
-            & <Bytes<L> as NdBitAnd<Bytes<L>, $primitive>>::bitand(&a, &b),
-            ^ <Bytes<L> as NdBitXor<Bytes<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, b: $primitive),
-            |= <Bytes<L> as NdBitOrAssign<Bytes<L>, $primitive>>::bitor_assign(a, &b),
-            &= <Bytes<L> as NdBitAndAssign<Bytes<L>, $primitive>>::bitand_assign(a, &b),
-            ^= <Bytes<L> as NdBitXorAssign<Bytes<L>, $primitive>>::bitxor_assign(a, &b));
     };
 }
 
-macro_rules! ops_primitive_impl {
+macro_rules! nd_ops_primitive_impl {
     (@signed [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_impl!(@signed $primitive);)+
+        $(nd_ops_primitive_impl!(@signed $primitive);)+
     };
     (@unsigned [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_impl!(@unsigned $primitive);)+
+        $(nd_ops_primitive_impl!(@unsigned $primitive);)+
     };
     (@bytes [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_impl!(@bytes $primitive);)+
+        $(nd_ops_primitive_impl!(@bytes $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Signed<L> <const L: usize> (a: &Signed<L>, &b: &$primitive) -> Signed::<L>,
@@ -380,33 +311,6 @@ macro_rules! ops_primitive_impl {
             |= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop | bop),
             &= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop & bop),
             ^= bit_long_mut(&mut a.0, &Signed::<L>::from(b).0, |aop, bop| aop ^ bop));
-
-        ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: $primitive) -> Signed::<L>,
-            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&a, &b),
-            - <Signed<L> as NdSub<Signed<L>, $primitive>>::sub(&a, &b),
-            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&a, &b),
-            / <Signed<L> as NdDiv<Signed<L>, $primitive>>::div(&a, &b),
-            % <Signed<L> as NdRem<Signed<L>, $primitive>>::rem(&a, &b),
-            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&a, &b),
-            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&a, &b),
-            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdbin <const L: usize> (b: $primitive, *a: &Signed<L>) -> Signed::<L>,
-            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&a, &b),
-            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&a, &b),
-            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&a, &b),
-            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&a, &b),
-            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&a, &b));
-
-        ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: $primitive),
-            += <Signed<L> as NdAddAssign<Signed<L>, $primitive>>::add_assign(a, &b),
-            -= <Signed<L> as NdSubAssign<Signed<L>, $primitive>>::sub_assign(a, &b),
-            *= <Signed<L> as NdMulAssign<Signed<L>, $primitive>>::mul_assign(a, &b),
-            /= <Signed<L> as NdDivAssign<Signed<L>, $primitive>>::div_assign(a, &b),
-            %= <Signed<L> as NdRemAssign<Signed<L>, $primitive>>::rem_assign(a, &b),
-            |= <Signed<L> as NdBitOrAssign<Signed<L>, $primitive>>::bitor_assign(a, &b),
-            &= <Signed<L> as NdBitAndAssign<Signed<L>, $primitive>>::bitand_assign(a, &b),
-            ^= <Signed<L> as NdBitXorAssign<Signed<L>, $primitive>>::bitxor_assign(a, &b));
     };
     (@unsigned $primitive:ty $(,)?) => {
         ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (a: &Unsigned<L>, &b: &$primitive) -> Unsigned::<L>,
@@ -435,7 +339,64 @@ macro_rules! ops_primitive_impl {
             |= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop | bop),
             &= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop & bop),
             ^= bit_long_mut(&mut a.0, &Unsigned::<L>::from(b).0, |aop, bop| aop ^ bop));
+    };
+    (@bytes $primitive:ty $(,)?) => {
+        ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (a: &Bytes<L>, &b: &$primitive) -> Bytes::<L>,
+            | Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop | bop)),
+            & Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop & bop)),
+            ^ Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop ^ bop)));
 
+        ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (&b: &$primitive, a: &Bytes<L>) -> Bytes::<L>,
+            | Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop | bop)),
+            & Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop & bop)),
+            ^ Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop ^ bop)));
+
+        ops_impl!(@ndmut crate for Bytes<L> <const L: usize> (a: &mut Bytes<L>, &b: &$primitive),
+            |= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop | bop),
+            &= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop & bop),
+            ^= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop ^ bop));
+    };
+}
+
+macro_rules! ops_primitive_native_impl {
+    (@signed [$($primitive:ty),+ $(,)?]) => {
+        $(ops_primitive_native_impl!(@signed $primitive);)+
+    };
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
+        $(ops_primitive_native_impl!(@unsigned $primitive);)+
+    };
+    (@bytes [$($primitive:ty),+ $(,)?]) => {
+        $(ops_primitive_native_impl!(@bytes $primitive);)+
+    };
+    (@signed $primitive:ty $(,)?) => {
+        ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: $primitive) -> Signed::<L>,
+            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&a, &b),
+            - <Signed<L> as NdSub<Signed<L>, $primitive>>::sub(&a, &b),
+            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&a, &b),
+            / <Signed<L> as NdDiv<Signed<L>, $primitive>>::div(&a, &b),
+            % <Signed<L> as NdRem<Signed<L>, $primitive>>::rem(&a, &b),
+            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&a, &b),
+            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&a, &b),
+            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&a, &b));
+
+        ops_impl!(@stdbin <const L: usize> (b: $primitive, *a: &Signed<L>) -> Signed::<L>,
+            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&a, &b),
+            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&a, &b),
+            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&a, &b),
+            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&a, &b),
+            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&a, &b));
+
+        ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: $primitive),
+            += <Signed<L> as NdAddAssign<Signed<L>, $primitive>>::add_assign(a, &b),
+            -= <Signed<L> as NdSubAssign<Signed<L>, $primitive>>::sub_assign(a, &b),
+            *= <Signed<L> as NdMulAssign<Signed<L>, $primitive>>::mul_assign(a, &b),
+            /= <Signed<L> as NdDivAssign<Signed<L>, $primitive>>::div_assign(a, &b),
+            %= <Signed<L> as NdRemAssign<Signed<L>, $primitive>>::rem_assign(a, &b),
+            |= <Signed<L> as NdBitOrAssign<Signed<L>, $primitive>>::bitor_assign(a, &b),
+            &= <Signed<L> as NdBitAndAssign<Signed<L>, $primitive>>::bitand_assign(a, &b),
+            ^= <Signed<L> as NdBitXorAssign<Signed<L>, $primitive>>::bitxor_assign(a, &b));
+    };
+    (@unsigned $primitive:ty $(,)?) => {
         ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, b: $primitive) -> Unsigned::<L>,
             + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::add(&a, &b),
             - <Unsigned<L> as NdSub<Unsigned<L>, $primitive>>::sub(&a, &b),
@@ -464,21 +425,6 @@ macro_rules! ops_primitive_impl {
             ^= <Unsigned<L> as NdBitXorAssign<Unsigned<L>, $primitive>>::bitxor_assign(a, &b));
     };
     (@bytes $primitive:ty $(,)?) => {
-        ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (a: &Bytes<L>, &b: &$primitive) -> Bytes::<L>,
-            | Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop | bop)),
-            & Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop & bop)),
-            ^ Bytes::<L>(bit_long(&a.0, &Bytes::<L>::from(b).0, |aop, bop| aop ^ bop)));
-
-        ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (&b: &$primitive, a: &Bytes<L>) -> Bytes::<L>,
-            | Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop | bop)),
-            & Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop & bop)),
-            ^ Bytes::<L>(bit_single(&a.0, b as Single, 0, |aop, bop| aop ^ bop)));
-
-        ops_impl!(@ndmut crate for Bytes<L> <const L: usize> (a: &mut Bytes<L>, &b: &$primitive),
-            |= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop | bop),
-            &= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop & bop),
-            ^= bit_long_mut(&mut a.0, &Bytes::<L>::from(b).0, |aop, bop| aop ^ bop));
-
         ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, b: $primitive) -> Bytes::<L>,
             | <Bytes<L> as NdBitOr<Bytes<L>, $primitive>>::bitor(&a, &b),
             & <Bytes<L> as NdBitAnd<Bytes<L>, $primitive>>::bitand(&a, &b),
@@ -1110,39 +1056,51 @@ mod uops {
 mod _impl {
     use super::*;
 
-    ops_primitive_native_impl!(@signed [i8, i16, i32, i64]);
-    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64]);
-    ops_primitive_native_impl!(@bytes [u8, u16, u32, u64]);
+    nd_ops_primitive_native_impl!(@signed [i8, i16, i32, i64]);
+    nd_ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64]);
+    nd_ops_primitive_native_impl!(@bytes [u8, u16, u32, u64]);
 
-    ops_primitive_impl!(@signed [i128]);
-    ops_primitive_impl!(@unsigned [u128]);
-    ops_primitive_impl!(@bytes [u128]);
+    nd_ops_primitive_impl!(@signed [i128]);
+    nd_ops_primitive_impl!(@unsigned [u128]);
+    nd_ops_primitive_impl!(@bytes [u128]);
+
+    ops_primitive_native_impl!(@signed [i8, i16, i32, i64, i128]);
+    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64, u128]);
+    ops_primitive_native_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
 mod _impl {
     use super::*;
 
-    ops_primitive_native_impl!(@signed [i8, i16, i32]);
-    ops_primitive_native_impl!(@unsigned [u8, u16, u32]);
-    ops_primitive_native_impl!(@bytes [u8, u16, u32]);
+    nd_ops_primitive_native_impl!(@signed [i8, i16, i32]);
+    nd_ops_primitive_native_impl!(@unsigned [u8, u16, u32]);
+    nd_ops_primitive_native_impl!(@bytes [u8, u16, u32]);
 
-    ops_primitive_impl!(@signed [i64, i128]);
-    ops_primitive_impl!(@unsigned [u64, u128]);
-    ops_primitive_impl!(@bytes [u64, u128]);
+    nd_ops_primitive_impl!(@signed [i64, i128]);
+    nd_ops_primitive_impl!(@unsigned [u64, u128]);
+    nd_ops_primitive_impl!(@bytes [u64, u128]);
+
+    ops_primitive_native_impl!(@signed [i8, i16, i32, i64, i128]);
+    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64, u128]);
+    ops_primitive_native_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
 
 #[cfg(test)]
 mod _impl {
     use super::*;
 
-    ops_primitive_native_impl!(@signed [i8]);
-    ops_primitive_native_impl!(@unsigned [u8]);
-    ops_primitive_native_impl!(@bytes [u8]);
+    nd_ops_primitive_native_impl!(@signed [i8]);
+    nd_ops_primitive_native_impl!(@unsigned [u8]);
+    nd_ops_primitive_native_impl!(@bytes [u8]);
 
-    ops_primitive_impl!(@signed [i16, i32, i64, i128]);
-    ops_primitive_impl!(@unsigned [u16, u32, u64, u128]);
-    ops_primitive_impl!(@bytes [u16, u32, u64, u128]);
+    nd_ops_primitive_impl!(@signed [i16, i32, i64, i128]);
+    nd_ops_primitive_impl!(@unsigned [u16, u32, u64, u128]);
+    nd_ops_primitive_impl!(@bytes [u16, u32, u64, u128]);
+
+    ops_primitive_native_impl!(@signed [i8, i16, i32, i64, i128]);
+    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64, u128]);
+    ops_primitive_native_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
 
 pub type S8 = signed!(8);
