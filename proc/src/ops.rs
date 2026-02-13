@@ -1,7 +1,8 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, bracketed, parenthesized,
+    Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, WherePredicate, bracketed,
+    parenthesized,
     parse::{Parse, ParseStream},
     parse_quote,
     punctuated::Punctuated,
@@ -175,13 +176,19 @@ pub struct OpsExpressionUnary {
 pub struct OpsDefinition<Operation: Parse> {
     pub op: Operation,
     pub expr: Expr,
-    pub conditions: Option<WhereClause>,
+    pub conditions: Option<OpsDefinitionConditions>,
 }
 
 #[allow(unused)]
 pub struct OpsDefinitionAuto<Operation: Parse> {
     pub op: Operation,
-    pub conditions: Option<WhereClause>,
+    pub conditions: Option<OpsDefinitionConditions>,
+}
+
+#[allow(unused)]
+pub struct OpsDefinitionConditions {
+    pub token: Token![where],
+    pub predicates: Punctuated<WherePredicate, Token![,]>,
 }
 
 #[derive(Clone, Copy)]
@@ -378,7 +385,7 @@ impl Parse for OpsStdSpecifier {
 impl Parse for OpsNdSpecifier {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
-            crate_token: input.parse().ok(),
+            crate_token: input.parse()?,
             for_token: input.parse()?,
             ty: input.parse()?,
         })
@@ -654,7 +661,7 @@ impl<Operation: Parse> Parse for OpsDefinition<Operation> {
         Ok(Self {
             op: input.parse()?,
             expr: input.parse()?,
-            conditions: input.parse()?,
+            conditions: input.parse().ok(),
         })
     }
 }
@@ -663,8 +670,19 @@ impl<Operation: Parse> Parse for OpsDefinitionAuto<Operation> {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             op: input.parse()?,
-            conditions: input.parse()?,
+            conditions: input.parse().ok(),
         })
+    }
+}
+
+impl Parse for OpsDefinitionConditions {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        let token = input.parse()?;
+        let _ = bracketed!(content in input);
+        let predicates = content.parse_terminated(WherePredicate::parse, Token![,])?;
+
+        Ok(Self { token, predicates })
     }
 }
 
@@ -750,7 +768,7 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
             generics: &'ops Generics,
             signature: &'ops OpsStdSignatureAssign,
             expr: &'ops Expr,
-            conditions: Option<&'ops WhereClause>,
+            conditions: Option<&'ops OpsDefinitionConditions>,
         }
 
         fn get_impl(spec: OpsSpec, rhs_ref: Option<Token![&]>) -> TokenStream {
@@ -831,7 +849,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
             generics: &'ops Generics,
             signature: &'ops OpsStdSignatureBinary,
             expr: &'ops Expr,
-            conditions: Option<&'ops WhereClause>,
+            conditions: Option<&'ops OpsDefinitionConditions>,
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
@@ -946,7 +964,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
             generics: &'ops Generics,
             signature: &'ops OpsStdSignatureUnary,
             expr: &'ops Expr,
-            conditions: Option<&'ops WhereClause>,
+            conditions: Option<&'ops OpsDefinitionConditions>,
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>) -> TokenStream {
