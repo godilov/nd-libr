@@ -579,22 +579,12 @@ impl Parse for OpsNdSignatureAssign {
 
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_some() => (*val.elem).clone(),
-            _ => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Failed to parse signature, lhs expected to be mutable reference",
-                ));
-            },
+            ref val => val.clone(),
         };
 
         let rhs_ty = match *rhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
-            _ => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Failed to parse signature, rhs expected to be reference",
-                ));
-            },
+            ref val => val.clone(),
         };
 
         Ok(Self {
@@ -621,22 +611,12 @@ impl Parse for OpsNdSignatureBinary {
 
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
-            _ => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Failed to parse signature, lhs expected to be reference",
-                ));
-            },
+            ref val => val.clone(),
         };
 
         let rhs_ty = match *rhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
-            _ => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Failed to parse signature, rhs expected to be reference",
-                ));
-            },
+            ref val => val.clone(),
         };
 
         Ok(Self {
@@ -663,12 +643,7 @@ impl Parse for OpsNdSignatureUnary {
 
         let self_ty = match *self_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
-            _ => {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "Failed to parse signature, self expected to be reference",
-                ));
-            },
+            ref val => val.clone(),
         };
 
         Ok(Self {
@@ -928,6 +903,7 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
             quote! {
                 impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ty #gen_where {
                     fn #ident(&mut self, rhs: #rhs_ref #rhs_ty) {
+                        #[allow(clippy::needless_borrow)]
                         (|#lhs_pat, #rhs_pat: #rhs_ref #rhs_ty| { #expr })(self, rhs);
                     }
                 }
@@ -1038,6 +1014,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
                     type Output = #op_type;
 
                     fn #ident(self, rhs: #rhs_ref #rhs_ty) -> Self::Output {
+                        #[allow(clippy::needless_borrow)]
                         (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { #op_type::from(#expr) })(self, rhs)
                     }
                 }
@@ -1183,6 +1160,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                     type Output = #op_type;
 
                     fn #ident(self) -> Self::Output {
+                        #[allow(clippy::needless_borrow)]
                         (|#self_pat: #lhs_ref #self_ty| { (#expr).into() })(self)
                     }
                 }

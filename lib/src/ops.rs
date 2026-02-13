@@ -66,13 +66,13 @@ pub trait NdBitXor<Lhs = Self, Rhs = Self> {
 pub trait NdShl<Lhs = Self, Rhs = usize> {
     type Type;
 
-    fn shl(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    fn shl(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
 pub trait NdShr<Lhs = Self, Rhs = usize> {
     type Type;
 
-    fn shr(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    fn shr(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
 pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
@@ -108,11 +108,11 @@ pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
 }
 
 pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
-    fn shl_assign(lhs: &mut Lhs, rhs: &Rhs);
+    fn shl_assign(lhs: &mut Lhs, rhs: Rhs);
 }
 
 pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
-    fn shr_assign(lhs: &mut Lhs, rhs: &Rhs);
+    fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
 }
 
 #[rustfmt::skip]

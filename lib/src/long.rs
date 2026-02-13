@@ -17,7 +17,11 @@ use crate::{
     arch::word::*,
     long::{radix::*, uops::*},
     num::{Max, Min, Num, NumExtension, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero},
-    ops::{NdNeg, NdNot},
+    ops::{
+        NdAdd, NdAddAssign, NdBitAnd, NdBitAndAssign, NdBitOr, NdBitOrAssign, NdBitXor, NdBitXorAssign, NdDiv,
+        NdDivAssign, NdMul, NdMulAssign, NdNeg, NdNot, NdRem, NdRemAssign, NdShl, NdShlAssign, NdShr, NdShrAssign,
+        NdSub, NdSubAssign,
+    },
 };
 
 macro_rules! signed {
@@ -1591,21 +1595,7 @@ ops_impl!(@ndun crate for Signed<L> <const L: usize> (a: &Signed<L>) -> Signed::
 ops_impl!(@ndun crate for Unsigned<L> <const L: usize> (a: &Unsigned<L>) -> Unsigned::<L>,
     ! Unsigned::<L>(not(&a.0)));
 
-ops_impl!(@stdun <const L: usize> (a: &Signed<L>) -> Signed::<L>,
-    - <Signed::<L> as NdNeg>::neg(a),
-    ! <Signed::<L> as NdNot>::not(a));
-
-ops_impl!(@stdun <const L: usize> (a: &Unsigned<L>) -> Unsigned::<L>,
-    ! <Unsigned::<L> as NdNot>::not(a));
-
-ops_impl!(@stdun <const L: usize> (mut a: Signed<L>) -> Signed::<L>,
-    - { neg_mut(&mut a.0); a },
-    ! { not_mut(&mut a.0); a });
-
-ops_impl!(@stdun <const L: usize> (mut a: Unsigned<L>) -> Unsigned::<L>,
-    ! { not_mut(&mut a.0); a });
-
-ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, *b: &Signed<L>) -> Signed::<L>,
+ops_impl!(@ndbin crate for Signed<L> <const L: usize> (a: &Signed<L>, b: &Signed<L>) -> Signed::<L>,
     + Signed::<L>(add_long(&a.0, &b.0)),
     - Signed::<L>(sub_long(&a.0, &b.0)),
     * Signed::<L>(mul_long(&a.0, &b.0)),
@@ -1615,7 +1605,7 @@ ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, *b: &Signed<L>) -> Signed::<
     & Signed::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Signed::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, *b: &Unsigned<L>) -> Unsigned::<L>,
+ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (a: &Unsigned<L>, b: &Unsigned<L>) -> Unsigned::<L>,
     + Unsigned::<L>(add_long(&a.0, &b.0)),
     - Unsigned::<L>(sub_long(&a.0, &b.0)),
     * Unsigned::<L>(mul_long(&a.0, &b.0)),
@@ -1625,12 +1615,12 @@ ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, *b: &Unsigned<L>) -> Unsig
     & Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Unsigned::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, *b: &Bytes<L>) -> Bytes::<L>,
+ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (a: &Bytes<L>, b: &Bytes<L>) -> Bytes::<L>,
     | Bytes::<L>(bit_long(&a.0, &b.0, |aop, bop| aop | bop)),
     & Bytes::<L>(bit_long(&a.0, &b.0, |aop, bop| aop & bop)),
     ^ Bytes::<L>(bit_long(&a.0, &b.0, |aop, bop| aop ^ bop)));
 
-ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, *b: &Signed<L>),
+ops_impl!(@ndmut crate for Signed<L> <const L: usize> (a: &mut Signed<L>, b: &Signed<L>),
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
     *= mul_long_mut(&mut a.0, &b.0),
@@ -1640,7 +1630,7 @@ ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, *b: &Signed<L>),
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, *b: &Unsigned<L>),
+ops_impl!(@ndmut crate for Unsigned<L> <const L: usize> (a: &mut Unsigned<L>, b: &Unsigned<L>),
     += add_long_mut(&mut a.0, &b.0),
     -= sub_long_mut(&mut a.0, &b.0),
     *= mul_long_mut(&mut a.0, &b.0),
@@ -1650,34 +1640,122 @@ ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, *b: &Unsigned<L>),
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, *b: &Bytes<L>),
+ops_impl!(@ndmut crate for Bytes<L> <const L: usize> (a: &mut Bytes<L>, b: &Bytes<L>),
     |= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop | bop),
     &= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop & bop),
     ^= bit_long_mut(&mut a.0, &b.0, |aop, bop| aop ^ bop));
 
-ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: usize) -> Signed::<L>,
+ops_impl!(@ndbin crate for Signed<L> <const L: usize> (a: &Signed<L>, b: usize) -> Signed::<L>,
     << Signed::<L>(shl_signed(&a.0, b)),
     >> Signed::<L>(shr_signed(&a.0, b)));
 
-ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, b: usize) -> Unsigned::<L>,
+ops_impl!(@ndbin crate for Unsigned<L> <const L: usize> (a: &Unsigned<L>, b: usize) -> Unsigned::<L>,
     << Unsigned::<L>(shl(&a.0, b, 0)),
     >> Unsigned::<L>(shr(&a.0, b, 0)));
 
-ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, b: usize) -> Bytes::<L>,
+ops_impl!(@ndbin crate for Bytes<L> <const L: usize> (a: &Bytes<L>, b: usize) -> Bytes::<L>,
     << Bytes::<L>(shl(&a.0, b, 0)),
     >> Bytes::<L>(shr(&a.0, b, 0)));
 
-ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: usize),
+ops_impl!(@ndmut crate for Signed<L> <const L: usize> (a: &mut Signed<L>, b: usize),
     <<= { shl_signed_mut(&mut a.0, b); },
     >>= { shr_signed_mut(&mut a.0, b); });
 
-ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, b: usize),
+ops_impl!(@ndmut crate for Unsigned<L> <const L: usize> (a: &mut Unsigned<L>, b: usize),
     <<= { shl_mut(&mut a.0, b, 0); },
     >>= { shr_mut(&mut a.0, b, 0); });
 
-ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, b: usize),
+ops_impl!(@ndmut crate for Bytes<L> <const L: usize> (a: &mut Bytes<L>, b: usize),
     <<= { shl_mut(&mut a.0, b, 0); },
     >>= { shr_mut(&mut a.0, b, 0); });
+
+ops_impl!(@stdun <const L: usize> (a: &Signed<L>) -> Signed::<L>,
+    - <Signed<L> as NdNeg>::neg(a),
+    ! <Signed<L> as NdNot>::not(a));
+
+ops_impl!(@stdun <const L: usize> (a: &Unsigned<L>) -> Unsigned::<L>,
+    ! <Unsigned<L> as NdNot>::not(a));
+
+ops_impl!(@stdun <const L: usize> (mut a: Signed<L>) -> Signed::<L>,
+    - { neg_mut(&mut a.0); a },
+    ! { not_mut(&mut a.0); a });
+
+ops_impl!(@stdun <const L: usize> (mut a: Unsigned<L>) -> Unsigned::<L>,
+    ! { not_mut(&mut a.0); a });
+
+ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, *b: &Signed<L>) -> Signed::<L>,
+    + <Signed<L> as NdAdd>::add(&a, &b),
+    - <Signed<L> as NdSub>::sub(&a, &b),
+    * <Signed<L> as NdMul>::mul(&a, &b),
+    / <Signed<L> as NdDiv>::div(&a, &b),
+    % <Signed<L> as NdRem>::rem(&a, &b),
+    | <Signed<L> as NdBitOr>::bitor(&a, &b),
+    & <Signed<L> as NdBitAnd>::bitand(&a, &b),
+    ^ <Signed<L> as NdBitXor>::bitxor(&a, &b));
+
+ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, *b: &Unsigned<L>) -> Unsigned::<L>,
+    + <Unsigned<L> as NdAdd>::add(&a, &b),
+    - <Unsigned<L> as NdSub>::sub(&a, &b),
+    * <Unsigned<L> as NdMul>::mul(&a, &b),
+    / <Unsigned<L> as NdDiv>::div(&a, &b),
+    % <Unsigned<L> as NdRem>::rem(&a, &b),
+    | <Unsigned<L> as NdBitOr>::bitor(&a, &b),
+    & <Unsigned<L> as NdBitAnd>::bitand(&a, &b),
+    ^ <Unsigned<L> as NdBitXor>::bitxor(&a, &b));
+
+ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, *b: &Bytes<L>) -> Bytes::<L>,
+    | <Bytes<L> as NdBitOr>::bitor(&a, &b),
+    & <Bytes<L> as NdBitAnd>::bitand(&a, &b),
+    ^ <Bytes<L> as NdBitXor>::bitxor(&a, &b));
+
+ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, *b: &Signed<L>),
+    += <Signed<L> as NdAddAssign>::add_assign(a, &b),
+    -= <Signed<L> as NdSubAssign>::sub_assign(a, &b),
+    *= <Signed<L> as NdMulAssign>::mul_assign(a, &b),
+    /= <Signed<L> as NdDivAssign>::div_assign(a, &b),
+    %= <Signed<L> as NdRemAssign>::rem_assign(a, &b),
+    |= <Signed<L> as NdBitOrAssign>::bitor_assign(a, &b),
+    &= <Signed<L> as NdBitAndAssign>::bitand_assign(a, &b),
+    ^= <Signed<L> as NdBitXorAssign>::bitxor_assign(a, &b));
+
+ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, *b: &Unsigned<L>),
+    += <Unsigned<L> as NdAddAssign>::add_assign(a, &b),
+    -= <Unsigned<L> as NdSubAssign>::sub_assign(a, &b),
+    *= <Unsigned<L> as NdMulAssign>::mul_assign(a, &b),
+    /= <Unsigned<L> as NdDivAssign>::div_assign(a, &b),
+    %= <Unsigned<L> as NdRemAssign>::rem_assign(a, &b),
+    |= <Unsigned<L> as NdBitOrAssign>::bitor_assign(a, &b),
+    &= <Unsigned<L> as NdBitAndAssign>::bitand_assign(a, &b),
+    ^= <Unsigned<L> as NdBitXorAssign>::bitxor_assign(a, &b));
+
+ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, *b: &Bytes<L>),
+    |= <Bytes<L> as NdBitOrAssign>::bitor_assign(a, &b),
+    &= <Bytes<L> as NdBitAndAssign>::bitand_assign(a, &b),
+    ^= <Bytes<L> as NdBitXorAssign>::bitxor_assign(a, &b));
+
+ops_impl!(@stdbin <const L: usize> (*a: &Signed<L>, b: usize) -> Signed::<L>,
+    << <Signed<L> as NdShl>::shl(&a, b),
+    >> <Signed<L> as NdShr>::shr(&a, b));
+
+ops_impl!(@stdbin <const L: usize> (*a: &Unsigned<L>, b: usize) -> Unsigned::<L>,
+    << <Unsigned<L> as NdShl>::shl(&a, b),
+    >> <Unsigned<L> as NdShr>::shr(&a, b));
+
+ops_impl!(@stdbin <const L: usize> (*a: &Bytes<L>, b: usize) -> Bytes::<L>,
+    << <Bytes<L> as NdShl>::shl(&a, b),
+    >> <Bytes<L> as NdShr>::shr(&a, b));
+
+ops_impl!(@stdmut <const L: usize> (a: &mut Signed<L>, b: usize),
+    <<= <Signed<L> as NdShlAssign>::shl_assign(a, b),
+    >>= <Signed<L> as NdShrAssign>::shr_assign(a, b));
+
+ops_impl!(@stdmut <const L: usize> (a: &mut Unsigned<L>, b: usize),
+    <<= <Unsigned<L> as NdShlAssign>::shl_assign(a, b),
+    >>= <Unsigned<L> as NdShrAssign>::shr_assign(a, b));
+
+ops_impl!(@stdmut <const L: usize> (a: &mut Bytes<L>, b: usize),
+    <<= <Bytes<L> as NdShlAssign>::shl_assign(a, b),
+    >>= <Bytes<L> as NdShrAssign>::shr_assign(a, b));
 
 impl<const L: usize> Signed<L> {
     from_primitive_const!([
