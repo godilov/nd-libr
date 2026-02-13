@@ -370,14 +370,14 @@ mod tests {
     ops_impl_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X1<N>, *rhs:  Y1<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
     ops_impl_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X1<N>, *rhs:  X1<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &Y0<N>) -> X0::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &X0<N>) -> X0::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  Y1<N>) -> X1::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  X1<N>) -> X1::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &Y2<N>) -> X2::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &X2<N>) -> X2::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  Y3<N>) -> X3::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  X3<N>) -> X3::<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &Y0<N>) -> X0<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &X0<N>) -> X0<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  Y1<N>) -> X1<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  X1<N>) -> X1<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &Y2<N>) -> X2<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &X2<N>) -> X2<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  Y3<N>) -> X3<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  X3<N>) -> X3<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
     ops_impl_auto!(@stdun <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> (*value: &X0<N>) -> X0<N>, (value.0) [-, !]);
     ops_impl_auto!(@stdun <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> (*value:  X1<N>) -> X1<N>, (value.0) [-, !]);

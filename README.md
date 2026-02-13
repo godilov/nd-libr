@@ -49,7 +49,7 @@ struct A<N>(N);
 /// Note: asterisk in `*value` specifies implementation by value and by reference
 ops_impl!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
     for<'lhs> &'lhs N: Neg<Output = N> + Not<Output = N>
-    (*value: &A<N>) -> A::<N>,
+    (*value: &A<N>) -> A<N>,
     - A::<N>(-value.0),
     ! A::<N>(!value.0));
 
@@ -58,7 +58,7 @@ ops_impl!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
 /// Condition: &N is Ops<&N, Type = N>
 /// Note: asterisk in `*lhs` and `*rhs` specifies implementation by value and by reference
 ops_impl!(@stdbin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
-    (*lhs: &A<N>, *rhs: &A<N>) -> A::<N>,
+    (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
     + A::<N>(lhs.0 + rhs.0),
     - A::<N>(lhs.0 - rhs.0),
     * A::<N>(lhs.0 * rhs.0),
@@ -70,7 +70,7 @@ ops_impl!(@stdbin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'r
 /// Condition: &N is Ops<&N, Type = N>
 /// Note: asterisk in `*rhs` specifies implementation by value and by reference
 ops_impl!(@stdmut <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
-    (lhs: &mut A<N>, *rhs: &A<N>) -> A::<N>,
+    (lhs: &mut A<N>, *rhs: &A<N>) -> A<N>,
     += { lhs.0 += rhs.0; },
     -= { lhs.0 -= rhs.0; },
     *= { lhs.0 *= rhs.0; },

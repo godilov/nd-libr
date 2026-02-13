@@ -160,11 +160,11 @@ impl<T> From<T> for Aligned<T> {
     }
 }
 
-ops_impl!(@ndun crate for Aligned<T> <T> (value: &Aligned<T>) -> Aligned::<T>,
+ops_impl!(@ndun crate for Aligned<T> <T> (value: &Aligned<T>) -> Aligned<T>,
     - Aligned::<T>(T::neg(&value.0)) where [T: NdNeg<Type = T>],
     ! Aligned::<T>(T::not(&value.0)) where [T: NdNot<Type = T>]);
 
-ops_impl!(@ndbin crate for Aligned<T> <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> Aligned::<T>,
+ops_impl!(@ndbin crate for Aligned<T> <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> Aligned<T>,
     + Aligned::<T>(T::add   (&lhs.0, &rhs.0)) where [T: NdAdd   <Lhs, Rhs, Type = T>],
     - Aligned::<T>(T::sub   (&lhs.0, &rhs.0)) where [T: NdSub   <Lhs, Rhs, Type = T>],
     * Aligned::<T>(T::mul   (&lhs.0, &rhs.0)) where [T: NdMul   <Lhs, Rhs, Type = T>],
@@ -174,7 +174,7 @@ ops_impl!(@ndbin crate for Aligned<T> <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &A
     & Aligned::<T>(T::bitand(&lhs.0, &rhs.0)) where [T: NdBitAnd<Lhs, Rhs, Type = T>],
     ^ Aligned::<T>(T::bitxor(&lhs.0, &rhs.0)) where [T: NdBitXor<Lhs, Rhs, Type = T>]);
 
-ops_impl!(@ndbin crate for Aligned<T> <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: Aligned<Rhs>) -> Aligned::<T>,
+ops_impl!(@ndbin crate for Aligned<T> <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: Aligned<Rhs>) -> Aligned<T>,
     << Aligned::<T>(T::shl(&lhs.0, rhs.0)) where [T: NdShl<Lhs, Rhs, Type = T>],
     >> Aligned::<T>(T::shr(&lhs.0, rhs.0)) where [T: NdShr<Lhs, Rhs, Type = T>]);
 

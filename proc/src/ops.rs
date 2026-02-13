@@ -876,17 +876,17 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
             let lhs_ty = &spec.signature.lhs_ty;
             let rhs_pat = &spec.signature.rhs_pat.pat;
             let rhs_ty = &spec.signature.rhs_ty;
-            let op_type = &spec.signature.ty;
+            let op_ty = &spec.signature.ty;
 
             let expr = &spec.expr;
 
             quote! {
                 impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ref #lhs_ty #gen_where {
-                    type Output = #op_type;
+                    type Output = #op_ty;
 
                     fn #ident(self, rhs: #rhs_ref #rhs_ty) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
-                        (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { #op_type::from(#expr) })(self, rhs)
+                        (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { <#op_ty>::from(#expr) })(self, rhs)
                     }
                 }
             }
@@ -989,17 +989,17 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 
             let self_pat = &spec.signature.self_pat.pat;
             let self_ty = &spec.signature.self_ty;
-            let op_type = &spec.signature.ty;
+            let op_ty = &spec.signature.ty;
 
             let expr = &spec.expr;
 
             quote! {
                 impl #gen_impl #path for #lhs_ref #self_ty #gen_where {
-                    type Output = #op_type;
+                    type Output = #op_ty;
 
                     fn #ident(self) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
-                        (|#self_pat: #lhs_ref #self_ty| { (#expr).into() })(self)
+                        (|#self_pat: #lhs_ref #self_ty| { <#op_ty>::from(#expr) })(self)
                     }
                 }
             }
@@ -1108,16 +1108,16 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
             let rhs_pat = &self.signature.rhs_pat;
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
-            let sig_ty = &self.signature.ty;
+            let op_ty = &self.signature.ty;
 
             let expr = &definition.expr;
 
             tokens.extend(quote! {
                 impl #gen_impl #path<#lhs_ty, #rhs_ty> for #ty #gen_where {
-                    type Type = #sig_ty;
+                    type Type = #op_ty;
 
                     fn #ident(#lhs_pat, #rhs_pat) -> Self::Type {
-                        #expr
+                        <#op_ty>::from(#expr)
                     }
                 }
             })
@@ -1151,16 +1151,16 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
             let ty = &self.specifier.ty;
             let self_pat = &self.signature.self_pat;
             let self_ty = &self.signature.self_ty;
-            let sig_ty = &self.signature.ty;
+            let op_ty = &self.signature.ty;
 
             let expr = &definition.expr;
 
             tokens.extend(quote! {
                 impl #gen_impl #path<#self_ty> for #ty #gen_where {
-                    type Type = #sig_ty;
+                    type Type = #op_ty;
 
                     fn #ident(#self_pat) -> Self::Type {
-                        #expr
+                        <#op_ty>::from(#expr)
                     }
                 }
             })
