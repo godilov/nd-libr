@@ -119,7 +119,7 @@ pub struct OpsNdSignatureAssign {
     pub comma: Token![,],
     pub rhs_pat: PatType,
     pub rhs_ty: Type,
-    pub impl_ty: Option<OpsNdImplType>,
+    pub impl_ty: OpsNdImplType,
 }
 
 #[allow(unused)]
@@ -134,7 +134,7 @@ pub struct OpsNdSignatureBinary {
     pub rhs_ty: Type,
     pub arrow: Token![->],
     pub res_ty: Type,
-    pub impl_ty: Option<OpsNdImplType>,
+    pub impl_ty: OpsNdImplType,
 }
 
 #[allow(unused)]
@@ -146,13 +146,25 @@ pub struct OpsNdSignatureUnary {
     pub self_ty: Type,
     pub arrow: Token![->],
     pub res_ty: Type,
-    pub impl_ty: Option<OpsNdImplType>,
+    pub impl_ty: OpsNdImplType,
+}
+
+pub enum OpsNdImplType {
+    Empty,
+    Single(OpsNdImplTypeSingle),
+    Multiple(OpsNdImplTypeMultiple),
 }
 
 #[allow(unused)]
-pub struct OpsNdImplType {
+pub struct OpsNdImplTypeSingle {
     pub token: Token![for],
     pub impl_ty: Type,
+}
+
+#[allow(unused)]
+pub struct OpsNdImplTypeMultiple {
+    pub token: Token![for],
+    pub impl_ty: Punctuated<Type, Token![,]>,
 }
 
 #[allow(unused)]
@@ -522,7 +534,7 @@ impl Parse for OpsNdSignatureAssign {
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
         let rhs_pat: PatType = content.parse()?;
-        let impl_ty = input.parse().ok();
+        let impl_ty = input.parse()?;
 
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_some() => (*val.elem).clone(),
@@ -564,7 +576,7 @@ impl Parse for OpsNdSignatureBinary {
         let rhs_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
         let res_ty = input.parse()?;
-        let impl_ty = input.parse().ok();
+        let impl_ty = input.parse()?;
 
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
@@ -606,7 +618,7 @@ impl Parse for OpsNdSignatureUnary {
         let self_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
         let res_ty = input.parse()?;
-        let impl_ty = input.parse().ok();
+        let impl_ty = input.parse()?;
 
         let self_ty = match *self_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
@@ -631,10 +643,36 @@ impl Parse for OpsNdSignatureUnary {
 
 impl Parse for OpsNdImplType {
     fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Token![for]) {
+            return Ok(Self::Empty);
+        }
+
+        if !input.peek2(Bracket) {
+            return Ok(Self::Single(input.parse()?));
+        }
+
+        Ok(Self::Multiple(input.parse()?))
+    }
+}
+
+impl Parse for OpsNdImplTypeSingle {
+    fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             token: input.parse()?,
             impl_ty: input.parse()?,
         })
+    }
+}
+
+impl Parse for OpsNdImplTypeMultiple {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        let token = input.parse()?;
+        let _ = bracketed!(content in input);
+        let impl_ty = content.parse_terminated(Type::parse, Token![,])?;
+
+        Ok(Self { token, impl_ty })
     }
 }
 
@@ -1080,17 +1118,24 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
             let rhs_pat = &self.signature.rhs_pat;
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
-            let impl_ty = self.signature.impl_ty.as_ref().map(|ty| &ty.impl_ty).unwrap_or_else(|| lhs_ty);
 
             let expr = &definition.expr;
 
-            tokens.extend(quote! {
-                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
-                    fn #ident(#lhs_pat, #rhs_pat) {
-                        #expr
+            let quote = |impl_ty: &Type| {
+                quote! {
+                    impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
+                        fn #ident(#lhs_pat, #rhs_pat) {
+                            #expr
+                        }
                     }
                 }
-            })
+            };
+
+            match &self.signature.impl_ty {
+                OpsNdImplType::Empty => tokens.extend(quote(lhs_ty)),
+                OpsNdImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
+                OpsNdImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
+            }
         }
     }
 }
@@ -1123,19 +1168,26 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
             let res_ty = &self.signature.res_ty;
-            let impl_ty = self.signature.impl_ty.as_ref().map(|ty| &ty.impl_ty).unwrap_or_else(|| res_ty);
 
             let expr = &definition.expr;
 
-            tokens.extend(quote! {
-                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
-                    type Type = #res_ty;
+            let quote = |impl_ty: &Type| {
+                quote! {
+                    impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
+                        type Type = #res_ty;
 
-                    fn #ident(#lhs_pat, #rhs_pat) -> Self::Type {
-                        <#res_ty>::from(#expr)
+                        fn #ident(#lhs_pat, #rhs_pat) -> Self::Type {
+                            <#res_ty>::from(#expr)
+                        }
                     }
                 }
-            })
+            };
+
+            match &self.signature.impl_ty {
+                OpsNdImplType::Empty => tokens.extend(quote(res_ty)),
+                OpsNdImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
+                OpsNdImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
+            }
         }
     }
 }
@@ -1166,19 +1218,26 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
             let self_pat = &self.signature.self_pat;
             let self_ty = &self.signature.self_ty;
             let res_ty = &self.signature.res_ty;
-            let impl_ty = self.signature.impl_ty.as_ref().map(|ty| &ty.impl_ty).unwrap_or_else(|| res_ty);
 
             let expr = &definition.expr;
 
-            tokens.extend(quote! {
-                impl #gen_impl #path<#self_ty> for #impl_ty #gen_where {
-                    type Type = #res_ty;
+            let quote = |impl_ty: &Type| {
+                quote! {
+                    impl #gen_impl #path<#self_ty> for #impl_ty #gen_where {
+                        type Type = #res_ty;
 
-                    fn #ident(#self_pat) -> Self::Type {
-                        <#res_ty>::from(#expr)
+                        fn #ident(#self_pat) -> Self::Type {
+                            <#res_ty>::from(#expr)
+                        }
                     }
                 }
-            })
+            };
+
+            match &self.signature.impl_ty {
+                OpsNdImplType::Empty => tokens.extend(quote(res_ty)),
+                OpsNdImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
+                OpsNdImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
+            }
         }
     }
 }
