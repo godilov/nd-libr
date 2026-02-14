@@ -1882,73 +1882,69 @@ impl<const L: usize> Signed<L> {
     }
 
     pub fn lt_ct(&self, other: &Self) -> bool {
-        let x = self.sign();
-        let y = other.sign();
-        let z = x.cmp(&y);
+        let x = sign_ct(&self.0);
+        let y = sign_ct(&other.0);
 
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
 
-        let z_lt = (z == Ordering::Less) as u8;
-        let z_eq = (z == Ordering::Equal) as u8;
-        let x_pos = (x == Sign::POS) as u8;
-        let x_neg = (x == Sign::NEG) as u8;
+        let s_lt = (x < y) as u8;
+        let s_eq = (x == y) as u8;
+        let x_pos = (x == 1) as u8;
+        let x_neg = (x == -1) as u8;
         let cmp_lt = (cmp == -1) as u8;
         let cmp_gt = (cmp == 1) as u8;
 
-        (z_lt | z_eq & (x_pos & cmp_lt | x_neg & cmp_gt)) != 0
+        (s_lt | s_eq & (x_pos & cmp_lt | x_neg & cmp_gt)) != 0
     }
 
     pub fn gt_ct(&self, other: &Self) -> bool {
-        let x = self.sign();
-        let y = other.sign();
-        let z = x.cmp(&y);
+        let x = sign_ct(&self.0);
+        let y = sign_ct(&other.0);
 
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
 
-        let z_gt = (z == Ordering::Greater) as u8;
-        let z_eq = (z == Ordering::Equal) as u8;
-        let x_pos = (x == Sign::POS) as u8;
-        let x_neg = (x == Sign::NEG) as u8;
+        let s_gt = (x > y) as u8;
+        let s_eq = (x == y) as u8;
+        let x_pos = (x == 1) as u8;
+        let x_neg = (x == -1) as u8;
         let cmp_lt = (cmp == -1) as u8;
         let cmp_gt = (cmp == 1) as u8;
 
-        (z_gt | z_eq & (x_pos & cmp_gt | x_neg & cmp_lt)) != 0
+        (s_gt | s_eq & (x_pos & cmp_gt | x_neg & cmp_lt)) != 0
     }
 
     pub fn le_ct(&self, other: &Self) -> bool {
-        let x = self.sign();
-        let y = other.sign();
-        let z = x.cmp(&y);
+        let x = sign_ct(&self.0);
+        let y = sign_ct(&other.0);
 
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
 
-        let z_lt = (z == Ordering::Less) as u8;
-        let z_eq = (z == Ordering::Equal) as u8;
-        let x_pos = (x == Sign::POS) as u8;
-        let x_neg = (x == Sign::NEG) as u8;
+        let s_lt = (x < y) as u8;
+        let s_eq = (x == y) as u8;
+        let x_pos = (x == 1) as u8;
+        let x_neg = (x == -1) as u8;
         let cmp_lt = (cmp == -1) as u8;
         let cmp_gt = (cmp == 1) as u8;
         let cmp_eq = (cmp == 0) as u8;
 
-        (z_lt | z_eq & (x_pos & cmp_lt | x_neg & cmp_gt | cmp_eq)) != 0
+        (s_lt | s_eq & (x_pos & cmp_lt | x_neg & cmp_gt | cmp_eq)) != 0
     }
 
     pub fn ge_ct(&self, other: &Self) -> bool {
-        let x = self.sign();
-        let y = other.sign();
-        let z = x.cmp(&y);
+        let x = sign_ct(&self.0);
+        let y = sign_ct(&other.0);
 
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
 
-        let z_gt = (z == Ordering::Greater) as u8;
-        let z_eq = (z == Ordering::Equal) as u8;
-        let x_pos = (x == Sign::POS) as u8;
-        let x_neg = (x == Sign::NEG) as u8;
+        let s_gt = (x > y) as u8;
+        let s_eq = (x == y) as u8;
+        let x_pos = (x == 1) as u8;
+        let x_neg = (x == -1) as u8;
         let cmp_lt = (cmp == -1) as u8;
         let cmp_gt = (cmp == 1) as u8;
         let cmp_eq = (cmp == 0) as u8;
 
-        (z_gt | z_eq & (x_pos & cmp_gt | x_neg & cmp_lt | cmp_eq)) != 0
+        (s_gt | s_eq & (x_pos & cmp_gt | x_neg & cmp_lt | cmp_eq)) != 0
     }
 
     pub const fn from_bytes(bytes: &[u8]) -> Self {
