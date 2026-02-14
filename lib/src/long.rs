@@ -1045,6 +1045,39 @@ mod uops {
             _ => neg,
         }
     }
+
+    #[allow(clippy::unnecessary_cast)]
+    pub(super) fn sign_ct<const L: usize>(words: &[Single; L]) -> i8 {
+        let any = (zero_ct(words) as u8).wrapping_sub(1);
+        let bit = (words[L - 1] >> (BITS - 1));
+        let neg = (bit != 0) as u8;
+        let pos = (bit.wrapping_sub(1) != 0) as u8;
+
+        let neg = -(neg as i8);
+        let pos = (pos & any) as i8;
+
+        neg | pos
+    }
+
+    #[allow(clippy::unnecessary_cast)]
+    pub(super) fn pos_ct<const L: usize>(words: &[Single; L]) -> bool {
+        let zero = zero_ct(words) as u8;
+        let neg = (words[L - 1] >> (BITS - 1)) as u8;
+
+        (zero | neg) == 0
+    }
+
+    #[allow(clippy::unnecessary_cast)]
+    pub(super) fn neg_ct<const L: usize>(words: &[Single; L]) -> bool {
+        let zero = zero_ct(words) as u8;
+        let pos = (words[L - 1] >> (BITS - 1)).wrapping_sub(1) as u8;
+
+        (zero | pos) == 0
+    }
+
+    pub(super) fn zero_ct<const L: usize>(words: &[Single; L]) -> bool {
+        eq_const!(words.iter(), std::hint::black_box(repeat(0)))
+    }
 }
 
 #[cfg(all(target_pointer_width = "64", not(test)))]
