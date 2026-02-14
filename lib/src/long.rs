@@ -62,6 +62,9 @@ macro_rules! cmp_const {
             },
         );
 
+        dbg!(gt);
+        dbg!(lt);
+
         std::hint::black_box(gt - lt)
     }};
 }
@@ -1547,7 +1550,11 @@ impl<const L: usize> Ord for Signed<L> {
 
         match x.cmp(&y) {
             Ordering::Less => Ordering::Less,
-            Ordering::Equal => self.abs().unsigned().cmp(&other.abs().unsigned()),
+            Ordering::Equal => match x {
+                Sign::ZERO => Ordering::Equal,
+                Sign::NEG => self.abs().unsigned().cmp(&other.abs().unsigned()).reverse(),
+                Sign::POS => self.abs().unsigned().cmp(&other.abs().unsigned()),
+            },
             Ordering::Greater => Ordering::Greater,
         }
     }
@@ -1889,12 +1896,9 @@ impl<const L: usize> Signed<L> {
 
         let s_lt = (x < y) as u8;
         let s_eq = (x == y) as u8;
-        let x_pos = (x == 1) as u8;
-        let x_neg = (x == -1) as u8;
         let cmp_lt = (cmp == -1) as u8;
-        let cmp_gt = (cmp == 1) as u8;
 
-        (s_lt | s_eq & (x_pos & cmp_lt | x_neg & cmp_gt)) != 0
+        (s_lt | s_eq & cmp_lt) != 0
     }
 
     pub fn gt_ct(&self, other: &Self) -> bool {
@@ -1905,12 +1909,9 @@ impl<const L: usize> Signed<L> {
 
         let s_gt = (x > y) as u8;
         let s_eq = (x == y) as u8;
-        let x_pos = (x == 1) as u8;
-        let x_neg = (x == -1) as u8;
-        let cmp_lt = (cmp == -1) as u8;
         let cmp_gt = (cmp == 1) as u8;
 
-        (s_gt | s_eq & (x_pos & cmp_gt | x_neg & cmp_lt)) != 0
+        (s_gt | s_eq & cmp_gt) != 0
     }
 
     pub fn le_ct(&self, other: &Self) -> bool {
@@ -1921,13 +1922,10 @@ impl<const L: usize> Signed<L> {
 
         let s_lt = (x < y) as u8;
         let s_eq = (x == y) as u8;
-        let x_pos = (x == 1) as u8;
-        let x_neg = (x == -1) as u8;
         let cmp_lt = (cmp == -1) as u8;
-        let cmp_gt = (cmp == 1) as u8;
         let cmp_eq = (cmp == 0) as u8;
 
-        (s_lt | s_eq & (x_pos & cmp_lt | x_neg & cmp_gt | cmp_eq)) != 0
+        (s_lt | s_eq & (cmp_lt | cmp_eq)) != 0
     }
 
     pub fn ge_ct(&self, other: &Self) -> bool {
@@ -1938,13 +1936,10 @@ impl<const L: usize> Signed<L> {
 
         let s_gt = (x > y) as u8;
         let s_eq = (x == y) as u8;
-        let x_pos = (x == 1) as u8;
-        let x_neg = (x == -1) as u8;
-        let cmp_lt = (cmp == -1) as u8;
         let cmp_gt = (cmp == 1) as u8;
         let cmp_eq = (cmp == 0) as u8;
 
-        (s_gt | s_eq & (x_pos & cmp_gt | x_neg & cmp_lt | cmp_eq)) != 0
+        (s_gt | s_eq & (cmp_gt | cmp_eq)) != 0
     }
 
     pub const fn from_bytes(bytes: &[u8]) -> Self {
@@ -3619,6 +3614,44 @@ mod tests {
             assert_eq!(format!("{:#o}", U64 { 0: pos(&bytes) }), oct);
             assert_eq!(format!("{:#x}", U64 { 0: pos(&bytes) }), hex);
         }
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn signed_cmp() {
+        assert_ops!(
+            S64,
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            [
+                (|lhs: S64, rhs: S64| { lhs.eq   (&rhs) })(|lhs: i64, rhs: i64| { lhs.eq (&rhs) }),
+                (|lhs: S64, rhs: S64| { lhs.cmp  (&rhs) })(|lhs: i64, rhs: i64| { lhs.cmp(&rhs) }),
+                (|lhs: S64, rhs: S64| { lhs.eq_ct(&rhs) })(|lhs: i64, rhs: i64| { lhs == rhs }),
+                (|lhs: S64, rhs: S64| { lhs.lt_ct(&rhs) })(|lhs: i64, rhs: i64| { lhs <  rhs }),
+                (|lhs: S64, rhs: S64| { lhs.gt_ct(&rhs) })(|lhs: i64, rhs: i64| { lhs >  rhs }),
+                (|lhs: S64, rhs: S64| { lhs.le_ct(&rhs) })(|lhs: i64, rhs: i64| { lhs <= rhs }),
+                (|lhs: S64, rhs: S64| { lhs.ge_ct(&rhs) })(|lhs: i64, rhs: i64| { lhs >= rhs }),
+            ]
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn unsigned_cmp() {
+        assert_ops!(
+            U64,
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            [
+                (|lhs: U64, rhs: U64| { lhs.eq   (&rhs) })(|lhs: u64, rhs: u64| { lhs.eq (&rhs) }),
+                (|lhs: U64, rhs: U64| { lhs.cmp  (&rhs) })(|lhs: u64, rhs: u64| { lhs.cmp(&rhs) }),
+                (|lhs: U64, rhs: U64| { lhs.eq_ct(&rhs) })(|lhs: u64, rhs: u64| { lhs == rhs }),
+                (|lhs: U64, rhs: U64| { lhs.lt_ct(&rhs) })(|lhs: u64, rhs: u64| { lhs <  rhs }),
+                (|lhs: U64, rhs: U64| { lhs.gt_ct(&rhs) })(|lhs: u64, rhs: u64| { lhs >  rhs }),
+                (|lhs: U64, rhs: U64| { lhs.le_ct(&rhs) })(|lhs: u64, rhs: u64| { lhs <= rhs }),
+                (|lhs: U64, rhs: U64| { lhs.ge_ct(&rhs) })(|lhs: u64, rhs: u64| { lhs >= rhs }),
+            ]
+        );
     }
 
     #[test]
