@@ -62,9 +62,6 @@ macro_rules! cmp_const {
             },
         );
 
-        dbg!(gt);
-        dbg!(lt);
-
         std::hint::black_box(gt - lt)
     }};
 }
