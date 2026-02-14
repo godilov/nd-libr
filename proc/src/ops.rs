@@ -53,8 +53,6 @@ pub struct OpsNdKindUnary;
 
 #[allow(unused)]
 pub struct OpsImpl<Kind: OpsKind> {
-    pub specifier: Kind::Specifier,
-    pub generics: Generics,
     pub signature: Kind::Signature,
     pub colon: Token![,],
     pub definitions: Punctuated<OpsDefinition<Kind::Operation>, Token![,]>,
@@ -62,8 +60,6 @@ pub struct OpsImpl<Kind: OpsKind> {
 
 #[allow(unused)]
 pub struct OpsImplAuto<Kind: OpsKind> {
-    pub specifier: Kind::Specifier,
-    pub generics: Generics,
     pub signature: Kind::Signature,
     pub colon: Token![,],
     pub expression: Kind::Expression,
@@ -71,17 +67,9 @@ pub struct OpsImplAuto<Kind: OpsKind> {
     pub ops: Punctuated<OpsDefinitionAuto<Kind::Operation>, Token![,]>,
 }
 
-pub struct OpsStdSpecifier;
-
-#[allow(unused)]
-pub struct OpsNdSpecifier {
-    crate_token: Option<Token![crate]>,
-    for_token: Token![for],
-    ty: Type,
-}
-
 #[allow(unused)]
 pub struct OpsStdSignatureAssign {
+    pub generics: Generics,
     pub paren: Paren,
     pub lhs_pat: PatType,
     pub lhs_ty: Type,
@@ -94,6 +82,7 @@ pub struct OpsStdSignatureAssign {
 
 #[allow(unused)]
 pub struct OpsStdSignatureBinary {
+    pub generics: Generics,
     pub paren: Paren,
     pub lhs_star: Option<Token![*]>,
     pub lhs_pat: PatType,
@@ -105,32 +94,38 @@ pub struct OpsStdSignatureBinary {
     pub rhs_ref: Option<Token![&]>,
     pub rhs_ty: Type,
     pub arrow: Token![->],
-    pub ty: Type,
+    pub res_ty: Type,
 }
 
 #[allow(unused)]
 pub struct OpsStdSignatureUnary {
+    pub generics: Generics,
     pub paren: Paren,
     pub self_star: Option<Token![*]>,
     pub self_pat: PatType,
     pub self_ref: Option<Token![&]>,
     pub self_ty: Type,
     pub arrow: Token![->],
-    pub ty: Type,
+    pub res_ty: Type,
 }
 
 #[allow(unused)]
 pub struct OpsNdSignatureAssign {
+    pub token: Option<Token![crate]>,
+    pub generics: Generics,
     pub paren: Paren,
     pub lhs_pat: PatType,
     pub lhs_ty: Type,
     pub comma: Token![,],
     pub rhs_pat: PatType,
     pub rhs_ty: Type,
+    pub impl_ty: Option<OpsNdImplType>,
 }
 
 #[allow(unused)]
 pub struct OpsNdSignatureBinary {
+    pub token: Option<Token![crate]>,
+    pub generics: Generics,
     pub paren: Paren,
     pub lhs_pat: PatType,
     pub lhs_ty: Type,
@@ -138,16 +133,26 @@ pub struct OpsNdSignatureBinary {
     pub rhs_pat: PatType,
     pub rhs_ty: Type,
     pub arrow: Token![->],
-    pub ty: Type,
+    pub res_ty: Type,
+    pub impl_ty: Option<OpsNdImplType>,
 }
 
 #[allow(unused)]
 pub struct OpsNdSignatureUnary {
+    pub token: Option<Token![crate]>,
+    pub generics: Generics,
     pub paren: Paren,
     pub self_pat: PatType,
     pub self_ty: Type,
     pub arrow: Token![->],
-    pub ty: Type,
+    pub res_ty: Type,
+    pub impl_ty: Option<OpsNdImplType>,
+}
+
+#[allow(unused)]
+pub struct OpsNdImplType {
+    pub token: Token![for],
+    pub impl_ty: Type,
 }
 
 #[allow(unused)]
@@ -228,7 +233,6 @@ pub enum OpsUnary {
 pub trait OpsKind {
     type Expression: Parse;
     type Operation: Parse;
-    type Specifier: Parse;
     type Signature: Parse;
 }
 
@@ -236,42 +240,36 @@ impl OpsKind for OpsStdKindAssign {
     type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsStdSignatureAssign;
-    type Specifier = OpsStdSpecifier;
 }
 
 impl OpsKind for OpsStdKindBinary {
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsStdSignatureBinary;
-    type Specifier = OpsStdSpecifier;
 }
 
 impl OpsKind for OpsStdKindUnary {
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsStdSignatureUnary;
-    type Specifier = OpsStdSpecifier;
 }
 
 impl OpsKind for OpsNdKindAssign {
     type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsNdSignatureAssign;
-    type Specifier = OpsNdSpecifier;
 }
 
 impl OpsKind for OpsNdKindBinary {
     type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsNdSignatureBinary;
-    type Specifier = OpsNdSpecifier;
 }
 
 impl OpsKind for OpsNdKindUnary {
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsNdSignatureUnary;
-    type Specifier = OpsNdSpecifier;
 }
 
 impl Parse for Ops {
@@ -336,16 +334,7 @@ impl Parse for OpsAuto {
 
 impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let specifier = input.parse()?;
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
-
         Ok(Self {
-            specifier,
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
             signature: input.parse()?,
             colon: input.parse()?,
             definitions: input.parse_terminated(OpsDefinition::parse, Token![,])?,
@@ -355,18 +344,9 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
 
 impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let specifier = input.parse()?;
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
-
         let content;
 
         Ok(Self {
-            specifier,
-            generics: Generics {
-                where_clause: gen_where,
-                ..gen_
-            },
             signature: input.parse()?,
             colon: input.parse()?,
             expression: input.parse()?,
@@ -376,26 +356,12 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
     }
 }
 
-impl Parse for OpsStdSpecifier {
-    fn parse(_: ParseStream) -> Result<Self> {
-        Ok(Self)
-    }
-}
-
-impl Parse for OpsNdSpecifier {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            crate_token: input.parse()?,
-            for_token: input.parse()?,
-            ty: input.parse()?,
-        })
-    }
-}
-
 impl Parse for OpsStdSignatureAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
         let paren = parenthesized!(content in input);
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
@@ -426,6 +392,10 @@ impl Parse for OpsStdSignatureAssign {
         };
 
         Ok(Self {
+            generics: get_normalized_generics(Generics {
+                where_clause: gen_where,
+                ..gen_
+            }),
             paren,
             lhs_pat,
             lhs_ty,
@@ -442,6 +412,8 @@ impl Parse for OpsStdSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
         let paren = parenthesized!(content in input);
         let lhs_star = content.parse()?;
         let lhs_pat: PatType = content.parse()?;
@@ -449,7 +421,7 @@ impl Parse for OpsStdSignatureBinary {
         let rhs_star = content.parse()?;
         let rhs_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
-        let ty = input.parse()?;
+        let res_ty = input.parse()?;
 
         let (lhs_ty, lhs_ref) = match *lhs_pat.ty {
             Type::Reference(ref val) => match val.mutability {
@@ -478,6 +450,10 @@ impl Parse for OpsStdSignatureBinary {
         };
 
         Ok(Self {
+            generics: get_normalized_generics(Generics {
+                where_clause: gen_where,
+                ..gen_
+            }),
             paren,
             lhs_star,
             lhs_pat,
@@ -489,7 +465,7 @@ impl Parse for OpsStdSignatureBinary {
             rhs_ref,
             rhs_ty,
             arrow,
-            ty,
+            res_ty,
         })
     }
 }
@@ -498,11 +474,13 @@ impl Parse for OpsStdSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
         let paren = parenthesized!(content in input);
         let self_star = content.parse()?;
         let self_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
-        let ty = input.parse()?;
+        let res_ty = input.parse()?;
 
         let (self_ty, self_ref) = match *self_pat.ty {
             Type::Reference(ref val) => match val.mutability {
@@ -518,13 +496,17 @@ impl Parse for OpsStdSignatureUnary {
         };
 
         Ok(Self {
+            generics: get_normalized_generics(Generics {
+                where_clause: gen_where,
+                ..gen_
+            }),
             paren,
             self_star,
             self_pat,
             self_ref,
             self_ty,
             arrow,
-            ty,
+            res_ty,
         })
     }
 }
@@ -533,10 +515,14 @@ impl Parse for OpsNdSignatureAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let token = input.parse()?;
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
         let paren = parenthesized!(content in input);
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
         let rhs_pat: PatType = content.parse()?;
+        let impl_ty = input.parse().ok();
 
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_some() => (*val.elem).clone(),
@@ -549,12 +535,18 @@ impl Parse for OpsNdSignatureAssign {
         };
 
         Ok(Self {
+            token,
+            generics: get_normalized_generics(Generics {
+                where_clause: gen_where,
+                ..gen_
+            }),
             paren,
             lhs_pat,
             lhs_ty,
             comma,
             rhs_pat,
             rhs_ty,
+            impl_ty,
         })
     }
 }
@@ -563,12 +555,16 @@ impl Parse for OpsNdSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let token = input.parse()?;
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
         let paren = parenthesized!(content in input);
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
         let rhs_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
-        let ty = input.parse()?;
+        let res_ty = input.parse()?;
+        let impl_ty = input.parse().ok();
 
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
@@ -581,6 +577,11 @@ impl Parse for OpsNdSignatureBinary {
         };
 
         Ok(Self {
+            token,
+            generics: get_normalized_generics(Generics {
+                where_clause: gen_where,
+                ..gen_
+            }),
             paren,
             lhs_pat,
             lhs_ty,
@@ -588,7 +589,8 @@ impl Parse for OpsNdSignatureBinary {
             rhs_pat,
             rhs_ty,
             arrow,
-            ty,
+            res_ty,
+            impl_ty,
         })
     }
 }
@@ -597,10 +599,14 @@ impl Parse for OpsNdSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
+        let token = input.parse()?;
+        let gen_ = input.parse::<Generics>()?;
+        let gen_where = input.parse::<Option<WhereClause>>()?;
         let paren = parenthesized!(content in input);
         let self_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
-        let ty = input.parse()?;
+        let res_ty = input.parse()?;
+        let impl_ty = input.parse().ok();
 
         let self_ty = match *self_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
@@ -608,11 +614,26 @@ impl Parse for OpsNdSignatureUnary {
         };
 
         Ok(Self {
+            token,
+            generics: get_normalized_generics(Generics {
+                where_clause: gen_where,
+                ..gen_
+            }),
             paren,
             self_pat,
             self_ty,
             arrow,
-            ty,
+            res_ty,
+            impl_ty,
+        })
+    }
+}
+
+impl Parse for OpsNdImplType {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            token: input.parse()?,
+            impl_ty: input.parse()?,
         })
     }
 }
@@ -764,9 +785,8 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
-            op: &'ops OpsAssign,
-            generics: &'ops Generics,
             signature: &'ops OpsStdSignatureAssign,
+            op: &'ops OpsAssign,
             expr: &'ops Expr,
             conditions: Option<&'ops OpsDefinitionConditions>,
         }
@@ -775,7 +795,7 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
             let ident = spec.op.get_ident();
             let path = spec.op.get_path();
 
-            let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
+            let (gen_impl, _, gen_where) = spec.signature.generics.split_for_impl();
 
             let predicates = match spec.conditions {
                 Some(val) => {
@@ -816,9 +836,8 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
 
         for definition in &self.definitions {
             let spec = OpsSpec {
-                op: &definition.op,
-                generics: &self.generics,
                 signature: &self.signature,
+                op: &definition.op,
                 expr: &definition.expr,
                 conditions: definition.conditions.as_ref(),
             };
@@ -845,9 +864,8 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
-            op: &'ops OpsBinary,
-            generics: &'ops Generics,
             signature: &'ops OpsStdSignatureBinary,
+            op: &'ops OpsBinary,
             expr: &'ops Expr,
             conditions: Option<&'ops OpsDefinitionConditions>,
         }
@@ -856,7 +874,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
             let ident = spec.op.get_ident();
             let path = spec.op.get_path();
 
-            let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
+            let (gen_impl, _, gen_where) = spec.signature.generics.split_for_impl();
 
             let predicates = match spec.conditions {
                 Some(val) => {
@@ -876,17 +894,17 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
             let lhs_ty = &spec.signature.lhs_ty;
             let rhs_pat = &spec.signature.rhs_pat.pat;
             let rhs_ty = &spec.signature.rhs_ty;
-            let op_ty = &spec.signature.ty;
+            let res_ty = &spec.signature.res_ty;
 
             let expr = &spec.expr;
 
             quote! {
                 impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ref #lhs_ty #gen_where {
-                    type Output = #op_ty;
+                    type Output = #res_ty;
 
                     fn #ident(self, rhs: #rhs_ref #rhs_ty) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
-                        (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { <#op_ty>::from(#expr) })(self, rhs)
+                        (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { <#res_ty>::from(#expr) })(self, rhs)
                     }
                 }
             }
@@ -903,9 +921,8 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
 
         for definition in &self.definitions {
             let spec = OpsSpec {
-                op: &definition.op,
-                generics: &self.generics,
                 signature: &self.signature,
+                op: &definition.op,
                 expr: &definition.expr,
                 conditions: definition.conditions.as_ref(),
             };
@@ -960,9 +977,8 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[derive(Clone, Copy)]
         struct OpsSpec<'ops> {
-            op: &'ops OpsUnary,
-            generics: &'ops Generics,
             signature: &'ops OpsStdSignatureUnary,
+            op: &'ops OpsUnary,
             expr: &'ops Expr,
             conditions: Option<&'ops OpsDefinitionConditions>,
         }
@@ -971,7 +987,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
             let ident = spec.op.get_ident();
             let path = spec.op.get_path();
 
-            let (gen_impl, _, gen_where) = spec.generics.split_for_impl();
+            let (gen_impl, _, gen_where) = spec.signature.generics.split_for_impl();
 
             let predicates = match spec.conditions {
                 Some(val) => {
@@ -989,17 +1005,17 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 
             let self_pat = &spec.signature.self_pat.pat;
             let self_ty = &spec.signature.self_ty;
-            let op_ty = &spec.signature.ty;
+            let res_ty = &spec.signature.res_ty;
 
             let expr = &spec.expr;
 
             quote! {
                 impl #gen_impl #path for #lhs_ref #self_ty #gen_where {
-                    type Output = #op_ty;
+                    type Output = #res_ty;
 
                     fn #ident(self) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
-                        (|#self_pat: #lhs_ref #self_ty| { <#op_ty>::from(#expr) })(self)
+                        (|#self_pat: #lhs_ref #self_ty| { <#res_ty>::from(#expr) })(self)
                     }
                 }
             }
@@ -1013,9 +1029,8 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 
         for definition in &self.definitions {
             let spec = OpsSpec {
-                op: &definition.op,
-                generics: &self.generics,
                 signature: &self.signature,
+                op: &definition.op,
                 expr: &definition.expr,
                 conditions: definition.conditions.as_ref(),
             };
@@ -1041,11 +1056,11 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 impl ToTokens for OpsImpl<OpsNdKindAssign> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
-            let token = self.specifier.crate_token;
+            let token = self.signature.token;
             let ident = definition.op.get_ident();
             let path = definition.op.get_nd_path(token);
 
-            let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+            let (gen_impl, _, gen_where) = self.signature.generics.split_for_impl();
 
             let predicates = match &definition.conditions {
                 Some(val) => {
@@ -1061,16 +1076,16 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
                 None => quote! { where #predicates },
             };
 
-            let ty = &self.specifier.ty;
             let lhs_pat = &self.signature.lhs_pat;
             let rhs_pat = &self.signature.rhs_pat;
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
+            let impl_ty = self.signature.impl_ty.as_ref().map(|ty| &ty.impl_ty).unwrap_or_else(|| lhs_ty);
 
             let expr = &definition.expr;
 
             tokens.extend(quote! {
-                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #ty #gen_where {
+                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
                     fn #ident(#lhs_pat, #rhs_pat) {
                         #expr
                     }
@@ -1083,11 +1098,11 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
 impl ToTokens for OpsImpl<OpsNdKindBinary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
-            let token = self.specifier.crate_token;
+            let token = self.signature.token;
             let ident = definition.op.get_ident();
             let path = definition.op.get_nd_path(token);
 
-            let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+            let (gen_impl, _, gen_where) = self.signature.generics.split_for_impl();
 
             let predicates = match &definition.conditions {
                 Some(val) => {
@@ -1103,21 +1118,21 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
                 None => quote! { where #predicates },
             };
 
-            let ty = &self.specifier.ty;
             let lhs_pat = &self.signature.lhs_pat;
             let rhs_pat = &self.signature.rhs_pat;
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
-            let op_ty = &self.signature.ty;
+            let res_ty = &self.signature.res_ty;
+            let impl_ty = self.signature.impl_ty.as_ref().map(|ty| &ty.impl_ty).unwrap_or_else(|| res_ty);
 
             let expr = &definition.expr;
 
             tokens.extend(quote! {
-                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #ty #gen_where {
-                    type Type = #op_ty;
+                impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
+                    type Type = #res_ty;
 
                     fn #ident(#lhs_pat, #rhs_pat) -> Self::Type {
-                        <#op_ty>::from(#expr)
+                        <#res_ty>::from(#expr)
                     }
                 }
             })
@@ -1128,11 +1143,11 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
 impl ToTokens for OpsImpl<OpsNdKindUnary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
-            let token = self.specifier.crate_token;
+            let token = self.signature.token;
             let ident = definition.op.get_ident();
             let path = definition.op.get_nd_path(token);
 
-            let (gen_impl, _, gen_where) = self.generics.split_for_impl();
+            let (gen_impl, _, gen_where) = self.signature.generics.split_for_impl();
 
             let predicates = match &definition.conditions {
                 Some(val) => {
@@ -1148,19 +1163,19 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
                 None => quote! { where #predicates },
             };
 
-            let ty = &self.specifier.ty;
             let self_pat = &self.signature.self_pat;
             let self_ty = &self.signature.self_ty;
-            let op_ty = &self.signature.ty;
+            let res_ty = &self.signature.res_ty;
+            let impl_ty = self.signature.impl_ty.as_ref().map(|ty| &ty.impl_ty).unwrap_or_else(|| res_ty);
 
             let expr = &definition.expr;
 
             tokens.extend(quote! {
-                impl #gen_impl #path<#self_ty> for #ty #gen_where {
-                    type Type = #op_ty;
+                impl #gen_impl #path<#self_ty> for #impl_ty #gen_where {
+                    type Type = #res_ty;
 
                     fn #ident(#self_pat) -> Self::Type {
-                        <#op_ty>::from(#expr)
+                        <#res_ty>::from(#expr)
                     }
                 }
             })
@@ -1214,8 +1229,6 @@ impl ToTokens for OpsUnary {
 impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
     fn from(value: OpsImplAuto<OpsStdKindAssign>) -> Self {
         OpsImpl::<OpsStdKindAssign> {
-            specifier: value.specifier,
-            generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
             definitions: value
@@ -1241,8 +1254,6 @@ impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
 impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
     fn from(value: OpsImplAuto<OpsStdKindBinary>) -> Self {
         OpsImpl::<OpsStdKindBinary> {
-            specifier: value.specifier,
-            generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
             definitions: value
@@ -1268,8 +1279,6 @@ impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
 impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
     fn from(value: OpsImplAuto<OpsStdKindUnary>) -> Self {
         OpsImpl::<OpsStdKindUnary> {
-            specifier: value.specifier,
-            generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
             definitions: value
@@ -1294,8 +1303,6 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
 impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
     fn from(value: OpsImplAuto<OpsNdKindAssign>) -> Self {
         OpsImpl::<OpsNdKindAssign> {
-            specifier: value.specifier,
-            generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
             definitions: value
@@ -1321,8 +1328,6 @@ impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
 impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
     fn from(value: OpsImplAuto<OpsNdKindBinary>) -> Self {
         OpsImpl::<OpsNdKindBinary> {
-            specifier: value.specifier,
-            generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
             definitions: value
@@ -1348,8 +1353,6 @@ impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
 impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
     fn from(value: OpsImplAuto<OpsNdKindUnary>) -> Self {
         OpsImpl::<OpsNdKindUnary> {
-            specifier: value.specifier,
-            generics: value.generics,
             signature: value.signature,
             colon: Default::default(),
             definitions: value

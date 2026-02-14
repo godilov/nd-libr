@@ -13,22 +13,22 @@ macro_rules! nd_ops_impl {
         $(nd_ops_impl!(@unsigned $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
-        ops_impl_auto!(@ndun crate for $primitive (&value: &$primitive) -> $primitive, (value) [-, !]);
+        ops_impl_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [-, !]);
 
-        ops_impl_auto!(@ndbin crate for $primitive (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
-        ops_impl_auto!(@ndmut crate for $primitive (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
+        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
 
-        ops_impl_auto!(@ndbin crate for $primitive (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
-        ops_impl_auto!(@ndmut crate for $primitive (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
+        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
+        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
     };
     (@unsigned $primitive:ty $(,)?) => {
-        ops_impl_auto!(@ndun crate for $primitive (&value: &$primitive) -> $primitive, (value) [!]);
+        ops_impl_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [!]);
 
-        ops_impl_auto!(@ndbin crate for $primitive (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
-        ops_impl_auto!(@ndmut crate for $primitive (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
+        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
 
-        ops_impl_auto!(@ndbin crate for $primitive (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
-        ops_impl_auto!(@ndmut crate for $primitive (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
+        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
+        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
     };
 }
 
