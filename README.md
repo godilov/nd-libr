@@ -224,10 +224,15 @@ let si = sradix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
 let ui = uradix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
 ```
 
-#### API (Eq/Cmp)
+#### API (Comparison)
 
-- `PartialEq`, `Eq` - const-time eq (`Signed`, `Unsigned`, `Bytes`)
-- `PartialOrd`, `Ord` - const-time cmp (`Signed`, `Unsigned`)
+- `PartialEq`, `Eq` - naive eq (`Signed`, `Unsigned`, `Bytes`)
+- `PartialOrd`, `Ord` - naive cmp (`Signed`, `Unsigned`)
+- `eq_ct` - const-time equality comparison (`Signed`, `Unsigned`, `Bytes`)
+- `lt_ct` - const-time less-then comparison (`Signed`, `Unsigned`)
+- `gt_ct` - const-time greater-then comparison (`Signed`, `Unsigned`)
+- `le_ct` - const-time less-then or equal comparison (`Signed`, `Unsigned`)
+- `ge_ct` - const-time greater-then or equal comparison (`Signed`, `Unsigned`)
 
 #### API (Ops)
 

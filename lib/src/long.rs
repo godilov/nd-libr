@@ -62,12 +62,7 @@ macro_rules! cmp_const {
             },
         );
 
-        match std::hint::black_box(lt - gt) {
-            -1 => Ordering::Greater,
-            0 => Ordering::Equal,
-            1 => Ordering::Less,
-            _ => unreachable!(),
-        }
+        std::hint::black_box(gt - lt)
     }};
 }
 
@@ -1169,17 +1164,14 @@ pub type B4096 = bytes!(4096);
 pub type B6144 = bytes!(6144);
 pub type B8192 = bytes!(8192);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
-#[derive(Debug, Clone, Copy)]
-pub struct SignedSimd<const L: usize>(pub [Single; L]);
-
-#[derive(Debug, Clone, Copy)]
-pub struct UnsignedSimd<const L: usize>(pub [Single; L]);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Bytes<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedDyn(Vec<Single>, Sign);
@@ -1187,8 +1179,14 @@ pub struct SignedDyn(Vec<Single>, Sign);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsignedDyn(Vec<Single>);
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BytesDyn(Vec<Single>);
+
 #[derive(Debug, Clone, Copy)]
-pub struct Bytes<const L: usize>(pub [Single; L]);
+pub struct SignedSimd<const L: usize>(pub [Single; L]);
+
+#[derive(Debug, Clone, Copy)]
+pub struct UnsignedSimd<const L: usize>(pub [Single; L]);
 
 #[derive(Debug, Clone)]
 pub struct DigitsIter<'words, const L: usize, W: Word> {
@@ -1509,48 +1507,22 @@ impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
     }
 }
 
-impl<const L: usize> Eq for Signed<L> {}
-
-impl<const L: usize> Eq for Unsigned<L> {}
-
-impl<const L: usize> Eq for Bytes<L> {}
-
 impl<const L: usize> Ord for Signed<L> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let xs = self.sign();
-        let ys = other.sign();
+        let x = self.sign();
+        let y = other.sign();
 
-        let xu = self.abs().unsigned();
-        let yu = other.abs().unsigned();
-
-        let s_cmp = xs.cmp(&ys);
-        let v_cmp = xu.cmp(&yu);
-
-        s_cmp.then(v_cmp)
+        match x.cmp(&y) {
+            Ordering::Less => Ordering::Less,
+            Ordering::Equal => self.abs().unsigned().cmp(&other.abs().unsigned()),
+            Ordering::Greater => Ordering::Greater,
+        }
     }
 }
 
 impl<const L: usize> Ord for Unsigned<L> {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp_const!(self.0.iter(), other.0.iter())
-    }
-}
-
-impl<const L: usize> PartialEq for Signed<L> {
-    fn eq(&self, other: &Self) -> bool {
-        eq_const!(self.0.iter(), other.0.iter())
-    }
-}
-
-impl<const L: usize> PartialEq for Unsigned<L> {
-    fn eq(&self, other: &Self) -> bool {
-        eq_const!(self.0.iter(), other.0.iter())
-    }
-}
-
-impl<const L: usize> PartialEq for Bytes<L> {
-    fn eq(&self, other: &Self) -> bool {
-        eq_const!(self.0.iter(), other.0.iter())
+        self.0.iter().rev().cmp(other.0.iter().rev())
     }
 }
 
@@ -1872,6 +1844,80 @@ impl<const L: usize> Signed<L> {
         (from_isize, isize),
     ]);
 
+    pub fn eq_ct(&self, other: &Self) -> bool {
+        eq_const!(self.0.iter(), other.0.iter())
+    }
+
+    pub fn lt_ct(&self, other: &Self) -> bool {
+        let x = self.sign();
+        let y = other.sign();
+        let z = x.cmp(&y);
+
+        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+
+        let z_lt = (z == Ordering::Less) as u8;
+        let z_eq = (z == Ordering::Equal) as u8;
+        let x_pos = (x == Sign::POS) as u8;
+        let x_neg = (x == Sign::NEG) as u8;
+        let cmp_lt = (cmp == -1) as u8;
+        let cmp_gt = (cmp == 1) as u8;
+
+        (z_lt | z_eq & (x_pos & cmp_lt | x_neg & cmp_gt)) != 0
+    }
+
+    pub fn gt_ct(&self, other: &Self) -> bool {
+        let x = self.sign();
+        let y = other.sign();
+        let z = x.cmp(&y);
+
+        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+
+        let z_gt = (z == Ordering::Greater) as u8;
+        let z_eq = (z == Ordering::Equal) as u8;
+        let x_pos = (x == Sign::POS) as u8;
+        let x_neg = (x == Sign::NEG) as u8;
+        let cmp_lt = (cmp == -1) as u8;
+        let cmp_gt = (cmp == 1) as u8;
+
+        (z_gt | z_eq & (x_pos & cmp_gt | x_neg & cmp_lt)) != 0
+    }
+
+    pub fn le_ct(&self, other: &Self) -> bool {
+        let x = self.sign();
+        let y = other.sign();
+        let z = x.cmp(&y);
+
+        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+
+        let z_lt = (z == Ordering::Less) as u8;
+        let z_eq = (z == Ordering::Equal) as u8;
+        let x_pos = (x == Sign::POS) as u8;
+        let x_neg = (x == Sign::NEG) as u8;
+        let cmp_lt = (cmp == -1) as u8;
+        let cmp_gt = (cmp == 1) as u8;
+        let cmp_eq = (cmp == 0) as u8;
+
+        (z_lt | z_eq & (x_pos & cmp_lt | x_neg & cmp_gt | cmp_eq)) != 0
+    }
+
+    pub fn ge_ct(&self, other: &Self) -> bool {
+        let x = self.sign();
+        let y = other.sign();
+        let z = x.cmp(&y);
+
+        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+
+        let z_gt = (z == Ordering::Greater) as u8;
+        let z_eq = (z == Ordering::Equal) as u8;
+        let x_pos = (x == Sign::POS) as u8;
+        let x_neg = (x == Sign::NEG) as u8;
+        let cmp_lt = (cmp == -1) as u8;
+        let cmp_gt = (cmp == 1) as u8;
+        let cmp_eq = (cmp == 0) as u8;
+
+        (z_gt | z_eq & (x_pos & cmp_gt | x_neg & cmp_lt | cmp_eq)) != 0
+    }
+
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
@@ -1929,6 +1975,36 @@ impl<const L: usize> Unsigned<L> {
         (from_usize, usize),
     ]);
 
+    pub fn eq_ct(&self, other: &Self) -> bool {
+        eq_const!(self.0.iter(), other.0.iter())
+    }
+
+    pub fn lt_ct(&self, other: &Self) -> bool {
+        cmp_const!(self.0.iter(), other.0.iter()) == -1
+    }
+
+    pub fn gt_ct(&self, other: &Self) -> bool {
+        cmp_const!(self.0.iter(), other.0.iter()) == 1
+    }
+
+    pub fn le_ct(&self, other: &Self) -> bool {
+        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+
+        let cmp_lt = (cmp == -1) as u8;
+        let cmp_eq = (cmp == 0) as u8;
+
+        (cmp_lt | cmp_eq) != 0
+    }
+
+    pub fn ge_ct(&self, other: &Self) -> bool {
+        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+
+        let cmp_gt = (cmp == 1) as u8;
+        let cmp_eq = (cmp == 0) as u8;
+
+        (cmp_gt | cmp_eq) != 0
+    }
+
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
@@ -1977,6 +2053,10 @@ impl<const L: usize> Bytes<L> {
         (from_u128, u128),
         (from_usize, usize),
     ]);
+
+    pub fn eq_ct(&self, other: &Self) -> bool {
+        eq_const!(self.0.iter(), other.0.iter())
+    }
 
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
