@@ -616,11 +616,11 @@ macro_rules! add_single_impl {
             Some(val as Single)
         })
     };
-    (@overflow $lhs:expr, $rhs:expr, $lhscc:expr) => {
+    (@overflow $lhs:expr, $rhs:expr, $acc:expr) => {
         $lhs.scan($rhs as Double, |_, a| {
-            let val = a as Double + $lhscc;
+            let val = a as Double + $acc;
 
-            $lhscc = val / RADIX;
+            $acc = val / RADIX;
 
             Some(val as Single)
         })
@@ -649,11 +649,11 @@ macro_rules! mul_single_impl {
             Some(val as Single)
         })
     };
-    (@overflow $lhs:expr, $rhs:expr, $lhscc:expr) => {{
+    (@overflow $lhs:expr, $rhs:expr, $acc:expr) => {{
         $lhs.scan(0, |_, a| {
-            let val = a as Double * $rhs as Double + $lhscc;
+            let val = a as Double * $rhs as Double + $acc;
 
-            $lhscc = val / RADIX;
+            $acc = val / RADIX;
 
             Some(val as Single)
         })

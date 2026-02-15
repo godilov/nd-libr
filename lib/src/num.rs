@@ -605,6 +605,7 @@ pub trait NumExt: Num {
         self
     }
 
+    #[forward_into]
     fn rand<R: ?Sized + Rng>(order: usize, rng: &mut R) -> Self {
         let shift = order - 1;
         let div = shift / u64::BITS as usize;
