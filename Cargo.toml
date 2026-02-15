@@ -1,5 +1,5 @@
 [workspace]
-members  = ["cli/primes", "lib", "proc", "proc/arch", "proc/forward", "proc/ops"]
+members  = ["cli/primes", "lib", "proc/arch", "proc/forward", "proc/ops"]
 resolver = "3"
 
 [workspace.package]
@@ -43,7 +43,6 @@ criterion = "0"
 
 ndprimes  = { path = "cli/primes" }
 ndlib     = { path = "lib" }
-ndproc    = { path = "proc" }
 ndarch    = { path = "proc/arch" }
 ndforward = { path = "proc/forward" }
 ndops     = { path = "proc/ops" }

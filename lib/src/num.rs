@@ -1,9 +1,9 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
-use ndproc::{
+use ndforward::{
     forward_cmp, forward_decl, forward_def, forward_fmt, forward_into, forward_self, forward_std, forward_with,
-    ops_impl,
 };
+use ndops::ops_impl;
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 

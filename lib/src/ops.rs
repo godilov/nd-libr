@@ -3,7 +3,7 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
-use ndproc::ops_impl_auto;
+use ndops::ops_impl_auto;
 
 macro_rules! nd_ops_impl {
     (@signed [$($primitive:ty),+ $(,)?]) => {
@@ -275,7 +275,7 @@ nd_ops_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 mod tests {
     use std::ops::{Neg, Not};
 
-    use ndproc::ops_impl_auto;
+    use ndops::ops_impl_auto;
 
     use super::*;
 

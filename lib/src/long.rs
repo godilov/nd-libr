@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use ndproc::ops_impl;
+use ndops::ops_impl;
 use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
@@ -3175,7 +3175,7 @@ mod tests {
     use std::iter::repeat;
 
     use anyhow::Result;
-    use rand::{Rng, SeedableRng, rngs::StdRng};
+    use rand::{RngExt, SeedableRng, rngs::StdRng};
 
     use super::*;
     use crate::long::{S64, U64};

@@ -37,7 +37,7 @@ where
 
 ### Ops Generation
 
-Macroses `ndproc::ops_impl` and `ndproc::ops_impl_auto` implement all standard Rust operations for types (std-kind).
+Macroses `ndops::ops_impl` and `ndops::ops_impl_auto` implement all standard Rust operations for types (std-kind).
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -80,7 +80,7 @@ ops_impl!(@stdmut <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'r
 
 ### Forward Generation
 
-Macroses `ndproc::forward_std`, `ndproc::forward_cmp` and `ndproc::forward_fmt` conditionally implement standard Rust traits by forwarding to `expr`.
+Macroses `ndforward::forward_std`, `ndforward::forward_cmp` and `ndforward::forward_fmt` conditionally implement standard Rust traits by forwarding to `expr`.
 
 - `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
 - `forward_cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
@@ -100,12 +100,12 @@ impl<T> From<T> for A<T> {
 }
 ```
 
-Macroses `ndproc::forward_decl` and `ndproc::forward_def` conditionally implement user-defined traits by forwarding to inner field.
+Macroses `ndforward::forward_decl` and `ndforward::forward_def` conditionally implement user-defined traits by forwarding to inner field.
 
 - `forward_decl`: Used on user-defined trait to generate forwarding
 - `forward_def`: Used on user-defined structs, enums, unions to generate forwarding implementation
 
-Macroses `ndproc::forward_into`, `ndproc::forward_self` and `ndproc::forward_with` specify forwarding result expression.
+Macroses `ndforward::forward_into`, `ndforward::forward_self` and `ndforward::forward_with` specify forwarding result expression.
 
 - Raw: returns raw result
 - `forward_into`: returns `expr.call().into()`. Useful for `fn() -> Self`
@@ -314,7 +314,7 @@ git clone https://github.com/godilov/nd-libr.git
 
 ### Build
 
-Compiles `ndcli`/`ndlib`/`ndproc` packages
+Compiles `cli`/`lib`/`proc` packages
 
 ```shell
 cargo build

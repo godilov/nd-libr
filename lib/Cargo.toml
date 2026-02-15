@@ -20,7 +20,9 @@ tokio     = { workspace = true }
 tracing   = { workspace = true }
 zerocopy  = { workspace = true }
 
-ndproc = { workspace = true }
+ndarch    = { workspace = true }
+ndforward = { workspace = true }
+ndops     = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }

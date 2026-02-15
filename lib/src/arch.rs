@@ -1,6 +1,8 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndproc::*;
+use ndarch::align;
+use ndforward::{forward_cmp, forward_def, forward_fmt, forward_into, forward_self, forward_std, forward_with};
+use ndops::ops_impl;
 use rand::Rng;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
