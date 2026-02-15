@@ -12,12 +12,9 @@ readme.workspace     = true
 description          = "Nd Numbers Library"
 
 [dependencies]
-anyhow    = { workspace = true }
 rand      = { workspace = true }
 rayon     = { workspace = true }
 thiserror = { workspace = true }
-tokio     = { workspace = true }
-tracing   = { workspace = true }
 zerocopy  = { workspace = true }
 
 ndarch = { workspace = true }
@@ -26,6 +23,7 @@ ndlib  = { workspace = true }
 ndops  = { workspace = true }
 
 [dev-dependencies]
+anyhow    = { workspace = true }
 criterion = { workspace = true }
 
 [lints]

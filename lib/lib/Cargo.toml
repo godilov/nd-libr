@@ -12,17 +12,6 @@ readme.workspace     = true
 description          = "Nd General Library"
 
 [dependencies]
-anyhow    = { workspace = true }
-rand      = { workspace = true }
-rayon     = { workspace = true }
-thiserror = { workspace = true }
-tokio     = { workspace = true }
-tracing   = { workspace = true }
-zerocopy  = { workspace = true }
-
-ndarch = { workspace = true }
-ndfwd  = { workspace = true }
-ndops  = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
