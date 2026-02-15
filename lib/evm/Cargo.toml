@@ -1,5 +1,5 @@
 [package]
-name                 = "ndlib"
+name                 = "ndevm"
 version.workspace    = true
 edition.workspace    = true
 license.workspace    = true
@@ -9,9 +9,11 @@ authors.workspace    = true
 categories.workspace = true
 keywords.workspace   = true
 readme.workspace     = true
-description          = "Nd General Library"
+description          = "Nd Evm Library"
 
 [dependencies]
+alloy     = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 

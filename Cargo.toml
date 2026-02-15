@@ -1,5 +1,5 @@
 [workspace]
-members  = ["cli/primes", "lib/lib", "lib/num", "proc/arch", "proc/fwd", "proc/ops"]
+members  = ["cli/primes", "lib/evm", "lib/lib", "lib/num", "proc/arch", "proc/fwd", "proc/ops"]
 resolver = "3"
 
 [workspace.package]
@@ -24,6 +24,7 @@ cargo       = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
 anyhow             = "1"
+alloy              = "1"
 clap               = "4"
 rand               = "0"
 rayon              = "1"
@@ -42,6 +43,7 @@ syn         = "2"
 criterion = "0"
 
 ndprimes = { path = "cli/primes" }
+ndevm    = { path = "lib/evm" }
 ndlib    = { path = "lib/lib" }
 ndnum    = { path = "lib/num" }
 ndarch   = { path = "proc/arch" }
