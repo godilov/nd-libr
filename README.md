@@ -4,6 +4,15 @@ A Rust collection of numerical, cryptography, blockchain and memory-related libr
 
 ## Features
 
+1. [Ops](#ops)
+2. [Ops Generation](#ops-generation)
+3. [Forward Generation](#forward-generation)
+4. [Long Numbers](#long-numbers)
+5. [Prime Numbers](#prime-numbers)
+6. [Composable Types](#composable-types)
+7. [Conversions](#conversions)
+8. [EVM ABI](#evm-abi)
+
 ### Ops
 
 Traits `ndnum::ops::Ops` (requires `Copy`) and `ndnum::ops::OpsAssign` (requires `Copy`) describe all standard Rust operations for types and auto-implemented for every applicable type.
@@ -280,7 +289,7 @@ Traits `ndnum::prime::Primality` and `ndnum::prime::PrimalityExtension` describe
 
 ### Composable Types
 
-Type `ndnum::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
+Type `ndnum::arch::Aligned` specifies aligned type according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
 
 Alignment:
 
@@ -298,7 +307,7 @@ Forwards:
 - `ndnum::ops::*` (conditionally)
 - `std::ops::*` (conditionally)
 
-Types `ndnum::Width` and `ndnum::Modular` specifies numbers and forwards implementation for most of standard Rust traits.
+Types `ndnum::Width` and `ndnum::Modular` specify numbers and forwards implementation for most of standard Rust traits.
 
 - `Width<N, BITS>`: number `N` width `BITS`
 - `Modular<N, M>`: number `N` modulo `M::MOD`
@@ -311,7 +320,7 @@ let b1337 = Width::<B1536, 1337>::default(); // Bytes of length 1337-bits and st
 
 ### Conversions
 
-Traits `ndlib::NdFrom` and `ndlib::NdTryFrom` describes conversion from types.
+Traits `ndlib::NdFrom` and `ndlib::NdTryFrom` describe conversion from types.
 
 - Like `std::convert::From` and `std::convert::TryFrom`, they can be used for conversion
 - Unlike `std::convert::From` and `std::convert::TryFrom`, they can be used [simultaneously](https://github.com/rust-lang/rust/issues/50133)
@@ -322,6 +331,36 @@ Relations:
 - `TryFrom` does auto-implement `NdTryFrom`
 - `From` does auto-implement `TryFrom`
 - `NdFrom` does **not** auto-implement `NdTryFrom`
+
+### EVM ABI
+
+Crate `ndevm` defines EVM ABI encoding implementation for all standard Rust types and Alloy primitives.
+
+Trait `ndevm::Abi` describe EVM ABI encoding types.
+
+- `bool`
+- `u8`, `u16`, `u32`, `u64`, `u128`, `usize`
+- `i8`, `i16`, `i32`, `i64`, `i128`, `isize`
+- `&[A; N]`, where `A` implements `Abi`
+- `&[A]`, where `A` implements `Abi`
+- `str`
+- Tuples
+- All Alloy Signed primitives up-to `I256`
+- All Alloy Unsigned primitives up-to `U256`
+
+Traits `ndevm::Memory` and `ndevm::MemoryDyn` describe static and dynamic memory for encoding and implemented for `[u8; N]` and `Vec<u8>`.
+
+```rust
+let arr = ("Hello, EVM ABI Array!", U256::from(1337)).encode_as::<[u8; 1024]>()?;
+let vec = ("Hello, EVM ABI Vector!", U256::from(1337)).encode_as_dyn::<Vec<u8>>()?;
+```
+
+Types `ndevm::AsBytes`, `ndevm::AsRelative`, `ndevm::AsEncode`, `ndevm::AsEncodePacked` specify encoding effects.
+
+- `AsBytes` - encode with raw bytes
+- `AsRelative` - encode with relative offsets
+- `AsEncode` - encode with standard encoding (even for packed)
+- `AsEncodePacked` - encode with packed encoding (even for standard)
 
 ## Dev Requirements
 

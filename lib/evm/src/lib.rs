@@ -141,7 +141,7 @@ pub struct Slice<'bytes> {
 }
 
 pub struct AsBytes<'ref_>(pub &'ref_ [u8]);
-pub struct AsRel<'ref_, A: Abi>(pub &'ref_ A);
+pub struct AsRelative<'ref_, A: Abi>(pub &'ref_ A);
 pub struct AsEncode<'ref_, A: Abi>(pub &'ref_ A);
 pub struct AsEncodePacked<'ref_, A: Abi>(pub &'ref_ A);
 
@@ -634,7 +634,7 @@ impl Abi for AsBytes<'_> {
     }
 }
 
-impl<A: Abi> Abi for AsRel<'_, A> {
+impl<A: Abi> Abi for AsRelative<'_, A> {
     fn len(&self) -> [usize; 2] {
         self.0.len()
     }
