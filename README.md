@@ -73,16 +73,16 @@ ndops::all!(@stdmut <N: Clone + Copy + Ops> (lhs: &mut A<N>, *rhs: &A<N>) -> A<N
 
 ### Forward Generation
 
-Macroses `ndfwd::forward_std`, `ndfwd::forward_cmp` and `ndfwd::forward_fmt` conditionally implement standard Rust traits by forwarding to `expr`.
+Macroses `ndfwd::std`, `ndfwd::cmp` and `ndfwd::fmt` conditionally implement standard Rust traits by forwarding to `expr`.
 
-- `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
-- `forward_cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
-- `forward_fmt`: Implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`
+- `std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
+- `cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
+- `fmt`: Implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`
 
 ```rust
-#[forward_std(self.0 with T)]
-#[forward_cmp(self.0 with T)]
-#[forward_fmt(self.0 with T)]
+#[ndfwd::std(self.0 with T)]
+#[ndfwd::cmp(self.0 with T)]
+#[ndfwd::fmt(self.0 with T)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct A<T>(pub T);
 
@@ -93,17 +93,17 @@ impl<T> From<T> for A<T> {
 }
 ```
 
-Macroses `ndfwd::forward_decl` and `ndfwd::forward_def` conditionally implement user-defined traits by forwarding to inner field.
+Macroses `ndfwd::decl` and `ndfwd::def` conditionally implement user-defined traits by forwarding to inner field.
 
-- `forward_decl`: Used on user-defined trait to generate forwarding
-- `forward_def`: Used on user-defined structs, enums, unions to generate forwarding implementation
+- `decl`: Used on user-defined trait to generate forwarding
+- `def`: Used on user-defined structs, enums, unions to generate forwarding implementation
 
-Macroses `ndfwd::forward_into`, `ndfwd::forward_self` and `ndfwd::forward_with` specify forwarding result expression.
+Macroses `ndfwd::as_into`, `ndfwd::as_self` and `ndfwd::as_expr` specify forwarding result expression.
 
 - Raw: returns raw result
-- `forward_into`: returns `expr.call().into()`. Useful for `fn() -> Self`
-- `forward_self`: returns `expr.call(); expr`. Useful for `fn() -> &mut Self`
-- `forward_with`: returns `(closure)(expr.call())`. Useful for `fn() -> (Self, Self)`
+- `as_into`: returns `expr.call().into()`. Needed for `fn() -> Self`
+- `as_self`: returns `expr.call(); expr`. Needed for `fn() -> &mut Self`
+- `as_expr`: returns `(closure)(expr.call())`. Needed for `fn() -> (Self, Self)`
 
 ```rust
 #[forward_def(self.0 with Impl: crate::X)]

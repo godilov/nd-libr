@@ -14,7 +14,7 @@ mod kw {
 }
 
 #[proc_macro_attribute]
-pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
     let fwd = parse_macro_input!(attr as Forward);
 
@@ -78,7 +78,7 @@ pub fn forward_std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 }
 
 #[proc_macro_attribute]
-pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
     let fwd = parse_macro_input!(attr as Forward);
 
@@ -142,8 +142,8 @@ pub fn forward_cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 }
 
 #[proc_macro_attribute]
-pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    fn forward_fmt_impl(
+pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    fn fmt_impl(
         ident: &Ident,
         generics: &Generics,
         expr: &Expr,
@@ -169,7 +169,7 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 
     let (_, _, gen_where) = generics.split_for_impl();
 
-    let display = forward_fmt_impl(
+    let display = fmt_impl(
         ident,
         generics,
         expr,
@@ -180,7 +180,7 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         },
     );
 
-    let binary = forward_fmt_impl(
+    let binary = fmt_impl(
         ident,
         generics,
         expr,
@@ -191,7 +191,7 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         },
     );
 
-    let octal = forward_fmt_impl(
+    let octal = fmt_impl(
         ident,
         generics,
         expr,
@@ -202,7 +202,7 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         },
     );
 
-    let lhex = forward_fmt_impl(
+    let lhex = fmt_impl(
         ident,
         generics,
         expr,
@@ -213,7 +213,7 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
         },
     );
 
-    let uhex = forward_fmt_impl(
+    let uhex = fmt_impl(
         ident,
         generics,
         expr,
@@ -236,7 +236,7 @@ pub fn forward_fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 }
 
 #[proc_macro_attribute]
-pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
 
     let ident = &interface.ident;
@@ -319,7 +319,7 @@ pub fn forward_decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro_attribute]
-pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
         ($item:expr, $attr:expr) => {{
             let item = $item;
@@ -419,17 +419,17 @@ pub fn forward_def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd
 }
 
 #[proc_macro_attribute]
-pub fn forward_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn as_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
 #[proc_macro_attribute]
-pub fn forward_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
 #[proc_macro_attribute]
-pub fn forward_with(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
@@ -792,22 +792,34 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         })
         .collect::<Result<Vec<TokenStream>>>()?;
 
-    let forward_into = attrs.iter().any(|attr| attr.path().is_ident("forward_into"));
-    let forward_self = attrs.iter().any(|attr| attr.path().is_ident("forward_self"));
-    let forward_with = attrs.iter().find(|attr| attr.path().is_ident("forward_with"));
+    let as_into_path: Path = parse_quote! { ndfwd::as_into };
+    let as_self_path: Path = parse_quote! { ndfwd::as_self };
+    let as_expr_path: Path = parse_quote! { ndfwd::as_expr };
+
+    let as_into = attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("as_into") || *attr.path() == as_into_path);
+
+    let as_self = attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("as_self") || *attr.path() == as_self_path);
+
+    let as_expr = attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("as_expr") || *attr.path() == as_expr_path);
 
     let expr = match recv {
         Some(val) if val.reference.is_some() && val.mutability.is_some() => {
-            if forward_into {
+            if as_into {
                 quote! {
                     self.forward_mut().#ident(#(#definitions),*).into()
                 }
-            } else if forward_self {
+            } else if as_self {
                 quote! {
                     self.forward_mut().#ident(#(#definitions),*);
                     self
                 }
-            } else if let Some(forward_with) = forward_with {
+            } else if let Some(as_expr) = as_expr {
                 let ExprClosure {
                     attrs: _,
                     lifetimes,
@@ -820,7 +832,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     or2_token: _,
                     output,
                     body,
-                } = get_forward_with_closure(&forward_with.meta)?;
+                } = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
@@ -833,16 +845,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
             }
         },
         Some(val) if val.reference.is_some() => {
-            if forward_into {
+            if as_into {
                 quote! {
                     self.forward_ref().#ident(#(#definitions),*).into()
                 }
-            } else if forward_self {
+            } else if as_self {
                 quote! {
                     self.forward_ref().#ident(#(#definitions),*);
                     self
                 }
-            } else if let Some(forward_with) = forward_with {
+            } else if let Some(as_expr) = as_expr {
                 let ExprClosure {
                     attrs: _,
                     lifetimes,
@@ -855,7 +867,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     or2_token: _,
                     output,
                     body,
-                } = get_forward_with_closure(&forward_with.meta)?;
+                } = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
@@ -868,16 +880,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
             }
         },
         Some(_) => {
-            if forward_into {
+            if as_into {
                 quote! {
                     self.forward().#ident(#(#definitions),*).into()
                 }
-            } else if forward_self {
+            } else if as_self {
                 quote! {
                     self.forward().#ident(#(#definitions),*);
                     self
                 }
-            } else if let Some(forward_with) = forward_with {
+            } else if let Some(as_expr) = as_expr {
                 let ExprClosure {
                     attrs: _,
                     lifetimes,
@@ -890,7 +902,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     or2_token: _,
                     output,
                     body,
-                } = get_forward_with_closure(&forward_with.meta)?;
+                } = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
@@ -924,16 +936,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
     ))
 }
 
-fn get_forward_with_closure(meta: &Meta) -> Result<ExprClosure> {
+fn get_forward_expr(meta: &Meta) -> Result<ExprClosure> {
     match meta {
         Meta::Path(_) => Err(Error::new(
             Span::call_site(),
-            "Failed to forward with, expected closure expression",
+            "Failed to forward as expression, expected closure expression",
         )),
         Meta::List(val) => syn::parse2::<ExprClosure>(val.tokens.clone()),
         Meta::NameValue(_) => Err(Error::new(
             Span::call_site(),
-            "Failed to forward with, expected closure expression",
+            "Failed to forward as expression, expected closure expression",
         )),
     }
 }

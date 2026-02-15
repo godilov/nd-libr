@@ -1,7 +1,5 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndarch::align;
-use ndfwd::{forward_cmp, forward_def, forward_fmt, forward_into, forward_self, forward_std, forward_with};
 use rand::Rng;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
@@ -144,14 +142,14 @@ pub mod word {
     }
 }
 
-#[align]
-#[forward_std(self.0 with T)]
-#[forward_cmp(self.0 with T)]
-#[forward_fmt(self.0 with T)]
-#[forward_def(self.0 with T: crate::num::Num      where T: Num)]
-#[forward_def(self.0 with T: crate::num::NumExt   where T: NumExt)]
-#[forward_def(self.0 with T: crate::num::Signed   where T: Signed)]
-#[forward_def(self.0 with T: crate::num::Unsigned where T: Unsigned)]
+#[ndarch::align]
+#[ndfwd::std(self.0 with T)]
+#[ndfwd::cmp(self.0 with T)]
+#[ndfwd::fmt(self.0 with T)]
+#[ndfwd::def(self.0 with T: crate::num::Num      where T: Num)]
+#[ndfwd::def(self.0 with T: crate::num::NumExt   where T: NumExt)]
+#[ndfwd::def(self.0 with T: crate::num::Signed   where T: Signed)]
+#[ndfwd::def(self.0 with T: crate::num::Unsigned where T: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 

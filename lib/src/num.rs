@@ -1,8 +1,5 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
-use ndfwd::{
-    forward_cmp, forward_decl, forward_def, forward_fmt, forward_into, forward_self, forward_std, forward_with,
-};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -411,21 +408,21 @@ pub mod prime {
     impl<Any: Send + Primality + NumExt> PrimalityExt for Any {}
 }
 
-#[forward_std(self.0 with N)]
-#[forward_cmp(self.0 with N)]
-#[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num      where N: Num)]
-#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt)]
-#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned)]
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: crate::num::Num      where N: Num)]
+#[ndfwd::def(self.0 with N: crate::num::NumExt   where N: NumExt)]
+#[ndfwd::def(self.0 with N: crate::num::Unsigned where N: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumExt + Unsigned, const BITS: usize>(pub N);
 
-#[forward_std(self.0 with N)]
-#[forward_cmp(self.0 with N)]
-#[forward_fmt(self.0 with N)]
-#[forward_def(self.0 with N: crate::num::Num      where N: Num)]
-#[forward_def(self.0 with N: crate::num::NumExt   where N: NumExt)]
-#[forward_def(self.0 with N: crate::num::Unsigned where N: Unsigned)]
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: crate::num::Num      where N: Num)]
+#[ndfwd::def(self.0 with N: crate::num::NumExt   where N: NumExt)]
+#[ndfwd::def(self.0 with N: crate::num::Unsigned where N: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumExt + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
 
@@ -437,19 +434,19 @@ pub enum Sign {
     POS = 1,
 }
 
-#[forward_decl]
+#[ndfwd::decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAssign {
     fn bits(&self) -> usize;
 
     fn is_even(&self) -> bool;
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn zero() -> Self;
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn one() -> Self;
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn gcd(self, val: Self) -> Self {
         let zero = Self::zero();
 
@@ -469,7 +466,7 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
         a
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn lcm(mut self, val: Self) -> Self {
         let gcd = Self::gcd(self.clone(), val.clone());
 
@@ -479,7 +476,7 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn pow_rem(self, mut pow: Self, rem: &Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
@@ -503,108 +500,108 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
     }
 }
 
-#[forward_decl]
+#[ndfwd::decl]
 pub trait NumExt: Num {
-    #[forward_self]
+    #[ndfwd::as_self]
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn bitor_mut_ext(&mut self, mask: u64) -> &mut Self {
         self.bitor_offset_mut_ext(mask, 0);
         self
     }
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn bitand_mut_ext(&mut self, mask: u64) -> &mut Self {
         self.bitand_offset_mut_ext(mask, 0);
         self
     }
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn bitxor_mut_ext(&mut self, mask: u64) -> &mut Self {
         self.bitxor_offset_mut_ext(mask, 0);
         self
     }
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn odd_mut_ext(&mut self) -> &mut Self {
         self.bitor_mut_ext(1);
         self
     }
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn even_mut_ext(&mut self) -> &mut Self {
         self.bitand_mut_ext(u64::MAX - 1);
         self
     }
 
-    #[forward_self]
+    #[ndfwd::as_self]
     fn alt_mut_ext(&mut self) -> &mut Self {
         self.bitxor_mut_ext(1);
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn bitor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
         self.bitor_offset_mut_ext(mask, offset);
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn bitand_offset_ext(mut self, mask: u64, offset: usize) -> Self {
         self.bitand_offset_mut_ext(mask, offset);
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn bitxor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
         self.bitxor_offset_mut_ext(mask, offset);
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn bitor_ext(mut self, mask: u64) -> Self {
         self.bitor_offset_mut_ext(mask, 0);
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn bitand_ext(mut self, mask: u64) -> Self {
         self.bitand_offset_mut_ext(mask, 0);
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn bitxor_ext(mut self, mask: u64) -> Self {
         self.bitxor_offset_mut_ext(mask, 0);
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn odd_ext(mut self) -> Self {
         self.odd_mut_ext();
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn even_ext(mut self) -> Self {
         self.even_mut_ext();
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn alt_ext(mut self) -> Self {
         self.alt_mut_ext();
         self
     }
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn rand<R: ?Sized + Rng>(order: usize, rng: &mut R) -> Self {
         let shift = order - 1;
         let div = shift / u64::BITS as usize;
@@ -622,11 +619,11 @@ pub trait NumExt: Num {
     }
 }
 
-#[forward_decl]
+#[ndfwd::decl]
 pub trait Signed: Num {
     fn new(value: isize) -> Self;
 
-    #[forward_with(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
+    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
     fn gcde(&self, val: &Self) -> (Self, Self, Self) {
         let zero = Self::zero();
         let one = Self::one();
@@ -650,17 +647,17 @@ pub trait Signed: Num {
     }
 }
 
-#[forward_decl]
+#[ndfwd::decl]
 pub trait Unsigned: Num {
-    #[forward_into]
+    #[ndfwd::as_into]
     fn new(value: usize) -> Self;
 
     fn order(&self) -> usize;
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn log(&self) -> Self;
 
-    #[forward_into]
+    #[ndfwd::as_into]
     fn sqrt(&self) -> Self;
 }
 
