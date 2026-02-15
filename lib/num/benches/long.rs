@@ -3,8 +3,8 @@ use std::{str::FromStr, time::Duration};
 use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
 };
+use ndlib::{IteratorExt, NdFrom};
 use ndnum::{
-    IteratorExt, NdFrom,
     arch::Aligned,
     long::{
         ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, S4096, ToDigits, ToDigitsIter,

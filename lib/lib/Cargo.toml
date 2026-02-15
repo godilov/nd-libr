@@ -1,5 +1,5 @@
 [package]
-name                 = "ndnum"
+name                 = "ndlib"
 version.workspace    = true
 edition.workspace    = true
 license.workspace    = true
@@ -9,7 +9,7 @@ authors.workspace    = true
 categories.workspace = true
 keywords.workspace   = true
 readme.workspace     = true
-description          = "Nd Numbers Library"
+description          = "Nd General Library"
 
 [dependencies]
 anyhow    = { workspace = true }
@@ -22,7 +22,6 @@ zerocopy  = { workspace = true }
 
 ndarch = { workspace = true }
 ndfwd  = { workspace = true }
-ndlib  = { workspace = true }
 ndops  = { workspace = true }
 
 [dev-dependencies]
@@ -30,7 +29,3 @@ criterion = { workspace = true }
 
 [lints]
 workspace = true
-
-[[bench]]
-name    = "long"
-harness = false

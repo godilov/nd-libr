@@ -8,12 +8,12 @@ use std::{
     str::FromStr,
 };
 
+use ndlib::{IteratorExt, NdFrom, NdTryFrom};
 use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    IteratorExt, Max, Min, NdFrom, NdTryFrom, Num, NumExt, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned,
-    Zero,
+    Max, Min, Num, NumExt, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero,
     arch::word::*,
     long::{radix::*, uops::*},
     ops::{

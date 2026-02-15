@@ -6,7 +6,7 @@ A Rust general-facilities library
 
 ### Ops
 
-Traits `ndlib::ops::Ops` and `ndlib::ops::OpsAssign` describe all standard Rust operations for types and auto-implemented for every applicable type.
+Traits `ndnum::ops::Ops` and `ndnum::ops::OpsAssign` describe all standard Rust operations for types and auto-implemented for every applicable type.
 
 ```rust
 /// T supports all binary `std::ops::*` by value
@@ -125,7 +125,7 @@ impl X for Impl {
 
 ### Long Numbers
 
-Types `ndlib::long::Signed`, `ndlib::long::Unsigned` and `ndlib::long::Bytes` specify long-numbers and long-bytes of fixed length, specified in native words. By default, all representations are little-endian.
+Types `ndnum::long::Signed`, `ndnum::long::Unsigned` and `ndnum::long::Bytes` specify long-numbers and long-bytes of fixed length, specified in native words. By default, all representations are little-endian.
 
 ```rust
 let word = std::mem::size_of::<usize>();
@@ -149,7 +149,7 @@ assert_eq!(std::mem::size_of::<U16>(), 16.div_ceil(word) * word);
 assert_eq!(std::mem::size_of::<B16>(), 16.div_ceil(word) * word);
 ```
 
-Types and aliases can be used with `ndlib::num::Width` and `ndlib::num::Modular` [types](#composable-types) for precise control.
+Types and aliases can be used with `ndnum::Width` and `ndnum::Modular` [types](#composable-types) for precise control.
 
 #### API (Compile-time)
 
@@ -182,7 +182,7 @@ Types and aliases can be used with `ndlib::num::Width` and `ndlib::num::Modular`
 
 #### API (Conversions Extra Impl)
 
-Types `ndlib::long::ExpImpl` and `ndlib::long::RadixImpl` specify implementation for conversion from/to/into digits.
+Types `ndnum::long::ExpImpl` and `ndnum::long::RadixImpl` specify implementation for conversion from/to/into digits.
 
 - `ExpImpl` - specifies digits radix as `1 << exp`
 - `RadixImpl` - specifies digits radix as raw
@@ -229,7 +229,7 @@ let ui = uradix.into_digits_iter(RadixImpl { exp: 9u8 })?; // Iter: [1, 3, 3, 7]
 
 #### API (Ops)
 
-Types `ndlib::num::Signed`, `ndlib::num::Unsigned` and `ndlib::num::Bytes` implement all[^1] standard Rust operations in const-time (**overflow is wrapped**).
+Types `ndnum::Signed`, `ndnum::Unsigned` and `ndnum::Bytes` implement all[^1] standard Rust operations in const-time (**overflow is wrapped**).
 
 - `Signed`: all unary/binary/mutable operations with `Signed` and all signed primitives
 - `Unsigned`: all unary/binary/mutable operaions with `Unsigned` and all unsigned primitives
@@ -245,14 +245,14 @@ Operations with primitive support:
 
 ### Prime Numbers
 
-Type `ndlib::num::prime::Primes` is empty and exposes functions to generate prime numbers.
+Type `ndnum::prime::Primes` is empty and exposes functions to generate prime numbers.
 
 - `Primes::by_count_full` - iterate prime numbers by count (divisibility by prime numbers up to square root)
 - `Primes::by_limit_full` - iterate prime numbers by limit (divisibility by prime numbers up to square root)
 - `Primes::by_count_fast` - iterate prime numbers by count (Miller-Rabin)
 - `Primes::by_limit_fast` - iterate prime numbers by limit (Miller-Rabin)
 
-Traits `ndlib::num::prime::Primality` and `ndlib::num::prime::PrimalityExtension` describe prime number container types and facilities.
+Traits `ndnum::prime::Primality` and `ndnum::prime::PrimalityExtension` describe prime number container types and facilities.
 
 - `Primality::primes` - prime numbers to check against (Miller-Rabin)
 - `Primality::is_prime` - prime numbes check (Miller-Rabin)
@@ -261,14 +261,14 @@ Traits `ndlib::num::prime::Primality` and `ndlib::num::prime::PrimalityExtension
 
 ### Composable Types
 
-Type `ndlib::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
+Type `ndnum::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
 
 - `x86`: 64 bytes
 - `x86_64`: 64 bytes
 - `arm`: 64 bytes
 - `aarch64`: 128 bytes
 
-Types `ndlib::num::Width` and `ndlib::num::Modular` specifies numbers and forwards implementation for most of standard Rust traits.
+Types `ndnum::Width` and `ndnum::Modular` specifies numbers and forwards implementation for most of standard Rust traits.
 
 - `Width<N, BITS>`: number `N` width `BITS`
 - `Modular<N, M>`: number `N` modulo `M::MOD`
@@ -327,10 +327,10 @@ Executes all benches to verify performance (report: `target/criterion/report/ind
 cargo bench
 ```
 
-Emits Assembly for functions in `ndlib` package. `asm` submodules contain monomorphized versions for generics
+Emits Assembly for functions in `ndnum` package. `asm` submodules contain monomorphized versions for generics
 
 ```shell
-cargo asm -p ndlib --lib
+cargo asm -p ndnum --lib
 ```
 
 ### Execute
