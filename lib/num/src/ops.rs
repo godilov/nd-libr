@@ -189,7 +189,8 @@ pub trait Ops<Rhs = Self, ShiftRhs = usize>:
 }
 
 pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>:
-    AddAssign<Rhs>
+    Copy
+    + AddAssign<Rhs>
     + SubAssign<Rhs>
     + MulAssign<Rhs>
     + DivAssign<Rhs>
@@ -222,7 +223,8 @@ where
 }
 
 impl<Lhs, Rhs, ShiftRhs> OpsAssign<Rhs, ShiftRhs> for Lhs where
-    Self: AddAssign<Rhs>
+    Self: Copy
+        + AddAssign<Rhs>
         + SubAssign<Rhs>
         + MulAssign<Rhs>
         + DivAssign<Rhs>

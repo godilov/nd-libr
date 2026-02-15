@@ -9,7 +9,7 @@ authors.workspace    = true
 categories.workspace = true
 keywords.workspace   = true
 readme.workspace     = true
-description          = "Nd General Library"
+description          = "Nd Library"
 
 [dependencies]
 

@@ -1,59 +1,51 @@
 # nd-libr
 
-A Rust general-facilities library
+A Rust collection of numerical, cryptography, blockchain and memory-related libraries
 
 ## Features
 
 ### Ops
 
-Traits `ndnum::ops::Ops` and `ndnum::ops::OpsAssign` describe all standard Rust operations for types and auto-implemented for every applicable type.
+Traits `ndnum::ops::Ops` (requires `Copy`) and `ndnum::ops::OpsAssign` (requires `Copy`) describe all standard Rust operations for types and auto-implemented for every applicable type.
 
 ```rust
-/// T supports all binary `std::ops::*` by value
-fn add_mul<T: Ops>(a: T, b: T, c: T) -> T {
+/// T supports all binary `std::ops::*`
+fn add_mul<T: Ops<Type = T>>(a: T, b: T, c: T) -> T {
     (a + b) * c
 }
 
-/// T supports all binary `std::ops::*` by value and by reference
-fn add_mul_ref<T: Ops>(a: &T, b: &T, c: &T) -> T
-where
-    for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>,
-{
-    &(a + b) * c
-}
-
-/// T supports all binary `std::ops::*` by value and by reference
-/// T supports all mutable `std::ops::*` by value and by reference
-fn add_mul_mut<T>(x: &mut T, a: &T, b: &T, c: &T)
-where
-    for<'rhs> T: Ops<Type = T> + OpsAssign + OpsAssign<&'lhs T>,
-    for<'rhs, 'lhs> &'lhs T: Ops<&'rhs T, Type = T>,
-{
+/// T supports all assign `std::ops::*`
+fn add_mul_assign<T: OpsAssign>(x: &mut T, a: T, b: T, c: T) {
     *x += a;
     *x += b;
     *x *= c;
 }
 ```
 
+Traits `ndnum::ops::NdAdd`, `ndnum::ops::NdSub`, etc. and `ndnum::ops::NdAddAssign`, `ndnum::ops::NdSubAssign`, etc. describe all standard Rust operations for types.
+
+- Like `std::ops`, they describe operations
+- Unlike `std::ops`, they describe operations with reference operands only
+- Unlike `std::ops`, they can be implemented for types and used by reference without [HRTB](https://doc.rust-lang.org/nomicon/hrtb.html)
+- Unlike `std::ops`, they can be implemented for types other than `Lhs`, `Rhs` or `Output`
+
 ### Ops Generation
 
-Macroses `ndops::all` and `ndops::all_auto` implement all specified standard Rust operations for types (std-kind).
+Macroses `ndops::all` and `ndops::all_auto` with `@stdun`/`@stdbin`/`@stdmut` implement all specified standard Rust operations from `std::ops::*`.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct A<N>(N);
 
 /// Implements `std::ops::Neg` and `std::ops::Not` for A<N>
-/// Condition: N is Neg and Not
 /// Note: asterisk in `*value` specifies implementation by value and by reference
 ndops::all!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> (*value: &A<N>) -> A<N>,
     - A::<N>(-value.0),
     ! A::<N>(!value.0));
 
 /// Implements `std::ops::Add`, `std::ops::Sub`, `std::ops::Mul`, `std::ops::Div`, `std::ops::Rem` for A<N>
-/// Condition: N is Ops
 /// Note: asterisk in `*lhs` and `*rhs` specifies implementation by value and by reference
-ndops::all!(@stdbin <N: Clone + Copy + Ops> (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
+ndops::all!(@stdbin <N: Ops<Type = N>> (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
     + A::<N>(lhs.0 + rhs.0),
     - A::<N>(lhs.0 - rhs.0),
     * A::<N>(lhs.0 * rhs.0),
@@ -61,14 +53,41 @@ ndops::all!(@stdbin <N: Clone + Copy + Ops> (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
     % A::<N>(lhs.0 % rhs.0));
 
 /// Implements `std::ops::AddAssign`, `std::ops::SubAssign`, `std::ops::MulAssign`, `std::ops::DivAssign`, `std::ops::RemAssign` for A<N>
-/// Condition: N is Ops
 /// Note: asterisk in `*rhs` specifies implementation by value and by reference
-ndops::all!(@stdmut <N: Clone + Copy + Ops> (lhs: &mut A<N>, *rhs: &A<N>) -> A<N>,
+ndops::all!(@stdmut <N: OpsAssign> (lhs: &mut A<N>, *rhs: &A<N>),
     += { lhs.0 += rhs.0; },
     -= { lhs.0 -= rhs.0; },
     *= { lhs.0 *= rhs.0; },
     /= { lhs.0 /= rhs.0; },
     %= { lhs.0 %= rhs.0; });
+```
+
+Macroses `ndops::all` and `ndops::all_auto` with `@ndun`/`@ndbin`/`@ndmut` implement all specified standard Rust operations from `ndnum::ops::*`.
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct A<N>(N);
+
+/// Implements `ndnum::ops::Neg` and `ndnum::ops::Not` for A<N>
+ndops::all!(@ndun crate <N: NdNeg<Type = N> + NdNot<Type = N>> (value: &A<N>) -> A<N>,
+    - A::<N>(N::neg(&value.0)),
+    ! A::<N>(N::not(&value.0)));
+
+/// Implements `ndnum::ops::Add`, `ndnum::ops::Sub`, `ndnum::ops::Mul`, `ndnum::ops::Div`, `ndnum::ops::Rem` for A<N>
+ndops::all!(@ndbin crate <N: NdOps<All = N>> (lhs: &A<N>, rhs: &A<N>) -> A<N>,
+    + A::<N>(N::add(&lhs.0, &rhs.0)),
+    - A::<N>(N::sub(&lhs.0, &rhs.0)),
+    * A::<N>(N::mul(&lhs.0, &rhs.0)),
+    / A::<N>(N::div(&lhs.0, &rhs.0)),
+    % A::<N>(N::rem(&lhs.0, &rhs.0)));
+
+/// Implements `ndnum::ops::AddAssign`, `ndnum::ops::SubAssign`, `ndnum::ops::MulAssign`, `ndnum::ops::DivAssign`, `ndnum::ops::RemAssign` for A<N>
+ndops::all!(@ndmut crate <N: NdOpsAssign> (lhs: &mut A<N>, rhs: &A<N>),
+    += { N::add_assign(&mut lhs.0, &rhs.0); },
+    -= { N::sub_assign(&mut lhs.0, &rhs.0); },
+    *= { N::mul_assign(&mut lhs.0, &rhs.0); },
+    /= { N::div_assign(&mut lhs.0, &rhs.0); },
+    %= { N::rem_assign(&mut lhs.0, &rhs.0); });
 ```
 
 ### Forward Generation
@@ -106,12 +125,12 @@ Macroses `ndfwd::as_into`, `ndfwd::as_self` and `ndfwd::as_expr` specify forward
 - `as_expr`: returns `(closure)(expr.call())`. Needed for `fn() -> (Self, Self)`
 
 ```rust
-#[forward_def(self.0 with Impl: crate::X)]
+#[ndfwd::def(self.0 with Impl: crate::X)]
 struct A(Impl);
 
 struct Impl(i32);
 
-#[forward_decl]
+#[ndfwd::decl]
 trait X {
     fn op(x: usize) -> usize;
 }
@@ -263,10 +282,21 @@ Traits `ndnum::prime::Primality` and `ndnum::prime::PrimalityExtension` describe
 
 Type `ndnum::arch::Aligned` aligns according to approximate target cacheline size and forwards implementation for most of standard Rust traits.
 
+Alignment:
+
 - `x86`: 64 bytes
 - `x86_64`: 64 bytes
 - `arm`: 64 bytes
 - `aarch64`: 128 bytes
+
+Forwards:
+
+- `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`
+- `PartialEq`, `PartialOrd`, `Eq`, `Ord`
+- `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`
+- `Num`, `NumExt`, `Signed`, `Unsigned`
+- `ndnum::ops::*` (conditionally)
+- `std::ops::*` (conditionally)
 
 Types `ndnum::Width` and `ndnum::Modular` specifies numbers and forwards implementation for most of standard Rust traits.
 
