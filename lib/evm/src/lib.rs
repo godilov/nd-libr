@@ -189,7 +189,7 @@ pub trait Abi {
 
     fn encode_packed_into<'bytes>(&self, slice: Slice<'bytes>) -> Result<Slice<'bytes>, AbiError>;
 
-    fn encode_as<M: Memory>(&self) -> Result<M, AbiError> {
+    fn encode<M: Memory>(&self) -> Result<M, AbiError> {
         let [len, _] = self.len();
 
         let mut memory = M::alloc();
@@ -199,7 +199,7 @@ pub trait Abi {
         Ok(memory)
     }
 
-    fn encode_packed_as<M: Memory>(&self) -> Result<M, AbiError> {
+    fn encode_packed<M: Memory>(&self) -> Result<M, AbiError> {
         let mut memory = M::alloc();
 
         self.encode_into(Slice::new_packed(memory.as_bytes()))?;
@@ -207,7 +207,7 @@ pub trait Abi {
         Ok(memory)
     }
 
-    fn encode_as_dyn<M: MemoryDyn>(&self) -> Result<M, AbiError> {
+    fn encode_dyn<M: MemoryDyn>(&self) -> Result<M, AbiError> {
         let [len, len_dyn] = self.len();
 
         let mut memory = M::alloc(len + len_dyn);
@@ -217,7 +217,7 @@ pub trait Abi {
         Ok(memory)
     }
 
-    fn encode_packed_as_dyn<M: MemoryDyn>(&self) -> Result<M, AbiError> {
+    fn encode_packed_dyn<M: MemoryDyn>(&self) -> Result<M, AbiError> {
         let len = self.len_packed();
 
         let mut memory = M::alloc(len);
