@@ -37,7 +37,7 @@ where
 
 ### Ops Generation
 
-Macroses `ndops::ops_impl` and `ndops::ops_impl_auto` implement all standard Rust operations for types (std-kind).
+Macroses `ndops::all` and `ndops::all_auto` implement all specified standard Rust operations for types (std-kind).
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -45,20 +45,15 @@ struct A<N>(N);
 
 /// Implements `std::ops::Neg` and `std::ops::Not` for A<N>
 /// Condition: N is Neg and Not
-/// Condition: &N is Neg and Not
 /// Note: asterisk in `*value` specifies implementation by value and by reference
-ops_impl!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> where
-    for<'lhs> &'lhs N: Neg<Output = N> + Not<Output = N>
-    (*value: &A<N>) -> A<N>,
+ndops::all!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> (*value: &A<N>) -> A<N>,
     - A::<N>(-value.0),
     ! A::<N>(!value.0));
 
 /// Implements `std::ops::Add`, `std::ops::Sub`, `std::ops::Mul`, `std::ops::Div`, `std::ops::Rem` for A<N>
 /// Condition: N is Ops
-/// Condition: &N is Ops<&N, Type = N>
 /// Note: asterisk in `*lhs` and `*rhs` specifies implementation by value and by reference
-ops_impl!(@stdbin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
-    (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
+ndops::all!(@stdbin <N: Clone + Copy + Ops> (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
     + A::<N>(lhs.0 + rhs.0),
     - A::<N>(lhs.0 - rhs.0),
     * A::<N>(lhs.0 * rhs.0),
@@ -67,10 +62,8 @@ ops_impl!(@stdbin <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'r
 
 /// Implements `std::ops::AddAssign`, `std::ops::SubAssign`, `std::ops::MulAssign`, `std::ops::DivAssign`, `std::ops::RemAssign` for A<N>
 /// Condition: N is Ops
-/// Condition: &N is Ops<&N, Type = N>
 /// Note: asterisk in `*rhs` specifies implementation by value and by reference
-ops_impl!(@stdmut <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'rhs N, Type = N>
-    (lhs: &mut A<N>, *rhs: &A<N>) -> A<N>,
+ndops::all!(@stdmut <N: Clone + Copy + Ops> (lhs: &mut A<N>, *rhs: &A<N>) -> A<N>,
     += { lhs.0 += rhs.0; },
     -= { lhs.0 -= rhs.0; },
     *= { lhs.0 *= rhs.0; },

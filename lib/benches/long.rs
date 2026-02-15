@@ -11,7 +11,7 @@ use ndlib::{
         U4096,
     },
 };
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 
 const BYTES: usize = 512;
 const PRIMES: [u64; 256] = [

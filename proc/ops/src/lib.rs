@@ -23,7 +23,7 @@ mod kw {
 }
 
 #[proc_macro]
-pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
+pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
         Ops::StdAssign(ops) => quote! { #ops }.into(),
         Ops::StdBinary(ops) => quote! { #ops }.into(),
@@ -35,7 +35,7 @@ pub fn ops_impl(stream: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[proc_macro]
-pub fn ops_impl_auto(stream: TokenStreamStd) -> TokenStreamStd {
+pub fn all_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {
         OpsAuto::StdAssign(ops) => {
             let ops = OpsImpl::<OpsStdKindAssign>::from(ops);

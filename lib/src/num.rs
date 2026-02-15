@@ -3,7 +3,6 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 use ndfwd::{
     forward_cmp, forward_decl, forward_def, forward_fmt, forward_into, forward_self, forward_std, forward_with,
 };
-use ndops::ops_impl;
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -716,7 +715,7 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-ops_impl!(@stdbin (lhs: Sign, rhs: Sign) -> Sign, * Sign::from((lhs as i8) * (rhs as i8)));
+ndops::all!(@stdbin (lhs: Sign, rhs: Sign) -> Sign, * Sign::from((lhs as i8) * (rhs as i8)));
 
 impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {

@@ -3,8 +3,6 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
-use ndops::ops_impl_auto;
-
 macro_rules! nd_ops_impl {
     (@signed [$($primitive:ty),+ $(,)?]) => {
         $(nd_ops_impl!(@signed $primitive);)+
@@ -13,22 +11,22 @@ macro_rules! nd_ops_impl {
         $(nd_ops_impl!(@unsigned $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
-        ops_impl_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [-, !]);
+        ndops::all_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [-, !]);
 
-        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
-        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+        ndops::all_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
+        ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
 
-        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
-        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
+        ndops::all_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
+        ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
     };
     (@unsigned $primitive:ty $(,)?) => {
-        ops_impl_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [!]);
+        ndops::all_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [!]);
 
-        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
-        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+        ndops::all_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
+        ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
 
-        ops_impl_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
-        ops_impl_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
+        ndops::all_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
+        ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
     };
 }
 
@@ -275,8 +273,6 @@ nd_ops_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 mod tests {
     use std::ops::{Neg, Not};
 
-    use ndops::ops_impl_auto;
-
     use super::*;
 
     macro_rules! ops_struct_def {
@@ -348,39 +344,39 @@ mod tests {
     ops_struct_def!([N][N: Sized + Copy] X2, Y2, N);
     ops_struct_def!([N][N: Sized + Copy] X3, Y3, N);
 
-    ops_impl_auto!(@stdmut (lhs: &mut A0, *rhs: &B0), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
-    ops_impl_auto!(@stdmut (lhs: &mut A0, *rhs: &A0), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
-    ops_impl_auto!(@stdmut (lhs: &mut A1, *rhs:  B1), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
-    ops_impl_auto!(@stdmut (lhs: &mut A1, *rhs:  A1), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut (lhs: &mut A0, *rhs: &B0), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut (lhs: &mut A0, *rhs: &A0), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut (lhs: &mut A1, *rhs:  B1), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut (lhs: &mut A1, *rhs:  A1), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_impl_auto!(@stdbin (*lhs: &A0, *rhs: &B0) -> A0, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin (*lhs: &A0, *rhs: &A0) -> A0, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin (*lhs: &A1, *rhs:  B1) -> A1, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin (*lhs: &A1, *rhs:  A1) -> A1, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin (*lhs:  A2, *rhs: &B2) -> A2, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin (*lhs:  A2, *rhs: &A2) -> A2, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin (*lhs:  A3, *rhs:  B3) -> A3, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin (*lhs:  A3, *rhs:  A3) -> A3, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs: &A0, *rhs: &B0) -> A0, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs: &A0, *rhs: &A0) -> A0, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs: &A1, *rhs:  B1) -> A1, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs: &A1, *rhs:  A1) -> A1, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs:  A2, *rhs: &B2) -> A2, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs:  A2, *rhs: &A2) -> A2, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs:  A3, *rhs:  B3) -> A3, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin (*lhs:  A3, *rhs:  A3) -> A3, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
-    ops_impl_auto!(@stdun (*value: &A0) -> A0, (value.0) [-, !]);
-    ops_impl_auto!(@stdun (*value:  A1) -> A1, (value.0) [-, !]);
+    ndops::all_auto!(@stdun (*value: &A0) -> A0, (value.0) [-, !]);
+    ndops::all_auto!(@stdun (*value:  A1) -> A1, (value.0) [-, !]);
 
-    ops_impl_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X0<N>, *rhs: &Y0<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
-    ops_impl_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X0<N>, *rhs: &X0<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
-    ops_impl_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X1<N>, *rhs:  Y1<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
-    ops_impl_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X1<N>, *rhs:  X1<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X0<N>, *rhs: &Y0<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X0<N>, *rhs: &X0<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X1<N>, *rhs:  Y1<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
+    ndops::all_auto!(@stdmut <N: Sized + Copy + OpsAssign<N, N>> (lhs: &mut X1<N>, *rhs:  X1<N>), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=, <<=, >>=]);
 
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &Y0<N>) -> X0<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &X0<N>) -> X0<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  Y1<N>) -> X1<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  X1<N>) -> X1<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &Y2<N>) -> X2<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &X2<N>) -> X2<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  Y3<N>) -> X3<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
-    ops_impl_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  X3<N>) -> X3<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &Y0<N>) -> X0<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X0<N>, *rhs: &X0<N>) -> X0<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  Y1<N>) -> X1<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs: &X1<N>, *rhs:  X1<N>) -> X1<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &Y2<N>) -> X2<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X2<N>, *rhs: &X2<N>) -> X2<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  Y3<N>) -> X3<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
+    ndops::all_auto!(@stdbin <N: Sized + Copy + Ops<N, N, Type = N>> (*lhs:  X3<N>, *rhs:  X3<N>) -> X3<N>, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^, <<, >>]);
 
-    ops_impl_auto!(@stdun <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> (*value: &X0<N>) -> X0<N>, (value.0) [-, !]);
-    ops_impl_auto!(@stdun <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> (*value:  X1<N>) -> X1<N>, (value.0) [-, !]);
+    ndops::all_auto!(@stdun <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> (*value: &X0<N>) -> X0<N>, (value.0) [-, !]);
+    ndops::all_auto!(@stdun <N: Sized + Copy + Neg<Output = N> + Not<Output = N>> (*value:  X1<N>) -> X1<N>, (value.0) [-, !]);
 
     #[test]
     fn ops() {
