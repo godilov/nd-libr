@@ -1,5 +1,5 @@
 [package]
-name                 = "ndforward"
+name                 = "ndfwd"
 version.workspace    = true
 edition.workspace    = true
 license.workspace    = true

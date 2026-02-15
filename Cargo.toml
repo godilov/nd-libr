@@ -1,5 +1,5 @@
 [workspace]
-members  = ["cli/primes", "lib", "proc/arch", "proc/forward", "proc/ops"]
+members  = ["cli/primes", "lib", "proc/arch", "proc/fwd", "proc/ops"]
 resolver = "3"
 
 [workspace.package]
@@ -41,11 +41,11 @@ syn         = "2"
 
 criterion = "0"
 
-ndprimes  = { path = "cli/primes" }
-ndlib     = { path = "lib" }
-ndarch    = { path = "proc/arch" }
-ndforward = { path = "proc/forward" }
-ndops     = { path = "proc/ops" }
+ndprimes = { path = "cli/primes" }
+ndlib    = { path = "lib" }
+ndarch   = { path = "proc/arch" }
+ndfwd    = { path = "proc/fwd" }
+ndops    = { path = "proc/ops" }
 
 [profile.release]
 panic = "abort"

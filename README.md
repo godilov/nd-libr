@@ -80,7 +80,7 @@ ops_impl!(@stdmut <N: Clone + Copy + Ops> where for<'rhs, 'lhs> &'lhs N: Ops<&'r
 
 ### Forward Generation
 
-Macroses `ndforward::forward_std`, `ndforward::forward_cmp` and `ndforward::forward_fmt` conditionally implement standard Rust traits by forwarding to `expr`.
+Macroses `ndfwd::forward_std`, `ndfwd::forward_cmp` and `ndfwd::forward_fmt` conditionally implement standard Rust traits by forwarding to `expr`.
 
 - `forward_std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
 - `forward_cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
@@ -100,12 +100,12 @@ impl<T> From<T> for A<T> {
 }
 ```
 
-Macroses `ndforward::forward_decl` and `ndforward::forward_def` conditionally implement user-defined traits by forwarding to inner field.
+Macroses `ndfwd::forward_decl` and `ndfwd::forward_def` conditionally implement user-defined traits by forwarding to inner field.
 
 - `forward_decl`: Used on user-defined trait to generate forwarding
 - `forward_def`: Used on user-defined structs, enums, unions to generate forwarding implementation
 
-Macroses `ndforward::forward_into`, `ndforward::forward_self` and `ndforward::forward_with` specify forwarding result expression.
+Macroses `ndfwd::forward_into`, `ndfwd::forward_self` and `ndfwd::forward_with` specify forwarding result expression.
 
 - Raw: returns raw result
 - `forward_into`: returns `expr.call().into()`. Useful for `fn() -> Self`
