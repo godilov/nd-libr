@@ -796,17 +796,9 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
     let as_self_path: Path = parse_quote! { ndfwd::as_self };
     let as_expr_path: Path = parse_quote! { ndfwd::as_expr };
 
-    let as_into = attrs
-        .iter()
-        .any(|attr| attr.path().is_ident("as_into") || *attr.path() == as_into_path);
-
-    let as_self = attrs
-        .iter()
-        .any(|attr| attr.path().is_ident("as_self") || *attr.path() == as_self_path);
-
-    let as_expr = attrs
-        .iter()
-        .find(|attr| attr.path().is_ident("as_expr") || *attr.path() == as_expr_path);
+    let as_into = attrs.iter().any(|attr| *attr.path() == as_into_path);
+    let as_self = attrs.iter().any(|attr| *attr.path() == as_self_path);
+    let as_expr = attrs.iter().find(|attr| *attr.path() == as_expr_path);
 
     let expr = match recv {
         Some(val) if val.reference.is_some() && val.mutability.is_some() => {
