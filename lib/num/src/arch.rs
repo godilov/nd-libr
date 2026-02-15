@@ -3,7 +3,7 @@ use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 use rand::Rng;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
-use crate::{num::*, ops::*};
+use crate::{ops::*, *};
 
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
@@ -146,10 +146,10 @@ pub mod word {
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::def(self.0 with T: crate::num::Num      where T: Num)]
-#[ndfwd::def(self.0 with T: crate::num::NumExt   where T: NumExt)]
-#[ndfwd::def(self.0 with T: crate::num::Signed   where T: Signed)]
-#[ndfwd::def(self.0 with T: crate::num::Unsigned where T: Unsigned)]
+#[ndfwd::def(self.0 with T: crate::Num      where T: Num)]
+#[ndfwd::def(self.0 with T: crate::NumExt   where T: NumExt)]
+#[ndfwd::def(self.0 with T: crate::Signed   where T: Signed)]
+#[ndfwd::def(self.0 with T: crate::Unsigned where T: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 

@@ -12,10 +12,10 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    IteratorExt, NdFrom, NdTryFrom,
+    IteratorExt, Max, Min, NdFrom, NdTryFrom, Num, NumExt, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned,
+    Zero,
     arch::word::*,
     long::{radix::*, uops::*},
-    num::{Max, Min, Num, NumExt, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero},
     ops::{
         NdAdd, NdAddAssign, NdBitAnd, NdBitAndAssign, NdBitOr, NdBitOrAssign, NdBitXor, NdBitXorAssign, NdDiv,
         NdDivAssign, NdMul, NdMulAssign, NdNeg, NdNot, NdRem, NdRemAssign, NdShl, NdShlAssign, NdShr, NdShrAssign,

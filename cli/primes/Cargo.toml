@@ -20,7 +20,7 @@ tokio              = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 
-ndlib = { workspace = true }
+ndnum = { workspace = true }
 
 [lints]
 workspace = true

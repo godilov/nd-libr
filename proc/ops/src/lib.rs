@@ -1512,7 +1512,7 @@ impl OpsAssign {
     }
 
     fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndlib });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndnum });
 
         match self {
             OpsAssign::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
@@ -1561,7 +1561,7 @@ impl OpsBinary {
     }
 
     fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndlib });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndnum });
 
         match self {
             OpsBinary::Add(_) => parse_quote! { #prefix::ops::NdAdd },
@@ -1594,7 +1594,7 @@ impl OpsUnary {
     }
 
     fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndlib });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndnum });
 
         match self {
             OpsUnary::Neg(_) => parse_quote! { #prefix::ops::NdNeg },
