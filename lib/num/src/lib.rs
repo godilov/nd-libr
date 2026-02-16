@@ -155,21 +155,11 @@ macro_rules! prime_impl {
 }
 
 macro_rules! sign_from {
-    (@unsigned [$($primitive:ty),+ $(,)?]) => {
-        $(sign_from!(@unsigned $primitive);)+
-    };
     (@signed [$($primitive:ty),+ $(,)?]) => {
         $(sign_from!(@signed $primitive);)+
     };
-    (@unsigned $primitive:ty $(,)?) => {
-        impl From<$primitive> for Sign {
-            fn from(value: $primitive) -> Self {
-                match value {
-                    0 => Sign::ZERO,
-                    _ => Sign::POS,
-                }
-            }
-        }
+    (@unsigned [$($primitive:ty),+ $(,)?]) => {
+        $(sign_from!(@unsigned $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
         impl From<$primitive> for Sign {
@@ -181,6 +171,109 @@ macro_rules! sign_from {
                 }
             }
         }
+    };
+    (@unsigned $primitive:ty $(,)?) => {
+        impl From<$primitive> for Sign {
+            fn from(value: $primitive) -> Self {
+                match value {
+                    0 => Sign::ZERO,
+                    _ => Sign::POS,
+                }
+            }
+        }
+    };
+}
+
+macro_rules! cmp_ct_impl {
+    (@signed [$($signed:ty:$unsigned:ty),+ $(,)?]) => {
+        $(cmp_ct_impl!(@signed $signed:$unsigned);)+
+    };
+    (@unsigned [$($unsigned:ty),+ $(,)?]) => {
+        $(cmp_ct_impl!(@unsigned $unsigned);)+
+    };
+    (@signed $signed:ty:$unsigned:ty $(,)?) => {
+        impl EqCt for $signed {
+            fn eq_ct(&self, other: &Self) -> Mask {
+                let diff = *self ^ *other;
+                let diff = (diff | diff.wrapping_neg()) >> (<$signed>::BITS - 1);
+
+                diff.wrapping_sub(1) as Mask
+            }
+        }
+
+        impl LtCt for $signed {
+            fn lt_ct(&self, other: &Self) -> Mask {
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
+
+                let lt = (lhs.wrapping_sub(rhs) >> (<$unsigned>::BITS - 1)) as u8;
+
+                let lhs_neg = (lhs >> (<$unsigned>::BITS - 1)) as u8;
+                let rhs_neg = (rhs >> (<$unsigned>::BITS - 1)) as u8;
+
+                let xor = lhs_neg ^ rhs_neg;
+                let res = xor & lhs_neg | !xor & lt;
+
+                Mask::ZERO.wrapping_sub(res)
+            }
+        }
+
+        impl GtCt for $signed {
+            fn gt_ct(&self, other: &Self) -> Mask {
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
+
+                let gt = (rhs.wrapping_sub(lhs) >> (<$unsigned>::BITS - 1)) as u8;
+
+                let lhs_neg = (lhs >> (<$unsigned>::BITS - 1)) as u8;
+                let rhs_neg = (rhs >> (<$unsigned>::BITS - 1)) as u8;
+
+                let xor = lhs_neg ^ rhs_neg;
+                let res = xor & rhs_neg | !xor & gt;
+
+                Mask::ZERO.wrapping_sub(res)
+            }
+        }
+
+        impl LeCt for $signed {}
+        impl GeCt for $signed {}
+    };
+    (@unsigned $unsigned:ty $(,)?) => {
+        impl EqCt for $unsigned {
+            fn eq_ct(&self, other: &Self) -> Mask {
+                let xor = *self ^ *other;
+                let xor = xor | xor.wrapping_neg();
+
+                let neg = (xor >> (<$unsigned>::BITS - 1)) as Mask;
+
+                neg.wrapping_sub(1)
+            }
+        }
+
+        impl LtCt for $unsigned {
+            fn lt_ct(&self, other: &Self) -> Mask {
+                let lhs = self;
+                let rhs = other;
+
+                let neg = (lhs.wrapping_sub(*rhs) >> (<$unsigned>::BITS - 1)) as Mask;
+
+                Mask::ZERO.wrapping_sub(neg)
+            }
+        }
+
+        impl GtCt for $unsigned {
+            fn gt_ct(&self, other: &Self) -> Mask {
+                let lhs = self;
+                let rhs = other;
+
+                let neg = (rhs.wrapping_sub(*lhs) >> (<$unsigned>::BITS - 1)) as Mask;
+
+                Mask::ZERO.wrapping_sub(neg)
+            }
+        }
+
+        impl LeCt for $unsigned {}
+        impl GeCt for $unsigned {}
     };
 }
 
@@ -745,90 +838,6 @@ pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
     const MOD: N;
 }
 
-impl EqCt for usize {
-    fn eq_ct(&self, other: &Self) -> Mask {
-        let xor = *self ^ *other;
-        let xor = xor | xor.wrapping_neg();
-
-        let neg = (xor >> (usize::BITS - 1)) as Mask;
-
-        neg.wrapping_sub(1)
-    }
-}
-
-impl LtCt for usize {
-    fn lt_ct(&self, other: &Self) -> Mask {
-        let lhs = self;
-        let rhs = other;
-
-        let neg = (lhs.wrapping_sub(*rhs) >> (usize::BITS - 1)) as Mask;
-
-        Mask::ZERO.wrapping_sub(neg)
-    }
-}
-
-impl GtCt for usize {
-    fn gt_ct(&self, other: &Self) -> Mask {
-        let lhs = self;
-        let rhs = other;
-
-        let neg = (rhs.wrapping_sub(*lhs) >> (usize::BITS - 1)) as Mask;
-
-        Mask::ZERO.wrapping_sub(neg)
-    }
-}
-
-impl LeCt for usize {}
-impl GeCt for usize {}
-
-impl EqCt for isize {
-    fn eq_ct(&self, other: &Self) -> Mask {
-        let diff = *self ^ *other;
-        let diff = (diff | diff.wrapping_neg()) >> (isize::BITS - 1);
-
-        diff.wrapping_sub(1) as Mask
-    }
-}
-
-impl LtCt for isize {
-    fn lt_ct(&self, other: &Self) -> Mask {
-        let lhs = *self as usize;
-        let rhs = *other as usize;
-
-        let lt = (lhs.wrapping_sub(rhs) >> (usize::BITS - 1)) as u8;
-
-        let lhs_neg = (lhs >> (usize::BITS - 1)) as u8;
-        let rhs_neg = (rhs >> (usize::BITS - 1)) as u8;
-
-        let xor = lhs_neg ^ rhs_neg;
-        let res = xor & lhs_neg | !xor & lt;
-
-        Mask::ZERO.wrapping_sub(res)
-    }
-}
-
-impl GtCt for isize {
-    fn gt_ct(&self, other: &Self) -> Mask {
-        let lhs = *self as usize;
-        let rhs = *other as usize;
-
-        let gt = (rhs.wrapping_sub(lhs) >> (usize::BITS - 1)) as u8;
-
-        let lhs_neg = (lhs >> (usize::BITS - 1)) as u8;
-        let rhs_neg = (rhs >> (usize::BITS - 1)) as u8;
-
-        let xor = lhs_neg ^ rhs_neg;
-        let res = xor & rhs_neg | !xor & gt;
-
-        Mask::ZERO.wrapping_sub(res)
-    }
-}
-
-impl LeCt for isize {}
-impl GeCt for isize {}
-
-impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {}
-
 num_impl!([i8, i16, i32, i64, i128, isize]);
 num_impl!([u8, u16, u32, u64, u128, usize]);
 
@@ -843,6 +852,11 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
+
+cmp_ct_impl!(@signed [i8:u8, i16:u16, i32:u32, i64:u64, i128:u128]);
+cmp_ct_impl!(@unsigned [u8, u16, u32, u64, u128]);
+
+impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {}
 
 ndops::all!(@stdbin (lhs: Sign, rhs: Sign) -> Sign, * Sign::from((lhs as i8) * (rhs as i8)));
 
