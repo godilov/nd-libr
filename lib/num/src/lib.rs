@@ -67,6 +67,131 @@ macro_rules! num_impl {
     };
 }
 
+macro_rules! num_ct_impl {
+    (@signed [$($signed:ty:$unsigned:ty),+ $(,)?]) => {
+        $(num_ct_impl!(@signed $signed:$unsigned);)+
+    };
+    (@unsigned [$($unsigned:ty),+ $(,)?]) => {
+        $(num_ct_impl!(@unsigned $unsigned);)+
+    };
+    (@signed $signed:ty:$unsigned:ty $(,)?) => {
+        impl EqCt for $signed {
+            fn eq_ct(&self, other: &Self) -> Mask {
+                let diff = *self ^ *other;
+                let diff = (diff | diff.wrapping_neg()) >> (<$signed>::BITS - 1);
+
+                diff.wrapping_sub(1) as Mask
+            }
+        }
+
+        impl LtCt for $signed {
+            fn lt_ct(&self, other: &Self) -> Mask {
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
+
+                let lt = (lhs.wrapping_sub(rhs) >> (<$unsigned>::BITS - 1)) as u8;
+
+                let lhs_neg = (lhs >> (<$unsigned>::BITS - 1)) as u8;
+                let rhs_neg = (rhs >> (<$unsigned>::BITS - 1)) as u8;
+
+                let xor = lhs_neg ^ rhs_neg;
+                let res = xor & lhs_neg | !xor & lt;
+
+                Mask::ZERO.wrapping_sub(res)
+            }
+        }
+
+        impl GtCt for $signed {
+            fn gt_ct(&self, other: &Self) -> Mask {
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
+
+                let gt = (rhs.wrapping_sub(lhs) >> (<$unsigned>::BITS - 1)) as u8;
+
+                let lhs_neg = (lhs >> (<$unsigned>::BITS - 1)) as u8;
+                let rhs_neg = (rhs >> (<$unsigned>::BITS - 1)) as u8;
+
+                let xor = lhs_neg ^ rhs_neg;
+                let res = xor & rhs_neg | !xor & gt;
+
+                Mask::ZERO.wrapping_sub(res)
+            }
+        }
+
+        impl LeCt for $signed {}
+        impl GeCt for $signed {}
+
+        num_ct_impl!(@min $signed);
+        num_ct_impl!(@max $signed);
+    };
+    (@unsigned $unsigned:ty $(,)?) => {
+        impl EqCt for $unsigned {
+            fn eq_ct(&self, other: &Self) -> Mask {
+                let xor = *self ^ *other;
+                let xor = xor | xor.wrapping_neg();
+
+                let neg = (xor >> (<$unsigned>::BITS - 1)) as Mask;
+
+                neg.wrapping_sub(1)
+            }
+        }
+
+        impl LtCt for $unsigned {
+            fn lt_ct(&self, other: &Self) -> Mask {
+                let lhs = self;
+                let rhs = other;
+
+                let neg = (lhs.wrapping_sub(*rhs) >> (<$unsigned>::BITS - 1)) as Mask;
+
+                Mask::ZERO.wrapping_sub(neg)
+            }
+        }
+
+        impl GtCt for $unsigned {
+            fn gt_ct(&self, other: &Self) -> Mask {
+                let lhs = self;
+                let rhs = other;
+
+                let neg = (rhs.wrapping_sub(*lhs) >> (<$unsigned>::BITS - 1)) as Mask;
+
+                Mask::ZERO.wrapping_sub(neg)
+            }
+        }
+
+        impl LeCt for $unsigned {}
+        impl GeCt for $unsigned {}
+
+        num_ct_impl!(@min $unsigned);
+        num_ct_impl!(@max $unsigned);
+    };
+    (@min $primitive:ty $(,)?) => {
+        impl MinCt for $primitive {
+            fn min_ct(&self, other: &Self) -> Self {
+                let lhs = self;
+                let rhs = other;
+
+                let lt = lhs.lt_ct(rhs);
+                let lt = <$primitive>::from_ne_bytes([lt; (<$primitive>::BITS / 8) as usize]);
+
+                lt & lhs | !lt & rhs
+            }
+        }
+    };
+    (@max $primitive:ty $(,)?) => {
+        impl MaxCt for $primitive {
+            fn max_ct(&self, other: &Self) -> Self {
+                let lhs = self;
+                let rhs = other;
+
+                let gt = lhs.gt_ct(rhs);
+                let gt = <$primitive>::from_ne_bytes([gt; (<$primitive>::BITS / 8) as usize]);
+
+                gt & lhs | !gt & rhs
+            }
+        }
+    }
+}
+
 macro_rules! signed_impl {
     ([$($primitive:ty),+] $(,)?) => {
         $(signed_impl!($primitive);)+
@@ -181,99 +306,6 @@ macro_rules! sign_from {
                 }
             }
         }
-    };
-}
-
-macro_rules! cmp_ct_impl {
-    (@signed [$($signed:ty:$unsigned:ty),+ $(,)?]) => {
-        $(cmp_ct_impl!(@signed $signed:$unsigned);)+
-    };
-    (@unsigned [$($unsigned:ty),+ $(,)?]) => {
-        $(cmp_ct_impl!(@unsigned $unsigned);)+
-    };
-    (@signed $signed:ty:$unsigned:ty $(,)?) => {
-        impl EqCt for $signed {
-            fn eq_ct(&self, other: &Self) -> Mask {
-                let diff = *self ^ *other;
-                let diff = (diff | diff.wrapping_neg()) >> (<$signed>::BITS - 1);
-
-                diff.wrapping_sub(1) as Mask
-            }
-        }
-
-        impl LtCt for $signed {
-            fn lt_ct(&self, other: &Self) -> Mask {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let lt = (lhs.wrapping_sub(rhs) >> (<$unsigned>::BITS - 1)) as u8;
-
-                let lhs_neg = (lhs >> (<$unsigned>::BITS - 1)) as u8;
-                let rhs_neg = (rhs >> (<$unsigned>::BITS - 1)) as u8;
-
-                let xor = lhs_neg ^ rhs_neg;
-                let res = xor & lhs_neg | !xor & lt;
-
-                Mask::ZERO.wrapping_sub(res)
-            }
-        }
-
-        impl GtCt for $signed {
-            fn gt_ct(&self, other: &Self) -> Mask {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let gt = (rhs.wrapping_sub(lhs) >> (<$unsigned>::BITS - 1)) as u8;
-
-                let lhs_neg = (lhs >> (<$unsigned>::BITS - 1)) as u8;
-                let rhs_neg = (rhs >> (<$unsigned>::BITS - 1)) as u8;
-
-                let xor = lhs_neg ^ rhs_neg;
-                let res = xor & rhs_neg | !xor & gt;
-
-                Mask::ZERO.wrapping_sub(res)
-            }
-        }
-
-        impl LeCt for $signed {}
-        impl GeCt for $signed {}
-    };
-    (@unsigned $unsigned:ty $(,)?) => {
-        impl EqCt for $unsigned {
-            fn eq_ct(&self, other: &Self) -> Mask {
-                let xor = *self ^ *other;
-                let xor = xor | xor.wrapping_neg();
-
-                let neg = (xor >> (<$unsigned>::BITS - 1)) as Mask;
-
-                neg.wrapping_sub(1)
-            }
-        }
-
-        impl LtCt for $unsigned {
-            fn lt_ct(&self, other: &Self) -> Mask {
-                let lhs = self;
-                let rhs = other;
-
-                let neg = (lhs.wrapping_sub(*rhs) >> (<$unsigned>::BITS - 1)) as Mask;
-
-                Mask::ZERO.wrapping_sub(neg)
-            }
-        }
-
-        impl GtCt for $unsigned {
-            fn gt_ct(&self, other: &Self) -> Mask {
-                let lhs = self;
-                let rhs = other;
-
-                let neg = (rhs.wrapping_sub(*lhs) >> (<$unsigned>::BITS - 1)) as Mask;
-
-                Mask::ZERO.wrapping_sub(neg)
-            }
-        }
-
-        impl LeCt for $unsigned {}
-        impl GeCt for $unsigned {}
     };
 }
 
@@ -841,6 +873,9 @@ pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
 num_impl!([i8, i16, i32, i64, i128, isize]);
 num_impl!([u8, u16, u32, u64, u128, usize]);
 
+num_ct_impl!(@signed [i8:u8, i16:u16, i32:u32, i64:u64, i128:u128, isize:usize]);
+num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
+
 signed_impl!([i8, i16, i32, i64, i128, isize]);
 unsigned_impl!([u8, u16, u32, u64, u128, usize]);
 
@@ -853,12 +888,9 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-cmp_ct_impl!(@signed [i8:u8, i16:u16, i32:u32, i64:u64, i128:u128]);
-cmp_ct_impl!(@unsigned [u8, u16, u32, u64, u128]);
+ndops::all!(@stdbin (lhs: Sign, rhs: Sign) -> Sign, * Sign::from((lhs as i8) * (rhs as i8)));
 
 impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {}
-
-ndops::all!(@stdbin (lhs: Sign, rhs: Sign) -> Sign, * Sign::from((lhs as i8) * (rhs as i8)));
 
 impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {
