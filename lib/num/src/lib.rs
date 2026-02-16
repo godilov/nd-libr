@@ -438,6 +438,8 @@ pub enum Sign {
     POS = 1,
 }
 
+type BoolCt = usize;
+
 #[ndfwd::decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAssign {
     fn bits(&self) -> usize;
@@ -695,6 +697,34 @@ pub trait MinDyn {
 
 pub trait MaxDyn {
     fn max() -> Self;
+}
+
+pub trait EqCt {
+    fn eq_ct(&self, other: &Self) -> BoolCt;
+}
+
+pub trait GtCt {
+    fn gt_ct(&self, other: &Self) -> BoolCt;
+}
+
+pub trait LtCt {
+    fn lt_ct(&self, other: &Self) -> BoolCt;
+}
+
+pub trait GeCt {
+    fn ge_ct(&self, other: &Self) -> BoolCt;
+}
+
+pub trait LeCt {
+    fn le_ct(&self, other: &Self) -> BoolCt;
+}
+
+pub trait MinCt: Copy {
+    fn min_ct(&self, other: &Self) -> Self;
+}
+
+pub trait MaxCt: Copy {
+    fn max_ct(&self, other: &Self) -> Self;
 }
 
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
