@@ -747,16 +747,21 @@ pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
 
 impl EqCt for usize {
     fn eq_ct(&self, other: &Self) -> Mask {
-        let diff = *self ^ *other;
-        let diff = (diff | diff.wrapping_neg()) >> (usize::BITS - 1);
+        let xor = *self ^ *other;
+        let xor = xor | xor.wrapping_neg();
 
-        diff.wrapping_sub(1) as Mask
+        let neg = (xor >> (usize::BITS - 1)) as Mask;
+
+        neg.wrapping_sub(1)
     }
 }
 
 impl LtCt for usize {
     fn lt_ct(&self, other: &Self) -> Mask {
-        let neg = (self.wrapping_sub(*other) >> (usize::BITS - 1)) as Mask;
+        let lhs = self;
+        let rhs = other;
+
+        let neg = (lhs.wrapping_sub(*rhs) >> (usize::BITS - 1)) as Mask;
 
         Mask::ZERO.wrapping_sub(neg)
     }
@@ -764,7 +769,10 @@ impl LtCt for usize {
 
 impl GtCt for usize {
     fn gt_ct(&self, other: &Self) -> Mask {
-        let neg = (other.wrapping_sub(*self) >> (usize::BITS - 1)) as Mask;
+        let lhs = self;
+        let rhs = other;
+
+        let neg = (rhs.wrapping_sub(*lhs) >> (usize::BITS - 1)) as Mask;
 
         Mask::ZERO.wrapping_sub(neg)
     }
