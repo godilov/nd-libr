@@ -438,7 +438,7 @@ pub enum Sign {
     POS = 1,
 }
 
-type BoolCt = usize;
+type Mask = u8;
 
 #[ndfwd::decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAssign {
@@ -700,23 +700,37 @@ pub trait MaxDyn {
 }
 
 pub trait EqCt {
-    fn eq_ct(&self, other: &Self) -> BoolCt;
-}
-
-pub trait GtCt {
-    fn gt_ct(&self, other: &Self) -> BoolCt;
+    fn eq_ct(&self, other: &Self) -> Mask;
 }
 
 pub trait LtCt {
-    fn lt_ct(&self, other: &Self) -> BoolCt;
+    fn lt_ct(&self, other: &Self) -> Mask;
 }
 
-pub trait GeCt {
-    fn ge_ct(&self, other: &Self) -> BoolCt;
+pub trait GtCt {
+    fn gt_ct(&self, other: &Self) -> Mask;
 }
 
-pub trait LeCt {
-    fn le_ct(&self, other: &Self) -> BoolCt;
+pub trait LeCt: GtCt {
+    fn le_ct(&self, other: &Self) -> Mask {
+        !self.gt_ct(other)
+    }
+}
+
+pub trait GeCt: LtCt {
+    fn ge_ct(&self, other: &Self) -> Mask {
+        !self.lt_ct(other)
+    }
+}
+
+pub trait CmpCt: EqCt + LtCt + GtCt {
+    fn cmp_ct(&self, other: &Self) -> (Mask, Mask, Mask) {
+        let eq = self.eq_ct(other);
+        let lt = self.lt_ct(other);
+        let gt = self.gt_ct(other);
+
+        (eq, lt, gt)
+    }
 }
 
 pub trait MinCt: Copy {
@@ -730,6 +744,82 @@ pub trait MaxCt: Copy {
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
     const MOD: N;
 }
+
+impl EqCt for usize {
+    fn eq_ct(&self, other: &Self) -> Mask {
+        let diff = *self ^ *other;
+        let diff = (diff | diff.wrapping_neg()) >> (usize::BITS - 1);
+
+        diff.wrapping_sub(1) as Mask
+    }
+}
+
+impl LtCt for usize {
+    fn lt_ct(&self, other: &Self) -> Mask {
+        let neg = (self.wrapping_sub(*other) >> (usize::BITS - 1)) as Mask;
+
+        Mask::ZERO.wrapping_sub(neg)
+    }
+}
+
+impl GtCt for usize {
+    fn gt_ct(&self, other: &Self) -> Mask {
+        let neg = (other.wrapping_sub(*self) >> (usize::BITS - 1)) as Mask;
+
+        Mask::ZERO.wrapping_sub(neg)
+    }
+}
+
+impl LeCt for usize {}
+impl GeCt for usize {}
+
+impl EqCt for isize {
+    fn eq_ct(&self, other: &Self) -> Mask {
+        let diff = *self ^ *other;
+        let diff = (diff | diff.wrapping_neg()) >> (isize::BITS - 1);
+
+        diff.wrapping_sub(1) as Mask
+    }
+}
+
+impl LtCt for isize {
+    fn lt_ct(&self, other: &Self) -> Mask {
+        let lhs = *self as usize;
+        let rhs = *other as usize;
+
+        let lt = (lhs.wrapping_sub(rhs) >> (usize::BITS - 1)) as u8;
+
+        let lhs_neg = (lhs >> (usize::BITS - 1)) as u8;
+        let rhs_neg = (rhs >> (usize::BITS - 1)) as u8;
+
+        let xor = lhs_neg ^ rhs_neg;
+        let res = xor & lhs_neg | !xor & lt;
+
+        Mask::ZERO.wrapping_sub(res)
+    }
+}
+
+impl GtCt for isize {
+    fn gt_ct(&self, other: &Self) -> Mask {
+        let lhs = *self as usize;
+        let rhs = *other as usize;
+
+        let gt = (rhs.wrapping_sub(lhs) >> (usize::BITS - 1)) as u8;
+
+        let lhs_neg = (lhs >> (usize::BITS - 1)) as u8;
+        let rhs_neg = (rhs >> (usize::BITS - 1)) as u8;
+
+        let xor = lhs_neg ^ rhs_neg;
+        let res = xor & rhs_neg | !xor & gt;
+
+        Mask::ZERO.wrapping_sub(res)
+    }
+}
+
+impl LeCt for isize {}
+impl GeCt for isize {}
+
+impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {}
 
 num_impl!([i8, i16, i32, i64, i128, isize]);
 num_impl!([u8, u16, u32, u64, u128, usize]);
