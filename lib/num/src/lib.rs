@@ -1,4 +1,9 @@
-use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
+use std::{
+    cmp::Ordering,
+    fmt::Debug,
+    marker::PhantomData,
+    mem::{replace, take},
+};
 
 use crate::{ops::*, prime::*};
 
@@ -314,8 +319,6 @@ macro_rules! sign_from {
 }
 
 pub mod prime {
-    use std::mem::{replace, take};
-
     use super::*;
 
     pub(super) const PRIMES: [u16; 128] = [
