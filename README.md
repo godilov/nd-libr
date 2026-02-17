@@ -320,7 +320,7 @@ let b1337 = Width::<B1536, 1337>::default(); // Bytes of length 1337-bits and st
 
 ### Conversions
 
-Traits `ndlib::NdFrom` and `ndlib::NdTryFrom` describe conversion from types.
+Traits `ndcore::NdFrom` and `ndcore::NdTryFrom` describe conversion from types.
 
 - Like `std::convert::From` and `std::convert::TryFrom`, they can be used for conversion
 - Unlike `std::convert::From` and `std::convert::TryFrom`, they can be used [simultaneously](https://github.com/rust-lang/rust/issues/50133)

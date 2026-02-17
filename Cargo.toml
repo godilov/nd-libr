@@ -44,8 +44,8 @@ syn         = "2"
 criterion = "0"
 
 ndprimes = { path = "cli/primes" }
+ndcore   = { path = "lib/core" }
 ndevm    = { path = "lib/evm" }
-ndlib    = { path = "lib/lib" }
 ndnum    = { path = "lib/num" }
 ndarch   = { path = "proc/arch" }
 ndfwd    = { path = "proc/fwd" }

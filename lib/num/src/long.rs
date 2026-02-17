@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use ndlib::{IteratorExt, NdFrom, NdTryFrom};
+use ndcore::{IteratorExt, NdFrom, NdTryFrom};
 use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
