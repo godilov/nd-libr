@@ -387,7 +387,7 @@ cargo build
 Executes all tests to verify correctness
 
 ```shell
-cargo test
+cargo test --features all
 ```
 
 Executes all benches to verify performance (report: `target/criterion/report/index.html`)

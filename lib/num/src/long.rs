@@ -12,9 +12,10 @@ use ndlib::{IteratorExt, NdFrom, NdTryFrom};
 use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
+#[cfg(feature = "const-time")]
+use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, SignCt};
 use crate::{
-    CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, Max, Min, Num, NumExt, One, Sign, SignCt, Signed as NumSigned,
-    Unsigned as NumUnsigned, Zero,
+    Max, Min, Num, NumExt, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero,
     arch::word::*,
     long::{radix::*, uops::*},
     ops::{
@@ -42,6 +43,7 @@ macro_rules! bytes {
     };
 }
 
+#[cfg(feature = "const-time")]
 macro_rules! eq_const {
     ($lhs:expr, $rhs:expr) => {{
         let diff = $lhs.rev().zip($rhs.rev()).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
@@ -50,6 +52,7 @@ macro_rules! eq_const {
     }};
 }
 
+#[cfg(feature = "const-time")]
 macro_rules! cmp_const {
     ($lhs:expr, $rhs:expr) => {{
         let (lt, gt) = $lhs.rev().zip($rhs.rev()).map(|(a, b)| ((a < b) as i8, (a > b) as i8)).fold(
@@ -1046,6 +1049,7 @@ mod uops {
         }
     }
 
+    #[cfg(feature = "const-time")]
     #[allow(clippy::unnecessary_cast)]
     pub(super) fn sign_ct<const L: usize>(words: &[Single; L]) -> SignCt {
         let zero = zero_ct(words);
@@ -1055,6 +1059,7 @@ mod uops {
         neg as SignCt | pos as SignCt
     }
 
+    #[cfg(feature = "const-time")]
     #[allow(clippy::unnecessary_cast)]
     pub(super) fn pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let zero = zero_ct(words);
@@ -1063,6 +1068,7 @@ mod uops {
         !zero & !neg
     }
 
+    #[cfg(feature = "const-time")]
     #[allow(clippy::unnecessary_cast)]
     pub(super) fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
@@ -1070,6 +1076,7 @@ mod uops {
         <MaskCt as Zero>::ZERO.wrapping_sub(neg)
     }
 
+    #[cfg(feature = "const-time")]
     pub(super) fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         eq_const!(words.iter(), std::hint::black_box(repeat(0)))
     }
@@ -1201,18 +1208,23 @@ pub struct Unsigned<const L: usize>(pub [Single; L]);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
 
+#[cfg(feature = "dyn")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedDyn(Vec<Single>, Sign);
 
+#[cfg(feature = "dyn")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsignedDyn(Vec<Single>);
 
+#[cfg(feature = "dyn")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BytesDyn(Vec<Single>);
 
+#[cfg(feature = "simd")]
 #[derive(Debug, Clone, Copy)]
 pub struct SignedSimd<const L: usize>(pub [Single; L]);
 
+#[cfg(feature = "simd")]
 #[derive(Debug, Clone, Copy)]
 pub struct UnsignedSimd<const L: usize>(pub [Single; L]);
 
@@ -2148,24 +2160,28 @@ impl<const L: usize> IntoDigitsIter for Unsigned<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Signed<L> {
     fn eq_ct(&self, other: &Self) -> MaskCt {
         eq_const!(self.0.iter(), other.0.iter())
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Unsigned<L> {
     fn eq_ct(&self, other: &Self) -> MaskCt {
         eq_const!(self.0.iter(), other.0.iter())
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Bytes<L> {
     fn eq_ct(&self, other: &Self) -> MaskCt {
         eq_const!(self.0.iter(), other.0.iter())
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> LtCt for Signed<L> {
     fn lt_ct(&self, other: &Self) -> MaskCt {
         let lhs_sign = sign_ct(&self.0);
@@ -2181,6 +2197,7 @@ impl<const L: usize> LtCt for Signed<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> GtCt for Signed<L> {
     fn gt_ct(&self, other: &Self) -> MaskCt {
         let lhs_sign = sign_ct(&self.0);
@@ -2196,6 +2213,7 @@ impl<const L: usize> GtCt for Signed<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> LeCt for Signed<L> {
     fn le_ct(&self, other: &Self) -> MaskCt {
         let lhs_sign = sign_ct(&self.0);
@@ -2212,6 +2230,7 @@ impl<const L: usize> LeCt for Signed<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> GeCt for Signed<L> {
     fn ge_ct(&self, other: &Self) -> MaskCt {
         let lhs_sign = sign_ct(&self.0);
@@ -2228,6 +2247,7 @@ impl<const L: usize> GeCt for Signed<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> LtCt for Unsigned<L> {
     fn lt_ct(&self, other: &Self) -> MaskCt {
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
@@ -2236,6 +2256,7 @@ impl<const L: usize> LtCt for Unsigned<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> GtCt for Unsigned<L> {
     fn gt_ct(&self, other: &Self) -> MaskCt {
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
@@ -2244,6 +2265,7 @@ impl<const L: usize> GtCt for Unsigned<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> LeCt for Unsigned<L> {
     fn le_ct(&self, other: &Self) -> MaskCt {
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
@@ -2255,6 +2277,7 @@ impl<const L: usize> LeCt for Unsigned<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> GeCt for Unsigned<L> {
     fn ge_ct(&self, other: &Self) -> MaskCt {
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
@@ -2266,7 +2289,10 @@ impl<const L: usize> GeCt for Unsigned<L> {
     }
 }
 
+#[cfg(feature = "const-time")]
 impl<const L: usize> CmpCt for Signed<L> {}
+
+#[cfg(feature = "const-time")]
 impl<const L: usize> CmpCt for Unsigned<L> {}
 
 impl<'words, const L: usize, W: Word> ExactSizeIterator for DigitsIter<'words, L, W> {}
@@ -3647,11 +3673,6 @@ mod tests {
             [
                 (|lhs: S64, rhs: S64| { lhs.eq   (&rhs) })(|lhs: i64, rhs: i64| { lhs.eq (&rhs) }),
                 (|lhs: S64, rhs: S64| { lhs.cmp  (&rhs) })(|lhs: i64, rhs: i64| { lhs.cmp(&rhs) }),
-                (|lhs: S64, rhs: S64| { lhs.eq_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs == rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.lt_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs <  rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.gt_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs >  rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.le_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs <= rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.ge_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs >= rhs) as MaskCt }),
             ]
         );
     }
@@ -3666,6 +3687,37 @@ mod tests {
             [
                 (|lhs: U64, rhs: U64| { lhs.eq   (&rhs) })(|lhs: u64, rhs: u64| { lhs.eq (&rhs) }),
                 (|lhs: U64, rhs: U64| { lhs.cmp  (&rhs) })(|lhs: u64, rhs: u64| { lhs.cmp(&rhs) }),
+            ]
+        );
+    }
+
+    #[cfg(feature = "const-time")]
+    #[test]
+    #[rustfmt::skip]
+    fn signed_cmp_ct() {
+        assert_ops!(
+            S64,
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
+            [
+                (|lhs: S64, rhs: S64| { lhs.eq_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs == rhs) as MaskCt }),
+                (|lhs: S64, rhs: S64| { lhs.lt_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs <  rhs) as MaskCt }),
+                (|lhs: S64, rhs: S64| { lhs.gt_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs >  rhs) as MaskCt }),
+                (|lhs: S64, rhs: S64| { lhs.le_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs <= rhs) as MaskCt }),
+                (|lhs: S64, rhs: S64| { lhs.ge_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs >= rhs) as MaskCt }),
+            ]
+        );
+    }
+
+    #[cfg(feature = "const-time")]
+    #[test]
+    #[rustfmt::skip]
+    fn unsigned_cmp_ct() {
+        assert_ops!(
+            U64,
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
+            [
                 (|lhs: U64, rhs: U64| { lhs.eq_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs == rhs) as MaskCt }),
                 (|lhs: U64, rhs: U64| { lhs.lt_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs <  rhs) as MaskCt }),
                 (|lhs: U64, rhs: U64| { lhs.gt_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs >  rhs) as MaskCt }),

@@ -32,3 +32,12 @@ workspace = true
 [[bench]]
 name    = "long"
 harness = false
+
+[features]
+default    = ["std"]
+all        = ["std", "dyn", "simd", "rand", "const-time"]
+std        = []
+dyn        = ["std"]
+simd       = []
+rand       = []
+const-time = []

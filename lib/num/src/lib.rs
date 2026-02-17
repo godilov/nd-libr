@@ -67,6 +67,7 @@ macro_rules! num_impl {
     };
 }
 
+#[cfg(feature = "const-time")]
 macro_rules! num_ct_impl {
     (@signed [$($signed:ty:$unsigned:ty),+ $(,)?]) => {
         $(num_ct_impl!(@signed $signed:$unsigned);)+
@@ -569,7 +570,10 @@ pub enum Sign {
     POS = 1,
 }
 
+#[cfg(feature = "const-time")]
 type MaskCt = u8;
+
+#[cfg(feature = "const-time")]
 type SignCt = i8;
 
 #[ndfwd::decl]
@@ -799,6 +803,10 @@ pub trait Unsigned: Num {
     fn sqrt(&self) -> Self;
 }
 
+pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
+    const MOD: N;
+}
+
 pub trait Zero {
     const ZERO: Self;
 }
@@ -831,30 +839,36 @@ pub trait MaxDyn {
     fn max() -> Self;
 }
 
+#[cfg(feature = "const-time")]
 pub trait EqCt {
     fn eq_ct(&self, other: &Self) -> MaskCt;
 }
 
+#[cfg(feature = "const-time")]
 pub trait LtCt {
     fn lt_ct(&self, other: &Self) -> MaskCt;
 }
 
+#[cfg(feature = "const-time")]
 pub trait GtCt {
     fn gt_ct(&self, other: &Self) -> MaskCt;
 }
 
+#[cfg(feature = "const-time")]
 pub trait LeCt: GtCt {
     fn le_ct(&self, other: &Self) -> MaskCt {
         !self.gt_ct(other)
     }
 }
 
+#[cfg(feature = "const-time")]
 pub trait GeCt: LtCt {
     fn ge_ct(&self, other: &Self) -> MaskCt {
         !self.lt_ct(other)
     }
 }
 
+#[cfg(feature = "const-time")]
 pub trait CmpCt: EqCt + LtCt + GtCt {
     fn cmp_ct(&self, other: &Self) -> SignCt {
         let lt = self.lt_ct(other) as SignCt;
@@ -864,22 +878,23 @@ pub trait CmpCt: EqCt + LtCt + GtCt {
     }
 }
 
+#[cfg(feature = "const-time")]
 pub trait MinCt: Copy {
     fn min_ct(&self, other: &Self) -> Self;
 }
 
+#[cfg(feature = "const-time")]
 pub trait MaxCt: Copy {
     fn max_ct(&self, other: &Self) -> Self;
-}
-
-pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
-    const MOD: N;
 }
 
 num_impl!([i8, i16, i32, i64, i128, isize]);
 num_impl!([u8, u16, u32, u64, u128, usize]);
 
+#[cfg(feature = "const-time")]
 num_ct_impl!(@signed [i8:u8, i16:u16, i32:u32, i64:u64, i128:u128, isize:usize]);
+
+#[cfg(feature = "const-time")]
 num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 signed_impl!([i8, i16, i32, i64, i128, isize]);
