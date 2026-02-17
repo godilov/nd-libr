@@ -12,8 +12,8 @@ readme.workspace     = true
 description          = "Nd Evm Library"
 
 [dependencies]
-alloy     = { workspace = true }
-thiserror = { workspace = true }
+alloy-primitives = { workspace = true }
+thiserror        = { workspace = true }
 
 [dev-dependencies]
 

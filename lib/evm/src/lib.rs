@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, aliases::*};
+use alloy_primitives::{Address, aliases::*};
 use thiserror::Error;
 
 macro_rules! abi_impl {

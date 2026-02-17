@@ -12,8 +12,8 @@ readme.workspace     = true
 description          = "Nd Numbers Library"
 
 [dependencies]
-rand      = { workspace = true }
-rayon     = { workspace = true }
+rand      = { workspace = true, optional = true }
+rayon     = { workspace = true, optional = true }
 thiserror = { workspace = true }
 zerocopy  = { workspace = true }
 
@@ -23,6 +23,7 @@ ndlib  = { workspace = true }
 ndops  = { workspace = true }
 
 [dev-dependencies]
+rand      = { workspace = true }
 anyhow    = { workspace = true }
 criterion = { workspace = true }
 
@@ -34,10 +35,11 @@ name    = "long"
 harness = false
 
 [features]
-default    = ["std"]
-all        = ["std", "dyn", "simd", "rand", "const-time"]
+default    = ["std", "rand"]
+all        = ["std", "dyn", "simd", "rand", "rayon", "const-time"]
 std        = []
 dyn        = ["std"]
 simd       = []
-rand       = []
+rand       = ["dep:rand"]
+rayon      = ["dep:rayon"]
 const-time = []

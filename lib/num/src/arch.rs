@@ -1,6 +1,5 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use rand::Rng;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 use crate::{ops::*, *};

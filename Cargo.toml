@@ -24,7 +24,7 @@ cargo       = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
 anyhow             = "1"
-alloy              = "1"
+alloy-primitives   = "1"
 clap               = "4"
 rand               = "0"
 rayon              = "1"

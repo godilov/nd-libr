@@ -1,8 +1,5 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
-use rand::Rng;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-
 use crate::{ops::*, prime::*};
 
 pub mod arch;
@@ -411,6 +408,7 @@ pub mod prime {
     }
 
     pub trait PrimalityExt: Send + Primality + NumExt {
+        #[cfg(feature = "rand")]
         fn rand_prime(order: usize) -> Self {
             let mut rng = rand::rng();
             let mut val = Self::rand(order, &mut rng).odd_ext();
@@ -422,11 +420,15 @@ pub mod prime {
             val
         }
 
+        #[cfg(feature = "rand")]
         fn rand_primes(order: usize, count: usize) -> Vec<Self> {
             (0..count).map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
         }
 
+        #[cfg(all(feature = "rand", feature = "rayon"))]
         fn rand_prime_par(order: usize) -> Self {
+            use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
             let threads = std::thread::available_parallelism().map(|val| val.get()).unwrap_or(1);
 
             (0..threads)
@@ -435,7 +437,10 @@ pub mod prime {
                 .unwrap_or_default()
         }
 
+        #[cfg(all(feature = "rand", feature = "rayon"))]
         fn rand_primes_par(order: usize, count: usize) -> Vec<Self> {
+            use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
             (0..count)
                 .into_par_iter()
                 .map(|_| Self::rand_prime(order))
@@ -743,8 +748,9 @@ pub trait NumExt: Num {
         self
     }
 
+    #[cfg(feature = "rand")]
     #[ndfwd::as_into]
-    fn rand<R: ?Sized + Rng>(order: usize, rng: &mut R) -> Self {
+    fn rand<R: ?Sized + rand::Rng>(order: usize, rng: &mut R) -> Self {
         let shift = order - 1;
         let div = shift / u64::BITS as usize;
         let rem = shift % u64::BITS as usize;

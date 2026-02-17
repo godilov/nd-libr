@@ -19,7 +19,7 @@ serde_json         = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 
-ndnum = { workspace = true }
+ndnum = { workspace = true, features = ["rand", "rayon"] }
 
 [lints]
 workspace = true
