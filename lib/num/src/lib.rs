@@ -123,6 +123,7 @@ macro_rules! num_ct_impl {
 
         impl LeCt for $signed {}
         impl GeCt for $signed {}
+        impl CmpCt for $signed {}
 
         num_ct_impl!(@min $signed);
         num_ct_impl!(@max $signed);
@@ -164,6 +165,7 @@ macro_rules! num_ct_impl {
 
         impl LeCt for $unsigned {}
         impl GeCt for $unsigned {}
+        impl CmpCt for $unsigned {}
 
         num_ct_impl!(@min $unsigned);
         num_ct_impl!(@max $unsigned);
@@ -893,8 +895,6 @@ sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ndops::all!(@stdbin (lhs: Sign, rhs: Sign) -> Sign, * Sign::from((lhs as i8) * (rhs as i8)));
-
-impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {}
 
 impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {
