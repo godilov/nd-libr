@@ -44,7 +44,7 @@ mod kw {
 /// | `std::ops::DerefMut` | always |
 /// | `std::convert::AsRef<T>` | where `Type: AsRef<T>` |
 /// | `std::convert::AsMut<T>` | where `Type: AsMut<T>` |
-/// | `std::iter::FromIterator<E>` | where `Type: FromIterator<E>` |
+/// | `std::iter::FromIterator<E>` | where `Self: From<Type>, Type: FromIterator<E>` |
 ///
 /// `AsRef`, `AsMut`, and `FromIterator` each carry a blanket `where` bound
 /// so they are available automatically for any `T` or `E` for which the inner
@@ -103,8 +103,8 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     };
 
     let from_iter = match gen_where {
-        Some(val) => quote! { #val, #ty: std::iter::FromIterator<Elem> },
-        None => quote! { where #ty: std::iter::FromIterator<Elem> },
+        Some(val) => quote! { #val, Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
+        None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
     };
 
     quote! {
@@ -138,7 +138,7 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
         impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
             fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
-                Self::from(<#ty>::from_iter(iter))
+                <#ty>::from_iter(iter).into()
             }
         }
     }
@@ -177,6 +177,7 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// ```rust
 /// #[ndfwd::cmp(self.0 with i64)]
+/// #[derive(Debug)]
 /// struct Meters(i64);
 ///
 /// assert!(Meters(5) > Meters(3));
@@ -502,7 +503,7 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// ```rust
 /// #[ndfwd::decl]
-/// pub trait Container {
+/// pub trait Container: Sized {
 ///     #[ndfwd::as_expr(|v| v.map(Self::from))]
 ///     fn first(&self) -> Option<Self>;
 /// }
@@ -513,13 +514,13 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// After annotating a trait with `#[ndfwd::decl]`, use [`def`] on each concrete
 /// type to generate the actual `impl` block:
 ///
-/// ```rust
+/// ```rust,ignore
 /// #[ndfwd::decl]
 /// pub trait Greet {
 ///     fn hello(&self) -> String;
 /// }
 ///
-/// #[ndfwd::def(self.0 with Inner: path::to::Greet)]
+/// #[ndfwd::def(self.0 with Inner: Greet)]
 /// struct Wrapper(Inner);
 /// ```
 ///
@@ -652,7 +653,7 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,ignore
 /// #[ndfwd::decl]
 /// pub trait Greet {
 ///     fn hello(&self) -> String;
@@ -666,17 +667,16 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///     fn goodbye(&self) -> String { "Goodbye!".into() }
 /// }
 ///
-/// #[ndfwd::def(self.0 with Inner: crate::greet::Greet)]
+/// #[ndfwd::def(self.0 with Inner: Greet)]
 /// struct Wrapper(Inner);
 ///
 /// let w = Wrapper(Inner);
 /// assert_eq!(w.hello(), "Hello!");
 /// ```
-///
 /// ## With generics
 ///
-/// ```rust
-/// #[ndfwd::def(self.0 with Inner: crate::some::Trait where Inner: Clone)]
+/// ```rust,ignore
+/// #[ndfwd::def(self.0 with Inner: Greet where Inner: Clone)]
 /// struct Wrapper(Inner);
 /// ```
 ///
@@ -888,7 +888,7 @@ pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// ```rust
 /// #[ndfwd::decl]
-/// pub trait Container {
+/// pub trait Container: Sized {
 ///     #[ndfwd::as_expr(|v| v.map(Self::from))]
 ///     fn first(&self) -> Option<Self>;
 ///

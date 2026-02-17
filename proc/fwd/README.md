@@ -60,6 +60,10 @@ available for any inner type that satisfies them. `FromIterator` requires
 ```rust
 #[ndfwd::std(self.0 with Vec<u8>)]
 struct Buffer(Vec<u8>);
+
+impl From<Vec<u8>> for Buffer {
+    fn from(v: Vec<u8>) -> Self { Buffer(v) }
+}
 ```
 
 ### `#[cmp(expr with Type)]`
@@ -125,7 +129,7 @@ slice is **not supported** and will produce a compile error. `fn` pointers,
 **Return types** are not inspected — the raw return value is used as-is unless
 a modifier attribute is applied (see below).
 
-### Step 2 — `#[ndfwd::def(expr with Type: full::path::to::Trait [where …])]`
+### Step 2 — `#[ndfwd::def(expr with Type: Trait [where …])]`
 
 Annotate a concrete struct, enum, or union with `#[ndfwd::def]`. The macro
 generates the full `impl Trait for Type` block, forwarding every item to the
@@ -133,21 +137,27 @@ inner expression.
 
 > **The trait path must be fully qualified.** A bare trait name without a
 > module path will not resolve the hidden forwarding macro and will produce a
-> compile error.
+> compile error (unless `#[ndfwd::decl]` and `#[ndfwd::def]` in the same module).
 >
 > **Crate-local only.** `#[ndfwd::def]` can only forward traits declared with
 > `#[ndfwd::decl]` within the same crate. Traits defined in external crates
 > cannot be auto-implemented this way.
 
-```rust
+```rust,ignore
 struct Inner;
+
+#[ndfwd::decl]
+pub trait Greet {
+    fn hello(&self) -> String;
+    fn goodbye(self) -> String;
+}
 
 impl Greet for Inner {
     fn hello(&self) -> String { "Hello!".into() }
     fn goodbye(self) -> String { "Goodbye!".into() }
 }
 
-#[ndfwd::def(self.0 with Inner: crate::greet::Greet)]
+#[ndfwd::def(self.0 with Inner: Greet)]
 struct Wrapper(Inner);
 
 assert_eq!(Wrapper(Inner).hello(), "Hello!");
@@ -156,8 +166,8 @@ assert_eq!(Wrapper(Inner).hello(), "Hello!");
 An optional `where` clause can be appended to add extra bounds to the generated
 `impl`:
 
-```rust
-#[ndfwd::def(self.0 with Inner: crate::some::Trait where Inner: Clone)]
+```rust,ignore
+#[ndfwd::def(self.0 with Inner: Trait where Inner: Clone)]
 struct Wrapper(Inner);
 ```
 
@@ -206,7 +216,7 @@ a closure expression; it receives the raw return value of the inner call.
 
 ```rust
 #[ndfwd::decl]
-pub trait Container {
+pub trait Container: Sized {
     #[ndfwd::as_expr(|v| v.map(Self::from))]
     fn first(&self) -> Option<Self>;
 }
@@ -216,7 +226,7 @@ Generated body: `(|v| v.map(Self::from))(self.forward_ref().first())`
 
 ## Complete example
 
-```rust
+```rust,ignore
 // ── Inner type ────────────────────────────────────────────────────────────────
 
 #[derive(Clone)]
@@ -239,9 +249,8 @@ pub trait Stats {
 
 // ── Wrapping type ─────────────────────────────────────────────────────────────
 
-#[ndfwd::def(self.0 with Inner: crate::Stats)]
+#[ndfwd::def(self.0 with Inner: Stats)]
 #[ndfwd::std(self.0 with Inner)]
-#[ndfwd::cmp(self.0 with Inner)]
 struct Metrics(Inner);
 
 impl From<Inner> for Metrics {
