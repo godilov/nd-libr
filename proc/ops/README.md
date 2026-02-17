@@ -249,5 +249,4 @@ ndops::all_auto!(@stdbin (*lhs: &Scalar, *rhs: &Scalar) -> Scalar,
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT License](LICENSE-MIT) at your option.
+Licensed under [MIT License](LICENSE-MIT).
