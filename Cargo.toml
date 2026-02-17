@@ -14,7 +14,8 @@ keywords   = ["math", "cryptography", "nums", "mem"]
 readme     = "README.md"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+missing_docs = "warn"
+unsafe_code  = "forbid"
 
 [workspace.lints.clippy]
 panic       = { level = "deny", priority = 127 }

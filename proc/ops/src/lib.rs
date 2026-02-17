@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
@@ -22,6 +24,200 @@ mod kw {
     syn::custom_keyword!(ext);
 }
 
+/// Implements one or more operator traits with explicit per-operator expressions.
+///
+/// This macro covers all six operation kinds — three targeting [`std::ops`] traits
+/// (`stdmut`, `stdbin`, `stdun`) and three targeting the `ndnum::ops` nd-style
+/// traits (`ndmut`, `ndbin`, `ndun`).  For every operator listed in the
+/// definitions block the macro emits a complete `impl` block; the body of the trait
+/// method is taken verbatim from the expression you supply.
+///
+/// When you want the expression to be derived automatically from the operator token
+/// itself, use [`all_auto!`] instead.
+///
+/// # Syntax
+///
+/// ```text
+/// ndops::all!(
+///     @<kind> <signature>,
+///     <op> <expr> [where [<predicates>]],
+///     ...
+/// )
+/// ```
+///
+/// Every invocation begins with `@<kind>`, which selects one of the six operation
+/// kinds described below.  A shared *signature* follows, whose exact form depends on
+/// the kind.  After the signature comes a comma and then a comma-separated list of
+/// *definitions*, each of which pairs an operator token with an arbitrary expression
+/// and an optional `where` clause.
+///
+/// ## Optional per-definition `where` clause
+///
+/// Any individual operator definition may carry extra bounds using the syntax
+/// `where [<predicate>, ...]` (square brackets are required):
+///
+/// ```rust
+/// ndops::all!(@stdbin (lhs: &Scalar, rhs: &Scalar) -> Scalar,
+///     + { Scalar(lhs.0 + rhs.0) },
+///     - { Scalar(lhs.0 - rhs.0) } where [Scalar: Copy],
+/// );
+/// ```
+///
+/// # Kinds
+///
+/// ## `@stdmut` — assign operators (`std::ops::XxxAssign`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (lhs: &mut LhsTy, [*]rhs: [&]RhsTy)
+/// ```
+///
+/// Generates `impl std::ops::XxxAssign<RhsTy> for LhsTy`.  The `lhs` parameter must
+/// be typed `&mut LhsTy`; the macro uses `LhsTy` as the implementing type.
+///
+/// Placing `*` before `rhs` causes the macro to generate implementations for *both*
+/// the owned and the reference form of `RhsTy` — that is, `impl XxxAssign<RhsTy>` and
+/// `impl XxxAssign<&RhsTy>` — sharing the same expression.  Without `*`, only the
+/// declared form is generated.
+///
+/// Valid operators: `+=`, `-=`, `*=`, `/=`, `%=`, `|=`, `&=`, `^=`, `<<=`, `>>=`.
+///
+/// ```rust
+/// ndops::all!(@stdmut (lhs: &mut Vec2, *rhs: &Vec2),
+///     += { lhs.x += rhs.x; lhs.y += rhs.y; },
+///     -= { lhs.x -= rhs.x; lhs.y -= rhs.y; },
+/// );
+/// // Emits four impl blocks: AddAssign<Vec2>, AddAssign<&Vec2>,
+/// //                          SubAssign<Vec2>, SubAssign<&Vec2>
+/// ```
+///
+/// ## `@stdbin` — binary operators (`std::ops::Xxx`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] ([*]lhs: [&]LhsTy, [*]rhs: [&]RhsTy) -> ResTy
+/// ```
+///
+/// Generates `impl std::ops::Xxx<RhsTy> for LhsTy` with `Output = ResTy`.
+/// The expression is wrapped in `<ResTy>::from(…)`, so it must produce a value
+/// that can be converted into `ResTy`.
+///
+/// The `*` modifier on either operand independently controls whether the "also
+/// generate the owned variant" behaviour is active.  For example, `*lhs: &A` with
+/// `*rhs: &B` produces four implementations covering every combination of `A`/`&A`
+/// and `B`/`&B` as operand types.
+///
+/// Valid operators: `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `<<`, `>>`.
+///
+/// ```rust
+/// ndops::all!(@stdbin (*lhs: &Vec2, *rhs: &Vec2) -> Vec2,
+///     + { Vec2 { x: lhs.x + rhs.x, y: lhs.y + rhs.y } },
+///     - { Vec2 { x: lhs.x - rhs.x, y: lhs.y - rhs.y } },
+/// );
+/// // Emits Add / Sub for all four ref-combinations of Vec2 × Vec2
+/// ```
+///
+/// ## `@stdun` — unary operators (`std::ops::Neg` / `std::ops::Not`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] ([*]self: [&]SelfTy) -> ResTy
+/// ```
+///
+/// The `*` modifier and reference semantics work identically to `@stdbin`.
+///
+/// Valid operators: `-`, `!`.
+///
+/// ```rust
+/// ndops::all!(@stdun (*value: &Vec2) -> Vec2,
+///     - { Vec2 { x: -value.x, y: -value.y } },
+/// );
+/// ```
+///
+/// ## `@ndmut` — nd assign operators (`ndnum::ops::NdXxxAssign`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (lhs: LhsTy, rhs: RhsTy) [for ImplTy | for [ImplTy, ...]]
+/// ```
+///
+/// Generates `impl ndnum::ops::NdXxxAssign<LhsTy, RhsTy> for ImplTy`.  The `lhs`
+/// and `rhs` patterns become the function parameters directly; use reference patterns
+/// and types (e.g. `lhs: &mut T`, `&rhs: &T`) when your expression requires them.
+///
+/// The optional `for` clause selects which type is the implementing type.  When
+/// omitted the macro defaults to the base type of `lhs`.  `for [A, B]` emits a
+/// separate `impl` for each listed type.
+///
+/// Valid operators: `+=`, `-=`, `*=`, `/=`, `%=`, `|=`, `&=`, `^=`, `<<=`, `>>=`.
+///
+/// ```rust
+/// ndops::all!(@ndmut (lhs: &mut Array, &rhs: &Array) for Ops,
+///     += { for i in 0..lhs.len() { lhs[i] += rhs[i]; } },
+/// );
+/// ```
+///
+/// ## `@ndbin` — nd binary operators (`ndnum::ops::NdXxx`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (lhs: LhsTy, rhs: RhsTy) -> ResTy [for ImplTy | for [ImplTy, ...]]
+/// ```
+///
+/// Generates `impl ndnum::ops::NdXxx<LhsTy, RhsTy> for ImplTy` with `Type = ResTy`.
+/// The expression is wrapped in `<ResTy>::from(…)`.  When `for` is omitted the
+/// implementing type defaults to `ResTy`.
+///
+/// Valid operators: `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `<<`, `>>`.
+///
+/// ```rust
+/// ndops::all!(@ndbin (lhs: &Array, rhs: &Array) -> Array for Ops,
+///     + { Array::zip(lhs, rhs, |a, b| a + b) },
+///     - { Array::zip(lhs, rhs, |a, b| a - b) },
+/// );
+/// ```
+///
+/// ## `@ndun` — nd unary operators (`ndnum::ops::NdNeg` / `ndnum::ops::NdNot`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (value: SelfTy) -> ResTy [for ImplTy | for [ImplTy, ...]]
+/// ```
+///
+/// Valid operators: `-`, `!`.
+///
+/// ```rust
+/// ndops::all!(@ndun (value: &Array) -> Array for Ops,
+///     - { Array::map(value, |x| -x) },
+/// );
+/// ```
+///
+/// # Complete example
+///
+/// ```rust
+/// struct Meters(f64);
+/// struct Seconds(f64);
+///
+/// // Implement std::ops binary operators for Meters
+/// ndops::all!(@stdbin (*lhs: &Meters, *rhs: &Meters) -> Meters,
+///     + { Meters(lhs.0 + rhs.0) },
+///     - { Meters(lhs.0 - rhs.0) },
+/// );
+///
+/// // Implement assign operators with both reference and value rhs
+/// ndops::all!(@stdmut (lhs: &mut Meters, *rhs: &Meters),
+///     += { lhs.0 += rhs.0; },
+///     -= { lhs.0 -= rhs.0; },
+/// );
+///
+/// // Generic version with a bound, and per-definition conditions
+/// ndops::all!(@stdbin
+///     <T: Copy + std::ops::Add<Output = T> + std::ops::Sub<Output = T>>
+///     (*lhs: &Wrapper<T>, *rhs: &Wrapper<T>) -> Wrapper<T>,
+///     + { Wrapper(lhs.0 + rhs.0) },
+///     - { Wrapper(lhs.0 - rhs.0) } where [T: std::ops::Sub],
+/// );
+/// ```
 #[proc_macro]
 pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
@@ -34,6 +230,201 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+/// Implements one or more operator traits with automatically derived expressions.
+///
+/// This macro is the zero-boilerplate companion to [`all!`].  Instead of writing an
+/// explicit expression for every operator, you supply a single *operand template* —
+/// sub-expressions for the left-hand side and right-hand side (or just one for unary
+/// operators) — and the macro composes them with each listed operator token
+/// automatically.
+///
+/// For example, `(lhs.0)(rhs.0)` combined with `[+, -]` produces `{ lhs.0 + rhs.0 }`
+/// and `{ lhs.0 - rhs.0 }` as the respective method bodies.  If you need a
+/// custom expression for a particular operator, use [`all!`] instead.
+///
+/// The macro supports all six operation kinds available in [`all!`]: `stdmut`,
+/// `stdbin`, `stdun`, `ndmut`, `ndbin`, and `ndun`.
+///
+/// # Syntax
+///
+/// **Binary / assign kinds** (`stdmut`, `stdbin`, `ndmut`, `ndbin`):
+/// ```text
+/// ndops::all_auto!(
+///     @<kind> <signature>,
+///     (<lhs_expr>) (<rhs_expr>) [<op> [where [<predicates>]], ...]
+/// )
+/// ```
+///
+/// **Unary kinds** (`stdun`, `ndun`):
+/// ```text
+/// ndops::all_auto!(
+///     @<kind> <signature>,
+///     (<self_expr>) [<op> [where [<predicates>]], ...]
+/// )
+/// ```
+///
+/// The signature is identical to the one used in [`all!`] for the corresponding kind.
+/// The operand expressions inside `(…)` are plain Rust expressions referencing the
+/// parameter names from the signature.  The bracket-enclosed operator list `[…]`
+/// may be a single operator or many, comma-separated.
+///
+/// Each operator entry may carry extra per-operator bounds with
+/// `where [<predicate>, ...]` (square brackets are required).
+///
+/// # Kinds
+///
+/// ## `@stdmut` — assign operators (`std::ops::XxxAssign`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (lhs: &mut LhsTy, [*]rhs: [&]RhsTy)
+/// ```
+///
+/// The generated method body is `{ <lhs_expr> <op> <rhs_expr>; }`.
+///
+/// `*` before `rhs` generates implementations for both the owned and reference forms
+/// of `RhsTy`.  See [`all!`] `@stdmut` for full details on the `*` modifier.
+///
+/// Valid operators: `+=`, `-=`, `*=`, `/=`, `%=`, `|=`, `&=`, `^=`, `<<=`, `>>=`.
+///
+/// ```rust
+/// ndops::all_auto!(@stdmut (lhs: &mut Vec2, *rhs: &Vec2),
+///     (lhs.0)(rhs.0) [+=, -=, *=]
+/// );
+/// // Equivalent to writing:
+/// //   all!(@stdmut (lhs: &mut Vec2, *rhs: &Vec2),
+/// //       += { lhs.0 += rhs.0; },
+/// //       -= { lhs.0 -= rhs.0; },
+/// //       *= { lhs.0 *= rhs.0; },
+/// //   );
+/// ```
+///
+/// ## `@stdbin` — binary operators (`std::ops::Xxx`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] ([*]lhs: [&]LhsTy, [*]rhs: [&]RhsTy) -> ResTy
+/// ```
+///
+/// The generated method body is `{ <lhs_expr> <op> <rhs_expr> }`, wrapped in
+/// `<ResTy>::from(…)`.
+///
+/// Valid operators: `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `<<`, `>>`.
+///
+/// ```rust
+/// ndops::all_auto!(@stdbin (*lhs: &Vec2, *rhs: &Vec2) -> Vec2,
+///     (lhs.0)(rhs.0) [+, -, *]
+/// );
+/// ```
+///
+/// ## `@stdun` — unary operators (`std::ops::Neg` / `std::ops::Not`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] ([*]self: [&]SelfTy) -> ResTy
+/// ```
+///
+/// The generated method body is `{ <op> <self_expr> }`, wrapped in `<ResTy>::from(…)`.
+///
+/// Valid operators: `-`, `!`.
+///
+/// ```rust
+/// ndops::all_auto!(@stdun (*value: &Vec2) -> Vec2,
+///     (value.0) [-, !]
+/// );
+/// ```
+///
+/// ## `@ndmut` — nd assign operators (`ndnum::ops::NdXxxAssign`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (lhs: LhsTy, rhs: RhsTy) [for ImplTy | for [ImplTy, ...]]
+/// ```
+///
+/// The generated method body is `{ <lhs_expr> <op> <rhs_expr>; }`.
+///
+/// Valid operators: `+=`, `-=`, `*=`, `/=`, `%=`, `|=`, `&=`, `^=`, `<<=`, `>>=`.
+///
+/// ```rust
+/// ndops::all_auto!(@ndmut (lhs: &mut Elem, &rhs: &Elem) for Ops,
+///     (*lhs)(rhs) [+=, -=, *=, /=]
+/// );
+/// ```
+///
+/// ## `@ndbin` — nd binary operators (`ndnum::ops::NdXxx`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (lhs: LhsTy, rhs: RhsTy) -> ResTy [for ImplTy | for [ImplTy, ...]]
+/// ```
+///
+/// The generated method body is `{ <lhs_expr> <op> <rhs_expr> }`, wrapped in
+/// `<ResTy>::from(…)`.
+///
+/// Valid operators: `+`, `-`, `*`, `/`, `%`, `|`, `&`, `^`, `<<`, `>>`.
+///
+/// ```rust
+/// ndops::all_auto!(@ndbin (&lhs: &Elem, &rhs: &Elem) -> Elem for Ops,
+///     (lhs)(rhs) [+, -, *, /]
+/// );
+/// ```
+///
+/// ## `@ndun` — nd unary operators (`ndnum::ops::NdNeg` / `ndnum::ops::NdNot`)
+///
+/// **Signature**
+/// ```text
+/// [<generics>] [where <clause>] (value: SelfTy) -> ResTy [for ImplTy | for [ImplTy, ...]]
+/// ```
+///
+/// Valid operators: `-`, `!`.
+///
+/// ```rust
+/// ndops::all_auto!(@ndun (&value: &Elem) -> Elem for Ops,
+///     (value) [-, !]
+/// );
+/// ```
+///
+/// # Complete example
+///
+/// ```rust
+/// #[derive(Clone, Copy)]
+/// struct Scalar(f64);
+///
+/// impl From<f64> for Scalar {
+///     fn from(v: f64) -> Self { Scalar(v) }
+/// }
+///
+/// // Four ref-combinations of Add / Sub for Scalar
+/// ndops::all_auto!(@stdbin (*lhs: &Scalar, *rhs: &Scalar) -> Scalar,
+///     (lhs.0)(rhs.0) [+, -]
+/// );
+///
+/// // Assign operators accepting both &Scalar and Scalar on the right
+/// ndops::all_auto!(@stdmut (lhs: &mut Scalar, *rhs: &Scalar),
+///     (lhs.0)(rhs.0) [+=, -=]
+/// );
+///
+/// // Unary negation for both &Scalar and Scalar
+/// ndops::all_auto!(@stdun (*value: &Scalar) -> Scalar,
+///     (value.0) [-]
+/// );
+///
+/// // Generic wrapper with a trait bound
+/// ndops::all_auto!(
+///     @stdbin
+///     <T: Copy + std::ops::Add<Output = T> + std::ops::Sub<Output = T>>
+///     (*lhs: &Wrapper<T>, *rhs: &Wrapper<T>) -> Wrapper<T>,
+///     (lhs.0)(rhs.0) [+, -]
+/// );
+///
+/// // Per-operator extra bound
+/// ndops::all_auto!(@stdbin (*lhs: &Scalar, *rhs: &Scalar) -> Scalar,
+///     (lhs.0)(rhs.0) [
+///         +,
+///         - where [Scalar: std::fmt::Debug],
+///     ]
+/// );
+/// ```
 #[proc_macro]
 pub fn all_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {
