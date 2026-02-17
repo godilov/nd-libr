@@ -4,7 +4,7 @@ Zero-boilerplate operator implementation macros for Rust.
 
 `ndops` provides two procedural macros — [`all!`] and [`all_auto!`] — that generate
 complete `impl` blocks for the standard [`std::ops`] arithmetic and bitwise traits,
-as well as the `ndnum::ops` _nd-style_ operator traits. A single macro invocation
+as well as the `ndlibr::ops` _nd-style_ operator traits. A single macro invocation
 can expand to dozens of `impl` blocks covering every combination of reference and
 value operands, letting you focus on the scalar expression rather than the structural
 glue.
@@ -80,14 +80,14 @@ clauses for per-operator bounds.
 
 Both macros support the same six kinds, selected by an `@` keyword:
 
-| Kind      | Traits generated                         | Valid operators                                      |
-| --------- | ---------------------------------------- | ---------------------------------------------------- |
-| `@stdmut` | `std::ops::XxxAssign`                    | `+=` `-=` `*=` `/=` `%=` `\|=` `&=` `^=` `<<=` `>>=` |
-| `@stdbin` | `std::ops::Xxx`                          | `+` `-` `*` `/` `%` `\|` `&` `^` `<<` `>>`           |
-| `@stdun`  | `std::ops::Neg`, `std::ops::Not`         | `-` `!`                                              |
-| `@ndmut`  | `ndnum::ops::NdXxxAssign`                | same as `@stdmut`                                    |
-| `@ndbin`  | `ndnum::ops::NdXxx`                      | same as `@stdbin`                                    |
-| `@ndun`   | `ndnum::ops::NdNeg`, `ndnum::ops::NdNot` | same as `@stdun`                                     |
+| Kind      | Traits generated                           | Valid operators                                      |
+| --------- | ------------------------------------------ | ---------------------------------------------------- |
+| `@stdmut` | `std::ops::XxxAssign`                      | `+=` `-=` `*=` `/=` `%=` `\|=` `&=` `^=` `<<=` `>>=` |
+| `@stdbin` | `std::ops::Xxx`                            | `+` `-` `*` `/` `%` `\|` `&` `^` `<<` `>>`           |
+| `@stdun`  | `std::ops::Neg`, `std::ops::Not`           | `-` `!`                                              |
+| `@ndmut`  | `ndlibr::ops::NdXxxAssign`                 | same as `@stdmut`                                    |
+| `@ndbin`  | `ndlibr::ops::NdXxx`                       | same as `@stdbin`                                    |
+| `@ndun`   | `ndlibr::ops::NdNeg`, `ndlibr::ops::NdNot` | same as `@stdun`                                     |
 
 ## Signature reference
 

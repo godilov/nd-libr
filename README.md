@@ -15,7 +15,7 @@ A Rust collection of numerical, cryptography, blockchain and memory-related libr
 
 ### Ops
 
-Traits `ndnum::ops::Ops` (requires `Copy`) and `ndnum::ops::OpsAssign` (requires `Copy`) describe all standard Rust operations for types and auto-implemented for every applicable type.
+Traits `ndlibr::ops::Ops` (requires `Copy`) and `ndlibr::ops::OpsAssign` (requires `Copy`) describe all standard Rust operations for types and auto-implemented for every applicable type.
 
 ```rust
 /// T supports all binary `std::ops::*`
@@ -31,7 +31,7 @@ fn add_mul_assign<T: OpsAssign>(x: &mut T, a: T, b: T, c: T) {
 }
 ```
 
-Traits `ndnum::ops::NdAdd`, `ndnum::ops::NdSub`, etc. and `ndnum::ops::NdAddAssign`, `ndnum::ops::NdSubAssign`, etc. describe all standard Rust operations for types.
+Traits `ndlibr::ops::NdAdd`, `ndlibr::ops::NdSub`, etc. and `ndlibr::ops::NdAddAssign`, `ndlibr::ops::NdSubAssign`, etc. describe all standard Rust operations for types.
 
 - Like `std::ops`, they describe operations
 - Unlike `std::ops`, they describe operations with reference operands only
@@ -71,18 +71,18 @@ ndops::all!(@stdmut <N: OpsAssign> (lhs: &mut A<N>, *rhs: &A<N>),
     %= { lhs.0 %= rhs.0; });
 ```
 
-Macroses `ndops::all` and `ndops::all_auto` with `@ndun`/`@ndbin`/`@ndmut` implement all specified standard Rust operations from `ndnum::ops::*`.
+Macroses `ndops::all` and `ndops::all_auto` with `@ndun`/`@ndbin`/`@ndmut` implement all specified standard Rust operations from `ndlibr::ops::*`.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct A<N>(N);
 
-/// Implements `ndnum::ops::Neg` and `ndnum::ops::Not` for A<N>
+/// Implements `ndlibr::ops::Neg` and `ndlibr::ops::Not` for A<N>
 ndops::all!(@ndun crate <N: NdNeg<Type = N> + NdNot<Type = N>> (value: &A<N>) -> A<N>,
     - A::<N>(N::neg(&value.0)),
     ! A::<N>(N::not(&value.0)));
 
-/// Implements `ndnum::ops::Add`, `ndnum::ops::Sub`, `ndnum::ops::Mul`, `ndnum::ops::Div`, `ndnum::ops::Rem` for A<N>
+/// Implements `ndlibr::ops::Add`, `ndlibr::ops::Sub`, `ndlibr::ops::Mul`, `ndlibr::ops::Div`, `ndlibr::ops::Rem` for A<N>
 ndops::all!(@ndbin crate <N: NdOps<All = N>> (lhs: &A<N>, rhs: &A<N>) -> A<N>,
     + A::<N>(N::add(&lhs.0, &rhs.0)),
     - A::<N>(N::sub(&lhs.0, &rhs.0)),
@@ -90,7 +90,7 @@ ndops::all!(@ndbin crate <N: NdOps<All = N>> (lhs: &A<N>, rhs: &A<N>) -> A<N>,
     / A::<N>(N::div(&lhs.0, &rhs.0)),
     % A::<N>(N::rem(&lhs.0, &rhs.0)));
 
-/// Implements `ndnum::ops::AddAssign`, `ndnum::ops::SubAssign`, `ndnum::ops::MulAssign`, `ndnum::ops::DivAssign`, `ndnum::ops::RemAssign` for A<N>
+/// Implements `ndlibr::ops::AddAssign`, `ndlibr::ops::SubAssign`, `ndlibr::ops::MulAssign`, `ndlibr::ops::DivAssign`, `ndlibr::ops::RemAssign` for A<N>
 ndops::all!(@ndmut crate <N: NdOpsAssign> (lhs: &mut A<N>, rhs: &A<N>),
     += { N::add_assign(&mut lhs.0, &rhs.0); },
     -= { N::sub_assign(&mut lhs.0, &rhs.0); },
@@ -304,7 +304,7 @@ Forwards:
 - `PartialEq`, `PartialOrd`, `Eq`, `Ord`
 - `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`
 - `Num`, `NumExt`, `Signed`, `Unsigned`
-- `ndnum::ops::*` (conditionally)
+- `ndlibr::ops::*` (conditionally)
 - `std::ops::*` (conditionally)
 
 Types `ndnum::Width` and `ndnum::Modular` specify numbers and forwards implementation for most of standard Rust traits.
@@ -320,7 +320,7 @@ let b1337 = Width::<B1536, 1337>::default(); // Bytes of length 1337-bits and st
 
 ### Conversions
 
-Traits `ndcore::NdFrom` and `ndcore::NdTryFrom` describe conversion from types.
+Traits `ndcore::convert::NdFrom` and `ndcore::convert::NdTryFrom` describe conversion from types.
 
 - Like `std::convert::From` and `std::convert::TryFrom`, they can be used for conversion
 - Unlike `std::convert::From` and `std::convert::TryFrom`, they can be used [simultaneously](https://github.com/rust-lang/rust/issues/50133)

@@ -3,7 +3,7 @@ use std::{str::FromStr, time::Duration};
 use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
 };
-use ndcore::{IteratorExt, NdFrom};
+use ndcore::{convert::NdFrom, iter::IteratorExt};
 use ndnum::{
     arch::Aligned,
     long::{

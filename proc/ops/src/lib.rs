@@ -27,7 +27,7 @@ mod kw {
 /// Implements one or more operator traits with explicit per-operator expressions.
 ///
 /// This macro covers all six operation kinds — three targeting [`std::ops`] traits
-/// (`stdmut`, `stdbin`, `stdun`) and three targeting the `ndnum::ops` nd-style
+/// (`stdmut`, `stdbin`, `stdun`) and three targeting the `ndlibr::ops` nd-style
 /// traits (`ndmut`, `ndbin`, `ndun`).  For every operator listed in the
 /// definitions block the macro emits a complete `impl` block; the body of the trait
 /// method is taken verbatim from the expression you supply.
@@ -134,14 +134,14 @@ mod kw {
 /// );
 /// ```
 ///
-/// ## `@ndmut` — nd assign operators (`ndnum::ops::NdXxxAssign`)
+/// ## `@ndmut` — nd assign operators (`ndlibr::ops::NdXxxAssign`)
 ///
 /// **Signature**
 /// ```text
 /// [<generics>] [where <clause>] (lhs: LhsTy, rhs: RhsTy) [for ImplTy | for [ImplTy, ...]]
 /// ```
 ///
-/// Generates `impl ndnum::ops::NdXxxAssign<LhsTy, RhsTy> for ImplTy`.  The `lhs`
+/// Generates `impl ndlibr::ops::NdXxxAssign<LhsTy, RhsTy> for ImplTy`.  The `lhs`
 /// and `rhs` patterns become the function parameters directly; use reference patterns
 /// and types (e.g. `lhs: &mut T`, `&rhs: &T`) when your expression requires them.
 ///
@@ -157,14 +157,14 @@ mod kw {
 /// );
 /// ```
 ///
-/// ## `@ndbin` — nd binary operators (`ndnum::ops::NdXxx`)
+/// ## `@ndbin` — nd binary operators (`ndlibr::ops::NdXxx`)
 ///
 /// **Signature**
 /// ```text
 /// [<generics>] [where <clause>] (lhs: LhsTy, rhs: RhsTy) -> ResTy [for ImplTy | for [ImplTy, ...]]
 /// ```
 ///
-/// Generates `impl ndnum::ops::NdXxx<LhsTy, RhsTy> for ImplTy` with `Type = ResTy`.
+/// Generates `impl ndlibr::ops::NdXxx<LhsTy, RhsTy> for ImplTy` with `Type = ResTy`.
 /// The expression is wrapped in `<ResTy>::from(…)`.  When `for` is omitted the
 /// implementing type defaults to `ResTy`.
 ///
@@ -177,7 +177,7 @@ mod kw {
 /// );
 /// ```
 ///
-/// ## `@ndun` — nd unary operators (`ndnum::ops::NdNeg` / `ndnum::ops::NdNot`)
+/// ## `@ndun` — nd unary operators (`ndlibr::ops::NdNeg` / `ndlibr::ops::NdNot`)
 ///
 /// **Signature**
 /// ```text
@@ -334,7 +334,7 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
 /// );
 /// ```
 ///
-/// ## `@ndmut` — nd assign operators (`ndnum::ops::NdXxxAssign`)
+/// ## `@ndmut` — nd assign operators (`ndlibr::ops::NdXxxAssign`)
 ///
 /// **Signature**
 /// ```text
@@ -351,7 +351,7 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
 /// );
 /// ```
 ///
-/// ## `@ndbin` — nd binary operators (`ndnum::ops::NdXxx`)
+/// ## `@ndbin` — nd binary operators (`ndlibr::ops::NdXxx`)
 ///
 /// **Signature**
 /// ```text
@@ -369,7 +369,7 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
 /// );
 /// ```
 ///
-/// ## `@ndun` — nd unary operators (`ndnum::ops::NdNeg` / `ndnum::ops::NdNot`)
+/// ## `@ndun` — nd unary operators (`ndlibr::ops::NdNeg` / `ndlibr::ops::NdNot`)
 ///
 /// **Signature**
 /// ```text
@@ -1378,7 +1378,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
                 impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ref #lhs_ty #gen_where {
                     type Output = #res_ty;
 
-                    fn #ident(self, rhs: #rhs_ref #rhs_ty) -> Self::Output {
+                    fn #ident(self, rhs: #rhs_ref #rhs_ty) -> #res_ty {
                         #[allow(clippy::needless_borrow)]
                         (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { <#res_ty>::from(#expr) })(self, rhs)
                     }
@@ -1489,7 +1489,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                 impl #gen_impl #path for #lhs_ref #self_ty #gen_where {
                     type Output = #res_ty;
 
-                    fn #ident(self) -> Self::Output {
+                    fn #ident(self) -> #res_ty {
                         #[allow(clippy::needless_borrow)]
                         (|#self_pat: #lhs_ref #self_ty| { <#res_ty>::from(#expr) })(self)
                     }
@@ -1614,7 +1614,7 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
                     impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
                         type Type = #res_ty;
 
-                        fn #ident(#lhs_pat, #rhs_pat) -> Self::Type {
+                        fn #ident(#lhs_pat, #rhs_pat) -> #res_ty {
                             <#res_ty>::from(#expr)
                         }
                     }
@@ -1664,7 +1664,7 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
                     impl #gen_impl #path<#self_ty> for #impl_ty #gen_where {
                         type Type = #res_ty;
 
-                        fn #ident(#self_pat) -> Self::Type {
+                        fn #ident(#self_pat) -> #res_ty {
                             <#res_ty>::from(#expr)
                         }
                     }
@@ -1903,7 +1903,7 @@ impl OpsAssign {
     }
 
     fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndnum });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
 
         match self {
             OpsAssign::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
@@ -1952,7 +1952,7 @@ impl OpsBinary {
     }
 
     fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndnum });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
 
         match self {
             OpsBinary::Add(_) => parse_quote! { #prefix::ops::NdAdd },
@@ -1985,7 +1985,7 @@ impl OpsUnary {
     }
 
     fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndnum });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
 
         match self {
             OpsUnary::Neg(_) => parse_quote! { #prefix::ops::NdNeg },

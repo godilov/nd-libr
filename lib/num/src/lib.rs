@@ -5,11 +5,12 @@ use std::{
     mem::{replace, take},
 };
 
-use crate::{ops::*, prime::*};
+use ndcore::ops::*;
+
+use crate::prime::*;
 
 pub mod arch;
 pub mod long;
-pub mod ops;
 
 macro_rules! num_impl {
     ([$($primitive:ty),+] $(,)?) => {

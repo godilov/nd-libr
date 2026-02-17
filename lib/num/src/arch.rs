@@ -1,8 +1,9 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
+use ndcore::ops::*;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
-use crate::{ops::*, *};
+use crate::*;
 
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
@@ -158,11 +159,11 @@ impl<T> From<T> for Aligned<T> {
     }
 }
 
-ndops::all!(@ndun crate <T> (value: &Aligned<T>) -> Aligned<T>,
+ndops::all!(@ndun <T> (value: &Aligned<T>) -> Aligned<T>,
     - T::neg(&value.0) where [T: NdNeg<Type = T>],
     ! T::not(&value.0) where [T: NdNot<Type = T>]);
 
-ndops::all!(@ndbin crate <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> Aligned<T>,
+ndops::all!(@ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> Aligned<T>,
     + T::add   (&lhs.0, &rhs.0) where [T: NdAdd   <Lhs, Rhs, Type = T>],
     - T::sub   (&lhs.0, &rhs.0) where [T: NdSub   <Lhs, Rhs, Type = T>],
     * T::mul   (&lhs.0, &rhs.0) where [T: NdMul   <Lhs, Rhs, Type = T>],
@@ -172,11 +173,11 @@ ndops::all!(@ndbin crate <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) 
     & T::bitand(&lhs.0, &rhs.0) where [T: NdBitAnd<Lhs, Rhs, Type = T>],
     ^ T::bitxor(&lhs.0, &rhs.0) where [T: NdBitXor<Lhs, Rhs, Type = T>]);
 
-ndops::all!(@ndbin crate <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: Aligned<Rhs>) -> Aligned<T>,
+ndops::all!(@ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: Aligned<Rhs>) -> Aligned<T>,
     << T::shl(&lhs.0, rhs.0) where [T: NdShl<Lhs, Rhs, Type = T>],
     >> T::shr(&lhs.0, rhs.0) where [T: NdShr<Lhs, Rhs, Type = T>]);
 
-ndops::all!(@ndmut crate <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: &Aligned<Rhs>),
+ndops::all!(@ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: &Aligned<Rhs>),
     += Lhs::add_assign   (&mut lhs.0, &rhs.0) where [Lhs: NdAddAssign   <Lhs, Rhs>],
     -= Lhs::sub_assign   (&mut lhs.0, &rhs.0) where [Lhs: NdSubAssign   <Lhs, Rhs>],
     *= Lhs::mul_assign   (&mut lhs.0, &rhs.0) where [Lhs: NdMulAssign   <Lhs, Rhs>],
@@ -186,7 +187,7 @@ ndops::all!(@ndmut crate <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: &Aligned<Rhs>)
     &= Lhs::bitand_assign(&mut lhs.0, &rhs.0) where [Lhs: NdBitAndAssign<Lhs, Rhs>],
     ^= Lhs::bitxor_assign(&mut lhs.0, &rhs.0) where [Lhs: NdBitXorAssign<Lhs, Rhs>]);
 
-ndops::all!(@ndmut crate <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Aligned<Rhs>),
+ndops::all!(@ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Aligned<Rhs>),
     <<= Lhs::shl_assign(&mut lhs.0, rhs.0) where [Lhs: NdShlAssign<Lhs, Rhs>],
     >>= Lhs::shr_assign(&mut lhs.0, rhs.0) where [Lhs: NdShrAssign<Lhs, Rhs>]);
 

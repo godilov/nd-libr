@@ -12,6 +12,7 @@ readme.workspace     = true
 description          = "Nd Core Library"
 
 [dependencies]
+ndops = { workspace = true }
 
 [dev-dependencies]
 
