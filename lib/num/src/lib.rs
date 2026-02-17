@@ -76,16 +76,19 @@ macro_rules! num_ct_impl {
     };
     (@signed $signed:ty:$unsigned:ty $(,)?) => {
         impl EqCt for $signed {
-            fn eq_ct(&self, other: &Self) -> Mask {
-                let diff = *self ^ *other;
+            fn eq_ct(&self, other: &Self) -> MaskCt {
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
+
+                let diff = lhs ^ rhs;
                 let diff = (diff | diff.wrapping_neg()) >> (<$signed>::BITS - 1);
 
-                diff.wrapping_sub(1) as Mask
+                diff.wrapping_sub(1) as MaskCt
             }
         }
 
         impl LtCt for $signed {
-            fn lt_ct(&self, other: &Self) -> Mask {
+            fn lt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
 
@@ -97,12 +100,12 @@ macro_rules! num_ct_impl {
                 let xor = lhs_neg ^ rhs_neg;
                 let res = xor & lhs_neg | !xor & lt;
 
-                Mask::ZERO.wrapping_sub(res)
+                MaskCt::ZERO.wrapping_sub(res)
             }
         }
 
         impl GtCt for $signed {
-            fn gt_ct(&self, other: &Self) -> Mask {
+            fn gt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
 
@@ -114,7 +117,7 @@ macro_rules! num_ct_impl {
                 let xor = lhs_neg ^ rhs_neg;
                 let res = xor & rhs_neg | !xor & gt;
 
-                Mask::ZERO.wrapping_sub(res)
+                MaskCt::ZERO.wrapping_sub(res)
             }
         }
 
@@ -126,35 +129,36 @@ macro_rules! num_ct_impl {
     };
     (@unsigned $unsigned:ty $(,)?) => {
         impl EqCt for $unsigned {
-            fn eq_ct(&self, other: &Self) -> Mask {
-                let xor = *self ^ *other;
-                let xor = xor | xor.wrapping_neg();
+            fn eq_ct(&self, other: &Self) -> MaskCt {
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
 
-                let neg = (xor >> (<$unsigned>::BITS - 1)) as Mask;
+                let diff = lhs ^ rhs;
+                let diff = (diff | diff.wrapping_neg()) >> (<$unsigned>::BITS - 1);
 
-                neg.wrapping_sub(1)
+                diff.wrapping_sub(1) as MaskCt
             }
         }
 
         impl LtCt for $unsigned {
-            fn lt_ct(&self, other: &Self) -> Mask {
+            fn lt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = self;
                 let rhs = other;
 
-                let neg = (lhs.wrapping_sub(*rhs) >> (<$unsigned>::BITS - 1)) as Mask;
+                let neg = (lhs.wrapping_sub(*rhs) >> (<$unsigned>::BITS - 1)) as MaskCt;
 
-                Mask::ZERO.wrapping_sub(neg)
+                MaskCt::ZERO.wrapping_sub(neg)
             }
         }
 
         impl GtCt for $unsigned {
-            fn gt_ct(&self, other: &Self) -> Mask {
+            fn gt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = self;
                 let rhs = other;
 
-                let neg = (rhs.wrapping_sub(*lhs) >> (<$unsigned>::BITS - 1)) as Mask;
+                let neg = (rhs.wrapping_sub(*lhs) >> (<$unsigned>::BITS - 1)) as MaskCt;
 
-                Mask::ZERO.wrapping_sub(neg)
+                MaskCt::ZERO.wrapping_sub(neg)
             }
         }
 
@@ -563,7 +567,8 @@ pub enum Sign {
     POS = 1,
 }
 
-type Mask = u8;
+type MaskCt = u8;
+type SignCt = i8;
 
 #[ndfwd::decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAssign {
@@ -825,36 +830,35 @@ pub trait MaxDyn {
 }
 
 pub trait EqCt {
-    fn eq_ct(&self, other: &Self) -> Mask;
+    fn eq_ct(&self, other: &Self) -> MaskCt;
 }
 
 pub trait LtCt {
-    fn lt_ct(&self, other: &Self) -> Mask;
+    fn lt_ct(&self, other: &Self) -> MaskCt;
 }
 
 pub trait GtCt {
-    fn gt_ct(&self, other: &Self) -> Mask;
+    fn gt_ct(&self, other: &Self) -> MaskCt;
 }
 
 pub trait LeCt: GtCt {
-    fn le_ct(&self, other: &Self) -> Mask {
+    fn le_ct(&self, other: &Self) -> MaskCt {
         !self.gt_ct(other)
     }
 }
 
 pub trait GeCt: LtCt {
-    fn ge_ct(&self, other: &Self) -> Mask {
+    fn ge_ct(&self, other: &Self) -> MaskCt {
         !self.lt_ct(other)
     }
 }
 
 pub trait CmpCt: EqCt + LtCt + GtCt {
-    fn cmp_ct(&self, other: &Self) -> (Mask, Mask, Mask) {
-        let eq = self.eq_ct(other);
-        let lt = self.lt_ct(other);
-        let gt = self.gt_ct(other);
+    fn cmp_ct(&self, other: &Self) -> SignCt {
+        let lt = self.lt_ct(other) as SignCt;
+        let gt = self.gt_ct(other) as SignCt;
 
-        (eq, lt, gt)
+        lt | gt & 1
     }
 }
 
