@@ -97,5 +97,5 @@ assert_eq!(format!("{:X}", Annotated(255u32)),  "FF");
 
 # See also
 
-- [`std`] — forwards `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
+- [`macro@std`] — forwards `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
 - [`cmp`] — forwards `PartialEq`, `Eq`, `PartialOrd`, `Ord`.

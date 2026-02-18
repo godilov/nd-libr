@@ -51,7 +51,7 @@ ndops::all_auto! { @KIND SIGNATURE,
 | `@ndbin`  | `ndcore::ops::{NdAdd, NdSub, ...}` | `+ - * / % \| & ^ << >>`           |
 | `@ndun`   | `ndcore::ops::{NdNeg, NdNot}`      | `- !`                              |
 
-`std` kinds implement the standard library operator traits. `nd` kinds implement the
+`macro@std` kinds implement the standard library operator traits. `nd` kinds implement the
 corresponding `ndcore` traits, whose methods take operands by reference rather than by
 value.
 

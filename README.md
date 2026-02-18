@@ -103,7 +103,7 @@ ndops::all!(@ndmut crate <N: NdOpsAssign> (lhs: &mut A<N>, rhs: &A<N>),
 
 Macroses `ndfwd::std`, `ndfwd::cmp` and `ndfwd::fmt` conditionally implement standard Rust traits by forwarding to `expr`.
 
-- `std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
+- `macro@std`: Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` (requires `From<T>`)
 - `cmp`: Implements `PartialEq`, `PartialOrd`, `Eq`, `Ord`
 - `fmt`: Implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`
 

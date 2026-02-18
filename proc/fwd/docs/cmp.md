@@ -102,5 +102,5 @@ assert_eq!(Ranked("alpha"), Ranked("alpha"));
 
 # See also
 
-- [`std`] — forwards `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
+- [`macro@std`] — forwards `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
 - [`fmt`] — forwards `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`.

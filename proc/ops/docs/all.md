@@ -47,7 +47,7 @@ Use expressions with defined from `SIGNATURE` argumets in `EXPR` to produce
 new value for the operation. The `From` wrapping for binary and
 unary kinds is why example types implement `From` for their inner type.
 
-`std` kinds implement the standard library operator traits. `nd` kinds implement
+`macro@std` kinds implement the standard library operator traits. `nd` kinds implement
 the corresponding `ndcore` traits, whose methods take operands by reference rather
 than by value.
 

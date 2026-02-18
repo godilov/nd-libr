@@ -10,7 +10,7 @@ constants, functions, and methods — and emits a companion macro that `#[def]` 
 After declaring a trait, apply [`def`] to each implementing wrapper type.
 
 For standard library trait families, use the dedicated single-step macros
-[`std`], [`cmp`], and [`fmt`] instead.
+[`macro@std`], [`cmp`], and [`fmt`] instead.
 
 # Syntax
 
@@ -84,7 +84,7 @@ pub trait Builder: Sized {
     // which is needed when the inner method returns the inner type but the
     // wrapping type needs to be returned for method chaining.
     #[ndfwd::as_self]
-    fn set_value(&mut self, value: i32);
+    fn set_value(&mut self, value: i32) -> &mut Self;
 
     // #[as_into] wraps the inner return value with `.into()`,
     // useful when the inner method returns the inner type
@@ -114,5 +114,5 @@ struct StringProcessor(Processor);
 - [`def`] — applies a `#[decl]`-declared trait to a wrapper type.
 - [`as_into`], [`as_self`], [`as_expr`] — method-level
   return modifiers used inside `#[decl]` traits.
-- [`std`], [`cmp`], [`fmt`] — single-step forwarding for
+- [`macro@std`], [`cmp`], [`fmt`] — single-step forwarding for
   standard library trait families.

@@ -12,7 +12,7 @@ The trait must have been annotated with [`decl`] before `#[def]` can be used
 with it.
 
 For standard library trait families, use the dedicated single-step macros
-[`std`], [`std`], and [`std`] instead.
+[`macro@std`], [`macro@std`], and [`macro@std`] instead.
 
 # Syntax
 
@@ -40,7 +40,7 @@ item:
 | ------------------- | ------------------------------------ |
 | Associated type     | `type Item = <TYPE as Trait>::Item;` |
 | Associated const    | `const N: T = <TYPE as Trait>::N;`   |
-| Associated function | `<TYPE as Trait>::FUNCTION(args);`   |
+| Associated function | `<TYPE as Trait>::FUNCTION(args)`    |
 | `&self` method      | `self.forward_ref().method(args)`    |
 | `&mut self` method  | `self.forward_mut().method(args)`    |
 | `self` method       | `self.forward().method(args)`        |
@@ -117,5 +117,5 @@ struct Bag<T>(Vec<T>);
 - [`decl`] — declares a trait as forwardable before `#[def]` can be used.
 - [`as_into`], [`as_self`], [`as_expr`] — method-level
   return modifiers that affect how `#[def]` generates each forwarding body.
-- [`std`], [`cmp`], [`fmt`] — single-step forwarding for
+- [`macro@std`], [`cmp`], [`fmt`] — single-step forwarding for
   standard library trait families.
