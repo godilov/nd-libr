@@ -15,6 +15,7 @@ mod kw {
     syn::custom_keyword!(with);
 }
 
+#[doc = include_str!("../docs/std.md")]
 #[proc_macro_attribute]
 pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -79,6 +80,7 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+#[doc = include_str!("../docs/cmp.md")]
 #[proc_macro_attribute]
 pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -143,6 +145,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+#[doc = include_str!("../docs/fmt.md")]
 #[proc_macro_attribute]
 pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     fn fmt_impl(

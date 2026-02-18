@@ -7,6 +7,16 @@ use std::{
 
 use ndcore::ops::*;
 
+#[ndfwd::std(self.0 with Vec<u8>)]
+#[derive(Default)]
+struct ByteVec(Vec<u8>);
+
+impl From<Vec<u8>> for ByteVec {
+    fn from(v: Vec<u8>) -> Self {
+        ByteVec(v)
+    }
+}
+
 use crate::prime::*;
 
 pub mod arch;
