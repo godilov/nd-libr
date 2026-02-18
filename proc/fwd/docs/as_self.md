@@ -20,7 +20,7 @@ on the outer wrapper type.
 
 ```text
 #[ndfwd::as_self]
-fn METHOD(…) -> ReturnType;
+fn METHOD(...) -> ReturnType;
 ```
 
 The attribute takes no arguments and must be placed on a method declaration inside a

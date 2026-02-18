@@ -17,7 +17,7 @@ Reserve `#[as_expr]` for cases that require non-trivial transformations (like ar
 
 ```text
 #[ndfwd::as_expr(CLOSURE)]
-fn METHOD(…) -> ReturnType;
+fn METHOD(...) -> ReturnType;
 ```
 
 - **`CLOSURE`** — an inline Rust closure expression that receives the return value of the

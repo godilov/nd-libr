@@ -240,6 +240,7 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+#[doc = include_str!("../docs/decl.md")]
 #[proc_macro_attribute]
 pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
@@ -323,6 +324,7 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+#[doc = include_str!("../docs/def.md")]
 #[proc_macro_attribute]
 pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {

@@ -19,7 +19,7 @@ This requires the outer type to implement `From<Inner>` (or equivalently,
 
 ```text
 #[ndfwd::as_into]
-fn METHOD(…) -> ReturnType;
+fn METHOD(...) -> ReturnType;
 ```
 
 The attribute takes no arguments and must be placed on a method declaration inside a

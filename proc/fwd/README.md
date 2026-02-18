@@ -22,11 +22,11 @@ the annotated type. All traits in the family are emitted at once; each impl is c
 on the inner type implementing the corresponding trait, so unused traits add no bounds. All
 three macros can be applied to **structs**, **enums**, and **unions**.
 
-| Attribute     | Implemented traits                                    |
-| ------------- | ----------------------------------------------------- |
-| [`macro@std`] | `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` |
-| [`macro@cmp`] | `PartialEq`, `Eq`, `PartialOrd`, `Ord`                |
-| [`macro@fmt`] | `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`  |
+| Attribute | Implemented traits                                    |
+| --------- | ----------------------------------------------------- |
+| [`std`]   | `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator` |
+| [`cmp`]   | `PartialEq`, `Eq`, `PartialOrd`, `Ord`                |
+| [`fmt`]   | `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`  |
 
 #### Syntax
 
@@ -55,7 +55,7 @@ For custom traits, `ndfwd` provides a two-step workflow:
 #### Def Syntax
 
 ```text
-#[ndfwd::def(EXPR with TYPE: TRAIT [where [PREDICATE, ...]])]
+#[ndfwd::def(EXPR with TYPE: TRAIT [where PREDICATE, ...])]
 ```
 
 - **`EXPR`** — a Rust expression that accesses the inner field (e.g. `self.0` or
