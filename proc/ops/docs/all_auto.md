@@ -11,7 +11,7 @@ instead.
 
 ```text
 ndops::all_auto! { @KIND SIGNATURE,
-    OPERAND_EXPRS [OP [where [PREDICATE, …]], …]
+    OPERAND_EXPRS [OP [where [PREDICATE, ...]], ...]
 }
 ```
 
@@ -20,9 +20,9 @@ ndops::all_auto! { @KIND SIGNATURE,
   ([kind-specific](#kinds), see reference below).
 - **`OPERAND_EXPRS`** — parenthesised Rust expressions spliced verbatim into
   the generated body.
-- **`[OP, …]`** — bracket-delimited operator list. Each entry may be followed
-  by `where [P, …]` to add per-operation predicates.
-- **`where [P, …]`** — optional per-operation predicates in square brackets,
+- **`[OP, ...]`** — bracket-delimited operator list. Each entry may be followed
+  by `where [P, ...]` to add per-operation predicates.
+- **`where [P, ...]`** — optional per-operation predicates in square brackets,
   added only to the impl for that single operator.
 
 `OPERAND_EXPRS` per-kind:
@@ -33,14 +33,14 @@ ndops::all_auto! { @KIND SIGNATURE,
 
 ## Kinds
 
-| Token     | Trait family                     | Valid operators                    |
-| --------- | -------------------------------- | ---------------------------------- |
-| `@stdmut` | `std::ops::{AddAssign, …}`       | `+= -= *= /= %= \|= &= ^= <<= >>=` |
-| `@stdbin` | `std::ops::{Add, Sub, …}`        | `+ - * / % \| & ^ << >>`           |
-| `@stdun`  | `std::ops::{Neg, Not}`           | `- !`                              |
-| `@ndmut`  | `ndcore::ops::{NdAddAssign, …}`  | `+= -= *= /= %= \|= &= ^= <<= >>=` |
-| `@ndbin`  | `ndcore::ops::{NdAdd, NdSub, …}` | `+ - * / % \| & ^ << >>`           |
-| `@ndun`   | `ndcore::ops::{NdNeg, NdNot}`    | `- !`                              |
+| Token     | Trait family                       | Valid operators                    |
+| --------- | ---------------------------------- | ---------------------------------- |
+| `@stdmut` | `std::ops::{AddAssign, ...}`       | `+= -= *= /= %= \|= &= ^= <<= >>=` |
+| `@stdbin` | `std::ops::{Add, Sub, ...}`        | `+ - * / % \| & ^ << >>`           |
+| `@stdun`  | `std::ops::{Neg, Not}`             | `- !`                              |
+| `@ndmut`  | `ndcore::ops::{NdAddAssign, ...}`  | `+= -= *= /= %= \|= &= ^= <<= >>=` |
+| `@ndbin`  | `ndcore::ops::{NdAdd, NdSub, ...}` | `+ - * / % \| & ^ << >>`           |
+| `@ndun`   | `ndcore::ops::{NdNeg, NdNot}`      | `- !`                              |
 
 The macro constructs the body from `OPERAND_EXPRS` and the operator token:
 
@@ -87,26 +87,26 @@ each side, so `(*lhs: &T, *rhs: &T)` produces all four ownership combinations.
 #### `@ndbin` signature
 
 ```text
-[crate]  [<G>] [where W]  (lhs: [&]Lhs, rhs: [&]Rhs) -> Res  [for Impl | for [Impl, …]]
+[crate]  [<G>] [where W]  (lhs: [&]Lhs, rhs: [&]Rhs) -> Res  [for Impl | for [Impl, ...]]
 ```
 
 #### `@ndmut` signature
 
 ```text
-[crate]  [<G>] [where W]  (lhs: [&mut]Lhs, rhs: [&]Rhs)  [for Impl | for [Impl, …]]
+[crate]  [<G>] [where W]  (lhs: [&mut]Lhs, rhs: [&]Rhs)  [for Impl | for [Impl, ...]]
 ```
 
 #### `@ndun` signature
 
 ```text
-[crate]  [<G>] [where W]  (v: [&]Self) -> Res  [for Impl | for [Impl, …]]
+[crate]  [<G>] [where W]  (v: [&]Self) -> Res  [for Impl | for [Impl, ...]]
 ```
 
 The optional `crate` keyword resolves trait paths as `crate::ops::NdAdd` instead of
 `ndcore::ops::NdAdd`. Use it when writing impls inside `ndcore` itself.
 
 The optional `for` clause overrides the implementing type; without it the macro
-defaults to `Res`. `for [T, …]` emits the same impl body on every listed type.
+defaults to `Res`. `for [T, ...]` emits the same impl body on every listed type.
 
 # Examples
 

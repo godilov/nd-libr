@@ -21,8 +21,8 @@ ndcore = "*"
 
 ```text
 ndops::all! { @KIND SIGNATURE,
-    OP EXPR [where [PREDICATE, …]],
-    …
+    OP EXPR [where [PREDICATE, ...]],
+    ...
 }
 ```
 
@@ -30,7 +30,7 @@ ndops::all! { @KIND SIGNATURE,
 
 ```text
 ndops::all_auto! { @KIND SIGNATURE,
-    OPERAND_EXPRS [OP [where [PREDICATE, …]], …]
+    OPERAND_EXPRS [OP [where [PREDICATE, ...]], ...]
 }
 ```
 
@@ -42,14 +42,14 @@ ndops::all_auto! { @KIND SIGNATURE,
 
 ### Kinds
 
-| Kind      | Trait family                     | Valid operators                    |
-| --------- | -------------------------------- | ---------------------------------- |
-| `@stdmut` | `std::ops::{AddAssign, …}`       | `+= -= *= /= %= \|= &= ^= <<= >>=` |
-| `@stdbin` | `std::ops::{Add, Sub, …}`        | `+ - * / % \| & ^ << >>`           |
-| `@stdun`  | `std::ops::{Neg, Not}`           | `- !`                              |
-| `@ndmut`  | `ndcore::ops::{NdAddAssign, …}`  | `+= -= *= /= %= \|= &= ^= <<= >>=` |
-| `@ndbin`  | `ndcore::ops::{NdAdd, NdSub, …}` | `+ - * / % \| & ^ << >>`           |
-| `@ndun`   | `ndcore::ops::{NdNeg, NdNot}`    | `- !`                              |
+| Kind      | Trait family                       | Valid operators                    |
+| --------- | ---------------------------------- | ---------------------------------- |
+| `@stdmut` | `std::ops::{AddAssign, ...}`       | `+= -= *= /= %= \|= &= ^= <<= >>=` |
+| `@stdbin` | `std::ops::{Add, Sub, ...}`        | `+ - * / % \| & ^ << >>`           |
+| `@stdun`  | `std::ops::{Neg, Not}`             | `- !`                              |
+| `@ndmut`  | `ndcore::ops::{NdAddAssign, ...}`  | `+= -= *= /= %= \|= &= ^= <<= >>=` |
+| `@ndbin`  | `ndcore::ops::{NdAdd, NdSub, ...}` | `+ - * / % \| & ^ << >>`           |
+| `@ndun`   | `ndcore::ops::{NdNeg, NdNot}`      | `- !`                              |
 
 `std` kinds implement the standard library operator traits. `nd` kinds implement the
 corresponding `ndcore` traits, whose methods take operands by reference rather than by
@@ -87,19 +87,19 @@ four combinations: `(&T, &T)`, `(T, &T)`, `(&T, T)`, `(T, T)`.
 #### `@ndbin` signature
 
 ```text
-[crate]  [<G>] [where W]  (lhs: [&]Lhs, rhs: [&]Rhs) -> Res  [for Impl | for [Impl, …]]
+[crate]  [<G>] [where W]  (lhs: [&]Lhs, rhs: [&]Rhs) -> Res  [for Impl | for [Impl, ...]]
 ```
 
 #### `@ndmut` signature
 
 ```text
-[crate]  [<G>] [where W]  (lhs: [&mut]Lhs, rhs: [&]Rhs)  [for Impl | for [Impl, …]]
+[crate]  [<G>] [where W]  (lhs: [&mut]Lhs, rhs: [&]Rhs)  [for Impl | for [Impl, ...]]
 ```
 
 #### `@ndun` signature
 
 ```text
-[crate]  [<G>] [where W]  (v: [&]Self) -> Res  [for Impl | for [Impl, …]]
+[crate]  [<G>] [where W]  (v: [&]Self) -> Res  [for Impl | for [Impl, ...]]
 ```
 
 The optional `crate` keyword (nd kinds only) resolves trait paths as `crate::ops::Nd*`
@@ -107,7 +107,7 @@ instead of `ndcore::ops::Nd*`. Use it when writing impls inside `ndcore` itself.
 
 The optional `for` clause (nd kinds only) overrides the implementing type. Without it
 the macro defaults to `Res` for binary/unary kinds or `Lhs` for assign kinds.
-`for [T, …]` emits the same impl body on every listed type.
+`for [T, ...]` emits the same impl body on every listed type.
 
 ## Examples
 

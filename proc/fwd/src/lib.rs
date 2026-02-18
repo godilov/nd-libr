@@ -424,16 +424,19 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+#[doc = include_str!("../docs/as_into.md")]
 #[proc_macro_attribute]
 pub fn as_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+#[doc = include_str!("../docs/as_self.md")]
 #[proc_macro_attribute]
 pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+#[doc = include_str!("../docs/as_expr.md")]
 #[proc_macro_attribute]
 pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
