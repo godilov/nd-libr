@@ -60,11 +60,11 @@ enum AssertKindCompare {
 
 enum AssertArg {
     Expr(Expr),
-    Range(AssertArgRange),
+    Range(AssertRange),
 }
 
 #[allow(unused)]
-struct AssertArgRange {
+struct AssertRange {
     ty: Type,
     step: kw::step,
     len: LitInt,
@@ -73,20 +73,20 @@ struct AssertArgRange {
 }
 
 trait AssertKind: Parse {
-    fn assert(&self, stream: TokenStream) -> TokenStream;
+    fn assert(&self, expr: &Expr, args: &TokenStream) -> TokenStream;
 }
 
 impl AssertKind for AssertKindCheck {
-    fn assert(&self, call: TokenStream) -> TokenStream {
-        quote! { assert!(#call); }
+    fn assert(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
+        quote! { assert!((#expr)(#args)); }
     }
 }
 
 impl AssertKind for AssertKindCompare {
-    fn assert(&self, call: TokenStream) -> TokenStream {
+    fn assert(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
         match self {
-            AssertKindCompare::Eq => quote! {{ let val = #call; assert_eq!(val.0, val.1); }},
-            AssertKindCompare::EqNot => quote! {{ let val = #call; assert_ne!(val.0, val.1); }},
+            AssertKindCompare::Eq => quote! {{ let val = (#expr)(#args); assert_eq!(val.0, val.1); }},
+            AssertKindCompare::EqNot => quote! {{ let val = (#expr)(#args); assert_ne!(val.0, val.1); }},
         }
     }
 }
@@ -123,7 +123,7 @@ impl Parse for AssertKindCompare {
 
             Ok(Self::Eq)
         } else if lookahead.peek(kw::ne) {
-            input.parse::<kw::eq>()?;
+            input.parse::<kw::ne>()?;
 
             Ok(Self::EqNot)
         } else {
@@ -142,7 +142,7 @@ impl Parse for AssertArg {
 
             let _ = parenthesized!(content in input);
             let ty = content.parse()?;
-            let of = content.parse()?;
+            let step = content.parse()?;
             let len = content.parse::<LitInt>()?;
             let bits = content.parse()?;
 
@@ -156,7 +156,7 @@ impl Parse for AssertArg {
                 },
             };
 
-            return Ok(Self::Range(AssertArgRange { ty, step: of, len, bits, idx }));
+            return Ok(Self::Range(AssertRange { ty, step, len, bits, idx }));
         }
 
         input.parse::<Expr>().map(Self::Expr)
@@ -222,7 +222,7 @@ impl<Kind: AssertKind> ToTokens for Assert<Kind> {
             .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
 
         let exprs_call = exprs.iter().fold(quote! {}, |acc, expr| {
-            let assert = self.kind.assert(quote! { (#expr)(#args_call) });
+            let assert = self.kind.assert(expr, &args_call);
 
             quote! { #acc #assert }
         });
