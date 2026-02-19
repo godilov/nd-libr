@@ -16,42 +16,45 @@ mod fwd {
     use super::*;
 
     #[test]
+    #[allow(unused_allocation)]
     fn std() {
-        assert_eq!(*Struct(0), 0);
-        assert_eq!(Struct(0).deref(), &0);
-        assert_eq!(Struct(0).deref_mut(), &0);
+        ndassert::check! { (@range(i64 step 60 bits)) [
+            |value: i64| *Struct(value) == value,
+            |value: i64| Struct(value).deref() == &value,
+            |value: i64| Struct(value).deref_mut() == &value,
 
-        assert_eq!(*Struct(Box::new(0)), Box::new(0));
-        assert_eq!(Struct(Box::new(0)).as_ref(), &0);
-        assert_eq!(Struct(Box::new(0)).as_mut(), &0);
+            |value: i64| *Struct(Box::new(value)) == Box::new(value),
+            |value: i64| Struct(Box::new(value)).as_ref() == &value,
+            |value: i64| Struct(Box::new(value)).as_mut() == &value,
 
-        assert_eq!(Struct(vec![1, 2, 3]), Struct::<Vec<i32>>::from_iter([1, 2, 3]));
+            |value: i64| Struct(vec![value]) == Struct::<Vec<i64>>::from_iter([value]),
+        ] }
     }
 
     #[test]
     fn cmp() {
-        assert!(Struct(0) == Struct(0));
-        assert!(Struct(0) != Struct(1));
-
-        assert!(Struct(0) <= Struct(0));
-        assert!(Struct(0) < Struct(1));
-        assert!(Struct(1) > Struct(0));
-        assert!(Struct(1) >= Struct(1));
+        ndassert::check! { (@range(i64 step 60 bits), @range(i64 step 60 bits)) [
+            |lhs: i64, rhs: i64| (Struct(lhs) == Struct(rhs)) == (lhs == rhs),
+            |lhs: i64, rhs: i64| (Struct(lhs) <  Struct(rhs)) == (lhs <  rhs),
+            |lhs: i64, rhs: i64| (Struct(lhs) >  Struct(rhs)) == (lhs >  rhs),
+            |lhs: i64, rhs: i64| (Struct(lhs) <= Struct(rhs)) == (lhs <= rhs),
+            |lhs: i64, rhs: i64| (Struct(lhs) >= Struct(rhs)) == (lhs >= rhs),
+        ] }
     }
 
     #[test]
     fn fmt() {
-        assert_eq!(format!("{}", Struct(0)), format!("{}", 0));
-        assert_eq!(format!("{:b}", Struct(0)), format!("{:b}", 0));
-        assert_eq!(format!("{:o}", Struct(0)), format!("{:o}", 0));
-        assert_eq!(format!("{:x}", Struct(0)), format!("{:x}", 0));
-        assert_eq!(format!("{:X}", Struct(0)), format!("{:X}", 0));
-
-        assert_eq!(format!("{:#}", Struct(0)), format!("{:#}", 0));
-        assert_eq!(format!("{:#b}", Struct(0)), format!("{:#b}", 0));
-        assert_eq!(format!("{:#o}", Struct(0)), format!("{:#o}", 0));
-        assert_eq!(format!("{:#x}", Struct(0)), format!("{:#x}", 0));
-        assert_eq!(format!("{:#X}", Struct(0)), format!("{:#X}", 0));
+        ndassert::check! { (@range(i64 step 60 bits)) [
+            |value: i64| format!("{:}",   Struct(value)) == format!("{:}",   value),
+            |value: i64| format!("{:b}",  Struct(value)) == format!("{:b}",  value),
+            |value: i64| format!("{:o}",  Struct(value)) == format!("{:o}",  value),
+            |value: i64| format!("{:x}",  Struct(value)) == format!("{:x}",  value),
+            |value: i64| format!("{:X}",  Struct(value)) == format!("{:X}",  value),
+            |value: i64| format!("{:#}",  Struct(value)) == format!("{:#}",  value),
+            |value: i64| format!("{:#b}", Struct(value)) == format!("{:#b}", value),
+            |value: i64| format!("{:#o}", Struct(value)) == format!("{:#o}", value),
+            |value: i64| format!("{:#x}", Struct(value)) == format!("{:#x}", value),
+            |value: i64| format!("{:#X}", Struct(value)) == format!("{:#X}", value),
+        ] }
     }
 }
-
