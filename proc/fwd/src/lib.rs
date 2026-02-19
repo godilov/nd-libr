@@ -403,11 +403,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
             let interface = match interface {
-                Some(val) => {
-                    let x = &val.0;
-                    let y = &val.1;
-                    let z = &val.2;
-
+                Some((x, y, z)) => {
                     quote! { #x #y #z }
                 },
                 None => quote! {},

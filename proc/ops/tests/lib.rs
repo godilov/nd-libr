@@ -229,58 +229,62 @@ ndops::all_auto! { @stdun <N: Sized + Copy> (*value: X1<N>) -> Z1<N>, (value.0) 
     ! where [N: Not<Output = N>],
 ] }
 
-#[test]
-#[rustfmt::skip]
-fn all() {
-    let lhs = 32i64;
-    let rhs = 2i64;
+mod ops {
+    use super::*;
 
-    assert_ops!(&A0(lhs), &B0(rhs), C0, lhs, rhs);
-    assert_ops!(&A0(lhs),  B0(rhs), C0, lhs, rhs);
-    assert_ops!( A0(lhs), &B0(rhs), C0, lhs, rhs);
-    assert_ops!( A0(lhs),  B0(rhs), C0, lhs, rhs);
+    #[test]
+    #[rustfmt::skip]
+    fn all() {
+        let lhs = 32i64;
+        let rhs = 2i64;
 
-    assert_eq!(-&A0(lhs), C0(-lhs));
-    assert_eq!(!&A0(lhs), C0(!lhs));
+        assert_ops!(&A0(lhs), &B0(rhs), C0, lhs, rhs);
+        assert_ops!(&A0(lhs),  B0(rhs), C0, lhs, rhs);
+        assert_ops!( A0(lhs), &B0(rhs), C0, lhs, rhs);
+        assert_ops!( A0(lhs),  B0(rhs), C0, lhs, rhs);
 
-    assert_eq!(-A0(lhs), C0(-lhs));
-    assert_eq!(!A0(lhs), C0(!lhs));
-}
+        assert_eq!(-&A0(lhs), C0(-lhs));
+        assert_eq!(!&A0(lhs), C0(!lhs));
 
-#[test]
-#[rustfmt::skip]
-fn all_generic() {
-    let lhs = 32i64;
-    let rhs = 2i64;
+        assert_eq!(-A0(lhs), C0(-lhs));
+        assert_eq!(!A0(lhs), C0(!lhs));
+    }
 
-    assert_ops!(&X0(lhs), &Y0(rhs), Z0, lhs, rhs);
-    assert_ops!(&X0(lhs),  Y0(rhs), Z0, lhs, rhs);
-    assert_ops!( X0(lhs), &Y0(rhs), Z0, lhs, rhs);
-    assert_ops!( X0(lhs),  Y0(rhs), Z0, lhs, rhs);
+    #[test]
+    #[rustfmt::skip]
+    fn all_generic() {
+        let lhs = 32i64;
+        let rhs = 2i64;
 
-    assert_eq!(-&X0(lhs), Z0(-lhs));
-    assert_eq!(!&X0(lhs), Z0(!lhs));
+        assert_ops!(&X0(lhs), &Y0(rhs), Z0, lhs, rhs);
+        assert_ops!(&X0(lhs),  Y0(rhs), Z0, lhs, rhs);
+        assert_ops!( X0(lhs), &Y0(rhs), Z0, lhs, rhs);
+        assert_ops!( X0(lhs),  Y0(rhs), Z0, lhs, rhs);
 
-    assert_eq!(-X0(lhs), Z0(-lhs));
-    assert_eq!(!X0(lhs), Z0(!lhs));
-}
+        assert_eq!(-&X0(lhs), Z0(-lhs));
+        assert_eq!(!&X0(lhs), Z0(!lhs));
 
-#[test]
-#[rustfmt::skip]
-fn all_assign() {
-    let lhs = 32i64;
-    let rhs = 2i64;
+        assert_eq!(-X0(lhs), Z0(-lhs));
+        assert_eq!(!X0(lhs), Z0(!lhs));
+    }
 
-    assert_ops_assign!(A0(lhs), &B0(rhs), A0, lhs, rhs);
-    assert_ops_assign!(A0(lhs),  B0(rhs), A0, lhs, rhs);
-}
+    #[test]
+    #[rustfmt::skip]
+    fn all_assign() {
+        let lhs = 32i64;
+        let rhs = 2i64;
 
-#[test]
-#[rustfmt::skip]
-fn all_generic_assign() {
-    let lhs = 32i64;
-    let rhs = 2i64;
+        assert_ops_assign!(A0(lhs), &B0(rhs), A0, lhs, rhs);
+        assert_ops_assign!(A0(lhs),  B0(rhs), A0, lhs, rhs);
+    }
 
-    assert_ops_assign!(X0(lhs), &Y0(rhs), X0, lhs, rhs);
-    assert_ops_assign!(X0(lhs),  Y0(rhs), X0, lhs, rhs);
+    #[test]
+    #[rustfmt::skip]
+    fn all_generic_assign() {
+        let lhs = 32i64;
+        let rhs = 2i64;
+
+        assert_ops_assign!(X0(lhs), &Y0(rhs), X0, lhs, rhs);
+        assert_ops_assign!(X0(lhs),  Y0(rhs), X0, lhs, rhs);
+    }
 }
