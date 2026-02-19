@@ -14,6 +14,7 @@ ndlibr
 │   └── num
 └── proc        # All procedural macro crates
     ├── arch
+    ├── assert
     ├── fwd
     └── ops
 ```
