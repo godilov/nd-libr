@@ -1,6 +1,6 @@
 use std::ops::*;
 
-macro_rules! ops_struct_def {
+macro_rules! struct_def {
     ($([$($gen:tt)+][$($generics:tt)+])? ($type1:ident, $type2:ident, $type3:ident), $type:ty $(,)?) => {
         #[allow(unused)]
         #[derive(Debug, PartialEq, Eq)]
@@ -75,15 +75,15 @@ macro_rules! assert_ops_assign {
     }};
 }
 
-ops_struct_def!((A0, B0, C0), i64);
-ops_struct_def!((A1, B1, C1), i64);
-ops_struct_def!((A2, B2, C2), i64);
-ops_struct_def!((A3, B3, C3), i64);
+struct_def!((A0, B0, C0), i64);
+struct_def!((A1, B1, C1), i64);
+struct_def!((A2, B2, C2), i64);
+struct_def!((A3, B3, C3), i64);
 
-ops_struct_def!([N][N: Sized + Copy] (X0, Y0, Z0), N);
-ops_struct_def!([N][N: Sized + Copy] (X1, Y1, Z1), N);
-ops_struct_def!([N][N: Sized + Copy] (X2, Y2, Z2), N);
-ops_struct_def!([N][N: Sized + Copy] (X3, Y3, Z3), N);
+struct_def!([N][N: Sized + Copy] (X0, Y0, Z0), N);
+struct_def!([N][N: Sized + Copy] (X1, Y1, Z1), N);
+struct_def!([N][N: Sized + Copy] (X2, Y2, Z2), N);
+struct_def!([N][N: Sized + Copy] (X3, Y3, Z3), N);
 
 ndops::all_auto! { @ndmut (lhs: &mut A0, rhs: &B0), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=] }
 ndops::all_auto! { @ndmut (lhs: &mut A0, rhs: usize), (lhs.0) (rhs) [<<=, >>=] }
@@ -231,7 +231,7 @@ ndops::all_auto! { @stdun <N: Sized + Copy> (*value: X1<N>) -> Z1<N>, (value.0) 
 
 #[test]
 #[rustfmt::skip]
-fn all_ops() {
+fn all() {
     let lhs = 32i64;
     let rhs = 2i64;
 
@@ -249,7 +249,7 @@ fn all_ops() {
 
 #[test]
 #[rustfmt::skip]
-fn all_ops_gen() {
+fn all_generic() {
     let lhs = 32i64;
     let rhs = 2i64;
 
@@ -267,7 +267,7 @@ fn all_ops_gen() {
 
 #[test]
 #[rustfmt::skip]
-fn all_ops_assign() {
+fn all_assign() {
     let lhs = 32i64;
     let rhs = 2i64;
 
@@ -277,7 +277,7 @@ fn all_ops_assign() {
 
 #[test]
 #[rustfmt::skip]
-fn all_ops_gen_assign() {
+fn all_generic_assign() {
     let lhs = 32i64;
     let rhs = 2i64;
 
