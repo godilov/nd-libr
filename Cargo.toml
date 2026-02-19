@@ -48,6 +48,7 @@ ndcore   = { path = "lib/core" }
 ndevm    = { path = "lib/evm" }
 ndnum    = { path = "lib/num" }
 ndarch   = { path = "proc/arch" }
+ndassert = { path = "proc/assert" }
 ndfwd    = { path = "proc/fwd" }
 ndops    = { path = "proc/ops" }
 
