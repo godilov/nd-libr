@@ -10,7 +10,7 @@ struct Cli {
     #[command(subcommand)]
     cmd: Commands,
 
-    /// Json filepath for prime array
+    /// Json file for prime array
     #[arg(short, long)]
     filepath: Option<PathBuf>,
 
@@ -43,7 +43,7 @@ enum Commands {
         fast: bool,
     },
 
-    /// Generate prime
+    /// Generate primes
     #[command(name = "rand")]
     Rand {
         /// Order
@@ -73,6 +73,7 @@ fn main() -> anyhow::Result<()> {
 
             vec.sort_unstable();
             vec.reverse();
+            vec.dedup();
             vec
         },
     };
@@ -85,6 +86,7 @@ fn main() -> anyhow::Result<()> {
             true => serde_json::to_writer_pretty(file, &primes)?,
         };
 
+        tracing::info!("Count: {}", primes.len());
         tracing::info!("Filepath: {}", filepath.display());
     } else {
         tracing::info!("Count: {}", primes.len());

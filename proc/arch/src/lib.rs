@@ -1,9 +1,8 @@
 #![doc = include_str!("../README.md")]
 
 use proc_macro::TokenStream as TokenStreamStd;
-use proc_macro2::Span;
 use quote::quote;
-use syn::{Error, Item, parse_macro_input};
+use syn::{Error, Item, parse_macro_input, spanned::Spanned};
 
 #[proc_macro_attribute]
 pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
@@ -34,7 +33,7 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             #item
         }
         .into(),
-        _ => Error::new(Span::call_site(), "Failed to align, expected struct, enum or union")
+        _ => Error::new(item.span(), "Failed to align, expected struct, enum or union")
             .into_compile_error()
             .into(),
     }

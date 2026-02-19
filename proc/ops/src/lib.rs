@@ -1,13 +1,14 @@
 // #![doc = include_str!("../README.md")]
 
 use proc_macro::TokenStream as TokenStreamStd;
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
     Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WherePredicate, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
+    spanned::Spanned,
     token::{Bracket, Paren},
 };
 
@@ -441,7 +442,7 @@ impl Parse for OpsStdSignatureAssign {
             Type::Reference(ref val) if val.mutability.is_some() => (*val.elem).clone(),
             _ => {
                 return Err(Error::new(
-                    Span::call_site(),
+                    lhs_pat.ty.span(),
                     "Failed to parse signature, lhs expected to be mutable reference",
                 ));
             },
@@ -451,7 +452,7 @@ impl Parse for OpsStdSignatureAssign {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
                     return Err(Error::new(
-                        Span::call_site(),
+                        rhs_pat.ty.span(),
                         "Failed to parse signature, rhs expected to be reference",
                     ));
                 },
@@ -494,7 +495,7 @@ impl Parse for OpsStdSignatureBinary {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
                     return Err(Error::new(
-                        Span::call_site(),
+                        lhs_pat.ty.span(),
                         "Failed to parse signature, lhs expected to be reference",
                     ));
                 },
@@ -507,7 +508,7 @@ impl Parse for OpsStdSignatureBinary {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
                     return Err(Error::new(
-                        Span::call_site(),
+                        rhs_pat.ty.span(),
                         "Failed to parse signature, rhs expected to be reference",
                     ));
                 },
@@ -551,7 +552,7 @@ impl Parse for OpsStdSignatureUnary {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
                     return Err(Error::new(
-                        Span::call_site(),
+                        self_pat.ty.span(),
                         "Failed to parse signature, self expected to be reference",
                     ));
                 },

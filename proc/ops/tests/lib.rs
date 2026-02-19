@@ -34,47 +34,6 @@ macro_rules! struct_def {
     };
 }
 
-macro_rules! assert_ops {
-    ($lhs:expr, $rhs:expr, $fn:ident, $lval:expr, $rval:expr) => {
-        assert_ops!(@impl +  $lhs, $rhs, $fn($lval +  $rval));
-        assert_ops!(@impl -  $lhs, $rhs, $fn($lval -  $rval));
-        assert_ops!(@impl *  $lhs, $rhs, $fn($lval *  $rval));
-        assert_ops!(@impl /  $lhs, $rhs, $fn($lval /  $rval));
-        assert_ops!(@impl %  $lhs, $rhs, $fn($lval %  $rval));
-        assert_ops!(@impl |  $lhs, $rhs, $fn($lval |  $rval));
-        assert_ops!(@impl &  $lhs, $rhs, $fn($lval &  $rval));
-        assert_ops!(@impl ^  $lhs, $rhs, $fn($lval ^  $rval));
-        assert_ops!(@impl << $lhs, $rhs, $fn($lval << $rval));
-        assert_ops!(@impl >> $lhs, $rhs, $fn($lval >> $rval));
-    };
-    (@impl $op:tt $lhs:expr, $rhs:expr, $val:expr) => {{
-        assert_eq!($lhs $op $rhs, $val);
-    }};
-}
-
-macro_rules! assert_ops_assign {
-    ($lhs:expr, $rhs:expr, $fn:ident, $lval:expr, $rval:expr) => {
-        assert_ops_assign!(@impl +=  $lhs, $rhs, $fn($lval +  $rval));
-        assert_ops_assign!(@impl -=  $lhs, $rhs, $fn($lval -  $rval));
-        assert_ops_assign!(@impl *=  $lhs, $rhs, $fn($lval *  $rval));
-        assert_ops_assign!(@impl /=  $lhs, $rhs, $fn($lval /  $rval));
-        assert_ops_assign!(@impl %=  $lhs, $rhs, $fn($lval %  $rval));
-        assert_ops_assign!(@impl |=  $lhs, $rhs, $fn($lval |  $rval));
-        assert_ops_assign!(@impl &=  $lhs, $rhs, $fn($lval &  $rval));
-        assert_ops_assign!(@impl ^=  $lhs, $rhs, $fn($lval ^  $rval));
-        assert_ops_assign!(@impl <<= $lhs, $rhs, $fn($lval << $rval));
-        assert_ops_assign!(@impl >>= $lhs, $rhs, $fn($lval >> $rval));
-    };
-    (@impl $op:tt $lhs:expr, $rhs:expr, $val:expr) => {{
-        assert_eq!({
-            let mut lhs = $lhs;
-
-            lhs $op $rhs;
-            lhs
-        }, $val);
-    }};
-}
-
 struct_def!((A0, B0, C0), i64);
 struct_def!((A1, B1, C1), i64);
 struct_def!((A2, B2, C2), i64);
@@ -94,14 +53,14 @@ ndops::all_auto! { @ndbin (lhs: &A0, rhs: usize) -> C0, (lhs.0) (rhs) [<<, >>] }
 ndops::all_auto! { @ndun (value: &A0) -> C0, (value.0) [-, !] }
 
 ndops::all_auto! { @ndmut <N: Sized + Copy> (lhs: &mut X0<N>, rhs: &Y0<N>), (lhs.0) (rhs.0) [
-    +=  where [N: AddAssign<N>],
-    -=  where [N: SubAssign<N>],
-    *=  where [N: MulAssign<N>],
-    /=  where [N: DivAssign<N>],
-    %=  where [N: RemAssign<N>],
-    |=  where [N: BitOrAssign<N>],
-    &=  where [N: BitAndAssign<N>],
-    ^=  where [N: BitXorAssign<N>],
+    += where [N: AddAssign<N>],
+    -= where [N: SubAssign<N>],
+    *= where [N: MulAssign<N>],
+    /= where [N: DivAssign<N>],
+    %= where [N: RemAssign<N>],
+    |= where [N: BitOrAssign<N>],
+    &= where [N: BitAndAssign<N>],
+    ^= where [N: BitXorAssign<N>],
 ] }
 
 ndops::all_auto! { @ndmut <N: Sized + Copy> (lhs: &mut X0<N>, rhs: usize), (lhs.0) (rhs) [
@@ -110,14 +69,14 @@ ndops::all_auto! { @ndmut <N: Sized + Copy> (lhs: &mut X0<N>, rhs: usize), (lhs.
 ] }
 
 ndops::all_auto! { @ndbin <N: Sized + Copy> (lhs: &X0<N>, rhs: &Y0<N>) -> Z0<N>, (lhs.0) (rhs.0) [
-    +  where [N: Add<N, Output = N>],
-    -  where [N: Sub<N, Output = N>],
-    *  where [N: Mul<N, Output = N>],
-    /  where [N: Div<N, Output = N>],
-    %  where [N: Rem<N, Output = N>],
-    |  where [N: BitOr<N, Output = N>],
-    &  where [N: BitAnd<N, Output = N>],
-    ^  where [N: BitXor<N, Output = N>],
+    + where [N: Add<N, Output = N>],
+    - where [N: Sub<N, Output = N>],
+    * where [N: Mul<N, Output = N>],
+    / where [N: Div<N, Output = N>],
+    % where [N: Rem<N, Output = N>],
+    | where [N: BitOr<N, Output = N>],
+    & where [N: BitAnd<N, Output = N>],
+    ^ where [N: BitXor<N, Output = N>],
 ] }
 
 ndops::all_auto! { @ndbin <N: Sized + Copy> (lhs: &X0<N>, rhs: usize) -> Z0<N>, (lhs.0) (rhs) [
@@ -233,58 +192,189 @@ mod ops {
     use super::*;
 
     #[test]
-    #[rustfmt::skip]
     fn all() {
-        let lhs = 32i64;
-        let rhs = 2i64;
+        ndassert::check! { (
+            @range(i64 step 60 bits),
+            @range(i64 step 60 bits),
+        ) [
+            |lhs: i64, rhs: i64| &A0(lhs) +  &B0(rhs) == C0(lhs +  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) -  &B0(rhs) == C0(lhs -  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) *  &B0(rhs) == C0(lhs *  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) /  &B0(rhs) == C0(lhs /  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) %  &B0(rhs) == C0(lhs %  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) |  &B0(rhs) == C0(lhs |  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) &  &B0(rhs) == C0(lhs &  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) ^  &B0(rhs) == C0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) << &B0(rhs) == C0(lhs << rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) >> &B0(rhs) == C0(lhs >> rhs),
 
-        assert_ops!(&A0(lhs), &B0(rhs), C0, lhs, rhs);
-        assert_ops!(&A0(lhs),  B0(rhs), C0, lhs, rhs);
-        assert_ops!( A0(lhs), &B0(rhs), C0, lhs, rhs);
-        assert_ops!( A0(lhs),  B0(rhs), C0, lhs, rhs);
+            |lhs: i64, rhs: i64| &A0(lhs) +   B0(rhs) == C0(lhs +  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) -   B0(rhs) == C0(lhs -  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) *   B0(rhs) == C0(lhs *  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) /   B0(rhs) == C0(lhs /  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) %   B0(rhs) == C0(lhs %  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) |   B0(rhs) == C0(lhs |  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) &   B0(rhs) == C0(lhs &  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) ^   B0(rhs) == C0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) <<  B0(rhs) == C0(lhs << rhs),
+            |lhs: i64, rhs: i64| &A0(lhs) >>  B0(rhs) == C0(lhs >> rhs),
 
-        assert_eq!(-&A0(lhs), C0(-lhs));
-        assert_eq!(!&A0(lhs), C0(!lhs));
+            |lhs: i64, rhs: i64|  A0(lhs) +  &B0(rhs) == C0(lhs +  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) -  &B0(rhs) == C0(lhs -  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) *  &B0(rhs) == C0(lhs *  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) /  &B0(rhs) == C0(lhs /  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) %  &B0(rhs) == C0(lhs %  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) |  &B0(rhs) == C0(lhs |  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) &  &B0(rhs) == C0(lhs &  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) ^  &B0(rhs) == C0(lhs ^  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) << &B0(rhs) == C0(lhs << rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) >> &B0(rhs) == C0(lhs >> rhs),
 
-        assert_eq!(-A0(lhs), C0(-lhs));
-        assert_eq!(!A0(lhs), C0(!lhs));
+            |lhs: i64, rhs: i64|  A0(lhs) +   B0(rhs) == C0(lhs +  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) -   B0(rhs) == C0(lhs -  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) *   B0(rhs) == C0(lhs *  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) /   B0(rhs) == C0(lhs /  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) %   B0(rhs) == C0(lhs %  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) |   B0(rhs) == C0(lhs |  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) &   B0(rhs) == C0(lhs &  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) ^   B0(rhs) == C0(lhs ^  rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) <<  B0(rhs) == C0(lhs << rhs),
+            |lhs: i64, rhs: i64|  A0(lhs) >>  B0(rhs) == C0(lhs >> rhs),
+        ] }
+
+        ndassert::check! { (
+            @range(i64 step 60 bits),
+        ) [
+            |value: i64| -&A0(value) == C0(-value),
+            |value: i64| !&A0(value) == C0(!value),
+
+            |value: i64| -A0(value) == C0(-value),
+            |value: i64| !A0(value) == C0(!value),
+        ] }
     }
 
     #[test]
     #[rustfmt::skip]
     fn all_generic() {
-        let lhs = 32i64;
-        let rhs = 2i64;
+        ndassert::check! { (
+            @range(i64 step 60 bits),
+            @range(i64 step 60 bits),
+        ) [
+            |lhs: i64, rhs: i64| &X0(lhs) +  &Y0(rhs) == Z0(lhs +  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) -  &Y0(rhs) == Z0(lhs -  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) *  &Y0(rhs) == Z0(lhs *  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) /  &Y0(rhs) == Z0(lhs /  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) %  &Y0(rhs) == Z0(lhs %  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) |  &Y0(rhs) == Z0(lhs |  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) &  &Y0(rhs) == Z0(lhs &  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) ^  &Y0(rhs) == Z0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) << &Y0(rhs) == Z0(lhs << rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) >> &Y0(rhs) == Z0(lhs >> rhs),
 
-        assert_ops!(&X0(lhs), &Y0(rhs), Z0, lhs, rhs);
-        assert_ops!(&X0(lhs),  Y0(rhs), Z0, lhs, rhs);
-        assert_ops!( X0(lhs), &Y0(rhs), Z0, lhs, rhs);
-        assert_ops!( X0(lhs),  Y0(rhs), Z0, lhs, rhs);
+            |lhs: i64, rhs: i64| &X0(lhs) +   Y0(rhs) == Z0(lhs +  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) -   Y0(rhs) == Z0(lhs -  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) *   Y0(rhs) == Z0(lhs *  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) /   Y0(rhs) == Z0(lhs /  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) %   Y0(rhs) == Z0(lhs %  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) |   Y0(rhs) == Z0(lhs |  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) &   Y0(rhs) == Z0(lhs &  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) ^   Y0(rhs) == Z0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) <<  Y0(rhs) == Z0(lhs << rhs),
+            |lhs: i64, rhs: i64| &X0(lhs) >>  Y0(rhs) == Z0(lhs >> rhs),
 
-        assert_eq!(-&X0(lhs), Z0(-lhs));
-        assert_eq!(!&X0(lhs), Z0(!lhs));
+            |lhs: i64, rhs: i64|  X0(lhs) +  &Y0(rhs) == Z0(lhs +  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) -  &Y0(rhs) == Z0(lhs -  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) *  &Y0(rhs) == Z0(lhs *  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) /  &Y0(rhs) == Z0(lhs /  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) %  &Y0(rhs) == Z0(lhs %  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) |  &Y0(rhs) == Z0(lhs |  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) &  &Y0(rhs) == Z0(lhs &  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) ^  &Y0(rhs) == Z0(lhs ^  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) << &Y0(rhs) == Z0(lhs << rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) >> &Y0(rhs) == Z0(lhs >> rhs),
 
-        assert_eq!(-X0(lhs), Z0(-lhs));
-        assert_eq!(!X0(lhs), Z0(!lhs));
+            |lhs: i64, rhs: i64|  X0(lhs) +   Y0(rhs) == Z0(lhs +  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) -   Y0(rhs) == Z0(lhs -  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) *   Y0(rhs) == Z0(lhs *  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) /   Y0(rhs) == Z0(lhs /  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) %   Y0(rhs) == Z0(lhs %  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) |   Y0(rhs) == Z0(lhs |  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) &   Y0(rhs) == Z0(lhs &  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) ^   Y0(rhs) == Z0(lhs ^  rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) <<  Y0(rhs) == Z0(lhs << rhs),
+            |lhs: i64, rhs: i64|  X0(lhs) >>  Y0(rhs) == Z0(lhs >> rhs),
+        ] }
+
+        ndassert::check! { (
+            @range(i64 step 60 bits),
+        ) [
+            |value: i64| -&X0(value) == Z0(-value),
+            |value: i64| !&X0(value) == Z0(!value),
+
+            |value: i64| -X0(value) == Z0(-value),
+            |value: i64| !X0(value) == Z0(!value),
+        ] }
     }
 
     #[test]
     #[rustfmt::skip]
     fn all_assign() {
-        let lhs = 32i64;
-        let rhs = 2i64;
+        ndassert::check! { (
+            @range(i64 step 60 bits),
+            @range(i64 step 60 bits),
+        ) [
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val +=  &B0(rhs); val } == A0(lhs +  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val -=  &B0(rhs); val } == A0(lhs -  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val *=  &B0(rhs); val } == A0(lhs *  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val /=  &B0(rhs); val } == A0(lhs /  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val %=  &B0(rhs); val } == A0(lhs %  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val |=  &B0(rhs); val } == A0(lhs |  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val &=  &B0(rhs); val } == A0(lhs &  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val ^=  &B0(rhs); val } == A0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val <<= &B0(rhs); val } == A0(lhs << rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val >>= &B0(rhs); val } == A0(lhs >> rhs),
 
-        assert_ops_assign!(A0(lhs), &B0(rhs), A0, lhs, rhs);
-        assert_ops_assign!(A0(lhs),  B0(rhs), A0, lhs, rhs);
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val +=   B0(rhs); val } == A0(lhs +  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val -=   B0(rhs); val } == A0(lhs -  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val *=   B0(rhs); val } == A0(lhs *  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val /=   B0(rhs); val } == A0(lhs /  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val %=   B0(rhs); val } == A0(lhs %  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val |=   B0(rhs); val } == A0(lhs |  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val &=   B0(rhs); val } == A0(lhs &  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val ^=   B0(rhs); val } == A0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val <<=  B0(rhs); val } == A0(lhs << rhs),
+            |lhs: i64, rhs: i64| { let mut val = A0(lhs); val >>=  B0(rhs); val } == A0(lhs >> rhs),
+        ] }
     }
 
     #[test]
     #[rustfmt::skip]
     fn all_generic_assign() {
-        let lhs = 32i64;
-        let rhs = 2i64;
+        ndassert::check! { (
+            @range(i64 step 60 bits),
+            @range(i64 step 60 bits),
+        ) [
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val +=  &Y0(rhs); val } == X0(lhs +  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val -=  &Y0(rhs); val } == X0(lhs -  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val *=  &Y0(rhs); val } == X0(lhs *  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val /=  &Y0(rhs); val } == X0(lhs /  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val %=  &Y0(rhs); val } == X0(lhs %  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val |=  &Y0(rhs); val } == X0(lhs |  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val &=  &Y0(rhs); val } == X0(lhs &  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val ^=  &Y0(rhs); val } == X0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val <<= &Y0(rhs); val } == X0(lhs << rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val >>= &Y0(rhs); val } == X0(lhs >> rhs),
 
-        assert_ops_assign!(X0(lhs), &Y0(rhs), X0, lhs, rhs);
-        assert_ops_assign!(X0(lhs),  Y0(rhs), X0, lhs, rhs);
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val +=   Y0(rhs); val } == X0(lhs +  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val -=   Y0(rhs); val } == X0(lhs -  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val *=   Y0(rhs); val } == X0(lhs *  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val /=   Y0(rhs); val } == X0(lhs /  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val %=   Y0(rhs); val } == X0(lhs %  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val |=   Y0(rhs); val } == X0(lhs |  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val &=   Y0(rhs); val } == X0(lhs &  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val ^=   Y0(rhs); val } == X0(lhs ^  rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val <<=  Y0(rhs); val } == X0(lhs << rhs),
+            |lhs: i64, rhs: i64| { let mut val = X0(lhs); val >>=  Y0(rhs); val } == X0(lhs >> rhs),
+        ] }
     }
 }
