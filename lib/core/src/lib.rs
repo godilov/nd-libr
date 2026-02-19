@@ -55,22 +55,22 @@ pub mod ops {
             $(nd_ops_impl!(@unsigned $primitive);)+
         };
         (@signed $primitive:ty $(,)?) => {
-            ndops::all_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [-, !]);
+            ndops::all_auto! { @ndun crate (&value: &$primitive) -> $primitive, (value) [-, !] }
 
-            ndops::all_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
-            ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^] }
+            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=] }
 
-            ndops::all_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
-            ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
+            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>] }
+            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=] }
         };
         (@unsigned $primitive:ty $(,)?) => {
-            ndops::all_auto!(@ndun crate (&value: &$primitive) -> $primitive, (value) [!]);
+            ndops::all_auto! { @ndun crate (&value: &$primitive) -> $primitive, (value) [!] }
 
-            ndops::all_auto!(@ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^]);
-            ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=]);
+            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^] }
+            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=] }
 
-            ndops::all_auto!(@ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>]);
-            ndops::all_auto!(@ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=]);
+            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>] }
+            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=] }
         };
     }
 

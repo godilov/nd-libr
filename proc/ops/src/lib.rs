@@ -4,8 +4,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WhereClause, WherePredicate, bracketed,
-    parenthesized,
+    Error, Expr, Generics, Ident, PatType, Path, Result, Token, Type, WherePredicate, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
@@ -83,7 +82,6 @@ enum Ops {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[allow(clippy::enum_variant_names)]
 enum OpsAuto {
     StdAssign(OpsImplAuto<OpsStdKindAssign>),
     StdBinary(OpsImplAuto<OpsStdKindBinary>),
@@ -104,6 +102,7 @@ struct OpsNdKindUnary;
 struct OpsImpl<Kind: OpsKind> {
     signature: Kind::Signature,
     colon: Token![,],
+    definitions_bracket: Bracket,
     definitions: Punctuated<OpsDefinition<Kind::Operation>, Token![,]>,
 }
 
@@ -112,13 +111,14 @@ struct OpsImplAuto<Kind: OpsKind> {
     signature: Kind::Signature,
     colon: Token![,],
     expression: Kind::Expression,
-    ops_bracket: Bracket,
-    ops: Punctuated<OpsDefinitionAuto<Kind::Operation>, Token![,]>,
+    definitions_bracket: Bracket,
+    definitions: Punctuated<OpsDefinitionAuto<Kind::Operation>, Token![,]>,
 }
 
 #[allow(unused)]
 struct OpsStdSignatureAssign {
     generics: Generics,
+    conditions: Option<OpsConditions>,
     paren: Paren,
     lhs_pat: PatType,
     lhs_ty: Type,
@@ -132,6 +132,7 @@ struct OpsStdSignatureAssign {
 #[allow(unused)]
 struct OpsStdSignatureBinary {
     generics: Generics,
+    conditions: Option<OpsConditions>,
     paren: Paren,
     lhs_star: Option<Token![*]>,
     lhs_pat: PatType,
@@ -149,6 +150,7 @@ struct OpsStdSignatureBinary {
 #[allow(unused)]
 struct OpsStdSignatureUnary {
     generics: Generics,
+    conditions: Option<OpsConditions>,
     paren: Paren,
     self_star: Option<Token![*]>,
     self_pat: PatType,
@@ -162,6 +164,7 @@ struct OpsStdSignatureUnary {
 struct OpsNdSignatureAssign {
     token: Option<Token![crate]>,
     generics: Generics,
+    conditions: Option<OpsConditions>,
     paren: Paren,
     lhs_pat: PatType,
     lhs_ty: Type,
@@ -175,6 +178,7 @@ struct OpsNdSignatureAssign {
 struct OpsNdSignatureBinary {
     token: Option<Token![crate]>,
     generics: Generics,
+    conditions: Option<OpsConditions>,
     paren: Paren,
     lhs_pat: PatType,
     lhs_ty: Type,
@@ -190,6 +194,7 @@ struct OpsNdSignatureBinary {
 struct OpsNdSignatureUnary {
     token: Option<Token![crate]>,
     generics: Generics,
+    conditions: Option<OpsConditions>,
     paren: Paren,
     self_pat: PatType,
     self_ty: Type,
@@ -242,17 +247,17 @@ struct OpsExpressionUnary {
 struct OpsDefinition<Operation: Parse> {
     op: Operation,
     expr: Expr,
-    conditions: Option<OpsDefinitionConditions>,
+    conditions: Option<OpsConditions>,
 }
 
 #[allow(unused)]
 struct OpsDefinitionAuto<Operation: Parse> {
     op: Operation,
-    conditions: Option<OpsDefinitionConditions>,
+    conditions: Option<OpsConditions>,
 }
 
 #[allow(unused)]
-struct OpsDefinitionConditions {
+struct OpsConditions {
     token: Token![where],
     predicates: Punctuated<WherePredicate, Token![,]>,
 }
@@ -395,10 +400,13 @@ impl Parse for OpsAuto {
 
 impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
         Ok(Self {
             signature: input.parse()?,
             colon: input.parse()?,
-            definitions: input.parse_terminated(OpsDefinition::parse, Token![,])?,
+            definitions_bracket: bracketed!(content in input),
+            definitions: content.parse_terminated(OpsDefinition::parse, Token![,])?,
         })
     }
 }
@@ -411,8 +419,8 @@ impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
             signature: input.parse()?,
             colon: input.parse()?,
             expression: input.parse()?,
-            ops_bracket: bracketed!(content in input),
-            ops: content.parse_terminated(OpsDefinitionAuto::parse, Token![,])?,
+            definitions_bracket: bracketed!(content in input),
+            definitions: content.parse_terminated(OpsDefinitionAuto::parse, Token![,])?,
         })
     }
 }
@@ -421,8 +429,8 @@ impl Parse for OpsStdSignatureAssign {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
+        let generics = input.parse::<Generics>()?;
+        let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
@@ -453,10 +461,8 @@ impl Parse for OpsStdSignatureAssign {
         };
 
         Ok(Self {
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
+            generics: get_normalized_generics(generics),
+            conditions: get_normalized_conditions(conditions),
             paren,
             lhs_pat,
             lhs_ty,
@@ -473,8 +479,8 @@ impl Parse for OpsStdSignatureBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
+        let generics = input.parse::<Generics>()?;
+        let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
         let lhs_star = content.parse()?;
         let lhs_pat: PatType = content.parse()?;
@@ -511,10 +517,8 @@ impl Parse for OpsStdSignatureBinary {
         };
 
         Ok(Self {
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
+            generics: get_normalized_generics(generics),
+            conditions: get_normalized_conditions(conditions),
             paren,
             lhs_star,
             lhs_pat,
@@ -535,8 +539,8 @@ impl Parse for OpsStdSignatureUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
+        let generics = input.parse::<Generics>()?;
+        let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
         let self_star = content.parse()?;
         let self_pat: PatType = content.parse()?;
@@ -557,10 +561,8 @@ impl Parse for OpsStdSignatureUnary {
         };
 
         Ok(Self {
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
+            generics: get_normalized_generics(generics),
+            conditions: get_normalized_conditions(conditions),
             paren,
             self_star,
             self_pat,
@@ -577,8 +579,8 @@ impl Parse for OpsNdSignatureAssign {
         let content;
 
         let token = input.parse()?;
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
+        let generics = input.parse::<Generics>()?;
+        let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
@@ -597,10 +599,8 @@ impl Parse for OpsNdSignatureAssign {
 
         Ok(Self {
             token,
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
+            generics: get_normalized_generics(generics),
+            conditions: get_normalized_conditions(conditions),
             paren,
             lhs_pat,
             lhs_ty,
@@ -617,8 +617,8 @@ impl Parse for OpsNdSignatureBinary {
         let content;
 
         let token = input.parse()?;
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
+        let generics = input.parse::<Generics>()?;
+        let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
         let lhs_pat: PatType = content.parse()?;
         let comma = content.parse()?;
@@ -639,10 +639,8 @@ impl Parse for OpsNdSignatureBinary {
 
         Ok(Self {
             token,
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
+            generics: get_normalized_generics(generics),
+            conditions: get_normalized_conditions(conditions),
             paren,
             lhs_pat,
             lhs_ty,
@@ -661,8 +659,8 @@ impl Parse for OpsNdSignatureUnary {
         let content;
 
         let token = input.parse()?;
-        let gen_ = input.parse::<Generics>()?;
-        let gen_where = input.parse::<Option<WhereClause>>()?;
+        let generics = input.parse::<Generics>()?;
+        let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
         let self_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
@@ -676,10 +674,8 @@ impl Parse for OpsNdSignatureUnary {
 
         Ok(Self {
             token,
-            generics: get_normalized_generics(Generics {
-                where_clause: gen_where,
-                ..gen_
-            }),
+            generics: get_normalized_generics(generics),
+            conditions: get_normalized_conditions(conditions),
             paren,
             self_pat,
             self_ty,
@@ -783,7 +779,7 @@ impl<Operation: Parse> Parse for OpsDefinitionAuto<Operation> {
     }
 }
 
-impl Parse for OpsDefinitionConditions {
+impl Parse for OpsConditions {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
         let token = input.parse()?;
@@ -875,25 +871,18 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
             signature: &'ops OpsStdSignatureAssign,
             op: &'ops OpsAssign,
             expr: &'ops Expr,
-            conditions: Option<&'ops OpsDefinitionConditions>,
+            conditions: Option<&'ops OpsConditions>,
         }
 
         fn get_impl(spec: OpsSpec, rhs_ref: Option<Token![&]>) -> TokenStream {
             let ident = spec.op.get_ident();
             let path = spec.op.get_path();
 
-            let (gen_impl, _, gen_where) = spec.signature.generics.split_for_impl();
+            let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
-            let predicates = match spec.conditions {
-                Some(val) => {
-                    let predicates = &val.predicates;
+            let predicates = spec.conditions.map(|val| &val.predicates);
 
-                    quote! { #predicates }
-                },
-                None => quote! {},
-            };
-
-            let gen_where = match gen_where {
+            let gen_where = match &spec.signature.conditions {
                 Some(val) => quote! { #val, #predicates },
                 None => quote! { where #predicates },
             };
@@ -954,25 +943,18 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
             signature: &'ops OpsStdSignatureBinary,
             op: &'ops OpsBinary,
             expr: &'ops Expr,
-            conditions: Option<&'ops OpsDefinitionConditions>,
+            conditions: Option<&'ops OpsConditions>,
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
             let ident = spec.op.get_ident();
             let path = spec.op.get_path();
 
-            let (gen_impl, _, gen_where) = spec.signature.generics.split_for_impl();
+            let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
-            let predicates = match spec.conditions {
-                Some(val) => {
-                    let predicates = &val.predicates;
+            let predicates = spec.conditions.map(|val| &val.predicates);
 
-                    quote! { #predicates }
-                },
-                None => quote! {},
-            };
-
-            let gen_where = match gen_where {
+            let gen_where = match &spec.signature.conditions {
                 Some(val) => quote! { #val, #predicates },
                 None => quote! { where #predicates },
             };
@@ -991,7 +973,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
 
                     fn #ident(self, rhs: #rhs_ref #rhs_ty) -> #res_ty {
                         #[allow(clippy::needless_borrow)]
-                        (|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { <#res_ty>::from(#expr) })(self, rhs)
+                        <#res_ty>::from((|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { #expr })(self, rhs))
                     }
                 }
             }
@@ -1067,25 +1049,18 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
             signature: &'ops OpsStdSignatureUnary,
             op: &'ops OpsUnary,
             expr: &'ops Expr,
-            conditions: Option<&'ops OpsDefinitionConditions>,
+            conditions: Option<&'ops OpsConditions>,
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>) -> TokenStream {
             let ident = spec.op.get_ident();
             let path = spec.op.get_path();
 
-            let (gen_impl, _, gen_where) = spec.signature.generics.split_for_impl();
+            let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
-            let predicates = match spec.conditions {
-                Some(val) => {
-                    let predicates = &val.predicates;
+            let predicates = spec.conditions.map(|val| &val.predicates);
 
-                    quote! { #predicates }
-                },
-                None => quote! {},
-            };
-
-            let gen_where = match gen_where {
+            let gen_where = match &spec.signature.conditions {
                 Some(val) => quote! { #val, #predicates },
                 None => quote! { where #predicates },
             };
@@ -1102,7 +1077,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 
                     fn #ident(self) -> #res_ty {
                         #[allow(clippy::needless_borrow)]
-                        (|#self_pat: #lhs_ref #self_ty| { <#res_ty>::from(#expr) })(self)
+                        <#res_ty>::from((|#self_pat: #lhs_ref #self_ty| { #expr })(self))
                     }
                 }
             }
@@ -1147,18 +1122,11 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
             let ident = definition.op.get_ident();
             let path = definition.op.get_nd_path(token);
 
-            let (gen_impl, _, gen_where) = self.signature.generics.split_for_impl();
+            let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
-            let predicates = match &definition.conditions {
-                Some(val) => {
-                    let predicates = &val.predicates;
+            let predicates = definition.conditions.as_ref().map(|val| &val.predicates);
 
-                    quote! { #predicates }
-                },
-                None => quote! {},
-            };
-
-            let gen_where = match gen_where {
+            let gen_where = match &self.signature.conditions {
                 Some(val) => quote! { #val, #predicates },
                 None => quote! { where #predicates },
             };
@@ -1196,18 +1164,11 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
             let ident = definition.op.get_ident();
             let path = definition.op.get_nd_path(token);
 
-            let (gen_impl, _, gen_where) = self.signature.generics.split_for_impl();
+            let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
-            let predicates = match &definition.conditions {
-                Some(val) => {
-                    let predicates = &val.predicates;
+            let predicates = definition.conditions.as_ref().map(|val| &val.predicates);
 
-                    quote! { #predicates }
-                },
-                None => quote! {},
-            };
-
-            let gen_where = match gen_where {
+            let gen_where = match &self.signature.conditions {
                 Some(val) => quote! { #val, #predicates },
                 None => quote! { where #predicates },
             };
@@ -1248,18 +1209,11 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
             let ident = definition.op.get_ident();
             let path = definition.op.get_nd_path(token);
 
-            let (gen_impl, _, gen_where) = self.signature.generics.split_for_impl();
+            let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
-            let predicates = match &definition.conditions {
-                Some(val) => {
-                    let predicates = &val.predicates;
+            let predicates = definition.conditions.as_ref().map(|val| &val.predicates);
 
-                    quote! { #predicates }
-                },
-                None => quote! {},
-            };
-
-            let gen_where = match gen_where {
+            let gen_where = match &self.signature.conditions {
                 Some(val) => quote! { #val, #predicates },
                 None => quote! { where #predicates },
             };
@@ -1334,13 +1288,23 @@ impl ToTokens for OpsUnary {
     }
 }
 
+impl ToTokens for OpsConditions {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let token = &self.token;
+        let predicates = &self.predicates;
+
+        tokens.extend(quote! { #token #predicates });
+    }
+}
+
 impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
     fn from(value: OpsImplAuto<OpsStdKindAssign>) -> Self {
         OpsImpl::<OpsStdKindAssign> {
             signature: value.signature,
             colon: Default::default(),
+            definitions_bracket: value.definitions_bracket,
             definitions: value
-                .ops
+                .definitions
                 .into_iter()
                 .map(|definition| {
                     let op = definition.op;
@@ -1364,8 +1328,9 @@ impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
         OpsImpl::<OpsStdKindBinary> {
             signature: value.signature,
             colon: Default::default(),
+            definitions_bracket: value.definitions_bracket,
             definitions: value
-                .ops
+                .definitions
                 .into_iter()
                 .map(|definition| {
                     let op = definition.op;
@@ -1389,8 +1354,9 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
         OpsImpl::<OpsStdKindUnary> {
             signature: value.signature,
             colon: Default::default(),
+            definitions_bracket: value.definitions_bracket,
             definitions: value
-                .ops
+                .definitions
                 .into_iter()
                 .map(|definition| {
                     let op = definition.op;
@@ -1413,8 +1379,9 @@ impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
         OpsImpl::<OpsNdKindAssign> {
             signature: value.signature,
             colon: Default::default(),
+            definitions_bracket: value.definitions_bracket,
             definitions: value
-                .ops
+                .definitions
                 .into_iter()
                 .map(|definition| {
                     let op = definition.op;
@@ -1438,8 +1405,9 @@ impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
         OpsImpl::<OpsNdKindBinary> {
             signature: value.signature,
             colon: Default::default(),
+            definitions_bracket: value.definitions_bracket,
             definitions: value
-                .ops
+                .definitions
                 .into_iter()
                 .map(|definition| {
                     let op = definition.op;
@@ -1463,8 +1431,9 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
         OpsImpl::<OpsNdKindUnary> {
             signature: value.signature,
             colon: Default::default(),
+            definitions_bracket: value.definitions_bracket,
             definitions: value
-                .ops
+                .definitions
                 .into_iter()
                 .map(|definition| {
                     let op = definition.op;
@@ -1609,4 +1578,11 @@ fn get_normalized_generics(mut generics: Generics) -> Generics {
     generics.params.pop_punct();
     generics.where_clause.as_mut().map(|clause| clause.predicates.pop_punct());
     generics
+}
+
+fn get_normalized_conditions(conditions: Option<OpsConditions>) -> Option<OpsConditions> {
+    conditions.map(|mut val| {
+        val.predicates.pop_punct();
+        val
+    })
 }

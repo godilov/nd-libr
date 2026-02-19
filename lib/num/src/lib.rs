@@ -7,16 +7,6 @@ use std::{
 
 use ndcore::ops::*;
 
-#[ndfwd::std(self.0 with Vec<u8>)]
-#[derive(Default)]
-struct ByteVec(Vec<u8>);
-
-impl From<Vec<u8>> for ByteVec {
-    fn from(v: Vec<u8>) -> Self {
-        ByteVec(v)
-    }
-}
-
 use crate::prime::*;
 
 pub mod arch;
@@ -929,7 +919,7 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-ndops::all!(@stdbin (lhs: Sign, rhs: Sign) -> Sign, * Sign::from((lhs as i8) * (rhs as i8)));
+ndops::all! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 
 impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {
