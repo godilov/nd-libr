@@ -3670,8 +3670,8 @@ mod tests {
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
             [
-                (|lhs: S64, rhs: S64| { lhs.eq   (&rhs) })(|lhs: i64, rhs: i64| { lhs.eq (&rhs) }),
-                (|lhs: S64, rhs: S64| { lhs.cmp  (&rhs) })(|lhs: i64, rhs: i64| { lhs.cmp(&rhs) }),
+                (|lhs: S64, rhs: S64| { lhs.eq (&rhs) })(|lhs: i64, rhs: i64| { lhs.eq (&rhs) }),
+                (|lhs: S64, rhs: S64| { lhs.cmp(&rhs) })(|lhs: i64, rhs: i64| { lhs.cmp(&rhs) }),
             ]
         );
     }
@@ -3684,8 +3684,8 @@ mod tests {
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             (1..u64::MAX).step_by(PRIMES_56BIT[0]),
             [
-                (|lhs: U64, rhs: U64| { lhs.eq   (&rhs) })(|lhs: u64, rhs: u64| { lhs.eq (&rhs) }),
-                (|lhs: U64, rhs: U64| { lhs.cmp  (&rhs) })(|lhs: u64, rhs: u64| { lhs.cmp(&rhs) }),
+                (|lhs: U64, rhs: U64| { lhs.eq (&rhs) })(|lhs: u64, rhs: u64| { lhs.eq (&rhs) }),
+                (|lhs: U64, rhs: U64| { lhs.cmp(&rhs) })(|lhs: u64, rhs: u64| { lhs.cmp(&rhs) }),
             ]
         );
     }
