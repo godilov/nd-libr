@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+// #![doc = include_str!("../README.md")]
 
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
@@ -24,7 +24,6 @@ mod kw {
     syn::custom_keyword!(ext);
 }
 
-#[doc = include_str!("../docs/all.md")]
 #[proc_macro]
 pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
@@ -37,7 +36,6 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-#[doc = include_str!("../docs/all_auto.md")]
 #[proc_macro]
 pub fn all_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {

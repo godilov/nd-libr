@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+// #![doc = include_str!("../README.md")]
 
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::{Span, TokenStream};
@@ -15,7 +15,6 @@ mod kw {
     syn::custom_keyword!(with);
 }
 
-#[doc = include_str!("../docs/std.md")]
 #[proc_macro_attribute]
 pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -80,7 +79,6 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[doc = include_str!("../docs/cmp.md")]
 #[proc_macro_attribute]
 pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -145,7 +143,6 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[doc = include_str!("../docs/fmt.md")]
 #[proc_macro_attribute]
 pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     fn fmt_impl(
@@ -240,7 +237,6 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[doc = include_str!("../docs/decl.md")]
 #[proc_macro_attribute]
 pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
@@ -324,7 +320,6 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[doc = include_str!("../docs/def.md")]
 #[proc_macro_attribute]
 pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
@@ -429,19 +424,16 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-#[doc = include_str!("../docs/as_into.md")]
 #[proc_macro_attribute]
 pub fn as_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
-#[doc = include_str!("../docs/as_self.md")]
 #[proc_macro_attribute]
 pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
-#[doc = include_str!("../docs/as_expr.md")]
 #[proc_macro_attribute]
 pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item

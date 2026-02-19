@@ -2,6 +2,22 @@
 
 A Rust collection of numerical, cryptography, blockchain and memory-related libraries
 
+## Structure
+
+```
+ndlibr
+├── cli         # All binary crates
+│   └── primes
+├── lib         # All library crates
+│   ├── core
+│   ├── evm
+│   └── num
+└── proc        # All procedural macro crates
+    ├── arch
+    ├── fwd
+    └── ops
+```
+
 ## Features
 
 1. [Ops](#ops)
