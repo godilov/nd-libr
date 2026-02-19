@@ -271,8 +271,6 @@ ndops::all_auto! { @stdun <N: Sized + Copy> (*value: X1<N>) -> Z1<N>, (value.0) 
 #[test]
 #[rustfmt::skip]
 fn all_ops() {
-    const PRIMES_56BIT: [usize; 2] = [72_057_582_686_044_051, 72_051_998_136_909_223];
-
     let lhs = 32i64;
     let rhs = 2i64;
 
