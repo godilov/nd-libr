@@ -462,8 +462,8 @@ impl Parse for OpsStdSignatureAssign {
         };
 
         Ok(Self {
-            generics: get_normalized_generics(generics),
-            conditions: get_normalized_conditions(conditions),
+            generics,
+            conditions,
             paren,
             lhs_pat,
             lhs_ty,
@@ -518,8 +518,8 @@ impl Parse for OpsStdSignatureBinary {
         };
 
         Ok(Self {
-            generics: get_normalized_generics(generics),
-            conditions: get_normalized_conditions(conditions),
+            generics,
+            conditions,
             paren,
             lhs_star,
             lhs_pat,
@@ -562,8 +562,8 @@ impl Parse for OpsStdSignatureUnary {
         };
 
         Ok(Self {
-            generics: get_normalized_generics(generics),
-            conditions: get_normalized_conditions(conditions),
+            generics,
+            conditions,
             paren,
             self_star,
             self_pat,
@@ -600,8 +600,8 @@ impl Parse for OpsNdSignatureAssign {
 
         Ok(Self {
             token,
-            generics: get_normalized_generics(generics),
-            conditions: get_normalized_conditions(conditions),
+            generics,
+            conditions,
             paren,
             lhs_pat,
             lhs_ty,
@@ -640,8 +640,8 @@ impl Parse for OpsNdSignatureBinary {
 
         Ok(Self {
             token,
-            generics: get_normalized_generics(generics),
-            conditions: get_normalized_conditions(conditions),
+            generics,
+            conditions,
             paren,
             lhs_pat,
             lhs_ty,
@@ -675,8 +675,8 @@ impl Parse for OpsNdSignatureUnary {
 
         Ok(Self {
             token,
-            generics: get_normalized_generics(generics),
-            conditions: get_normalized_conditions(conditions),
+            generics,
+            conditions,
             paren,
             self_pat,
             self_ty,
@@ -881,11 +881,14 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
 
             let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
-            let predicates = spec.conditions.map(|val| &val.predicates);
+            let sig_predicates = spec.signature.conditions.as_ref().map(|val| val.predicates.iter());
+            let op_predicates = spec.conditions.map(|val| val.predicates.iter());
 
-            let gen_where = match &spec.signature.conditions {
-                Some(val) => quote! { #val, #predicates },
-                None => quote! { where #predicates },
+            let gen_where = match (sig_predicates, op_predicates) {
+                (Some(sig), Some(op)) => quote! { where #(#sig,)* #(#op,)* },
+                (Some(sig), None) => quote! { where #(#sig,)* },
+                (None, Some(op)) => quote! { where #(#op,)* },
+                (None, None) => quote! { where },
             };
 
             let lhs_pat = &spec.signature.lhs_pat;
@@ -953,11 +956,14 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
 
             let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
-            let predicates = spec.conditions.map(|val| &val.predicates);
+            let sig_predicates = spec.signature.conditions.as_ref().map(|val| val.predicates.iter());
+            let op_predicates = spec.conditions.map(|val| val.predicates.iter());
 
-            let gen_where = match &spec.signature.conditions {
-                Some(val) => quote! { #val, #predicates },
-                None => quote! { where #predicates },
+            let gen_where = match (sig_predicates, op_predicates) {
+                (Some(sig), Some(op)) => quote! { where #(#sig,)* #(#op,)* },
+                (Some(sig), None) => quote! { where #(#sig,)* },
+                (None, Some(op)) => quote! { where #(#op,)* },
+                (None, None) => quote! { where },
             };
 
             let lhs_pat = &spec.signature.lhs_pat.pat;
@@ -1059,11 +1065,14 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 
             let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
-            let predicates = spec.conditions.map(|val| &val.predicates);
+            let sig_predicates = spec.signature.conditions.as_ref().map(|val| val.predicates.iter());
+            let op_predicates = spec.conditions.map(|val| val.predicates.iter());
 
-            let gen_where = match &spec.signature.conditions {
-                Some(val) => quote! { #val, #predicates },
-                None => quote! { where #predicates },
+            let gen_where = match (sig_predicates, op_predicates) {
+                (Some(sig), Some(op)) => quote! { where #(#sig,)* #(#op,)* },
+                (Some(sig), None) => quote! { where #(#sig,)* },
+                (None, Some(op)) => quote! { where #(#op,)* },
+                (None, None) => quote! { where },
             };
 
             let self_pat = &spec.signature.self_pat.pat;
@@ -1125,11 +1134,14 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
-            let predicates = definition.conditions.as_ref().map(|val| &val.predicates);
+            let sig_predicates = self.signature.conditions.as_ref().map(|val| val.predicates.iter());
+            let op_predicates = definition.conditions.as_ref().map(|val| val.predicates.iter());
 
-            let gen_where = match &self.signature.conditions {
-                Some(val) => quote! { #val, #predicates },
-                None => quote! { where #predicates },
+            let gen_where = match (sig_predicates, op_predicates) {
+                (Some(sig), Some(op)) => quote! { where #(#sig,)* #(#op,)* },
+                (Some(sig), None) => quote! { where #(#sig,)* },
+                (None, Some(op)) => quote! { where #(#op,)* },
+                (None, None) => quote! { where },
             };
 
             let lhs_pat = &self.signature.lhs_pat;
@@ -1167,11 +1179,14 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
-            let predicates = definition.conditions.as_ref().map(|val| &val.predicates);
+            let sig_predicates = self.signature.conditions.as_ref().map(|val| val.predicates.iter());
+            let op_predicates = definition.conditions.as_ref().map(|val| val.predicates.iter());
 
-            let gen_where = match &self.signature.conditions {
-                Some(val) => quote! { #val, #predicates },
-                None => quote! { where #predicates },
+            let gen_where = match (sig_predicates, op_predicates) {
+                (Some(sig), Some(op)) => quote! { where #(#sig,)* #(#op,)* },
+                (Some(sig), None) => quote! { where #(#sig,)* },
+                (None, Some(op)) => quote! { where #(#op,)* },
+                (None, None) => quote! { where },
             };
 
             let lhs_pat = &self.signature.lhs_pat;
@@ -1212,11 +1227,14 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
-            let predicates = definition.conditions.as_ref().map(|val| &val.predicates);
+            let sig_predicates = self.signature.conditions.as_ref().map(|val| val.predicates.iter());
+            let op_predicates = definition.conditions.as_ref().map(|val| val.predicates.iter());
 
-            let gen_where = match &self.signature.conditions {
-                Some(val) => quote! { #val, #predicates },
-                None => quote! { where #predicates },
+            let gen_where = match (sig_predicates, op_predicates) {
+                (Some(sig), Some(op)) => quote! { where #(#sig,)* #(#op,)* },
+                (Some(sig), None) => quote! { where #(#sig,)* },
+                (None, Some(op)) => quote! { where #(#op,)* },
+                (None, None) => quote! { where },
             };
 
             let self_pat = &self.signature.self_pat;
@@ -1573,17 +1591,4 @@ impl OpsUnary {
             OpsUnary::Not(_) => parse_quote! { #prefix::ops::NdNot },
         }
     }
-}
-
-fn get_normalized_generics(mut generics: Generics) -> Generics {
-    generics.params.pop_punct();
-    generics.where_clause.as_mut().map(|clause| clause.predicates.pop_punct());
-    generics
-}
-
-fn get_normalized_conditions(conditions: Option<OpsConditions>) -> Option<OpsConditions> {
-    conditions.map(|mut val| {
-        val.predicates.pop_punct();
-        val
-    })
 }

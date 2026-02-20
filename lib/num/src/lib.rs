@@ -242,7 +242,7 @@ macro_rules! unsigned_impl {
 
 macro_rules! prime_impl {
     ($(($primitive:ty, $count:expr)),+ $(,)?) => {
-        $(prime_impl!($primitive, $count,);)+
+        $(prime_impl!($primitive, $count);)+
     };
     ($primitive:ty, $count:expr $(,)?) => {
         impl Primality for $primitive {
