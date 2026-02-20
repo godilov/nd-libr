@@ -27,18 +27,20 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let gen_params = &generics.params;
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
-    let as_ref = match gen_where {
-        Some(val) => quote! { #val, #ty: std::convert::AsRef<AsRefRet> },
+    let predicates = gen_where.map(|val| val.predicates.iter());
+
+    let as_ref = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* #ty: std::convert::AsRef<AsRefRet> },
         None => quote! { where #ty: std::convert::AsRef<AsRefRet> },
     };
 
-    let as_mut = match gen_where {
-        Some(val) => quote! { #val, #ty: std::convert::AsMut<AsMutRet> },
+    let as_mut = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* #ty: std::convert::AsMut<AsMutRet> },
         None => quote! { where #ty: std::convert::AsMut<AsMutRet> },
     };
 
-    let from_iter = match gen_where {
-        Some(val) => quote! { #val, Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
+    let from_iter = match predicates.clone() {
+        Some(val) => quote! { where Self: From<#ty>, #(#val,)* #ty: std::iter::FromIterator<Elem> },
         None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
     };
 
@@ -90,23 +92,25 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
-    let partial_ord = match gen_where {
-        Some(val) => quote! { #val, #ty: std::cmp::PartialOrd },
+    let predicates = gen_where.map(|val| val.predicates.iter());
+
+    let partial_ord = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* #ty: std::cmp::PartialOrd },
         None => quote! { where #ty: std::cmp::PartialOrd },
     };
 
-    let partial_eq = match gen_where {
-        Some(val) => quote! { #val, #ty: std::cmp::PartialEq },
+    let partial_eq = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* #ty: std::cmp::PartialEq },
         None => quote! { where #ty: std::cmp::PartialEq },
     };
 
-    let ord = match gen_where {
-        Some(val) => quote! { #val, #ty: std::cmp::Ord },
+    let ord = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* #ty: std::cmp::Ord },
         None => quote! { where #ty: std::cmp::Ord },
     };
 
-    let eq = match gen_where {
-        Some(val) => quote! { #val, #ty: std::cmp::Eq },
+    let eq = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* #ty: std::cmp::Eq },
         None => quote! { where #ty: std::cmp::Eq },
     };
 
@@ -150,8 +154,8 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ident: &Ident,
         generics: &Generics,
         expr: &Expr,
-        display: Path,
-        display_where: WhereClause,
+        display: TokenStream,
+        display_where: TokenStream,
     ) -> TokenStream {
         let (gen_impl, gen_type, _) = generics.split_for_impl();
 
@@ -172,14 +176,16 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
     let (_, _, gen_where) = generics.split_for_impl();
 
+    let predicates = gen_where.map(|val| val.predicates.iter());
+
     let display = fmt_impl(
         ident,
         generics,
         expr,
-        parse_quote! { std::fmt::Display },
-        match gen_where {
-            Some(val) => parse_quote! { #val, #ty: std::fmt::Display },
-            None => parse_quote! { where #ty: std::fmt::Display },
+        quote! { std::fmt::Display },
+        match predicates.clone() {
+            Some(val) => quote! { where #(#val,)* #ty: std::fmt::Display },
+            None => quote! { where #ty: std::fmt::Display },
         },
     );
 
@@ -187,10 +193,10 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ident,
         generics,
         expr,
-        parse_quote! { std::fmt::Binary },
-        match gen_where {
-            Some(val) => parse_quote! { #val, #ty: std::fmt::Binary },
-            None => parse_quote! { where #ty: std::fmt::Binary },
+        quote! { std::fmt::Binary },
+        match predicates.clone() {
+            Some(val) => quote! { where #(#val,)* #ty: std::fmt::Binary },
+            None => quote! { where #ty: std::fmt::Binary },
         },
     );
 
@@ -198,10 +204,10 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ident,
         generics,
         expr,
-        parse_quote! { std::fmt::Octal },
-        match gen_where {
-            Some(val) => parse_quote! { #val, #ty: std::fmt::Octal },
-            None => parse_quote! { where #ty: std::fmt::Octal },
+        quote! { std::fmt::Octal },
+        match predicates.clone() {
+            Some(val) => quote! { where #(#val,)* #ty: std::fmt::Octal },
+            None => quote! { where #ty: std::fmt::Octal },
         },
     );
 
@@ -209,10 +215,10 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ident,
         generics,
         expr,
-        parse_quote! { std::fmt::LowerHex },
-        match gen_where {
-            Some(val) => parse_quote! { #val, #ty: std::fmt::LowerHex },
-            None => parse_quote! { where #ty: std::fmt::LowerHex },
+        quote! { std::fmt::LowerHex },
+        match predicates.clone() {
+            Some(val) => quote! { where #(#val,)* #ty: std::fmt::LowerHex },
+            None => quote! { where #ty: std::fmt::LowerHex },
         },
     );
 
@@ -220,10 +226,10 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ident,
         generics,
         expr,
-        parse_quote! { std::fmt::UpperHex },
-        match gen_where {
-            Some(val) => parse_quote! { #val, #ty: std::fmt::UpperHex },
-            None => parse_quote! { where #ty: std::fmt::UpperHex },
+        quote! { std::fmt::UpperHex },
+        match predicates.clone() {
+            Some(val) => quote! { where #(#val,)* #ty: std::fmt::UpperHex },
+            None => quote! { where #ty: std::fmt::UpperHex },
         },
     );
 
@@ -245,23 +251,15 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ident = &interface.ident;
     let macros = format_ident!("__forward_impl_{}", ident);
 
-    let gen_params = &interface.generics.params;
-    let (_, gen_type, gen_where) = &interface.generics.split_for_impl();
+    let supertraits = interface.supertraits.iter();
+    let gen_params = interface.generics.params.iter();
+    let (_, gen_type, gen_where) = interface.generics.split_for_impl();
 
-    let supertraits = &interface.supertraits;
-    let supertraits = match interface.supertraits.len() {
-        0 => quote! {},
-        _ => quote! { Self: #supertraits, },
-    };
+    let gen_params = quote! { #(#gen_params,)* };
 
-    let gen_params = match gen_params.is_empty() {
-        true => quote! {},
-        false => quote! { #gen_params, },
-    };
-
-    let gen_where = match gen_where {
-        Some(val) => quote! { #val, #supertraits },
-        None => quote! { where #supertraits },
+    let gen_where = match gen_where.map(|val| val.predicates.iter()) {
+        Some(val) => quote! { where Self: #(#supertraits)+*, #(#val,)* },
+        None => quote! { where Self: #(#supertraits)+*, },
     };
 
     let idents = interface.items.iter().filter_map(|item| match item {
@@ -331,26 +329,20 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let ident = &item.ident;
             let generics = &item.generics;
             let gen_params = &item.generics.params;
-            let (_, gen_type, gen_where) = item.generics.split_for_impl();
+            let (_, gen_type, _) = item.generics.split_for_impl();
 
             let expr = &attr.fwd.expr;
             let ty = &attr.fwd.ty;
             let path = &attr.path;
-            let predicates = attr.conditions.as_ref().map(|conditions| &conditions.predicates);
-            let predicates = match predicates {
-                Some(val) => {
-                    quote! { #val, }
-                },
-                None => quote! {},
-            };
 
-            let gen_where = match gen_where {
-                Some(val) => {
-                    let preds = &val.predicates;
+            let sig_predicates = item.generics.where_clause.as_ref().map(|val| val.predicates.iter());
+            let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
 
-                    quote! { #ty: #path, #preds, #predicates }
-                },
-                None => quote! {  #ty: #path, #predicates },
+            let gen_where = match (sig_predicates, attr_predicates) {
+                (Some(sig), Some(attr)) => quote! { #ty: #path, #(#sig,)* #(#attr,)* },
+                (Some(sig), None) => quote! { #ty: #path, #(#sig,)* },
+                (None, Some(attr)) => quote! { #ty: #path, #(#attr,)* },
+                (None, None) => quote! { #ty: #path, },
             };
 
             let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
@@ -514,21 +506,9 @@ impl Parse for ForwardDataItem {
         let item = input.parse::<Item>()?;
 
         match item {
-            Item::Struct(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Struct(val))
-            },
-            Item::Enum(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Enum(val))
-            },
-            Item::Union(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Union(val))
-            },
+            Item::Struct(val) => Ok(Self::Struct(val)),
+            Item::Enum(val) => Ok(Self::Enum(val)),
+            Item::Union(val) => Ok(Self::Union(val)),
             _ => Err(input.error("Failed to find correct item, expected struct, enum or union")),
         }
     }
@@ -536,12 +516,7 @@ impl Parse for ForwardDataItem {
 
 impl Parse for ForwardDeclItem {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut item = input.parse::<ItemTrait>()?;
-
-        item.generics = get_normalized_generics(item.generics);
-        item.supertraits.pop_punct();
-
-        Ok(Self::Trait(item))
+        Ok(Self::Trait(input.parse::<ItemTrait>()?))
     }
 }
 
@@ -550,31 +525,20 @@ impl Parse for ForwardDefItem {
         let item = input.parse::<Item>()?;
 
         match item {
-            Item::Struct(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Struct(val))
-            },
-            Item::Enum(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Enum(val))
-            },
-            Item::Union(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
-                Ok(Self::Union(val))
-            },
-            Item::Impl(mut val) => {
-                val.generics = get_normalized_generics(val.generics);
-
+            Item::Struct(val) => Ok(Self::Struct(val)),
+            Item::Enum(val) => Ok(Self::Enum(val)),
+            Item::Union(val) => Ok(Self::Union(val)),
+            Item::Impl(val) => {
                 if val.trait_.is_none() {
-                    return Err(input.error("Failed to find correct item, expected impl for trait"));
+                    return Err(Error::new(val.span(), "Failed to find correct item, expected impl for trait"));
                 }
 
                 Ok(Self::Impl(val))
             },
-            _ => Err(input.error("Failed to find correct item, expected struct, enum, union or impl")),
+            _ => Err(Error::new(
+                item.span(),
+                "Failed to find correct item, expected struct, enum, union or impl",
+            )),
         }
     }
 }
@@ -1028,10 +992,4 @@ fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArg
         Type::Verbatim(val) => Err(Error::new(val.span(), "Failed to forward argument, verbatim was found")),
         _ => todo!(),
     }
-}
-
-fn get_normalized_generics(mut generics: Generics) -> Generics {
-    generics.params.pop_punct();
-    generics.where_clause.as_mut().map(|clause| clause.predicates.pop_punct());
-    generics
 }
