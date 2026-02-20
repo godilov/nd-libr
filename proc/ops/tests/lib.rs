@@ -194,8 +194,8 @@ mod ops {
     #[test]
     fn all() {
         ndassert::check! { (
-            @range(i64 step 60 bits),
-            @range(i64 step 60 bits),
+            ndassert::range!(i64, 60, 0),
+            ndassert::range!(i64, 60, 1),
         ) [
             |lhs: i64, rhs: i64| &A0(lhs) +  &B0(rhs) == C0(lhs +  rhs),
             |lhs: i64, rhs: i64| &A0(lhs) -  &B0(rhs) == C0(lhs -  rhs),
@@ -242,9 +242,7 @@ mod ops {
             |lhs: i64, rhs: i64|  A0(lhs) >>  B0(rhs) == C0(lhs >> rhs),
         ] }
 
-        ndassert::check! { (
-            @range(i64 step 60 bits),
-        ) [
+        ndassert::check! { (ndassert::range!(i64, 60)) [
             |value: i64| -&A0(value) == C0(-value),
             |value: i64| !&A0(value) == C0(!value),
 
@@ -257,8 +255,8 @@ mod ops {
     #[rustfmt::skip]
     fn all_generic() {
         ndassert::check! { (
-            @range(i64 step 60 bits),
-            @range(i64 step 60 bits),
+            ndassert::range!(i64, 60, 0),
+            ndassert::range!(i64, 60, 1),
         ) [
             |lhs: i64, rhs: i64| &X0(lhs) +  &Y0(rhs) == Z0(lhs +  rhs),
             |lhs: i64, rhs: i64| &X0(lhs) -  &Y0(rhs) == Z0(lhs -  rhs),
@@ -305,9 +303,7 @@ mod ops {
             |lhs: i64, rhs: i64|  X0(lhs) >>  Y0(rhs) == Z0(lhs >> rhs),
         ] }
 
-        ndassert::check! { (
-            @range(i64 step 60 bits),
-        ) [
+        ndassert::check! { (ndassert::range!(i64, 60)) [
             |value: i64| -&X0(value) == Z0(-value),
             |value: i64| !&X0(value) == Z0(!value),
 
@@ -320,8 +316,8 @@ mod ops {
     #[rustfmt::skip]
     fn all_assign() {
         ndassert::check! { (
-            @range(i64 step 60 bits),
-            @range(i64 step 60 bits),
+            ndassert::range!(i64, 60, 0),
+            ndassert::range!(i64, 60, 1),
         ) [
             |lhs: i64, rhs: i64| { let mut val = A0(lhs); val +=  &B0(rhs); val } == A0(lhs +  rhs),
             |lhs: i64, rhs: i64| { let mut val = A0(lhs); val -=  &B0(rhs); val } == A0(lhs -  rhs),
@@ -351,8 +347,8 @@ mod ops {
     #[rustfmt::skip]
     fn all_generic_assign() {
         ndassert::check! { (
-            @range(i64 step 60 bits),
-            @range(i64 step 60 bits),
+            ndassert::range!(i64, 60, 0),
+            ndassert::range!(i64, 60, 1),
         ) [
             |lhs: i64, rhs: i64| { let mut val = X0(lhs); val +=  &Y0(rhs); val } == X0(lhs +  rhs),
             |lhs: i64, rhs: i64| { let mut val = X0(lhs); val -=  &Y0(rhs); val } == X0(lhs -  rhs),

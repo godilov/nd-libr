@@ -18,7 +18,7 @@ mod fwd {
     #[test]
     #[allow(unused_allocation)]
     fn std() {
-        ndassert::check! { (@range(i64 step 60 bits)) [
+        ndassert::check! { (ndassert::range!(i64, 60)) [
             |value: i64| *Struct(value) == value,
             |value: i64| Struct(value).deref() == &value,
             |value: i64| Struct(value).deref_mut() == &value,
@@ -33,7 +33,7 @@ mod fwd {
 
     #[test]
     fn cmp() {
-        ndassert::check! { (@range(i64 step 60 bits), @range(i64 step 60 bits)) [
+        ndassert::check! { (ndassert::range!(i64, 60, 0), ndassert::range!(i64, 60, 1)) [
             |lhs: i64, rhs: i64| (Struct(lhs) == Struct(rhs)) == (lhs == rhs),
             |lhs: i64, rhs: i64| (Struct(lhs) <  Struct(rhs)) == (lhs <  rhs),
             |lhs: i64, rhs: i64| (Struct(lhs) >  Struct(rhs)) == (lhs >  rhs),
@@ -44,7 +44,7 @@ mod fwd {
 
     #[test]
     fn fmt() {
-        ndassert::check! { (@range(i64 step 60 bits)) [
+        ndassert::check! { (ndassert::range!(i64, 60)) [
             |value: i64| format!("{:}",   Struct(value)) == format!("{:}",   value),
             |value: i64| format!("{:b}",  Struct(value)) == format!("{:b}",  value),
             |value: i64| format!("{:o}",  Struct(value)) == format!("{:o}",  value),

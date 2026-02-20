@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
@@ -14,10 +12,6 @@ use syn::{
 mod kw {
     syn::custom_keyword!(eq);
     syn::custom_keyword!(ne);
-
-    syn::custom_keyword!(range);
-    syn::custom_keyword!(step);
-    syn::custom_keyword!(bits);
 }
 
 #[proc_macro]
@@ -40,11 +34,21 @@ pub fn compare(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+#[proc_macro]
+pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
+    let range = parse_macro_input!(stream as AssertRange);
+
+    quote! {
+        #range
+    }
+    .into()
+}
+
 #[allow(unused)]
 struct Assert<Kind: AssertKind> {
     kind: Kind,
     args_paren: Paren,
-    args: Punctuated<AssertArg, Token![,]>,
+    args: Punctuated<Expr, Token![,]>,
     exprs_bracket: Bracket,
     exprs: Punctuated<Expr, Token![,]>,
 }
@@ -58,18 +62,11 @@ enum AssertKindCompare {
     EqNot,
 }
 
-enum AssertArg {
-    Expr(Expr),
-    Range(AssertRange),
-}
-
 #[allow(unused)]
 struct AssertRange {
     ty: Type,
-    step: kw::step,
-    len: LitInt,
-    bits: kw::bits,
-    idx: usize,
+    len: usize,
+    class: usize,
 }
 
 trait AssertKind: Parse {
@@ -99,7 +96,7 @@ impl<Kind: AssertKind> Parse for Assert<Kind> {
         Ok(Self {
             kind: input.parse()?,
             args_paren: parenthesized!(args in input),
-            args: args.parse_terminated(AssertArg::parse, Token![,])?,
+            args: args.parse_terminated(Expr::parse, Token![,])?,
             exprs_bracket: bracketed!(exprs in input),
             exprs: exprs.parse_terminated(Expr::parse, Token![,])?,
         })
@@ -132,38 +129,65 @@ impl Parse for AssertKindCompare {
     }
 }
 
-impl Parse for AssertArg {
+impl Parse for AssertRange {
     fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(Token![@]) {
-            input.parse::<Token![@]>()?;
-            input.parse::<kw::range>()?;
+        let ty = input.parse()?;
+        let _ = input.parse::<Token![,]>()?;
+        let len = input.parse::<LitInt>()?;
 
-            let content;
+        let class = if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
 
-            let _ = parenthesized!(content in input);
-            let ty = content.parse()?;
-            let step = content.parse()?;
-            let len = content.parse::<LitInt>()?;
-            let bits = content.parse()?;
+            input.parse::<LitInt>()?.base10_parse::<usize>()?
+        } else {
+            0
+        };
 
-            let idx = match len.base10_parse::<usize>()? {
-                val if val % 4 == 0 && (4..=60).contains(&val) => val / 4 - 1,
-                _ => {
-                    return Err(Error::new(
-                        len.span(),
-                        "Failed to parse assert argument, expected len to be 4 * N, where N in [1; 15]",
-                    ));
-                },
-            };
+        let len = match len.base10_parse::<usize>()? {
+            val if val % 4 == 0 && (4..=60).contains(&val) => val / 4 - 1,
+            _ => {
+                return Err(Error::new(
+                    len.span(),
+                    "Failed to parse assert range, expected len to be 4 * N, where N in [1; 15]",
+                ));
+            },
+        };
 
-            return Ok(Self::Range(AssertRange { ty, step, len, bits, idx }));
-        }
-
-        input.parse::<Expr>().map(Self::Expr)
+        Ok(Self { ty, len, class })
     }
 }
 
 impl<Kind: AssertKind> ToTokens for Assert<Kind> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let args_call = (0..self.args.len())
+            .map(|idx| format_ident!("arg{}", idx))
+            .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
+
+        let exprs_call = self.exprs.iter().fold(quote! {}, |acc, expr| {
+            let assert = self.kind.assert(expr, &args_call);
+
+            quote! { #acc #assert }
+        });
+
+        let quote = self
+            .args
+            .iter()
+            .enumerate()
+            .rev()
+            .map(|(idx, expr)| (format_ident!("arg{}", idx), expr))
+            .fold(exprs_call, |acc, (ident, expr)| {
+                quote! {
+                    for #ident in #expr {
+                        #acc
+                    }
+                }
+            });
+
+        tokens.extend(quote);
+    }
+}
+
+impl ToTokens for AssertRange {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         #[rustfmt::skip]
         const PRIMES: [[usize; 4]; 15] = [
@@ -214,48 +238,12 @@ impl<Kind: AssertKind> ToTokens for Assert<Kind> {
             ],
         ];
 
-        let args = &self.args;
-        let exprs = &self.exprs;
+        let ty = &self.ty;
+        let len = self.len;
+        let class = self.class;
+        let primes = PRIMES[len];
+        let prime = primes[class % primes.len()];
 
-        let args_call = (0..args.len())
-            .map(|idx| format_ident!("arg{}", idx))
-            .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
-
-        let exprs_call = exprs.iter().fold(quote! {}, |acc, expr| {
-            let assert = self.kind.assert(expr, &args_call);
-
-            quote! { #acc #assert }
-        });
-
-        let mut counter = HashMap::<(&Type, usize), usize>::new();
-
-        let quote = args
-            .iter()
-            .enumerate()
-            .rev()
-            .map(|(idx, arg)| (format_ident!("arg{}", idx), arg))
-            .fold(exprs_call, |acc, (ident, arg)| match arg {
-                AssertArg::Expr(val) => quote! {
-                    for #ident in #val {
-                        #acc
-                    }
-                },
-                AssertArg::Range(val) => {
-                    let ty = &val.ty;
-
-                    let idx = *counter.entry((ty, val.idx)).and_modify(|idx| *idx += 1).or_default();
-
-                    let primes = PRIMES[val.idx];
-                    let prime = primes[idx % primes.len()];
-
-                    quote! {
-                        for #ident in (#ty::MIN..#ty::MAX).step_by(#prime) {
-                            #acc
-                        }
-                    }
-                },
-            });
-
-        tokens.extend(quote);
+        tokens.extend(quote! { (#ty::MIN..#ty::MAX).step_by(#prime) });
     }
 }
