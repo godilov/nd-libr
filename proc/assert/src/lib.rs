@@ -16,17 +16,7 @@ mod kw {
 
 #[proc_macro]
 pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
-    let assert = parse_macro_input!(stream as Assert<AssertKindCheck>);
-
-    quote! {
-        #assert
-    }
-    .into()
-}
-
-#[proc_macro]
-pub fn compare(stream: TokenStreamStd) -> TokenStreamStd {
-    let assert = parse_macro_input!(stream as Assert<AssertKindCompare>);
+    let assert = parse_macro_input!(stream as AssertCheck);
 
     quote! {
         #assert
@@ -45,21 +35,18 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[allow(unused)]
-struct Assert<Kind: AssertKind> {
-    kind: Kind,
+struct AssertCheck {
+    kind: AssertKind,
     args_paren: Paren,
     args: Punctuated<Expr, Token![,]>,
     exprs_bracket: Bracket,
     exprs: Punctuated<Expr, Token![,]>,
 }
 
-enum AssertKindCheck {
-    Default,
-}
-
-enum AssertKindCompare {
+enum AssertKind {
     Eq,
     EqNot,
+    Default,
 }
 
 #[allow(unused)]
@@ -69,26 +56,7 @@ struct AssertRange {
     class: usize,
 }
 
-trait AssertKind: Parse {
-    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream;
-}
-
-impl AssertKind for AssertKindCheck {
-    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
-        quote! { (#expr)(#args) }
-    }
-}
-
-impl AssertKind for AssertKindCompare {
-    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
-        match self {
-            AssertKindCompare::Eq => quote! {{ let val = (#expr)(#args); val.0 == val.1 }},
-            AssertKindCompare::EqNot => quote! {{ let val = (#expr)(#args); val.0 != val.1 }},
-        }
-    }
-}
-
-impl<Kind: AssertKind> Parse for Assert<Kind> {
+impl Parse for AssertCheck {
     fn parse(input: ParseStream) -> Result<Self> {
         let args;
         let exprs;
@@ -103,13 +71,7 @@ impl<Kind: AssertKind> Parse for Assert<Kind> {
     }
 }
 
-impl Parse for AssertKindCheck {
-    fn parse(_: ParseStream) -> Result<Self> {
-        Ok(Self::Default)
-    }
-}
-
-impl Parse for AssertKindCompare {
+impl Parse for AssertKind {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<Token![@]>()?;
 
@@ -124,7 +86,7 @@ impl Parse for AssertKindCompare {
 
             Ok(Self::EqNot)
         } else {
-            Err(lookahead.error())
+            Ok(Self::Default)
         }
     }
 }
@@ -157,7 +119,7 @@ impl Parse for AssertRange {
     }
 }
 
-impl<Kind: AssertKind> ToTokens for Assert<Kind> {
+impl ToTokens for AssertCheck {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let args_call = (0..self.args.len())
             .map(|idx| format_ident!("arg{}", idx))
@@ -253,5 +215,15 @@ impl ToTokens for AssertRange {
         let prime = primes[class % primes.len()];
 
         tokens.extend(quote! { (#ty::MIN..#ty::MAX).step_by(#prime) });
+    }
+}
+
+impl AssertKind {
+    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
+        match self {
+            AssertKind::Eq => quote! {{ let val = (#expr)(#args); val.0 == val.1 }},
+            AssertKind::EqNot => quote! {{ let val = (#expr)(#args); val.0 != val.1 }},
+            AssertKind::Default => quote! { (#expr)(#args) },
+        }
     }
 }
