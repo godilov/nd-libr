@@ -3725,103 +3725,91 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn signed_cmp() {
-        assert_ops!(
-            S64,
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
-            [
-                (|lhs: S64, rhs: S64| { lhs.eq (&rhs) })(|lhs: i64, rhs: i64| { lhs.eq (&rhs) }),
-                (|lhs: S64, rhs: S64| { lhs.cmp(&rhs) })(|lhs: i64, rhs: i64| { lhs.cmp(&rhs) }),
-            ]
-        );
+        ndassert::check! { (
+            ndassert::range!(i64, 56, 0),
+            ndassert::range!(i64, 56, 1),
+        ) [
+            |lhs: i64, rhs: i64| S64::from(lhs).eq (&S64::from(rhs)) == lhs.eq (&rhs),
+            |lhs: i64, rhs: i64| S64::from(lhs).cmp(&S64::from(rhs)) == lhs.cmp(&rhs),
+        ] }
     }
 
     #[test]
     #[rustfmt::skip]
     fn unsigned_cmp() {
-        assert_ops!(
-            U64,
-            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            [
-                (|lhs: U64, rhs: U64| { lhs.eq (&rhs) })(|lhs: u64, rhs: u64| { lhs.eq (&rhs) }),
-                (|lhs: U64, rhs: U64| { lhs.cmp(&rhs) })(|lhs: u64, rhs: u64| { lhs.cmp(&rhs) }),
-            ]
-        );
+        ndassert::check! { (
+            ndassert::range!(u64, 56, 0),
+            ndassert::range!(u64, 56, 1),
+        ) [
+            |lhs: u64, rhs: u64| U64::from(lhs).eq (&U64::from(rhs)) == lhs.eq (&rhs),
+            |lhs: u64, rhs: u64| U64::from(lhs).cmp(&U64::from(rhs)) == lhs.cmp(&rhs),
+        ] }
     }
 
     #[cfg(feature = "const-time")]
     #[test]
     #[rustfmt::skip]
     fn signed_cmp_ct() {
-        assert_ops!(
-            S64,
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
-            [
-                (|lhs: S64, rhs: S64| { lhs.eq_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs == rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.lt_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs <  rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.gt_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs >  rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.le_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs <= rhs) as MaskCt }),
-                (|lhs: S64, rhs: S64| { lhs.ge_ct(&rhs) })(|lhs: i64, rhs: i64| { MaskCt::MAX * (lhs >= rhs) as MaskCt }),
-            ]
-        );
+        ndassert::check! { (
+            ndassert::range!(i64, 56, 0),
+            ndassert::range!(i64, 56, 1),
+        ) [
+            |lhs: i64, rhs: i64| S64::from(lhs).eq_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs == rhs) as MaskCt,
+            |lhs: i64, rhs: i64| S64::from(lhs).lt_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs <  rhs) as MaskCt,
+            |lhs: i64, rhs: i64| S64::from(lhs).gt_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs >  rhs) as MaskCt,
+            |lhs: i64, rhs: i64| S64::from(lhs).le_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs <= rhs) as MaskCt,
+            |lhs: i64, rhs: i64| S64::from(lhs).ge_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs >= rhs) as MaskCt,
+        ] }
     }
 
     #[cfg(feature = "const-time")]
     #[test]
     #[rustfmt::skip]
     fn unsigned_cmp_ct() {
-        assert_ops!(
-            U64,
-            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            [
-                (|lhs: U64, rhs: U64| { lhs.eq_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs == rhs) as MaskCt }),
-                (|lhs: U64, rhs: U64| { lhs.lt_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs <  rhs) as MaskCt }),
-                (|lhs: U64, rhs: U64| { lhs.gt_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs >  rhs) as MaskCt }),
-                (|lhs: U64, rhs: U64| { lhs.le_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs <= rhs) as MaskCt }),
-                (|lhs: U64, rhs: U64| { lhs.ge_ct(&rhs) })(|lhs: u64, rhs: u64| { MaskCt::MAX * (lhs >= rhs) as MaskCt }),
-            ]
-        );
+        ndassert::check! { (
+            ndassert::range!(u64, 56, 0),
+            ndassert::range!(u64, 56, 1),
+        ) [
+            |lhs: u64, rhs: u64| U64::from(lhs).eq_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs == rhs) as MaskCt,
+            |lhs: u64, rhs: u64| U64::from(lhs).lt_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs <  rhs) as MaskCt,
+            |lhs: u64, rhs: u64| U64::from(lhs).gt_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs >  rhs) as MaskCt,
+            |lhs: u64, rhs: u64| U64::from(lhs).le_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs <= rhs) as MaskCt,
+            |lhs: u64, rhs: u64| U64::from(lhs).ge_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs >= rhs) as MaskCt,
+        ] }
     }
 
     #[test]
     fn signed_ops() {
-        assert_ops!(
-            S64,
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
-            [
-                (|lhs: S64, rhs: S64| { lhs + rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_add(rhs)) }),
-                (|lhs: S64, rhs: S64| { lhs - rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_sub(rhs)) }),
-                (|lhs: S64, rhs: S64| { lhs * rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_mul(rhs)) }),
-                (|lhs: S64, rhs: S64| { lhs / rhs })(|lhs: i64, rhs: i64| { S64::from(lhs / rhs) }),
-                (|lhs: S64, rhs: S64| { lhs % rhs })(|lhs: i64, rhs: i64| { S64::from(lhs % rhs) }),
-                (|lhs: S64, rhs: S64| { lhs | rhs })(|lhs: i64, rhs: i64| { S64::from(lhs | rhs) }),
-                (|lhs: S64, rhs: S64| { lhs & rhs })(|lhs: i64, rhs: i64| { S64::from(lhs & rhs) }),
-                (|lhs: S64, rhs: S64| { lhs ^ rhs })(|lhs: i64, rhs: i64| { S64::from(lhs ^ rhs) }),
-            ]
-        );
+        ndassert::check! { (
+            ndassert::range!(i64, 56, 0),
+            ndassert::range!(i64, 56, 1),
+        ) [
+            |lhs: i64, rhs: i64| S64::from(lhs) + S64::from(rhs) == S64::from(lhs.wrapping_add(rhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) - S64::from(rhs) == S64::from(lhs.wrapping_sub(rhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) * S64::from(rhs) == S64::from(lhs.wrapping_mul(rhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) / S64::from(rhs) == S64::from(lhs.checked_div(rhs).unwrap_or(0)),
+            |lhs: i64, rhs: i64| S64::from(lhs) % S64::from(rhs) == S64::from(lhs.checked_rem(rhs).unwrap_or(lhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) | S64::from(rhs) == S64::from(lhs | rhs),
+            |lhs: i64, rhs: i64| S64::from(lhs) & S64::from(rhs) == S64::from(lhs & rhs),
+            |lhs: i64, rhs: i64| S64::from(lhs) ^ S64::from(rhs) == S64::from(lhs ^ rhs),
+        ] }
     }
 
     #[test]
     fn unsigned_ops() {
-        assert_ops!(
-            U64,
-            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            (1..u64::MAX).step_by(PRIMES_56BIT[1]),
-            [
-                (|lhs: U64, rhs: U64| { lhs + rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_add(rhs)) }),
-                (|lhs: U64, rhs: U64| { lhs - rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_sub(rhs)) }),
-                (|lhs: U64, rhs: U64| { lhs * rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_mul(rhs)) }),
-                (|lhs: U64, rhs: U64| { lhs / rhs })(|lhs: u64, rhs: u64| { U64::from(lhs / rhs) }),
-                (|lhs: U64, rhs: U64| { lhs % rhs })(|lhs: u64, rhs: u64| { U64::from(lhs % rhs) }),
-                (|lhs: U64, rhs: U64| { lhs | rhs })(|lhs: u64, rhs: u64| { U64::from(lhs | rhs) }),
-                (|lhs: U64, rhs: U64| { lhs & rhs })(|lhs: u64, rhs: u64| { U64::from(lhs & rhs) }),
-                (|lhs: U64, rhs: U64| { lhs ^ rhs })(|lhs: u64, rhs: u64| { U64::from(lhs ^ rhs) }),
-            ]
-        );
+        ndassert::check! { (
+            ndassert::range!(u64, 56, 0),
+            ndassert::range!(u64, 56, 1),
+        ) [
+            |lhs: u64, rhs: u64| U64::from(lhs) + U64::from(rhs) == U64::from(lhs.wrapping_add(rhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) - U64::from(rhs) == U64::from(lhs.wrapping_sub(rhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) * U64::from(rhs) == U64::from(lhs.wrapping_mul(rhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) / U64::from(rhs) == U64::from(lhs.checked_div(rhs).unwrap_or(u64::MAX)),
+            |lhs: u64, rhs: u64| U64::from(lhs) % U64::from(rhs) == U64::from(lhs.checked_rem(rhs).unwrap_or(lhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) | U64::from(rhs) == U64::from(lhs | rhs),
+            |lhs: u64, rhs: u64| U64::from(lhs) & U64::from(rhs) == U64::from(lhs & rhs),
+            |lhs: u64, rhs: u64| U64::from(lhs) ^ U64::from(rhs) == U64::from(lhs ^ rhs),
+        ] }
     }
 
     #[test]
