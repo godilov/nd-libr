@@ -73,18 +73,22 @@ impl Parse for AssertCheck {
 
 impl Parse for AssertKind {
     fn parse(input: ParseStream) -> Result<Self> {
-        input.parse::<Token![@]>()?;
+        if input.peek(Token![@]) {
+            input.parse::<Token![@]>()?;
 
-        let lookahead = input.lookahead1();
+            let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::eq) {
-            input.parse::<kw::eq>()?;
+            if lookahead.peek(kw::eq) {
+                input.parse::<kw::eq>()?;
 
-            Ok(Self::Eq)
-        } else if lookahead.peek(kw::ne) {
-            input.parse::<kw::ne>()?;
+                Ok(Self::Eq)
+            } else if lookahead.peek(kw::ne) {
+                input.parse::<kw::ne>()?;
 
-            Ok(Self::EqNot)
+                Ok(Self::EqNot)
+            } else {
+                Err(lookahead.error())
+            }
         } else {
             Ok(Self::Default)
         }
