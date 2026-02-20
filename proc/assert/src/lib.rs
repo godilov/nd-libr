@@ -130,7 +130,11 @@ impl ToTokens for AssertCheck {
             .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
 
         let exprs_call = self.exprs.iter().fold(quote! {}, |acc, expr| {
-            let value = self.kind.value(expr, &args_call);
+            let value = match self.kind {
+                AssertKind::Eq => quote! {{ let val = (#expr)(#args_call); val.0 == val.1 }},
+                AssertKind::EqNot => quote! {{ let val = (#expr)(#args_call); val.0 != val.1 }},
+                AssertKind::Default => quote! { (#expr)(#args_call) },
+            };
 
             quote! {
                 #acc
@@ -215,15 +219,5 @@ impl ToTokens for AssertRange {
         let prime = primes[class % primes.len()];
 
         tokens.extend(quote! { (#ty::MIN..#ty::MAX).step_by(#prime) });
-    }
-}
-
-impl AssertKind {
-    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
-        match self {
-            AssertKind::Eq => quote! {{ let val = (#expr)(#args); val.0 == val.1 }},
-            AssertKind::EqNot => quote! {{ let val = (#expr)(#args); val.0 != val.1 }},
-            AssertKind::Default => quote! { (#expr)(#args) },
-        }
     }
 }
