@@ -879,8 +879,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 }
             }
         },
-        None => quote! {
-            <$ty>::#ident(#(#definitions),*).into()
+        None => {
+            if as_into {
+                quote! {
+                    <$ty>::#ident(#(#definitions),*).into()
+                }
+            } else {
+                quote! {
+                    <$ty>::#ident(#(#definitions),*)
+                }
+            }
         },
     };
 

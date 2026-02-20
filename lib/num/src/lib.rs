@@ -773,6 +773,7 @@ pub trait NumExt: Num {
 
 #[ndfwd::decl]
 pub trait Signed: Num {
+    #[ndfwd::as_into]
     fn new(value: isize) -> Self;
 
     #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
