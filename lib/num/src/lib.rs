@@ -556,18 +556,18 @@ pub mod prime {
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: Num      where N: Num)]
-#[ndfwd::def(self.0 with N: NumExt   where N: NumExt)]
-#[ndfwd::def(self.0 with N: Unsigned where N: Unsigned)]
+#[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumExt)]
+#[ndfwd::def(self.0 with N: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumExt + Unsigned, const BITS: usize>(pub N);
 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: Num      where N: Num)]
-#[ndfwd::def(self.0 with N: NumExt   where N: NumExt)]
-#[ndfwd::def(self.0 with N: Unsigned where N: Unsigned)]
+#[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumExt)]
+#[ndfwd::def(self.0 with N: Unsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumExt + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
 

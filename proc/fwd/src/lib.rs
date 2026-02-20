@@ -337,14 +337,20 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let ty = &attr.fwd.ty;
             let path = &attr.path;
             let predicates = attr.conditions.as_ref().map(|conditions| &conditions.predicates);
+            let predicates = match predicates {
+                Some(val) => {
+                    quote! { #val, }
+                },
+                None => quote! {},
+            };
 
             let gen_where = match gen_where {
                 Some(val) => {
                     let preds = &val.predicates;
 
-                    quote! { #preds, #predicates }
+                    quote! { #ty: #path, #preds, #predicates }
                 },
-                None => quote! { #predicates },
+                None => quote! {  #ty: #path, #predicates },
             };
 
             let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
