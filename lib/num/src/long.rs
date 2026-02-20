@@ -295,19 +295,19 @@ macro_rules! nd_ops_primitive_impl {
             + Signed::<L>(add_long(&lhs.0, &Signed::<L>::from(rhs).0)),
             - Signed::<L>(sub_long(&lhs.0, &Signed::<L>::from(rhs).0)),
             * Signed::<L>(mul_long(&lhs.0, &Signed::<L>::from(rhs).0)),
-            / Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.abs()).0).0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.abs()).0).1).signed(lhs.sign()),
+            / Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).0).signed(lhs.sign() * Sign::from(rhs)),
+            % Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).1).signed(lhs.sign()),
             | Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop | rop)),
             & Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop & rop)),
             ^ Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop ^ rop)),
         ] }
 
         ndops::all! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
-            + Signed::<L>(add_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
-            * Signed::<L>(mul_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
-            | Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop)),
-            & Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop)),
-            ^ Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop)),
+            + Signed::<L>(add_long(&Signed::<L>::from(lhs).0, &rhs.0)),
+            * Signed::<L>(mul_long(&Signed::<L>::from(lhs).0, &rhs.0)),
+            | Signed::<L>(bit_long(&Signed::<L>::from(lhs).0, &rhs.0, |lop, rop| lop | rop)),
+            & Signed::<L>(bit_long(&Signed::<L>::from(lhs).0, &rhs.0, |lop, rop| lop & rop)),
+            ^ Signed::<L>(bit_long(&Signed::<L>::from(lhs).0, &rhs.0, |lop, rop| lop ^ rop)),
         ] }
 
         ndops::all! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
@@ -334,11 +334,11 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::all! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + Unsigned::<L>(add_single(&rhs.0, lhs as Single)),
-            * Unsigned::<L>(mul_single(&rhs.0, lhs as Single)),
-            | Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
-            & Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
-            ^ Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)),
+            + Unsigned::<L>(add_long(&Unsigned::<L>::from(lhs).0, &rhs.0)),
+            * Unsigned::<L>(mul_long(&Unsigned::<L>::from(lhs).0, &rhs.0)),
+            | Unsigned::<L>(bit_long(&Unsigned::<L>::from(lhs).0, &rhs.0, |lop, rop| lop | rop)),
+            & Unsigned::<L>(bit_long(&Unsigned::<L>::from(lhs).0, &rhs.0, |lop, rop| lop & rop)),
+            ^ Unsigned::<L>(bit_long(&Unsigned::<L>::from(lhs).0, &rhs.0, |lop, rop| lop ^ rop)),
         ] }
 
         ndops::all! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -360,9 +360,9 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::all! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
-            & Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
-            ^ Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)),
+            | Bytes::<L>(bit_long(&Bytes::<L>::from(lhs).0, &rhs.0, |lop, rop| lop | rop)),
+            & Bytes::<L>(bit_long(&Bytes::<L>::from(lhs).0, &rhs.0, |lop, rop| lop & rop)),
+            ^ Bytes::<L>(bit_long(&Bytes::<L>::from(lhs).0, &rhs.0, |lop, rop| lop ^ rop)),
         ] }
 
         ndops::all! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive), [
@@ -373,15 +373,15 @@ macro_rules! nd_ops_primitive_impl {
     };
 }
 
-macro_rules! ops_primitive_native_impl {
+macro_rules! ops_primitive_impl {
     (@signed [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_native_impl!(@signed $primitive);)+
+        $(ops_primitive_impl!(@signed $primitive);)+
     };
     (@unsigned [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_native_impl!(@unsigned $primitive);)+
+        $(ops_primitive_impl!(@unsigned $primitive);)+
     };
     (@bytes [$($primitive:ty),+ $(,)?]) => {
-        $(ops_primitive_native_impl!(@bytes $primitive);)+
+        $(ops_primitive_impl!(@bytes $primitive);)+
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::all! { @stdbin <const L: usize> (*lhs: &Signed<L>, rhs: $primitive) -> Signed<L>, [
@@ -1120,9 +1120,9 @@ mod _impl {
     nd_ops_primitive_impl!(@unsigned [u128]);
     nd_ops_primitive_impl!(@bytes [u128]);
 
-    ops_primitive_native_impl!(@signed [i8, i16, i32, i64, i128]);
-    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64, u128]);
-    ops_primitive_native_impl!(@bytes [u8, u16, u32, u64, u128]);
+    ops_primitive_impl!(@signed [i8, i16, i32, i64, i128]);
+    ops_primitive_impl!(@unsigned [u8, u16, u32, u64, u128]);
+    ops_primitive_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
 
 #[cfg(all(target_pointer_width = "32", not(test)))]
@@ -1137,9 +1137,9 @@ mod _impl {
     nd_ops_primitive_impl!(@unsigned [u64, u128]);
     nd_ops_primitive_impl!(@bytes [u64, u128]);
 
-    ops_primitive_native_impl!(@signed [i8, i16, i32, i64, i128]);
-    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64, u128]);
-    ops_primitive_native_impl!(@bytes [u8, u16, u32, u64, u128]);
+    ops_primitive_impl!(@signed [i8, i16, i32, i64, i128]);
+    ops_primitive_impl!(@unsigned [u8, u16, u32, u64, u128]);
+    ops_primitive_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
 
 #[cfg(test)]
@@ -1154,9 +1154,9 @@ mod _impl {
     nd_ops_primitive_impl!(@unsigned [u16, u32, u64, u128]);
     nd_ops_primitive_impl!(@bytes [u16, u32, u64, u128]);
 
-    ops_primitive_native_impl!(@signed [i8, i16, i32, i64, i128]);
-    ops_primitive_native_impl!(@unsigned [u8, u16, u32, u64, u128]);
-    ops_primitive_native_impl!(@bytes [u8, u16, u32, u64, u128]);
+    ops_primitive_impl!(@signed [i8, i16, i32, i64, i128]);
+    ops_primitive_impl!(@unsigned [u8, u16, u32, u64, u128]);
+    ops_primitive_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
 
 pub type S8 = signed!(8);
@@ -3780,15 +3780,23 @@ mod tests {
 
     #[test]
     fn signed_ops() {
+        fn div_default(_: i64, _: i64) -> i64 {
+            0
+        }
+
+        fn rem_default(lhs: i64, _: i64) -> i64 {
+            lhs
+        }
+
         ndassert::check! { (
-            ndassert::range!(i64, 56, 0),
-            ndassert::range!(i64, 56, 1),
+            ndassert::range!(i64, 56, 0).chain([0]),
+            ndassert::range!(i64, 56, 1).chain([0]),
         ) [
             |lhs: i64, rhs: i64| S64::from(lhs) + S64::from(rhs) == S64::from(lhs.wrapping_add(rhs)),
             |lhs: i64, rhs: i64| S64::from(lhs) - S64::from(rhs) == S64::from(lhs.wrapping_sub(rhs)),
             |lhs: i64, rhs: i64| S64::from(lhs) * S64::from(rhs) == S64::from(lhs.wrapping_mul(rhs)),
-            |lhs: i64, rhs: i64| S64::from(lhs) / S64::from(rhs) == S64::from(lhs.checked_div(rhs).unwrap_or(0)),
-            |lhs: i64, rhs: i64| S64::from(lhs) % S64::from(rhs) == S64::from(lhs.checked_rem(rhs).unwrap_or(lhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) / S64::from(rhs) == S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
+            |lhs: i64, rhs: i64| S64::from(lhs) % S64::from(rhs) == S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
             |lhs: i64, rhs: i64| S64::from(lhs) | S64::from(rhs) == S64::from(lhs | rhs),
             |lhs: i64, rhs: i64| S64::from(lhs) & S64::from(rhs) == S64::from(lhs & rhs),
             |lhs: i64, rhs: i64| S64::from(lhs) ^ S64::from(rhs) == S64::from(lhs ^ rhs),
@@ -3797,15 +3805,23 @@ mod tests {
 
     #[test]
     fn unsigned_ops() {
+        fn div_default(_: u64, _: u64) -> u64 {
+            u64::MAX
+        }
+
+        fn rem_default(lhs: u64, _: u64) -> u64 {
+            lhs
+        }
+
         ndassert::check! { (
-            ndassert::range!(u64, 56, 0),
-            ndassert::range!(u64, 56, 1),
+            ndassert::range!(u64, 56, 0).chain([0]),
+            ndassert::range!(u64, 56, 1).chain([0]),
         ) [
             |lhs: u64, rhs: u64| U64::from(lhs) + U64::from(rhs) == U64::from(lhs.wrapping_add(rhs)),
             |lhs: u64, rhs: u64| U64::from(lhs) - U64::from(rhs) == U64::from(lhs.wrapping_sub(rhs)),
             |lhs: u64, rhs: u64| U64::from(lhs) * U64::from(rhs) == U64::from(lhs.wrapping_mul(rhs)),
-            |lhs: u64, rhs: u64| U64::from(lhs) / U64::from(rhs) == U64::from(lhs.checked_div(rhs).unwrap_or(u64::MAX)),
-            |lhs: u64, rhs: u64| U64::from(lhs) % U64::from(rhs) == U64::from(lhs.checked_rem(rhs).unwrap_or(lhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) / U64::from(rhs) == U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
+            |lhs: u64, rhs: u64| U64::from(lhs) % U64::from(rhs) == U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
             |lhs: u64, rhs: u64| U64::from(lhs) | U64::from(rhs) == U64::from(lhs | rhs),
             |lhs: u64, rhs: u64| U64::from(lhs) & U64::from(rhs) == U64::from(lhs & rhs),
             |lhs: u64, rhs: u64| U64::from(lhs) ^ U64::from(rhs) == U64::from(lhs ^ rhs),
@@ -3814,78 +3830,132 @@ mod tests {
 
     #[test]
     fn signed_ops_primitive_native() {
-        assert_ops_primitive!(
-            S64,
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
-            (i8::MIN..i8::MAX).filter(|&x| x != 0),
-            [
-                (|lhs: S64, rhs: i8| { lhs + rhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_add(rhs as i64)) }),
-                (|lhs: S64, rhs: i8| { lhs - rhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_sub(rhs as i64)) }),
-                (|lhs: S64, rhs: i8| { lhs * rhs })(|lhs: i64, rhs: i8| { S64::from(lhs.wrapping_mul(rhs as i64)) }),
-                (|lhs: S64, rhs: i8| { lhs / rhs })(|lhs: i64, rhs: i8| { S64::from(lhs / rhs as i64) }),
-                (|lhs: S64, rhs: i8| { lhs % rhs })(|lhs: i64, rhs: i8| { S64::from(lhs % rhs as i64) }),
-                (|lhs: S64, rhs: i8| { lhs | rhs })(|lhs: i64, rhs: i8| { S64::from(lhs | rhs as i64) }),
-                (|lhs: S64, rhs: i8| { lhs & rhs })(|lhs: i64, rhs: i8| { S64::from(lhs & rhs as i64) }),
-                (|lhs: S64, rhs: i8| { lhs ^ rhs })(|lhs: i64, rhs: i8| { S64::from(lhs ^ rhs as i64) }),
-            ]
-        );
+        fn div_default(_: i64, rhs: i8) -> i64 {
+            i64::MIN * (rhs < 0) as i64
+        }
+
+        fn rem_default(lhs: i64, _: i8) -> i64 {
+            let abs = lhs.checked_abs().unwrap_or(i64::MIN);
+
+            if lhs < 0 {
+                return -(abs & Double::MAX as i64);
+            }
+
+            abs & Double::MAX as i64
+        }
+
+        ndassert::check! { (
+            ndassert::range!(i64, 56).chain([0]),
+            i8::MIN..i8::MAX,
+        ) [
+            |lhs: i64, rhs: i8| S64::from(lhs) + rhs == S64::from(lhs.wrapping_add(rhs as i64)),
+            |lhs: i64, rhs: i8| S64::from(lhs) - rhs == S64::from(lhs.wrapping_sub(rhs as i64)),
+            |lhs: i64, rhs: i8| S64::from(lhs) * rhs == S64::from(lhs.wrapping_mul(rhs as i64)),
+            |lhs: i64, rhs: i8| S64::from(lhs) / rhs == S64::from(lhs.checked_div(rhs as i64).unwrap_or(div_default(lhs, rhs))),
+            |lhs: i64, rhs: i8| S64::from(lhs) % rhs == S64::from(lhs.checked_rem(rhs as i64).unwrap_or(rem_default(lhs, rhs))),
+            |lhs: i64, rhs: i8| S64::from(lhs) | rhs == S64::from(lhs | rhs as i64),
+            |lhs: i64, rhs: i8| S64::from(lhs) & rhs == S64::from(lhs & rhs as i64),
+            |lhs: i64, rhs: i8| S64::from(lhs) ^ rhs == S64::from(lhs ^ rhs as i64),
+
+            |lhs: i64, rhs: i8| rhs + S64::from(lhs) == S64::from(lhs.wrapping_add(rhs as i64)),
+            |lhs: i64, rhs: i8| rhs * S64::from(lhs) == S64::from(lhs.wrapping_mul(rhs as i64)),
+            |lhs: i64, rhs: i8| rhs | S64::from(lhs) == S64::from(lhs | rhs as i64),
+            |lhs: i64, rhs: i8| rhs & S64::from(lhs) == S64::from(lhs & rhs as i64),
+            |lhs: i64, rhs: i8| rhs ^ S64::from(lhs) == S64::from(lhs ^ rhs as i64),
+        ] }
     }
 
     #[test]
     fn unsigned_ops_primitive_native() {
-        assert_ops_primitive!(
-            U64,
-            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            1..u8::MAX,
-            [
-                (|lhs: U64, rhs: u8| { lhs + rhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_add(rhs as u64)) }),
-                (|lhs: U64, rhs: u8| { lhs - rhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_sub(rhs as u64)) }),
-                (|lhs: U64, rhs: u8| { lhs * rhs })(|lhs: u64, rhs: u8| { U64::from(lhs.wrapping_mul(rhs as u64)) }),
-                (|lhs: U64, rhs: u8| { lhs / rhs })(|lhs: u64, rhs: u8| { U64::from(lhs / rhs as u64) }),
-                (|lhs: U64, rhs: u8| { lhs % rhs })(|lhs: u64, rhs: u8| { U64::from(lhs % rhs as u64) }),
-                (|lhs: U64, rhs: u8| { lhs | rhs })(|lhs: u64, rhs: u8| { U64::from(lhs | rhs as u64) }),
-                (|lhs: U64, rhs: u8| { lhs & rhs })(|lhs: u64, rhs: u8| { U64::from(lhs & rhs as u64) }),
-                (|lhs: U64, rhs: u8| { lhs ^ rhs })(|lhs: u64, rhs: u8| { U64::from(lhs ^ rhs as u64) }),
-            ]
-        );
+        fn div_default(_: u64, _: u8) -> u64 {
+            u64::MAX
+        }
+
+        fn rem_default(lhs: u64, _: u8) -> u64 {
+            lhs & Double::MAX as u64
+        }
+
+        ndassert::check! { (
+            ndassert::range!(u64, 56).chain([0]),
+            u8::MIN..u8::MAX,
+        ) [
+            |lhs: u64, rhs: u8| U64::from(lhs) + rhs == U64::from(lhs.wrapping_add(rhs as u64)),
+            |lhs: u64, rhs: u8| U64::from(lhs) - rhs == U64::from(lhs.wrapping_sub(rhs as u64)),
+            |lhs: u64, rhs: u8| U64::from(lhs) * rhs == U64::from(lhs.wrapping_mul(rhs as u64)),
+            |lhs: u64, rhs: u8| U64::from(lhs) / rhs == U64::from(lhs.checked_div(rhs as u64).unwrap_or(div_default(lhs, rhs))),
+            |lhs: u64, rhs: u8| U64::from(lhs) % rhs == U64::from(lhs.checked_rem(rhs as u64).unwrap_or(rem_default(lhs, rhs))),
+            |lhs: u64, rhs: u8| U64::from(lhs) | rhs == U64::from(lhs | rhs as u64),
+            |lhs: u64, rhs: u8| U64::from(lhs) & rhs == U64::from(lhs & rhs as u64),
+            |lhs: u64, rhs: u8| U64::from(lhs) ^ rhs == U64::from(lhs ^ rhs as u64),
+
+            |lhs: u64, rhs: u8| rhs + U64::from(lhs) == U64::from(lhs.wrapping_add(rhs as u64)),
+            |lhs: u64, rhs: u8| rhs * U64::from(lhs) == U64::from(lhs.wrapping_mul(rhs as u64)),
+            |lhs: u64, rhs: u8| rhs | U64::from(lhs) == U64::from(lhs | rhs as u64),
+            |lhs: u64, rhs: u8| rhs & U64::from(lhs) == U64::from(lhs & rhs as u64),
+            |lhs: u64, rhs: u8| rhs ^ U64::from(lhs) == U64::from(lhs ^ rhs as u64),
+        ] }
     }
 
     #[test]
     fn signed_ops_primitive() {
-        assert_ops_primitive!(
-            S64,
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[0]),
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_56BIT[1]),
-            [
-                (|lhs: S64, rhs: i64| { lhs + rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_add(rhs)) }),
-                (|lhs: S64, rhs: i64| { lhs - rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_sub(rhs)) }),
-                (|lhs: S64, rhs: i64| { lhs * rhs })(|lhs: i64, rhs: i64| { S64::from(lhs.wrapping_mul(rhs)) }),
-                (|lhs: S64, rhs: i64| { lhs / rhs })(|lhs: i64, rhs: i64| { S64::from(lhs / rhs) }),
-                (|lhs: S64, rhs: i64| { lhs % rhs })(|lhs: i64, rhs: i64| { S64::from(lhs % rhs) }),
-                (|lhs: S64, rhs: i64| { lhs | rhs })(|lhs: i64, rhs: i64| { S64::from(lhs | rhs) }),
-                (|lhs: S64, rhs: i64| { lhs & rhs })(|lhs: i64, rhs: i64| { S64::from(lhs & rhs) }),
-                (|lhs: S64, rhs: i64| { lhs ^ rhs })(|lhs: i64, rhs: i64| { S64::from(lhs ^ rhs) }),
-            ]
-        );
+        fn div_default(_: i64, _: i64) -> i64 {
+            0
+        }
+
+        fn rem_default(lhs: i64, _: i64) -> i64 {
+            lhs
+        }
+
+        ndassert::check! { (
+            ndassert::range!(i64, 56, 0).chain([0]),
+            ndassert::range!(i64, 56, 1).chain([0]),
+        ) [
+            |lhs: i64, rhs: i64| S64::from(lhs) + rhs == S64::from(lhs.wrapping_add(rhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) - rhs == S64::from(lhs.wrapping_sub(rhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) * rhs == S64::from(lhs.wrapping_mul(rhs)),
+            |lhs: i64, rhs: i64| S64::from(lhs) / rhs == S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
+            |lhs: i64, rhs: i64| S64::from(lhs) % rhs == S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
+            |lhs: i64, rhs: i64| S64::from(lhs) | rhs == S64::from(lhs | rhs),
+            |lhs: i64, rhs: i64| S64::from(lhs) & rhs == S64::from(lhs & rhs),
+            |lhs: i64, rhs: i64| S64::from(lhs) ^ rhs == S64::from(lhs ^ rhs),
+
+            |lhs: i64, rhs: i64| rhs + S64::from(lhs) == S64::from(lhs.wrapping_add(rhs)),
+            |lhs: i64, rhs: i64| rhs * S64::from(lhs) == S64::from(lhs.wrapping_mul(rhs)),
+            |lhs: i64, rhs: i64| rhs | S64::from(lhs) == S64::from(lhs | rhs),
+            |lhs: i64, rhs: i64| rhs & S64::from(lhs) == S64::from(lhs & rhs),
+            |lhs: i64, rhs: i64| rhs ^ S64::from(lhs) == S64::from(lhs ^ rhs),
+        ] }
     }
 
     #[test]
     fn unsigned_ops_primitive() {
-        assert_ops_primitive!(
-            U64,
-            (1..u64::MAX).step_by(PRIMES_56BIT[0]),
-            (1..u64::MAX).step_by(PRIMES_56BIT[1]),
-            [
-                (|lhs: U64, rhs: u64| { lhs + rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_add(rhs)) }),
-                (|lhs: U64, rhs: u64| { lhs - rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_sub(rhs)) }),
-                (|lhs: U64, rhs: u64| { lhs * rhs })(|lhs: u64, rhs: u64| { U64::from(lhs.wrapping_mul(rhs)) }),
-                (|lhs: U64, rhs: u64| { lhs / rhs })(|lhs: u64, rhs: u64| { U64::from(lhs / rhs) }),
-                (|lhs: U64, rhs: u64| { lhs % rhs })(|lhs: u64, rhs: u64| { U64::from(lhs % rhs) }),
-                (|lhs: U64, rhs: u64| { lhs | rhs })(|lhs: u64, rhs: u64| { U64::from(lhs | rhs) }),
-                (|lhs: U64, rhs: u64| { lhs & rhs })(|lhs: u64, rhs: u64| { U64::from(lhs & rhs) }),
-                (|lhs: U64, rhs: u64| { lhs ^ rhs })(|lhs: u64, rhs: u64| { U64::from(lhs ^ rhs) }),
-            ]
-        );
+        fn div_default(_: u64, _: u64) -> u64 {
+            u64::MAX
+        }
+
+        fn rem_default(lhs: u64, _: u64) -> u64 {
+            lhs
+        }
+
+        ndassert::check! { (
+            ndassert::range!(u64, 56, 0).chain([0]),
+            ndassert::range!(u64, 56, 1).chain([0]),
+        ) [
+            |lhs: u64, rhs: u64| U64::from(lhs) + rhs == U64::from(lhs.wrapping_add(rhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) - rhs == U64::from(lhs.wrapping_sub(rhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) * rhs == U64::from(lhs.wrapping_mul(rhs)),
+            |lhs: u64, rhs: u64| U64::from(lhs) / rhs == U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
+            |lhs: u64, rhs: u64| U64::from(lhs) % rhs == U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
+            |lhs: u64, rhs: u64| U64::from(lhs) | rhs == U64::from(lhs | rhs),
+            |lhs: u64, rhs: u64| U64::from(lhs) & rhs == U64::from(lhs & rhs),
+            |lhs: u64, rhs: u64| U64::from(lhs) ^ rhs == U64::from(lhs ^ rhs),
+
+            |lhs: u64, rhs: u64| rhs + U64::from(lhs) == U64::from(lhs.wrapping_add(rhs)),
+            |lhs: u64, rhs: u64| rhs * U64::from(lhs) == U64::from(lhs.wrapping_mul(rhs)),
+            |lhs: u64, rhs: u64| rhs | U64::from(lhs) == U64::from(lhs | rhs),
+            |lhs: u64, rhs: u64| rhs & U64::from(lhs) == U64::from(lhs & rhs),
+            |lhs: u64, rhs: u64| rhs ^ U64::from(lhs) == U64::from(lhs ^ rhs),
+        ] }
     }
 
     #[test]
