@@ -70,20 +70,20 @@ struct AssertRange {
 }
 
 trait AssertKind: Parse {
-    fn assert(&self, expr: &Expr, args: &TokenStream) -> TokenStream;
+    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream;
 }
 
 impl AssertKind for AssertKindCheck {
-    fn assert(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
-        quote! { assert!((#expr)(#args)); }
+    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
+        quote! { (#expr)(#args) }
     }
 }
 
 impl AssertKind for AssertKindCompare {
-    fn assert(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
+    fn value(&self, expr: &Expr, args: &TokenStream) -> TokenStream {
         match self {
-            AssertKindCompare::Eq => quote! {{ let val = (#expr)(#args); assert_eq!(val.0, val.1); }},
-            AssertKindCompare::EqNot => quote! {{ let val = (#expr)(#args); assert_ne!(val.0, val.1); }},
+            AssertKindCompare::Eq => quote! {{ let val = (#expr)(#args); val.0 == val.1 }},
+            AssertKindCompare::EqNot => quote! {{ let val = (#expr)(#args); val.0 != val.1 }},
         }
     }
 }
@@ -163,10 +163,18 @@ impl<Kind: AssertKind> ToTokens for Assert<Kind> {
             .map(|idx| format_ident!("arg{}", idx))
             .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
 
-        let exprs_call = self.exprs.iter().fold(quote! {}, |acc, expr| {
-            let assert = self.kind.assert(expr, &args_call);
+        let args_msg = (0..self.args.len())
+            .map(|idx| format!("Arg #{}: {}\n", idx, "{}"))
+            .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
 
-            quote! { #acc #assert }
+        let exprs_call = self.exprs.iter().fold(quote! {}, |acc, expr| {
+            let value = self.kind.value(expr, &args_call);
+
+            quote! {
+                #acc
+
+                assert!(#value, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+            }
         });
 
         let quote = self
