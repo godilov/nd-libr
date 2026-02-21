@@ -26,13 +26,13 @@ ndops::all_auto! { @ndun (value: &Num) -> Num, (value.0) [-, !] }
 ndops::all_auto! { @stdmut (lhs: &mut Num, *rhs: &Num), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=] }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all_auto! { @stdmut (lhs: &mut Num, *rhs: usize), (lhs.0) (rhs) [<<=, >>=] }
+ndops::all_auto! { @stdmut (lhs: &mut Num, *rhs: &Num), (lhs.0) (rhs.0) [<<=, >>=] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
 ndops::all_auto! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all_auto! { @stdbin (*lhs: &Num, *rhs: usize) -> Num, (lhs.0) (rhs) [<<, >>] }
+ndops::all_auto! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, (lhs.0) (rhs.0) [<<, >>] }
 
 // Implements corresponding std::ops::* for &Num, Num
 ndops::all_auto! { @stdun (*value: &Num) -> Num, (value.0) [-, !] }

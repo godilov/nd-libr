@@ -1,6 +1,13 @@
 # NdArch
 
-**Architecture-aware facilities**
+**Architecture-aware procedural macros**
+
+## Start
+
+```toml
+[dependencies]
+ndarch = "*"
+```
 
 ## Syntax
 

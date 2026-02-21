@@ -62,9 +62,9 @@ ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
 ] }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all! { @stdmut (lhs: &mut Num, *rhs: usize), [
-    <<= lhs.0 <<= rhs,
-    >>= lhs.0 >>= rhs,
+ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
+    <<= lhs.0 <<= rhs.0,
+    >>= lhs.0 >>= rhs.0,
 ] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
@@ -80,9 +80,9 @@ ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
 ] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all! { @stdbin (*lhs: &Num, *rhs: usize) -> Num, [
-    << lhs.0 << rhs,
-    >> lhs.0 >> rhs,
+ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
+    << lhs.0 << rhs.0,
+    >> lhs.0 >> rhs.0,
 ] }
 
 // Implements corresponding std::ops::* for &Num, Num

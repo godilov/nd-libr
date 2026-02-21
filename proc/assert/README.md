@@ -1,11 +1,11 @@
 # NdAssert
 
-**Structured assertions**
+**Structured assertions procedural macros**
 
 The crate allows to define complex and structured assertion cases involving multiple independent arguments in all combinations.
 
-- [`ndassert::check!`]([check]) allows to specify arguments and expressions to assert.
-- [`ndassert::range!`]([range]) allows to specify primitive argument range with prime number step.
+- [`ndassert::check!`]([check]) generates structured assertions.
+- [`ndassert::range!`]([range]) generates range of primitive type with prime number step.
 
 ## Start
 
@@ -25,7 +25,7 @@ ndassert::check! { KIND?
 }
 ```
 
-The macro consists of 3 parts:
+The macro consists of three parts:
 
 - `KIND` - Specifies type of asserts to produce. Values: None/`@eq`/`@ne`.
 - `ITER_EXPR` - Expression for corresponding argument, should be iterable.
@@ -45,7 +45,7 @@ Every `assert!` includes associated with failed case information like specific e
 ndassert::range!(TY, LEN, CLASS?)
 ```
 
-The macro consists of 3 parts:
+The macro consists of tree parts:
 
 - `TY` - Primitive type of range to produce.
 - `LEN` - Length of step in binary. Useful for controlling execution complexity.

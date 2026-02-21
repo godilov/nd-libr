@@ -1,4 +1,4 @@
-// #![doc = include_str!("../README.md")]
+#![doc = include_str!("../README.md")]
 
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
@@ -24,6 +24,30 @@ mod kw {
     syn::custom_keyword!(ext);
 }
 
+/// Implements std::ops::* and ndcore::ops::* operations with explicitly provided expressions.
+///
+/// | Kind      | Operations                                                     | Traits           |
+/// | --------- | -------------------------------------------------------------- | ---------------- |
+/// | `@stdmut` | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `std::ops::*`    |
+/// | `@ndmut`  | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `ndcore::ops::*` |
+/// | `@stdbin` | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `std::ops::*`    |
+/// | `@ndbin`  | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `ndcore::ops::*` |
+/// | `@stdun`  | `-`, `!`                                                       | `std::ops::*`    |
+/// | `@ndun`   | `-`, `!`                                                       | `ndcore::ops::*` |
+///
+/// # Syntax
+///
+/// ```text
+/// ndops::all! { KIND SIGNATURE, [
+///     (OP EXPR OP_CONDITIONS?),*
+/// ] }
+///
+/// KIND := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
+/// OP_CONDITIONS := where [(OP_PREDICATE),*]
+/// SIG_CONDITIONS := where [(SIG_PREDICATE),*]
+/// ```
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro]
 pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
@@ -36,6 +60,30 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+/// Implements std::ops::* and ndcore::ops::* operations with implicitly derived expressions.
+///
+/// | Kind      | Operations                                                     | Traits           |
+/// | --------- | -------------------------------------------------------------- | ---------------- |
+/// | `@stdmut` | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `std::ops::*`    |
+/// | `@ndmut`  | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `ndcore::ops::*` |
+/// | `@stdbin` | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `std::ops::*`    |
+/// | `@ndbin`  | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `ndcore::ops::*` |
+/// | `@stdun`  | `-`, `!`                                                       | `std::ops::*`    |
+/// | `@ndun`   | `-`, `!`                                                       | `ndcore::ops::*` |
+///
+/// # Syntax
+///
+/// ```text
+/// ndops::all_auto! { KIND SIGNATURE, [
+///     (OP OP_CONDITIONS?),*
+/// ] }
+///
+/// KIND := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
+/// OP_CONDITIONS := where [(OP_PREDICATE),*]
+/// SIG_CONDITIONS := where [(SIG_PREDICATE),*]
+/// ```
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro]
 pub fn all_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {

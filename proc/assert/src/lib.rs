@@ -16,7 +16,7 @@ mod kw {
     syn::custom_keyword!(ne);
 }
 
-/// Generate structured assertions.
+/// Generates structured assertions.
 ///
 /// # Syntax
 ///
@@ -27,7 +27,7 @@ mod kw {
 /// }
 /// ```
 ///
-/// For more information and examples see [crate]-level documentation.
+/// For more information and examples, see [crate] documentation.
 #[proc_macro]
 pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     let assert = parse_macro_input!(stream as AssertCheck);
@@ -38,15 +38,18 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Generate primitive argument range with prime number step.
+/// Generates range of primitive type with prime number step.
 ///
 /// # Syntax
 ///
 /// ```text
 /// ndassert::range!(TY, LEN, CLASS?)
 /// ```
+/// - `TY` - primitive type
+/// - `LEN` - length of step in binary
+/// - `CLASS` - class of step
 ///
-/// For more information and examples see [crate]-level documentation.
+/// For more information and examples, see [crate] documentation.
 #[proc_macro]
 pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     let range = parse_macro_input!(stream as AssertRange);

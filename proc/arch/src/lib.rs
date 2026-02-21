@@ -4,7 +4,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use quote::quote;
 use syn::{Error, Item, parse_macro_input, spanned::Spanned};
 
-/// Align struct, enum or union according to approximate architecture cacheline size.
+/// Aligns struct, enum or union according to approximate architecture cacheline size.
 ///
 /// | Architecture | Alignment |
 /// | ------------ | --------- |
@@ -20,7 +20,7 @@ use syn::{Error, Item, parse_macro_input, spanned::Spanned};
 /// (STRUCT | ENUM | UNION)
 /// ```
 ///
-/// For more information and examples see [crate]-level documentation.
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);
