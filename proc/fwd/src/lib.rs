@@ -16,6 +16,16 @@ mod kw {
     syn::custom_keyword!(with);
 }
 
+/// Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::std(EXPR with TY)]
+/// (STRUCT | ENUM | UNION)
+/// ```
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -82,6 +92,16 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Implements `PartialEq`, `Eq`, `PartialOrd`, `Ord`.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::cmp(EXPR with TY)]
+/// (STRUCT | ENUM | UNION)
+/// ```
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -148,6 +168,16 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::fmt(EXPR with TY)]
+/// (STRUCT | ENUM | UNION)
+/// ```
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     fn fmt_impl(
@@ -244,6 +274,16 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Declares forwardable trait.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::decl]
+/// TRAIT
+/// ```
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
@@ -319,6 +359,16 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Defines forwardable trait for **struct**, **enum** or **union**.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::def(EXPR with TY: TRAIT (where (PREDICATE),*)?)]
+/// (STRUCT | ENUM | UNION)
+/// ```
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
@@ -419,16 +469,31 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+/// Alters return expression to `EXPR.call().into()`.
+///
+/// The modifier **must** be used as fully qualified path in forwardable trait declaration.
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn as_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+/// Alters return expression to `EXPR.call(); self`.
+///
+/// The modifier **must** be used as fully qualified path in forwardable trait declaration.
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+/// Alters return expression to `(CLOSURE)(EXPR.call())`.
+///
+/// The modifier **must** be used as fully qualified path in forwardable trait declaration.
+///
+/// For more information and examples, see [crate] documentation.
 #[proc_macro_attribute]
 pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item

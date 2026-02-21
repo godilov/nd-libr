@@ -7,8 +7,8 @@ The crate allows to implement standard and user-defined traits by forwarding it 
 - [`ndfwd::std`]([macro@std]) implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
 - [`ndfwd::cmp`]([macro@cmp]) implements `PartialEq`, `Eq`, `PartialOrd`, `Ord`.
 - [`ndfwd::fmt`]([macro@fmt]) implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`.
-- [`ndfwd::def`]([macro@def]) declares forwardable trait.
-- [`ndfwd::decl`]([macro@decl]) defines forwardable trait.
+- [`ndfwd::def`]([macro@def]) defines forwardable trait for **struct**, **enum** or **union**.
+- [`ndfwd::decl`]([macro@decl]) declares forwardable trait.
 
 ## Start
 
@@ -37,12 +37,12 @@ ndfwd = "*"
 
 #### [`ndfwd::cmp`]([macro@cmp])
 
-| Trait        | Expression                            | Conditions       |
-| ------------ | ------------------------------------- | ---------------- |
-| `Eq`         | `None`                                | `TY: Eq`         |
-| `Ord`        | `self.FIELD.cmp(other.FILED)`         | `TY: Ord`        |
-| `PartialEq`  | `self.FIELD.partial_eq(other.FIELD)`  | `TY: PartialEq`  |
-| `PartialOrd` | `self.FIELD.partial_cmp(other.FIELD)` | `TY: PartialOrd` |
+| Trait        | Expression                        | Conditions       |
+| ------------ | --------------------------------- | ---------------- |
+| `Eq`         | `None`                            | `TY: Eq`         |
+| `Ord`        | `EXPR.cmp(EXPR as other)`         | `TY: Ord`        |
+| `PartialEq`  | `EXPR.partial_eq(EXPR as other)`  | `TY: PartialEq`  |
+| `PartialOrd` | `EXPR.partial_cmp(EXPR as other)` | `TY: PartialOrd` |
 
 #### [`ndfwd::fmt`]([macro@fmt])
 
@@ -79,7 +79,7 @@ The second step creates a private `module` with auxiliary definitions and trait 
 - For associated function and method arguments, `Function Ptr`, `Impl Trait` and `dyn &Trait` types are forwarded **as-is**.
 - For associated function and method arguments, every other `Self`-dependent type is forwarded according to signature and adapted when needed.
 
-In return types, there are four options:
+For return types, there are four options:
 
 | Type                            | Expression               | Required for                 |
 | ------------------------------- | ------------------------ | ---------------------------- |
@@ -88,8 +88,32 @@ In return types, there are four options:
 | [`ndfwd::as_self`]([as_self])\* | `EXPR.call(); self`      | `fn(&mut self) -> &mut Self` |
 | [`ndfwd::as_expr`]([as_expr])\* | `(CLOSURE)(EXPR.call())` | `fn(self) -> (Self, Self)`   |
 
-\* Note that modifiers **must** be used as fully qualified path.
+\* Note that modifiers **must** be used as fully qualified path in forwardable trait declaration.
 
 ## Syntax
+
+For [`ndfwd::std`]([macro@std]), [`ndfwd::cmp`]([macro@cmp]) and [`ndfwd::fmt`]([macro@fmt]):
+
+```text
+#[ndfwd::METHOD(EXPR with TY)]
+(STRUCT | ENUM | UNION)
+```
+
+For [`ndfwd::decl`]([macro@decl]):
+
+```text
+#[ndfwd::decl]
+TRAIT
+```
+
+For [`ndfwd::def`]([macro@def]):
+
+```text
+#[ndfwd::def(EXPR with TY: TRAIT (where (PREDICATE),*)?)]
+(STRUCT | ENUM | UNION)
+```
+
+- `TRAIT` **must** be **absolute** or **relative** path to forwardable trait instead of `use` keyword.
+- `TRAIT` **must** be within **the same** crate with `STRUCT`, `ENUM` or `UNION`.
 
 ## Examples
