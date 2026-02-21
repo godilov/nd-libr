@@ -11,7 +11,7 @@ ndarch = "*"
 
 ## Syntax
 
-#### [`ndarch::align`]([align])
+#### [`ndarch::align`](align)
 
 ```text
 #[ndarch::align]

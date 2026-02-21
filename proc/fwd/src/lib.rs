@@ -25,7 +25,7 @@ mod kw {
 /// (STRUCT | ENUM | UNION)
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -101,7 +101,7 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// (STRUCT | ENUM | UNION)
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -177,7 +177,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// (STRUCT | ENUM | UNION)
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     fn fmt_impl(
@@ -283,7 +283,7 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// TRAIT
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
@@ -368,7 +368,7 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// (STRUCT | ENUM | UNION)
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
@@ -473,7 +473,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// The modifier **must** be used as fully qualified path in forwardable trait declaration.
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn as_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
@@ -483,7 +483,7 @@ pub fn as_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// The modifier **must** be used as fully qualified path in forwardable trait declaration.
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
@@ -493,7 +493,7 @@ pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// The modifier **must** be used as fully qualified path in forwardable trait declaration.
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item

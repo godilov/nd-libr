@@ -24,7 +24,7 @@ mod kw {
     syn::custom_keyword!(ext);
 }
 
-/// Implements std::ops::* and ndcore::ops::* operations with explicitly provided expressions.
+/// Implements `std::ops::*` and `ndcore::ops::*` operations with explicitly provided expressions.
 ///
 /// | Kind      | Operations                                                     | Traits           |
 /// | --------- | -------------------------------------------------------------- | ---------------- |
@@ -47,7 +47,7 @@ mod kw {
 /// SIG_CONDITIONS := where [(SIG_PREDICATE),*]
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
@@ -60,7 +60,7 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-/// Implements std::ops::* and ndcore::ops::* operations with implicitly derived expressions.
+/// Implements `std::ops::*` and `ndcore::ops::*` operations with implicitly derived expressions.
 ///
 /// | Kind      | Operations                                                     | Traits           |
 /// | --------- | -------------------------------------------------------------- | ---------------- |
@@ -83,7 +83,7 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
 /// SIG_CONDITIONS := where [(SIG_PREDICATE),*]
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn all_auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {

@@ -4,8 +4,8 @@
 
 The crate allows to define complex and structured operations implementation in all combinations.
 
-- [`ndops::all!`]([all]) implements `std::ops::*` and `ndcore::ops::*` operations with **explicitly** provided expressions.
-- [`ndops::all_auto!`]([all_auto]) implements `std::ops::*` and `ndcore::ops::*` operations with **implicitly** derived expressions.
+- [`ndops::all!`](all) implements `std::ops::*` and `ndcore::ops::*` operations with **explicitly** provided expressions.
+- [`ndops::all_auto!`](all_auto) implements `std::ops::*` and `ndcore::ops::*` operations with **implicitly** derived expressions.
 
 ## Start
 
@@ -57,8 +57,8 @@ merging them when implementing every specific operation.
 
 #### Expressions
 
-- [`ndops::all!`]([all]) implements operations with explicitly provided expressions.
-- [`ndops::all_auto!`]([all_auto]) implements operations with implicitly derived expressions.
+- [`ndops::all!`](all) implements operations with explicitly provided expressions.
+- [`ndops::all_auto!`](all_auto) implements operations with implicitly derived expressions.
 
 | Kind                    | Expression               |
 | ----------------------- | ------------------------ |
@@ -71,7 +71,7 @@ merging them when implementing every specific operation.
 
 ## Syntax
 
-### [`ndops::all!`]([all])
+### [`ndops::all!`](all)
 
 ```text
 ndops::all! { KIND SIGNATURE, [
@@ -87,7 +87,7 @@ OP_CONDITIONS := where [(OP_PREDICATE),*]
 - For `SIGNATURE` reference, see [section](#signatures).
 - For `OP` reference, see [section](#kinds).
 
-### [`ndops::all_auto!`]([all_auto])
+### [`ndops::all_auto!`](all_auto)
 
 ```text
 ndops::all_auto! { KIND SIGNATURE, [

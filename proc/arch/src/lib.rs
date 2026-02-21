@@ -20,7 +20,7 @@ use syn::{Error, Item, parse_macro_input, spanned::Spanned};
 /// (STRUCT | ENUM | UNION)
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as Item);

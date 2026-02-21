@@ -27,7 +27,7 @@ mod kw {
 /// }
 /// ```
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     let assert = parse_macro_input!(stream as AssertCheck);
@@ -49,7 +49,7 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
 /// - `LEN` - length of step in binary
 /// - `CLASS` - class of step
 ///
-/// For more information and examples, see [crate] documentation.
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     let range = parse_macro_input!(stream as AssertRange);

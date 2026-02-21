@@ -4,8 +4,8 @@
 
 The crate allows to define complex and structured assertion cases involving multiple independent arguments in all combinations.
 
-- [`ndassert::check!`]([check]) generates structured assertions.
-- [`ndassert::range!`]([range]) generates range of primitive type with prime number step.
+- [`ndassert::check!`](check) generates structured assertions.
+- [`ndassert::range!`](range) generates range of primitive type with prime number step.
 
 ## Start
 
@@ -16,7 +16,7 @@ ndassert = "*"
 
 ## Syntax
 
-### [`ndassert::check!`]([check])
+### [`ndassert::check!`](check)
 
 ```text
 ndassert::check! { KIND?
@@ -39,7 +39,7 @@ The macro consists of three parts:
 
 Every `assert!` includes associated with failed case information like specific expression and arguments values.
 
-### [`ndassert::range!`]([range])
+### [`ndassert::range!`](range)
 
 ```text
 ndassert::range!(TY, LEN, CLASS?)

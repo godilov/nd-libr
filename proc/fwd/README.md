@@ -4,11 +4,11 @@
 
 The crate allows to implement standard and user-defined traits by forwarding it to expression.
 
-- [`ndfwd::std`]([macro@std]) implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
-- [`ndfwd::cmp`]([macro@cmp]) implements `PartialEq`, `Eq`, `PartialOrd`, `Ord`.
-- [`ndfwd::fmt`]([macro@fmt]) implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`.
-- [`ndfwd::def`]([macro@def]) defines forwardable trait for **struct**, **enum** or **union**.
-- [`ndfwd::decl`]([macro@decl]) declares forwardable trait.
+- [`ndfwd::std`](macro@std) implements [`Deref`](std::ops::Deref), [`DerefMut`](std::ops::DerefMut), [`AsRef`](std::convert::AsRef), [`AsMut`](std::convert::AsMut), [`FromIterator`](std::iter::FromIterator).
+- [`ndfwd::cmp`](macro@cmp) implements [`PartialEq`](std::cmp::PartialEq), [`Eq`](std::cmp::Eq), [`PartialOrd`](std::cmp::PartialOrd), [`Ord`](std::cmp::Ord).
+- [`ndfwd::fmt`](macro@fmt) implements [`Display`](std::fmt::Display), [`Binary`](std::fmt::Binary), [`Octal`](std::fmt::Octal), [`LowerHex`](std::fmt::LowerHex), [`UpperHex`](std::fmt::UpperHex).
+- [`ndfwd::def`](macro@def) defines forwardable trait for **struct**, **enum** or **union**.
+- [`ndfwd::decl`](macro@decl) declares forwardable trait.
 
 ## Start
 
@@ -23,43 +23,43 @@ ndfwd = "*"
 
 **Standard** traits are forwarded to user-specified expressions.
 
-#### [`ndfwd::std`]([macro@std])
+#### [`ndfwd::std`](macro@std)
 
-| Trait          | Expression                     | Conditions                         |
-| -------------- | ------------------------------ | ---------------------------------- |
-| `Deref`\*      | `&EXPR`                        | `None`                             |
-| `DerefMut`\*   | `&mut EXPR`                    | `None`                             |
-| `AsRef`        | `EXPR.as_ref()`                | `TY: AsRef`                        |
-| `AsMut`        | `EXPR.as_mut()`                | `TY: AsMut`                        |
-| `FromIterator` | `<TY>::from_iter(iter).into()` | `TY: FromIterator, Self: From<TY>` |
+| Trait                                     | Expression                     | Conditions                         |
+| ----------------------------------------- | ------------------------------ | ---------------------------------- |
+| [`Deref`](std::ops::Deref)\*              | `&EXPR`                        | `None`                             |
+| [`DerefMut`](std::ops::DerefMut)\*        | `&mut EXPR`                    | `None`                             |
+| [`AsRef`](std::convert::AsRef)            | `EXPR.as_ref()`                | `TY: AsRef`                        |
+| [`AsMut`](std::convert::AsMut)            | `EXPR.as_mut()`                | `TY: AsMut`                        |
+| [`FromIterator`](std::iter::FromIterator) | `<TY>::from_iter(iter).into()` | `TY: FromIterator, Self: From<TY>` |
 
 \* Note that `Deref` and `DerefMut` **do not** call `deref()` or `deref_mut()`, but rather return the expression itself.
 
-#### [`ndfwd::cmp`]([macro@cmp])
+#### [`ndfwd::cmp`](macro@cmp)
 
-| Trait        | Expression                        | Conditions       |
-| ------------ | --------------------------------- | ---------------- |
-| `Eq`         | `None`                            | `TY: Eq`         |
-| `Ord`        | `EXPR.cmp(EXPR as other)`         | `TY: Ord`        |
-| `PartialEq`  | `EXPR.partial_eq(EXPR as other)`  | `TY: PartialEq`  |
-| `PartialOrd` | `EXPR.partial_cmp(EXPR as other)` | `TY: PartialOrd` |
+| Trait                                | Expression                        | Conditions       |
+| ------------------------------------ | --------------------------------- | ---------------- |
+| [`Eq`](std::cmp::Eq)                 | `None`                            | `TY: Eq`         |
+| [`Ord`](std::cmp::Ord)               | `EXPR.cmp(EXPR as other)`         | `TY: Ord`        |
+| [`PartialEq`](std::cmp::PartialEq)   | `EXPR.partial_eq(EXPR as other)`  | `TY: PartialEq`  |
+| [`PartialOrd`](std::cmp::PartialOrd) | `EXPR.partial_cmp(EXPR as other)` | `TY: PartialOrd` |
 
-#### [`ndfwd::fmt`]([macro@fmt])
+#### [`ndfwd::fmt`](macro@fmt)
 
-| Trait      | Expression    | Conditions     |
-| ---------- | ------------- | -------------- |
-| `Display`  | `EXPR.fmt(f)` | `TY: Display`  |
-| `Binary`   | `EXPR.fmt(f)` | `TY: Binary`   |
-| `Octal`    | `EXPR.fmt(f)` | `TY: Octal`    |
-| `LowerHex` | `EXPR.fmt(f)` | `TY: LowerHex` |
-| `UpperHex` | `EXPR.fmt(f)` | `TY: UpperHex` |
+| Trait                            | Expression    | Conditions     |
+| -------------------------------- | ------------- | -------------- |
+| [`Display`](std::fmt::Display)   | `EXPR.fmt(f)` | `TY: Display`  |
+| [`Binary`](std::fmt::Binary)     | `EXPR.fmt(f)` | `TY: Binary`   |
+| [`Octal`](std::fmt::Octal)       | `EXPR.fmt(f)` | `TY: Octal`    |
+| [`LowerHex`](std::fmt::LowerHex) | `EXPR.fmt(f)` | `TY: LowerHex` |
+| [`UpperHex`](std::fmt::UpperHex) | `EXPR.fmt(f)` | `TY: UpperHex` |
 
 ### User-defined Traits Forwarding
 
 **User-defined** trait are forwarded to user-specified expression in two steps:
 
-1. [`ndfwd::decl`]([macro@decl]) - declare forwardable trait.
-2. [`ndfwd::def`]([macro@def]) - define forwardable trait for **struct**, **enum** or **union**.
+1. [`ndfwd::decl`](macro@decl) - declare forwardable trait.
+2. [`ndfwd::def`](macro@def) - define forwardable trait for **struct**, **enum** or **union**.
 
 All traits, structs, enums and unions **must** be within **the same** crate.
 
@@ -81,32 +81,32 @@ The second step creates a private `module` with auxiliary definitions and trait 
 
 For return types, there are four options:
 
-| Type                            | Expression               | Required for                 |
-| ------------------------------- | ------------------------ | ---------------------------- |
-| **As-is**                       | `EXPR.call()`            | `Default`                    |
-| [`ndfwd::as_into`]([as_into])\* | `EXPR.call().into()`     | `fn(self) -> Self`           |
-| [`ndfwd::as_self`]([as_self])\* | `EXPR.call(); self`      | `fn(&mut self) -> &mut Self` |
-| [`ndfwd::as_expr`]([as_expr])\* | `(CLOSURE)(EXPR.call())` | `fn(self) -> (Self, Self)`   |
+| Type                          | Expression               | Usecase                      |
+| ----------------------------- | ------------------------ | ---------------------------- |
+| **As-is**                     | `EXPR.call()`            | `Default`                    |
+| [`ndfwd::as_into`](as_into)\* | `EXPR.call().into()`     | `fn(self) -> Self`           |
+| [`ndfwd::as_self`](as_self)\* | `EXPR.call(); self`      | `fn(&mut self) -> &mut Self` |
+| [`ndfwd::as_expr`](as_expr)\* | `(CLOSURE)(EXPR.call())` | `fn(self) -> (Self, Self)`   |
 
 \* Note that modifiers **must** be used as fully qualified path in forwardable trait declaration.
 
 ## Syntax
 
-For [`ndfwd::std`]([macro@std]), [`ndfwd::cmp`]([macro@cmp]) and [`ndfwd::fmt`]([macro@fmt]):
+For [`ndfwd::std`](macro@std), [`ndfwd::cmp`](macro@cmp) and [`ndfwd::fmt`](macro@fmt):
 
 ```text
 #[ndfwd::METHOD(EXPR with TY)]
 (STRUCT | ENUM | UNION)
 ```
 
-For [`ndfwd::decl`]([macro@decl]):
+For [`ndfwd::decl`](macro@decl):
 
 ```text
 #[ndfwd::decl]
 TRAIT
 ```
 
-For [`ndfwd::def`]([macro@def]):
+For [`ndfwd::def`](macro@def):
 
 ```text
 #[ndfwd::def(EXPR with TY: TRAIT (where (PREDICATE),*)?)]
