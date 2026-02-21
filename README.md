@@ -1,11 +1,11 @@
-# nd-libr
+# NdLibr
 
 A Rust collection of numerical, cryptography, blockchain and memory-related libraries
 
 ## Structure
 
 ```
-ndlibr
+nd-libr
 ├── cli         # All binary crates
 │   └── primes
 ├── lib         # All library crates

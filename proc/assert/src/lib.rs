@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
@@ -14,6 +16,18 @@ mod kw {
     syn::custom_keyword!(ne);
 }
 
+/// Generate structured assertions
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::check! { KIND?
+///     ((ITER_EXPR),*)
+///     [(CHECK_EXPR),*]
+/// }
+/// ```
+///
+/// For more information and examples see [crate]-level documentation.
 #[proc_macro]
 pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     let assert = parse_macro_input!(stream as AssertCheck);
@@ -24,6 +38,15 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Generate primitive argument range with prime number step
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::range!(TY, LEN, CLASS?)
+/// ```
+///
+/// For more information and examples see [crate]-level documentation.
 #[proc_macro]
 pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     let range = parse_macro_input!(stream as AssertRange);
@@ -134,16 +157,25 @@ impl ToTokens for AssertCheck {
             .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
 
         let exprs_call = self.exprs.iter().fold(quote! {}, |acc, expr| {
-            let value = match self.kind {
-                AssertKind::Eq => quote! {{ let val = (#expr)(#args_call); val.0 == val.1 }},
-                AssertKind::EqNot => quote! {{ let val = (#expr)(#args_call); val.0 != val.1 }},
-                AssertKind::Default => quote! { (#expr)(#args_call) },
+            let assert = match self.kind {
+                AssertKind::Eq => quote! {{
+                    let val = (#expr)(#args_call);
+
+                    assert_eq!(val.0, val.1, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+                }},
+                AssertKind::EqNot => quote! {{
+                    let val = (#expr)(#args_call);
+
+                    assert_ne!(val.0, val.1, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+                }},
+                AssertKind::Default => quote! {
+                    assert!((#expr)(#args_call), concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+                },
             };
 
             quote! {
                 #acc
-
-                assert!(#value, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+                #assert
             }
         });
 
@@ -222,6 +254,6 @@ impl ToTokens for AssertRange {
         let primes = PRIMES[len];
         let prime = primes[class % primes.len()];
 
-        tokens.extend(quote! { (#ty::MIN..#ty::MAX).step_by(#prime) });
+        tokens.extend(quote! { (#ty::MIN..=#ty::MAX).step_by(#prime) });
     }
 }
