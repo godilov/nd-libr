@@ -884,6 +884,25 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 quote! {
                     <$ty>::#ident(#(#definitions),*).into()
                 }
+            } else if let Some(as_expr) = as_expr {
+                let ExprClosure {
+                    attrs: _,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_expr(&as_expr.meta)?;
+
+                quote! {
+                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
+                    (<$ty>::#ident(#(#definitions),*))
+                }
             } else {
                 quote! {
                     <$ty>::#ident(#(#definitions),*)
