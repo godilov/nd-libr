@@ -16,7 +16,7 @@ mod kw {
     syn::custom_keyword!(ne);
 }
 
-/// Generate structured assertions
+/// Generate structured assertions.
 ///
 /// # Syntax
 ///
@@ -38,7 +38,7 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Generate primitive argument range with prime number step
+/// Generate primitive argument range with prime number step.
 ///
 /// # Syntax
 ///
