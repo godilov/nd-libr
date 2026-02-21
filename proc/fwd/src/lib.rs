@@ -16,7 +16,7 @@ mod kw {
     syn::custom_keyword!(with);
 }
 
-/// Implements `Deref`, `DerefMut`, `AsRef`, `AsMut`, `FromIterator`.
+/// Implements [`Deref`](std::ops::Deref), [`DerefMut`](std::ops::DerefMut), [`AsRef`], [`AsMut`], [`FromIterator`].
 ///
 /// # Syntax
 ///
@@ -92,7 +92,7 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Implements `PartialEq`, `Eq`, `PartialOrd`, `Ord`.
+/// Implements [`PartialEq`], [`Eq`], [`PartialOrd`], [`Ord`].
 ///
 /// # Syntax
 ///
@@ -168,7 +168,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Implements `Display`, `Binary`, `Octal`, `LowerHex`, `UpperHex`.
+/// Implements [`Display`](std::fmt::Display), [`Binary`](std::fmt::Binary), [`Octal`](std::fmt::Octal), [`LowerHex`](std::fmt::LowerHex), [`UpperHex`](std::fmt::UpperHex).
 ///
 /// # Syntax
 ///
