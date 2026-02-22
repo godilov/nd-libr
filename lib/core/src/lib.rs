@@ -1,7 +1,31 @@
+#![doc = include_str!("../README.md")]
+
 use std::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
+
+pub mod iter {
+    pub trait IteratorExt: Iterator {
+        fn collect_with<Dst>(&mut self, mut dst: Dst) -> Dst
+        where
+            for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
+        {
+            dst.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
+            dst
+        }
+
+        fn collect_with_mut<'dst, Dst>(&mut self, dst: &'dst mut Dst) -> &'dst mut Dst
+        where
+            for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
+        {
+            dst.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
+            dst
+        }
+    }
+
+    impl<Iter: Iterator> IteratorExt for Iter {}
+}
 
 pub mod convert {
     pub trait NdFrom<T>: Sized {
@@ -27,21 +51,6 @@ pub mod convert {
             V::try_from(value)
         }
     }
-}
-
-pub mod iter {
-    pub trait IteratorExt: Iterator {
-        fn collect_with<Collection>(&mut self, mut collection: Collection) -> Collection
-        where
-            Self: Sized,
-            for<'item> &'item mut Collection: IntoIterator<Item = &'item mut Self::Item>,
-        {
-            collection.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
-            collection
-        }
-    }
-
-    impl<Iter: Iterator> IteratorExt for Iter {}
 }
 
 pub mod ops {
