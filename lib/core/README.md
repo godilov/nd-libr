@@ -49,7 +49,7 @@ let arr = (0..=u8::MAX).into_iter().collect_with([0; 1usize << 4]);         // C
 
 `ndcore::convert::*` provides `NdFrom` and `NdTryFrom`.
 
-- Like `std::convert::*`, they can be used for conversion.
+- Like `std::convert::*`, they can be used to describe conversion.
 - Unlike `std::convert::*`, they can be used [simultaneously](https://github.com/rust-lang/rust/issues/50133).
 
 **Relations**:
@@ -63,9 +63,9 @@ let arr = (0..=u8::MAX).into_iter().collect_with([0; 1usize << 4]);         // C
 
 `ndcore::ops::*` provides all operation-related traits like `std::ops::{Add, Sub, ...}` but in different form.
 
-- Like `std::ops::*`, they can be used for operations.
-- Unlike `std::ops::*`, they use reference-only arguments by default.
-- Unlike `std::ops::*`, they decouple implementation type from `Lhs`, `Rhs` and `Res` types.
+- Like `std::ops::*`, they can be used to describe operations.
+- Unlike `std::ops::*`, they define reference-only arguments only.
+- Unlike `std::ops::*`, they define implementation on any type.
 
 It allows to use them efficiently in generics and traits context without [Higher-Rank Trait Bounds](https://doc.rust-lang.org/nomicon/hrtb.html) and expensive cloning.
 They are also implemented for all standard Rust types and operations over them.
