@@ -4,7 +4,7 @@ use proc_macro::TokenStream as TokenStreamStd;
 use quote::quote;
 use syn::{Error, Item, parse_macro_input, spanned::Spanned};
 
-/// Aligns struct, enum or union according to approximate architecture cacheline size.
+/// Aligns **struct**, **enum** or **union** according to approximate architecture cacheline size.
 ///
 /// | Architecture | Alignment |
 /// | ------------ | --------- |

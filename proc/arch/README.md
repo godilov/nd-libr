@@ -13,12 +13,12 @@ ndarch = "*"
 
 #### [`ndarch::align`](align)
 
+The macro aligns **struct**, **enum** or **union** according to approximate architecture cacheline size.
+
 ```text
 #[ndarch::align]
 (STRUCT | ENUM | UNION)
 ```
-
-The macro aligns struct, enum or union according to approximate architecture cacheline size.
 
 | Architecture | Alignment |
 | ------------ | --------- |

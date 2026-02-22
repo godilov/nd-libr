@@ -19,10 +19,10 @@ ndcore = "*"
 
 ### Iter
 
-`ndcore::iter::*` provides `IteratorExt` that auto-implemented for every `Iterator` and contains:
+`ndcore::iter::*` provides [`IteratorExt`](crate::iter::IteratorExt) that auto-implemented for every [`Iterator`] and contains:
 
-- `collect_with()` - collect over destination collection by value.
-- `collect_with_mut()` - collect over destination collection by mutable reference.
+- `iter.collect_with()` - collects iterator with pre-allocated collection by value.
+- `iter.collect_with_mut()` - collect iterator with pre-allocated collection by mutable reference.
 
 **Comparison**:
 
@@ -30,7 +30,7 @@ ndcore = "*"
 - `iter.collect_with(_mut)()` is special-case and allows **not** to collect iterators of any size.
 
 Instead, they require pre-allocated collection that is used as destination for iterator values.
-It runs until either iterator or collection is over and allows to collect with static arrays.
+It runs until either **iterator** or **collection** is over and allows to collect with **static arrays**.
 
 #### Example
 
