@@ -70,32 +70,32 @@ See [examples](#examples) for more information.
 Asserts `verify` for every `value` in `[i16::MIN, ..., i16::MAX]`.
 
 ```rust
-fn verify(_: i16) -> bool {
+fn verify(_: i8) -> bool {
     true
 }
 
-// Complexity: 2 ^ i16::BITS
+// Complexity: 2 ^ i8::BITS
 ndassert::check! { (
-    (i16::MIN..i16::MAX),
+    (i8::MIN..i8::MAX),
 ) [
-    |value: i16| verify(value),
+    |value: i8| verify(value),
 ] }
 ```
 
 Asserts `verify` for every `(lhs, rhs)` in `[i16::MIN, ..., i16::MAX] x [i16::MIN, ..., i16::MAX]`.
 
 ```rust
-fn verify(_: i16, _: i16) -> bool {
+fn verify(_: i8, _: i8) -> bool {
     true
 }
 
-// Complexity: 2 * 2 ^ i16::BITS * 2 ^ i16::BITS
+// Complexity: 2 * 2 ^ i8::BITS * 2 ^ i8::BITS
 ndassert::check! { (
-    (i16::MIN..i16::MAX),
-    (i16::MIN..i16::MAX),
+    (i8::MIN..i8::MAX),
+    (i8::MIN..i8::MAX),
 ) [
-    |lhs: i16, rhs: i16| verify(lhs, rhs), // Direct
-    |lhs: i16, rhs: i16| verify(rhs, lhs), // Inverse
+    |lhs: i8, rhs: i8| verify(lhs, rhs), // Direct
+    |lhs: i8, rhs: i8| verify(rhs, lhs), // Inverse
 ] }
 ```
 

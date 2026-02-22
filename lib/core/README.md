@@ -40,7 +40,7 @@ use ndcore::iter::IteratorExt;
 let vec = (0..=u8::MAX).into_iter().collect::<Vec<u8>>();                   // Collects all values into Vec<u8> of size 1 << 8
 let vec = (0..=u8::MAX).into_iter().collect_with(vec![0; 1usize << 12]);    // Collects all values into Vec<u8> of size 1 << 12
 let vec = (0..=u8::MAX).into_iter().collect_with(vec![0; 1usize << 8]);     // Collects all values into Vec<u8> of size 1 << 8
-let vec = (0..=u8::MAX).into_iter().collect_with(vec![0; 1usize << 4        // Collects  16 values into Vec<u8> of size 1 << 4
+let vec = (0..=u8::MAX).into_iter().collect_with(vec![0; 1usize << 4]);     // Collects  16 values into Vec<u8> of size 1 << 4
 let arr = (0..=u8::MAX).into_iter().collect_with([0; 1usize << 8]);         // Collects all values into [u8; 1 << 8]
 let arr = (0..=u8::MAX).into_iter().collect_with([0; 1usize << 4]);         // Collects  16 values into [u8; 1 << 4]
 ```
@@ -50,7 +50,7 @@ let arr = (0..=u8::MAX).into_iter().collect_with([0; 1usize << 4]);         // C
 `ndcore::convert::*` provides `NdFrom` and `NdTryFrom`.
 
 - Like `std::convert::*`, they can be used to describe conversion.
-- Unlike `std::convert::*`, they can be used [simultaneously](https://github.com/rust-lang/rust/issues/50133).
+- Unlike `std::convert::*`, they can be used **[simultaneously](https://github.com/rust-lang/rust/issues/50133)**.
 
 **Relations**:
 
@@ -64,8 +64,15 @@ let arr = (0..=u8::MAX).into_iter().collect_with([0; 1usize << 4]);         // C
 `ndcore::ops::*` provides all operation-related traits like `std::ops::{Add, Sub, ...}` but in different form.
 
 - Like `std::ops::*`, they can be used to describe operations.
-- Unlike `std::ops::*`, they define reference-only arguments only.
-- Unlike `std::ops::*`, they define implementation on any type.
+- Unlike `std::ops::*`, they define **reference-only** arguments only.
+- Unlike `std::ops::*`, they define implementation on **any** type.
 
 It allows to use them efficiently in generics and traits context without [Higher-Rank Trait Bounds](https://doc.rust-lang.org/nomicon/hrtb.html) and expensive cloning.
 They are also implemented for all standard Rust types and operations over them.
+
+`ndcore::ops::*` also provides convenience traits for describing types that support all standard Rust operations of `Std-kind` or `Nd-kind`.
+
+- `ndcore::ops::Ops` - all binary ops of `Std-kind`
+- `ndcore::ops::NdOps` - all binary ops of `Nd-kind`
+- `ndcore::ops::OpsAssign` - all assign ops of `Std-kind`
+- `ndcore::ops::NdOpsAssign` - all assign ops of `Nd-kind`

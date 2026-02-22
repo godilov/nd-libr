@@ -6,7 +6,20 @@ use std::ops::{
 };
 
 pub mod iter {
+    /// Extends standard Iterator.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait IteratorExt: Iterator {
+        /// Collects iterator with pre-allocated collection by value.
+        ///
+        /// ```rust
+        /// # use ndcore::iter::IteratorExt;
+        ///
+        /// // Collects 4096 at max
+        /// let arr = (0..=4096).into_iter().collect_with([0; 4096]);
+        /// ```
+        ///
+        /// For more information and examples, see [crate-level](crate) documentation.
         fn collect_with<Dst>(&mut self, mut dst: Dst) -> Dst
         where
             for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
@@ -15,6 +28,18 @@ pub mod iter {
             dst
         }
 
+        /// Collects iterator with pre-allocated collection by mutable reference.
+        ///
+        /// ```rust
+        /// # use ndcore::iter::IteratorExt;
+        ///
+        /// let mut arr = [0; 4096];
+        ///
+        /// // Collects 4096 at max
+        /// let arr_mut = (0..=4096).into_iter().collect_with_mut(&mut arr);
+        /// ```
+        ///
+        /// For more information and examples, see [crate-level](crate) documentation.
         fn collect_with_mut<'dst, Dst>(&mut self, dst: &'dst mut Dst) -> &'dst mut Dst
         where
             for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
@@ -28,13 +53,21 @@ pub mod iter {
 }
 
 pub mod convert {
+    /// `Nd` alternative to [`From`] for describing non-failable conversions.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdFrom<T>: Sized {
+        /// Convert from `T` into `Self` in non-failable way
         fn nd_from(value: T) -> Self;
     }
 
+    /// `Nd` alternative to [`TryFrom`] for describing failable conversions.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdTryFrom<T>: Sized {
         type Error;
 
+        /// Convert from `T` into `Self` in failable way
         fn nd_try_from(value: T) -> Result<Self, Self::Error>;
     }
 
@@ -83,118 +116,187 @@ pub mod ops {
         };
     }
 
+    /// `Nd` alternative to [`std::ops::Neg`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdNeg<Value = Self> {
         type Type;
 
         fn neg(value: &Value) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Not`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdNot<Value = Self> {
         type Type;
 
         fn not(value: &Value) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Add`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdAdd<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn add(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Sub`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdSub<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn sub(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Mul`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdMul<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn mul(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Div`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdDiv<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn div(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Rem`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdRem<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn rem(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::BitOr`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdBitOr<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn bitor(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::BitAnd`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdBitAnd<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn bitand(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::BitXor`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdBitXor<Lhs = Self, Rhs = Self> {
         type Type;
 
         fn bitxor(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Shl`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdShl<Lhs = Self, Rhs = usize> {
         type Type;
 
         fn shl(lhs: &Lhs, rhs: Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::Shr`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdShr<Lhs = Self, Rhs = usize> {
         type Type;
 
         fn shr(lhs: &Lhs, rhs: Rhs) -> Self::Type;
     }
 
+    /// `Nd` alternative to [`std::ops::AddAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
         fn add_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::SubAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
         fn sub_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::MulAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
         fn mul_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::DivAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
         fn div_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::RemAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
         fn rem_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::BitOrAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
         fn bitor_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::BitAndAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
         fn bitand_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::BitXorAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
         fn bitxor_assign(lhs: &mut Lhs, rhs: &Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::ShlAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
         fn shl_assign(lhs: &mut Lhs, rhs: Rhs);
     }
 
+    /// `Nd` alternative to [`std::ops::ShrAssign`] for describing operations
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
         fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
     }
 
+    /// Convenience trait for describing types that support all standard Rust binary operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOps<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
         NdAdd<Lhs, Rhs, Type = Self::All>
         + NdSub<Lhs, Rhs, Type = Self::All>
@@ -210,6 +312,9 @@ pub mod ops {
         type All;
     }
 
+    /// Convenience trait for describing types that support all standard Rust assign operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsAssign<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
         NdAddAssign<Lhs, Rhs>
         + NdSubAssign<Lhs, Rhs>
@@ -224,6 +329,9 @@ pub mod ops {
     {
     }
 
+    /// Convenience trait for describing types that support all standard Rust binary operations of `Std-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait Ops<Rhs = Self, ShiftRhs = usize>:
         Sized
         + Copy
@@ -241,6 +349,9 @@ pub mod ops {
         type Type;
     }
 
+    /// Convenience trait for describing types that support all standard Rust assign operations of `Std-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
     pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>:
         Copy
         + AddAssign<Rhs>

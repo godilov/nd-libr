@@ -118,7 +118,7 @@ For [`ndfwd::def`](macro@def):
 
 ## Examples
 
-```rust
+```rust,ignore
 #[ndfwd::decl]
 trait Greeter {
     type Type;
