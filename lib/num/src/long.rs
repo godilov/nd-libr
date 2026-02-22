@@ -1635,7 +1635,7 @@ impl<const L: usize> Display for Unsigned<L> {
 
 impl<const L: usize> Display for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), Sign::POS, write_uhex)
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
@@ -1653,7 +1653,7 @@ impl<const L: usize> Binary for Unsigned<L> {
 
 impl<const L: usize> Binary for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Bin.into(), Sign::POS, write_bin)
+        write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
@@ -1686,7 +1686,7 @@ impl<const L: usize> Octal for Bytes<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Oct.into(), Sign::POS, write_oct)
+        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
@@ -1704,7 +1704,7 @@ impl<const L: usize> LowerHex for Unsigned<L> {
 
 impl<const L: usize> LowerHex for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), Sign::POS, write_lhex)
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
@@ -1722,7 +1722,7 @@ impl<const L: usize> UpperHex for Unsigned<L> {
 
 impl<const L: usize> UpperHex for Bytes<L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), Sign::POS, write_uhex)
+        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
