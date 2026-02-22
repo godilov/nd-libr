@@ -528,14 +528,14 @@ macro_rules! shl_impl {
             let idx_h = idx - offset;
             let idx_l = idx - offset - 1;
 
-            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
+            let val_h = res[idx_h].unbounded_shl(shl as u32);
+            let val_l = res[idx_l].unbounded_shr(shr as u32);
 
             res[idx] = val_h | val_l;
         }
 
-        let val_h = res[0].checked_shl(shl as u32).unwrap_or(0);
-        let val_l = $default.checked_shr(shr as u32).unwrap_or(0);
+        let val_h = res[0].unbounded_shl(shl as u32);
+        let val_l = $default.unbounded_shr(shr as u32);
 
         res[offset] = val_h | val_l;
 
@@ -562,14 +562,14 @@ macro_rules! shr_impl {
             let idx_h = idx + offset + 1;
             let idx_l = idx + offset;
 
-            let val_h = res[idx_h].checked_shl(shl as u32).unwrap_or(0);
-            let val_l = res[idx_l].checked_shr(shr as u32).unwrap_or(0);
+            let val_h = res[idx_h].unbounded_shl(shl as u32);
+            let val_l = res[idx_l].unbounded_shr(shr as u32);
 
             res[idx] = val_h | val_l;
         }
 
-        let val_h = $default.checked_shl(shl as u32).unwrap_or(0);
-        let val_l = res[L - 1].checked_shr(shr as u32).unwrap_or(0);
+        let val_h = $default.unbounded_shl(shl as u32);
+        let val_l = res[L - 1].unbounded_shr(shr as u32);
 
         res[L - offset - 1] = val_h | val_l;
 
@@ -2992,16 +2992,17 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Res
     sign: Sign,
     func: F,
 ) -> std::fmt::Result {
+    let prefix = if fmt.alternate() { radix.prefix } else { "" };
+    let width = radix.width as usize;
+
     let sign = match sign {
         Sign::ZERO => {
-            return write!(fmt, "{}0", radix.prefix);
+            return write!(fmt, "{}0", prefix);
         },
         Sign::NEG => "-",
         Sign::POS => "",
     };
 
-    let prefix = radix.prefix;
-    let width = radix.width as usize;
     let len = length!(words);
 
     let mut buf = vec![b'0'; len * width];
@@ -3031,16 +3032,17 @@ fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt
 where
     Words: WordsIterator<Item = W>,
 {
+    let prefix = if fmt.alternate() { radix.prefix } else { "" };
+    let width = radix.width as usize;
+
     let sign = match sign {
         Sign::ZERO => {
-            return write!(fmt, "{}0", radix.prefix);
+            return write!(fmt, "{}0", prefix);
         },
         Sign::NEG => "-",
         Sign::POS => "",
     };
 
-    let prefix = radix.prefix;
-    let width = radix.width as usize;
     let len = words.len();
 
     let mut buf = vec![b'0'; len * width];
@@ -3319,23 +3321,6 @@ mod tests {
                     $({
                         let lval = ($fn_lval)(long, b);
                         let rval = ($fn_rval)(a, b);
-
-                        assert_eq!(lval, rval);
-                    })+
-                }
-            }
-        };
-    }
-
-    macro_rules! assert_ops_shift {
-        ($type:ty, $iter_val:expr, $iter_shift:expr, [$(($fn_lval:expr) ($fn_rval:expr)),+ $(,)?]) => {
-            for val in $iter_val {
-                for shift in $iter_shift {
-                    let long = <$type>::from(val);
-
-                    $({
-                        let lval = ($fn_lval)(long, shift);
-                        let rval = ($fn_rval)(val, shift);
 
                         assert_eq!(lval, rval);
                     })+
@@ -3684,42 +3669,43 @@ mod tests {
 
     #[test]
     fn to_str() {
-        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
-            let bytes = val.to_le_bytes();
+        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
+            |value: u64| (format!("{:}",  S64::from(value as i64)), format!("{:}",  (value as i64))),
+            |value: u64| (format!("{:b}", S64::from(value as i64)), format!("{:b}", (value as i64))),
+            |value: u64| (format!("{:o}", S64::from(value as i64)), format!("{:o}", (value as i64))),
+            |value: u64| (format!("{:x}", S64::from(value as i64)), format!("{:x}", (value as i64))),
+            |value: u64| (format!("{:X}", S64::from(value as i64)), format!("{:X}", (value as i64))),
 
-            let pval = val as i64;
-            let nval = -(val as i64);
+            |value: u64| (format!("{:}",  S64::from(-(value as i64))), format!("{:}",  -(value as i64))),
+            |value: u64| (format!("{:b}", S64::from(-(value as i64))), format!("{:b}", -(value as i64))),
+            |value: u64| (format!("{:o}", S64::from(-(value as i64))), format!("{:o}", -(value as i64))),
+            |value: u64| (format!("{:x}", S64::from(-(value as i64))), format!("{:x}", -(value as i64))),
+            |value: u64| (format!("{:X}", S64::from(-(value as i64))), format!("{:X}", -(value as i64))),
 
-            let pos_dec = format!("{pval:#}");
-            let pos_bin = format!("{pval:#b}");
-            let pos_oct = format!("{pval:#o}");
-            let pos_hex = format!("{pval:#x}");
+            |value: u64| (format!("{:}",  U64::from(value)), format!("{:}",  value)),
+            |value: u64| (format!("{:b}", U64::from(value)), format!("{:b}", value)),
+            |value: u64| (format!("{:o}", U64::from(value)), format!("{:o}", value)),
+            |value: u64| (format!("{:x}", U64::from(value)), format!("{:x}", value)),
+            |value: u64| (format!("{:X}", U64::from(value)), format!("{:X}", value)),
 
-            let neg_dec = format!("{nval:#}");
-            let neg_bin = format!("{nval:#b}");
-            let neg_oct = format!("{nval:#o}");
-            let neg_hex = format!("{nval:#x}");
+            |value: u64| (format!("{:#}",  S64::from(value as i64)), format!("{:#}",  (value as i64))),
+            |value: u64| (format!("{:#b}", S64::from(value as i64)), format!("{:#b}", (value as i64))),
+            |value: u64| (format!("{:#o}", S64::from(value as i64)), format!("{:#o}", (value as i64))),
+            |value: u64| (format!("{:#x}", S64::from(value as i64)), format!("{:#x}", (value as i64))),
+            |value: u64| (format!("{:#X}", S64::from(value as i64)), format!("{:#X}", (value as i64))),
 
-            let dec = format!("{val:#}");
-            let bin = format!("{val:#b}");
-            let oct = format!("{val:#o}");
-            let hex = format!("{val:#x}");
+            |value: u64| (format!("{:#}",  S64::from(-(value as i64))), format!("{:#}",  -(value as i64))),
+            |value: u64| (format!("{:#b}", S64::from(-(value as i64))), format!("{:#b}", -(value as i64))),
+            |value: u64| (format!("{:#o}", S64::from(-(value as i64))), format!("{:#o}", -(value as i64))),
+            |value: u64| (format!("{:#x}", S64::from(-(value as i64))), format!("{:#x}", -(value as i64))),
+            |value: u64| (format!("{:#X}", S64::from(-(value as i64))), format!("{:#X}", -(value as i64))),
 
-            assert_eq!(format!("{:#}", S64 { 0: pos(&bytes) }), pos_dec);
-            assert_eq!(format!("{:#b}", S64 { 0: pos(&bytes) }), pos_bin);
-            assert_eq!(format!("{:#o}", S64 { 0: pos(&bytes) }), pos_oct);
-            assert_eq!(format!("{:#x}", S64 { 0: pos(&bytes) }), pos_hex);
-
-            assert_eq!(format!("{:#}", S64 { 0: neg(&bytes) }), neg_dec);
-            assert_eq!(format!("{:#b}", S64 { 0: neg(&bytes) }), neg_bin);
-            assert_eq!(format!("{:#o}", S64 { 0: neg(&bytes) }), neg_oct);
-            assert_eq!(format!("{:#x}", S64 { 0: neg(&bytes) }), neg_hex);
-
-            assert_eq!(format!("{:#}", U64 { 0: pos(&bytes) }), dec);
-            assert_eq!(format!("{:#b}", U64 { 0: pos(&bytes) }), bin);
-            assert_eq!(format!("{:#o}", U64 { 0: pos(&bytes) }), oct);
-            assert_eq!(format!("{:#x}", U64 { 0: pos(&bytes) }), hex);
-        }
+            |value: u64| (format!("{:#}",  U64::from(value)), format!("{:#}",  value)),
+            |value: u64| (format!("{:#b}", U64::from(value)), format!("{:#b}", value)),
+            |value: u64| (format!("{:#o}", U64::from(value)), format!("{:#o}", value)),
+            |value: u64| (format!("{:#x}", U64::from(value)), format!("{:#x}", value)),
+            |value: u64| (format!("{:#X}", U64::from(value)), format!("{:#X}", value)),
+        ] }
     }
 
     #[test]
@@ -4080,45 +4066,47 @@ mod tests {
 
     #[test]
     fn signed_ops_rhs() {
-        assert_ops_shift!(
-            S64,
-            (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]),
-            0..64,
-            [
-                (|lhs: S64, rhs: usize| { lhs << rhs })(|lhs: i64, rhs: usize| { S64::from(lhs << rhs) }),
-                (|lhs: S64, rhs: usize| { lhs >> rhs })(|lhs: i64, rhs: usize| { S64::from(lhs >> rhs) }),
-            ]
-        );
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 48),
+            0..128,
+        ) [
+            |lhs: i64, rhs: usize| (S64::from(lhs) << rhs, S64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: i64, rhs: usize| (S64::from(lhs) >> rhs, S64::from(lhs.unbounded_shr(rhs as u32))),
+        ]}
     }
 
     #[test]
     fn unsigned_ops_rhs() {
-        assert_ops_shift!(
-            U64,
-            (1..u64::MAX).step_by(PRIMES_48BIT[0]),
-            0..64,
-            [
-                (|lhs: U64, rhs: usize| { lhs << rhs })(|lhs: u64, rhs: usize| { U64::from(lhs << rhs) }),
-                (|lhs: U64, rhs: usize| { lhs >> rhs })(|lhs: u64, rhs: usize| { U64::from(lhs >> rhs) }),
-            ]
-        );
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 48),
+            0..128,
+        ) [
+            |lhs: u64, rhs: usize| (U64::from(lhs) << rhs, U64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: u64, rhs: usize| (U64::from(lhs) >> rhs, U64::from(lhs.unbounded_shr(rhs as u32))),
+        ]}
     }
 
     #[test]
     #[rustfmt::skip]
     fn signed_ops_rhs_assign() {
-        assert_ops_shift!(S64, (i64::MIN + 1..i64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|mut lhs: S64, rhs: usize| { lhs <<= rhs; lhs })(|lhs: i64, rhs: usize| { S64::from(lhs << rhs) }),
-            (|mut lhs: S64, rhs: usize| { lhs >>= rhs; lhs })(|lhs: i64, rhs: usize| { S64::from(lhs >> rhs) }),
-        ]);
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 48),
+            0..128,
+        ) [
+            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val <<= rhs; val }, S64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val >>= rhs; val }, S64::from(lhs.unbounded_shr(rhs as u32))),
+        ]}
     }
 
     #[test]
     #[rustfmt::skip]
     fn unsigned_ops_rhs_assign() {
-        assert_ops_shift!(U64, (1..u64::MAX).step_by(PRIMES_48BIT[0]), 0..64, [
-            (|mut lhs: U64, rhs: usize| { lhs <<= rhs; lhs })(|lhs: u64, rhs: usize| { U64::from(lhs << rhs) }),
-            (|mut lhs: U64, rhs: usize| { lhs >>= rhs; lhs })(|lhs: u64, rhs: usize| { U64::from(lhs >> rhs) }),
-        ]);
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 48),
+            0..128,
+        ) [
+            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val <<= rhs; val }, U64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val >>= rhs; val }, U64::from(lhs.unbounded_shr(rhs as u32))),
+        ]}
     }
 }

@@ -19,17 +19,17 @@ macro_rules! num_impl {
     ($primitive:ty $(,)?) => {
         impl NumExt for $primitive {
             fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self |= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
+                *self |= (mask.unbounded_shl(offset as u32)) as $primitive;
                 self
             }
 
             fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self &= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
+                *self &= (mask.unbounded_shl(offset as u32)) as $primitive;
                 self
             }
 
             fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self ^= (mask.checked_shl(offset as u32).unwrap_or(0)) as $primitive;
+                *self ^= (mask.unbounded_shl(offset as u32)) as $primitive;
                 self
             }
         }
