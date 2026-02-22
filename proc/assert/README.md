@@ -37,7 +37,7 @@ The macro consists of three parts:
 - For `@eq`, it expectes expression to return `(T, T)` value and then checks as `assert_eq!`
 - For `@ne`, it expectes expression to return `(T, T)` value and then checks as `assert_ne!`
 
-Every `assert!` includes associated with failed case information like specific expression and arguments values.
+Every `assert!` includes associated with failed case information like specific expression, arguments values, asserted values (for `@eq` and `@ne`).
 
 ### [`ndassert::range!`](range)
 

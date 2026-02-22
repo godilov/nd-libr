@@ -3725,24 +3725,24 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn signed_cmp() {
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(i64, 56, 0),
             ndassert::range!(i64, 56, 1),
         ) [
-            |lhs: i64, rhs: i64| S64::from(lhs).eq (&S64::from(rhs)) == lhs.eq (&rhs),
-            |lhs: i64, rhs: i64| S64::from(lhs).cmp(&S64::from(rhs)) == lhs.cmp(&rhs),
+            |lhs: i64, rhs: i64| (S64::from(lhs).eq (&S64::from(rhs)), lhs.eq (&rhs)),
+            |lhs: i64, rhs: i64| (S64::from(lhs).cmp(&S64::from(rhs)), lhs.cmp(&rhs)),
         ] }
     }
 
     #[test]
     #[rustfmt::skip]
     fn unsigned_cmp() {
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(u64, 56, 0),
             ndassert::range!(u64, 56, 1),
         ) [
-            |lhs: u64, rhs: u64| U64::from(lhs).eq (&U64::from(rhs)) == lhs.eq (&rhs),
-            |lhs: u64, rhs: u64| U64::from(lhs).cmp(&U64::from(rhs)) == lhs.cmp(&rhs),
+            |lhs: u64, rhs: u64| (U64::from(lhs).eq (&U64::from(rhs)), lhs.eq (&rhs)),
+            |lhs: u64, rhs: u64| (U64::from(lhs).cmp(&U64::from(rhs)), lhs.cmp(&rhs)),
         ] }
     }
 
@@ -3750,15 +3750,15 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn signed_cmp_ct() {
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(i64, 56, 0),
             ndassert::range!(i64, 56, 1),
         ) [
-            |lhs: i64, rhs: i64| S64::from(lhs).eq_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs == rhs) as MaskCt,
-            |lhs: i64, rhs: i64| S64::from(lhs).lt_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs <  rhs) as MaskCt,
-            |lhs: i64, rhs: i64| S64::from(lhs).gt_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs >  rhs) as MaskCt,
-            |lhs: i64, rhs: i64| S64::from(lhs).le_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs <= rhs) as MaskCt,
-            |lhs: i64, rhs: i64| S64::from(lhs).ge_ct(&S64::from(rhs)) == MaskCt::MAX * (lhs >= rhs) as MaskCt,
+            |lhs: i64, rhs: i64| (S64::from(lhs).eq_ct(&S64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            |lhs: i64, rhs: i64| (S64::from(lhs).lt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            |lhs: i64, rhs: i64| (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            |lhs: i64, rhs: i64| (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            |lhs: i64, rhs: i64| (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
         ] }
     }
 
@@ -3766,15 +3766,15 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn unsigned_cmp_ct() {
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(u64, 56, 0),
             ndassert::range!(u64, 56, 1),
         ) [
-            |lhs: u64, rhs: u64| U64::from(lhs).eq_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs == rhs) as MaskCt,
-            |lhs: u64, rhs: u64| U64::from(lhs).lt_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs <  rhs) as MaskCt,
-            |lhs: u64, rhs: u64| U64::from(lhs).gt_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs >  rhs) as MaskCt,
-            |lhs: u64, rhs: u64| U64::from(lhs).le_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs <= rhs) as MaskCt,
-            |lhs: u64, rhs: u64| U64::from(lhs).ge_ct(&U64::from(rhs)) == MaskCt::MAX * (lhs >= rhs) as MaskCt,
+            |lhs: u64, rhs: u64| (U64::from(lhs).eq_ct(&U64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            |lhs: u64, rhs: u64| (U64::from(lhs).lt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            |lhs: u64, rhs: u64| (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            |lhs: u64, rhs: u64| (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            |lhs: u64, rhs: u64| (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
         ] }
     }
 
@@ -3788,18 +3788,18 @@ mod tests {
             lhs
         }
 
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(i64, 56, 0).chain([0]),
             ndassert::range!(i64, 56, 1).chain([0]),
         ) [
-            |lhs: i64, rhs: i64| S64::from(lhs) + S64::from(rhs) == S64::from(lhs.wrapping_add(rhs)),
-            |lhs: i64, rhs: i64| S64::from(lhs) - S64::from(rhs) == S64::from(lhs.wrapping_sub(rhs)),
-            |lhs: i64, rhs: i64| S64::from(lhs) * S64::from(rhs) == S64::from(lhs.wrapping_mul(rhs)),
-            |lhs: i64, rhs: i64| S64::from(lhs) / S64::from(rhs) == S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
-            |lhs: i64, rhs: i64| S64::from(lhs) % S64::from(rhs) == S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
-            |lhs: i64, rhs: i64| S64::from(lhs) | S64::from(rhs) == S64::from(lhs | rhs),
-            |lhs: i64, rhs: i64| S64::from(lhs) & S64::from(rhs) == S64::from(lhs & rhs),
-            |lhs: i64, rhs: i64| S64::from(lhs) ^ S64::from(rhs) == S64::from(lhs ^ rhs),
+            |lhs: i64, rhs: i64| (S64::from(lhs) + S64::from(rhs), S64::from(lhs.wrapping_add(rhs))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) - S64::from(rhs), S64::from(lhs.wrapping_sub(rhs))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) * S64::from(rhs), S64::from(lhs.wrapping_mul(rhs))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) / S64::from(rhs), S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) % S64::from(rhs), S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) | S64::from(rhs), S64::from(lhs | rhs)),
+            |lhs: i64, rhs: i64| (S64::from(lhs) & S64::from(rhs), S64::from(lhs & rhs)),
+            |lhs: i64, rhs: i64| (S64::from(lhs) ^ S64::from(rhs), S64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -3813,18 +3813,18 @@ mod tests {
             lhs
         }
 
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(u64, 56, 0).chain([0]),
             ndassert::range!(u64, 56, 1).chain([0]),
         ) [
-            |lhs: u64, rhs: u64| U64::from(lhs) + U64::from(rhs) == U64::from(lhs.wrapping_add(rhs)),
-            |lhs: u64, rhs: u64| U64::from(lhs) - U64::from(rhs) == U64::from(lhs.wrapping_sub(rhs)),
-            |lhs: u64, rhs: u64| U64::from(lhs) * U64::from(rhs) == U64::from(lhs.wrapping_mul(rhs)),
-            |lhs: u64, rhs: u64| U64::from(lhs) / U64::from(rhs) == U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
-            |lhs: u64, rhs: u64| U64::from(lhs) % U64::from(rhs) == U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
-            |lhs: u64, rhs: u64| U64::from(lhs) | U64::from(rhs) == U64::from(lhs | rhs),
-            |lhs: u64, rhs: u64| U64::from(lhs) & U64::from(rhs) == U64::from(lhs & rhs),
-            |lhs: u64, rhs: u64| U64::from(lhs) ^ U64::from(rhs) == U64::from(lhs ^ rhs),
+            |lhs: u64, rhs: u64| (U64::from(lhs) + U64::from(rhs), U64::from(lhs.wrapping_add(rhs))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) - U64::from(rhs), U64::from(lhs.wrapping_sub(rhs))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) * U64::from(rhs), U64::from(lhs.wrapping_mul(rhs))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) / U64::from(rhs), U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) % U64::from(rhs), U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) | U64::from(rhs), U64::from(lhs | rhs)),
+            |lhs: u64, rhs: u64| (U64::from(lhs) & U64::from(rhs), U64::from(lhs & rhs)),
+            |lhs: u64, rhs: u64| (U64::from(lhs) ^ U64::from(rhs), U64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -3844,24 +3844,24 @@ mod tests {
             abs & Double::MAX as i64
         }
 
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(i64, 56).chain([0]),
             i8::MIN..i8::MAX,
         ) [
-            |lhs: i64, rhs: i8| S64::from(lhs) + rhs == S64::from(lhs.wrapping_add(rhs as i64)),
-            |lhs: i64, rhs: i8| S64::from(lhs) - rhs == S64::from(lhs.wrapping_sub(rhs as i64)),
-            |lhs: i64, rhs: i8| S64::from(lhs) * rhs == S64::from(lhs.wrapping_mul(rhs as i64)),
-            |lhs: i64, rhs: i8| S64::from(lhs) / rhs == S64::from(lhs.checked_div(rhs as i64).unwrap_or(div_default(lhs, rhs))),
-            |lhs: i64, rhs: i8| S64::from(lhs) % rhs == S64::from(lhs.checked_rem(rhs as i64).unwrap_or(rem_default(lhs, rhs))),
-            |lhs: i64, rhs: i8| S64::from(lhs) | rhs == S64::from(lhs | rhs as i64),
-            |lhs: i64, rhs: i8| S64::from(lhs) & rhs == S64::from(lhs & rhs as i64),
-            |lhs: i64, rhs: i8| S64::from(lhs) ^ rhs == S64::from(lhs ^ rhs as i64),
+            |lhs: i64, rhs: i8| (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs as i64))),
+            |lhs: i64, rhs: i8| (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
+            |lhs: i64, rhs: i8| (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
+            |lhs: i64, rhs: i8| (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs as i64).unwrap_or(div_default(lhs, rhs)))),
+            |lhs: i64, rhs: i8| (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs as i64).unwrap_or(rem_default(lhs, rhs)))),
+            |lhs: i64, rhs: i8| (S64::from(lhs) | rhs, S64::from(lhs | rhs as i64)),
+            |lhs: i64, rhs: i8| (S64::from(lhs) & rhs, S64::from(lhs & rhs as i64)),
+            |lhs: i64, rhs: i8| (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs as i64)),
 
-            |lhs: i64, rhs: i8| rhs + S64::from(lhs) == S64::from(lhs.wrapping_add(rhs as i64)),
-            |lhs: i64, rhs: i8| rhs * S64::from(lhs) == S64::from(lhs.wrapping_mul(rhs as i64)),
-            |lhs: i64, rhs: i8| rhs | S64::from(lhs) == S64::from(lhs | rhs as i64),
-            |lhs: i64, rhs: i8| rhs & S64::from(lhs) == S64::from(lhs & rhs as i64),
-            |lhs: i64, rhs: i8| rhs ^ S64::from(lhs) == S64::from(lhs ^ rhs as i64),
+            |lhs: i64, rhs: i8| (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs as i64))),
+            |lhs: i64, rhs: i8| (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs as i64))),
+            |lhs: i64, rhs: i8| (rhs | S64::from(lhs), S64::from(lhs | rhs as i64)),
+            |lhs: i64, rhs: i8| (rhs & S64::from(lhs), S64::from(lhs & rhs as i64)),
+            |lhs: i64, rhs: i8| (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs as i64)),
         ] }
     }
 
@@ -3875,24 +3875,24 @@ mod tests {
             lhs & Double::MAX as u64
         }
 
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(u64, 56).chain([0]),
             u8::MIN..u8::MAX,
         ) [
-            |lhs: u64, rhs: u8| U64::from(lhs) + rhs == U64::from(lhs.wrapping_add(rhs as u64)),
-            |lhs: u64, rhs: u8| U64::from(lhs) - rhs == U64::from(lhs.wrapping_sub(rhs as u64)),
-            |lhs: u64, rhs: u8| U64::from(lhs) * rhs == U64::from(lhs.wrapping_mul(rhs as u64)),
-            |lhs: u64, rhs: u8| U64::from(lhs) / rhs == U64::from(lhs.checked_div(rhs as u64).unwrap_or(div_default(lhs, rhs))),
-            |lhs: u64, rhs: u8| U64::from(lhs) % rhs == U64::from(lhs.checked_rem(rhs as u64).unwrap_or(rem_default(lhs, rhs))),
-            |lhs: u64, rhs: u8| U64::from(lhs) | rhs == U64::from(lhs | rhs as u64),
-            |lhs: u64, rhs: u8| U64::from(lhs) & rhs == U64::from(lhs & rhs as u64),
-            |lhs: u64, rhs: u8| U64::from(lhs) ^ rhs == U64::from(lhs ^ rhs as u64),
+            |lhs: u64, rhs: u8| (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs as u64))),
+            |lhs: u64, rhs: u8| (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
+            |lhs: u64, rhs: u8| (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
+            |lhs: u64, rhs: u8| (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs as u64).unwrap_or(div_default(lhs, rhs)))),
+            |lhs: u64, rhs: u8| (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs as u64).unwrap_or(rem_default(lhs, rhs)))),
+            |lhs: u64, rhs: u8| (U64::from(lhs) | rhs, U64::from(lhs | rhs as u64)),
+            |lhs: u64, rhs: u8| (U64::from(lhs) & rhs, U64::from(lhs & rhs as u64)),
+            |lhs: u64, rhs: u8| (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs as u64)),
 
-            |lhs: u64, rhs: u8| rhs + U64::from(lhs) == U64::from(lhs.wrapping_add(rhs as u64)),
-            |lhs: u64, rhs: u8| rhs * U64::from(lhs) == U64::from(lhs.wrapping_mul(rhs as u64)),
-            |lhs: u64, rhs: u8| rhs | U64::from(lhs) == U64::from(lhs | rhs as u64),
-            |lhs: u64, rhs: u8| rhs & U64::from(lhs) == U64::from(lhs & rhs as u64),
-            |lhs: u64, rhs: u8| rhs ^ U64::from(lhs) == U64::from(lhs ^ rhs as u64),
+            |lhs: u64, rhs: u8| (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs as u64))),
+            |lhs: u64, rhs: u8| (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs as u64))),
+            |lhs: u64, rhs: u8| (rhs | U64::from(lhs), U64::from(lhs | rhs as u64)),
+            |lhs: u64, rhs: u8| (rhs & U64::from(lhs), U64::from(lhs & rhs as u64)),
+            |lhs: u64, rhs: u8| (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs as u64)),
         ] }
     }
 
@@ -3906,24 +3906,24 @@ mod tests {
             lhs
         }
 
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(i64, 56, 0).chain([0]),
             ndassert::range!(i64, 56, 1).chain([0]),
         ) [
-            |lhs: i64, rhs: i64| S64::from(lhs) + rhs == S64::from(lhs.wrapping_add(rhs)),
-            |lhs: i64, rhs: i64| S64::from(lhs) - rhs == S64::from(lhs.wrapping_sub(rhs)),
-            |lhs: i64, rhs: i64| S64::from(lhs) * rhs == S64::from(lhs.wrapping_mul(rhs)),
-            |lhs: i64, rhs: i64| S64::from(lhs) / rhs == S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
-            |lhs: i64, rhs: i64| S64::from(lhs) % rhs == S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
-            |lhs: i64, rhs: i64| S64::from(lhs) | rhs == S64::from(lhs | rhs),
-            |lhs: i64, rhs: i64| S64::from(lhs) & rhs == S64::from(lhs & rhs),
-            |lhs: i64, rhs: i64| S64::from(lhs) ^ rhs == S64::from(lhs ^ rhs),
+            |lhs: i64, rhs: i64| (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            |lhs: i64, rhs: i64| (S64::from(lhs) | rhs, S64::from(lhs | rhs)),
+            |lhs: i64, rhs: i64| (S64::from(lhs) & rhs, S64::from(lhs & rhs)),
+            |lhs: i64, rhs: i64| (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs)),
 
-            |lhs: i64, rhs: i64| rhs + S64::from(lhs) == S64::from(lhs.wrapping_add(rhs)),
-            |lhs: i64, rhs: i64| rhs * S64::from(lhs) == S64::from(lhs.wrapping_mul(rhs)),
-            |lhs: i64, rhs: i64| rhs | S64::from(lhs) == S64::from(lhs | rhs),
-            |lhs: i64, rhs: i64| rhs & S64::from(lhs) == S64::from(lhs & rhs),
-            |lhs: i64, rhs: i64| rhs ^ S64::from(lhs) == S64::from(lhs ^ rhs),
+            |lhs: i64, rhs: i64| (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs))),
+            |lhs: i64, rhs: i64| (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs))),
+            |lhs: i64, rhs: i64| (rhs | S64::from(lhs), S64::from(lhs | rhs)),
+            |lhs: i64, rhs: i64| (rhs & S64::from(lhs), S64::from(lhs & rhs)),
+            |lhs: i64, rhs: i64| (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -3937,24 +3937,24 @@ mod tests {
             lhs
         }
 
-        ndassert::check! { (
+        ndassert::check! { @eq (
             ndassert::range!(u64, 56, 0).chain([0]),
             ndassert::range!(u64, 56, 1).chain([0]),
         ) [
-            |lhs: u64, rhs: u64| U64::from(lhs) + rhs == U64::from(lhs.wrapping_add(rhs)),
-            |lhs: u64, rhs: u64| U64::from(lhs) - rhs == U64::from(lhs.wrapping_sub(rhs)),
-            |lhs: u64, rhs: u64| U64::from(lhs) * rhs == U64::from(lhs.wrapping_mul(rhs)),
-            |lhs: u64, rhs: u64| U64::from(lhs) / rhs == U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs))),
-            |lhs: u64, rhs: u64| U64::from(lhs) % rhs == U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs))),
-            |lhs: u64, rhs: u64| U64::from(lhs) | rhs == U64::from(lhs | rhs),
-            |lhs: u64, rhs: u64| U64::from(lhs) & rhs == U64::from(lhs & rhs),
-            |lhs: u64, rhs: u64| U64::from(lhs) ^ rhs == U64::from(lhs ^ rhs),
+            |lhs: u64, rhs: u64| (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            |lhs: u64, rhs: u64| (U64::from(lhs) | rhs, U64::from(lhs | rhs)),
+            |lhs: u64, rhs: u64| (U64::from(lhs) & rhs, U64::from(lhs & rhs)),
+            |lhs: u64, rhs: u64| (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs)),
 
-            |lhs: u64, rhs: u64| rhs + U64::from(lhs) == U64::from(lhs.wrapping_add(rhs)),
-            |lhs: u64, rhs: u64| rhs * U64::from(lhs) == U64::from(lhs.wrapping_mul(rhs)),
-            |lhs: u64, rhs: u64| rhs | U64::from(lhs) == U64::from(lhs | rhs),
-            |lhs: u64, rhs: u64| rhs & U64::from(lhs) == U64::from(lhs & rhs),
-            |lhs: u64, rhs: u64| rhs ^ U64::from(lhs) == U64::from(lhs ^ rhs),
+            |lhs: u64, rhs: u64| (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs))),
+            |lhs: u64, rhs: u64| (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs))),
+            |lhs: u64, rhs: u64| (rhs | U64::from(lhs), U64::from(lhs | rhs)),
+            |lhs: u64, rhs: u64| (rhs & U64::from(lhs), U64::from(lhs & rhs)),
+            |lhs: u64, rhs: u64| (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs)),
         ] }
     }
 

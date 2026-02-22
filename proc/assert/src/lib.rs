@@ -164,12 +164,12 @@ impl ToTokens for AssertCheck {
                 AssertKind::Eq => quote! {{
                     let val = (#expr)(#args_call);
 
-                    assert_eq!(val.0, val.1, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+                    assert_eq!(val.0, val.1, concat!("{:?} != {:?}\nExpression: {}\n", #args_msg), &val.0, &val.1, stringify!(#expr), #args_call);
                 }},
                 AssertKind::EqNot => quote! {{
                     let val = (#expr)(#args_call);
 
-                    assert_ne!(val.0, val.1, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+                    assert_ne!(val.0, val.1, concat!("{:?} == {:?}\nExpression: {}\n", #args_msg), &val.0, &val.1, stringify!(#expr), #args_call);
                 }},
                 AssertKind::Default => quote! {
                     assert!((#expr)(#args_call), concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
