@@ -3522,19 +3522,15 @@ mod tests {
     }
 
     #[test]
-    fn from_digits() -> Result<()> {
-        let empty = &[];
+    fn from_digits() {
+        macro_rules! generate {
+            ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
+                const BYTES: usize = <$primitive>::BITS as usize / 8;
 
-        assert_eq!(S64::from_digits(empty, ExpImpl { exp: 7 })?, S64::default());
-        assert_eq!(U64::from_digits(empty, ExpImpl { exp: 7 })?, U64::default());
-        assert_eq!(S64::from_digits(empty, RadixImpl { radix: 251u8 })?, S64::default());
-        assert_eq!(U64::from_digits(empty, RadixImpl { radix: 251u8 })?, U64::default());
+                let rng = $rng;
+                let radix = $radix;
 
-        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
-
-        for radix in 2..=u8::MAX {
-            for _ in 0..=u8::MAX {
-                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
 
                 let bytes = digits
                     .iter()
@@ -3542,34 +3538,35 @@ mod tests {
                     .fold(0, |acc, &x| acc * radix as u64 + x as u64)
                     .to_le_bytes();
 
-                assert_eq!(S64::from_digits(digits, RadixImpl { radix })?, S64 { 0: pos(&bytes) });
-                assert_eq!(U64::from_digits(digits, RadixImpl { radix })?, U64 { 0: pos(&bytes) });
-            }
+                let lhs = <$long>::from_digits(digits, RadixImpl { radix });
+                let rhs = <$long>::nd_from(&bytes);
+
+                (lhs, Ok(rhs))
+            }};
         }
 
-        Ok(())
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        ndassert::check! { @eq (
+            2..=u8::MAX,
+            0..=u8::MAX,
+        ) [
+            |radix: u8, _: u8| generate!(S64, i64, &mut rng, radix),
+            |radix: u8, _: u8| generate!(U64, u64, &mut rng, radix),
+        ] }
     }
 
     #[test]
-    fn from_digits_iter() -> Result<()> {
-        let empty = [].into_iter().copied();
+    fn from_digits_iter() {
+        macro_rules! generate {
+            ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
+                const BYTES: usize = <$primitive>::BITS as usize / 8;
 
-        assert_eq!(S64::from_digits_iter(empty.clone(), ExpImpl { exp: 7 })?, S64::default());
-        assert_eq!(U64::from_digits_iter(empty.clone(), ExpImpl { exp: 7 })?, U64::default());
-        assert_eq!(
-            S64::from_digits_iter(empty.clone(), RadixImpl { radix: 251u8 })?,
-            S64::default()
-        );
-        assert_eq!(
-            U64::from_digits_iter(empty.clone(), RadixImpl { radix: 251u8 })?,
-            U64::default()
-        );
+                let rng = $rng;
+                let radix = $radix;
 
-        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
-
-        for radix in 2..=u8::MAX {
-            for _ in 0..=u8::MAX {
-                let digits = (0..8).map(|_| rng.random_range(..radix)).collect_with([0; 8]);
+                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+                let iter = digits.iter().copied();
 
                 let bytes = digits
                     .iter()
@@ -3577,19 +3574,22 @@ mod tests {
                     .fold(0, |acc, &x| acc * radix as u64 + x as u64)
                     .to_le_bytes();
 
-                assert_eq!(
-                    S64::from_digits_iter(digits.iter().copied(), RadixImpl { radix })?,
-                    S64 { 0: pos(&bytes) }
-                );
+                let lhs = <$long>::from_digits_iter(iter, RadixImpl { radix });
+                let rhs = <$long>::nd_from(&bytes);
 
-                assert_eq!(
-                    U64::from_digits_iter(digits.iter().copied(), RadixImpl { radix })?,
-                    U64 { 0: pos(&bytes) }
-                );
-            }
+                (lhs, Ok(rhs))
+            }};
         }
 
-        Ok(())
+        let mut rng = StdRng::seed_from_u64(PRIMES_48BIT[0] as u64);
+
+        ndassert::check! { @eq (
+            2..=u8::MAX,
+            0..=u8::MAX,
+        ) [
+            |radix: u8, _: u8| generate!(S64, i64, &mut rng, radix),
+            |radix: u8, _: u8| generate!(U64, u64, &mut rng, radix),
+        ] }
     }
 
     #[test]
