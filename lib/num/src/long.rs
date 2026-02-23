@@ -3751,18 +3751,19 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unnecessary_cast)]
     fn to_str() {
         ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |value: u64| (format!("{:}",   S64::from(value as i64)), format!("{:}",   (value as i64))),
-            |value: u64| (format!("{:b}",  S64::from(value as i64)), format!("{:b}",  (value as i64))),
-            |value: u64| (format!("{:o}",  S64::from(value as i64)), format!("{:o}",  (value as i64))),
-            |value: u64| (format!("{:x}",  S64::from(value as i64)), format!("{:x}",  (value as i64))),
-            |value: u64| (format!("{:X}",  S64::from(value as i64)), format!("{:X}",  (value as i64))),
-            |value: u64| (format!("{:#}",  S64::from(value as i64)), format!("{:#}",  (value as i64))),
-            |value: u64| (format!("{:#b}", S64::from(value as i64)), format!("{:#b}", (value as i64))),
-            |value: u64| (format!("{:#o}", S64::from(value as i64)), format!("{:#o}", (value as i64))),
-            |value: u64| (format!("{:#x}", S64::from(value as i64)), format!("{:#x}", (value as i64))),
-            |value: u64| (format!("{:#X}", S64::from(value as i64)), format!("{:#X}", (value as i64))),
+            |value: u64| (format!("{:}",   S64::from(value as i64)), format!("{:}",   value as i64)),
+            |value: u64| (format!("{:b}",  S64::from(value as i64)), format!("{:b}",  value as i64)),
+            |value: u64| (format!("{:o}",  S64::from(value as i64)), format!("{:o}",  value as i64)),
+            |value: u64| (format!("{:x}",  S64::from(value as i64)), format!("{:x}",  value as i64)),
+            |value: u64| (format!("{:X}",  S64::from(value as i64)), format!("{:X}",  value as i64)),
+            |value: u64| (format!("{:#}",  S64::from(value as i64)), format!("{:#}",  value as i64)),
+            |value: u64| (format!("{:#b}", S64::from(value as i64)), format!("{:#b}", value as i64)),
+            |value: u64| (format!("{:#o}", S64::from(value as i64)), format!("{:#o}", value as i64)),
+            |value: u64| (format!("{:#x}", S64::from(value as i64)), format!("{:#x}", value as i64)),
+            |value: u64| (format!("{:#X}", S64::from(value as i64)), format!("{:#X}", value as i64)),
 
             |value: u64| (format!("{:}",   S64::from((value as i64).wrapping_neg())), format!("{:}",   (value as i64).wrapping_neg())),
             |value: u64| (format!("{:b}",  S64::from((value as i64).wrapping_neg())), format!("{:b}",  (value as i64).wrapping_neg())),
@@ -3775,16 +3776,16 @@ mod tests {
             |value: u64| (format!("{:#x}", S64::from((value as i64).wrapping_neg())), format!("{:#x}", (value as i64).wrapping_neg())),
             |value: u64| (format!("{:#X}", S64::from((value as i64).wrapping_neg())), format!("{:#X}", (value as i64).wrapping_neg())),
 
-            |value: u64| (format!("{:}",   U64::from(value)), format!("{:}",   value)),
-            |value: u64| (format!("{:b}",  U64::from(value)), format!("{:b}",  value)),
-            |value: u64| (format!("{:o}",  U64::from(value)), format!("{:o}",  value)),
-            |value: u64| (format!("{:x}",  U64::from(value)), format!("{:x}",  value)),
-            |value: u64| (format!("{:X}",  U64::from(value)), format!("{:X}",  value)),
-            |value: u64| (format!("{:#}",  U64::from(value)), format!("{:#}",  value)),
-            |value: u64| (format!("{:#b}", U64::from(value)), format!("{:#b}", value)),
-            |value: u64| (format!("{:#o}", U64::from(value)), format!("{:#o}", value)),
-            |value: u64| (format!("{:#x}", U64::from(value)), format!("{:#x}", value)),
-            |value: u64| (format!("{:#X}", U64::from(value)), format!("{:#X}", value)),
+            |value: u64| (format!("{:}",   U64::from(value as u64)), format!("{:}",   value as u64)),
+            |value: u64| (format!("{:b}",  U64::from(value as u64)), format!("{:b}",  value as u64)),
+            |value: u64| (format!("{:o}",  U64::from(value as u64)), format!("{:o}",  value as u64)),
+            |value: u64| (format!("{:x}",  U64::from(value as u64)), format!("{:x}",  value as u64)),
+            |value: u64| (format!("{:X}",  U64::from(value as u64)), format!("{:X}",  value as u64)),
+            |value: u64| (format!("{:#}",  U64::from(value as u64)), format!("{:#}",  value as u64)),
+            |value: u64| (format!("{:#b}", U64::from(value as u64)), format!("{:#b}", value as u64)),
+            |value: u64| (format!("{:#o}", U64::from(value as u64)), format!("{:#o}", value as u64)),
+            |value: u64| (format!("{:#x}", U64::from(value as u64)), format!("{:#x}", value as u64)),
+            |value: u64| (format!("{:#X}", U64::from(value as u64)), format!("{:#X}", value as u64)),
         ] }
     }
 
