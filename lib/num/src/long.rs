@@ -3333,14 +3333,14 @@ mod tests {
     #[allow(clippy::unnecessary_cast)]
     fn from_primitive() {
         ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |value: u64| (S64::from     (value as  i64), S64 { 0: (value         as i64).to_le_bytes() }),
+            |value: u64| (S64::from     (value as  i64), S64 { 0: (value as  i64 as i64).to_le_bytes() }),
             |value: u64| (S64::from_i8  (value as   i8), S64 { 0: (value as   i8 as i64).to_le_bytes() }),
             |value: u64| (S64::from_i16 (value as  i16), S64 { 0: (value as  i16 as i64).to_le_bytes() }),
             |value: u64| (S64::from_i32 (value as  i32), S64 { 0: (value as  i32 as i64).to_le_bytes() }),
             |value: u64| (S64::from_i64 (value as  i64), S64 { 0: (value as  i64 as i64).to_le_bytes() }),
             |value: u64| (S64::from_i128(value as i128), S64 { 0: (value as i128 as i64).to_le_bytes() }),
 
-            |value: u64| (S32::from     (value as  i64), S32 { 0: (value         as i32).to_le_bytes() }),
+            |value: u64| (S32::from     (value as  i64), S32 { 0: (value as  i64 as i32).to_le_bytes() }),
             |value: u64| (S32::from_i8  (value as   i8), S32 { 0: (value as   i8 as i32).to_le_bytes() }),
             |value: u64| (S32::from_i16 (value as  i16), S32 { 0: (value as  i16 as i32).to_le_bytes() }),
             |value: u64| (S32::from_i32 (value as  i32), S32 { 0: (value as  i32 as i32).to_le_bytes() }),
@@ -3361,14 +3361,14 @@ mod tests {
             |value: u64| (S32::from_i64 ((value as  i64).wrapping_neg()), S32 { 0: ((value as  i64).wrapping_neg() as i32).to_le_bytes() }),
             |value: u64| (S32::from_i128((value as i128).wrapping_neg()), S32 { 0: ((value as i128).wrapping_neg() as i32).to_le_bytes() }),
 
-            |value: u64| (U64::from     (value as  u64), U64 { 0: (value         as u64).to_le_bytes() }),
+            |value: u64| (U64::from     (value as  u64), U64 { 0: (value as  u64 as u64).to_le_bytes() }),
             |value: u64| (U64::from_u8  (value as   u8), U64 { 0: (value as   u8 as u64).to_le_bytes() }),
             |value: u64| (U64::from_u16 (value as  u16), U64 { 0: (value as  u16 as u64).to_le_bytes() }),
             |value: u64| (U64::from_u32 (value as  u32), U64 { 0: (value as  u32 as u64).to_le_bytes() }),
             |value: u64| (U64::from_u64 (value as  u64), U64 { 0: (value as  u64 as u64).to_le_bytes() }),
             |value: u64| (U64::from_u128(value as u128), U64 { 0: (value as u128 as u64).to_le_bytes() }),
 
-            |value: u64| (U32::from     (value as  u64), U32 { 0: (value         as u32).to_le_bytes() }),
+            |value: u64| (U32::from     (value as  u64), U32 { 0: (value as  u64 as u32).to_le_bytes() }),
             |value: u64| (U32::from_u8  (value as   u8), U32 { 0: (value as   u8 as u32).to_le_bytes() }),
             |value: u64| (U32::from_u16 (value as  u16), U32 { 0: (value as  u16 as u32).to_le_bytes() }),
             |value: u64| (U32::from_u32 (value as  u32), U32 { 0: (value as  u32 as u32).to_le_bytes() }),
@@ -3381,11 +3381,23 @@ mod tests {
     #[allow(clippy::unnecessary_cast)]
     fn from_bytes() {
         ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |value: u64| (S64::from_bytes(&value.to_le_bytes()), S64 { 0: (value as u64).to_le_bytes() }),
-            |value: u64| (U64::from_bytes(&value.to_le_bytes()), U64 { 0: (value as u64).to_le_bytes() }),
+            |value: u64| (S64::from_bytes(&(value as u64).to_le_bytes()), S64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (U64::from_bytes(&(value as u64).to_le_bytes()), U64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (S64::from_bytes(&(value as u32).to_le_bytes()), S64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (U64::from_bytes(&(value as u32).to_le_bytes()), U64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (S64::from_bytes(&(value as u16).to_le_bytes()), S64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (U64::from_bytes(&(value as u16).to_le_bytes()), U64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (S64::from_bytes(&(value as  u8).to_le_bytes()), S64 { 0: (value as  u8 as u64).to_le_bytes() }),
+            |value: u64| (U64::from_bytes(&(value as  u8).to_le_bytes()), U64 { 0: (value as  u8 as u64).to_le_bytes() }),
 
-            |value: u64| (S32::from_bytes(&value.to_le_bytes()), S32 { 0: (value as u32).to_le_bytes() }),
-            |value: u64| (U32::from_bytes(&value.to_le_bytes()), U32 { 0: (value as u32).to_le_bytes() }),
+            |value: u64| (S32::from_bytes(&(value as u64).to_le_bytes()), S32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (U32::from_bytes(&(value as u64).to_le_bytes()), U32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (S32::from_bytes(&(value as u32).to_le_bytes()), S32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (U32::from_bytes(&(value as u32).to_le_bytes()), U32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (S32::from_bytes(&(value as u16).to_le_bytes()), S32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (U32::from_bytes(&(value as u16).to_le_bytes()), U32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (S32::from_bytes(&(value as  u8).to_le_bytes()), S32 { 0: (value as  u8 as u32).to_le_bytes() }),
+            |value: u64| (U32::from_bytes(&(value as  u8).to_le_bytes()), U32 { 0: (value as  u8 as u32).to_le_bytes() }),
         ] }
     }
 
@@ -3393,52 +3405,120 @@ mod tests {
     #[allow(clippy::unnecessary_cast)]
     fn from_arr() {
         ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |value: u64| (S64::nd_from(&value.to_le_bytes()), S64 { 0: (value as u64).to_le_bytes() }),
-            |value: u64| (U64::nd_from(&value.to_le_bytes()), U64 { 0: (value as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&(value as u64).to_le_bytes()), S64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&(value as u64).to_le_bytes()), U64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&(value as u32).to_le_bytes()), S64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&(value as u32).to_le_bytes()), U64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&(value as u16).to_le_bytes()), S64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&(value as u16).to_le_bytes()), U64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&(value as  u8).to_le_bytes()), S64 { 0: (value as  u8 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&(value as  u8).to_le_bytes()), U64 { 0: (value as  u8 as u64).to_le_bytes() }),
 
-            |value: u64| (S32::nd_from(&value.to_le_bytes()), S32 { 0: (value as u32).to_le_bytes() }),
-            |value: u64| (U32::nd_from(&value.to_le_bytes()), U32 { 0: (value as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&(value as u64).to_le_bytes()), S32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&(value as u64).to_le_bytes()), U32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&(value as u32).to_le_bytes()), S32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&(value as u32).to_le_bytes()), U32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&(value as u16).to_le_bytes()), S32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&(value as u16).to_le_bytes()), U32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&(value as  u8).to_le_bytes()), S32 { 0: (value as  u8 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&(value as  u8).to_le_bytes()), U32 { 0: (value as  u8 as u32).to_le_bytes() }),
 
-            |value: u64| (S64::nd_try_from(&value.to_le_bytes()), Ok(S64 { 0: (value as u64).to_le_bytes() })),
-            |value: u64| (U64::nd_try_from(&value.to_le_bytes()), Ok(U64 { 0: (value as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&(value as u64).to_le_bytes()), Ok(S64 { 0: (value as u64 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&(value as u64).to_le_bytes()), Ok(U64 { 0: (value as u64 as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&(value as u32).to_le_bytes()), Ok(S64 { 0: (value as u32 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&(value as u32).to_le_bytes()), Ok(U64 { 0: (value as u32 as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&(value as u16).to_le_bytes()), Ok(S64 { 0: (value as u16 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&(value as u16).to_le_bytes()), Ok(U64 { 0: (value as u16 as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&(value as  u8).to_le_bytes()), Ok(S64 { 0: (value as  u8 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&(value as  u8).to_le_bytes()), Ok(U64 { 0: (value as  u8 as u64).to_le_bytes() })),
 
-            |value: u64| (S32::nd_try_from(&value.to_le_bytes()), Err(TryFromArrError::InvalidLength)),
-            |value: u64| (U32::nd_try_from(&value.to_le_bytes()), Err(TryFromArrError::InvalidLength)),
+            |value: u64| (S32::nd_try_from(&(value as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
+            |value: u64| (U32::nd_try_from(&(value as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
+            |value: u64| (S32::nd_try_from(&(value as u32).to_le_bytes()), Ok(S32 { 0: (value as u32 as u32).to_le_bytes() })),
+            |value: u64| (U32::nd_try_from(&(value as u32).to_le_bytes()), Ok(U32 { 0: (value as u32 as u32).to_le_bytes() })),
+            |value: u64| (S32::nd_try_from(&(value as u16).to_le_bytes()), Ok(S32 { 0: (value as u16 as u32).to_le_bytes() })),
+            |value: u64| (U32::nd_try_from(&(value as u16).to_le_bytes()), Ok(U32 { 0: (value as u16 as u32).to_le_bytes() })),
+            |value: u64| (S32::nd_try_from(&(value as  u8).to_le_bytes()), Ok(S32 { 0: (value as  u8 as u32).to_le_bytes() })),
+            |value: u64| (U32::nd_try_from(&(value as  u8).to_le_bytes()), Ok(U32 { 0: (value as  u8 as u32).to_le_bytes() })),
         ] }
     }
 
     #[test]
-    fn from_slice() -> Result<()> {
-        let empty = &[] as &[u8];
+    #[allow(clippy::unnecessary_cast)]
+    fn from_slice() {
+        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
+            |value: u64| (S64::nd_from(&value.to_le_bytes()[..8]), S64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&value.to_le_bytes()[..8]), U64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&value.to_le_bytes()[..4]), S64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&value.to_le_bytes()[..4]), U64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&value.to_le_bytes()[..2]), S64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&value.to_le_bytes()[..2]), U64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&value.to_le_bytes()[..1]), S64 { 0: (value as  u8 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&value.to_le_bytes()[..1]), U64 { 0: (value as  u8 as u64).to_le_bytes() }),
+            |value: u64| (S64::nd_from(&value.to_le_bytes()[..0]), S64 { 0:     (0 as  u8 as u64).to_le_bytes() }),
+            |value: u64| (U64::nd_from(&value.to_le_bytes()[..0]), U64 { 0:     (0 as  u8 as u64).to_le_bytes() }),
 
-        assert_eq!(S64::nd_try_from(empty)?, S64::default());
-        assert_eq!(U64::nd_try_from(empty)?, U64::default());
+            |value: u64| (S32::nd_from(&value.to_le_bytes()[..8]), S32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&value.to_le_bytes()[..8]), U32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&value.to_le_bytes()[..4]), S32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&value.to_le_bytes()[..4]), U32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&value.to_le_bytes()[..2]), S32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&value.to_le_bytes()[..2]), U32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&value.to_le_bytes()[..1]), S32 { 0: (value as  u8 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&value.to_le_bytes()[..1]), U32 { 0: (value as  u8 as u32).to_le_bytes() }),
+            |value: u64| (S32::nd_from(&value.to_le_bytes()[..0]), S32 { 0:     (0 as  u8 as u32).to_le_bytes() }),
+            |value: u64| (U32::nd_from(&value.to_le_bytes()[..0]), U32 { 0:     (0 as  u8 as u32).to_le_bytes() }),
 
-        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
-            let bytes = val.to_le_bytes();
-            let slice = bytes.as_slice();
+            |value: u64| (S64::nd_try_from(&value.to_le_bytes()[..8]), Ok(S64 { 0: (value as u64 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&value.to_le_bytes()[..8]), Ok(U64 { 0: (value as u64 as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&value.to_le_bytes()[..4]), Ok(S64 { 0: (value as u32 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&value.to_le_bytes()[..4]), Ok(U64 { 0: (value as u32 as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&value.to_le_bytes()[..2]), Ok(S64 { 0: (value as u16 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&value.to_le_bytes()[..2]), Ok(U64 { 0: (value as u16 as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&value.to_le_bytes()[..1]), Ok(S64 { 0: (value as  u8 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&value.to_le_bytes()[..1]), Ok(U64 { 0: (value as  u8 as u64).to_le_bytes() })),
+            |value: u64| (S64::nd_try_from(&value.to_le_bytes()[..0]), Ok(S64 { 0:     (0 as  u8 as u64).to_le_bytes() })),
+            |value: u64| (U64::nd_try_from(&value.to_le_bytes()[..0]), Ok(U64 { 0:     (0 as  u8 as u64).to_le_bytes() })),
 
-            assert_eq!(S64::nd_try_from(slice)?, S64 { 0: pos(&bytes) });
-            assert_eq!(U64::nd_try_from(slice)?, U64 { 0: pos(&bytes) });
-        }
-
-        Ok(())
+            |value: u64| (S32::nd_try_from(&value.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
+            |value: u64| (U32::nd_try_from(&value.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
+            |value: u64| (S32::nd_try_from(&value.to_le_bytes()[..4]), Ok(S32 { 0: (value as u32 as u32).to_le_bytes() })),
+            |value: u64| (U32::nd_try_from(&value.to_le_bytes()[..4]), Ok(U32 { 0: (value as u32 as u32).to_le_bytes() })),
+            |value: u64| (S32::nd_try_from(&value.to_le_bytes()[..2]), Ok(S32 { 0: (value as u16 as u32).to_le_bytes() })),
+            |value: u64| (U32::nd_try_from(&value.to_le_bytes()[..2]), Ok(U32 { 0: (value as u16 as u32).to_le_bytes() })),
+            |value: u64| (S32::nd_try_from(&value.to_le_bytes()[..1]), Ok(S32 { 0: (value as  u8 as u32).to_le_bytes() })),
+            |value: u64| (U32::nd_try_from(&value.to_le_bytes()[..1]), Ok(U32 { 0: (value as  u8 as u32).to_le_bytes() })),
+            |value: u64| (S32::nd_try_from(&value.to_le_bytes()[..0]), Ok(S32 { 0:     (0 as  u8 as u32).to_le_bytes() })),
+            |value: u64| (U32::nd_try_from(&value.to_le_bytes()[..0]), Ok(U32 { 0:     (0 as  u8 as u32).to_le_bytes() })),
+        ] }
     }
 
     #[test]
+    #[allow(clippy::unnecessary_cast)]
     fn from_iter() {
-        let empty = (&[] as &[u8]).iter().copied();
+        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
+            |value: u64| (value.to_le_bytes().iter().copied().take(8).collect::<S64>(), S64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(8).collect::<U64>(), U64 { 0: (value as u64 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(4).collect::<S64>(), S64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(4).collect::<U64>(), U64 { 0: (value as u32 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(2).collect::<S64>(), S64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(2).collect::<U64>(), U64 { 0: (value as u16 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(1).collect::<S64>(), S64 { 0: (value as  u8 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(1).collect::<U64>(), U64 { 0: (value as  u8 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(0).collect::<S64>(), S64 { 0:     (0 as  u8 as u64).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(0).collect::<U64>(), U64 { 0:     (0 as  u8 as u64).to_le_bytes() }),
 
-        assert_eq!(empty.clone().collect::<S64>(), S64::default());
-        assert_eq!(empty.clone().collect::<U64>(), U64::default());
-
-        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
-            let bytes = val.to_le_bytes();
-            let iter = bytes.iter().copied();
-
-            assert_eq!(iter.clone().collect::<S64>(), S64 { 0: pos(&bytes) });
-            assert_eq!(iter.clone().collect::<U64>(), U64 { 0: pos(&bytes) });
-        }
+            |value: u64| (value.to_le_bytes().iter().copied().take(8).collect::<S32>(), S32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(8).collect::<U32>(), U32 { 0: (value as u64 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(4).collect::<S32>(), S32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(4).collect::<U32>(), U32 { 0: (value as u32 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(2).collect::<S32>(), S32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(2).collect::<U32>(), U32 { 0: (value as u16 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(1).collect::<S32>(), S32 { 0: (value as  u8 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(1).collect::<U32>(), U32 { 0: (value as  u8 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(0).collect::<S32>(), S32 { 0:     (0 as  u8 as u32).to_le_bytes() }),
+            |value: u64| (value.to_le_bytes().iter().copied().take(0).collect::<U32>(), U32 { 0:     (0 as  u8 as u32).to_le_bytes() }),
+        ] }
     }
 
     #[test]
@@ -3647,45 +3727,27 @@ mod tests {
     }
 
     #[test]
-    fn from_str() -> Result<()> {
-        for val in (u64::MIN..u64::MAX).step_by(PRIMES_48BIT[0]) {
-            let bytes = val.to_le_bytes();
+    #[allow(clippy::unnecessary_cast)]
+    fn from_str() {
+        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
+            |value: u64| (format!("{:#}",  (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
+            |value: u64| (format!("{:#b}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
+            |value: u64| (format!("{:#o}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
+            |value: u64| (format!("{:#x}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
+            |value: u64| (format!("{:#X}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
 
-            let pval = val as i64;
-            let nval = -(val as i64);
+            |value: u64| (format!("{:#}",  (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (format!("{:#b}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (format!("{:#o}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (format!("{:#x}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (format!("{:#X}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
 
-            let pos_dec = format!("{pval:#}");
-            let pos_bin = format!("{pval:#b}");
-            let pos_oct = format!("{pval:#o}");
-            let pos_hex = format!("{pval:#x}");
-
-            let neg_dec = format!("{nval:#}");
-            let neg_bin = format!("{nval:#b}");
-            let neg_oct = format!("{nval:#o}");
-            let neg_hex = format!("{nval:#x}");
-
-            let dec = format!("{val:#}");
-            let bin = format!("{val:#b}");
-            let oct = format!("{val:#o}");
-            let hex = format!("{val:#x}");
-
-            assert_eq!(pos_dec.parse::<S64>()?, S64 { 0: pos(&bytes) });
-            assert_eq!(pos_bin.parse::<S64>()?, S64 { 0: pos(&bytes) });
-            assert_eq!(pos_oct.parse::<S64>()?, S64 { 0: pos(&bytes) });
-            assert_eq!(pos_hex.parse::<S64>()?, S64 { 0: pos(&bytes) });
-
-            assert_eq!(neg_dec.parse::<S64>()?, S64 { 0: neg(&bytes) });
-            assert_eq!(neg_bin.parse::<S64>()?, S64 { 0: neg(&bytes) });
-            assert_eq!(neg_oct.parse::<S64>()?, S64 { 0: neg(&bytes) });
-            assert_eq!(neg_hex.parse::<S64>()?, S64 { 0: neg(&bytes) });
-
-            assert_eq!(dec.parse::<U64>()?, U64 { 0: pos(&bytes) });
-            assert_eq!(bin.parse::<U64>()?, U64 { 0: pos(&bytes) });
-            assert_eq!(oct.parse::<U64>()?, U64 { 0: pos(&bytes) });
-            assert_eq!(hex.parse::<U64>()?, U64 { 0: pos(&bytes) });
-        }
-
-        Ok(())
+            |value: u64| (format!("{:#}",  (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
+            |value: u64| (format!("{:#b}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
+            |value: u64| (format!("{:#o}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
+            |value: u64| (format!("{:#x}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
+            |value: u64| (format!("{:#X}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
+        ] }
     }
 
     #[test]
@@ -3697,11 +3759,11 @@ mod tests {
             |value: u64| (format!("{:x}", S64::from(value as i64)), format!("{:x}", (value as i64))),
             |value: u64| (format!("{:X}", S64::from(value as i64)), format!("{:X}", (value as i64))),
 
-            |value: u64| (format!("{:}",  S64::from(-(value as i64))), format!("{:}",  -(value as i64))),
-            |value: u64| (format!("{:b}", S64::from(-(value as i64))), format!("{:b}", -(value as i64))),
-            |value: u64| (format!("{:o}", S64::from(-(value as i64))), format!("{:o}", -(value as i64))),
-            |value: u64| (format!("{:x}", S64::from(-(value as i64))), format!("{:x}", -(value as i64))),
-            |value: u64| (format!("{:X}", S64::from(-(value as i64))), format!("{:X}", -(value as i64))),
+            |value: u64| (format!("{:}",  S64::from((value as i64).wrapping_neg())), format!("{:}",  (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:b}", S64::from((value as i64).wrapping_neg())), format!("{:b}", (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:o}", S64::from((value as i64).wrapping_neg())), format!("{:o}", (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:x}", S64::from((value as i64).wrapping_neg())), format!("{:x}", (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:X}", S64::from((value as i64).wrapping_neg())), format!("{:X}", (value as i64).wrapping_neg())),
 
             |value: u64| (format!("{:}",  U64::from(value)), format!("{:}",  value)),
             |value: u64| (format!("{:b}", U64::from(value)), format!("{:b}", value)),
@@ -3715,11 +3777,11 @@ mod tests {
             |value: u64| (format!("{:#x}", S64::from(value as i64)), format!("{:#x}", (value as i64))),
             |value: u64| (format!("{:#X}", S64::from(value as i64)), format!("{:#X}", (value as i64))),
 
-            |value: u64| (format!("{:#}",  S64::from(-(value as i64))), format!("{:#}",  -(value as i64))),
-            |value: u64| (format!("{:#b}", S64::from(-(value as i64))), format!("{:#b}", -(value as i64))),
-            |value: u64| (format!("{:#o}", S64::from(-(value as i64))), format!("{:#o}", -(value as i64))),
-            |value: u64| (format!("{:#x}", S64::from(-(value as i64))), format!("{:#x}", -(value as i64))),
-            |value: u64| (format!("{:#X}", S64::from(-(value as i64))), format!("{:#X}", -(value as i64))),
+            |value: u64| (format!("{:#}",  S64::from((value as i64).wrapping_neg())), format!("{:#}",  (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:#b}", S64::from((value as i64).wrapping_neg())), format!("{:#b}", (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:#o}", S64::from((value as i64).wrapping_neg())), format!("{:#o}", (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:#x}", S64::from((value as i64).wrapping_neg())), format!("{:#x}", (value as i64).wrapping_neg())),
+            |value: u64| (format!("{:#X}", S64::from((value as i64).wrapping_neg())), format!("{:#X}", (value as i64).wrapping_neg())),
 
             |value: u64| (format!("{:#}",  U64::from(value)), format!("{:#}",  value)),
             |value: u64| (format!("{:#b}", U64::from(value)), format!("{:#b}", value)),
