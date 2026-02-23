@@ -60,6 +60,76 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Generates prime number for seed.
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::prime!(LEN, CLASS?)
+/// ```
+/// - `LEN` - length prime number in binary
+/// - `CLASS` - class prime number
+///
+/// For more information and examples, see [crate-level](crate) documentation.
+#[proc_macro]
+pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
+    let prime = parse_macro_input!(stream as AssertPrime);
+
+    quote! {
+        #prime
+    }
+    .into()
+}
+
+#[rustfmt::skip]
+const PRIMES: [[usize; 4]; 15] = [
+    [            13,             11,              7,              5],
+    [           251,            241,            239,            233],
+    [         4_093,          4_091,          4_079,          4_073],
+    [        65_521,         65_519,         65_497,         65_479],
+    [     1_048_573,      1_048_571,      1_048_559,      1_048_549],
+    [    16_777_213,     16_777_199,     16_777_153,     16_777_141],
+    [   268_435_273,    268_435_091,    268_434_961,    268_434_941],
+    [ 4_294_961_623,  4_294_960_883,  4_294_957_207,  4_294_956_461],
+    [68_719_440_701, 68_719_423_037, 68_719_419_037, 68_719_404_931],
+    [
+        1_099_510_850_981,
+        1_099_509_640_783,
+        1_099_508_899_219,
+        1_099_508_677_453,
+    ],
+    [
+        17_592_181_425_547,
+        17_592_180_344_983,
+        17_592_168_578_183,
+        17_592_166_738_889,
+    ],
+    [
+        281_474_919_759_889,
+        281_474_854_044_589,
+        281_474_838_022_123,
+        281_474_404_239_029,
+    ],
+    [
+        4_503_599_539_849_933,
+        4_503_597_730_049_837,
+        4_503_596_355_552_149,
+        4_503_596_318_916_671,
+    ],
+    [
+        72_057_588_543_547_877,
+        72_057_567_830_793_901,
+        72_057_544_403_510_693,
+        72_057_531_892_930_823,
+    ],
+    [
+        1_152_920_950_656_862_133,
+        1_152_920_243_723_361_439,
+        1_152_919_710_129_785_861,
+        1_152_918_570_102_243_433,
+    ],
+];
+
 #[allow(unused)]
 struct AssertCheck {
     kind: AssertKind,
@@ -78,6 +148,12 @@ enum AssertKind {
 #[allow(unused)]
 struct AssertRange {
     ty: Type,
+    len: usize,
+    class: usize,
+}
+
+#[allow(unused)]
+struct AssertPrime {
     len: usize,
     class: usize,
 }
@@ -125,6 +201,15 @@ impl Parse for AssertRange {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty = input.parse()?;
         let _ = input.parse::<Token![,]>()?;
+
+        let AssertPrime { len, class } = input.parse()?;
+
+        Ok(Self { ty, len, class })
+    }
+}
+
+impl Parse for AssertPrime {
+    fn parse(input: ParseStream) -> Result<Self> {
         let len = input.parse::<LitInt>()?;
 
         let class = if input.peek(Token![,]) {
@@ -145,7 +230,7 @@ impl Parse for AssertRange {
             },
         };
 
-        Ok(Self { ty, len, class })
+        Ok(Self { len, class })
     }
 }
 
@@ -202,55 +287,6 @@ impl ToTokens for AssertCheck {
 
 impl ToTokens for AssertRange {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        #[rustfmt::skip]
-        const PRIMES: [[usize; 4]; 15] = [
-            [            13,             11,              7,              5],
-            [           251,            241,            239,            233],
-            [         4_093,          4_091,          4_079,          4_073],
-            [        65_521,         65_519,         65_497,         65_479],
-            [     1_048_573,      1_048_571,      1_048_559,      1_048_549],
-            [    16_777_213,     16_777_199,     16_777_153,     16_777_141],
-            [   268_435_273,    268_435_091,    268_434_961,    268_434_941],
-            [ 4_294_961_623,  4_294_960_883,  4_294_957_207,  4_294_956_461],
-            [68_719_440_701, 68_719_423_037, 68_719_419_037, 68_719_404_931],
-            [
-                1_099_510_850_981,
-                1_099_509_640_783,
-                1_099_508_899_219,
-                1_099_508_677_453,
-            ],
-            [
-                17_592_181_425_547,
-                17_592_180_344_983,
-                17_592_168_578_183,
-                17_592_166_738_889,
-            ],
-            [
-                281_474_919_759_889,
-                281_474_854_044_589,
-                281_474_838_022_123,
-                281_474_404_239_029,
-            ],
-            [
-                4_503_599_539_849_933,
-                4_503_597_730_049_837,
-                4_503_596_355_552_149,
-                4_503_596_318_916_671,
-            ],
-            [
-                72_057_588_543_547_877,
-                72_057_567_830_793_901,
-                72_057_544_403_510_693,
-                72_057_531_892_930_823,
-            ],
-            [
-                1_152_920_950_656_862_133,
-                1_152_920_243_723_361_439,
-                1_152_919_710_129_785_861,
-                1_152_918_570_102_243_433,
-            ],
-        ];
-
         let ty = &self.ty;
         let len = self.len;
         let class = self.class;
@@ -258,5 +294,16 @@ impl ToTokens for AssertRange {
         let prime = primes[class % primes.len()];
 
         tokens.extend(quote! { (#ty::MIN..=#ty::MAX).step_by(#prime) });
+    }
+}
+
+impl ToTokens for AssertPrime {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let len = self.len;
+        let class = self.class;
+        let primes = PRIMES[len];
+        let prime = primes[class % primes.len()];
+
+        tokens.extend(quote! { #prime });
     }
 }
