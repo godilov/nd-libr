@@ -17,23 +17,6 @@ macro_rules! num_impl {
         $(num_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl NumExt for $primitive {
-            fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self |= (mask.unbounded_shl(offset as u32)) as $primitive;
-                self
-            }
-
-            fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self &= (mask.unbounded_shl(offset as u32)) as $primitive;
-                self
-            }
-
-            fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self ^= (mask.unbounded_shl(offset as u32)) as $primitive;
-                self
-            }
-        }
-
         impl Num for $primitive {
             fn bits(&self) -> usize {
                 <$primitive>::BITS as usize
@@ -49,6 +32,23 @@ macro_rules! num_impl {
 
             fn one() -> Self {
                 1
+            }
+        }
+
+        impl NumExt for $primitive {
+            fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
+                *self |= (mask as $primitive).unbounded_shl(offset as u32);
+                self
+            }
+
+            fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
+                *self &= (mask as $primitive).unbounded_shl(offset as u32);
+                self
+            }
+
+            fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
+                *self ^= (mask as $primitive).unbounded_shl(offset as u32);
+                self
             }
         }
 
