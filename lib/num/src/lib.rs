@@ -36,18 +36,32 @@ macro_rules! num_impl {
         }
 
         impl NumExt for $primitive {
-            fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self |= (mask as $primitive).unbounded_shl(offset as u32);
+            fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+                match offset {
+                    Offset::Left(val) => *self |= (mask as $primitive).unbounded_shl(val as u32),
+                    Offset::Right(_val) => (),
+                }
+
                 self
             }
 
-            fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self &= (mask as $primitive).unbounded_shl(offset as u32);
+            fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+                use std::ops::Not;
+
+                match offset {
+                    Offset::Left(val) => *self &= (mask.not() as $primitive).unbounded_shl(val as u32).not(),
+                    Offset::Right(_val) => (),
+                }
+
                 self
             }
 
-            fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-                *self ^= (mask as $primitive).unbounded_shl(offset as u32);
+            fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+                match offset {
+                    Offset::Left(val) => *self ^= (mask as $primitive).unbounded_shl(val as u32),
+                    Offset::Right(_val) => (),
+                }
+
                 self
             }
         }
@@ -579,6 +593,12 @@ pub enum Sign {
     POS = 1,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Offset<T> {
+    Left(T),
+    Right(T),
+}
+
 #[cfg(feature = "const-time")]
 type MaskCt = u8;
 
@@ -654,83 +674,83 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
 #[ndfwd::decl]
 pub trait NumExt: Num {
     #[ndfwd::as_self]
-    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
+    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self;
 
     #[ndfwd::as_self]
-    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
+    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self;
 
     #[ndfwd::as_self]
-    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self;
+    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self;
 
     #[ndfwd::as_self]
-    fn bitor_mut_ext(&mut self, mask: u64) -> &mut Self {
-        self.bitor_offset_mut_ext(mask, 0);
+    fn bitor_mut_ext(&mut self, mask: u64, offset: Offset<()>) -> &mut Self {
+        self.bitor_offset_mut_ext(mask, offset.into());
         self
     }
 
     #[ndfwd::as_self]
-    fn bitand_mut_ext(&mut self, mask: u64) -> &mut Self {
-        self.bitand_offset_mut_ext(mask, 0);
+    fn bitand_mut_ext(&mut self, mask: u64, offset: Offset<()>) -> &mut Self {
+        self.bitand_offset_mut_ext(mask, offset.into());
         self
     }
 
     #[ndfwd::as_self]
-    fn bitxor_mut_ext(&mut self, mask: u64) -> &mut Self {
-        self.bitxor_offset_mut_ext(mask, 0);
+    fn bitxor_mut_ext(&mut self, mask: u64, offset: Offset<()>) -> &mut Self {
+        self.bitxor_offset_mut_ext(mask, offset.into());
         self
     }
 
     #[ndfwd::as_self]
     fn odd_mut_ext(&mut self) -> &mut Self {
-        self.bitor_mut_ext(1);
+        self.bitor_mut_ext(1, Offset::Left(()));
         self
     }
 
     #[ndfwd::as_self]
     fn even_mut_ext(&mut self) -> &mut Self {
-        self.bitand_mut_ext(u64::MAX - 1);
+        self.bitand_mut_ext(u64::MAX - 1, Offset::Left(()));
         self
     }
 
     #[ndfwd::as_self]
     fn alt_mut_ext(&mut self) -> &mut Self {
-        self.bitxor_mut_ext(1);
+        self.bitxor_mut_ext(1, Offset::Left(()));
         self
     }
 
     #[ndfwd::as_into]
-    fn bitor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
+    fn bitor_offset_ext(mut self, mask: u64, offset: Offset<usize>) -> Self {
         self.bitor_offset_mut_ext(mask, offset);
         self
     }
 
     #[ndfwd::as_into]
-    fn bitand_offset_ext(mut self, mask: u64, offset: usize) -> Self {
+    fn bitand_offset_ext(mut self, mask: u64, offset: Offset<usize>) -> Self {
         self.bitand_offset_mut_ext(mask, offset);
         self
     }
 
     #[ndfwd::as_into]
-    fn bitxor_offset_ext(mut self, mask: u64, offset: usize) -> Self {
+    fn bitxor_offset_ext(mut self, mask: u64, offset: Offset<usize>) -> Self {
         self.bitxor_offset_mut_ext(mask, offset);
         self
     }
 
     #[ndfwd::as_into]
-    fn bitor_ext(mut self, mask: u64) -> Self {
-        self.bitor_offset_mut_ext(mask, 0);
+    fn bitor_ext(mut self, mask: u64, offset: Offset<()>) -> Self {
+        self.bitor_offset_mut_ext(mask, offset.into());
         self
     }
 
     #[ndfwd::as_into]
-    fn bitand_ext(mut self, mask: u64) -> Self {
-        self.bitand_offset_mut_ext(mask, 0);
+    fn bitand_ext(mut self, mask: u64, offset: Offset<()>) -> Self {
+        self.bitand_offset_mut_ext(mask, offset.into());
         self
     }
 
     #[ndfwd::as_into]
-    fn bitxor_ext(mut self, mask: u64) -> Self {
-        self.bitxor_offset_mut_ext(mask, 0);
+    fn bitxor_ext(mut self, mask: u64, offset: Offset<()>) -> Self {
+        self.bitxor_offset_mut_ext(mask, offset.into());
         self
     }
 
@@ -754,17 +774,17 @@ pub trait NumExt: Num {
 
     #[cfg(feature = "rand")]
     #[ndfwd::as_into]
-    fn rand<R: ?Sized + rand::Rng>(order: usize, rng: &mut R) -> Self {
+    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
         let shift = order - 1;
         let div = shift / u64::BITS as usize;
         let rem = shift % u64::BITS as usize;
 
         let mut res = Self::zero();
 
-        res.bitor_offset_mut_ext((1 << rem) | rng.next_u64() & ((1 << rem) - 1), shift - rem);
+        res.bitor_offset_mut_ext((1 << rem) | rng.next_u64() & ((1 << rem) - 1), Offset::Right(shift - rem));
 
         for idx in 0..div {
-            res.bitor_offset_mut_ext(rng.next_u64(), shift - rem - idx * div);
+            res.bitor_offset_mut_ext(rng.next_u64(), Offset::Right(shift - rem - idx * div));
         }
 
         res
@@ -921,6 +941,15 @@ sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ndops::all! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
+
+impl<N: Zero> From<Offset<()>> for Offset<N> {
+    fn from(value: Offset<()>) -> Self {
+        match value {
+            Offset::Left(_) => Offset::Left(N::ZERO),
+            Offset::Right(_) => Offset::Right(N::ZERO),
+        }
+    }
+}
 
 impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {

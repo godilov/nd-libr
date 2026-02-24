@@ -19,7 +19,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 #[cfg(feature = "const-time")]
 use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, SignCt};
 use crate::{
-    Max, Min, Num, NumExt, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero,
+    Max, Min, Num, NumExt, Offset, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero,
     arch::word::*,
     long::{radix::*, uops::*},
 };
@@ -2459,35 +2459,59 @@ impl<const L: usize> Num for Unsigned<L> {
 }
 
 impl<const L: usize> NumExt for Signed<L> {
-    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-        bit_offset_impl!(self.0, mask, offset, MIN, |=);
+    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        match offset {
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, |=),
+            Offset::Right(_val) => &mut self.0,
+        };
+
         self
     }
 
-    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-        bit_offset_impl!(self.0, mask, offset, MAX, &=);
+    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        match offset {
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MAX, &=),
+            Offset::Right(val) => &mut self.0,
+        };
+
         self
     }
 
-    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-        bit_offset_impl!(self.0, mask, offset, MIN, ^=);
+    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        match offset {
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, ^=),
+            Offset::Right(_val) => &mut self.0,
+        };
+
         self
     }
 }
 
 impl<const L: usize> NumExt for Unsigned<L> {
-    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-        bit_offset_impl!(self.0, mask, offset, MIN, |=);
+    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        match offset {
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, |=),
+            Offset::Right(_val) => &mut self.0,
+        };
+
         self
     }
 
-    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-        bit_offset_impl!(self.0, mask, offset, MAX, &=);
+    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        match offset {
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MAX, &=),
+            Offset::Right(_val) => &mut self.0,
+        };
+
         self
     }
 
-    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: usize) -> &mut Self {
-        bit_offset_impl!(self.0, mask, offset, MIN, ^=);
+    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        match offset {
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, ^=),
+            Offset::Right(_val) => &mut self.0,
+        };
+
         self
     }
 }
