@@ -37,9 +37,11 @@ macro_rules! num_impl {
 
         impl NumExt for $primitive {
             fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+                const OFFSET: u32 = <$primitive>::BITS.saturating_sub(u64::BITS);
+
                 match offset {
                     Offset::Left(val) => *self |= (mask as $primitive).unbounded_shl(val as u32),
-                    Offset::Right(_val) => (),
+                    Offset::Right(val) => *self |= (mask as $primitive).unbounded_shl(OFFSET.saturating_sub(val as u32)),
                 }
 
                 self
@@ -48,18 +50,22 @@ macro_rules! num_impl {
             fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
                 use std::ops::Not;
 
+                const OFFSET: u32 = <$primitive>::BITS.saturating_sub(u64::BITS);
+
                 match offset {
                     Offset::Left(val) => *self &= (mask.not() as $primitive).unbounded_shl(val as u32).not(),
-                    Offset::Right(_val) => (),
+                    Offset::Right(val) => *self &= (mask.not() as $primitive).unbounded_shl(OFFSET.saturating_sub(val as u32)).not(),
                 }
 
                 self
             }
 
             fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+                const OFFSET: u32 = <$primitive>::BITS.saturating_sub(u64::BITS);
+
                 match offset {
                     Offset::Left(val) => *self ^= (mask as $primitive).unbounded_shl(val as u32),
-                    Offset::Right(_val) => (),
+                    Offset::Right(val) => *self ^= (mask as $primitive).unbounded_shl(OFFSET.saturating_sub(val as u32)),
                 }
 
                 self

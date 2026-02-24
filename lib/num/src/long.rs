@@ -2471,7 +2471,7 @@ impl<const L: usize> NumExt for Signed<L> {
     fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
         match offset {
             Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MAX, &=),
-            Offset::Right(val) => &mut self.0,
+            Offset::Right(_val) => &mut self.0,
         };
 
         self
