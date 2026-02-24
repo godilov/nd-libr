@@ -60,6 +60,27 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Generates seeded random number generator.
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::prime!(LEN, CLASS?)
+/// ```
+/// - `LEN` - length of prime number seed in binary
+/// - `CLASS` - class pf prime number seed
+///
+/// For more information and examples, see [crate-level](crate) documentation.
+#[proc_macro]
+pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
+    let rand = parse_macro_input!(stream as AssertRand);
+
+    quote! {
+        #rand
+    }
+    .into()
+}
+
 /// Generates prime number for seed.
 ///
 /// # Syntax
@@ -67,8 +88,8 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
 /// ```text
 /// ndassert::prime!(LEN, CLASS?)
 /// ```
-/// - `LEN` - length prime number in binary
-/// - `CLASS` - class prime number
+/// - `LEN` - length of prime number in binary
+/// - `CLASS` - class of prime number
 ///
 /// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
@@ -82,7 +103,7 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[rustfmt::skip]
-const PRIMES: [[usize; 4]; 15] = [
+const PRIMES: [[u64; 4]; 15] = [
     [            13,             11,              7,              5],
     [           251,            241,            239,            233],
     [         4_093,          4_091,          4_079,          4_073],
@@ -145,14 +166,16 @@ enum AssertKind {
     Default,
 }
 
-#[allow(unused)]
 struct AssertRange {
     ty: Type,
-    len: usize,
-    class: usize,
+    prime: AssertPrime,
 }
 
-#[allow(unused)]
+struct AssertRand {
+    ty: Type,
+    prime: AssertPrime,
+}
+
 struct AssertPrime {
     len: usize,
     class: usize,
@@ -201,10 +224,19 @@ impl Parse for AssertRange {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty = input.parse()?;
         let _ = input.parse::<Token![,]>()?;
+        let prime = input.parse()?;
 
-        let AssertPrime { len, class } = input.parse()?;
+        Ok(Self { ty, prime })
+    }
+}
 
-        Ok(Self { ty, len, class })
+impl Parse for AssertRand {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ty = input.parse()?;
+        let _ = input.parse::<Token![,]>()?;
+        let prime = input.parse()?;
+
+        Ok(Self { ty, prime })
     }
 }
 
@@ -288,12 +320,18 @@ impl ToTokens for AssertCheck {
 impl ToTokens for AssertRange {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let ty = &self.ty;
-        let len = self.len;
-        let class = self.class;
-        let primes = PRIMES[len];
-        let prime = primes[class % primes.len()];
+        let prime = &self.prime;
 
-        tokens.extend(quote! { (#ty::MIN..=#ty::MAX).step_by(#prime) });
+        tokens.extend(quote! { (#ty::MIN..=#ty::MAX).step_by(#prime as usize) });
+    }
+}
+
+impl ToTokens for AssertRand {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let ty = &self.ty;
+        let prime = &self.prime;
+
+        tokens.extend(quote! { <#ty>::seed_from_u64(#prime) });
     }
 }
 

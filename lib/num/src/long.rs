@@ -3504,7 +3504,7 @@ mod tests {
             }};
         }
 
-        let mut rng = StdRng::seed_from_u64(ndassert::prime!(60) as u64);
+        let mut rng = ndassert::rand!(StdRng, 60);
 
         ndassert::check! { @eq (
             2..=u8::MAX,
@@ -3540,7 +3540,7 @@ mod tests {
             }};
         }
 
-        let mut rng = StdRng::seed_from_u64(ndassert::prime!(60) as u64);
+        let mut rng = ndassert::rand!(StdRng, 60);
 
         ndassert::check! { @eq (
             2..=u8::MAX,
@@ -3572,7 +3572,7 @@ mod tests {
             }};
         }
 
-        let mut rng = StdRng::seed_from_u64(ndassert::prime!(60) as u64);
+        let mut rng = ndassert::rand!(StdRng, 60);
 
         ndassert::check! { @eq (
             1..u8::BITS as u8,
@@ -3604,7 +3604,7 @@ mod tests {
             }};
         }
 
-        let mut rng = StdRng::seed_from_u64(ndassert::prime!(60) as u64);
+        let mut rng = ndassert::rand!(StdRng, 60);
 
         ndassert::check! { @eq (
             1..u8::BITS as u8,
@@ -3635,7 +3635,7 @@ mod tests {
             }};
         }
 
-        let mut rng = StdRng::seed_from_u64(ndassert::prime!(60) as u64);
+        let mut rng = ndassert::rand!(StdRng, 60);
 
         ndassert::check! { @eq (
             2..=u8::MAX,
@@ -3666,7 +3666,7 @@ mod tests {
             }};
         }
 
-        let mut rng = StdRng::seed_from_u64(ndassert::prime!(60) as u64);
+        let mut rng = ndassert::rand!(StdRng, 60);
 
         ndassert::check! { @eq (
             2..=u8::MAX,
@@ -4139,7 +4139,7 @@ mod tests {
     }
 
     #[test]
-    fn signed_ops_rhs() {
+    fn signed_ops_shift() {
         ndassert::check! { @eq (
             ndassert::range!(i64, 48),
             0..128,
@@ -4150,7 +4150,7 @@ mod tests {
     }
 
     #[test]
-    fn unsigned_ops_rhs() {
+    fn unsigned_ops_shift() {
         ndassert::check! { @eq (
             ndassert::range!(u64, 48),
             0..128,
@@ -4162,7 +4162,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn signed_ops_rhs_assign() {
+    fn signed_ops_shift_assign() {
         ndassert::check! { @eq (
             ndassert::range!(i64, 48),
             0..128,
@@ -4174,7 +4174,7 @@ mod tests {
 
     #[test]
     #[rustfmt::skip]
-    fn unsigned_ops_rhs_assign() {
+    fn unsigned_ops_shift_assign() {
         ndassert::check! { @eq (
             ndassert::range!(u64, 48),
             0..128,

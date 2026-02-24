@@ -6,6 +6,7 @@ The crate allows to define complex and structured assertion cases involving mult
 
 - [`ndassert::check!`](check) generates structured assertions.
 - [`ndassert::range!`](range) generates range of primitive type with prime number step.
+- [`ndassert::rand!`](range) generates seeded random number generator.
 - [`ndassert::prime!`](prime) generates prime number.
 
 ## Start
@@ -65,6 +66,16 @@ It means that different classes **may** or **may not** produce the same ranges.
 `CLASS` is used as index in pre-defined prime number arrays and is taken by modulo.
 
 See [examples](#examples) for more information.
+
+### [`ndassert::range!`](range)
+
+```text
+ndassert::rand!(TY, LEN, CLASS?)
+```
+
+- `TY` - `rand` type implementing `TY::seed_from_u64()`.
+
+`LEN` and `CLASS` are the same as [`ndassert::range!`](#ndassertrangerange).
 
 ### [`ndassert::prime!`](prime)
 
