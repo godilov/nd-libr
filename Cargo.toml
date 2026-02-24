@@ -15,7 +15,7 @@ readme     = "README.md"
 
 [workspace.lints.rust]
 missing_docs = "allow"
-unsafe_code  = "forbid"
+unsafe_code  = "deny"
 
 [workspace.lints.clippy]
 panic       = { level = "deny", priority = 127 }
