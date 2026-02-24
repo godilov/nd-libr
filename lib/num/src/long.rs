@@ -579,31 +579,28 @@ macro_rules! shr_impl {
 }
 
 macro_rules! bit_offset_impl {
-    ($words:expr, $mask:expr, $offset:expr, $default:expr, $op:tt) => {{
+    ($words:expr, $mask:expr, $offset:expr, $op:tt $(, $($mod:tt)*)?) => {{
+        let mask = $mask;
+        let offset = $offset;
+
         let bits = u64::BITS as usize;
 
         #[allow(unused_mut)]
         let mut res = $words;
 
-        for idx in 0..(u64::BITS as usize).div_ceil(BITS) {
+        for idx in 0..bits.div_ceil(BITS) {
             let shift = idx * BITS;
-            let mask = ($mask >> shift) as Single;
+            let mask = (mask $($($mod)*)? >> shift) as Single;
 
-            let shl = $offset % BITS;
-            let shr = bits - $offset % BITS;
+            let shl = offset % BITS;
+            let shr = BITS - offset % BITS;
 
-            if let Some(elem) = res.get_mut(($offset + shift) / BITS) {
-                *elem $op mask
-                    .checked_shl(shl as u32)
-                    .map(|val| val | $default >> shr)
-                    .unwrap_or($default);
+            if let Some(elem) = res.get_mut((offset + shift) / BITS) {
+                *elem $op mask.unbounded_shl(shl as u32) $($($mod)*)?;
             }
 
-            if let Some(elem) = res.get_mut(($offset + shift) / BITS + 1) {
-                *elem $op mask
-                    .checked_shr(shr as u32)
-                    .map(|val| val | $default << shl)
-                    .unwrap_or($default);
+            if let Some(elem) = res.get_mut((offset + shift) / BITS + 1) {
+                *elem $op mask.unbounded_shr(shr as u32) $($($mod)*)?;
             }
         }
 
@@ -2460,27 +2457,35 @@ impl<const L: usize> Num for Unsigned<L> {
 
 impl<const L: usize> NumExt for Signed<L> {
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        let offset_self = (L * BITS).saturating_sub(u64::BITS as usize);
+
         match offset {
-            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, |=),
-            Offset::Right(_val) => &mut self.0,
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, |=),
+            Offset::Right(val) => bit_offset_impl!(&mut self.0, mask, offset_self.saturating_sub(val), |=),
         };
 
         self
     }
 
     fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        use std::ops::Not;
+
+        let offset_self = (L * BITS).saturating_sub(u64::BITS as usize);
+
         match offset {
-            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MAX, &=),
-            Offset::Right(_val) => &mut self.0,
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, &=, .not()),
+            Offset::Right(val) => bit_offset_impl!(&mut self.0, mask, offset_self.saturating_sub(val), &=, .not()),
         };
 
         self
     }
 
     fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        let offset_self = (L * BITS).saturating_sub(u64::BITS as usize);
+
         match offset {
-            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, ^=),
-            Offset::Right(_val) => &mut self.0,
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, ^=),
+            Offset::Right(val) => bit_offset_impl!(&mut self.0, mask, offset_self.saturating_sub(val), ^=),
         };
 
         self
@@ -2489,27 +2494,35 @@ impl<const L: usize> NumExt for Signed<L> {
 
 impl<const L: usize> NumExt for Unsigned<L> {
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        let offset_self = (L * BITS).saturating_sub(u64::BITS as usize);
+
         match offset {
-            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, |=),
-            Offset::Right(_val) => &mut self.0,
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, |=),
+            Offset::Right(val) => bit_offset_impl!(&mut self.0, mask, offset_self.saturating_sub(val), |=),
         };
 
         self
     }
 
     fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        use std::ops::Not;
+
+        let offset_self = (L * BITS).saturating_sub(u64::BITS as usize);
+
         match offset {
-            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MAX, &=),
-            Offset::Right(_val) => &mut self.0,
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, &=, .not()),
+            Offset::Right(val) => bit_offset_impl!(&mut self.0, mask, offset_self.saturating_sub(val), &=, .not()),
         };
 
         self
     }
 
     fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+        let offset_self = (L * BITS).saturating_sub(u64::BITS as usize);
+
         match offset {
-            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, MIN, ^=),
-            Offset::Right(_val) => &mut self.0,
+            Offset::Left(val) => bit_offset_impl!(&mut self.0, mask, val, ^=),
+            Offset::Right(val) => bit_offset_impl!(&mut self.0, mask, offset_self.saturating_sub(val), ^=),
         };
 
         self
