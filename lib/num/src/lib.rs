@@ -145,6 +145,7 @@ macro_rules! num_ct_impl {
 
         num_ct_impl!(@min $signed);
         num_ct_impl!(@max $signed);
+        num_ct_impl!(@select $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
         impl EqCt for $unsigned {
@@ -187,6 +188,7 @@ macro_rules! num_ct_impl {
 
         num_ct_impl!(@min $unsigned);
         num_ct_impl!(@max $unsigned);
+        num_ct_impl!(@select $unsigned);
     };
     (@min $primitive:ty $(,)?) => {
         impl MinCt for $primitive {
@@ -213,7 +215,17 @@ macro_rules! num_ct_impl {
                 gt & lhs | !gt & rhs
             }
         }
-    }
+    };
+    (@select $primitive:ty $(,)?) => {
+        impl SelectCt for $primitive {
+            fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+                let mask_lhs = <$primitive>::from_ne_bytes([mask; (<$primitive>::BITS / 8) as usize]);
+                let mask_rhs = <$primitive>::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
+
+                mask_lhs & lhs | mask_rhs & rhs
+            }
+        }
+    };
 }
 
 macro_rules! signed_impl {
@@ -940,6 +952,11 @@ pub trait MinCt: Copy {
 #[cfg(feature = "const-time")]
 pub trait MaxCt: Copy {
     fn max_ct(&self, other: &Self) -> Self;
+}
+
+#[cfg(feature = "const-time")]
+pub trait SelectCt: Copy {
+    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self;
 }
 
 num_impl!([i8, i16, i32, i64, i128, isize]);
