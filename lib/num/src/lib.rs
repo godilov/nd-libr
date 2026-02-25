@@ -408,7 +408,7 @@ pub mod prime {
 
                 let mut any = false;
                 let mut pow = Self::shr(&x, shr);
-                let mut exp = p.pow_rem(pow.clone(), self);
+                let mut exp = p.powrem(pow.clone(), self);
 
                 while pow < x && one < exp && exp < x {
                     any |= true;
@@ -648,7 +648,29 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
     }
 
     #[ndfwd::as_into]
-    fn pow_rem(self, mut pow: Self, rem: &Self) -> Self {
+    fn pow(self, mut pow: Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one;
+
+        while pow != zero {
+            if !pow.is_even() {
+                Self::mul_assign(&mut res, &acc);
+            }
+
+            let val = acc.clone();
+
+            Self::mul_assign(&mut acc, &val);
+            Self::shr_assign(&mut pow, 1);
+        }
+
+        res
+    }
+
+    #[ndfwd::as_into]
+    fn powrem(self, mut pow: Self, rem: &Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
 
@@ -661,8 +683,9 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
                 Self::rem_assign(&mut res, rem);
             }
 
-            acc = Self::mul(&acc, &acc);
+            let val = acc.clone();
 
+            Self::mul_assign(&mut acc, &val);
             Self::rem_assign(&mut acc, rem);
             Self::shr_assign(&mut pow, 1);
         }
