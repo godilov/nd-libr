@@ -12,6 +12,7 @@ readme.workspace     = true
 description          = "Nd Memory Library"
 
 [dependencies]
+thiserror = { workspace = true }
 
 [dev-dependencies]
 

@@ -922,7 +922,6 @@ pub trait MaxDyn {
 #[ndfwd::decl]
 pub trait BinaryDyn {
     fn bits(&self) -> usize;
-
     fn bytes(&self) -> usize;
 }
 
