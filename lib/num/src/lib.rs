@@ -1039,7 +1039,16 @@ impl<N: Num + NumExt + Unsigned + Binary, const BITS: usize> Width<N, BITS> {
     }
 
     pub(crate) fn normalize(&mut self) -> &mut Self {
-        todo!()
+        let diff = Self::BITS.saturating_sub(BITS);
+        let div = diff / 64;
+        let rem = diff % 64;
+
+        for idx in 0..div {
+            self.bitand_offset_mut_ext(0, Offset::Right((idx + 1) * 64));
+        }
+
+        self.bitand_offset_mut_ext(u64::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * 64));
+        self
     }
 }
 
