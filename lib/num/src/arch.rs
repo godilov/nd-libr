@@ -100,7 +100,7 @@ pub mod word {
     pub const MAX: Single = Single::MAX;
     pub const MIN: Single = Single::MIN;
     pub const BITS: usize = Single::BITS as usize;
-    pub const BYTES: usize = Single::BITS as usize / u8::BITS as usize;
+    pub const BYTES: usize = Single::BITS as usize / 8;
     pub const RADIX: Double = Single::MAX as Double + 1;
 
     #[rustfmt::skip]

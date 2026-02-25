@@ -16,13 +16,14 @@ use ndcore::{
 use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
-#[cfg(feature = "const-time")]
-use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, SignCt};
 use crate::{
-    Max, Min, Num, NumExt, Offset, One, Sign, Signed as NumSigned, Unsigned as NumUnsigned, Zero,
+    Binary as NumBinary, Max as NumMax, Min as NumMin, Num, NumExt, Offset, One as NumOne, Sign, Signed as NumSigned,
+    Unsigned as NumUnsigned, Zero as NumZero,
     arch::word::*,
     long::{radix::*, uops::*},
 };
+#[cfg(feature = "const-time")]
+use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, SignCt};
 
 macro_rules! signed {
     ($bits:expr) => {
@@ -1096,7 +1097,7 @@ mod uops {
     pub(super) fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
 
-        <MaskCt as Zero>::ZERO.wrapping_sub(neg)
+        <MaskCt as NumZero>::ZERO.wrapping_sub(neg)
     }
 
     #[cfg(feature = "const-time")]
@@ -2420,10 +2421,6 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
 }
 
 impl<const L: usize> Num for Signed<L> {
-    fn bits(&self) -> usize {
-        L * BITS
-    }
-
     fn is_even(&self) -> bool {
         self.0[0].is_multiple_of(2)
     }
@@ -2438,10 +2435,6 @@ impl<const L: usize> Num for Signed<L> {
 }
 
 impl<const L: usize> Num for Unsigned<L> {
-    fn bits(&self) -> usize {
-        L * BITS
-    }
-
     fn is_even(&self) -> bool {
         self.0[0].is_multiple_of(2)
     }
@@ -2551,11 +2544,15 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 }
 
-impl<const L: usize> Zero for Signed<L> {
+impl<const L: usize> NumZero for Signed<L> {
     const ZERO: Self = Self([0; L]);
 }
 
-impl<const L: usize> One for Signed<L> {
+impl<const L: usize> NumZero for Unsigned<L> {
+    const ZERO: Self = Self([0; L]);
+}
+
+impl<const L: usize> NumOne for Signed<L> {
     const ONE: Self = Self({
         let mut res = [MIN; L];
 
@@ -2564,7 +2561,16 @@ impl<const L: usize> One for Signed<L> {
     });
 }
 
-impl<const L: usize> Min for Signed<L> {
+impl<const L: usize> NumOne for Unsigned<L> {
+    const ONE: Self = Self({
+        let mut res = [MIN; L];
+
+        res[0] = 1;
+        res
+    });
+}
+
+impl<const L: usize> NumMin for Signed<L> {
     const MIN: Self = Self({
         let mut res = [MIN; L];
 
@@ -2573,7 +2579,11 @@ impl<const L: usize> Min for Signed<L> {
     });
 }
 
-impl<const L: usize> Max for Signed<L> {
+impl<const L: usize> NumMin for Unsigned<L> {
+    const MIN: Self = Self([MIN; L]);
+}
+
+impl<const L: usize> NumMax for Signed<L> {
     const MAX: Self = Self({
         let mut res = [MAX; L];
 
@@ -2582,25 +2592,18 @@ impl<const L: usize> Max for Signed<L> {
     });
 }
 
-impl<const L: usize> Zero for Unsigned<L> {
-    const ZERO: Self = Self([0; L]);
-}
-
-impl<const L: usize> One for Unsigned<L> {
-    const ONE: Self = Self({
-        let mut res = [MIN; L];
-
-        res[0] = 1;
-        res
-    });
-}
-
-impl<const L: usize> Min for Unsigned<L> {
-    const MIN: Self = Self([MIN; L]);
-}
-
-impl<const L: usize> Max for Unsigned<L> {
+impl<const L: usize> NumMax for Unsigned<L> {
     const MAX: Self = Self([MAX; L]);
+}
+
+impl<const L: usize> NumBinary for Signed<L> {
+    const BITS: usize = L * BITS;
+    const BYTES: usize = L * BYTES;
+}
+
+impl<const L: usize> NumBinary for Unsigned<L> {
+    const BITS: usize = L * BITS;
+    const BYTES: usize = L * BYTES;
 }
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {

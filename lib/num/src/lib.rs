@@ -18,10 +18,6 @@ macro_rules! num_impl {
     };
     ($primitive:ty $(,)?) => {
         impl Num for $primitive {
-            fn bits(&self) -> usize {
-                <$primitive>::BITS as usize
-            }
-
             fn is_even(&self) -> bool {
                 *self % 2 == 0
             }
@@ -80,6 +76,11 @@ macro_rules! num_impl {
 
         impl Max for $primitive {
             const MAX: Self = Self::MAX;
+        }
+
+        impl Binary for $primitive {
+            const BITS: usize = <$primitive>::BITS as usize;
+            const BYTES: usize = <$primitive>::BITS as usize / 8;
         }
     };
 }
@@ -585,8 +586,9 @@ pub mod prime {
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Unsigned)]
+#[ndfwd::def(self.0 with N: Binary)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumExt + Unsigned, const BITS: usize>(pub N);
+pub struct Width<N: Num + NumExt + Unsigned + Binary, const BITS: usize>(pub N);
 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
@@ -619,8 +621,6 @@ type SignCt = i8;
 
 #[ndfwd::decl]
 pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAssign {
-    fn bits(&self) -> usize;
-
     fn is_even(&self) -> bool;
 
     #[ndfwd::as_into]
@@ -889,20 +889,41 @@ pub trait Max {
     const MAX: Self;
 }
 
+#[ndfwd::decl]
+pub trait Binary {
+    const BITS: usize;
+    const BYTES: usize;
+}
+
+#[ndfwd::decl]
 pub trait ZeroDyn {
+    #[ndfwd::as_into]
     fn zero() -> Self;
 }
 
+#[ndfwd::decl]
 pub trait OneDyn {
+    #[ndfwd::as_into]
     fn one() -> Self;
 }
 
+#[ndfwd::decl]
 pub trait MinDyn {
+    #[ndfwd::as_into]
     fn min() -> Self;
 }
 
+#[ndfwd::decl]
 pub trait MaxDyn {
+    #[ndfwd::as_into]
     fn max() -> Self;
+}
+
+#[ndfwd::decl]
+pub trait BinaryDyn {
+    fn bits(&self) -> usize;
+
+    fn bytes(&self) -> usize;
 }
 
 #[cfg(feature = "const-time")]
@@ -921,22 +942,31 @@ pub trait GtCt {
 }
 
 #[cfg(feature = "const-time")]
-pub trait LeCt: GtCt {
-    fn le_ct(&self, other: &Self) -> MaskCt {
+pub trait LeCt {
+    fn le_ct(&self, other: &Self) -> MaskCt
+    where
+        Self: GtCt,
+    {
         !self.gt_ct(other)
     }
 }
 
 #[cfg(feature = "const-time")]
-pub trait GeCt: LtCt {
-    fn ge_ct(&self, other: &Self) -> MaskCt {
+pub trait GeCt {
+    fn ge_ct(&self, other: &Self) -> MaskCt
+    where
+        Self: LtCt,
+    {
         !self.lt_ct(other)
     }
 }
 
 #[cfg(feature = "const-time")]
-pub trait CmpCt: EqCt + LtCt + GtCt {
-    fn cmp_ct(&self, other: &Self) -> SignCt {
+pub trait CmpCt {
+    fn cmp_ct(&self, other: &Self) -> SignCt
+    where
+        Self: EqCt + LtCt + GtCt,
+    {
         let lt = self.lt_ct(other) as SignCt;
         let gt = self.gt_ct(other) as SignCt;
 
@@ -991,7 +1021,7 @@ impl<N: Zero> From<Offset<()>> for Offset<N> {
     }
 }
 
-impl<N: Num + NumExt + Unsigned, const BITS: usize> From<N> for Width<N, BITS> {
+impl<N: Num + NumExt + Unsigned + Binary, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {
         Self(value).normalized()
     }
@@ -1003,7 +1033,7 @@ impl<N: Num + NumExt + Unsigned, M: Modulus<N>> From<N> for Modular<N, M> {
     }
 }
 
-impl<N: Num + NumExt + Unsigned, const BITS: usize> Width<N, BITS> {
+impl<N: Num + NumExt + Unsigned + Binary, const BITS: usize> Width<N, BITS> {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
