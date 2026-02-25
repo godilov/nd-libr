@@ -5,10 +5,10 @@ use thiserror::Error;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum MemoryError {}
 
-pub trait Memory {
-    fn alloc() -> Result<(), MemoryError>;
+pub trait Memory: Sized {
+    fn alloc() -> Result<Self, MemoryError>;
 }
 
-pub trait MemoryDyn {
-    fn alloc() -> Result<(), MemoryError>;
+pub trait MemoryDyn: Sized {
+    fn alloc(len: usize) -> Result<Self, MemoryError>;
 }

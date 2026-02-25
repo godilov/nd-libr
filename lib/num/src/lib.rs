@@ -1039,7 +1039,11 @@ impl<N: Num + NumExt + Unsigned + Binary, const BITS: usize> Width<N, BITS> {
     }
 
     pub(crate) fn normalize(&mut self) -> &mut Self {
-        let diff = Self::BITS.saturating_sub(BITS);
+        if Self::BITS <= BITS {
+            return self;
+        }
+
+        let diff = Self::BITS - BITS;
         let div = diff / 64;
         let rem = diff % 64;
 
