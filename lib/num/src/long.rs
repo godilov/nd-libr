@@ -3425,7 +3425,7 @@ fn get_radix_from_str(s: &str, default: u8) -> Result<(&str, u8), FromStrError> 
     }
 
     if s.len() < 2 {
-        return Ok((s, 10));
+        return Ok((s, default));
     }
 
     Ok(match &s[..2] {
@@ -3855,17 +3855,53 @@ mod tests {
             |value: u64| (format!("{:#x}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
             |value: u64| (format!("{:#X}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
 
+            |value: u64| (S64::nd_from_str(&format!("{:}",  (value as i64)), Dec), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:b}", (value as i64)), Bin), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:o}", (value as i64)), Oct), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:x}", (value as i64)), Hex), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:X}", (value as i64)), Hex), Ok(S64::from(value as i64))),
+
+            |value: u64| (S64::nd_from_str(&format!("{:#}",  (value as i64)), Dec), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:#b}", (value as i64)), Bin), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:#o}", (value as i64)), Oct), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:#x}", (value as i64)), Hex), Ok(S64::from(value as i64))),
+            |value: u64| (S64::nd_from_str(&format!("{:#X}", (value as i64)), Hex), Ok(S64::from(value as i64))),
+
             |value: u64| (format!("{:#}",  (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
             |value: u64| (format!("{:#b}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
             |value: u64| (format!("{:#o}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
             |value: u64| (format!("{:#x}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
             |value: u64| (format!("{:#X}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
 
+            |value: u64| (S64::nd_from_str(&format!("{:}",  (value as i64).wrapping_neg()), Dec), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:b}", (value as i64).wrapping_neg()), Bin), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:o}", (value as i64).wrapping_neg()), Oct), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:x}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:X}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
+
+            |value: u64| (S64::nd_from_str(&format!("{:#}",  (value as i64).wrapping_neg()), Dec), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:#b}", (value as i64).wrapping_neg()), Bin), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:#o}", (value as i64).wrapping_neg()), Oct), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:#x}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
+            |value: u64| (S64::nd_from_str(&format!("{:#X}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
+
             |value: u64| (format!("{:#}",  (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
             |value: u64| (format!("{:#b}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
             |value: u64| (format!("{:#o}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
             |value: u64| (format!("{:#x}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
             |value: u64| (format!("{:#X}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
+
+            |value: u64| (U64::nd_from_str(&format!("{:}",  (value as u64)), Dec), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:b}", (value as u64)), Bin), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:o}", (value as u64)), Oct), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:x}", (value as u64)), Hex), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:X}", (value as u64)), Hex), Ok(U64::from(value as u64))),
+
+            |value: u64| (U64::nd_from_str(&format!("{:#}",  (value as u64)), Dec), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:#b}", (value as u64)), Bin), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:#o}", (value as u64)), Oct), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:#x}", (value as u64)), Hex), Ok(U64::from(value as u64))),
+            |value: u64| (U64::nd_from_str(&format!("{:#X}", (value as u64)), Hex), Ok(U64::from(value as u64))),
         ] }
     }
 
