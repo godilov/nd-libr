@@ -707,6 +707,12 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
 }
 
 #[ndfwd::decl]
+pub trait NumDyn:
+    Sized + Default + Clone + Copy + Eq + Ord + NdOps<All = Self> + NdOpsAssign + ZeroDyn + OneDyn
+{
+}
+
+#[ndfwd::decl]
 pub trait NumExt: Num {
     #[ndfwd::as_self]
     fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self;
