@@ -9,7 +9,7 @@ use std::{
 };
 
 use ndcore::{
-    convert::{NdFrom, NdTryFrom},
+    convert::{NdFrom, NdFromStr, NdTryFrom},
     iter::IteratorExt,
     ops::*,
 };
@@ -167,6 +167,20 @@ macro_rules! from_digits_radix_impl {
 }
 
 macro_rules! from_str_impl {
+    (@radix $str:expr, $radix:ty) => {{
+        let (s, sign) = get_sign_from_str($str)?;
+        let (s, radix) = get_radix_from_str(s, <$radix>::VALUE)?;
+
+        if radix != <$radix>::VALUE {
+            return Err(FromStrError::InvalidRadix { radix: radix as usize });
+        }
+
+        if radix.is_pow2() {
+            from_str(s, radix.order() as u8, sign)
+        } else {
+            from_str_radix(s, radix, sign)
+        }
+    }};
     (@long $str:expr) => {{
         let (s, sign) = get_sign_from_str($str)?;
         let (s, radix) = get_radix_from_str(s, 10)?;
@@ -881,31 +895,39 @@ pub mod radix {
         pub width: u8,
     }
 
+    #[rustfmt::skip]
     impl Dec {
         pub const PREFIX: &str = "";
         pub const RADIX: Double = DEC_RADIX;
         pub const WIDTH: u8 = DEC_WIDTH;
+        pub const VALUE: u8 = 10;
     }
 
+    #[rustfmt::skip]
     impl Bin {
         pub const EXP: u8 = RADIX.ilog2() as u8;
         pub const PREFIX: &str = "0b";
         pub const RADIX: Double = RADIX;
         pub const WIDTH: u8 = BITS as u8;
+        pub const VALUE: u8 = 2;
     }
 
+    #[rustfmt::skip]
     impl Oct {
         pub const EXP: u8 = OCT_RADIX.ilog2() as u8;
         pub const PREFIX: &str = "0o";
         pub const RADIX: Double = OCT_RADIX;
         pub const WIDTH: u8 = OCT_WIDTH;
+        pub const VALUE: u8 = 8;
     }
 
+    #[rustfmt::skip]
     impl Hex {
         pub const EXP: u8 = RADIX.ilog2() as u8;
         pub const PREFIX: &str = "0x";
         pub const RADIX: Double = RADIX;
         pub const WIDTH: u8 = BITS as u8 / 4;
+        pub const VALUE: u8 = 16;
     }
 
     impl From<Dec> for Radix {
@@ -1530,6 +1552,94 @@ impl<const L: usize, W: Word> FromIterator<W> for Unsigned<L> {
 impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
     fn from_iter<Iter: IntoIterator<Item = W>>(iter: Iter) -> Self {
         Self(from_iter(iter.into_iter()))
+    }
+}
+
+impl<const L: usize> NdFromStr<Dec> for Signed<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Dec).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Dec> for Unsigned<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Dec).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Bin> for Signed<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Bin).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Bin).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Bin).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Oct> for Signed<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Oct).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Oct).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Oct).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Hex> for Signed<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Hex).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Hex).map(Self)
+    }
+}
+
+impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
+    type Err = FromStrError;
+
+    fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
+        from_str_impl!(@radix s, Hex).map(Self)
     }
 }
 

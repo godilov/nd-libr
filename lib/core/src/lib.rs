@@ -1,8 +1,11 @@
 #![doc = include_str!("../README.md")]
 
-use std::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
-    Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+use std::{
+    ops::{
+        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, MulAssign,
+        Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+    },
+    str::FromStr,
 };
 
 pub mod iter {
@@ -53,11 +56,13 @@ pub mod iter {
 }
 
 pub mod convert {
+    use super::*;
+
     /// `Nd` alternative to [`From`] for describing non-failable conversions.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdFrom<T>: Sized {
-        /// Convert from `T` into `Self` in non-failable way
+        /// Convert from `T` into `Self` in non-failable way.
         fn nd_from(value: T) -> Self;
     }
 
@@ -67,8 +72,18 @@ pub mod convert {
     pub trait NdTryFrom<T>: Sized {
         type Error;
 
-        /// Convert from `T` into `Self` in failable way
+        /// Convert from `T` into `Self` in failable way.
         fn nd_try_from(value: T) -> Result<Self, Self::Error>;
+    }
+
+    /// `Nd` alternative to [`std::str::FromStr`] for describing interpreted conversions.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdFromStr<Ctx>: Sized {
+        type Err;
+
+        /// Convert from `&str` into `Self` in interpreted way.
+        fn nd_from_str(s: &str, ctx: Ctx) -> Result<Self, Self::Err>;
     }
 
     impl<U, V: From<U>> NdFrom<U> for V {
@@ -82,6 +97,14 @@ pub mod convert {
 
         fn nd_try_from(value: U) -> Result<Self, Self::Error> {
             V::try_from(value)
+        }
+    }
+
+    impl<T: FromStr> NdFromStr<()> for T {
+        type Err = T::Err;
+
+        fn nd_from_str(s: &str, _: ()) -> Result<Self, Self::Err> {
+            T::from_str(s)
         }
     }
 }
