@@ -148,8 +148,8 @@ pub mod word {
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
-#[ndfwd::def(self.0 with T: crate::Signed)]
-#[ndfwd::def(self.0 with T: crate::Unsigned)]
+#[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 

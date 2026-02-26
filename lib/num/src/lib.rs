@@ -17,22 +17,19 @@ macro_rules! num_impl {
         $(num_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl Num for $primitive {
-            fn is_even(&self) -> bool {
-                *self % 2 == 0
-            }
+        impl NumCore for $primitive {}
 
-            fn zero() -> Self {
-                0
-            }
-
-            fn one() -> Self {
-                1
-            }
-        }
+        impl Num for $primitive {}
 
         impl NumExt for $primitive {
-            fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+            fn offset(&self, offset: Offset) -> u64 {
+                match offset {
+                    Offset::Left(val) => self.unbounded_shr(val as u32) as u64,
+                    Offset::Right(val) => self.unbounded_shr(<$primitive>::BITS.saturating_sub(val as u32)) as u64,
+                }
+            }
+
+            fn bitor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self {
                 match offset {
                     Offset::Left(val) => *self |= (mask as $primitive).unbounded_shl(val as u32),
                     Offset::Right(val) => *self |= (mask as $primitive).unbounded_shl(<$primitive>::BITS.saturating_sub(val as u32)),
@@ -41,7 +38,7 @@ macro_rules! num_impl {
                 self
             }
 
-            fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+            fn bitand_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self {
                 use std::ops::Not;
 
                 match offset {
@@ -52,7 +49,7 @@ macro_rules! num_impl {
                 self
             }
 
-            fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self {
+            fn bitxor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self {
                 match offset {
                     Offset::Left(val) => *self ^= (mask as $primitive).unbounded_shl(val as u32),
                     Offset::Right(val) => *self ^= (mask as $primitive).unbounded_shl(<$primitive>::BITS.saturating_sub(val as u32)),
@@ -234,7 +231,7 @@ macro_rules! signed_impl {
         $(signed_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl Signed for $primitive {
+        impl NumSigned for $primitive {
             fn new(value: isize) -> Self {
                 value as Self
             }
@@ -247,7 +244,7 @@ macro_rules! unsigned_impl {
         $(unsigned_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl Unsigned for $primitive {
+        impl NumUnsigned for $primitive {
             fn new(value: usize) -> Self {
                 value as Self
             }
@@ -396,7 +393,7 @@ pub mod prime {
         }
     }
 
-    pub trait Primality: Unsigned {
+    pub trait Primality: NumExt + NumUnsigned {
         fn primes() -> impl Iterator<Item = Self>;
 
         fn as_count_estimate(&self) -> usize;
@@ -438,14 +435,14 @@ pub mod prime {
         }
     }
 
-    pub trait PrimalityExt: Send + Primality + NumExt {
+    pub trait PrimalityExt: Send + Primality {
         #[cfg(feature = "rand")]
         fn rand_prime(order: usize) -> Self {
             let mut rng = rand::rng();
-            let mut val = Self::rand(order, &mut rng).odd_ext();
+            let mut val = Self::rand(order, &mut rng).odd();
 
             while !val.is_prime() {
-                val = Self::rand(order, &mut rng).odd_ext();
+                val = Self::rand(order, &mut rng).odd();
             }
 
             val
@@ -585,19 +582,18 @@ pub mod prime {
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-#[ndfwd::def(self.0 with N: Unsigned)]
-#[ndfwd::def(self.0 with N: Binary)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumExt + Unsigned + Binary, const BITS: usize>(pub N);
+pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub N);
 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-#[ndfwd::def(self.0 with N: Unsigned)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modular<N: Num + NumExt + Unsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
+pub struct Modular<N: Num + NumExt + NumUnsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -608,9 +604,9 @@ pub enum Sign {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Offset<T> {
-    Left(T),
-    Right(T),
+pub enum Offset {
+    Left(usize),
+    Right(usize),
 }
 
 #[cfg(feature = "const-time")]
@@ -620,43 +616,152 @@ type MaskCt = u8;
 type SignCt = i8;
 
 #[ndfwd::decl]
-pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAssign {
-    fn is_even(&self) -> bool;
+pub trait NumCore:
+    Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
+{
+}
 
-    #[ndfwd::as_into]
-    fn zero() -> Self;
+#[ndfwd::decl]
+pub trait Num: NumCore + Zero + One + Copy {}
 
-    #[ndfwd::as_into]
-    fn one() -> Self;
+#[ndfwd::decl]
+pub trait NumDyn: NumCore {}
 
-    #[ndfwd::as_into]
-    fn gcd(self, val: Self) -> Self {
-        let zero = Self::zero();
+#[ndfwd::decl]
+pub trait NumExt: NumCore {
+    fn offset(&self, offset: Offset) -> u64;
 
-        let (mut a, mut b) = match self.cmp(&val) {
-            Ordering::Less => (val, self),
-            Ordering::Equal => (self, val),
-            Ordering::Greater => (self, val),
-        };
+    #[ndfwd::as_self]
+    fn bitor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
-        while b != zero {
-            let rem = Self::rem(&a, &b);
+    #[ndfwd::as_self]
+    fn bitand_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
-            a = b;
-            b = rem;
-        }
+    #[ndfwd::as_self]
+    fn bitxor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
-        a
+    #[ndfwd::as_self]
+    fn odd_mut(&mut self) -> &mut Self {
+        self.bitor_offset_mut(1, Offset::Left(0));
+        self
+    }
+
+    #[ndfwd::as_self]
+    fn even_mut(&mut self) -> &mut Self {
+        self.bitand_offset_mut(u64::MAX - 1, Offset::Left(0));
+        self
+    }
+
+    #[ndfwd::as_self]
+    fn alt_mut(&mut self) -> &mut Self {
+        self.bitxor_offset_mut(1, Offset::Left(0));
+        self
     }
 
     #[ndfwd::as_into]
-    fn lcm(mut self, val: Self) -> Self {
-        let gcd = Self::gcd(self.clone(), val.clone());
-
-        Self::div_assign(&mut self, &gcd);
-        Self::mul_assign(&mut self, &val);
-
+    fn bitor_offset(mut self, mask: u64, offset: Offset) -> Self {
+        self.bitor_offset_mut(mask, offset);
         self
+    }
+
+    #[ndfwd::as_into]
+    fn bitand_offset(mut self, mask: u64, offset: Offset) -> Self {
+        self.bitand_offset_mut(mask, offset);
+        self
+    }
+
+    #[ndfwd::as_into]
+    fn bitxor_offset(mut self, mask: u64, offset: Offset) -> Self {
+        self.bitxor_offset_mut(mask, offset);
+        self
+    }
+
+    #[ndfwd::as_into]
+    fn odd(mut self) -> Self {
+        self.odd_mut();
+        self
+    }
+
+    #[ndfwd::as_into]
+    fn even(mut self) -> Self {
+        self.even_mut();
+        self
+    }
+
+    #[ndfwd::as_into]
+    fn alt(mut self) -> Self {
+        self.alt_mut();
+        self
+    }
+
+    fn is_odd(&self) -> bool {
+        self.offset(Offset::Left(0)) & 1 != 0
+    }
+
+    fn is_even(&self) -> bool {
+        self.offset(Offset::Left(0)) & 1 == 0
+    }
+
+    #[cfg(feature = "rand")]
+    #[ndfwd::as_into]
+    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
+        let shift = order - 1;
+        let div = shift / u64::BITS as usize;
+        let rem = shift % u64::BITS as usize;
+
+        let mut res = Self::zero();
+
+        res.bitor_offset_mut((1 << rem) | rng.next_u64() & ((1 << rem) - 1), Offset::Right(shift - rem));
+
+        for idx in 0..div {
+            res.bitor_offset_mut(rng.next_u64(), Offset::Right(shift - rem - idx * div));
+        }
+
+        res
+    }
+
+    #[ndfwd::as_into]
+    fn gcd(mut lhs: Self, mut rhs: Self) -> Self {
+        let zero = Self::zero();
+
+        while rhs != zero {
+            let rem = Self::rem(&lhs, &rhs);
+
+            lhs = rhs;
+            rhs = rem;
+        }
+
+        lhs
+    }
+
+    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
+    fn gcde(lhs: &Self, rhs: &Self) -> (Self, Self, Self) {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        if rhs == &zero {
+            return (lhs.clone(), one, zero);
+        }
+
+        let rem = Self::rem(lhs, rhs);
+
+        let (gcd, x, y) = Self::gcde(rhs, &rem);
+
+        let val = Self::div(lhs, rhs);
+        let val = Self::mul(&val, &y);
+        let val = Self::sub(&x, &val);
+
+        (gcd, y, val)
+    }
+
+    #[ndfwd::as_into]
+    fn lcm(mut lhs: Self, rhs: Self) -> Self {
+        let gcd = Self::gcd(lhs.clone(), rhs.clone());
+
+        Self::div_assign(&mut lhs, &gcd);
+        Self::mul_assign(&mut lhs, &rhs);
+
+        lhs
     }
 
     #[ndfwd::as_into]
@@ -668,7 +773,7 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
         let mut res = one;
 
         while pow != zero {
-            if !pow.is_even() {
+            if pow.is_odd() {
                 Self::mul_assign(&mut res, &acc);
             }
 
@@ -690,7 +795,7 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
         let mut res = one;
 
         while pow != zero {
-            if !pow.is_even() {
+            if pow.is_odd() {
                 Self::mul_assign(&mut res, &acc);
                 Self::rem_assign(&mut res, rem);
             }
@@ -707,162 +812,13 @@ pub trait Num: Sized + Default + Clone + Eq + Ord + NdOps<All = Self> + NdOpsAss
 }
 
 #[ndfwd::decl]
-pub trait NumDyn:
-    Sized + Default + Clone + Copy + Eq + Ord + NdOps<All = Self> + NdOpsAssign + ZeroDyn + OneDyn
-{
-}
-
-#[ndfwd::decl]
-pub trait NumExt: Num {
-    #[ndfwd::as_self]
-    fn bitor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self;
-
-    #[ndfwd::as_self]
-    fn bitand_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self;
-
-    #[ndfwd::as_self]
-    fn bitxor_offset_mut_ext(&mut self, mask: u64, offset: Offset<usize>) -> &mut Self;
-
-    #[ndfwd::as_self]
-    fn bitor_mut_ext(&mut self, mask: u64, offset: Offset<()>) -> &mut Self {
-        self.bitor_offset_mut_ext(mask, offset.into());
-        self
-    }
-
-    #[ndfwd::as_self]
-    fn bitand_mut_ext(&mut self, mask: u64, offset: Offset<()>) -> &mut Self {
-        self.bitand_offset_mut_ext(mask, offset.into());
-        self
-    }
-
-    #[ndfwd::as_self]
-    fn bitxor_mut_ext(&mut self, mask: u64, offset: Offset<()>) -> &mut Self {
-        self.bitxor_offset_mut_ext(mask, offset.into());
-        self
-    }
-
-    #[ndfwd::as_self]
-    fn odd_mut_ext(&mut self) -> &mut Self {
-        self.bitor_mut_ext(1, Offset::Left(()));
-        self
-    }
-
-    #[ndfwd::as_self]
-    fn even_mut_ext(&mut self) -> &mut Self {
-        self.bitand_mut_ext(u64::MAX - 1, Offset::Left(()));
-        self
-    }
-
-    #[ndfwd::as_self]
-    fn alt_mut_ext(&mut self) -> &mut Self {
-        self.bitxor_mut_ext(1, Offset::Left(()));
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn bitor_offset_ext(mut self, mask: u64, offset: Offset<usize>) -> Self {
-        self.bitor_offset_mut_ext(mask, offset);
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn bitand_offset_ext(mut self, mask: u64, offset: Offset<usize>) -> Self {
-        self.bitand_offset_mut_ext(mask, offset);
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn bitxor_offset_ext(mut self, mask: u64, offset: Offset<usize>) -> Self {
-        self.bitxor_offset_mut_ext(mask, offset);
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn bitor_ext(mut self, mask: u64, offset: Offset<()>) -> Self {
-        self.bitor_offset_mut_ext(mask, offset.into());
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn bitand_ext(mut self, mask: u64, offset: Offset<()>) -> Self {
-        self.bitand_offset_mut_ext(mask, offset.into());
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn bitxor_ext(mut self, mask: u64, offset: Offset<()>) -> Self {
-        self.bitxor_offset_mut_ext(mask, offset.into());
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn odd_ext(mut self) -> Self {
-        self.odd_mut_ext();
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn even_ext(mut self) -> Self {
-        self.even_mut_ext();
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn alt_ext(mut self) -> Self {
-        self.alt_mut_ext();
-        self
-    }
-
-    #[cfg(feature = "rand")]
-    #[ndfwd::as_into]
-    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
-        let shift = order - 1;
-        let div = shift / u64::BITS as usize;
-        let rem = shift % u64::BITS as usize;
-
-        let mut res = Self::zero();
-
-        res.bitor_offset_mut_ext((1 << rem) | rng.next_u64() & ((1 << rem) - 1), Offset::Right(shift - rem));
-
-        for idx in 0..div {
-            res.bitor_offset_mut_ext(rng.next_u64(), Offset::Right(shift - rem - idx * div));
-        }
-
-        res
-    }
-}
-
-#[ndfwd::decl]
-pub trait Signed: Num {
+pub trait NumSigned: NumCore {
     #[ndfwd::as_into]
     fn new(value: isize) -> Self;
-
-    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
-    fn gcde(&self, val: &Self) -> (Self, Self, Self) {
-        let zero = Self::zero();
-        let one = Self::one();
-
-        let a = self;
-        let b = val;
-
-        if b == &zero {
-            return (a.clone(), one, zero);
-        }
-
-        let rem = Self::rem(a, b);
-
-        let (g, x, y) = Self::gcde(b, &rem);
-
-        let val = Self::div(a, b);
-        let val = Self::mul(&val, &y);
-        let val = Self::sub(&x, &val);
-
-        (g, y, val)
-    }
 }
 
 #[ndfwd::decl]
-pub trait Unsigned: Num {
+pub trait NumUnsigned: NumCore {
     #[ndfwd::as_into]
     fn new(value: usize) -> Self;
 
@@ -902,31 +858,31 @@ pub trait Binary {
 }
 
 #[ndfwd::decl]
-pub trait ZeroDyn {
+pub trait ZeroFn {
     #[ndfwd::as_into]
     fn zero() -> Self;
 }
 
 #[ndfwd::decl]
-pub trait OneDyn {
+pub trait OneFn {
     #[ndfwd::as_into]
     fn one() -> Self;
 }
 
 #[ndfwd::decl]
-pub trait MinDyn {
+pub trait MinFn {
     #[ndfwd::as_into]
     fn min() -> Self;
 }
 
 #[ndfwd::decl]
-pub trait MaxDyn {
+pub trait MaxFn {
     #[ndfwd::as_into]
     fn max() -> Self;
 }
 
 #[ndfwd::decl]
-pub trait BinaryDyn {
+pub trait BinaryFn {
     fn bits(&self) -> usize;
     fn bytes(&self) -> usize;
 }
@@ -1017,52 +973,48 @@ sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ndops::all! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 
-impl<N: Zero> From<Offset<()>> for Offset<N> {
-    fn from(value: Offset<()>) -> Self {
-        match value {
-            Offset::Left(_) => Offset::Left(N::ZERO),
-            Offset::Right(_) => Offset::Right(N::ZERO),
-        }
-    }
-}
-
-impl<N: Num + NumExt + Unsigned + Binary, const BITS: usize> From<N> for Width<N, BITS> {
+impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {
         Self(value).normalized()
     }
 }
 
-impl<N: Num + NumExt + Unsigned, M: Modulus<N>> From<N> for Modular<N, M> {
+impl<N: Num + NumExt + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
     fn from(value: N) -> Self {
         Self(value, PhantomData).normalized()
     }
 }
 
-impl<N: Num + NumExt + Unsigned + Binary, const BITS: usize> Width<N, BITS> {
+impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Binary for Width<N, BITS> {
+    const BITS: usize = BITS;
+    const BYTES: usize = BITS / 8;
+}
+
+impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Width<N, BITS> {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
     }
 
     pub(crate) fn normalize(&mut self) -> &mut Self {
-        if Self::BITS <= BITS {
+        if N::BITS <= BITS {
             return self;
         }
 
-        let diff = Self::BITS - BITS;
+        let diff = N::BITS - BITS;
         let div = diff / 64;
         let rem = diff % 64;
 
         for idx in 0..div {
-            self.bitand_offset_mut_ext(0, Offset::Right((idx + 1) * 64));
+            self.bitand_offset_mut(0, Offset::Right((idx + 1) * 64));
         }
 
-        self.bitand_offset_mut_ext(u64::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * 64));
+        self.bitand_offset_mut(u64::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * 64));
         self
     }
 }
 
-impl<N: Num + NumExt + Unsigned, M: Modulus<N>> Modular<N, M> {
+impl<N: Num + NumExt + NumUnsigned, M: Modulus<N>> Modular<N, M> {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
@@ -1075,25 +1027,25 @@ impl<N: Num + NumExt + Unsigned, M: Modulus<N>> Modular<N, M> {
     }
 }
 
-impl<Any: Zero> ZeroDyn for Any {
+impl<Any: Zero> ZeroFn for Any {
     fn zero() -> Self {
         Any::ZERO
     }
 }
 
-impl<Any: One> OneDyn for Any {
+impl<Any: One> OneFn for Any {
     fn one() -> Self {
         Any::ONE
     }
 }
 
-impl<Any: Min> MinDyn for Any {
+impl<Any: Min> MinFn for Any {
     fn min() -> Self {
         Any::MIN
     }
 }
 
-impl<Any: Max> MaxDyn for Any {
+impl<Any: Max> MaxFn for Any {
     fn max() -> Self {
         Any::MAX
     }
