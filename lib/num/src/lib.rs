@@ -751,37 +751,37 @@ pub trait NumExt: NumCore {
     }
 
     #[ndfwd::as_into]
-    fn pow(self, mut pow: Self) -> Self {
+    fn pow(self, mut exp: Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
 
         let mut acc = self;
         let mut res = one;
 
-        while pow != zero {
-            if pow.is_odd() {
+        while exp != zero {
+            if exp.is_odd() {
                 Self::mul_assign(&mut res, &acc);
             }
 
             let val = acc.clone();
 
             Self::mul_assign(&mut acc, &val);
-            Self::shr_assign(&mut pow, 1);
+            Self::shr_assign(&mut exp, 1);
         }
 
         res
     }
 
     #[ndfwd::as_into]
-    fn powrem(self, mut pow: Self, rem: &Self) -> Self {
+    fn powrem(self, mut exp: Self, rem: &Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
 
         let mut acc = self;
         let mut res = one;
 
-        while pow != zero {
-            if pow.is_odd() {
+        while exp != zero {
+            if exp.is_odd() {
                 Self::mul_assign(&mut res, &acc);
                 Self::rem_assign(&mut res, rem);
             }
@@ -790,7 +790,7 @@ pub trait NumExt: NumCore {
 
             Self::mul_assign(&mut acc, &val);
             Self::rem_assign(&mut acc, rem);
-            Self::shr_assign(&mut pow, 1);
+            Self::shr_assign(&mut exp, 1);
         }
 
         res
@@ -1030,15 +1030,99 @@ impl<Any: Max> MaxFn for Any {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn num_gcd() {}
+    use super::*;
 
     #[test]
-    fn num_gcde() {}
+    fn ext_gcd() {
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 40).map(|val| val + 1),
+        ) [
+            |val: u64| (u64::gcd(val, 0), val),
+            |val: u64| (u64::gcd(0, val), val),
+            |val: u64| (u64::gcd(val, val), val),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 12,
+            1..=1 << 12,
+        ) [
+            |lhs: u64, rhs: u64| (u64::gcd(lhs, rhs), u64::gcd(rhs, lhs)),
+            |lhs: u64, rhs: u64| (lhs % u64::gcd(lhs, rhs), 0),
+            |lhs: u64, rhs: u64| (rhs % u64::gcd(lhs, rhs), 0),
+            |lhs: u64, rhs: u64| (u64::gcd(lhs, rhs) * u64::lcm(lhs, rhs), lhs * rhs),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 8,
+            1..=1 << 8,
+            1..=1 << 8,
+        ) [
+            |lhs: u64, rhs: u64, k: u64| (u64::gcd(k * lhs, k * rhs), k * u64::gcd(lhs, rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 8,
+            1..=1 << 8,
+        ) [
+            |lhs: u64, rhs: u64| {
+                let gcd = u64::gcd(lhs, rhs);
+                let limit = lhs.min(rhs);
+
+                let res = (gcd + 1..limit.max(gcd + 1)).into_iter().any(|val| lhs.is_multiple_of(val) && rhs.is_multiple_of(val));
+
+                (res, false)
+            },
+        ] }
+    }
 
     #[test]
-    fn num_lcm() {}
+    fn ext_gcde() {}
 
     #[test]
-    fn num_pow() {}
+    fn ext_lcm() {
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 40).map(|val| val + 1),
+        ) [
+            |val: u64| (u64::lcm(val, 0), 0),
+            |val: u64| (u64::lcm(0, val), 0),
+            |val: u64| (u64::lcm(val, 1), val),
+            |val: u64| (u64::lcm(1, val), val),
+            |val: u64| (u64::lcm(val, val), val),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 12,
+            1..=1 << 12,
+        ) [
+            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs), u64::lcm(rhs, lhs)),
+            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs) % lhs, 0),
+            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs) % rhs, 0),
+            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs) * u64::gcd(lhs, rhs), lhs * rhs),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 8,
+            1..=1 << 8,
+            1..=1 << 8,
+        ) [
+            |lhs: u64, rhs: u64, k: u64| (u64::lcm(k * lhs, k * rhs), k * u64::lcm(lhs, rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 8,
+            1..=1 << 8,
+        ) [
+            |lhs: u64, rhs: u64| {
+                let lcm = u64::lcm(lhs, rhs);
+                let limit = lhs.max(rhs);
+
+                let res = (limit + 1..lcm.max(limit + 1)).into_iter().any(|val| val.is_multiple_of(lhs) && val.is_multiple_of(rhs));
+
+                (res, false)
+            },
+        ] }
+    }
+
+    #[test]
+    fn ext_pow() {}
 }
