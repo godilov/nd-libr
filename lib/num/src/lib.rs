@@ -27,14 +27,14 @@ macro_rules! num_impl {
         impl Num for $primitive {}
 
         impl NumExt for $primitive {
-            fn offset(&self, offset: Offset) -> u64 {
+            fn read(&self, offset: Offset) -> u64 {
                 match offset {
                     Offset::Left(val) => self.unbounded_shr(val as u32) as u64,
                     Offset::Right(val) => self.unbounded_shr(<$primitive>::BITS.saturating_sub(val as u32)) as u64,
                 }
             }
 
-            fn bitor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self {
+            fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self {
                 match offset {
                     Offset::Left(val) => *self |= (mask as $primitive).unbounded_shl(val as u32),
                     Offset::Right(val) => *self |= (mask as $primitive).unbounded_shl(<$primitive>::BITS.saturating_sub(val as u32)),
@@ -43,7 +43,7 @@ macro_rules! num_impl {
                 self
             }
 
-            fn bitand_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self {
+            fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self {
                 use std::ops::Not;
 
                 match offset {
@@ -54,7 +54,7 @@ macro_rules! num_impl {
                 self
             }
 
-            fn bitxor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self {
+            fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self {
                 match offset {
                     Offset::Left(val) => *self ^= (mask as $primitive).unbounded_shl(val as u32),
                     Offset::Right(val) => *self ^= (mask as $primitive).unbounded_shl(<$primitive>::BITS.saturating_sub(val as u32)),
@@ -614,50 +614,50 @@ pub trait NumDyn: NumCore {}
 
 #[ndfwd::decl]
 pub trait NumExt: NumCore {
-    fn offset(&self, offset: Offset) -> u64;
+    fn read(&self, offset: Offset) -> u64;
 
     #[ndfwd::as_self]
-    fn bitor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self;
+    fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
     #[ndfwd::as_self]
-    fn bitand_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self;
+    fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
     #[ndfwd::as_self]
-    fn bitxor_offset_mut(&mut self, mask: u64, offset: Offset) -> &mut Self;
+    fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
     #[ndfwd::as_self]
     fn odd_mut(&mut self) -> &mut Self {
-        self.bitor_offset_mut(1, Offset::Left(0));
+        self.write_bitor(1, Offset::Left(0));
         self
     }
 
     #[ndfwd::as_self]
     fn even_mut(&mut self) -> &mut Self {
-        self.bitand_offset_mut(u64::MAX - 1, Offset::Left(0));
+        self.write_bitand(u64::MAX - 1, Offset::Left(0));
         self
     }
 
     #[ndfwd::as_self]
     fn alt_mut(&mut self) -> &mut Self {
-        self.bitxor_offset_mut(1, Offset::Left(0));
+        self.write_bitxor(1, Offset::Left(0));
         self
     }
 
     #[ndfwd::as_into]
-    fn bitor_offset(mut self, mask: u64, offset: Offset) -> Self {
-        self.bitor_offset_mut(mask, offset);
+    fn into_bitor(mut self, mask: u64, offset: Offset) -> Self {
+        self.write_bitor(mask, offset);
         self
     }
 
     #[ndfwd::as_into]
-    fn bitand_offset(mut self, mask: u64, offset: Offset) -> Self {
-        self.bitand_offset_mut(mask, offset);
+    fn into_bitand(mut self, mask: u64, offset: Offset) -> Self {
+        self.write_bitand(mask, offset);
         self
     }
 
     #[ndfwd::as_into]
-    fn bitxor_offset(mut self, mask: u64, offset: Offset) -> Self {
-        self.bitxor_offset_mut(mask, offset);
+    fn into_bitxor(mut self, mask: u64, offset: Offset) -> Self {
+        self.write_bitxor(mask, offset);
         self
     }
 
@@ -680,11 +680,11 @@ pub trait NumExt: NumCore {
     }
 
     fn is_odd(&self) -> bool {
-        self.offset(Offset::Left(0)) & 1 != 0
+        self.read(Offset::Left(0)) & 1 != 0
     }
 
     fn is_even(&self) -> bool {
-        self.offset(Offset::Left(0)) & 1 == 0
+        self.read(Offset::Left(0)) & 1 == 0
     }
 
     #[cfg(feature = "rand")]
@@ -696,10 +696,10 @@ pub trait NumExt: NumCore {
 
         let mut res = Self::zero();
 
-        res.bitor_offset_mut((1 << rem) | rng.next_u64() & ((1 << rem) - 1), Offset::Right(shift - rem));
+        res.write_bitor((1 << rem) | rng.next_u64() & ((1 << rem) - 1), Offset::Right(shift - rem));
 
         for idx in 0..div {
-            res.bitor_offset_mut(rng.next_u64(), Offset::Right(shift - rem - idx * div));
+            res.write_bitor(rng.next_u64(), Offset::Right(shift - rem - idx * div));
         }
 
         res
@@ -982,10 +982,10 @@ impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Width<N, BITS> {
         let rem = diff % 64;
 
         for idx in 0..div {
-            self.bitand_offset_mut(0, Offset::Right((idx + 1) * 64));
+            self.write_bitand(0, Offset::Right((idx + 1) * 64));
         }
 
-        self.bitand_offset_mut(u64::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * 64));
+        self.write_bitand(u64::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * 64));
         self
     }
 }
