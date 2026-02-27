@@ -691,15 +691,16 @@ pub trait NumExt: NumCore {
     #[ndfwd::as_into]
     fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
         let shift = order - 1;
-        let div = shift / u64::BITS as usize;
-        let rem = shift % u64::BITS as usize;
+        let div = shift / 64;
+        let rem = shift % 64;
+        let bit = 1 << rem;
 
         let mut res = Self::zero();
 
-        res.write_bitor((1 << rem) | rng.next_u64() & ((1 << rem) - 1), Offset::Right(shift - rem));
+        res.write_bitor(bit | (bit - 1) & rng.next_u64(), Offset::Left(div * 64));
 
         for idx in 0..div {
-            res.write_bitor(rng.next_u64(), Offset::Right(shift - rem - idx * div));
+            res.write_bitor(rng.next_u64(), Offset::Left(idx * 64));
         }
 
         res
@@ -1025,4 +1026,19 @@ impl<Any: Max> MaxFn for Any {
     fn max() -> Self {
         Any::MAX
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn num_gcd() {}
+
+    #[test]
+    fn num_gcde() {}
+
+    #[test]
+    fn num_lcm() {}
+
+    #[test]
+    fn num_pow() {}
 }
