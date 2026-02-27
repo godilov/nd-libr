@@ -424,10 +424,10 @@ pub mod prime {
         #[cfg(feature = "rand")]
         fn rand_prime(order: usize) -> Self {
             let mut rng = rand::rng();
-            let mut val = Self::rand(order, &mut rng).odd();
+            let mut val = Self::rand(order, &mut rng).into_odd();
 
             while !val.is_prime() {
-                val = Self::rand(order, &mut rng).odd();
+                val = Self::rand(order, &mut rng).into_odd();
             }
 
             val
@@ -626,19 +626,19 @@ pub trait NumExt: NumCore {
     fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
     #[ndfwd::as_self]
-    fn odd_mut(&mut self) -> &mut Self {
+    fn write_odd(&mut self) -> &mut Self {
         self.write_bitor(1, Offset::Left(0));
         self
     }
 
     #[ndfwd::as_self]
-    fn even_mut(&mut self) -> &mut Self {
+    fn write_even(&mut self) -> &mut Self {
         self.write_bitand(u64::MAX - 1, Offset::Left(0));
         self
     }
 
     #[ndfwd::as_self]
-    fn alt_mut(&mut self) -> &mut Self {
+    fn write_alt(&mut self) -> &mut Self {
         self.write_bitxor(1, Offset::Left(0));
         self
     }
@@ -662,20 +662,20 @@ pub trait NumExt: NumCore {
     }
 
     #[ndfwd::as_into]
-    fn odd(mut self) -> Self {
-        self.odd_mut();
+    fn into_odd(mut self) -> Self {
+        self.write_odd();
         self
     }
 
     #[ndfwd::as_into]
-    fn even(mut self) -> Self {
-        self.even_mut();
+    fn into_even(mut self) -> Self {
+        self.write_even();
         self
     }
 
     #[ndfwd::as_into]
-    fn alt(mut self) -> Self {
-        self.alt_mut();
+    fn into_alt(mut self) -> Self {
+        self.write_alt();
         self
     }
 
