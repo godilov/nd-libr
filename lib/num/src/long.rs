@@ -2650,17 +2650,8 @@ impl<const L: usize> NumExt for Unsigned<L> {
     }
 }
 
-impl<const L: usize> NumSigned for Signed<L> {
-    fn new(value: isize) -> Self {
-        Self::from(value)
-    }
-}
-
+impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
-    fn new(value: usize) -> Self {
-        Self::from(value)
-    }
-
     fn order(&self) -> usize {
         let len = length!(&self.0);
 

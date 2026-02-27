@@ -86,18 +86,10 @@ macro_rules! num_impl {
         }
     };
     (@signed $primitive:ty $(,)?) => {
-        impl NumSigned for $primitive {
-            fn new(value: isize) -> Self {
-                value as Self
-            }
-        }
+        impl NumSigned for $primitive {}
     };
     (@unsigned $primitive:ty $(,)?) => {
         impl NumUnsigned for $primitive {
-            fn new(value: usize) -> Self {
-                value as Self
-            }
-
             fn order(&self) -> usize {
                 self.ilog2() as usize
             }
@@ -353,7 +345,7 @@ pub mod prime {
     impl Primes {
         pub fn by_count_full<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
             PrimesFullIter {
-                next: Prime::new(2),
+                next: Prime::from(2),
                 primes: Vec::with_capacity(count.as_count_check_estimate()),
                 count: count.as_count_estimate(),
                 limit: None,
@@ -362,7 +354,7 @@ pub mod prime {
 
         pub fn by_limit_full<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
             PrimesFullIter {
-                next: Prime::new(2),
+                next: Prime::from(2),
                 primes: Vec::with_capacity(limit.as_limit_check_estimate()),
                 count: limit.as_limit_estimate(),
                 limit: Some(limit),
@@ -371,7 +363,7 @@ pub mod prime {
 
         pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
             PrimesFastIter {
-                next: Prime::new(2),
+                next: Prime::from(2),
                 count: count.as_count_estimate(),
                 limit: None,
             }
@@ -379,7 +371,7 @@ pub mod prime {
 
         pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
             PrimesFastIter {
-                next: Prime::new(2),
+                next: Prime::from(2),
                 count: limit.as_limit_estimate(),
                 limit: Some(limit),
             }
@@ -494,9 +486,9 @@ pub mod prime {
                 self.primes.push(self.next.clone());
             }
 
-            let zero = Prime::new(0);
-            let one = Prime::new(1);
-            let two = Prime::new(2);
+            let zero = Prime::from(0);
+            let one = Prime::from(1);
+            let two = Prime::from(2);
 
             let offset = Prime::bitand(&self.next, &one);
             let offset = Prime::add(&offset, &one);
@@ -536,8 +528,8 @@ pub mod prime {
                 return None;
             }
 
-            let one = Prime::new(1);
-            let two = Prime::new(2);
+            let one = Prime::from(1);
+            let two = Prime::from(2);
 
             let offset = Prime::bitand(&self.next, &one);
             let offset = Prime::add(&offset, &one);
@@ -805,16 +797,10 @@ pub trait NumExt: NumCore {
 }
 
 #[ndfwd::decl]
-pub trait NumSigned: NumCore {
-    #[ndfwd::as_into]
-    fn new(value: isize) -> Self;
-}
+pub trait NumSigned: NumCore + From<i8> {}
 
 #[ndfwd::decl]
-pub trait NumUnsigned: NumCore {
-    #[ndfwd::as_into]
-    fn new(value: usize) -> Self;
-
+pub trait NumUnsigned: NumCore + From<u8> {
     fn order(&self) -> usize;
 
     #[ndfwd::as_into]
