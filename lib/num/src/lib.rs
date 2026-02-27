@@ -13,10 +13,15 @@ pub mod arch;
 pub mod long;
 
 macro_rules! num_impl {
-    ([$($primitive:ty),+] $(,)?) => {
-        $(num_impl!($primitive);)+
+    (@signed [$($primitive:ty),+] $(,)?) => {
+        $(num_impl!(@impl $primitive);)+
+        $(num_impl!(@signed $primitive);)+
     };
-    ($primitive:ty $(,)?) => {
+    (@unsigned [$($primitive:ty),+] $(,)?) => {
+        $(num_impl!(@impl $primitive);)+
+        $(num_impl!(@unsigned $primitive);)+
+    };
+    (@impl $primitive:ty $(,)?) => {
         impl NumCore for $primitive {}
 
         impl Num for $primitive {}
@@ -78,6 +83,32 @@ macro_rules! num_impl {
         impl Binary for $primitive {
             const BITS: usize = <$primitive>::BITS as usize;
             const BYTES: usize = <$primitive>::BITS as usize / 8;
+        }
+    };
+    (@signed $primitive:ty $(,)?) => {
+        impl NumSigned for $primitive {
+            fn new(value: isize) -> Self {
+                value as Self
+            }
+        }
+    };
+    (@unsigned $primitive:ty $(,)?) => {
+        impl NumUnsigned for $primitive {
+            fn new(value: usize) -> Self {
+                value as Self
+            }
+
+            fn order(&self) -> usize {
+                self.ilog2() as usize
+            }
+
+            fn log(&self) -> Self {
+                self.ilog2() as $primitive
+            }
+
+            fn sqrt(&self) -> Self {
+                self.isqrt() as $primitive
+            }
         }
     };
 }
@@ -221,44 +252,6 @@ macro_rules! num_ct_impl {
                 let mask_rhs = <$primitive>::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
 
                 mask_lhs & lhs | mask_rhs & rhs
-            }
-        }
-    };
-}
-
-macro_rules! signed_impl {
-    ([$($primitive:ty),+] $(,)?) => {
-        $(signed_impl!($primitive);)+
-    };
-    ($primitive:ty $(,)?) => {
-        impl NumSigned for $primitive {
-            fn new(value: isize) -> Self {
-                value as Self
-            }
-        }
-    };
-}
-
-macro_rules! unsigned_impl {
-    ([$($primitive:ty),+] $(,)?) => {
-        $(unsigned_impl!($primitive);)+
-    };
-    ($primitive:ty $(,)?) => {
-        impl NumUnsigned for $primitive {
-            fn new(value: usize) -> Self {
-                value as Self
-            }
-
-            fn order(&self) -> usize {
-                self.ilog2() as usize
-            }
-
-            fn log(&self) -> Self {
-                self.ilog2() as $primitive
-            }
-
-            fn sqrt(&self) -> Self {
-                self.isqrt() as $primitive
             }
         }
     };
@@ -950,17 +943,14 @@ pub trait SelectCt: Copy {
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self;
 }
 
-num_impl!([i8, i16, i32, i64, i128, isize]);
-num_impl!([u8, u16, u32, u64, u128, usize]);
+num_impl!(@signed [i8, i16, i32, i64, i128, isize]);
+num_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 #[cfg(feature = "const-time")]
 num_ct_impl!(@signed [i8:u8, i16:u16, i32:u32, i64:u64, i128:u128, isize:usize]);
 
 #[cfg(feature = "const-time")]
 num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
-
-signed_impl!([i8, i16, i32, i64, i128, isize]);
-unsigned_impl!([u8, u16, u32, u64, u128, usize]);
 
 #[cfg(target_pointer_width = "64")]
 prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 12));
