@@ -1076,7 +1076,47 @@ mod tests {
     }
 
     #[test]
-    fn ext_gcde() {}
+    fn ext_gcde() {
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 40).map(|val| val + 1),
+        ) [
+            |val: i64| (i64::gcde(&val, &0).0, val),
+            |val: i64| (i64::gcde(&0, &val).0, val),
+            |val: i64| (i64::gcde(&val, &val).0, val),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 12,
+            1..=1 << 12,
+        ) [
+            |lhs: i64, rhs: i64| (i64::gcde(&lhs, &rhs).0, i64::gcde(&rhs, &lhs).0),
+            |lhs: i64, rhs: i64| (lhs % i64::gcde(&lhs, &rhs).0, 0),
+            |lhs: i64, rhs: i64| (rhs % i64::gcde(&lhs, &rhs).0, 0),
+            |lhs: i64, rhs: i64| (i64::gcde(&lhs, &rhs).0 * i64::lcm(lhs, rhs), lhs * rhs),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 8,
+            1..=1 << 8,
+            1..=1 << 8,
+        ) [
+            |lhs: i64, rhs: i64, k: i64| (i64::gcde(&(k * lhs), &(k * rhs)).0, k * i64::gcde(&lhs, &rhs).0),
+        ] }
+
+        ndassert::check! { @eq (
+            1..=1 << 8,
+            1..=1 << 8,
+        ) [
+            |lhs: i64, rhs: i64| {
+                let gcde = i64::gcde(&lhs, &rhs).0;
+                let limit = lhs.min(rhs);
+
+                let res = (gcde + 1..limit.max(gcde + 1)).into_iter().any(|val| lhs % val == 0 && rhs % val == 0);
+
+                (res, false)
+            },
+        ] }
+    }
 
     #[test]
     fn ext_lcm() {
