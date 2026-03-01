@@ -1165,4 +1165,10 @@ mod tests {
 
     #[test]
     fn ext_pow() {}
+
+    #[test]
+    fn width() {}
+
+    #[test]
+    fn modular() {}
 }
