@@ -235,5 +235,116 @@ ndops::all! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Aligned<Rhs>), [
 
 #[cfg(test)]
 mod tests {
-    fn aligned() {}
+    use super::*;
+    use crate::long::{S64, U64};
+
+    #[test]
+    fn aligned_ops() {
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 56, 0),
+            ndassert::range!(i64, 56, 1),
+        ) [
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) + Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) + S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) - Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) - S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) * Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) * S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) / Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) / S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) % Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) % S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) | Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) | S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) & Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) & S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) ^ Aligned::from(S64::from(rhs)), Aligned::from(S64::from(lhs) ^ S64::from(rhs))),
+
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) + Aligned::from(rhs), Aligned::from(S64::from(lhs) + rhs)),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) - Aligned::from(rhs), Aligned::from(S64::from(lhs) - rhs)),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) * Aligned::from(rhs), Aligned::from(S64::from(lhs) * rhs)),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) / Aligned::from(rhs), Aligned::from(S64::from(lhs) / rhs)),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) % Aligned::from(rhs), Aligned::from(S64::from(lhs) % rhs)),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) | Aligned::from(rhs), Aligned::from(S64::from(lhs) | rhs)),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) & Aligned::from(rhs), Aligned::from(S64::from(lhs) & rhs)),
+            |lhs: i64, rhs: i64| (Aligned::from(S64::from(lhs)) ^ Aligned::from(rhs), Aligned::from(S64::from(lhs) ^ rhs)),
+
+            |lhs: i64, rhs: i64| (Aligned::from(lhs) + Aligned::from(S64::from(rhs)), Aligned::from(lhs + S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(lhs) * Aligned::from(S64::from(rhs)), Aligned::from(lhs * S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(lhs) | Aligned::from(S64::from(rhs)), Aligned::from(lhs | S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(lhs) & Aligned::from(S64::from(rhs)), Aligned::from(lhs & S64::from(rhs))),
+            |lhs: i64, rhs: i64| (Aligned::from(lhs) ^ Aligned::from(S64::from(rhs)), Aligned::from(lhs ^ S64::from(rhs))),
+        ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 56, 0),
+            ndassert::range!(u64, 56, 1),
+        ) [
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) + Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) + U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) - Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) - U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) * Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) * U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) / Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) / U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) % Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) % U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) | Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) | U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) & Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) & U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) ^ Aligned::from(U64::from(rhs)), Aligned::from(U64::from(lhs) ^ U64::from(rhs))),
+
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) + Aligned::from(rhs), Aligned::from(U64::from(lhs) + rhs)),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) - Aligned::from(rhs), Aligned::from(U64::from(lhs) - rhs)),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) * Aligned::from(rhs), Aligned::from(U64::from(lhs) * rhs)),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) / Aligned::from(rhs), Aligned::from(U64::from(lhs) / rhs)),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) % Aligned::from(rhs), Aligned::from(U64::from(lhs) % rhs)),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) | Aligned::from(rhs), Aligned::from(U64::from(lhs) | rhs)),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) & Aligned::from(rhs), Aligned::from(U64::from(lhs) & rhs)),
+            |lhs: u64, rhs: u64| (Aligned::from(U64::from(lhs)) ^ Aligned::from(rhs), Aligned::from(U64::from(lhs) ^ rhs)),
+
+            |lhs: u64, rhs: u64| (Aligned::from(lhs) + Aligned::from(U64::from(rhs)), Aligned::from(lhs + U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(lhs) * Aligned::from(U64::from(rhs)), Aligned::from(lhs * U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(lhs) | Aligned::from(U64::from(rhs)), Aligned::from(lhs | U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(lhs) & Aligned::from(U64::from(rhs)), Aligned::from(lhs & U64::from(rhs))),
+            |lhs: u64, rhs: u64| (Aligned::from(lhs) ^ Aligned::from(U64::from(rhs)), Aligned::from(lhs ^ U64::from(rhs))),
+        ] }
+    }
+
+    #[test]
+    fn aligned_ops_assign() {
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 56, 0),
+            ndassert::range!(i64, 56, 1),
+        ) [
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val += Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) + S64::from(rhs))),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val -= Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) - S64::from(rhs))),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val *= Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) * S64::from(rhs))),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val /= Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) / S64::from(rhs))),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val %= Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) % S64::from(rhs))),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val |= Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) | S64::from(rhs))),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val &= Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) & S64::from(rhs))),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val ^= Aligned::from(S64::from(rhs)); val }, Aligned::from(S64::from(lhs) ^ S64::from(rhs))),
+
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val += Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) + rhs)),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val -= Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) - rhs)),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val *= Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) * rhs)),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val /= Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) / rhs)),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val %= Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) % rhs)),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val |= Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) | rhs)),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val &= Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) & rhs)),
+            |lhs: i64, rhs: i64| ({ let mut val = Aligned::from(S64::from(lhs)); val ^= Aligned::from(rhs); val }, Aligned::from(S64::from(lhs) ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 56, 0),
+            ndassert::range!(u64, 56, 1),
+        ) [
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val += Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) + U64::from(rhs))),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val -= Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) - U64::from(rhs))),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val *= Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) * U64::from(rhs))),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val /= Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) / U64::from(rhs))),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val %= Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) % U64::from(rhs))),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val |= Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) | U64::from(rhs))),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val &= Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) & U64::from(rhs))),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val ^= Aligned::from(U64::from(rhs)); val }, Aligned::from(U64::from(lhs) ^ U64::from(rhs))),
+
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val += Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) + rhs)),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val -= Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) - rhs)),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val *= Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) * rhs)),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val /= Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) / rhs)),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val %= Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) % rhs)),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val |= Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) | rhs)),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val &= Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) & rhs)),
+            |lhs: u64, rhs: u64| ({ let mut val = Aligned::from(U64::from(lhs)); val ^= Aligned::from(rhs); val }, Aligned::from(U64::from(lhs) ^ rhs)),
+        ] }
+    }
 }
