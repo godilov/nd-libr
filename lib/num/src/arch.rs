@@ -232,3 +232,8 @@ ndops::all! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Aligned<Rhs>), [
     <<= Lhs::shl_assign(&mut lhs.0, rhs.0) where [Lhs: NdShlAssign<Lhs, Rhs>],
     >>= Lhs::shr_assign(&mut lhs.0, rhs.0) where [Lhs: NdShrAssign<Lhs, Rhs>],
 ] }
+
+#[cfg(test)]
+mod tests {
+    fn aligned() {}
+}
