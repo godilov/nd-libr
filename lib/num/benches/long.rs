@@ -105,11 +105,11 @@ macro_rules! ops_single_impl {
 
             group.throughput(Throughput::Bytes(BYTES as u64));
 
-            group.bench_with_input("S4096", &(s4096, PRIMES[1] as i64), |b, &(long, single)| {
+            group.bench_with_input("S4096", &(s4096, (PRIMES[1] * PRIMES[3]) as i64), |b, &(long, single)| {
                 b.iter(|| ($fns)(&long, single))
             });
 
-            group.bench_with_input("U4096", &(u4096, PRIMES[1] as u64), |b, &(long, single)| {
+            group.bench_with_input("U4096", &(u4096, (PRIMES[1] * PRIMES[3]) as u64), |b, &(long, single)| {
                 b.iter(|| ($fnu)(&long, single))
             });
         })+
@@ -170,31 +170,31 @@ fn default(c: &mut Criterion) {
 }
 
 fn from_bytes_const(c: &mut Criterion) {
-    const SVAL: Aligned<S4096> =
+    const SIGNED: Aligned<S4096> =
         Aligned(S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes()));
 
-    const UVAL: Aligned<U4096> =
+    const UNSIGNED: Aligned<U4096> =
         Aligned(U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes()));
 
     let mut group = get_group(c, "long::from_bytes::const");
 
     group.throughput(Throughput::Bits(128));
-    group.bench_function(BenchmarkId::new("S4096", 128), |b| b.iter(|| SVAL));
-    group.bench_function(BenchmarkId::new("U4096", 128), |b| b.iter(|| UVAL));
+    group.bench_function(BenchmarkId::new("S4096", 128), |b| b.iter(|| SIGNED));
+    group.bench_function(BenchmarkId::new("U4096", 128), |b| b.iter(|| UNSIGNED));
 }
 
 fn from_primitive_const(c: &mut Criterion) {
-    const SVAL: Aligned<S4096> =
+    const SIGNED: Aligned<S4096> =
         Aligned(S4096::from_bytes(&116578228889707554089617590980330937198_i128.to_le_bytes()));
 
-    const UVAL: Aligned<U4096> =
+    const UNSIGNED: Aligned<U4096> =
         Aligned(U4096::from_bytes(&121940457858715132528838202027877031762_u128.to_le_bytes()));
 
     let mut group = get_group(c, "long::from_primitive::const");
 
     group.throughput(Throughput::Bits(128));
-    group.bench_function(BenchmarkId::new("S4096", 128), |b| b.iter(|| SVAL));
-    group.bench_function(BenchmarkId::new("U4096", 128), |b| b.iter(|| UVAL));
+    group.bench_function(BenchmarkId::new("S4096", 128), |b| b.iter(|| SIGNED));
+    group.bench_function(BenchmarkId::new("U4096", 128), |b| b.iter(|| UNSIGNED));
 }
 
 fn from_bytes(c: &mut Criterion) {
@@ -662,6 +662,11 @@ fn ops(c: &mut Criterion) {
         "long::ops::bitand" (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs & rhs, |lhs: &U4096, rhs: &U4096| lhs & rhs,
         "long::ops::bitxor" (4096, 4096): |lhs: &S4096, rhs: &S4096| lhs ^ rhs, |lhs: &U4096, rhs: &U4096| lhs ^ rhs,
     ]);
+
+    ops_shift_impl!(c, [
+        "long::ops::shl": |value: &S4096| value << 1021, |value: &U4096| value << 1021,
+        "long::ops::shr": |value: &S4096| value >> 1021, |value: &U4096| value >> 1021,
+    ]);
 }
 
 fn ops_assign(c: &mut Criterion) {
@@ -674,6 +679,11 @@ fn ops_assign(c: &mut Criterion) {
         "long::ops::assign::bitor"  (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs |= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs |= rhs },
         "long::ops::assign::bitand" (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs &= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs &= rhs },
         "long::ops::assign::bitxor" (4096, 4096): |lhs: &S4096, rhs: &S4096| { let mut lhs = *lhs; lhs ^= rhs }, |lhs: &U4096, rhs: &U4096| { let mut lhs = *lhs; lhs ^= rhs },
+    ]);
+
+    ops_shift_impl!(c, [
+        "long::ops::assign::shl": |value: &S4096| { let mut value = *value; value <<= 1021 }, |value: &U4096| { let mut value = *value; value <<= 1021 },
+        "long::ops::assign::shr": |value: &S4096| { let mut value = *value; value >>= 1021 }, |value: &U4096| { let mut value = *value; value >>= 1021 },
     ]);
 }
 
@@ -703,20 +713,6 @@ fn ops_single_assign(c: &mut Criterion) {
     ]);
 }
 
-fn ops_shift(c: &mut Criterion) {
-    ops_shift_impl!(c, [
-        "long::ops::shl": |value: &S4096| value << 1021, |value: &U4096| value << 1021,
-        "long::ops::shr": |value: &S4096| value >> 1021, |value: &U4096| value >> 1021,
-    ]);
-}
-
-fn ops_shift_assign(c: &mut Criterion) {
-    ops_shift_impl!(c, [
-        "long::ops::assign::shl": |value: &S4096| { let mut value = *value; value <<= 1021 }, |value: &U4096| { let mut value = *value; value <<= 1021 },
-        "long::ops::assign::shr": |value: &S4096| { let mut value = *value; value >>= 1021 }, |value: &U4096| { let mut value = *value; value >>= 1021 },
-    ]);
-}
-
 criterion_group!(
     group,
     default,
@@ -743,8 +739,6 @@ criterion_group!(
     ops_assign,
     ops_single,
     ops_single_assign,
-    ops_shift,
-    ops_shift_assign,
 );
 
 criterion_main!(group);
