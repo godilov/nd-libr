@@ -156,7 +156,15 @@ struct AssertCheck {
     kind: AssertKind,
     args_paren: Paren,
     args: Punctuated<Expr, Token![,]>,
+    exts: Option<AssertCheckExts>,
     exprs_bracket: Bracket,
+    exprs: Punctuated<Expr, Token![,]>,
+}
+
+#[allow(unused)]
+struct AssertCheckExts {
+    arrow: Token![=>],
+    exprs_parent: Paren,
     exprs: Punctuated<Expr, Token![,]>,
 }
 
@@ -190,7 +198,20 @@ impl Parse for AssertCheck {
             kind: input.parse()?,
             args_paren: parenthesized!(args in input),
             args: args.parse_terminated(Expr::parse, Token![,])?,
+            exts: input.parse().ok(),
             exprs_bracket: bracketed!(exprs in input),
+            exprs: exprs.parse_terminated(Expr::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for AssertCheckExts {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let exprs;
+
+        Ok(Self {
+            arrow: input.parse()?,
+            exprs_parent: parenthesized!(exprs in input),
             exprs: exprs.parse_terminated(Expr::parse, Token![,])?,
         })
     }
@@ -198,24 +219,24 @@ impl Parse for AssertCheck {
 
 impl Parse for AssertKind {
     fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(Token![@]) {
-            input.parse::<Token![@]>()?;
+        if !input.peek(Token![@]) {
+            return Ok(Self::Default);
+        }
 
-            let lookahead = input.lookahead1();
+        input.parse::<Token![@]>()?;
 
-            if lookahead.peek(kw::eq) {
-                input.parse::<kw::eq>()?;
+        let lookahead = input.lookahead1();
 
-                Ok(Self::Eq)
-            } else if lookahead.peek(kw::ne) {
-                input.parse::<kw::ne>()?;
+        if lookahead.peek(kw::eq) {
+            input.parse::<kw::eq>()?;
 
-                Ok(Self::EqNot)
-            } else {
-                Err(lookahead.error())
-            }
+            Ok(Self::Eq)
+        } else if lookahead.peek(kw::ne) {
+            input.parse::<kw::ne>()?;
+
+            Ok(Self::EqNot)
         } else {
-            Ok(Self::Default)
+            Err(lookahead.error())
         }
     }
 }
@@ -268,28 +289,55 @@ impl Parse for AssertPrime {
 
 impl ToTokens for AssertCheck {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let args_call = (0..self.args.len())
+        let args_len = self.args.len();
+        let exts_len = self.exts.as_ref().map(|exts| exts.exprs.len()).unwrap_or_default();
+
+        let args_call = (0..args_len)
             .map(|idx| format_ident!("arg{}", idx))
             .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
 
-        let args_msg = (0..self.args.len())
+        let exts_call = (0..exts_len)
+            .map(|idx| format_ident!("ext{}", idx))
+            .fold(quote! {}, |acc, ext| quote! { #acc #ext.clone(), });
+
+        let args_msg = (0..args_len)
             .map(|idx| format!("Arg #{}: {}\n", idx, "{}"))
             .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
 
-        let exprs_call = self.exprs.iter().fold(quote! {}, |acc, expr| {
+        let exts_msg = (0..exts_len)
+            .map(|idx| format!("Ext #{}: {}\n", idx, "{}"))
+            .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
+
+        let exprs_call = match self.exts {
+            Some(ref exts) => exts
+                .exprs
+                .iter()
+                .enumerate()
+                .map(|(idx, expr)| (format_ident!("ext{}", idx), expr))
+                .fold(quote! {}, |acc, (ident, expr)| {
+                    quote! {
+                        #acc
+
+                        let #ident = (#expr)(#args_call);
+                    }
+                }),
+            None => quote! {},
+        };
+
+        let exprs_call = self.exprs.iter().fold(exprs_call, |acc, expr| {
             let assert = match self.kind {
                 AssertKind::Eq => quote! {{
-                    let val = (#expr)(#args_call);
+                    let val = (#expr)(#args_call #exts_call);
 
-                    assert_eq!(val.0, val.1, concat!("{:?} != {:?}\nExpression: {}\n", #args_msg), &val.0, &val.1, stringify!(#expr), #args_call);
+                    assert_eq!(val.0, val.1, concat!("{:?} != {:?}\nExpression: {}\n", #args_msg #exts_msg), &val.0, &val.1, stringify!(#expr), #args_call #exts_call);
                 }},
                 AssertKind::EqNot => quote! {{
-                    let val = (#expr)(#args_call);
+                    let val = (#expr)(#args_call #exts_call);
 
-                    assert_ne!(val.0, val.1, concat!("{:?} == {:?}\nExpression: {}\n", #args_msg), &val.0, &val.1, stringify!(#expr), #args_call);
+                    assert_ne!(val.0, val.1, concat!("{:?} == {:?}\nExpression: {}\n", #args_msg #exts_msg), &val.0, &val.1, stringify!(#expr), #args_call #exts_call);
                 }},
                 AssertKind::Default => quote! {
-                    assert!((#expr)(#args_call), concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args_call);
+                    assert!((#expr)(#args_call #exts_call), concat!("Expression: {}\n", #args_msg #exts_msg), stringify!(#expr), #args_call #exts_call);
                 },
             };
 
