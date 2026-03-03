@@ -241,9 +241,7 @@ mod tests {
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn aligned() {
-        ndassert::check! { @eq (
-            ndassert::range!(u64, 48, 0),
-        ) [
+        ndassert::check! { @eq (ndassert::range!(u64, 48, 0)) [
             |val: u64| (*Aligned(S64::from(val as i64)), S64::from(val as i64)),
             |val: u64| (*Aligned(U64::from(val as u64)), U64::from(val as u64)),
             |val: u64| (*Aligned(Aligned(S64::from(val as i64))), Aligned(S64::from(val as i64))),
