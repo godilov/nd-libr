@@ -1872,7 +1872,7 @@ ndops::all! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     ^ Signed::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)),
 ] }
 
-ndops::all! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L>, [
+ndops::all! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for [Signed<L>, usize], [
     << Signed::<L>(shl_signed(&lhs.0, rhs)),
     >> Signed::<L>(shr_signed(&lhs.0, rhs)),
 ] }
@@ -1892,7 +1892,7 @@ ndops::all! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     ^ Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)),
 ] }
 
-ndops::all! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L>, [
+ndops::all! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
     << Unsigned::<L>(shl(&lhs.0, rhs, 0)),
     >> Unsigned::<L>(shr(&lhs.0, rhs, 0)),
 ] }
@@ -1907,7 +1907,7 @@ ndops::all! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<
     ^ Bytes::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)),
 ] }
 
-ndops::all! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L>, [
+ndops::all! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for [Bytes<L>, usize], [
     << Bytes::<L>(shl(&lhs.0, rhs, 0)),
     >> Bytes::<L>(shr(&lhs.0, rhs, 0)),
 ] }
@@ -1923,7 +1923,7 @@ ndops::all! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop),
 ] }
 
-ndops::all! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize), [
+ndops::all! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for [Signed<L>, usize], [
     <<= { shl_signed_mut(&mut lhs.0, rhs); },
     >>= { shr_signed_mut(&mut lhs.0, rhs); },
 ] }
@@ -1939,7 +1939,7 @@ ndops::all! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop),
 ] }
 
-ndops::all! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize), [
+ndops::all! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for [Unsigned<L>, usize], [
     <<= { shl_mut(&mut lhs.0, rhs, 0); },
     >>= { shr_mut(&mut lhs.0, rhs, 0); },
 ] }
@@ -1950,7 +1950,7 @@ ndops::all! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
     ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop),
 ] }
 
-ndops::all! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize), [
+ndops::all! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for [Bytes<L>, usize], [
     <<= { shl_mut(&mut lhs.0, rhs, 0); },
     >>= { shr_mut(&mut lhs.0, rhs, 0); },
 ] }
@@ -4014,6 +4014,14 @@ mod tests {
             |lhs: i64, rhs: i64| (S64::from(lhs) & S64::from(rhs), S64::from(lhs & rhs)),
             |lhs: i64, rhs: i64| (S64::from(lhs) ^ S64::from(rhs), S64::from(lhs ^ rhs)),
         ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 48),
+            0..128,
+        ) [
+            |lhs: i64, rhs: usize| (S64::from(lhs) << rhs, S64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: i64, rhs: usize| (S64::from(lhs) >> rhs, S64::from(lhs.unbounded_shr(rhs as u32))),
+        ] }
     }
 
     #[test]
@@ -4038,6 +4046,14 @@ mod tests {
             |lhs: u64, rhs: u64| (U64::from(lhs) | U64::from(rhs), U64::from(lhs | rhs)),
             |lhs: u64, rhs: u64| (U64::from(lhs) & U64::from(rhs), U64::from(lhs & rhs)),
             |lhs: u64, rhs: u64| (U64::from(lhs) ^ U64::from(rhs), U64::from(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 48),
+            0..128,
+        ) [
+            |lhs: u64, rhs: usize| (U64::from(lhs) << rhs, U64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: u64, rhs: usize| (U64::from(lhs) >> rhs, U64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
     }
 
@@ -4195,6 +4211,14 @@ mod tests {
             |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val &= S64::from(rhs); val }, S64::from(lhs & rhs)),
             |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val ^= S64::from(rhs); val }, S64::from(lhs ^ rhs)),
         ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 48),
+            0..128,
+        ) [
+            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val <<= rhs; val }, S64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val >>= rhs; val }, S64::from(lhs.unbounded_shr(rhs as u32))),
+        ] }
     }
 
     #[test]
@@ -4220,6 +4244,14 @@ mod tests {
             |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val |= U64::from(rhs); val }, U64::from(lhs | rhs)),
             |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val &= U64::from(rhs); val }, U64::from(lhs & rhs)),
             |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val ^= U64::from(rhs); val }, U64::from(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 48),
+            0..128,
+        ) [
+            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val <<= rhs; val }, U64::from(lhs.unbounded_shl(rhs as u32))),
+            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val >>= rhs; val }, U64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
     }
 
@@ -4331,51 +4363,5 @@ mod tests {
             |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs)),
             |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs)),
         ] }
-    }
-
-    #[test]
-    fn signed_ops_shift() {
-        ndassert::check! { @eq (
-            ndassert::range!(i64, 48),
-            0..128,
-        ) [
-            |lhs: i64, rhs: usize| (S64::from(lhs) << rhs, S64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: i64, rhs: usize| (S64::from(lhs) >> rhs, S64::from(lhs.unbounded_shr(rhs as u32))),
-        ]}
-    }
-
-    #[test]
-    fn unsigned_ops_shift() {
-        ndassert::check! { @eq (
-            ndassert::range!(u64, 48),
-            0..128,
-        ) [
-            |lhs: u64, rhs: usize| (U64::from(lhs) << rhs, U64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: u64, rhs: usize| (U64::from(lhs) >> rhs, U64::from(lhs.unbounded_shr(rhs as u32))),
-        ]}
-    }
-
-    #[test]
-    #[rustfmt::skip]
-    fn signed_ops_shift_assign() {
-        ndassert::check! { @eq (
-            ndassert::range!(i64, 48),
-            0..128,
-        ) [
-            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val <<= rhs; val }, S64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val >>= rhs; val }, S64::from(lhs.unbounded_shr(rhs as u32))),
-        ]}
-    }
-
-    #[test]
-    #[rustfmt::skip]
-    fn unsigned_ops_shift_assign() {
-        ndassert::check! { @eq (
-            ndassert::range!(u64, 48),
-            0..128,
-        ) [
-            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val <<= rhs; val }, U64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val >>= rhs; val }, U64::from(lhs.unbounded_shr(rhs as u32))),
-        ]}
     }
 }

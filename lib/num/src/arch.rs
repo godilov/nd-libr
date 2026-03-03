@@ -337,6 +337,22 @@ mod tests {
             |lhs: u64, rhs: u64| (Aligned(lhs) & Aligned(U64::from(rhs)), Aligned(lhs & U64::from(rhs))),
             |lhs: u64, rhs: u64| (Aligned(lhs) ^ Aligned(U64::from(rhs)), Aligned(lhs ^ U64::from(rhs))),
         ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 48),
+            0..128,
+        ) [
+            |lhs: i64, rhs: usize| (Aligned(S64::from(lhs)) << Aligned(rhs), Aligned(S64::from(lhs) << rhs)),
+            |lhs: i64, rhs: usize| (Aligned(S64::from(lhs)) >> Aligned(rhs), Aligned(S64::from(lhs) >> rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 48),
+            0..128,
+        ) [
+            |lhs: u64, rhs: usize| (Aligned(U64::from(lhs)) << Aligned(rhs), Aligned(U64::from(lhs) << rhs)),
+            |lhs: u64, rhs: usize| (Aligned(U64::from(lhs)) >> Aligned(rhs), Aligned(U64::from(lhs) >> rhs)),
+        ] }
     }
 
     #[test]
@@ -385,6 +401,22 @@ mod tests {
             |lhs: u64, rhs: u64| ({ let mut val = Aligned(U64::from(lhs)); val |= Aligned(rhs); val }, Aligned(U64::from(lhs) | rhs)),
             |lhs: u64, rhs: u64| ({ let mut val = Aligned(U64::from(lhs)); val &= Aligned(rhs); val }, Aligned(U64::from(lhs) & rhs)),
             |lhs: u64, rhs: u64| ({ let mut val = Aligned(U64::from(lhs)); val ^= Aligned(rhs); val }, Aligned(U64::from(lhs) ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(i64, 48),
+            0..128,
+        ) [
+            |lhs: i64, rhs: usize| (Aligned(S64::from(lhs)) << Aligned(rhs), Aligned(S64::from(lhs) << rhs)),
+            |lhs: i64, rhs: usize| (Aligned(S64::from(lhs)) >> Aligned(rhs), Aligned(S64::from(lhs) >> rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            ndassert::range!(u64, 48),
+            0..128,
+        ) [
+            |lhs: u64, rhs: usize| (Aligned(U64::from(lhs)) << Aligned(rhs), Aligned(U64::from(lhs) << rhs)),
+            |lhs: u64, rhs: usize| (Aligned(U64::from(lhs)) >> Aligned(rhs), Aligned(U64::from(lhs) >> rhs)),
         ] }
     }
 }
