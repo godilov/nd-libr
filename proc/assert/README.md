@@ -22,7 +22,7 @@ ndassert = "*"
 
 ```text
 ndassert::check! { KIND?
-    ((ITER_EXPR),*)
+    ((ARG_EXPR),*)
     [(CHECK_EXPR),*]
 }
 ```
@@ -30,8 +30,13 @@ ndassert::check! { KIND?
 The macro consists of three parts:
 
 - `KIND` - Specifies type of asserts to produce. Values: None/`@eq`/`@ne`.
-- `ITER_EXPR` - Expression for corresponding argument, should be iterable.
-- `CHECK_EXPR` - Expression for assertions over arguments, should be closure.
+- `ARG_EXPR` - Expression for assertion argument.
+- `CHECK_EXPR` - Expression for assertions check.
+
+`ARG_EXPR` can be in next forms:
+
+- `IDENT in EXPR` for iteration over multiple argument values.
+- `IDENT as EXPR` for iteration over single argument value.
 
 `CHECK_EXPR` varies depending on `KIND`:
 
@@ -95,10 +100,8 @@ fn verify(_: i8) -> bool {
 }
 
 // Complexity: 2 ^ i8::BITS
-ndassert::check! { (
-    (i8::MIN..i8::MAX),
-) [
-    |value: i8| verify(value),
+ndassert::check! { (value in (i8::MIN..i8::MAX)) [
+    verify(value),
 ] }
 ```
 
@@ -111,11 +114,11 @@ fn verify(_: i8, _: i8) -> bool {
 
 // Complexity: 2 * 2 ^ i8::BITS * 2 ^ i8::BITS
 ndassert::check! { (
-    (i8::MIN..i8::MAX),
-    (i8::MIN..i8::MAX),
+    lhs in (i8::MIN..i8::MAX),
+    rhs in (i8::MIN..i8::MAX),
 ) [
-    |lhs: i8, rhs: i8| verify(lhs, rhs), // Direct
-    |lhs: i8, rhs: i8| verify(rhs, lhs), // Inverse
+    verify(lhs, rhs), // Direct
+    verify(rhs, lhs), // Inverse
 ] }
 ```
 
@@ -127,10 +130,8 @@ fn verify(_: i64) -> bool {
 }
 
 // Complexity: 2 ^ (i64::BITS - 60)
-ndassert::check! { (
-    ndassert::range!(i64, 60),
-) [
-    |value: i64| verify(value),
+ndassert::check! { (value in ndassert::range!(i64, 60)) [
+    verify(value),
 ] }
 ```
 
@@ -146,11 +147,11 @@ fn verify(_: i64, _: i64) -> bool {
 
 // Complexity: 2 * 2 ^ (i64::BITS - 60) * 2 ^ (i64::BITS - 60)
 ndassert::check! { (
-    ndassert::range!(i64, 60),
-    ndassert::range!(i64, 60),
+    lhs in ndassert::range!(i64, 60),
+    rhs in ndassert::range!(i64, 60),
 ) [
-    |lhs: i64, rhs: i64| verify(lhs, rhs), // Direct
-    |lhs: i64, rhs: i64| verify(rhs, lhs), // Inverse
+    verify(lhs, rhs), // Direct
+    verify(rhs, lhs), // Inverse
 ] }
 ```
 
@@ -167,10 +168,10 @@ fn verify(_: i64, _: i64) -> bool {
 
 // Complexity: 2 * 2 ^ (i64::BITS - 60) * 2 ^ (i64::BITS - 60)
 ndassert::check! { (
-    ndassert::range!(i64, 60, 0),
-    ndassert::range!(i64, 60, 1),
+    lhs in ndassert::range!(i64, 60, 0),
+    rhs in ndassert::range!(i64, 60, 1),
 ) [
-    |lhs: i64, rhs: i64| verify(lhs, rhs), // Direct
-    |lhs: i64, rhs: i64| verify(rhs, lhs), // Inverse
+    verify(lhs, rhs), // Direct
+    verify(rhs, lhs), // Inverse
 ] }
 ```

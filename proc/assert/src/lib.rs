@@ -2,9 +2,9 @@
 
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
+use quote::{ToTokens, quote};
 use syn::{
-    Error, Expr, LitInt, Result, Token, Type, bracketed, parenthesized,
+    Error, Expr, Ident, LitInt, Result, Token, Type, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
@@ -22,7 +22,7 @@ mod kw {
 ///
 /// ```text
 /// ndassert::check! { KIND?
-///     ((ITER_EXPR),*)
+///     ((ARG_EXPR),*)
 ///     [(CHECK_EXPR),*]
 /// }
 /// ```
@@ -155,16 +155,8 @@ const PRIMES: [[u64; 4]; 15] = [
 struct AssertCheck {
     kind: AssertKind,
     args_paren: Paren,
-    args: Punctuated<Expr, Token![,]>,
-    exts: Option<AssertCheckExts>,
+    args: Punctuated<AssertArg, Token![,]>,
     exprs_bracket: Bracket,
-    exprs: Punctuated<Expr, Token![,]>,
-}
-
-#[allow(unused)]
-struct AssertCheckExts {
-    arrow: Token![=>],
-    exprs_parent: Paren,
     exprs: Punctuated<Expr, Token![,]>,
 }
 
@@ -172,6 +164,12 @@ enum AssertKind {
     Eq,
     EqNot,
     Default,
+}
+
+#[allow(unused)]
+enum AssertArg {
+    Single(Ident, Token![as], Expr),
+    Multiple(Ident, Token![in], Expr),
 }
 
 struct AssertRange {
@@ -197,23 +195,32 @@ impl Parse for AssertCheck {
         Ok(Self {
             kind: input.parse()?,
             args_paren: parenthesized!(args in input),
-            args: args.parse_terminated(Expr::parse, Token![,])?,
-            exts: input.parse().ok(),
+            args: args.parse_terminated(AssertArg::parse, Token![,])?,
             exprs_bracket: bracketed!(exprs in input),
             exprs: exprs.parse_terminated(Expr::parse, Token![,])?,
         })
     }
 }
 
-impl Parse for AssertCheckExts {
+impl Parse for AssertArg {
     fn parse(input: ParseStream) -> Result<Self> {
-        let exprs;
+        let ident = input.parse()?;
 
-        Ok(Self {
-            arrow: input.parse()?,
-            exprs_parent: parenthesized!(exprs in input),
-            exprs: exprs.parse_terminated(Expr::parse, Token![,])?,
-        })
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Token![as]) {
+            let token = input.parse()?;
+            let expr = input.parse()?;
+
+            Ok(Self::Single(ident, token, expr))
+        } else if lookahead.peek(Token![in]) {
+            let token = input.parse()?;
+            let expr = input.parse()?;
+
+            Ok(Self::Multiple(ident, token, expr))
+        } else {
+            Err(lookahead.error())
+        }
     }
 }
 
@@ -289,55 +296,34 @@ impl Parse for AssertPrime {
 
 impl ToTokens for AssertCheck {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let args_len = self.args.len();
-        let exts_len = self.exts.as_ref().map(|exts| exts.exprs.len()).unwrap_or_default();
+        let args = self.args.iter().fold(quote! {}, |acc, arg| match arg {
+            AssertArg::Single(ident, _, _) => quote! { #acc #ident, },
+            AssertArg::Multiple(ident, _, _) => quote! { #acc #ident, },
+        });
 
-        let args_call = (0..args_len)
-            .map(|idx| format_ident!("arg{}", idx))
-            .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
+        let args_msg = self
+            .args
+            .iter()
+            .map(|arg| match arg {
+                AssertArg::Single(ident, _, _) => format!("{}: {{}}\n", ident),
+                AssertArg::Multiple(ident, _, _) => format!("{}: {{}}\n", ident),
+            })
+            .fold(quote! {}, |acc, msg| quote! { #acc #msg, });
 
-        let exts_call = (0..exts_len)
-            .map(|idx| format_ident!("ext{}", idx))
-            .fold(quote! {}, |acc, ext| quote! { #acc #ext.clone(), });
-
-        let args_msg = (0..args_len)
-            .map(|idx| format!("Arg #{}: {}\n", idx, "{}"))
-            .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
-
-        let exts_msg = (0..exts_len)
-            .map(|idx| format!("Ext #{}: {}\n", idx, "{}"))
-            .fold(quote! {}, |acc, arg| quote! { #acc #arg, });
-
-        let exprs_call = match self.exts {
-            Some(ref exts) => exts
-                .exprs
-                .iter()
-                .enumerate()
-                .map(|(idx, expr)| (format_ident!("ext{}", idx), expr))
-                .fold(quote! {}, |acc, (ident, expr)| {
-                    quote! {
-                        #acc
-
-                        let #ident = (#expr)(#args_call);
-                    }
-                }),
-            None => quote! {},
-        };
-
-        let exprs_call = self.exprs.iter().fold(exprs_call, |acc, expr| {
+        let exprs_call = self.exprs.iter().fold(quote! {}, |acc, expr| {
             let assert = match self.kind {
                 AssertKind::Eq => quote! {{
-                    let val = (#expr)(#args_call #exts_call);
+                    let res = (#expr);
 
-                    assert_eq!(val.0, val.1, concat!("{:?} != {:?}\nExpression: {}\n", #args_msg #exts_msg), &val.0, &val.1, stringify!(#expr), #args_call #exts_call);
+                    assert_eq!(res.0, res.1, concat!("{:?} != {:?}\nExpression: {}\n", #args_msg), &res.0, &res.1, stringify!(#expr), #args);
                 }},
                 AssertKind::EqNot => quote! {{
-                    let val = (#expr)(#args_call #exts_call);
+                    let res = (#expr);
 
-                    assert_ne!(val.0, val.1, concat!("{:?} == {:?}\nExpression: {}\n", #args_msg #exts_msg), &val.0, &val.1, stringify!(#expr), #args_call #exts_call);
+                    assert_ne!(res.0, res.1, concat!("{:?} == {:?}\nExpression: {}\n", #args_msg), &res.0, &res.1, stringify!(#expr), #args);
                 }},
                 AssertKind::Default => quote! {
-                    assert!((#expr)(#args_call #exts_call), concat!("Expression: {}\n", #args_msg #exts_msg), stringify!(#expr), #args_call #exts_call);
+                    assert!((#expr), concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args);
                 },
             };
 
@@ -347,19 +333,18 @@ impl ToTokens for AssertCheck {
             }
         });
 
-        let quote = self
-            .args
-            .iter()
-            .enumerate()
-            .rev()
-            .map(|(idx, expr)| (format_ident!("arg{}", idx), expr))
-            .fold(exprs_call, |acc, (ident, expr)| {
-                quote! {
-                    for #ident in #expr {
-                        #acc
-                    }
+        let quote = self.args.iter().rev().fold(exprs_call, |acc, arg| match arg {
+            AssertArg::Single(ident, _, expr) => quote! {
+                let #ident = (#expr);
+
+                #acc
+            },
+            AssertArg::Multiple(ident, _, expr) => quote! {
+                for #ident in #expr {
+                    #acc
                 }
-            });
+            },
+        });
 
         tokens.extend(quote);
     }

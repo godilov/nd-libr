@@ -123,43 +123,46 @@ mod fwd {
     #[test]
     #[allow(unused_allocation)]
     fn std() {
-        ndassert::check! { (ndassert::range!(i64, 60)) [
-            |value: i64| *Any(value) == value,
-            |value: i64| Any(value).deref() == &value,
-            |value: i64| Any(value).deref_mut() == &value,
+        ndassert::check! { (val in ndassert::range!(i64, 60)) [
+            *Any(val) == val,
+            Any(val).deref() == &val,
+            Any(val).deref_mut() == &val,
 
-            |value: i64| *Any(Box::new(value)) == Box::new(value),
-            |value: i64| Any(Box::new(value)).as_ref() == &value,
-            |value: i64| Any(Box::new(value)).as_mut() == &value,
+            *Any(Box::new(val)) == Box::new(val),
+            Any(Box::new(val)).as_ref() == &val,
+            Any(Box::new(val)).as_mut() == &val,
 
-            |value: i64| Any(vec![value]) == Any::<Vec<i64>>::from_iter([value]),
+            Any(vec![val]) == Any::<Vec<i64>>::from_iter([val]),
         ] }
     }
 
     #[test]
     fn cmp() {
-        ndassert::check! { (ndassert::range!(i64, 60, 0), ndassert::range!(i64, 60, 1)) [
-            |lhs: i64, rhs: i64| (Any(lhs) == Any(rhs)) == (lhs == rhs),
-            |lhs: i64, rhs: i64| (Any(lhs) <  Any(rhs)) == (lhs <  rhs),
-            |lhs: i64, rhs: i64| (Any(lhs) >  Any(rhs)) == (lhs >  rhs),
-            |lhs: i64, rhs: i64| (Any(lhs) <= Any(rhs)) == (lhs <= rhs),
-            |lhs: i64, rhs: i64| (Any(lhs) >= Any(rhs)) == (lhs >= rhs),
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 60, 0),
+            rhs in ndassert::range!(i64, 60, 1),
+        ) [
+            (Any(lhs) == Any(rhs), lhs == rhs),
+            (Any(lhs) <  Any(rhs), lhs <  rhs),
+            (Any(lhs) >  Any(rhs), lhs >  rhs),
+            (Any(lhs) <= Any(rhs), lhs <= rhs),
+            (Any(lhs) >= Any(rhs), lhs >= rhs),
         ] }
     }
 
     #[test]
     fn fmt() {
-        ndassert::check! { (ndassert::range!(i64, 60)) [
-            |value: i64| format!("{:}",   Any(value)) == format!("{:}",   value),
-            |value: i64| format!("{:b}",  Any(value)) == format!("{:b}",  value),
-            |value: i64| format!("{:o}",  Any(value)) == format!("{:o}",  value),
-            |value: i64| format!("{:x}",  Any(value)) == format!("{:x}",  value),
-            |value: i64| format!("{:X}",  Any(value)) == format!("{:X}",  value),
-            |value: i64| format!("{:#}",  Any(value)) == format!("{:#}",  value),
-            |value: i64| format!("{:#b}", Any(value)) == format!("{:#b}", value),
-            |value: i64| format!("{:#o}", Any(value)) == format!("{:#o}", value),
-            |value: i64| format!("{:#x}", Any(value)) == format!("{:#x}", value),
-            |value: i64| format!("{:#X}", Any(value)) == format!("{:#X}", value),
+        ndassert::check! { (val in ndassert::range!(i64, 60)) [
+            format!("{:}",   Any(val)) == format!("{:}",   val),
+            format!("{:b}",  Any(val)) == format!("{:b}",  val),
+            format!("{:o}",  Any(val)) == format!("{:o}",  val),
+            format!("{:x}",  Any(val)) == format!("{:x}",  val),
+            format!("{:X}",  Any(val)) == format!("{:X}",  val),
+            format!("{:#}",  Any(val)) == format!("{:#}",  val),
+            format!("{:#b}", Any(val)) == format!("{:#b}", val),
+            format!("{:#o}", Any(val)) == format!("{:#o}", val),
+            format!("{:#x}", Any(val)) == format!("{:#x}", val),
+            format!("{:#X}", Any(val)) == format!("{:#X}", val),
         ] }
     }
 

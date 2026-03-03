@@ -241,232 +241,224 @@ mod tests {
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn aligned() {
-        ndassert::check! { @eq (ndassert::range!(i64, 48).map(S64::from)) [
-            |val: S64| (*Aligned(val), val),
-            |val: S64| (*Aligned(Aligned(val)), Aligned(val)),
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).map(S64::from)) [
+            (*Aligned(val), val),
+            (*Aligned(Aligned(val)), Aligned(val)),
 
-            |val: S64| (format!("{:}",   Aligned(val)), format!("{:}",   val)),
-            |val: S64| (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
-            |val: S64| (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
-            |val: S64| (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
-            |val: S64| (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
-            |val: S64| (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
-            |val: S64| (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
-            |val: S64| (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
-            |val: S64| (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
-            |val: S64| (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
+            (format!("{:}",   Aligned(val)), format!("{:}",   val)),
+            (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
+            (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
+            (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
+            (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
+            (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
+            (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
+            (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
+            (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
+            (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
         ] }
 
-        ndassert::check! { @eq (ndassert::range!(u64, 48).map(U64::from)) [
-            |val: U64| (*Aligned(val), val),
-            |val: U64| (*Aligned(Aligned(val)), Aligned(val)),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48).map(U64::from)) [
+            (*Aligned(val), val),
+            (*Aligned(Aligned(val)), Aligned(val)),
 
-            |val: U64| (format!("{:}",   Aligned(val)), format!("{:}",   val)),
-            |val: U64| (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
-            |val: U64| (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
-            |val: U64| (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
-            |val: U64| (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
-            |val: U64| (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
-            |val: U64| (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
-            |val: U64| (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
-            |val: U64| (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
-            |val: U64| (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
-        ] }
-
-        ndassert::check! { @eq (
-            ndassert::range!(i64, 56).map(S64::from),
-            ndassert::range!(i64, 56).map(S64::from),
-        ) [
-            |lhs: S64, rhs: S64| (Aligned(lhs) == Aligned(rhs), lhs == rhs),
-            |lhs: S64, rhs: S64| (Aligned(lhs) <  Aligned(rhs), lhs <  rhs),
-            |lhs: S64, rhs: S64| (Aligned(lhs) >  Aligned(rhs), lhs >  rhs),
-            |lhs: S64, rhs: S64| (Aligned(lhs) <= Aligned(rhs), lhs <= rhs),
-            |lhs: S64, rhs: S64| (Aligned(lhs) >= Aligned(rhs), lhs >= rhs),
-            |lhs: S64, rhs: S64| (Aligned(lhs).cmp(&Aligned(rhs)), lhs.cmp(&rhs)),
+            (format!("{:}",   Aligned(val)), format!("{:}",   val)),
+            (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
+            (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
+            (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
+            (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
+            (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
+            (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
+            (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
+            (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
+            (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56).map(U64::from),
-            ndassert::range!(u64, 56).map(U64::from),
+            lhs in ndassert::range!(i64, 56).map(S64::from),
+            rhs in ndassert::range!(i64, 56).map(S64::from),
         ) [
-            |lhs: U64, rhs: U64| (Aligned(lhs) == Aligned(rhs), lhs == rhs),
-            |lhs: U64, rhs: U64| (Aligned(lhs) <  Aligned(rhs), lhs <  rhs),
-            |lhs: U64, rhs: U64| (Aligned(lhs) >  Aligned(rhs), lhs >  rhs),
-            |lhs: U64, rhs: U64| (Aligned(lhs) <= Aligned(rhs), lhs <= rhs),
-            |lhs: U64, rhs: U64| (Aligned(lhs) >= Aligned(rhs), lhs >= rhs),
-            |lhs: U64, rhs: U64| (Aligned(lhs).cmp(&Aligned(rhs)), lhs.cmp(&rhs)),
+            (Aligned(lhs).eq (&Aligned(rhs)), lhs.eq (&rhs)),
+            (Aligned(lhs).cmp(&Aligned(rhs)), lhs.cmp(&rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(u64, 56).map(U64::from),
+            rhs in ndassert::range!(u64, 56).map(U64::from),
+        ) [
+            (Aligned(lhs).eq (&Aligned(rhs)), lhs.eq (&rhs)),
+            (Aligned(lhs).cmp(&Aligned(rhs)), lhs.cmp(&rhs)),
         ] }
     }
 
     #[test]
     fn aligned_ops() {
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).map(S64::from),
-            ndassert::range!(i64, 56, 1).map(S64::from),
+            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 56, 1).map(S64::from),
         ) [
-            |lhs: S64, rhs: S64| (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            |lhs: S64, rhs: S64| (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            |lhs: S64, rhs: S64| (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            |lhs: S64, rhs: S64| (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            |lhs: S64, rhs: S64| (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
-            |lhs: S64, rhs: S64| (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            |lhs: S64, rhs: S64| (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            |lhs: S64, rhs: S64| (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
+            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
+            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).map(S64::from),
-            ndassert::range!(i64, 56, 1),
+            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 56, 1),
         ) [
-            |lhs: S64, rhs: i64| (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            |lhs: S64, rhs: i64| (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            |lhs: S64, rhs: i64| (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            |lhs: S64, rhs: i64| (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            |lhs: S64, rhs: i64| (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
-            |lhs: S64, rhs: i64| (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            |lhs: S64, rhs: i64| (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            |lhs: S64, rhs: i64| (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
+            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
+            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0),
-            ndassert::range!(i64, 56, 1).map(S64::from),
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1).map(S64::from),
         ) [
-            |lhs: i64, rhs: S64| (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            |lhs: i64, rhs: S64| (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            |lhs: i64, rhs: S64| (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            |lhs: i64, rhs: S64| (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            |lhs: i64, rhs: S64| (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
+            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
+            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).map(U64::from),
-            ndassert::range!(u64, 56, 1).map(U64::from),
+            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 56, 1).map(U64::from),
         ) [
-            |lhs: U64, rhs: U64| (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            |lhs: U64, rhs: U64| (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            |lhs: U64, rhs: U64| (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            |lhs: U64, rhs: U64| (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            |lhs: U64, rhs: U64| (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
-            |lhs: U64, rhs: U64| (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            |lhs: U64, rhs: U64| (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            |lhs: U64, rhs: U64| (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
+            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
+            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).map(U64::from),
-            ndassert::range!(u64, 56, 1),
+            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 56, 1),
         ) [
-            |lhs: U64, rhs: u64| (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            |lhs: U64, rhs: u64| (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            |lhs: U64, rhs: u64| (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            |lhs: U64, rhs: u64| (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            |lhs: U64, rhs: u64| (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
-            |lhs: U64, rhs: u64| (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            |lhs: U64, rhs: u64| (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            |lhs: U64, rhs: u64| (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
+            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
+            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0),
-            ndassert::range!(u64, 56, 1).map(U64::from),
+            lhs in ndassert::range!(u64, 56, 0),
+            rhs in ndassert::range!(u64, 56, 1).map(U64::from),
         ) [
-            |lhs: u64, rhs: U64| (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            |lhs: u64, rhs: U64| (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            |lhs: u64, rhs: U64| (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            |lhs: u64, rhs: U64| (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            |lhs: u64, rhs: U64| (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
+            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
+            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 48).map(S64::from),
-            0..128,
+            lhs in ndassert::range!(i64, 48).map(S64::from),
+            rhs in 0..128,
         ) [
-            |lhs: S64, rhs: usize| (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            |lhs: S64, rhs: usize| (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
+            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 48).map(U64::from),
-            0..128,
+            lhs in ndassert::range!(u64, 48).map(U64::from),
+            rhs in 0..128,
         ) [
-            |lhs: U64, rhs: usize| (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            |lhs: U64, rhs: usize| (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
+            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
         ] }
     }
 
     #[test]
     fn aligned_ops_assign() {
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).map(S64::from),
-            ndassert::range!(i64, 56, 1).map(S64::from),
+            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 56, 1).map(S64::from),
         ) [
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
-            |lhs: S64, rhs: S64| ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
+            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
+            ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
+            ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).map(S64::from),
-            ndassert::range!(i64, 56, 1),
+            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 56, 1),
         ) [
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
-            |lhs: S64, rhs: i64| ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
+            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
+            ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
+            ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).map(U64::from),
-            ndassert::range!(u64, 56, 1).map(U64::from),
+            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 56, 1).map(U64::from),
         ) [
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
-            |lhs: U64, rhs: U64| ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
+            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
+            ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
+            ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).map(U64::from),
-            ndassert::range!(u64, 56, 1),
+            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 56, 1),
         ) [
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
-            |lhs: U64, rhs: u64| ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
+            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
+            ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
+            ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 48).map(S64::from),
-            0..128,
+            lhs in ndassert::range!(i64, 48).map(S64::from),
+            rhs in 0..128,
         ) [
-            |lhs: S64, rhs: usize| (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            |lhs: S64, rhs: usize| (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
+            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 48).map(U64::from),
-            0..128,
+            lhs in ndassert::range!(u64, 48).map(U64::from),
+            rhs in 0..128,
         ) [
-            |lhs: U64, rhs: usize| (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            |lhs: U64, rhs: usize| (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
+            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
         ] }
     }
 }

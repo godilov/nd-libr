@@ -3442,6 +3442,8 @@ fn get_sign<W: Word, const L: usize>(words: &[W; L], sign: Sign) -> Sign {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::repeat_n;
+
     use rand::{RngExt, SeedableRng, rngs::StdRng};
 
     use super::*;
@@ -3450,192 +3452,192 @@ mod tests {
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn from_primitive() {
-        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |val: u64| (S64::from     (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i8  (val as   i8), S64 { 0: (val as   i8 as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i16 (val as  i16), S64 { 0: (val as  i16 as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i32 (val as  i32), S64 { 0: (val as  i32 as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i64 (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i128(val as i128), S64 { 0: (val as i128 as i64).to_le_bytes() }),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (S64::from     (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
+            (S64::from_i8  (val as   i8), S64 { 0: (val as   i8 as i64).to_le_bytes() }),
+            (S64::from_i16 (val as  i16), S64 { 0: (val as  i16 as i64).to_le_bytes() }),
+            (S64::from_i32 (val as  i32), S64 { 0: (val as  i32 as i64).to_le_bytes() }),
+            (S64::from_i64 (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
+            (S64::from_i128(val as i128), S64 { 0: (val as i128 as i64).to_le_bytes() }),
 
-            |val: u64| (S32::from     (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i8  (val as   i8), S32 { 0: (val as   i8 as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i16 (val as  i16), S32 { 0: (val as  i16 as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i32 (val as  i32), S32 { 0: (val as  i32 as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i64 (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i128(val as i128), S32 { 0: (val as i128 as i32).to_le_bytes() }),
+            (S32::from     (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
+            (S32::from_i8  (val as   i8), S32 { 0: (val as   i8 as i32).to_le_bytes() }),
+            (S32::from_i16 (val as  i16), S32 { 0: (val as  i16 as i32).to_le_bytes() }),
+            (S32::from_i32 (val as  i32), S32 { 0: (val as  i32 as i32).to_le_bytes() }),
+            (S32::from_i64 (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
+            (S32::from_i128(val as i128), S32 { 0: (val as i128 as i32).to_le_bytes() }),
 
-            |val: u64| (S64::from     ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i8  ((val as   i8).wrapping_neg()), S64 { 0: ((val as   i8).wrapping_neg() as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i16 ((val as  i16).wrapping_neg()), S64 { 0: ((val as  i16).wrapping_neg() as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i32 ((val as  i32).wrapping_neg()), S64 { 0: ((val as  i32).wrapping_neg() as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i64 ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
-            |val: u64| (S64::from_i128((val as i128).wrapping_neg()), S64 { 0: ((val as i128).wrapping_neg() as i64).to_le_bytes() }),
+            (S64::from     ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
+            (S64::from_i8  ((val as   i8).wrapping_neg()), S64 { 0: ((val as   i8).wrapping_neg() as i64).to_le_bytes() }),
+            (S64::from_i16 ((val as  i16).wrapping_neg()), S64 { 0: ((val as  i16).wrapping_neg() as i64).to_le_bytes() }),
+            (S64::from_i32 ((val as  i32).wrapping_neg()), S64 { 0: ((val as  i32).wrapping_neg() as i64).to_le_bytes() }),
+            (S64::from_i64 ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
+            (S64::from_i128((val as i128).wrapping_neg()), S64 { 0: ((val as i128).wrapping_neg() as i64).to_le_bytes() }),
 
-            |val: u64| (S32::from     ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i8  ((val as   i8).wrapping_neg()), S32 { 0: ((val as   i8).wrapping_neg() as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i16 ((val as  i16).wrapping_neg()), S32 { 0: ((val as  i16).wrapping_neg() as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i32 ((val as  i32).wrapping_neg()), S32 { 0: ((val as  i32).wrapping_neg() as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i64 ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
-            |val: u64| (S32::from_i128((val as i128).wrapping_neg()), S32 { 0: ((val as i128).wrapping_neg() as i32).to_le_bytes() }),
+            (S32::from     ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
+            (S32::from_i8  ((val as   i8).wrapping_neg()), S32 { 0: ((val as   i8).wrapping_neg() as i32).to_le_bytes() }),
+            (S32::from_i16 ((val as  i16).wrapping_neg()), S32 { 0: ((val as  i16).wrapping_neg() as i32).to_le_bytes() }),
+            (S32::from_i32 ((val as  i32).wrapping_neg()), S32 { 0: ((val as  i32).wrapping_neg() as i32).to_le_bytes() }),
+            (S32::from_i64 ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
+            (S32::from_i128((val as i128).wrapping_neg()), S32 { 0: ((val as i128).wrapping_neg() as i32).to_le_bytes() }),
 
-            |val: u64| (U64::from     (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_u8  (val as   u8), U64 { 0: (val as   u8 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_u16 (val as  u16), U64 { 0: (val as  u16 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_u32 (val as  u32), U64 { 0: (val as  u32 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_u64 (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_u128(val as u128), U64 { 0: (val as u128 as u64).to_le_bytes() }),
+            (U64::from     (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
+            (U64::from_u8  (val as   u8), U64 { 0: (val as   u8 as u64).to_le_bytes() }),
+            (U64::from_u16 (val as  u16), U64 { 0: (val as  u16 as u64).to_le_bytes() }),
+            (U64::from_u32 (val as  u32), U64 { 0: (val as  u32 as u64).to_le_bytes() }),
+            (U64::from_u64 (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
+            (U64::from_u128(val as u128), U64 { 0: (val as u128 as u64).to_le_bytes() }),
 
-            |val: u64| (U32::from     (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_u8  (val as   u8), U32 { 0: (val as   u8 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_u16 (val as  u16), U32 { 0: (val as  u16 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_u32 (val as  u32), U32 { 0: (val as  u32 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_u64 (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_u128(val as u128), U32 { 0: (val as u128 as u32).to_le_bytes() }),
+            (U32::from     (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
+            (U32::from_u8  (val as   u8), U32 { 0: (val as   u8 as u32).to_le_bytes() }),
+            (U32::from_u16 (val as  u16), U32 { 0: (val as  u16 as u32).to_le_bytes() }),
+            (U32::from_u32 (val as  u32), U32 { 0: (val as  u32 as u32).to_le_bytes() }),
+            (U32::from_u64 (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
+            (U32::from_u128(val as u128), U32 { 0: (val as u128 as u32).to_le_bytes() }),
         ] }
     }
 
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn from_bytes() {
-        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |val: u64| (S64::from_bytes(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_bytes(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (S64::from_bytes(&(val as u32).to_le_bytes()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_bytes(&(val as u32).to_le_bytes()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (S64::from_bytes(&(val as u16).to_le_bytes()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_bytes(&(val as u16).to_le_bytes()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (S64::from_bytes(&(val as  u8).to_le_bytes()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            |val: u64| (U64::from_bytes(&(val as  u8).to_le_bytes()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (S64::from_bytes(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (U64::from_bytes(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (S64::from_bytes(&(val as u32).to_le_bytes()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (U64::from_bytes(&(val as u32).to_le_bytes()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (S64::from_bytes(&(val as u16).to_le_bytes()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (U64::from_bytes(&(val as u16).to_le_bytes()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (S64::from_bytes(&(val as  u8).to_le_bytes()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (U64::from_bytes(&(val as  u8).to_le_bytes()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
 
-            |val: u64| (S32::from_bytes(&(val as u64).to_le_bytes()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_bytes(&(val as u64).to_le_bytes()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (S32::from_bytes(&(val as u32).to_le_bytes()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_bytes(&(val as u32).to_le_bytes()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (S32::from_bytes(&(val as u16).to_le_bytes()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_bytes(&(val as u16).to_le_bytes()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (S32::from_bytes(&(val as  u8).to_le_bytes()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            |val: u64| (U32::from_bytes(&(val as  u8).to_le_bytes()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (S32::from_bytes(&(val as u64).to_le_bytes()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (U32::from_bytes(&(val as u64).to_le_bytes()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (S32::from_bytes(&(val as u32).to_le_bytes()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (U32::from_bytes(&(val as u32).to_le_bytes()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (S32::from_bytes(&(val as u16).to_le_bytes()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (U32::from_bytes(&(val as u16).to_le_bytes()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (S32::from_bytes(&(val as  u8).to_le_bytes()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (U32::from_bytes(&(val as  u8).to_le_bytes()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
         ] }
     }
 
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn from_arr() {
-        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |val: u64| (S64::nd_from(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (S64::nd_from(&(val as u32).to_le_bytes()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&(val as u32).to_le_bytes()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (S64::nd_from(&(val as u16).to_le_bytes()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&(val as u16).to_le_bytes()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (S64::nd_from(&(val as  u8).to_le_bytes()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&(val as  u8).to_le_bytes()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (S64::nd_from(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (S64::nd_from(&(val as u32).to_le_bytes()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as u32).to_le_bytes()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (S64::nd_from(&(val as u16).to_le_bytes()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as u16).to_le_bytes()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (S64::nd_from(&(val as  u8).to_le_bytes()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as  u8).to_le_bytes()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
 
-            |val: u64| (S32::nd_from(&(val as u64).to_le_bytes()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&(val as u64).to_le_bytes()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (S32::nd_from(&(val as u32).to_le_bytes()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&(val as u32).to_le_bytes()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (S32::nd_from(&(val as u16).to_le_bytes()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&(val as u16).to_le_bytes()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (S32::nd_from(&(val as  u8).to_le_bytes()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&(val as  u8).to_le_bytes()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as u64).to_le_bytes()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as u64).to_le_bytes()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as u32).to_le_bytes()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as u32).to_le_bytes()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as u16).to_le_bytes()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as u16).to_le_bytes()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as  u8).to_le_bytes()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as  u8).to_le_bytes()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
 
-            |val: u64| (S64::nd_try_from(&(val as u64).to_le_bytes()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&(val as u64).to_le_bytes()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
-            |val: u64| (S64::nd_try_from(&(val as u32).to_le_bytes()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&(val as u32).to_le_bytes()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
-            |val: u64| (S64::nd_try_from(&(val as u16).to_le_bytes()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&(val as u16).to_le_bytes()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
-            |val: u64| (S64::nd_try_from(&(val as  u8).to_le_bytes()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&(val as  u8).to_le_bytes()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as u64).to_le_bytes()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as u64).to_le_bytes()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as u32).to_le_bytes()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as u32).to_le_bytes()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as u16).to_le_bytes()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as u16).to_le_bytes()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as  u8).to_le_bytes()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as  u8).to_le_bytes()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
 
-            |val: u64| (S32::nd_try_from(&(val as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
-            |val: u64| (U32::nd_try_from(&(val as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
-            |val: u64| (S32::nd_try_from(&(val as u32).to_le_bytes()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
-            |val: u64| (U32::nd_try_from(&(val as u32).to_le_bytes()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
-            |val: u64| (S32::nd_try_from(&(val as u16).to_le_bytes()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
-            |val: u64| (U32::nd_try_from(&(val as u16).to_le_bytes()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
-            |val: u64| (S32::nd_try_from(&(val as  u8).to_le_bytes()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            |val: u64| (U32::nd_try_from(&(val as  u8).to_le_bytes()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&(val as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
+            (U32::nd_try_from(&(val as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
+            (S32::nd_try_from(&(val as u32).to_le_bytes()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&(val as u32).to_le_bytes()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&(val as u16).to_le_bytes()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&(val as u16).to_le_bytes()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&(val as  u8).to_le_bytes()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&(val as  u8).to_le_bytes()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
         ] }
     }
 
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn from_slice() {
-        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |val: u64| (S64::nd_from(&val.to_le_bytes()[..8]), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&val.to_le_bytes()[..8]), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (S64::nd_from(&val.to_le_bytes()[..4]), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&val.to_le_bytes()[..4]), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (S64::nd_from(&val.to_le_bytes()[..2]), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&val.to_le_bytes()[..2]), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (S64::nd_from(&val.to_le_bytes()[..1]), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&val.to_le_bytes()[..1]), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            |val: u64| (S64::nd_from(&val.to_le_bytes()[..0]), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
-            |val: u64| (U64::nd_from(&val.to_le_bytes()[..0]), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (S64::nd_from(&val.to_le_bytes()[..8]), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..8]), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..4]), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..4]), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..2]), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..2]), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..1]), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..1]), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..0]), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..0]), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
 
-            |val: u64| (S32::nd_from(&val.to_le_bytes()[..8]), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&val.to_le_bytes()[..8]), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (S32::nd_from(&val.to_le_bytes()[..4]), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&val.to_le_bytes()[..4]), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (S32::nd_from(&val.to_le_bytes()[..2]), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&val.to_le_bytes()[..2]), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (S32::nd_from(&val.to_le_bytes()[..1]), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&val.to_le_bytes()[..1]), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            |val: u64| (S32::nd_from(&val.to_le_bytes()[..0]), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
-            |val: u64| (U32::nd_from(&val.to_le_bytes()[..0]), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..8]), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..8]), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..4]), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..4]), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..2]), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..2]), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..1]), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..1]), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..0]), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..0]), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
 
-            |val: u64| (S64::nd_try_from(&val.to_le_bytes()[..8]), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&val.to_le_bytes()[..8]), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
-            |val: u64| (S64::nd_try_from(&val.to_le_bytes()[..4]), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&val.to_le_bytes()[..4]), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
-            |val: u64| (S64::nd_try_from(&val.to_le_bytes()[..2]), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&val.to_le_bytes()[..2]), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
-            |val: u64| (S64::nd_try_from(&val.to_le_bytes()[..1]), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&val.to_le_bytes()[..1]), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            |val: u64| (S64::nd_try_from(&val.to_le_bytes()[..0]), Ok(S64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
-            |val: u64| (U64::nd_try_from(&val.to_le_bytes()[..0]), Ok(U64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..8]), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..8]), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..4]), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..4]), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..2]), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..2]), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..1]), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..1]), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..0]), Ok(S64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..0]), Ok(U64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
 
-            |val: u64| (S32::nd_try_from(&val.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
-            |val: u64| (U32::nd_try_from(&val.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
-            |val: u64| (S32::nd_try_from(&val.to_le_bytes()[..4]), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
-            |val: u64| (U32::nd_try_from(&val.to_le_bytes()[..4]), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
-            |val: u64| (S32::nd_try_from(&val.to_le_bytes()[..2]), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
-            |val: u64| (U32::nd_try_from(&val.to_le_bytes()[..2]), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
-            |val: u64| (S32::nd_try_from(&val.to_le_bytes()[..1]), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            |val: u64| (U32::nd_try_from(&val.to_le_bytes()[..1]), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            |val: u64| (S32::nd_try_from(&val.to_le_bytes()[..0]), Ok(S32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
-            |val: u64| (U32::nd_try_from(&val.to_le_bytes()[..0]), Ok(U32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
+            (U32::nd_try_from(&val.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
+            (S32::nd_try_from(&val.to_le_bytes()[..4]), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..4]), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..2]), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..2]), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..1]), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..1]), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..0]), Ok(S32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..0]), Ok(U32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
         ] }
     }
 
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn from_iter() {
-        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |val: u64| (val.to_le_bytes().iter().copied().take(8).collect::<S64>(), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(8).collect::<U64>(), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(4).collect::<S64>(), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(4).collect::<U64>(), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(2).collect::<S64>(), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(2).collect::<U64>(), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(1).collect::<S64>(), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(1).collect::<U64>(), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(0).collect::<S64>(), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(0).collect::<U64>(), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (val.to_le_bytes().iter().copied().take(8).collect::<S64>(), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(8).collect::<U64>(), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(4).collect::<S64>(), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(4).collect::<U64>(), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(2).collect::<S64>(), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(2).collect::<U64>(), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(1).collect::<S64>(), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(1).collect::<U64>(), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(0).collect::<S64>(), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(0).collect::<U64>(), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
 
-            |val: u64| (val.to_le_bytes().iter().copied().take(8).collect::<S32>(), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(8).collect::<U32>(), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(4).collect::<S32>(), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(4).collect::<U32>(), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(2).collect::<S32>(), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(2).collect::<U32>(), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(1).collect::<S32>(), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(1).collect::<U32>(), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(0).collect::<S32>(), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
-            |val: u64| (val.to_le_bytes().iter().copied().take(0).collect::<U32>(), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(8).collect::<S32>(), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(8).collect::<U32>(), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(4).collect::<S32>(), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(4).collect::<U32>(), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(2).collect::<S32>(), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(2).collect::<U32>(), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(1).collect::<S32>(), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(1).collect::<U32>(), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(0).collect::<S32>(), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+            (val.to_le_bytes().iter().copied().take(0).collect::<U32>(), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
         ] }
     }
 
@@ -3665,12 +3667,9 @@ mod tests {
 
         let mut rng = ndassert::rand!(StdRng, 60);
 
-        ndassert::check! { @eq (
-            2..=u8::MAX,
-            0..=u8::MAX,
-        ) [
-            |radix: u8, _: u8| generate!(S64, i64, &mut rng, radix),
-            |radix: u8, _: u8| generate!(U64, u64, &mut rng, radix),
+        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
+            generate!(S64, i64, &mut rng, radix),
+            generate!(U64, u64, &mut rng, radix),
         ] }
     }
 
@@ -3701,12 +3700,9 @@ mod tests {
 
         let mut rng = ndassert::rand!(StdRng, 60);
 
-        ndassert::check! { @eq (
-            2..=u8::MAX,
-            0..=u8::MAX,
-        ) [
-            |radix: u8, _: u8| generate!(S64, i64, &mut rng, radix),
-            |radix: u8, _: u8| generate!(U64, u64, &mut rng, radix),
+        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
+            generate!(S64, i64, &mut rng, radix),
+            generate!(U64, u64, &mut rng, radix),
         ] }
     }
 
@@ -3733,12 +3729,9 @@ mod tests {
 
         let mut rng = ndassert::rand!(StdRng, 60);
 
-        ndassert::check! { @eq (
-            1..u8::BITS as u8,
-            0..=u16::MAX,
-        ) [
-            |exp: u8, _: u16| generate!(S64, i64, &mut rng, exp),
-            |exp: u8, _: u16| generate!(U64, u64, &mut rng, exp),
+        ndassert::check! { @eq (exp in (1..u8::BITS as u8).flat_map(|radix| repeat_n(radix, 1 << 16))) [
+            generate!(S64, i64, &mut rng, exp),
+            generate!(U64, u64, &mut rng, exp),
         ] }
     }
 
@@ -3765,12 +3758,9 @@ mod tests {
 
         let mut rng = ndassert::rand!(StdRng, 60);
 
-        ndassert::check! { @eq (
-            1..u8::BITS as u8,
-            0..=u16::MAX,
-        ) [
-            |exp: u8, _: u16| generate!(S64, i64, &mut rng, exp),
-            |exp: u8, _: u16| generate!(U64, u64, &mut rng, exp),
+        ndassert::check! { @eq (exp in (1..u8::BITS as u8).flat_map(|radix| repeat_n(radix, 1 << 16))) [
+            generate!(S64, i64, &mut rng, exp),
+            generate!(U64, u64, &mut rng, exp),
         ] }
     }
 
@@ -3796,12 +3786,9 @@ mod tests {
 
         let mut rng = ndassert::rand!(StdRng, 60);
 
-        ndassert::check! { @eq (
-            2..=u8::MAX,
-            0..=u8::MAX,
-        ) [
-            |radix: u8, _: u8| generate!(S64, i64, &mut rng, radix),
-            |radix: u8, _: u8| generate!(U64, u64, &mut rng, radix),
+        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
+            generate!(S64, i64, &mut rng, radix),
+            generate!(U64, u64, &mut rng, radix),
         ] }
     }
 
@@ -3827,111 +3814,108 @@ mod tests {
 
         let mut rng = ndassert::rand!(StdRng, 60);
 
-        ndassert::check! { @eq (
-            2..=u8::MAX,
-            0..=u8::MAX,
-        ) [
-            |radix: u8, _: u8| generate!(S64, i64, &mut rng, radix),
-            |radix: u8, _: u8| generate!(U64, u64, &mut rng, radix),
+        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
+            generate!(S64, i64, &mut rng, radix),
+            generate!(U64, u64, &mut rng, radix),
         ] }
     }
 
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn from_str() {
-        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |value: u64| (format!("{:#}",  (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
-            |value: u64| (format!("{:#b}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
-            |value: u64| (format!("{:#o}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
-            |value: u64| (format!("{:#x}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
-            |value: u64| (format!("{:#X}", (value as i64)).parse::<S64>(), Ok(S64::from(value as i64))),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (format!("{:#}",  (val as i64)).parse::<S64>(), Ok(S64::from(val as i64))),
+            (format!("{:#b}", (val as i64)).parse::<S64>(), Ok(S64::from(val as i64))),
+            (format!("{:#o}", (val as i64)).parse::<S64>(), Ok(S64::from(val as i64))),
+            (format!("{:#x}", (val as i64)).parse::<S64>(), Ok(S64::from(val as i64))),
+            (format!("{:#X}", (val as i64)).parse::<S64>(), Ok(S64::from(val as i64))),
 
-            |value: u64| (S64::nd_from_str(&format!("{:}",  (value as i64)), Dec), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:b}", (value as i64)), Bin), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:o}", (value as i64)), Oct), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:x}", (value as i64)), Hex), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:X}", (value as i64)), Hex), Ok(S64::from(value as i64))),
+            (S64::nd_from_str(&format!("{:}",  (val as i64)), Dec), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:b}", (val as i64)), Bin), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:o}", (val as i64)), Oct), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:x}", (val as i64)), Hex), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:X}", (val as i64)), Hex), Ok(S64::from(val as i64))),
 
-            |value: u64| (S64::nd_from_str(&format!("{:#}",  (value as i64)), Dec), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:#b}", (value as i64)), Bin), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:#o}", (value as i64)), Oct), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:#x}", (value as i64)), Hex), Ok(S64::from(value as i64))),
-            |value: u64| (S64::nd_from_str(&format!("{:#X}", (value as i64)), Hex), Ok(S64::from(value as i64))),
+            (S64::nd_from_str(&format!("{:#}",  (val as i64)), Dec), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:#b}", (val as i64)), Bin), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:#o}", (val as i64)), Oct), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:#x}", (val as i64)), Hex), Ok(S64::from(val as i64))),
+            (S64::nd_from_str(&format!("{:#X}", (val as i64)), Hex), Ok(S64::from(val as i64))),
 
-            |value: u64| (format!("{:#}",  (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (format!("{:#b}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (format!("{:#o}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (format!("{:#x}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (format!("{:#X}", (value as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((value as i64).wrapping_neg()))),
+            (format!("{:#}",  (val as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((val as i64).wrapping_neg()))),
+            (format!("{:#b}", (val as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((val as i64).wrapping_neg()))),
+            (format!("{:#o}", (val as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((val as i64).wrapping_neg()))),
+            (format!("{:#x}", (val as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((val as i64).wrapping_neg()))),
+            (format!("{:#X}", (val as i64).wrapping_neg()).parse::<S64>(), Ok(S64::from((val as i64).wrapping_neg()))),
 
-            |value: u64| (S64::nd_from_str(&format!("{:}",  (value as i64).wrapping_neg()), Dec), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:b}", (value as i64).wrapping_neg()), Bin), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:o}", (value as i64).wrapping_neg()), Oct), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:x}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:X}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:}",  (val as i64).wrapping_neg()), Dec), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:b}", (val as i64).wrapping_neg()), Bin), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:o}", (val as i64).wrapping_neg()), Oct), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:x}", (val as i64).wrapping_neg()), Hex), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:X}", (val as i64).wrapping_neg()), Hex), Ok(S64::from((val as i64).wrapping_neg()))),
 
-            |value: u64| (S64::nd_from_str(&format!("{:#}",  (value as i64).wrapping_neg()), Dec), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:#b}", (value as i64).wrapping_neg()), Bin), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:#o}", (value as i64).wrapping_neg()), Oct), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:#x}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
-            |value: u64| (S64::nd_from_str(&format!("{:#X}", (value as i64).wrapping_neg()), Hex), Ok(S64::from((value as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:#}",  (val as i64).wrapping_neg()), Dec), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:#b}", (val as i64).wrapping_neg()), Bin), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:#o}", (val as i64).wrapping_neg()), Oct), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:#x}", (val as i64).wrapping_neg()), Hex), Ok(S64::from((val as i64).wrapping_neg()))),
+            (S64::nd_from_str(&format!("{:#X}", (val as i64).wrapping_neg()), Hex), Ok(S64::from((val as i64).wrapping_neg()))),
 
-            |value: u64| (format!("{:#}",  (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
-            |value: u64| (format!("{:#b}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
-            |value: u64| (format!("{:#o}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
-            |value: u64| (format!("{:#x}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
-            |value: u64| (format!("{:#X}", (value as u64)).parse::<U64>(), Ok(U64::from(value as u64))),
+            (format!("{:#}",  (val as u64)).parse::<U64>(), Ok(U64::from(val as u64))),
+            (format!("{:#b}", (val as u64)).parse::<U64>(), Ok(U64::from(val as u64))),
+            (format!("{:#o}", (val as u64)).parse::<U64>(), Ok(U64::from(val as u64))),
+            (format!("{:#x}", (val as u64)).parse::<U64>(), Ok(U64::from(val as u64))),
+            (format!("{:#X}", (val as u64)).parse::<U64>(), Ok(U64::from(val as u64))),
 
-            |value: u64| (U64::nd_from_str(&format!("{:}",  (value as u64)), Dec), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:b}", (value as u64)), Bin), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:o}", (value as u64)), Oct), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:x}", (value as u64)), Hex), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:X}", (value as u64)), Hex), Ok(U64::from(value as u64))),
+            (U64::nd_from_str(&format!("{:}",  (val as u64)), Dec), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:b}", (val as u64)), Bin), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:o}", (val as u64)), Oct), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:x}", (val as u64)), Hex), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:X}", (val as u64)), Hex), Ok(U64::from(val as u64))),
 
-            |value: u64| (U64::nd_from_str(&format!("{:#}",  (value as u64)), Dec), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:#b}", (value as u64)), Bin), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:#o}", (value as u64)), Oct), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:#x}", (value as u64)), Hex), Ok(U64::from(value as u64))),
-            |value: u64| (U64::nd_from_str(&format!("{:#X}", (value as u64)), Hex), Ok(U64::from(value as u64))),
+            (U64::nd_from_str(&format!("{:#}",  (val as u64)), Dec), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:#b}", (val as u64)), Bin), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:#o}", (val as u64)), Oct), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:#x}", (val as u64)), Hex), Ok(U64::from(val as u64))),
+            (U64::nd_from_str(&format!("{:#X}", (val as u64)), Hex), Ok(U64::from(val as u64))),
         ] }
     }
 
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn to_str() {
-        ndassert::check! { @eq (ndassert::range!(u64, 48)) [
-            |value: u64| (format!("{:}",   S64::from(value as i64)), format!("{:}",   value as i64)),
-            |value: u64| (format!("{:b}",  S64::from(value as i64)), format!("{:b}",  value as i64)),
-            |value: u64| (format!("{:o}",  S64::from(value as i64)), format!("{:o}",  value as i64)),
-            |value: u64| (format!("{:x}",  S64::from(value as i64)), format!("{:x}",  value as i64)),
-            |value: u64| (format!("{:X}",  S64::from(value as i64)), format!("{:X}",  value as i64)),
-            |value: u64| (format!("{:#}",  S64::from(value as i64)), format!("{:#}",  value as i64)),
-            |value: u64| (format!("{:#b}", S64::from(value as i64)), format!("{:#b}", value as i64)),
-            |value: u64| (format!("{:#o}", S64::from(value as i64)), format!("{:#o}", value as i64)),
-            |value: u64| (format!("{:#x}", S64::from(value as i64)), format!("{:#x}", value as i64)),
-            |value: u64| (format!("{:#X}", S64::from(value as i64)), format!("{:#X}", value as i64)),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (format!("{:}",   S64::from(val as i64)), format!("{:}",   val as i64)),
+            (format!("{:b}",  S64::from(val as i64)), format!("{:b}",  val as i64)),
+            (format!("{:o}",  S64::from(val as i64)), format!("{:o}",  val as i64)),
+            (format!("{:x}",  S64::from(val as i64)), format!("{:x}",  val as i64)),
+            (format!("{:X}",  S64::from(val as i64)), format!("{:X}",  val as i64)),
+            (format!("{:#}",  S64::from(val as i64)), format!("{:#}",  val as i64)),
+            (format!("{:#b}", S64::from(val as i64)), format!("{:#b}", val as i64)),
+            (format!("{:#o}", S64::from(val as i64)), format!("{:#o}", val as i64)),
+            (format!("{:#x}", S64::from(val as i64)), format!("{:#x}", val as i64)),
+            (format!("{:#X}", S64::from(val as i64)), format!("{:#X}", val as i64)),
 
-            |value: u64| (format!("{:}",   S64::from((value as i64).wrapping_neg())), format!("{:}",   (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:b}",  S64::from((value as i64).wrapping_neg())), format!("{:b}",  (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:o}",  S64::from((value as i64).wrapping_neg())), format!("{:o}",  (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:x}",  S64::from((value as i64).wrapping_neg())), format!("{:x}",  (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:X}",  S64::from((value as i64).wrapping_neg())), format!("{:X}",  (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:#}",  S64::from((value as i64).wrapping_neg())), format!("{:#}",  (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:#b}", S64::from((value as i64).wrapping_neg())), format!("{:#b}", (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:#o}", S64::from((value as i64).wrapping_neg())), format!("{:#o}", (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:#x}", S64::from((value as i64).wrapping_neg())), format!("{:#x}", (value as i64).wrapping_neg())),
-            |value: u64| (format!("{:#X}", S64::from((value as i64).wrapping_neg())), format!("{:#X}", (value as i64).wrapping_neg())),
+            (format!("{:}",   S64::from((val as i64).wrapping_neg())), format!("{:}",   (val as i64).wrapping_neg())),
+            (format!("{:b}",  S64::from((val as i64).wrapping_neg())), format!("{:b}",  (val as i64).wrapping_neg())),
+            (format!("{:o}",  S64::from((val as i64).wrapping_neg())), format!("{:o}",  (val as i64).wrapping_neg())),
+            (format!("{:x}",  S64::from((val as i64).wrapping_neg())), format!("{:x}",  (val as i64).wrapping_neg())),
+            (format!("{:X}",  S64::from((val as i64).wrapping_neg())), format!("{:X}",  (val as i64).wrapping_neg())),
+            (format!("{:#}",  S64::from((val as i64).wrapping_neg())), format!("{:#}",  (val as i64).wrapping_neg())),
+            (format!("{:#b}", S64::from((val as i64).wrapping_neg())), format!("{:#b}", (val as i64).wrapping_neg())),
+            (format!("{:#o}", S64::from((val as i64).wrapping_neg())), format!("{:#o}", (val as i64).wrapping_neg())),
+            (format!("{:#x}", S64::from((val as i64).wrapping_neg())), format!("{:#x}", (val as i64).wrapping_neg())),
+            (format!("{:#X}", S64::from((val as i64).wrapping_neg())), format!("{:#X}", (val as i64).wrapping_neg())),
 
-            |value: u64| (format!("{:}",   U64::from(value as u64)), format!("{:}",   value as u64)),
-            |value: u64| (format!("{:b}",  U64::from(value as u64)), format!("{:b}",  value as u64)),
-            |value: u64| (format!("{:o}",  U64::from(value as u64)), format!("{:o}",  value as u64)),
-            |value: u64| (format!("{:x}",  U64::from(value as u64)), format!("{:x}",  value as u64)),
-            |value: u64| (format!("{:X}",  U64::from(value as u64)), format!("{:X}",  value as u64)),
-            |value: u64| (format!("{:#}",  U64::from(value as u64)), format!("{:#}",  value as u64)),
-            |value: u64| (format!("{:#b}", U64::from(value as u64)), format!("{:#b}", value as u64)),
-            |value: u64| (format!("{:#o}", U64::from(value as u64)), format!("{:#o}", value as u64)),
-            |value: u64| (format!("{:#x}", U64::from(value as u64)), format!("{:#x}", value as u64)),
-            |value: u64| (format!("{:#X}", U64::from(value as u64)), format!("{:#X}", value as u64)),
+            (format!("{:}",   U64::from(val as u64)), format!("{:}",   val as u64)),
+            (format!("{:b}",  U64::from(val as u64)), format!("{:b}",  val as u64)),
+            (format!("{:o}",  U64::from(val as u64)), format!("{:o}",  val as u64)),
+            (format!("{:x}",  U64::from(val as u64)), format!("{:x}",  val as u64)),
+            (format!("{:X}",  U64::from(val as u64)), format!("{:X}",  val as u64)),
+            (format!("{:#}",  U64::from(val as u64)), format!("{:#}",  val as u64)),
+            (format!("{:#b}", U64::from(val as u64)), format!("{:#b}", val as u64)),
+            (format!("{:#o}", U64::from(val as u64)), format!("{:#o}", val as u64)),
+            (format!("{:#x}", U64::from(val as u64)), format!("{:#x}", val as u64)),
+            (format!("{:#X}", U64::from(val as u64)), format!("{:#X}", val as u64)),
         ] }
     }
 
@@ -3939,11 +3923,11 @@ mod tests {
     #[rustfmt::skip]
     fn signed_cmp() {
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0),
-            ndassert::range!(i64, 56, 1),
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
         ) [
-            |lhs: i64, rhs: i64| (S64::from(lhs).eq (&S64::from(rhs)), lhs.eq (&rhs)),
-            |lhs: i64, rhs: i64| (S64::from(lhs).cmp(&S64::from(rhs)), lhs.cmp(&rhs)),
+            (S64::from(lhs).eq (&S64::from(rhs)), lhs.eq (&rhs)),
+            (S64::from(lhs).cmp(&S64::from(rhs)), lhs.cmp(&rhs)),
         ] }
     }
 
@@ -3951,11 +3935,11 @@ mod tests {
     #[rustfmt::skip]
     fn unsigned_cmp() {
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0),
-            ndassert::range!(u64, 56, 1),
+            lhs in ndassert::range!(u64, 56, 0),
+            rhs in ndassert::range!(u64, 56, 1),
         ) [
-            |lhs: u64, rhs: u64| (U64::from(lhs).eq (&U64::from(rhs)), lhs.eq (&rhs)),
-            |lhs: u64, rhs: u64| (U64::from(lhs).cmp(&U64::from(rhs)), lhs.cmp(&rhs)),
+            (U64::from(lhs).eq (&U64::from(rhs)), lhs.eq (&rhs)),
+            (U64::from(lhs).cmp(&U64::from(rhs)), lhs.cmp(&rhs)),
         ] }
     }
 
@@ -3964,14 +3948,14 @@ mod tests {
     #[rustfmt::skip]
     fn signed_cmp_ct() {
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0),
-            ndassert::range!(i64, 56, 1),
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
         ) [
-            |lhs: i64, rhs: i64| (S64::from(lhs).eq_ct(&S64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
-            |lhs: i64, rhs: i64| (S64::from(lhs).lt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            |lhs: i64, rhs: i64| (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            |lhs: i64, rhs: i64| (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            |lhs: i64, rhs: i64| (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (S64::from(lhs).eq_ct(&S64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (S64::from(lhs).lt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
         ] }
     }
 
@@ -3980,14 +3964,14 @@ mod tests {
     #[rustfmt::skip]
     fn unsigned_cmp_ct() {
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0),
-            ndassert::range!(u64, 56, 1),
+            lhs in ndassert::range!(u64, 56, 0),
+            rhs in ndassert::range!(u64, 56, 1),
         ) [
-            |lhs: u64, rhs: u64| (U64::from(lhs).eq_ct(&U64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
-            |lhs: u64, rhs: u64| (U64::from(lhs).lt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            |lhs: u64, rhs: u64| (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            |lhs: u64, rhs: u64| (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            |lhs: u64, rhs: u64| (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (U64::from(lhs).eq_ct(&U64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (U64::from(lhs).lt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
         ] }
     }
 
@@ -4002,25 +3986,25 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).chain([0]),
-            ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([0]),
+            rhs in ndassert::range!(i64, 56, 1).chain([0]),
         ) [
-            |lhs: i64, rhs: i64| (S64::from(lhs) + S64::from(rhs), S64::from(lhs.wrapping_add(rhs))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) - S64::from(rhs), S64::from(lhs.wrapping_sub(rhs))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) * S64::from(rhs), S64::from(lhs.wrapping_mul(rhs))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) / S64::from(rhs), S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) % S64::from(rhs), S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) | S64::from(rhs), S64::from(lhs | rhs)),
-            |lhs: i64, rhs: i64| (S64::from(lhs) & S64::from(rhs), S64::from(lhs & rhs)),
-            |lhs: i64, rhs: i64| (S64::from(lhs) ^ S64::from(rhs), S64::from(lhs ^ rhs)),
+            (S64::from(lhs) + S64::from(rhs), S64::from(lhs.wrapping_add(rhs))),
+            (S64::from(lhs) - S64::from(rhs), S64::from(lhs.wrapping_sub(rhs))),
+            (S64::from(lhs) * S64::from(rhs), S64::from(lhs.wrapping_mul(rhs))),
+            (S64::from(lhs) / S64::from(rhs), S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            (S64::from(lhs) % S64::from(rhs), S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            (S64::from(lhs) | S64::from(rhs), S64::from(lhs | rhs)),
+            (S64::from(lhs) & S64::from(rhs), S64::from(lhs & rhs)),
+            (S64::from(lhs) ^ S64::from(rhs), S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 48),
-            0..128,
+            lhs in ndassert::range!(i64, 48),
+            rhs in 0..128,
         ) [
-            |lhs: i64, rhs: usize| (S64::from(lhs) << rhs, S64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: i64, rhs: usize| (S64::from(lhs) >> rhs, S64::from(lhs.unbounded_shr(rhs as u32))),
+            (S64::from(lhs) << rhs, S64::from(lhs.unbounded_shl(rhs as u32))),
+            (S64::from(lhs) >> rhs, S64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
     }
 
@@ -4035,25 +4019,25 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).chain([0]),
-            ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0]),
         ) [
-            |lhs: u64, rhs: u64| (U64::from(lhs) + U64::from(rhs), U64::from(lhs.wrapping_add(rhs))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) - U64::from(rhs), U64::from(lhs.wrapping_sub(rhs))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) * U64::from(rhs), U64::from(lhs.wrapping_mul(rhs))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) / U64::from(rhs), U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) % U64::from(rhs), U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) | U64::from(rhs), U64::from(lhs | rhs)),
-            |lhs: u64, rhs: u64| (U64::from(lhs) & U64::from(rhs), U64::from(lhs & rhs)),
-            |lhs: u64, rhs: u64| (U64::from(lhs) ^ U64::from(rhs), U64::from(lhs ^ rhs)),
+            (U64::from(lhs) + U64::from(rhs), U64::from(lhs.wrapping_add(rhs))),
+            (U64::from(lhs) - U64::from(rhs), U64::from(lhs.wrapping_sub(rhs))),
+            (U64::from(lhs) * U64::from(rhs), U64::from(lhs.wrapping_mul(rhs))),
+            (U64::from(lhs) / U64::from(rhs), U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            (U64::from(lhs) % U64::from(rhs), U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            (U64::from(lhs) | U64::from(rhs), U64::from(lhs | rhs)),
+            (U64::from(lhs) & U64::from(rhs), U64::from(lhs & rhs)),
+            (U64::from(lhs) ^ U64::from(rhs), U64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 48),
-            0..128,
+            lhs in ndassert::range!(u64, 48),
+            rhs in 0..128,
         ) [
-            |lhs: u64, rhs: usize| (U64::from(lhs) << rhs, U64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: u64, rhs: usize| (U64::from(lhs) >> rhs, U64::from(lhs.unbounded_shr(rhs as u32))),
+            (U64::from(lhs) << rhs, U64::from(lhs.unbounded_shl(rhs as u32))),
+            (U64::from(lhs) >> rhs, U64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
     }
 
@@ -4074,23 +4058,23 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56).chain([0]),
-            i8::MIN..i8::MAX,
+            lhs in ndassert::range!(i64, 56).chain([0]),
+            rhs in i8::MIN..i8::MAX,
         ) [
-            |lhs: i64, rhs: i8| (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs as i64))),
-            |lhs: i64, rhs: i8| (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
-            |lhs: i64, rhs: i8| (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
-            |lhs: i64, rhs: i8| (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs as i64).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: i64, rhs: i8| (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs as i64).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: i64, rhs: i8| (S64::from(lhs) | rhs, S64::from(lhs | rhs as i64)),
-            |lhs: i64, rhs: i8| (S64::from(lhs) & rhs, S64::from(lhs & rhs as i64)),
-            |lhs: i64, rhs: i8| (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs as i64)),
+            (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs as i64))),
+            (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
+            (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
+            (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs as i64).unwrap_or(div_default(lhs, rhs)))),
+            (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs as i64).unwrap_or(rem_default(lhs, rhs)))),
+            (S64::from(lhs) | rhs, S64::from(lhs | rhs as i64)),
+            (S64::from(lhs) & rhs, S64::from(lhs & rhs as i64)),
+            (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs as i64)),
 
-            |lhs: i64, rhs: i8| (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs as i64))),
-            |lhs: i64, rhs: i8| (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs as i64))),
-            |lhs: i64, rhs: i8| (rhs | S64::from(lhs), S64::from(lhs | rhs as i64)),
-            |lhs: i64, rhs: i8| (rhs & S64::from(lhs), S64::from(lhs & rhs as i64)),
-            |lhs: i64, rhs: i8| (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs as i64)),
+            (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs as i64))),
+            (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs as i64))),
+            (rhs | S64::from(lhs), S64::from(lhs | rhs as i64)),
+            (rhs & S64::from(lhs), S64::from(lhs & rhs as i64)),
+            (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs as i64)),
         ] }
     }
 
@@ -4105,23 +4089,23 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56).chain([0]),
-            u8::MIN..u8::MAX,
+            lhs in ndassert::range!(u64, 56).chain([0]),
+            rhs in u8::MIN..u8::MAX,
         ) [
-            |lhs: u64, rhs: u8| (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs as u64))),
-            |lhs: u64, rhs: u8| (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
-            |lhs: u64, rhs: u8| (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
-            |lhs: u64, rhs: u8| (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs as u64).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: u64, rhs: u8| (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs as u64).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: u64, rhs: u8| (U64::from(lhs) | rhs, U64::from(lhs | rhs as u64)),
-            |lhs: u64, rhs: u8| (U64::from(lhs) & rhs, U64::from(lhs & rhs as u64)),
-            |lhs: u64, rhs: u8| (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs as u64)),
+            (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs as u64))),
+            (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
+            (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
+            (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs as u64).unwrap_or(div_default(lhs, rhs)))),
+            (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs as u64).unwrap_or(rem_default(lhs, rhs)))),
+            (U64::from(lhs) | rhs, U64::from(lhs | rhs as u64)),
+            (U64::from(lhs) & rhs, U64::from(lhs & rhs as u64)),
+            (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs as u64)),
 
-            |lhs: u64, rhs: u8| (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs as u64))),
-            |lhs: u64, rhs: u8| (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs as u64))),
-            |lhs: u64, rhs: u8| (rhs | U64::from(lhs), U64::from(lhs | rhs as u64)),
-            |lhs: u64, rhs: u8| (rhs & U64::from(lhs), U64::from(lhs & rhs as u64)),
-            |lhs: u64, rhs: u8| (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs as u64)),
+            (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs as u64))),
+            (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs as u64))),
+            (rhs | U64::from(lhs), U64::from(lhs | rhs as u64)),
+            (rhs & U64::from(lhs), U64::from(lhs & rhs as u64)),
+            (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs as u64)),
         ] }
     }
 
@@ -4136,23 +4120,23 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).chain([0]),
-            ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([0]),
+            rhs in ndassert::range!(i64, 56, 1).chain([0]),
         ) [
-            |lhs: i64, rhs: i64| (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| (S64::from(lhs) | rhs, S64::from(lhs | rhs)),
-            |lhs: i64, rhs: i64| (S64::from(lhs) & rhs, S64::from(lhs & rhs)),
-            |lhs: i64, rhs: i64| (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs)),
+            (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs))),
+            (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs))),
+            (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs))),
+            (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            (S64::from(lhs) | rhs, S64::from(lhs | rhs)),
+            (S64::from(lhs) & rhs, S64::from(lhs & rhs)),
+            (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs)),
 
-            |lhs: i64, rhs: i64| (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs))),
-            |lhs: i64, rhs: i64| (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs))),
-            |lhs: i64, rhs: i64| (rhs | S64::from(lhs), S64::from(lhs | rhs)),
-            |lhs: i64, rhs: i64| (rhs & S64::from(lhs), S64::from(lhs & rhs)),
-            |lhs: i64, rhs: i64| (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs)),
+            (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs))),
+            (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs))),
+            (rhs | S64::from(lhs), S64::from(lhs | rhs)),
+            (rhs & S64::from(lhs), S64::from(lhs & rhs)),
+            (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -4167,23 +4151,23 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).chain([0]),
-            ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0]),
         ) [
-            |lhs: u64, rhs: u64| (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| (U64::from(lhs) | rhs, U64::from(lhs | rhs)),
-            |lhs: u64, rhs: u64| (U64::from(lhs) & rhs, U64::from(lhs & rhs)),
-            |lhs: u64, rhs: u64| (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs)),
+            (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs))),
+            (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs))),
+            (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs))),
+            (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            (U64::from(lhs) | rhs, U64::from(lhs | rhs)),
+            (U64::from(lhs) & rhs, U64::from(lhs & rhs)),
+            (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs)),
 
-            |lhs: u64, rhs: u64| (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs))),
-            |lhs: u64, rhs: u64| (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs))),
-            |lhs: u64, rhs: u64| (rhs | U64::from(lhs), U64::from(lhs | rhs)),
-            |lhs: u64, rhs: u64| (rhs & U64::from(lhs), U64::from(lhs & rhs)),
-            |lhs: u64, rhs: u64| (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs)),
+            (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs))),
+            (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs))),
+            (rhs | U64::from(lhs), U64::from(lhs | rhs)),
+            (rhs & U64::from(lhs), U64::from(lhs & rhs)),
+            (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -4199,25 +4183,25 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).chain([0]),
-            ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([0]),
+            rhs in ndassert::range!(i64, 56, 1).chain([0]),
         ) [
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val += S64::from(rhs); val }, S64::from(lhs.wrapping_add(rhs))),
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val -= S64::from(rhs); val }, S64::from(lhs.wrapping_sub(rhs))),
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val *= S64::from(rhs); val }, S64::from(lhs.wrapping_mul(rhs))),
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val /= S64::from(rhs); val }, S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val %= S64::from(rhs); val }, S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val |= S64::from(rhs); val }, S64::from(lhs | rhs)),
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val &= S64::from(rhs); val }, S64::from(lhs & rhs)),
-            |lhs: i64, rhs: i64| ({let mut val = S64::from(lhs); val ^= S64::from(rhs); val }, S64::from(lhs ^ rhs)),
+            ({let mut val = S64::from(lhs); val += S64::from(rhs); val }, S64::from(lhs.wrapping_add(rhs))),
+            ({let mut val = S64::from(lhs); val -= S64::from(rhs); val }, S64::from(lhs.wrapping_sub(rhs))),
+            ({let mut val = S64::from(lhs); val *= S64::from(rhs); val }, S64::from(lhs.wrapping_mul(rhs))),
+            ({let mut val = S64::from(lhs); val /= S64::from(rhs); val }, S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            ({let mut val = S64::from(lhs); val %= S64::from(rhs); val }, S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            ({let mut val = S64::from(lhs); val |= S64::from(rhs); val }, S64::from(lhs | rhs)),
+            ({let mut val = S64::from(lhs); val &= S64::from(rhs); val }, S64::from(lhs & rhs)),
+            ({let mut val = S64::from(lhs); val ^= S64::from(rhs); val }, S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 48),
-            0..128,
+            lhs in ndassert::range!(i64, 48),
+            rhs in 0..128,
         ) [
-            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val <<= rhs; val }, S64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: i64, rhs: usize| ({ let mut val = S64::from(lhs); val >>= rhs; val }, S64::from(lhs.unbounded_shr(rhs as u32))),
+            ({ let mut val = S64::from(lhs); val <<= rhs; val }, S64::from(lhs.unbounded_shl(rhs as u32))),
+            ({ let mut val = S64::from(lhs); val >>= rhs; val }, S64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
     }
 
@@ -4233,25 +4217,25 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).chain([0]),
-            ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0]),
         ) [
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val += U64::from(rhs); val }, U64::from(lhs.wrapping_add(rhs))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val -= U64::from(rhs); val }, U64::from(lhs.wrapping_sub(rhs))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val *= U64::from(rhs); val }, U64::from(lhs.wrapping_mul(rhs))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val /= U64::from(rhs); val }, U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val %= U64::from(rhs); val }, U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val |= U64::from(rhs); val }, U64::from(lhs | rhs)),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val &= U64::from(rhs); val }, U64::from(lhs & rhs)),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val ^= U64::from(rhs); val }, U64::from(lhs ^ rhs)),
+            ({ let mut val = U64::from(lhs); val += U64::from(rhs); val }, U64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = U64::from(lhs); val -= U64::from(rhs); val }, U64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = U64::from(lhs); val *= U64::from(rhs); val }, U64::from(lhs.wrapping_mul(rhs))),
+            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); val }, U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); val }, U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            ({ let mut val = U64::from(lhs); val |= U64::from(rhs); val }, U64::from(lhs | rhs)),
+            ({ let mut val = U64::from(lhs); val &= U64::from(rhs); val }, U64::from(lhs & rhs)),
+            ({ let mut val = U64::from(lhs); val ^= U64::from(rhs); val }, U64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 48),
-            0..128,
+            lhs in ndassert::range!(u64, 48),
+            rhs in 0..128,
         ) [
-            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val <<= rhs; val }, U64::from(lhs.unbounded_shl(rhs as u32))),
-            |lhs: u64, rhs: usize| ({ let mut val = U64::from(lhs); val >>= rhs; val }, U64::from(lhs.unbounded_shr(rhs as u32))),
+            ({ let mut val = U64::from(lhs); val <<= rhs; val }, U64::from(lhs.unbounded_shl(rhs as u32))),
+            ({ let mut val = U64::from(lhs); val >>= rhs; val }, U64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
     }
 
@@ -4273,17 +4257,17 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56).chain([0]),
-            i8::MIN..i8::MAX,
+            lhs in ndassert::range!(i64, 56).chain([0]),
+            rhs in i8::MIN..i8::MAX,
         ) [
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs as i64))),
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs as i64))),
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs as i64))),
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val /= rhs; val }, S64::from(lhs.checked_div(rhs as i64).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val %= rhs; val }, S64::from(lhs.checked_rem(rhs as i64).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs as i64)),
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs as i64)),
-            |lhs: i64, rhs: i8| ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs as i64)),
+            ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs as i64))),
+            ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs as i64))),
+            ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs as i64))),
+            ({ let mut val = S64::from(lhs); val /= rhs; val }, S64::from(lhs.checked_div(rhs as i64).unwrap_or(div_default(lhs, rhs)))),
+            ({ let mut val = S64::from(lhs); val %= rhs; val }, S64::from(lhs.checked_rem(rhs as i64).unwrap_or(rem_default(lhs, rhs)))),
+            ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs as i64)),
+            ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs as i64)),
+            ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs as i64)),
         ] }
     }
 
@@ -4299,17 +4283,17 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56).chain([0]),
-            u8::MIN..u8::MAX,
+            lhs in ndassert::range!(u64, 56).chain([0]),
+            rhs in u8::MIN..u8::MAX,
         ) [
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs as u64))),
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs as u64))),
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs as u64))),
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val /= rhs; val }, U64::from(lhs.checked_div(rhs as u64).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val %= rhs; val }, U64::from(lhs.checked_rem(rhs as u64).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs as u64)),
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs as u64)),
-            |lhs: u64, rhs: u8| ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs as u64)),
+            ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs as u64))),
+            ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs as u64))),
+            ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs as u64))),
+            ({ let mut val = U64::from(lhs); val /= rhs; val }, U64::from(lhs.checked_div(rhs as u64).unwrap_or(div_default(lhs, rhs)))),
+            ({ let mut val = U64::from(lhs); val %= rhs; val }, U64::from(lhs.checked_rem(rhs as u64).unwrap_or(rem_default(lhs, rhs)))),
+            ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs as u64)),
+            ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs as u64)),
+            ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs as u64)),
         ] }
     }
 
@@ -4325,17 +4309,17 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(i64, 56, 0).chain([0]),
-            ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([0]),
+            rhs in ndassert::range!(i64, 56, 1).chain([0]),
         ) [
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs))),
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs))),
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs))),
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val /= rhs; val }, S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val %= rhs; val }, S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs)),
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs)),
-            |lhs: i64, rhs: i64| ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs)),
+            ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs))),
+            ({ let mut val = S64::from(lhs); val /= rhs; val }, S64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            ({ let mut val = S64::from(lhs); val %= rhs; val }, S64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs)),
+            ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs)),
+            ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -4351,17 +4335,17 @@ mod tests {
         }
 
         ndassert::check! { @eq (
-            ndassert::range!(u64, 56, 0).chain([0]),
-            ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0]),
         ) [
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val /= rhs; val }, U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val %= rhs; val }, U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs)),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs)),
-            |lhs: u64, rhs: u64| ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs)),
+            ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs))),
+            ({ let mut val = U64::from(lhs); val /= rhs; val }, U64::from(lhs.checked_div(rhs).unwrap_or(div_default(lhs, rhs)))),
+            ({ let mut val = U64::from(lhs); val %= rhs; val }, U64::from(lhs.checked_rem(rhs).unwrap_or(rem_default(lhs, rhs)))),
+            ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs)),
+            ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs)),
+            ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs)),
         ] }
     }
 }

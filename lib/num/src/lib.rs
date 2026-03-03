@@ -1034,37 +1034,35 @@ mod tests {
 
     #[test]
     fn ext_gcd() {
-        ndassert::check! { @eq (
-            ndassert::range!(u64, 40).map(|val| val + 1),
-        ) [
-            |val: u64| (u64::gcd(val, 0), val),
-            |val: u64| (u64::gcd(0, val), val),
-            |val: u64| (u64::gcd(val, val), val),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 40).map(|val| val + 1)) [
+            (u64::gcd(val, 0), val),
+            (u64::gcd(0, val), val),
+            (u64::gcd(val, val), val),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 12,
-            1..=1 << 12,
+            lhs in 1..=1 << 12,
+            rhs in 1..=1 << 12,
         ) [
-            |lhs: u64, rhs: u64| (u64::gcd(lhs, rhs), u64::gcd(rhs, lhs)),
-            |lhs: u64, rhs: u64| (lhs % u64::gcd(lhs, rhs), 0),
-            |lhs: u64, rhs: u64| (rhs % u64::gcd(lhs, rhs), 0),
-            |lhs: u64, rhs: u64| (u64::gcd(lhs, rhs) * u64::lcm(lhs, rhs), lhs * rhs),
+            (u64::gcd(lhs, rhs), u64::gcd(rhs, lhs)),
+            (lhs % u64::gcd(lhs, rhs), 0),
+            (rhs % u64::gcd(lhs, rhs), 0),
+            (u64::gcd(lhs, rhs) * u64::lcm(lhs, rhs), lhs * rhs),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 8,
-            1..=1 << 8,
-            1..=1 << 8,
+            lhs in 1..=1 << 8,
+            rhs in 1..=1 << 8,
+              k in 1..=1 << 8,
         ) [
-            |lhs: u64, rhs: u64, k: u64| (u64::gcd(k * lhs, k * rhs), k * u64::gcd(lhs, rhs)),
+            (u64::gcd(k * lhs, k * rhs), k * u64::gcd(lhs, rhs)),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 8,
-            1..=1 << 8,
+            lhs in 1..=1 << 8,
+            rhs in 1..=1 << 8,
         ) [
-            |lhs: u64, rhs: u64| {
+            {
                 let gcd = u64::gcd(lhs, rhs);
                 let limit = lhs.min(rhs);
 
@@ -1077,37 +1075,35 @@ mod tests {
 
     #[test]
     fn ext_gcde() {
-        ndassert::check! { @eq (
-            ndassert::range!(i64, 40).map(|val| val + 1),
-        ) [
-            |val: i64| (i64::gcde(&val, &0).0, val),
-            |val: i64| (i64::gcde(&0, &val).0, val),
-            |val: i64| (i64::gcde(&val, &val).0, val),
+        ndassert::check! { @eq (val in ndassert::range!(i64, 40).map(|val| val + 1)) [
+            (i64::gcde(&val, &0).0, val),
+            (i64::gcde(&0, &val).0, val),
+            (i64::gcde(&val, &val).0, val),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 12,
-            1..=1 << 12,
+            lhs in 1..=1 << 12,
+            rhs in 1..=1 << 12,
         ) [
-            |lhs: i64, rhs: i64| (i64::gcde(&lhs, &rhs).0, i64::gcde(&rhs, &lhs).0),
-            |lhs: i64, rhs: i64| (lhs % i64::gcde(&lhs, &rhs).0, 0),
-            |lhs: i64, rhs: i64| (rhs % i64::gcde(&lhs, &rhs).0, 0),
-            |lhs: i64, rhs: i64| (i64::gcde(&lhs, &rhs).0 * i64::lcm(lhs, rhs), lhs * rhs),
+            (i64::gcde(&lhs, &rhs).0, i64::gcde(&rhs, &lhs).0),
+            (lhs % i64::gcde(&lhs, &rhs).0, 0),
+            (rhs % i64::gcde(&lhs, &rhs).0, 0),
+            (i64::gcde(&lhs, &rhs).0 * i64::lcm(lhs, rhs), lhs * rhs),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 8,
-            1..=1 << 8,
-            1..=1 << 8,
+            lhs in 1..=1 << 8,
+            rhs in 1..=1 << 8,
+              k in 1..=1 << 8,
         ) [
-            |lhs: i64, rhs: i64, k: i64| (i64::gcde(&(k * lhs), &(k * rhs)).0, k * i64::gcde(&lhs, &rhs).0),
+            (i64::gcde(&(k * lhs), &(k * rhs)).0, k * i64::gcde(&lhs, &rhs).0),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 8,
-            1..=1 << 8,
+            lhs in 1..=1 << 8,
+            rhs in 1..=1 << 8,
         ) [
-            |lhs: i64, rhs: i64| {
+            {
                 let gcde = i64::gcde(&lhs, &rhs).0;
                 let limit = lhs.min(rhs);
 
@@ -1120,39 +1116,37 @@ mod tests {
 
     #[test]
     fn ext_lcm() {
-        ndassert::check! { @eq (
-            ndassert::range!(u64, 40).map(|val| val + 1),
-        ) [
-            |val: u64| (u64::lcm(val, 0), 0),
-            |val: u64| (u64::lcm(0, val), 0),
-            |val: u64| (u64::lcm(val, 1), val),
-            |val: u64| (u64::lcm(1, val), val),
-            |val: u64| (u64::lcm(val, val), val),
+        ndassert::check! { @eq (val in ndassert::range!(u64, 40).map(|val| val + 1)) [
+            (u64::lcm(val, 0), 0),
+            (u64::lcm(0, val), 0),
+            (u64::lcm(val, 1), val),
+            (u64::lcm(1, val), val),
+            (u64::lcm(val, val), val),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 12,
-            1..=1 << 12,
+            lhs in 1..=1 << 12,
+            rhs in 1..=1 << 12,
         ) [
-            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs), u64::lcm(rhs, lhs)),
-            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs) % lhs, 0),
-            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs) % rhs, 0),
-            |lhs: u64, rhs: u64| (u64::lcm(lhs, rhs) * u64::gcd(lhs, rhs), lhs * rhs),
+            (u64::lcm(lhs, rhs), u64::lcm(rhs, lhs)),
+            (u64::lcm(lhs, rhs) % lhs, 0),
+            (u64::lcm(lhs, rhs) % rhs, 0),
+            (u64::lcm(lhs, rhs) * u64::gcd(lhs, rhs), lhs * rhs),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 8,
-            1..=1 << 8,
-            1..=1 << 8,
+            lhs in 1..=1 << 8,
+            rhs in 1..=1 << 8,
+              k in 1..=1 << 8,
         ) [
-            |lhs: u64, rhs: u64, k: u64| (u64::lcm(k * lhs, k * rhs), k * u64::lcm(lhs, rhs)),
+            (u64::lcm(k * lhs, k * rhs), k * u64::lcm(lhs, rhs)),
         ] }
 
         ndassert::check! { @eq (
-            1..=1 << 8,
-            1..=1 << 8,
+            lhs in 1..=1 << 8,
+            rhs in 1..=1 << 8,
         ) [
-            |lhs: u64, rhs: u64| {
+            {
                 let lcm = u64::lcm(lhs, rhs);
                 let limit = lhs.max(rhs);
 
