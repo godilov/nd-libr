@@ -240,39 +240,21 @@ mod tests {
 
     #[test]
     #[allow(clippy::unnecessary_cast)]
-    fn aligned() {
+    fn std() {
         ndassert::check! { @eq (val in ndassert::range!(i64, 48).map(S64::from)) [
             (*Aligned(val), val),
             (*Aligned(Aligned(val)), Aligned(val)),
-
-            (format!("{:}",   Aligned(val)), format!("{:}",   val)),
-            (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
-            (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
-            (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
-            (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
-            (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
-            (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
-            (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
-            (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
-            (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
         ] }
 
         ndassert::check! { @eq (val in ndassert::range!(u64, 48).map(U64::from)) [
             (*Aligned(val), val),
             (*Aligned(Aligned(val)), Aligned(val)),
-
-            (format!("{:}",   Aligned(val)), format!("{:}",   val)),
-            (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
-            (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
-            (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
-            (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
-            (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
-            (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
-            (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
-            (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
-            (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
         ] }
+    }
 
+    #[test]
+    #[allow(clippy::unnecessary_cast)]
+    fn cmp() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56).map(S64::from),
             rhs in ndassert::range!(i64, 56).map(S64::from),
@@ -291,7 +273,37 @@ mod tests {
     }
 
     #[test]
-    fn aligned_ops() {
+    #[allow(clippy::unnecessary_cast)]
+    fn fmt() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).map(S64::from)) [
+            (format!("{:}",   Aligned(val)), format!("{:}",   val)),
+            (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
+            (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
+            (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
+            (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
+            (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
+            (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
+            (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
+            (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
+            (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
+        ] }
+
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48).map(U64::from)) [
+            (format!("{:}",   Aligned(val)), format!("{:}",   val)),
+            (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
+            (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
+            (format!("{:x}",  Aligned(val)), format!("{:x}",  val)),
+            (format!("{:X}",  Aligned(val)), format!("{:X}",  val)),
+            (format!("{:#}",  Aligned(val)), format!("{:#}",  val)),
+            (format!("{:#b}", Aligned(val)), format!("{:#b}", val)),
+            (format!("{:#o}", Aligned(val)), format!("{:#o}", val)),
+            (format!("{:#x}", Aligned(val)), format!("{:#x}", val)),
+            (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
+        ] }
+    }
+
+    #[test]
+    fn ops() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).map(S64::from),
             rhs in ndassert::range!(i64, 56, 1).map(S64::from),
@@ -388,7 +400,7 @@ mod tests {
     }
 
     #[test]
-    fn aligned_ops_assign() {
+    fn ops_assign() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).map(S64::from),
             rhs in ndassert::range!(i64, 56, 1).map(S64::from),
