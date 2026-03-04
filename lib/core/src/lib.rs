@@ -317,77 +317,197 @@ pub mod ops {
         fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
     }
 
-    pub trait NdAddChecked {}
+    pub trait NdAddChecked<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdSubChecked {}
+        fn add_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
 
-    pub trait NdMulChecked {}
+    pub trait NdSubChecked<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdDivChecked {}
+        fn sub_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
 
-    pub trait NdRemChecked {}
+    pub trait NdMulChecked<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdAddWrapping {}
+        fn mul_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
 
-    pub trait NdSubWrapping {}
+    pub trait NdDivChecked<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdMulWrapping {}
+        fn div_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
 
-    pub trait NdDivWrapping {}
+    pub trait NdRemChecked<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdRemWrapping {}
+        fn rem_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
 
-    pub trait NdAddSaturating {}
+    pub trait NdAddWrapping<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdSubSaturating {}
+        fn add_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdMulSaturating {}
+    pub trait NdSubWrapping<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdDivSaturating {}
+        fn sub_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdRemSaturating {}
+    pub trait NdMulWrapping<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdAddOverflowing {}
+        fn mul_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdSubOverflowing {}
+    pub trait NdDivWrapping<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdMulOverflowing {}
+        fn div_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdDivOverflowing {}
+    pub trait NdRemWrapping<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdRemOverflowing {}
+        fn rem_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdShlChecked {}
+    pub trait NdAddSaturating<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdShrChecked {}
+        fn add_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdShlUnbounded {}
+    pub trait NdSubSaturating<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdShrUnbounded {}
+        fn sub_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdAddAssignWrapping {}
+    pub trait NdMulSaturating<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdSubAssignWrapping {}
+        fn mul_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdMulAssignWrapping {}
+    pub trait NdDivSaturating<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdDivAssignWrapping {}
+        fn div_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdRemAssignWrapping {}
+    pub trait NdRemSaturating<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdAddAssignSaturating {}
+        fn rem_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
 
-    pub trait NdSubAssignSaturating {}
+    pub trait NdAddOverflowing<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdMulAssignSaturating {}
+        fn add_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+    }
 
-    pub trait NdDivAssignSaturating {}
+    pub trait NdSubOverflowing<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdRemAssignSaturating {}
+        fn sub_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+    }
 
-    pub trait NdShlAssignUnbounded {}
+    pub trait NdMulOverflowing<Lhs = Self, Rhs = Self> {
+        type Type;
 
-    pub trait NdShrAssignUnbounded {}
+        fn mul_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+    }
+
+    pub trait NdDivOverflowing<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn div_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+    }
+
+    pub trait NdRemOverflowing<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn rem_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+    }
+
+    pub trait NdShlChecked<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shl_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
+    }
+
+    pub trait NdShrChecked<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shr_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
+    }
+
+    pub trait NdShlUnbounded<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn shl_unbounded(lhs: &Lhs, rhs: Rhs) -> Self::Type;
+    }
+
+    pub trait NdShrUnbounded<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn shr_unbounded(lhs: &Lhs, rhs: Rhs) -> Self::Type;
+    }
+
+    pub trait NdAddAssignWrapping<Lhs = Self, Rhs = Self> {
+        fn add_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdSubAssignWrapping<Lhs = Self, Rhs = Self> {
+        fn sub_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdMulAssignWrapping<Lhs = Self, Rhs = Self> {
+        fn mul_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdDivAssignWrapping<Lhs = Self, Rhs = Self> {
+        fn div_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdRemAssignWrapping<Lhs = Self, Rhs = Self> {
+        fn rem_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdAddAssignSaturating<Lhs = Self, Rhs = Self> {
+        fn add_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdSubAssignSaturating<Lhs = Self, Rhs = Self> {
+        fn sub_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdMulAssignSaturating<Lhs = Self, Rhs = Self> {
+        fn mul_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdDivAssignSaturating<Lhs = Self, Rhs = Self> {
+        fn div_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdRemAssignSaturating<Lhs = Self, Rhs = Self> {
+        fn rem_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    pub trait NdShlAssignUnbounded<Lhs = Self, Rhs = usize> {
+        fn shl_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
+    }
+
+    pub trait NdShrAssignUnbounded<Lhs = Self, Rhs = usize> {
+        fn shr_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
+    }
 
     /// Convenience trait for describing types that support all standard Rust binary operations of `Nd-kind`
     ///
