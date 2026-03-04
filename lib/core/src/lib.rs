@@ -617,41 +617,6 @@ pub mod ops {
         fn shr_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
     }
 
-    /// Convenience trait for describing types that support all standard Rust binary operations of `Nd-kind`
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdOps<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
-        NdAdd<Lhs, Rhs, Type = Self::All>
-        + NdSub<Lhs, Rhs, Type = Self::All>
-        + NdMul<Lhs, Rhs, Type = Self::All>
-        + NdDiv<Lhs, Rhs, Type = Self::All>
-        + NdRem<Lhs, Rhs, Type = Self::All>
-        + NdBitOr<Lhs, Rhs, Type = Self::All>
-        + NdBitAnd<Lhs, Rhs, Type = Self::All>
-        + NdBitXor<Lhs, Rhs, Type = Self::All>
-        + NdShl<Lhs, ShiftRhs, Type = Self::All>
-        + NdShr<Lhs, ShiftRhs, Type = Self::All>
-    {
-        type All;
-    }
-
-    /// Convenience trait for describing types that support all standard Rust assign operations of `Nd-kind`
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdOpsAssign<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
-        NdAddAssign<Lhs, Rhs>
-        + NdSubAssign<Lhs, Rhs>
-        + NdMulAssign<Lhs, Rhs>
-        + NdDivAssign<Lhs, Rhs>
-        + NdRemAssign<Lhs, Rhs>
-        + NdBitOrAssign<Lhs, Rhs>
-        + NdBitAndAssign<Lhs, Rhs>
-        + NdBitXorAssign<Lhs, Rhs>
-        + NdShlAssign<Lhs, ShiftRhs>
-        + NdShrAssign<Lhs, ShiftRhs>
-    {
-    }
-
     /// Convenience trait for describing types that support all standard Rust binary operations of `Std-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
@@ -687,6 +652,136 @@ pub mod ops {
         + BitXorAssign<Rhs>
         + ShlAssign<ShiftRhs>
         + ShrAssign<ShiftRhs>
+    {
+    }
+
+    /// Convenience trait for describing types that support all standard Rust binary operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOps<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdAdd<Lhs, Rhs, Type = Self::All>
+        + NdSub<Lhs, Rhs, Type = Self::All>
+        + NdMul<Lhs, Rhs, Type = Self::All>
+        + NdDiv<Lhs, Rhs, Type = Self::All>
+        + NdRem<Lhs, Rhs, Type = Self::All>
+        + NdBitOr<Lhs, Rhs, Type = Self::All>
+        + NdBitAnd<Lhs, Rhs, Type = Self::All>
+        + NdBitXor<Lhs, Rhs, Type = Self::All>
+        + NdShl<Lhs, ShiftRhs, Type = Self::All>
+        + NdShr<Lhs, ShiftRhs, Type = Self::All>
+    {
+        type All;
+    }
+
+    /// Convenience trait for describing types that support all checked operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsChecked<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdAddChecked<Lhs, Rhs, Type = Self::All>
+        + NdSubChecked<Lhs, Rhs, Type = Self::All>
+        + NdMulChecked<Lhs, Rhs, Type = Self::All>
+        + NdDivChecked<Lhs, Rhs, Type = Self::All>
+        + NdRemChecked<Lhs, Rhs, Type = Self::All>
+        + NdShlChecked<Lhs, ShiftRhs, Type = Self::All>
+        + NdShrChecked<Lhs, ShiftRhs, Type = Self::All>
+    {
+        type All;
+    }
+
+    /// Convenience trait for describing types that support all wrapping operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsWrapping<Lhs = Self, Rhs = Self>:
+        NdAddWrapping<Lhs, Rhs, Type = Self::All>
+        + NdSubWrapping<Lhs, Rhs, Type = Self::All>
+        + NdMulWrapping<Lhs, Rhs, Type = Self::All>
+        + NdDivWrapping<Lhs, Rhs, Type = Self::All>
+        + NdRemWrapping<Lhs, Rhs, Type = Self::All>
+    {
+        type All;
+    }
+
+    /// Convenience trait for describing types that support all saturating operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsSaturating<Lhs = Self, Rhs = Self>:
+        NdAddSaturating<Lhs, Rhs, Type = Self::All>
+        + NdSubSaturating<Lhs, Rhs, Type = Self::All>
+        + NdMulSaturating<Lhs, Rhs, Type = Self::All>
+        + NdDivSaturating<Lhs, Rhs, Type = Self::All>
+        + NdRemSaturating<Lhs, Rhs, Type = Self::All>
+    {
+        type All;
+    }
+
+    /// Convenience trait for describing types that support all overflowing operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsOverflowing<Lhs = Self, Rhs = Self>:
+        NdAddOverflowing<Lhs, Rhs, Type = Self::All>
+        + NdSubOverflowing<Lhs, Rhs, Type = Self::All>
+        + NdMulOverflowing<Lhs, Rhs, Type = Self::All>
+        + NdDivOverflowing<Lhs, Rhs, Type = Self::All>
+        + NdRemOverflowing<Lhs, Rhs, Type = Self::All>
+    {
+        type All;
+    }
+
+    /// Convenience trait for describing types that support all unbounded operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsUnbounded<Lhs = Self, Rhs = Self>:
+        NdShlUnbounded<Lhs, Rhs, Type = Self::All> + NdShrUnbounded<Lhs, Rhs, Type = Self::All>
+    {
+        type All;
+    }
+
+    /// Convenience trait for describing types that support all standard Rust assign operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsAssign<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdAddAssign<Lhs, Rhs>
+        + NdSubAssign<Lhs, Rhs>
+        + NdMulAssign<Lhs, Rhs>
+        + NdDivAssign<Lhs, Rhs>
+        + NdRemAssign<Lhs, Rhs>
+        + NdBitOrAssign<Lhs, Rhs>
+        + NdBitAndAssign<Lhs, Rhs>
+        + NdBitXorAssign<Lhs, Rhs>
+        + NdShlAssign<Lhs, ShiftRhs>
+        + NdShrAssign<Lhs, ShiftRhs>
+    {
+    }
+
+    /// Convenience trait for describing types that support all wrapping assign operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsAssignWrapping<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdAddAssignWrapping<Lhs, Rhs>
+        + NdSubAssignWrapping<Lhs, Rhs>
+        + NdMulAssignWrapping<Lhs, Rhs>
+        + NdDivAssignWrapping<Lhs, Rhs>
+        + NdRemAssignWrapping<Lhs, Rhs>
+    {
+    }
+
+    /// Convenience trait for describing types that support all saturating assign operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsAssignSaturating<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdAddAssignSaturating<Lhs, Rhs>
+        + NdSubAssignSaturating<Lhs, Rhs>
+        + NdMulAssignSaturating<Lhs, Rhs>
+        + NdDivAssignSaturating<Lhs, Rhs>
+        + NdRemAssignSaturating<Lhs, Rhs>
+    {
+    }
+
+    /// Convenience trait for describing types that support all unbounded assign operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsAssignUnbounded<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdShlAssignUnbounded<Lhs, Rhs> + NdShrAssignUnbounded<Lhs, Rhs>
     {
     }
 
@@ -740,6 +835,59 @@ pub mod ops {
         type All = Type;
     }
 
+    impl<Any, Lhs, Rhs, ShiftRhs, Type> NdOpsChecked<Lhs, Rhs, ShiftRhs> for Any
+    where
+        Any: NdAddChecked<Lhs, Rhs, Type = Type>
+            + NdSubChecked<Lhs, Rhs, Type = Type>
+            + NdMulChecked<Lhs, Rhs, Type = Type>
+            + NdDivChecked<Lhs, Rhs, Type = Type>
+            + NdRemChecked<Lhs, Rhs, Type = Type>
+            + NdShlChecked<Lhs, ShiftRhs, Type = Type>
+            + NdShrChecked<Lhs, ShiftRhs, Type = Type>,
+    {
+        type All = Type;
+    }
+
+    impl<Any, Lhs, Rhs, Type> NdOpsWrapping<Lhs, Rhs> for Any
+    where
+        Any: NdAddWrapping<Lhs, Rhs, Type = Type>
+            + NdSubWrapping<Lhs, Rhs, Type = Type>
+            + NdMulWrapping<Lhs, Rhs, Type = Type>
+            + NdDivWrapping<Lhs, Rhs, Type = Type>
+            + NdRemWrapping<Lhs, Rhs, Type = Type>,
+    {
+        type All = Type;
+    }
+
+    impl<Any, Lhs, Rhs, Type> NdOpsSaturating<Lhs, Rhs> for Any
+    where
+        Any: NdAddSaturating<Lhs, Rhs, Type = Type>
+            + NdSubSaturating<Lhs, Rhs, Type = Type>
+            + NdMulSaturating<Lhs, Rhs, Type = Type>
+            + NdDivSaturating<Lhs, Rhs, Type = Type>
+            + NdRemSaturating<Lhs, Rhs, Type = Type>,
+    {
+        type All = Type;
+    }
+
+    impl<Any, Lhs, Rhs, Type> NdOpsOverflowing<Lhs, Rhs> for Any
+    where
+        Any: NdAddOverflowing<Lhs, Rhs, Type = Type>
+            + NdSubOverflowing<Lhs, Rhs, Type = Type>
+            + NdMulOverflowing<Lhs, Rhs, Type = Type>
+            + NdDivOverflowing<Lhs, Rhs, Type = Type>
+            + NdRemOverflowing<Lhs, Rhs, Type = Type>,
+    {
+        type All = Type;
+    }
+
+    impl<Any, Lhs, Rhs, Type> NdOpsUnbounded<Lhs, Rhs> for Any
+    where
+        Any: NdShlUnbounded<Lhs, Rhs, Type = Type> + NdShrUnbounded<Lhs, Rhs, Type = Type>,
+    {
+        type All = Type;
+    }
+
     impl<Any, Lhs, Rhs, ShiftRhs> NdOpsAssign<Lhs, Rhs, ShiftRhs> for Any where
         Any: NdAddAssign<Lhs, Rhs>
             + NdSubAssign<Lhs, Rhs>
@@ -751,6 +899,29 @@ pub mod ops {
             + NdBitXorAssign<Lhs, Rhs>
             + NdShlAssign<Lhs, ShiftRhs>
             + NdShrAssign<Lhs, ShiftRhs>
+    {
+    }
+
+    impl<Any, Lhs, Rhs> NdOpsAssignWrapping<Lhs, Rhs> for Any where
+        Any: NdAddAssignWrapping<Lhs, Rhs>
+            + NdSubAssignWrapping<Lhs, Rhs>
+            + NdMulAssignWrapping<Lhs, Rhs>
+            + NdDivAssignWrapping<Lhs, Rhs>
+            + NdRemAssignWrapping<Lhs, Rhs>
+    {
+    }
+
+    impl<Any, Lhs, Rhs> NdOpsAssignSaturating<Lhs, Rhs> for Any where
+        Any: NdAddAssignSaturating<Lhs, Rhs>
+            + NdSubAssignSaturating<Lhs, Rhs>
+            + NdMulAssignSaturating<Lhs, Rhs>
+            + NdDivAssignSaturating<Lhs, Rhs>
+            + NdRemAssignSaturating<Lhs, Rhs>
+    {
+    }
+
+    impl<Any, Lhs, Rhs> NdOpsAssignUnbounded<Lhs, Rhs> for Any where
+        Any: NdShlAssignUnbounded<Lhs, Rhs> + NdShrAssignUnbounded<Lhs, Rhs>
     {
     }
 
