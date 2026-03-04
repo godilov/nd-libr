@@ -317,6 +317,78 @@ pub mod ops {
         fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
     }
 
+    pub trait NdAddChecked {}
+
+    pub trait NdSubChecked {}
+
+    pub trait NdMulChecked {}
+
+    pub trait NdDivChecked {}
+
+    pub trait NdRemChecked {}
+
+    pub trait NdAddWrapping {}
+
+    pub trait NdSubWrapping {}
+
+    pub trait NdMulWrapping {}
+
+    pub trait NdDivWrapping {}
+
+    pub trait NdRemWrapping {}
+
+    pub trait NdAddSaturating {}
+
+    pub trait NdSubSaturating {}
+
+    pub trait NdMulSaturating {}
+
+    pub trait NdDivSaturating {}
+
+    pub trait NdRemSaturating {}
+
+    pub trait NdAddOverflowing {}
+
+    pub trait NdSubOverflowing {}
+
+    pub trait NdMulOverflowing {}
+
+    pub trait NdDivOverflowing {}
+
+    pub trait NdRemOverflowing {}
+
+    pub trait NdShlChecked {}
+
+    pub trait NdShrChecked {}
+
+    pub trait NdShlUnbounded {}
+
+    pub trait NdShrUnbounded {}
+
+    pub trait NdAddAssignWrapping {}
+
+    pub trait NdSubAssignWrapping {}
+
+    pub trait NdMulAssignWrapping {}
+
+    pub trait NdDivAssignWrapping {}
+
+    pub trait NdRemAssignWrapping {}
+
+    pub trait NdAddAssignSaturating {}
+
+    pub trait NdSubAssignSaturating {}
+
+    pub trait NdMulAssignSaturating {}
+
+    pub trait NdDivAssignSaturating {}
+
+    pub trait NdRemAssignSaturating {}
+
+    pub trait NdShlAssignUnbounded {}
+
+    pub trait NdShrAssignUnbounded {}
+
     /// Convenience trait for describing types that support all standard Rust binary operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.

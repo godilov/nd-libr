@@ -565,6 +565,21 @@ pub mod prime {
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+pub struct Wrapping<N: Num>(pub N);
+
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+pub struct Saturating<N: Num>(pub N);
+
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+pub struct Unbounded<N: Num>(pub N);
+
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -604,6 +619,49 @@ type SignCt = i8;
 pub trait NumCore:
     Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
 {
+    #[ndfwd::as_into]
+    fn gcd(mut lhs: Self, mut rhs: Self) -> Self {
+        let zero = Self::zero();
+
+        while rhs != zero {
+            let rem = Self::rem(&lhs, &rhs);
+
+            lhs = rhs;
+            rhs = rem;
+        }
+
+        lhs
+    }
+
+    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
+    fn gcde(lhs: &Self, rhs: &Self) -> (Self, Self, Self) {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        if rhs == &zero {
+            return (lhs.clone(), one, zero);
+        }
+
+        let rem = Self::rem(lhs, rhs);
+
+        let (gcd, x, y) = Self::gcde(rhs, &rem);
+
+        let val = Self::div(lhs, rhs);
+        let val = Self::mul(&val, &y);
+        let val = Self::sub(&x, &val);
+
+        (gcd, y, val)
+    }
+
+    #[ndfwd::as_into]
+    fn lcm(mut lhs: Self, rhs: Self) -> Self {
+        let gcd = Self::gcd(lhs.clone(), rhs.clone());
+
+        Self::div_assign(&mut lhs, &gcd);
+        Self::mul_assign(&mut lhs, &rhs);
+
+        lhs
+    }
 }
 
 #[ndfwd::decl]
@@ -704,50 +762,6 @@ pub trait NumExt: NumCore {
         }
 
         res
-    }
-
-    #[ndfwd::as_into]
-    fn gcd(mut lhs: Self, mut rhs: Self) -> Self {
-        let zero = Self::zero();
-
-        while rhs != zero {
-            let rem = Self::rem(&lhs, &rhs);
-
-            lhs = rhs;
-            rhs = rem;
-        }
-
-        lhs
-    }
-
-    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
-    fn gcde(lhs: &Self, rhs: &Self) -> (Self, Self, Self) {
-        let zero = Self::zero();
-        let one = Self::one();
-
-        if rhs == &zero {
-            return (lhs.clone(), one, zero);
-        }
-
-        let rem = Self::rem(lhs, rhs);
-
-        let (gcd, x, y) = Self::gcde(rhs, &rem);
-
-        let val = Self::div(lhs, rhs);
-        let val = Self::mul(&val, &y);
-        let val = Self::sub(&x, &val);
-
-        (gcd, y, val)
-    }
-
-    #[ndfwd::as_into]
-    fn lcm(mut lhs: Self, rhs: Self) -> Self {
-        let gcd = Self::gcd(lhs.clone(), rhs.clone());
-
-        Self::div_assign(&mut lhs, &gcd);
-        Self::mul_assign(&mut lhs, &rhs);
-
-        lhs
     }
 
     #[ndfwd::as_into]
@@ -968,6 +982,9 @@ impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Binary for Width
 }
 
 impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Width<N, BITS> {
+    #[allow(unused)]
+    const CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
+
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
