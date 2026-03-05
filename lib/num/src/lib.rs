@@ -1147,10 +1147,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ext_gcd() {
+    fn gcd() {
         ndassert::check! { @eq (val in ndassert::range!(u64, 40).map(|val| val + 1)) [
             (u64::gcd(val, 0), val),
             (u64::gcd(0, val), val),
+            (u64::gcd(val, 1), 1),
+            (u64::gcd(1, val), 1),
             (u64::gcd(val, val), val),
         ] }
 
@@ -1162,6 +1164,11 @@ mod tests {
             (lhs % u64::gcd(lhs, rhs), 0),
             (rhs % u64::gcd(lhs, rhs), 0),
             (u64::gcd(lhs, rhs) * u64::lcm(lhs, rhs), lhs * rhs),
+            {
+                let res = u64::gcd(lhs, rhs);
+
+                (u64::gcd(lhs / res, rhs / res), 1)
+            },
         ] }
 
         ndassert::check! { @eq (
@@ -1171,27 +1178,15 @@ mod tests {
         ) [
             (u64::gcd(k * lhs, k * rhs), k * u64::gcd(lhs, rhs)),
         ] }
-
-        ndassert::check! { @eq (
-            lhs in 1..=1 << 8,
-            rhs in 1..=1 << 8,
-        ) [
-            {
-                let gcd = u64::gcd(lhs, rhs);
-                let limit = lhs.min(rhs);
-
-                let res = (gcd + 1..limit.max(gcd + 1)).into_iter().any(|val| lhs.is_multiple_of(val) && rhs.is_multiple_of(val));
-
-                (res, false)
-            },
-        ] }
     }
 
     #[test]
-    fn ext_gcde() {
+    fn gcde() {
         ndassert::check! { @eq (val in ndassert::range!(i64, 40).map(|val| val + 1)) [
             (i64::gcde(val, 0).0, val),
             (i64::gcde(0, val).0, val),
+            (i64::gcde(val, 1).0, 1),
+            (i64::gcde(1, val).0, 1),
             (i64::gcde(val, val).0, val),
         ] }
 
@@ -1203,6 +1198,16 @@ mod tests {
             (lhs % i64::gcde(lhs, rhs).0, 0),
             (rhs % i64::gcde(lhs, rhs).0, 0),
             (i64::gcde(lhs, rhs).0 * i64::lcm(lhs, rhs), lhs * rhs),
+            {
+                let res = i64::gcde(lhs, rhs).0;
+
+                (i64::gcde(lhs / res, rhs / res).0, 1)
+            },
+            {
+                let res = i64::gcde(lhs, rhs);
+
+                (lhs * res.1 + rhs * res.2, res.0)
+            }
         ] }
 
         ndassert::check! { @eq (
@@ -1212,24 +1217,10 @@ mod tests {
         ) [
             (i64::gcde(k * lhs, k * rhs).0, k * i64::gcde(lhs, rhs).0),
         ] }
-
-        ndassert::check! { @eq (
-            lhs in 1..=1 << 8,
-            rhs in 1..=1 << 8,
-        ) [
-            {
-                let gcde = i64::gcde(lhs, rhs).0;
-                let limit = lhs.min(rhs);
-
-                let res = (gcde + 1..limit.max(gcde + 1)).into_iter().any(|val| lhs % val == 0 && rhs % val == 0);
-
-                (res, false)
-            },
-        ] }
     }
 
     #[test]
-    fn ext_lcm() {
+    fn lcm() {
         ndassert::check! { @eq (val in ndassert::range!(u64, 40).map(|val| val + 1)) [
             (u64::lcm(val, 0), 0),
             (u64::lcm(0, val), 0),
@@ -1246,6 +1237,11 @@ mod tests {
             (u64::lcm(lhs, rhs) % lhs, 0),
             (u64::lcm(lhs, rhs) % rhs, 0),
             (u64::lcm(lhs, rhs) * u64::gcd(lhs, rhs), lhs * rhs),
+            {
+                let res = u64::lcm(lhs, rhs);
+
+                (u64::gcd(res / lhs, res / rhs), 1)
+            },
         ] }
 
         ndassert::check! { @eq (
@@ -1255,24 +1251,19 @@ mod tests {
         ) [
             (u64::lcm(k * lhs, k * rhs), k * u64::lcm(lhs, rhs)),
         ] }
-
-        ndassert::check! { @eq (
-            lhs in 1..=1 << 8,
-            rhs in 1..=1 << 8,
-        ) [
-            {
-                let lcm = u64::lcm(lhs, rhs);
-                let limit = lhs.max(rhs);
-
-                let res = (limit + 1..lcm.max(limit + 1)).into_iter().any(|val| val.is_multiple_of(lhs) && val.is_multiple_of(rhs));
-
-                (res, false)
-            },
-        ] }
     }
 
     #[test]
-    fn ext_pow() {}
+    fn pow() {}
+
+    #[test]
+    fn wrapping() {}
+
+    #[test]
+    fn saturating() {}
+
+    #[test]
+    fn unbounded() {}
 
     #[test]
     fn width() {}
