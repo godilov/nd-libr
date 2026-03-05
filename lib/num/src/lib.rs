@@ -701,8 +701,8 @@ pub trait NumCore:
 
     #[ndfwd::as_into]
     fn lcm(lhs: Self, rhs: Self) -> Self {
-        let gcd = Self::gcd(lhs.clone(), rhs.clone());
-        let val = Self::div(&lhs, &gcd);
+        let val = Self::gcd(lhs.clone(), rhs.clone());
+        let val = Self::div(&lhs, &val);
 
         Self::mul(&val, &rhs)
     }
@@ -712,8 +712,8 @@ pub trait NumCore:
     where
         Self: NdOpsChecked<All = Self>,
     {
-        let gcd = Self::gcd_checked(lhs.clone(), rhs.clone())?;
-        let val = Self::div_checked(&lhs, &gcd)?;
+        let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;
+        let val = Self::div_checked(&lhs, &val)?;
 
         Self::mul_checked(&val, &rhs)
     }
