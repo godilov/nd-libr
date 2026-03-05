@@ -639,6 +639,23 @@ pub trait NumCore:
         lhs
     }
 
+    #[ndfwd::as_into]
+    fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self>
+    where
+        Self: NdOpsChecked<All = Self>,
+    {
+        let zero = Self::zero();
+
+        while rhs != zero {
+            let rem = Self::rem_checked(&lhs, &rhs)?;
+
+            lhs = rhs;
+            rhs = rem;
+        }
+
+        Some(lhs)
+    }
+
     #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
     fn gcde(lhs: &Self, rhs: &Self) -> (Self, Self, Self) {
         let zero = Self::zero();
@@ -659,6 +676,29 @@ pub trait NumCore:
         (gcd, y, val)
     }
 
+    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
+    fn gcde_checked(lhs: &Self, rhs: &Self) -> Option<(Self, Self, Self)>
+    where
+        Self: NdOpsChecked<All = Self>,
+    {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        if rhs == &zero {
+            return Some((lhs.clone(), one, zero));
+        }
+
+        let rem = Self::rem(lhs, rhs);
+
+        let (gcd, x, y) = Self::gcde_checked(rhs, &rem)?;
+
+        let val = Self::div_checked(lhs, rhs)?;
+        let val = Self::mul_checked(&val, &y)?;
+        let val = Self::sub_checked(&x, &val)?;
+
+        Some((gcd, y, val))
+    }
+
     #[ndfwd::as_into]
     fn lcm(mut lhs: Self, rhs: Self) -> Self {
         let gcd = Self::gcd(lhs.clone(), rhs.clone());
@@ -667,6 +707,19 @@ pub trait NumCore:
         Self::mul_assign(&mut lhs, &rhs);
 
         lhs
+    }
+
+    #[ndfwd::as_into]
+    fn lcm_checked(mut lhs: Self, rhs: Self) -> Option<Self>
+    where
+        Self: NdOpsChecked<All = Self>,
+    {
+        let gcd = Self::gcd_checked(lhs.clone(), rhs.clone())?;
+
+        Self::div_assign(&mut lhs, &gcd);
+        Self::mul_assign(&mut lhs, &rhs);
+
+        Some(lhs)
     }
 }
 
