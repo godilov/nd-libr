@@ -657,46 +657,70 @@ pub trait NumCore:
     }
 
     #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
-    fn gcde(lhs: &Self, rhs: &Self) -> (Self, Self, Self) {
+    fn gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
         let zero = Self::zero();
         let one = Self::one();
 
-        if rhs == &zero {
-            return (lhs.clone(), one, zero);
+        let mut r0 = lhs;
+        let mut r1 = rhs;
+        let mut x0 = one.clone();
+        let mut x1 = zero.clone();
+        let mut y0 = zero.clone();
+        let mut y1 = one.clone();
+
+        while r1 != zero {
+            let div = Self::div(&r0, &r1);
+
+            let r = Self::sub(&r0, &Self::mul(&div, &r1));
+            let x = Self::sub(&x0, &Self::mul(&div, &x1));
+            let y = Self::sub(&y0, &Self::mul(&div, &y1));
+
+            r0 = r1;
+            r1 = r;
+
+            x0 = x1;
+            x1 = x;
+
+            y0 = y1;
+            y1 = y;
         }
 
-        let rem = Self::rem(lhs, rhs);
-
-        let (gcd, x, y) = Self::gcde(rhs, &rem);
-
-        let val = Self::div(lhs, rhs);
-        let val = Self::mul(&val, &y);
-        let val = Self::sub(&x, &val);
-
-        (gcd, y, val)
+        (r0, x0, y0)
     }
 
     #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
-    fn gcde_checked(lhs: &Self, rhs: &Self) -> Option<(Self, Self, Self)>
+    fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)>
     where
         Self: NdOpsChecked<All = Self>,
     {
         let zero = Self::zero();
         let one = Self::one();
 
-        if rhs == &zero {
-            return Some((lhs.clone(), one, zero));
+        let mut r0 = lhs;
+        let mut r1 = rhs;
+        let mut x0 = one.clone();
+        let mut x1 = zero.clone();
+        let mut y0 = zero.clone();
+        let mut y1 = one.clone();
+
+        while r1 != zero {
+            let div = Self::div(&r0, &r1);
+
+            let r = Self::sub_checked(&r0, &Self::mul_checked(&div, &r1)?)?;
+            let x = Self::sub_checked(&x0, &Self::mul_checked(&div, &x1)?)?;
+            let y = Self::sub_checked(&y0, &Self::mul_checked(&div, &y1)?)?;
+
+            r0 = r1;
+            r1 = r;
+
+            x0 = x1;
+            x1 = x;
+
+            y0 = y1;
+            y1 = y;
         }
 
-        let rem = Self::rem(lhs, rhs);
-
-        let (gcd, x, y) = Self::gcde_checked(rhs, &rem)?;
-
-        let val = Self::div_checked(lhs, rhs)?;
-        let val = Self::mul_checked(&val, &y)?;
-        let val = Self::sub_checked(&x, &val)?;
-
-        Some((gcd, y, val))
+        Some((r0, x0, y0))
     }
 
     #[ndfwd::as_into]
@@ -1166,19 +1190,19 @@ mod tests {
     #[test]
     fn ext_gcde() {
         ndassert::check! { @eq (val in ndassert::range!(i64, 40).map(|val| val + 1)) [
-            (i64::gcde(&val, &0).0, val),
-            (i64::gcde(&0, &val).0, val),
-            (i64::gcde(&val, &val).0, val),
+            (i64::gcde(val, 0).0, val),
+            (i64::gcde(0, val).0, val),
+            (i64::gcde(val, val).0, val),
         ] }
 
         ndassert::check! { @eq (
             lhs in 1..=1 << 12,
             rhs in 1..=1 << 12,
         ) [
-            (i64::gcde(&lhs, &rhs).0, i64::gcde(&rhs, &lhs).0),
-            (lhs % i64::gcde(&lhs, &rhs).0, 0),
-            (rhs % i64::gcde(&lhs, &rhs).0, 0),
-            (i64::gcde(&lhs, &rhs).0 * i64::lcm(lhs, rhs), lhs * rhs),
+            (i64::gcde(lhs, rhs).0, i64::gcde(rhs, lhs).0),
+            (lhs % i64::gcde(lhs, rhs).0, 0),
+            (rhs % i64::gcde(lhs, rhs).0, 0),
+            (i64::gcde(lhs, rhs).0 * i64::lcm(lhs, rhs), lhs * rhs),
         ] }
 
         ndassert::check! { @eq (
@@ -1186,7 +1210,7 @@ mod tests {
             rhs in 1..=1 << 8,
               k in 1..=1 << 8,
         ) [
-            (i64::gcde(&(k * lhs), &(k * rhs)).0, k * i64::gcde(&lhs, &rhs).0),
+            (i64::gcde(k * lhs, k * rhs).0, k * i64::gcde(lhs, rhs).0),
         ] }
 
         ndassert::check! { @eq (
@@ -1194,7 +1218,7 @@ mod tests {
             rhs in 1..=1 << 8,
         ) [
             {
-                let gcde = i64::gcde(&lhs, &rhs).0;
+                let gcde = i64::gcde(lhs, rhs).0;
                 let limit = lhs.min(rhs);
 
                 let res = (gcde + 1..limit.max(gcde + 1)).into_iter().any(|val| lhs % val == 0 && rhs % val == 0);
