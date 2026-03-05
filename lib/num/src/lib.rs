@@ -567,21 +567,21 @@ pub mod prime {
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-pub struct Wrapping<N: Num + NumExt>(pub N);
+pub struct Wrapping<N: Num + NumExt + NdOpsWrapping + NdOpsAssignWrapping>(pub N);
 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-pub struct Saturating<N: Num + NumExt>(pub N);
+pub struct Saturating<N: Num + NumExt + NdOpsSaturating + NdOpsAssignSaturating>(pub N);
 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-pub struct Unbounded<N: Num + NumExt>(pub N);
+pub struct Unbounded<N: Num + NumExt + NdOpsUnbounded + NdOpsAssignUnbounded>(pub N);
 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
@@ -970,19 +970,19 @@ sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ndops::all! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 
-impl<N: Num + NumExt> From<N> for Wrapping<N> {
+impl<N: Num + NumExt + NdOpsWrapping + NdOpsAssignWrapping> From<N> for Wrapping<N> {
     fn from(value: N) -> Self {
         Wrapping(value)
     }
 }
 
-impl<N: Num + NumExt> From<N> for Saturating<N> {
+impl<N: Num + NumExt + NdOpsSaturating + NdOpsAssignSaturating> From<N> for Saturating<N> {
     fn from(value: N) -> Self {
         Saturating(value)
     }
 }
 
-impl<N: Num + NumExt> From<N> for Unbounded<N> {
+impl<N: Num + NumExt + NdOpsUnbounded + NdOpsAssignUnbounded> From<N> for Unbounded<N> {
     fn from(value: N) -> Self {
         Unbounded(value)
     }
