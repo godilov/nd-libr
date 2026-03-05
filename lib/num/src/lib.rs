@@ -700,26 +700,22 @@ pub trait NumCore:
     }
 
     #[ndfwd::as_into]
-    fn lcm(mut lhs: Self, rhs: Self) -> Self {
+    fn lcm(lhs: Self, rhs: Self) -> Self {
         let gcd = Self::gcd(lhs.clone(), rhs.clone());
+        let val = Self::div(&lhs, &gcd);
 
-        Self::div_assign(&mut lhs, &gcd);
-        Self::mul_assign(&mut lhs, &rhs);
-
-        lhs
+        Self::mul(&val, &rhs)
     }
 
     #[ndfwd::as_into]
-    fn lcm_checked(mut lhs: Self, rhs: Self) -> Option<Self>
+    fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self>
     where
         Self: NdOpsChecked<All = Self>,
     {
         let gcd = Self::gcd_checked(lhs.clone(), rhs.clone())?;
+        let val = Self::div_checked(&lhs, &gcd)?;
 
-        Self::div_assign(&mut lhs, &gcd);
-        Self::mul_assign(&mut lhs, &rhs);
-
-        Some(lhs)
+        Self::mul_checked(&val, &rhs)
     }
 }
 
