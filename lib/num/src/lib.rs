@@ -1254,7 +1254,10 @@ mod tests {
     }
 
     #[test]
-    fn pow() {}
+    fn pow() {
+        const POW: u64 = ndassert::prime!(16, 0);
+        const MOD: u64 = ndassert::prime!(16, 1);
+    }
 
     #[test]
     fn wrapping() {}

@@ -22,6 +22,12 @@ mod kw {
     syn::custom_keyword!(ndun);
 
     syn::custom_keyword!(ext);
+
+    syn::custom_keyword!(checked);
+    syn::custom_keyword!(wrapping);
+    syn::custom_keyword!(saturating);
+    syn::custom_keyword!(overflowing);
+    syn::custom_keyword!(unbounded);
 }
 
 /// Implements `std::ops::*` and `ndcore::ops::*` operations with explicitly provided expressions.
