@@ -162,7 +162,7 @@ struct OpsImpl<Kind: OpsKind> {
 }
 
 #[allow(unused)]
-struct OpsImplAuto<Kind: OpsKind> {
+struct OpsImplAuto<Kind: OpsKindAuto> {
     signature: Kind::Signature,
     colon: Token![,],
     expression: Kind::Expression,
@@ -352,42 +352,77 @@ enum OpsUnary {
 }
 
 trait OpsKind {
+    type Operation: Parse;
+    type Signature: Parse;
+}
+
+trait OpsKindAuto {
     type Expression: Parse;
     type Operation: Parse;
     type Signature: Parse;
 }
 
 impl OpsKind for OpsStdKindAssign {
-    type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsStdSignatureAssign;
 }
 
 impl OpsKind for OpsStdKindBinary {
-    type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsStdSignatureBinary;
 }
 
 impl OpsKind for OpsStdKindUnary {
-    type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsStdSignatureUnary;
 }
 
 impl OpsKind for OpsNdKindAssign {
-    type Expression = OpsExpressionAssign;
     type Operation = OpsAssign;
     type Signature = OpsNdSignatureAssign;
 }
 
 impl OpsKind for OpsNdKindBinary {
-    type Expression = OpsExpressionBinary;
     type Operation = OpsBinary;
     type Signature = OpsNdSignatureBinary;
 }
 
 impl OpsKind for OpsNdKindUnary {
+    type Operation = OpsUnary;
+    type Signature = OpsNdSignatureUnary;
+}
+
+impl OpsKindAuto for OpsStdKindAssign {
+    type Expression = OpsExpressionAssign;
+    type Operation = OpsAssign;
+    type Signature = OpsStdSignatureAssign;
+}
+
+impl OpsKindAuto for OpsStdKindBinary {
+    type Expression = OpsExpressionBinary;
+    type Operation = OpsBinary;
+    type Signature = OpsStdSignatureBinary;
+}
+
+impl OpsKindAuto for OpsStdKindUnary {
+    type Expression = OpsExpressionUnary;
+    type Operation = OpsUnary;
+    type Signature = OpsStdSignatureUnary;
+}
+
+impl OpsKindAuto for OpsNdKindAssign {
+    type Expression = OpsExpressionAssign;
+    type Operation = OpsAssign;
+    type Signature = OpsNdSignatureAssign;
+}
+
+impl OpsKindAuto for OpsNdKindBinary {
+    type Expression = OpsExpressionBinary;
+    type Operation = OpsBinary;
+    type Signature = OpsNdSignatureBinary;
+}
+
+impl OpsKindAuto for OpsNdKindUnary {
     type Expression = OpsExpressionUnary;
     type Operation = OpsUnary;
     type Signature = OpsNdSignatureUnary;
@@ -466,7 +501,7 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
     }
 }
 
-impl<Kind: OpsKind> Parse for OpsImplAuto<Kind> {
+impl<Kind: OpsKindAuto> Parse for OpsImplAuto<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
