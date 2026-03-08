@@ -8,7 +8,6 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    spanned::Spanned,
     token::{Bracket, Paren},
 };
 
@@ -352,6 +351,7 @@ enum OpsUnary {
     Not(Token![!]),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsAssignExt {
     Add(Token![+=]),
@@ -385,6 +385,7 @@ enum OpsAssignExt {
     ShrUnbounded(Token![>>=], Token![@], kw::unbounded),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsBinaryExt {
     Add(Token![+]),
@@ -432,6 +433,7 @@ enum OpsBinaryExt {
     ShrUnbounded(Token![>>], Token![@], kw::unbounded),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsUnaryExt {
     Neg(Token![-]),
@@ -470,17 +472,17 @@ impl OpsKind for OpsStdKindUnary {
 }
 
 impl OpsKind for OpsNdKindAssign {
-    type Definition = OpsDefinition<OpsAssign>;
+    type Definition = OpsDefinition<OpsAssignExt>;
     type Signature = OpsNdSignatureAssign;
 }
 
 impl OpsKind for OpsNdKindBinary {
-    type Definition = OpsDefinition<OpsBinary>;
+    type Definition = OpsDefinition<OpsBinaryExt>;
     type Signature = OpsNdSignatureBinary;
 }
 
 impl OpsKind for OpsNdKindUnary {
-    type Definition = OpsDefinition<OpsUnary>;
+    type Definition = OpsDefinition<OpsUnaryExt>;
     type Signature = OpsNdSignatureUnary;
 }
 
@@ -503,19 +505,19 @@ impl OpsKindAuto for OpsStdKindUnary {
 }
 
 impl OpsKindAuto for OpsNdKindAssign {
-    type Definition = OpsDefinitionAuto<OpsAssign>;
+    type Definition = OpsDefinitionAuto<OpsAssignExt>;
     type Expression = OpsExpressionAssign;
     type Signature = OpsNdSignatureAssign;
 }
 
 impl OpsKindAuto for OpsNdKindBinary {
-    type Definition = OpsDefinitionAuto<OpsBinary>;
+    type Definition = OpsDefinitionAuto<OpsBinaryExt>;
     type Expression = OpsExpressionBinary;
     type Signature = OpsNdSignatureBinary;
 }
 
 impl OpsKindAuto for OpsNdKindUnary {
-    type Definition = OpsDefinitionAuto<OpsUnary>;
+    type Definition = OpsDefinitionAuto<OpsUnaryExt>;
     type Expression = OpsExpressionUnary;
     type Signature = OpsNdSignatureUnary;
 }
@@ -1581,7 +1583,7 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
         for definition in &self.definitions {
             let token = self.signature.token;
             let ident = definition.op.get_ident();
-            let path = definition.op.get_nd_path(token);
+            let path = definition.op.get_path(token);
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
@@ -1626,7 +1628,7 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
         for definition in &self.definitions {
             let token = self.signature.token;
             let ident = definition.op.get_ident();
-            let path = definition.op.get_nd_path(token);
+            let path = definition.op.get_path(token);
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
@@ -1674,7 +1676,7 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
         for definition in &self.definitions {
             let token = self.signature.token;
             let ident = definition.op.get_ident();
-            let path = definition.op.get_nd_path(token);
+            let path = definition.op.get_path(token);
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
@@ -1754,6 +1756,52 @@ impl ToTokens for OpsUnary {
         match self {
             OpsUnary::Neg(op) => tokens.extend(quote! { #op }),
             OpsUnary::Not(op) => tokens.extend(quote! { #op }),
+        }
+    }
+}
+
+impl ToTokens for OpsAssignExt {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            OpsAssignExt::Add(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::Sub(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::Mul(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::Div(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::Rem(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::BitOr(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::BitXor(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::BitAnd(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::Shl(op) => tokens.extend(quote! { #op }),
+            OpsAssignExt::Shr(op) => tokens.extend(quote! { #op }),
+            _ => (),
+        }
+    }
+}
+
+impl ToTokens for OpsBinaryExt {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            OpsBinaryExt::Add(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::Sub(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::Mul(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::Div(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::Rem(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::BitOr(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::BitXor(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::BitAnd(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::Shl(op) => tokens.extend(quote! { #op }),
+            OpsBinaryExt::Shr(op) => tokens.extend(quote! { #op }),
+            _ => (),
+        }
+    }
+}
+
+impl ToTokens for OpsUnaryExt {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            OpsUnaryExt::Neg(op) => tokens.extend(quote! { #op }),
+            OpsUnaryExt::Not(op) => tokens.extend(quote! { #op }),
+            _ => (),
         }
     }
 }
@@ -1859,7 +1907,7 @@ impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
                     let rhs = &value.expression.rhs_expr;
                     let conditions = definition.conditions;
 
-                    OpsDefinition::<OpsAssign> {
+                    OpsDefinition::<OpsAssignExt> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs; }},
                         conditions,
@@ -1885,7 +1933,7 @@ impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
                     let rhs = &value.expression.rhs_expr;
                     let conditions = definition.conditions;
 
-                    OpsDefinition::<OpsBinary> {
+                    OpsDefinition::<OpsBinaryExt> {
                         op,
                         expr: parse_quote! {{ #lhs #op #rhs }},
                         conditions,
@@ -1910,7 +1958,7 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
                     let expr = &value.expression.self_expr;
                     let conditions = definition.conditions;
 
-                    OpsDefinition::<OpsUnary> {
+                    OpsDefinition::<OpsUnaryExt> {
                         op,
                         expr: parse_quote! {{ #op #expr }},
                         conditions,
@@ -1994,23 +2042,6 @@ impl OpsAssign {
             OpsAssign::Shr(_) => parse_quote! { std::ops::ShrAssign },
         }
     }
-
-    fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
-
-        match self {
-            OpsAssign::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
-            OpsAssign::Sub(_) => parse_quote! { #prefix::ops::NdSubAssign },
-            OpsAssign::Mul(_) => parse_quote! { #prefix::ops::NdMulAssign },
-            OpsAssign::Div(_) => parse_quote! { #prefix::ops::NdDivAssign },
-            OpsAssign::Rem(_) => parse_quote! { #prefix::ops::NdRemAssign },
-            OpsAssign::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
-            OpsAssign::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
-            OpsAssign::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
-            OpsAssign::Shl(_) => parse_quote! { #prefix::ops::NdShlAssign },
-            OpsAssign::Shr(_) => parse_quote! { #prefix::ops::NdShrAssign },
-        }
-    }
 }
 
 impl OpsBinary {
@@ -2043,23 +2074,6 @@ impl OpsBinary {
             OpsBinary::Shr(_) => parse_quote! { std::ops::Shr },
         }
     }
-
-    fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
-
-        match self {
-            OpsBinary::Add(_) => parse_quote! { #prefix::ops::NdAdd },
-            OpsBinary::Sub(_) => parse_quote! { #prefix::ops::NdSub },
-            OpsBinary::Mul(_) => parse_quote! { #prefix::ops::NdMul },
-            OpsBinary::Div(_) => parse_quote! { #prefix::ops::NdDiv },
-            OpsBinary::Rem(_) => parse_quote! { #prefix::ops::NdRem },
-            OpsBinary::BitOr(_) => parse_quote! { #prefix::ops::NdBitOr },
-            OpsBinary::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAnd },
-            OpsBinary::BitXor(_) => parse_quote! { #prefix::ops::NdBitXor },
-            OpsBinary::Shl(_) => parse_quote! { #prefix::ops::NdShl },
-            OpsBinary::Shr(_) => parse_quote! { #prefix::ops::NdShr },
-        }
-    }
 }
 
 impl OpsUnary {
@@ -2074,15 +2088,6 @@ impl OpsUnary {
         match self {
             OpsUnary::Neg(_) => parse_quote! { std::ops::Neg },
             OpsUnary::Not(_) => parse_quote! { std::ops::Not },
-        }
-    }
-
-    fn get_nd_path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
-
-        match self {
-            OpsUnary::Neg(_) => parse_quote! { #prefix::ops::NdNeg },
-            OpsUnary::Not(_) => parse_quote! { #prefix::ops::NdNot },
         }
     }
 }
