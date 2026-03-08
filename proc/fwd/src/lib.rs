@@ -9,7 +9,6 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    spanned::Spanned,
 };
 
 mod kw {
