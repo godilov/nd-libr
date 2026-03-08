@@ -158,7 +158,7 @@ struct OpsImpl<Kind: OpsKind> {
     signature: Kind::Signature,
     colon: Token![,],
     definitions_bracket: Bracket,
-    definitions: Punctuated<OpsDefinition<Kind::Operation>, Token![,]>,
+    definitions: Punctuated<Kind::Definition, Token![,]>,
 }
 
 #[allow(unused)]
@@ -167,7 +167,7 @@ struct OpsImplAuto<Kind: OpsKindAuto> {
     colon: Token![,],
     expression: Kind::Expression,
     definitions_bracket: Bracket,
-    definitions: Punctuated<OpsDefinitionAuto<Kind::Operation>, Token![,]>,
+    definitions: Punctuated<Kind::Definition, Token![,]>,
 }
 
 #[allow(unused)]
@@ -351,80 +351,156 @@ enum OpsUnary {
     Not(Token![!]),
 }
 
+#[derive(Clone, Copy)]
+enum OpsAssignExt {
+    Add(Token![+=]),
+    Sub(Token![-=]),
+    Mul(Token![*=]),
+    Div(Token![/=]),
+    Rem(Token![%=]),
+    BitOr(Token![|=]),
+    BitAnd(Token![&=]),
+    BitXor(Token![^=]),
+    Shl(Token![<<=]),
+    Shr(Token![>>=]),
+    AddWrapping(Token![+=], Token![@], kw::wrapping),
+    SubWrapping(Token![-=], Token![@], kw::wrapping),
+    MulWrapping(Token![*=], Token![@], kw::wrapping),
+    DivWrapping(Token![/=], Token![@], kw::wrapping),
+    RemWrapping(Token![%=], Token![@], kw::wrapping),
+    AddSaturating(Token![+=], Token![@], kw::saturating),
+    SubSaturating(Token![-=], Token![@], kw::saturating),
+    MulSaturating(Token![*=], Token![@], kw::saturating),
+    DivSaturating(Token![/=], Token![@], kw::saturating),
+    RemSaturating(Token![%=], Token![@], kw::saturating),
+    ShlUnbounded(Token![<<=], Token![@], kw::unbounded),
+    ShrUnbounded(Token![>>=], Token![@], kw::unbounded),
+}
+
+#[derive(Clone, Copy)]
+enum OpsBinaryExt {
+    Add(Token![+]),
+    Sub(Token![-]),
+    Mul(Token![*]),
+    Div(Token![/]),
+    Rem(Token![%]),
+    BitOr(Token![|]),
+    BitAnd(Token![&]),
+    BitXor(Token![^]),
+    Shl(Token![<<]),
+    Shr(Token![>>]),
+    AddChecked(Token![+], Token![@], kw::checked),
+    SubChecked(Token![-], Token![@], kw::checked),
+    MulChecked(Token![*], Token![@], kw::checked),
+    DivChecked(Token![/], Token![@], kw::checked),
+    RemChecked(Token![%], Token![@], kw::checked),
+    ShlChecked(Token![<<], Token![@], kw::checked),
+    ShrChecked(Token![>>], Token![@], kw::checked),
+    AddWrapping(Token![+], Token![@], kw::wrapping),
+    SubWrapping(Token![-], Token![@], kw::wrapping),
+    MulWrapping(Token![*], Token![@], kw::wrapping),
+    DivWrapping(Token![/], Token![@], kw::wrapping),
+    RemWrapping(Token![%], Token![@], kw::wrapping),
+    AddSaturating(Token![+], Token![@], kw::saturating),
+    SubSaturating(Token![-], Token![@], kw::saturating),
+    MulSaturating(Token![*], Token![@], kw::saturating),
+    DivSaturating(Token![/], Token![@], kw::saturating),
+    RemSaturating(Token![%], Token![@], kw::saturating),
+    AddOverflowing(Token![+], Token![@], kw::overflowing),
+    SubOverflowing(Token![-], Token![@], kw::overflowing),
+    MulOverflowing(Token![*], Token![@], kw::overflowing),
+    DivOverflowing(Token![/], Token![@], kw::overflowing),
+    RemOverflowing(Token![%], Token![@], kw::overflowing),
+    ShlOverflowing(Token![<<], Token![@], kw::overflowing),
+    ShrOverflowing(Token![>>], Token![@], kw::overflowing),
+    ShlUnbounded(Token![<<], Token![@], kw::unbounded),
+    ShrUnbounded(Token![>>], Token![@], kw::unbounded),
+}
+
+#[derive(Clone, Copy)]
+enum OpsUnaryExt {
+    Neg(Token![-]),
+    Not(Token![!]),
+    NegChecked(Token![-], Token![@], kw::checked),
+    NegWrapping(Token![-], Token![@], kw::wrapping),
+    NegSaturating(Token![-], Token![@], kw::saturating),
+    NegOverflowing(Token![-], Token![@], kw::overflowing),
+}
+
 trait OpsKind {
-    type Operation: Parse;
+    type Definition: Parse;
     type Signature: Parse;
 }
 
 trait OpsKindAuto {
+    type Definition: Parse;
     type Expression: Parse;
-    type Operation: Parse;
     type Signature: Parse;
 }
 
 impl OpsKind for OpsStdKindAssign {
-    type Operation = OpsAssign;
+    type Definition = OpsDefinition<OpsAssign>;
     type Signature = OpsStdSignatureAssign;
 }
 
 impl OpsKind for OpsStdKindBinary {
-    type Operation = OpsBinary;
+    type Definition = OpsDefinition<OpsBinary>;
     type Signature = OpsStdSignatureBinary;
 }
 
 impl OpsKind for OpsStdKindUnary {
-    type Operation = OpsUnary;
+    type Definition = OpsDefinition<OpsUnary>;
     type Signature = OpsStdSignatureUnary;
 }
 
 impl OpsKind for OpsNdKindAssign {
-    type Operation = OpsAssign;
+    type Definition = OpsDefinition<OpsAssign>;
     type Signature = OpsNdSignatureAssign;
 }
 
 impl OpsKind for OpsNdKindBinary {
-    type Operation = OpsBinary;
+    type Definition = OpsDefinition<OpsBinary>;
     type Signature = OpsNdSignatureBinary;
 }
 
 impl OpsKind for OpsNdKindUnary {
-    type Operation = OpsUnary;
+    type Definition = OpsDefinition<OpsUnary>;
     type Signature = OpsNdSignatureUnary;
 }
 
 impl OpsKindAuto for OpsStdKindAssign {
+    type Definition = OpsDefinitionAuto<OpsAssign>;
     type Expression = OpsExpressionAssign;
-    type Operation = OpsAssign;
     type Signature = OpsStdSignatureAssign;
 }
 
 impl OpsKindAuto for OpsStdKindBinary {
+    type Definition = OpsDefinitionAuto<OpsBinary>;
     type Expression = OpsExpressionBinary;
-    type Operation = OpsBinary;
     type Signature = OpsStdSignatureBinary;
 }
 
 impl OpsKindAuto for OpsStdKindUnary {
+    type Definition = OpsDefinitionAuto<OpsUnary>;
     type Expression = OpsExpressionUnary;
-    type Operation = OpsUnary;
     type Signature = OpsStdSignatureUnary;
 }
 
 impl OpsKindAuto for OpsNdKindAssign {
+    type Definition = OpsDefinitionAuto<OpsAssign>;
     type Expression = OpsExpressionAssign;
-    type Operation = OpsAssign;
     type Signature = OpsNdSignatureAssign;
 }
 
 impl OpsKindAuto for OpsNdKindBinary {
+    type Definition = OpsDefinitionAuto<OpsBinary>;
     type Expression = OpsExpressionBinary;
-    type Operation = OpsBinary;
     type Signature = OpsNdSignatureBinary;
 }
 
 impl OpsKindAuto for OpsNdKindUnary {
+    type Definition = OpsDefinitionAuto<OpsUnary>;
     type Expression = OpsExpressionUnary;
-    type Operation = OpsUnary;
     type Signature = OpsNdSignatureUnary;
 }
 
@@ -496,7 +572,7 @@ impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
             signature: input.parse()?,
             colon: input.parse()?,
             definitions_bracket: bracketed!(content in input),
-            definitions: content.parse_terminated(OpsDefinition::parse, Token![,])?,
+            definitions: content.parse_terminated(Kind::Definition::parse, Token![,])?,
         })
     }
 }
@@ -510,7 +586,7 @@ impl<Kind: OpsKindAuto> Parse for OpsImplAuto<Kind> {
             colon: input.parse()?,
             expression: input.parse()?,
             definitions_bracket: bracketed!(content in input),
-            definitions: content.parse_terminated(OpsDefinitionAuto::parse, Token![,])?,
+            definitions: content.parse_terminated(Kind::Definition::parse, Token![,])?,
         })
     }
 }
@@ -948,6 +1024,235 @@ impl Parse for OpsUnary {
             input.parse::<Token![-]>().map(Self::Neg)
         } else if lookahead.peek(Token![!]) {
             input.parse::<Token![!]>().map(Self::Not)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsAssignExt {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let op = input.parse::<OpsAssign>()?;
+
+        if !input.peek(Token![@]) {
+            return Ok(Self::from(op));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::wrapping) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsAssign::Add(val) => Ok(Self::AddWrapping(val, token, ext)),
+                OpsAssign::Sub(val) => Ok(Self::SubWrapping(val, token, ext)),
+                OpsAssign::Mul(val) => Ok(Self::MulWrapping(val, token, ext)),
+                OpsAssign::Div(val) => Ok(Self::DivWrapping(val, token, ext)),
+                OpsAssign::Rem(val) => Ok(Self::RemWrapping(val, token, ext)),
+                OpsAssign::BitOr(_) | OpsAssign::BitAnd(_) | OpsAssign::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @wrapping is unsupported",
+                )),
+                OpsAssign::Shl(_) | OpsAssign::Shr(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse shift operation, @wrapping is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::saturating) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsAssign::Add(val) => Ok(Self::AddSaturating(val, token, ext)),
+                OpsAssign::Sub(val) => Ok(Self::SubSaturating(val, token, ext)),
+                OpsAssign::Mul(val) => Ok(Self::MulSaturating(val, token, ext)),
+                OpsAssign::Div(val) => Ok(Self::DivSaturating(val, token, ext)),
+                OpsAssign::Rem(val) => Ok(Self::RemSaturating(val, token, ext)),
+                OpsAssign::BitOr(_) | OpsAssign::BitAnd(_) | OpsAssign::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @saturating is unsupported",
+                )),
+                OpsAssign::Shl(_) | OpsAssign::Shr(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse shift operation, @saturating is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::unbounded) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsAssign::Shl(val) => Ok(Self::ShlUnbounded(val, token, ext)),
+                OpsAssign::Shr(val) => Ok(Self::ShrUnbounded(val, token, ext)),
+                OpsAssign::Add(_) | OpsAssign::Sub(_) | OpsAssign::Mul(_) | OpsAssign::Div(_) | OpsAssign::Rem(_) => {
+                    Err(Error::new_spanned(
+                        ext,
+                        "Failed to parse arithmetic operation, @unbounded is unsupported",
+                    ))
+                },
+                OpsAssign::BitOr(_) | OpsAssign::BitAnd(_) | OpsAssign::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @unbounded is unsupported",
+                )),
+            }
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsBinaryExt {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let op = input.parse::<OpsBinary>()?;
+
+        if !input.peek(Token![@]) {
+            return Ok(Self::from(op));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::checked) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsBinary::Add(val) => Ok(Self::AddChecked(val, token, ext)),
+                OpsBinary::Sub(val) => Ok(Self::SubChecked(val, token, ext)),
+                OpsBinary::Mul(val) => Ok(Self::MulChecked(val, token, ext)),
+                OpsBinary::Div(val) => Ok(Self::DivChecked(val, token, ext)),
+                OpsBinary::Rem(val) => Ok(Self::RemChecked(val, token, ext)),
+                OpsBinary::Shl(val) => Ok(Self::ShlChecked(val, token, ext)),
+                OpsBinary::Shr(val) => Ok(Self::ShrChecked(val, token, ext)),
+                OpsBinary::BitOr(_) | OpsBinary::BitAnd(_) | OpsBinary::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @checked is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::wrapping) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsBinary::Add(val) => Ok(Self::AddWrapping(val, token, ext)),
+                OpsBinary::Sub(val) => Ok(Self::SubWrapping(val, token, ext)),
+                OpsBinary::Mul(val) => Ok(Self::MulWrapping(val, token, ext)),
+                OpsBinary::Div(val) => Ok(Self::DivWrapping(val, token, ext)),
+                OpsBinary::Rem(val) => Ok(Self::RemWrapping(val, token, ext)),
+                OpsBinary::BitOr(_) | OpsBinary::BitAnd(_) | OpsBinary::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @wrapping is unsupported",
+                )),
+                OpsBinary::Shl(_) | OpsBinary::Shr(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse shift operation, @wrapping is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::saturating) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsBinary::Add(val) => Ok(Self::AddSaturating(val, token, ext)),
+                OpsBinary::Sub(val) => Ok(Self::SubSaturating(val, token, ext)),
+                OpsBinary::Mul(val) => Ok(Self::MulSaturating(val, token, ext)),
+                OpsBinary::Div(val) => Ok(Self::DivSaturating(val, token, ext)),
+                OpsBinary::Rem(val) => Ok(Self::RemSaturating(val, token, ext)),
+                OpsBinary::BitOr(_) | OpsBinary::BitAnd(_) | OpsBinary::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @saturating is unsupported",
+                )),
+                OpsBinary::Shl(_) | OpsBinary::Shr(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse shift operation, @saturating is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::overflowing) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsBinary::Add(val) => Ok(Self::AddOverflowing(val, token, ext)),
+                OpsBinary::Sub(val) => Ok(Self::SubOverflowing(val, token, ext)),
+                OpsBinary::Mul(val) => Ok(Self::MulOverflowing(val, token, ext)),
+                OpsBinary::Div(val) => Ok(Self::DivOverflowing(val, token, ext)),
+                OpsBinary::Rem(val) => Ok(Self::RemOverflowing(val, token, ext)),
+                OpsBinary::Shl(val) => Ok(Self::ShlOverflowing(val, token, ext)),
+                OpsBinary::Shr(val) => Ok(Self::ShrOverflowing(val, token, ext)),
+                OpsBinary::BitOr(_) | OpsBinary::BitAnd(_) | OpsBinary::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @overflowing is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::unbounded) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsBinary::Shl(val) => Ok(Self::ShlUnbounded(val, token, ext)),
+                OpsBinary::Shr(val) => Ok(Self::ShrUnbounded(val, token, ext)),
+                OpsBinary::Add(_) | OpsBinary::Sub(_) | OpsBinary::Mul(_) | OpsBinary::Div(_) | OpsBinary::Rem(_) => {
+                    Err(Error::new_spanned(
+                        ext,
+                        "Failed to parse arithmetic operation, @unbounded is unsupported",
+                    ))
+                },
+                OpsBinary::BitOr(_) | OpsBinary::BitAnd(_) | OpsBinary::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @unbounded is unsupported",
+                )),
+            }
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsUnaryExt {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let op = input.parse::<OpsUnary>()?;
+
+        if !input.peek(Token![@]) {
+            return Ok(Self::from(op));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::checked) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsUnary::Neg(val) => Ok(Self::NegChecked(val, token, ext)),
+                OpsUnary::Not(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse not operation, @checked is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::wrapping) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsUnary::Neg(val) => Ok(Self::NegWrapping(val, token, ext)),
+                OpsUnary::Not(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse not operation, @wrapping is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::saturating) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsUnary::Neg(val) => Ok(Self::NegSaturating(val, token, ext)),
+                OpsUnary::Not(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse not operation, @saturating is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::overflowing) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsUnary::Neg(val) => Ok(Self::NegOverflowing(val, token, ext)),
+                OpsUnary::Not(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse not operation, @overflowing is unsupported",
+                )),
+            }
         } else {
             Err(lookahead.error())
         }
@@ -1555,6 +1860,49 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
                     }
                 })
                 .collect(),
+        }
+    }
+}
+
+impl From<OpsAssign> for OpsAssignExt {
+    fn from(value: OpsAssign) -> Self {
+        match value {
+            OpsAssign::Add(token) => Self::Add(token),
+            OpsAssign::Sub(token) => Self::Sub(token),
+            OpsAssign::Mul(token) => Self::Mul(token),
+            OpsAssign::Div(token) => Self::Div(token),
+            OpsAssign::Rem(token) => Self::Rem(token),
+            OpsAssign::BitOr(token) => Self::BitOr(token),
+            OpsAssign::BitAnd(token) => Self::BitAnd(token),
+            OpsAssign::BitXor(token) => Self::BitXor(token),
+            OpsAssign::Shl(token) => Self::Shl(token),
+            OpsAssign::Shr(token) => Self::Shr(token),
+        }
+    }
+}
+
+impl From<OpsBinary> for OpsBinaryExt {
+    fn from(value: OpsBinary) -> Self {
+        match value {
+            OpsBinary::Add(token) => Self::Add(token),
+            OpsBinary::Sub(token) => Self::Sub(token),
+            OpsBinary::Mul(token) => Self::Mul(token),
+            OpsBinary::Div(token) => Self::Div(token),
+            OpsBinary::Rem(token) => Self::Rem(token),
+            OpsBinary::BitOr(token) => Self::BitOr(token),
+            OpsBinary::BitAnd(token) => Self::BitAnd(token),
+            OpsBinary::BitXor(token) => Self::BitXor(token),
+            OpsBinary::Shl(token) => Self::Shl(token),
+            OpsBinary::Shr(token) => Self::Shr(token),
+        }
+    }
+}
+
+impl From<OpsUnary> for OpsUnaryExt {
+    fn from(value: OpsUnary) -> Self {
+        match value {
+            OpsUnary::Neg(token) => Self::Neg(token),
+            OpsUnary::Not(token) => Self::Not(token),
         }
     }
 }

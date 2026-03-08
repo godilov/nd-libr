@@ -317,6 +317,42 @@ pub mod ops {
         fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
     }
 
+    /// `Nd` variant for describing checked neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegChecked<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
+
+    /// `Nd` variant for describing wrapping neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegWrapping<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing saturating neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegSaturating<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing overflowing neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegOverflowing<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+    }
+
     /// `Nd` variant for describing checked add operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
@@ -513,6 +549,24 @@ pub mod ops {
         type Type;
 
         fn shr_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
+    }
+
+    /// `Nd` variant for describing overflowing shl operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShlOverflowing<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shl_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
+    }
+
+    /// `Nd` variant for describing overflowing shr operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShrOverflowing<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shr_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
     }
 
     /// `Nd` variant for describing unbounded shl operations.
