@@ -2029,3 +2029,173 @@ impl OpsUnary {
         }
     }
 }
+
+impl OpsAssignExt {
+    fn get_ident(&self) -> Ident {
+        match self {
+            OpsAssignExt::Add(_) => parse_quote! { add_assign },
+            OpsAssignExt::Sub(_) => parse_quote! { sub_assign },
+            OpsAssignExt::Mul(_) => parse_quote! { mul_assign },
+            OpsAssignExt::Div(_) => parse_quote! { div_assign },
+            OpsAssignExt::Rem(_) => parse_quote! { rem_assign },
+            OpsAssignExt::BitOr(_) => parse_quote! { bitor_assign },
+            OpsAssignExt::BitAnd(_) => parse_quote! { bitand_assign },
+            OpsAssignExt::BitXor(_) => parse_quote! { bitxor_assign },
+            OpsAssignExt::Shl(_) => parse_quote! { shl_assign },
+            OpsAssignExt::Shr(_) => parse_quote! { shr_assign },
+            OpsAssignExt::AddWrapping(_, _, _) => parse_quote! { add_assign_wrapping },
+            OpsAssignExt::SubWrapping(_, _, _) => parse_quote! { sub_assign_wrapping },
+            OpsAssignExt::MulWrapping(_, _, _) => parse_quote! { mul_assign_wrapping },
+            OpsAssignExt::DivWrapping(_, _, _) => parse_quote! { div_assign_wrapping },
+            OpsAssignExt::RemWrapping(_, _, _) => parse_quote! { rem_assign_wrapping },
+            OpsAssignExt::AddSaturating(_, _, _) => parse_quote! { add_assign_saturating },
+            OpsAssignExt::SubSaturating(_, _, _) => parse_quote! { sub_assign_saturating },
+            OpsAssignExt::MulSaturating(_, _, _) => parse_quote! { mul_assign_saturating },
+            OpsAssignExt::DivSaturating(_, _, _) => parse_quote! { div_assign_saturating },
+            OpsAssignExt::RemSaturating(_, _, _) => parse_quote! { rem_assign_saturating },
+            OpsAssignExt::ShlUnbounded(_, _, _) => parse_quote! { shl_assign_unbounded },
+            OpsAssignExt::ShrUnbounded(_, _, _) => parse_quote! { shr_assign_unbounded },
+        }
+    }
+
+    fn get_path(&self, token: Option<Token![crate]>) -> Path {
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
+
+        match self {
+            OpsAssignExt::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
+            OpsAssignExt::Sub(_) => parse_quote! { #prefix::ops::NdSubAssign },
+            OpsAssignExt::Mul(_) => parse_quote! { #prefix::ops::NdMulAssign },
+            OpsAssignExt::Div(_) => parse_quote! { #prefix::ops::NdDivAssign },
+            OpsAssignExt::Rem(_) => parse_quote! { #prefix::ops::NdRemAssign },
+            OpsAssignExt::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
+            OpsAssignExt::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
+            OpsAssignExt::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
+            OpsAssignExt::Shl(_) => parse_quote! { #prefix::ops::NdShlAssign },
+            OpsAssignExt::Shr(_) => parse_quote! { #prefix::ops::NdShrAssign },
+            OpsAssignExt::AddWrapping(_, _, _) => parse_quote! { #prefix::ops::NdAddAssignWrapping },
+            OpsAssignExt::SubWrapping(_, _, _) => parse_quote! { #prefix::ops::NdSubAssignWrapping },
+            OpsAssignExt::MulWrapping(_, _, _) => parse_quote! { #prefix::ops::NdMulAssignWrapping },
+            OpsAssignExt::DivWrapping(_, _, _) => parse_quote! { #prefix::ops::NdDivAssignWrapping },
+            OpsAssignExt::RemWrapping(_, _, _) => parse_quote! { #prefix::ops::NdRemAssignWrapping },
+            OpsAssignExt::AddSaturating(_, _, _) => parse_quote! { #prefix::ops::NdAddAssignSaturating },
+            OpsAssignExt::SubSaturating(_, _, _) => parse_quote! { #prefix::ops::NdSubAssignSaturating },
+            OpsAssignExt::MulSaturating(_, _, _) => parse_quote! { #prefix::ops::NdMulAssignSaturating },
+            OpsAssignExt::DivSaturating(_, _, _) => parse_quote! { #prefix::ops::NdDivAssignSaturating },
+            OpsAssignExt::RemSaturating(_, _, _) => parse_quote! { #prefix::ops::NdRemAssignSaturating },
+            OpsAssignExt::ShlUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdDivAssignUnbounded },
+            OpsAssignExt::ShrUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdRemAssignUnbounded },
+        }
+    }
+}
+
+impl OpsBinaryExt {
+    fn get_ident(&self) -> Ident {
+        match self {
+            OpsBinaryExt::Add(_) => parse_quote! { add },
+            OpsBinaryExt::Sub(_) => parse_quote! { sub },
+            OpsBinaryExt::Mul(_) => parse_quote! { mul },
+            OpsBinaryExt::Div(_) => parse_quote! { div },
+            OpsBinaryExt::Rem(_) => parse_quote! { rem },
+            OpsBinaryExt::BitOr(_) => parse_quote! { bitor },
+            OpsBinaryExt::BitAnd(_) => parse_quote! { bitand },
+            OpsBinaryExt::BitXor(_) => parse_quote! { bitxor },
+            OpsBinaryExt::Shl(_) => parse_quote! { shl },
+            OpsBinaryExt::Shr(_) => parse_quote! { shr },
+            OpsBinaryExt::AddChecked(_, _, _) => parse_quote! { add_checked },
+            OpsBinaryExt::SubChecked(_, _, _) => parse_quote! { sub_checked },
+            OpsBinaryExt::MulChecked(_, _, _) => parse_quote! { mul_checked },
+            OpsBinaryExt::DivChecked(_, _, _) => parse_quote! { div_checked },
+            OpsBinaryExt::RemChecked(_, _, _) => parse_quote! { rem_checked },
+            OpsBinaryExt::ShlChecked(_, _, _) => parse_quote! { shl_checked },
+            OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { shr_checked },
+            OpsBinaryExt::AddWrapping(_, _, _) => parse_quote! { add_wrapping },
+            OpsBinaryExt::SubWrapping(_, _, _) => parse_quote! { sub_wrapping },
+            OpsBinaryExt::MulWrapping(_, _, _) => parse_quote! { mul_wrapping },
+            OpsBinaryExt::DivWrapping(_, _, _) => parse_quote! { div_wrapping },
+            OpsBinaryExt::RemWrapping(_, _, _) => parse_quote! { rem_wrapping },
+            OpsBinaryExt::AddSaturating(_, _, _) => parse_quote! { add_saturating },
+            OpsBinaryExt::SubSaturating(_, _, _) => parse_quote! { sub_saturating },
+            OpsBinaryExt::MulSaturating(_, _, _) => parse_quote! { mul_saturating },
+            OpsBinaryExt::DivSaturating(_, _, _) => parse_quote! { div_saturating },
+            OpsBinaryExt::RemSaturating(_, _, _) => parse_quote! { rem_saturating },
+            OpsBinaryExt::AddOverflowing(_, _, _) => parse_quote! { add_overflowing },
+            OpsBinaryExt::SubOverflowing(_, _, _) => parse_quote! { sub_overflowing },
+            OpsBinaryExt::MulOverflowing(_, _, _) => parse_quote! { mul_overflowing },
+            OpsBinaryExt::DivOverflowing(_, _, _) => parse_quote! { div_overflowing },
+            OpsBinaryExt::RemOverflowing(_, _, _) => parse_quote! { rem_overflowing },
+            OpsBinaryExt::ShlOverflowing(_, _, _) => parse_quote! { shl_overflowing },
+            OpsBinaryExt::ShrOverflowing(_, _, _) => parse_quote! { shr_overflowing },
+            OpsBinaryExt::ShlUnbounded(_, _, _) => parse_quote! { shl_unbounded },
+            OpsBinaryExt::ShrUnbounded(_, _, _) => parse_quote! { shr_unbounded },
+        }
+    }
+
+    fn get_path(&self, token: Option<Token![crate]>) -> Path {
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
+
+        match self {
+            OpsBinaryExt::Add(_) => parse_quote! { #prefix::ops::NdAdd },
+            OpsBinaryExt::Sub(_) => parse_quote! { #prefix::ops::NdSub },
+            OpsBinaryExt::Mul(_) => parse_quote! { #prefix::ops::NdMul },
+            OpsBinaryExt::Div(_) => parse_quote! { #prefix::ops::NdDiv },
+            OpsBinaryExt::Rem(_) => parse_quote! { #prefix::ops::NdRem },
+            OpsBinaryExt::BitOr(_) => parse_quote! { #prefix::ops::NdBitOr },
+            OpsBinaryExt::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAnd },
+            OpsBinaryExt::BitXor(_) => parse_quote! { #prefix::ops::NdBitXor },
+            OpsBinaryExt::Shl(_) => parse_quote! { #prefix::ops::NdShl },
+            OpsBinaryExt::Shr(_) => parse_quote! { #prefix::ops::NdShr },
+            OpsBinaryExt::AddChecked(_, _, _) => parse_quote! { #prefix::ops::NdAddChecked },
+            OpsBinaryExt::SubChecked(_, _, _) => parse_quote! { #prefix::ops::NdSubChecked },
+            OpsBinaryExt::MulChecked(_, _, _) => parse_quote! { #prefix::ops::NdMulChecked },
+            OpsBinaryExt::DivChecked(_, _, _) => parse_quote! { #prefix::ops::NdDivChecked },
+            OpsBinaryExt::RemChecked(_, _, _) => parse_quote! { #prefix::ops::NdRemChecked },
+            OpsBinaryExt::ShlChecked(_, _, _) => parse_quote! { #prefix::ops::NdShlChecked },
+            OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { #prefix::ops::NdShrChecked },
+            OpsBinaryExt::AddWrapping(_, _, _) => parse_quote! { #prefix::ops::NdAddWrapping },
+            OpsBinaryExt::SubWrapping(_, _, _) => parse_quote! { #prefix::ops::NdSubWrapping },
+            OpsBinaryExt::MulWrapping(_, _, _) => parse_quote! { #prefix::ops::NdMulWrapping },
+            OpsBinaryExt::DivWrapping(_, _, _) => parse_quote! { #prefix::ops::NdDivWrapping },
+            OpsBinaryExt::RemWrapping(_, _, _) => parse_quote! { #prefix::ops::NdRemWrapping },
+            OpsBinaryExt::AddSaturating(_, _, _) => parse_quote! { #prefix::ops::NdAddSaturating },
+            OpsBinaryExt::SubSaturating(_, _, _) => parse_quote! { #prefix::ops::NdSubSaturating },
+            OpsBinaryExt::MulSaturating(_, _, _) => parse_quote! { #prefix::ops::NdMulSaturating },
+            OpsBinaryExt::DivSaturating(_, _, _) => parse_quote! { #prefix::ops::NdDivSaturating },
+            OpsBinaryExt::RemSaturating(_, _, _) => parse_quote! { #prefix::ops::NdRemSaturating },
+            OpsBinaryExt::AddOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdAddOverflowing },
+            OpsBinaryExt::SubOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdSubOverflowing },
+            OpsBinaryExt::MulOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdMulOverflowing },
+            OpsBinaryExt::DivOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdDivOverflowing },
+            OpsBinaryExt::RemOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdRemOverflowing },
+            OpsBinaryExt::ShlOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdShlOverflowing },
+            OpsBinaryExt::ShrOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdShrOverflowing },
+            OpsBinaryExt::ShlUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdShlUnbounded },
+            OpsBinaryExt::ShrUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdShrUnbounded },
+        }
+    }
+}
+
+impl OpsUnaryExt {
+    fn get_ident(&self) -> Ident {
+        match self {
+            OpsUnaryExt::Neg(_) => parse_quote! { neg },
+            OpsUnaryExt::Not(_) => parse_quote! { not },
+            OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { neg_checked },
+            OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { neg_wrapping },
+            OpsUnaryExt::NegSaturating(_, _, _) => parse_quote! { neg_saturating },
+            OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { neg_overflowing },
+        }
+    }
+
+    fn get_path(&self, token: Option<Token![crate]>) -> Path {
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
+
+        match self {
+            OpsUnaryExt::Neg(_) => parse_quote! { #prefix::ops::NdNeg },
+            OpsUnaryExt::Not(_) => parse_quote! { #prefix::ops::NdNot },
+            OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { #prefix::ops::NdNegChecked },
+            OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { #prefix::ops::NdNegWrapping },
+            OpsUnaryExt::NegSaturating(_, _, _) => parse_quote! { #prefix::ops::NdNegSaturating },
+            OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
+        }
+    }
+}
