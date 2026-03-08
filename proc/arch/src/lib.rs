@@ -2,7 +2,7 @@
 
 use proc_macro::TokenStream as TokenStreamStd;
 use quote::quote;
-use syn::{Error, Item, parse_macro_input, spanned::Spanned};
+use syn::{Error, Item, parse_macro_input};
 
 /// Aligns **struct**, **enum** or **union** according to approximate architecture cacheline size.
 ///
@@ -50,7 +50,7 @@ pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             #item
         }
         .into(),
-        _ => Error::new(item.span(), "Failed to align, expected struct, enum or union")
+        _ => Error::new_spanned(item, "Failed to align, expected struct, enum or union")
             .into_compile_error()
             .into(),
     }

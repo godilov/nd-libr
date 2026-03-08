@@ -283,8 +283,8 @@ impl Parse for AssertPrime {
         let len = match len.base10_parse::<usize>()? {
             val if val % 4 == 0 && (4..=60).contains(&val) => val / 4 - 1,
             _ => {
-                return Err(Error::new(
-                    len.span(),
+                return Err(Error::new_spanned(
+                    len,
                     "Failed to parse assert range, expected len to be 4 * N, where N in [1; 15]",
                 ));
             },

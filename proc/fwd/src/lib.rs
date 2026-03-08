@@ -399,7 +399,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let id = match path.segments.last() {
                 Some(val) => &val.ident,
                 None => {
-                    return Error::new(path.segments.span(), "Failed to forward definition, path is empty")
+                    return Error::new_spanned(&path.segments, "Failed to forward definition, path is empty")
                         .into_compile_error()
                         .into();
                 },
@@ -595,13 +595,13 @@ impl Parse for ForwardDefItem {
             Item::Union(val) => Ok(Self::Union(val)),
             Item::Impl(val) => {
                 if val.trait_.is_none() {
-                    return Err(Error::new(val.span(), "Failed to find correct item, expected impl for trait"));
+                    return Err(Error::new_spanned(val, "Failed to find correct item, expected impl for trait"));
                 }
 
                 Ok(Self::Impl(val))
             },
-            _ => Err(Error::new(
-                item.span(),
+            _ => Err(Error::new_spanned(
+                item,
                 "Failed to find correct item, expected struct, enum, union or impl",
             )),
         }
@@ -995,13 +995,13 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
 
 fn get_forward_expr(meta: &Meta) -> Result<ExprClosure> {
     match meta {
-        Meta::Path(val) => Err(Error::new(
-            val.span(),
+        Meta::Path(val) => Err(Error::new_spanned(
+            val,
             "Failed to forward as expression, expected closure expression",
         )),
         Meta::List(val) => syn::parse2::<ExprClosure>(val.tokens.clone()),
-        Meta::NameValue(val) => Err(Error::new(
-            val.span(),
+        Meta::NameValue(val) => Err(Error::new_spanned(
+            val,
             "Failed to forward as expression, expected closure expression",
         )),
     }
@@ -1026,15 +1026,15 @@ fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArg
         },
         Type::Array(val) => match get_forward_argument(expr, &val.elem)? {
             ForwardArgument::Raw(val) => Ok(ForwardArgument::Raw(val)),
-            ForwardArgument::Alt(val) => Err(Error::new(
-                val.span(),
+            ForwardArgument::Alt(val) => Err(Error::new_spanned(
+                val,
                 "Failed to forward argument, alternating in array is unsupported",
             )),
         },
         Type::Slice(val) => match get_forward_argument(expr, &val.elem)? {
             ForwardArgument::Raw(val) => Ok(ForwardArgument::Raw(val)),
-            ForwardArgument::Alt(val) => Err(Error::new(
-                val.span(),
+            ForwardArgument::Alt(val) => Err(Error::new_spanned(
+                val,
                 "Failed to forward argument, alternating in slice is unsupported",
             )),
         },
@@ -1076,12 +1076,12 @@ fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArg
             },
             &val.elem,
         ),
-        Type::Never(val) => Err(Error::new(val.span(), "Failed to forward argument, never type is unsupported")),
-        Type::Macro(val) => Err(Error::new(val.span(), "Failed to forward argument, macro type is unsupported")),
+        Type::Never(val) => Err(Error::new_spanned(val, "Failed to forward argument, never type is unsupported")),
+        Type::Macro(val) => Err(Error::new_spanned(val, "Failed to forward argument, macro type is unsupported")),
         Type::BareFn(_) => Ok(ForwardArgument::Raw(expr.stream())),
         Type::ImplTrait(_) => Ok(ForwardArgument::Raw(expr.stream())),
         Type::TraitObject(_) => Ok(ForwardArgument::Raw(expr.stream())),
-        Type::Verbatim(val) => Err(Error::new(val.span(), "Failed to forward argument, verbatim was found")),
+        Type::Verbatim(val) => Err(Error::new_spanned(val, "Failed to forward argument, verbatim was found")),
         _ => todo!(),
     }
 }

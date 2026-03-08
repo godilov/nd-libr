@@ -622,8 +622,8 @@ impl Parse for OpsStdSignatureAssign {
         let lhs_ty = match *lhs_pat.ty {
             Type::Reference(ref val) if val.mutability.is_some() => (*val.elem).clone(),
             _ => {
-                return Err(Error::new(
-                    lhs_pat.ty.span(),
+                return Err(Error::new_spanned(
+                    lhs_pat.ty,
                     "Failed to parse signature, lhs expected to be mutable reference",
                 ));
             },
@@ -632,8 +632,8 @@ impl Parse for OpsStdSignatureAssign {
         let (rhs_ty, rhs_ref) = match *rhs_pat.ty {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
-                    return Err(Error::new(
-                        rhs_pat.ty.span(),
+                    return Err(Error::new_spanned(
+                        rhs_pat.ty,
                         "Failed to parse signature, rhs expected to be reference",
                     ));
                 },
@@ -675,8 +675,8 @@ impl Parse for OpsStdSignatureBinary {
         let (lhs_ty, lhs_ref) = match *lhs_pat.ty {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
-                    return Err(Error::new(
-                        lhs_pat.ty.span(),
+                    return Err(Error::new_spanned(
+                        lhs_pat.ty,
                         "Failed to parse signature, lhs expected to be reference",
                     ));
                 },
@@ -688,8 +688,8 @@ impl Parse for OpsStdSignatureBinary {
         let (rhs_ty, rhs_ref) = match *rhs_pat.ty {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
-                    return Err(Error::new(
-                        rhs_pat.ty.span(),
+                    return Err(Error::new_spanned(
+                        rhs_pat.ty,
                         "Failed to parse signature, rhs expected to be reference",
                     ));
                 },
@@ -732,8 +732,8 @@ impl Parse for OpsStdSignatureUnary {
         let (self_ty, self_ref) = match *self_pat.ty {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
-                    return Err(Error::new(
-                        self_pat.ty.span(),
+                    return Err(Error::new_spanned(
+                        self_pat.ty,
                         "Failed to parse signature, self expected to be reference",
                     ));
                 },
