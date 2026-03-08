@@ -347,8 +347,8 @@ enum OpsBinary {
 
 #[derive(Clone, Copy)]
 enum OpsUnary {
-    Neg(Token![-]),
     Not(Token![!]),
+    Neg(Token![-]),
 }
 
 #[allow(unused)]
@@ -436,8 +436,8 @@ enum OpsBinaryExt {
 #[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsUnaryExt {
-    Neg(Token![-]),
     Not(Token![!]),
+    Neg(Token![-]),
     NegChecked(Token![-], Token![@], kw::checked),
     NegStrict(Token![-], Token![@], kw::strict),
     NegWrapping(Token![-], Token![@], kw::wrapping),
@@ -1038,10 +1038,10 @@ impl Parse for OpsUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(Token![-]) {
-            input.parse::<Token![-]>().map(Self::Neg)
-        } else if lookahead.peek(Token![!]) {
+        if lookahead.peek(Token![!]) {
             input.parse::<Token![!]>().map(Self::Not)
+        } else if lookahead.peek(Token![-]) {
+            input.parse::<Token![-]>().map(Self::Neg)
         } else {
             Err(lookahead.error())
         }
@@ -1754,8 +1754,8 @@ impl ToTokens for OpsBinary {
 impl ToTokens for OpsUnary {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            OpsUnary::Neg(op) => tokens.extend(quote! { #op }),
             OpsUnary::Not(op) => tokens.extend(quote! { #op }),
+            OpsUnary::Neg(op) => tokens.extend(quote! { #op }),
         }
     }
 }
@@ -1799,8 +1799,8 @@ impl ToTokens for OpsBinaryExt {
 impl ToTokens for OpsUnaryExt {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            OpsUnaryExt::Neg(op) => tokens.extend(quote! { #op }),
             OpsUnaryExt::Not(op) => tokens.extend(quote! { #op }),
+            OpsUnaryExt::Neg(op) => tokens.extend(quote! { #op }),
             _ => (),
         }
     }
@@ -2006,8 +2006,8 @@ impl From<OpsBinary> for OpsBinaryExt {
 impl From<OpsUnary> for OpsUnaryExt {
     fn from(value: OpsUnary) -> Self {
         match value {
-            OpsUnary::Neg(token) => Self::Neg(token),
             OpsUnary::Not(token) => Self::Not(token),
+            OpsUnary::Neg(token) => Self::Neg(token),
         }
     }
 }
@@ -2079,15 +2079,15 @@ impl OpsBinary {
 impl OpsUnary {
     fn get_ident(&self) -> Ident {
         match self {
-            OpsUnary::Neg(_) => parse_quote! { neg },
             OpsUnary::Not(_) => parse_quote! { not },
+            OpsUnary::Neg(_) => parse_quote! { neg },
         }
     }
 
     fn get_path(&self) -> Path {
         match self {
-            OpsUnary::Neg(_) => parse_quote! { std::ops::Neg },
             OpsUnary::Not(_) => parse_quote! { std::ops::Not },
+            OpsUnary::Neg(_) => parse_quote! { std::ops::Neg },
         }
     }
 }
@@ -2267,8 +2267,8 @@ impl OpsBinaryExt {
 impl OpsUnaryExt {
     fn get_ident(&self) -> Ident {
         match self {
-            OpsUnaryExt::Neg(_) => parse_quote! { neg },
             OpsUnaryExt::Not(_) => parse_quote! { not },
+            OpsUnaryExt::Neg(_) => parse_quote! { neg },
             OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { neg_checked },
             OpsUnaryExt::NegStrict(_, _, _) => parse_quote! { neg_strict },
             OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { neg_wrapping },
@@ -2281,8 +2281,8 @@ impl OpsUnaryExt {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
 
         match self {
-            OpsUnaryExt::Neg(_) => parse_quote! { #prefix::ops::NdNeg },
             OpsUnaryExt::Not(_) => parse_quote! { #prefix::ops::NdNot },
+            OpsUnaryExt::Neg(_) => parse_quote! { #prefix::ops::NdNeg },
             OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { #prefix::ops::NdNegChecked },
             OpsUnaryExt::NegStrict(_, _, _) => parse_quote! { #prefix::ops::NdNegStrict },
             OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { #prefix::ops::NdNegWrapping },

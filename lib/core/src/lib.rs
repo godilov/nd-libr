@@ -139,15 +139,6 @@ pub mod ops {
         };
     }
 
-    /// `Nd` alternative to [`std::ops::Neg`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNeg<Value = Self> {
-        type Type;
-
-        fn neg(value: &Value) -> Self::Type;
-    }
-
     /// `Nd` alternative to [`std::ops::Not`] for describing operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
@@ -155,6 +146,15 @@ pub mod ops {
         type Type;
 
         fn not(value: &Value) -> Self::Type;
+    }
+
+    /// `Nd` alternative to [`std::ops::Neg`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNeg<Value = Self> {
+        type Type;
+
+        fn neg(value: &Value) -> Self::Type;
     }
 
     /// `Nd` variant for describing checked neg operations.
