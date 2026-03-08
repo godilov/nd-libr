@@ -567,6 +567,13 @@ pub mod prime {
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
+pub struct Strict<N: Num + NumExt + NdOpsStrict + NdOpsAssignStrict>(pub N);
+
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumExt)]
 pub struct Wrapping<N: Num + NumExt + NdOpsWrapping + NdOpsAssignWrapping>(pub N);
 
 #[ndfwd::std(self.0 with N)]
@@ -1042,6 +1049,12 @@ sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ndops::all! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
+
+impl<N: Num + NumExt + NdOpsStrict + NdOpsAssignStrict> From<N> for Strict<N> {
+    fn from(value: N) -> Self {
+        Strict(value)
+    }
+}
 
 impl<N: Num + NumExt + NdOpsWrapping + NdOpsAssignWrapping> From<N> for Wrapping<N> {
     fn from(value: N) -> Self {

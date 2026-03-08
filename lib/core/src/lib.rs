@@ -157,6 +157,51 @@ pub mod ops {
         fn not(value: &Value) -> Self::Type;
     }
 
+    /// `Nd` variant for describing checked neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegChecked<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
+
+    /// `Nd` variant for describing strict neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegStrict<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing wrapping neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegWrapping<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing saturating neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegSaturating<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing overflowing neg operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdNegOverflowing<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn neg_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+    }
+
     /// `Nd` alternative to [`std::ops::Add`] for describing operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
@@ -247,112 +292,6 @@ pub mod ops {
         fn shr(lhs: &Lhs, rhs: Rhs) -> Self::Type;
     }
 
-    /// `Nd` alternative to [`std::ops::AddAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
-        fn add_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::SubAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
-        fn sub_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::MulAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
-        fn mul_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::DivAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
-        fn div_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::RemAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
-        fn rem_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::BitOrAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
-        fn bitor_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::BitAndAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
-        fn bitand_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::BitXorAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
-        fn bitxor_assign(lhs: &mut Lhs, rhs: &Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::ShlAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
-        fn shl_assign(lhs: &mut Lhs, rhs: Rhs);
-    }
-
-    /// `Nd` alternative to [`std::ops::ShrAssign`] for describing operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
-        fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
-    }
-
-    /// `Nd` variant for describing checked neg operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegChecked<Lhs = Self, Rhs = Self> {
-        type Type;
-
-        fn neg_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
-    }
-
-    /// `Nd` variant for describing wrapping neg operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegWrapping<Lhs = Self, Rhs = Self> {
-        type Type;
-
-        fn neg_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-    }
-
-    /// `Nd` variant for describing saturating neg operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegSaturating<Lhs = Self, Rhs = Self> {
-        type Type;
-
-        fn neg_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-    }
-
-    /// `Nd` variant for describing overflowing neg operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegOverflowing<Lhs = Self, Rhs = Self> {
-        type Type;
-
-        fn neg_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
-    }
-
     /// `Nd` variant for describing checked add operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
@@ -396,6 +335,87 @@ pub mod ops {
         type Type;
 
         fn rem_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+    }
+
+    /// `Nd` variant for describing checked shl operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShlChecked<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shl_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
+    }
+
+    /// `Nd` variant for describing checked shr operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShrChecked<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shr_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
+    }
+
+    /// `Nd` variant for describing strict add operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdAddStrict<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn add_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing strict sub operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdSubStrict<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn sub_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing strict mul operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdMulStrict<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn mul_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing strict div operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdDivStrict<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn div_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing strict rem operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdRemStrict<Lhs = Self, Rhs = Self> {
+        type Type;
+
+        fn rem_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing strict shl operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShlStrict<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shl_strict(lhs: &Lhs, rhs: Rhs) -> Self::Type;
+    }
+
+    /// `Nd` variant for describing strict shr operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShrStrict<Lhs = Self, Rhs = usize> {
+        type Type;
+
+        fn shr_strict(lhs: &Lhs, rhs: Rhs) -> Self::Type;
     }
 
     /// `Nd` variant for describing wrapping add operations.
@@ -533,24 +553,6 @@ pub mod ops {
         fn rem_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
     }
 
-    /// `Nd` variant for describing checked shl operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdShlChecked<Lhs = Self, Rhs = usize> {
-        type Type;
-
-        fn shl_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
-    }
-
-    /// `Nd` variant for describing checked shr operations.
-    ///
-    /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdShrChecked<Lhs = Self, Rhs = usize> {
-        type Type;
-
-        fn shr_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
-    }
-
     /// `Nd` variant for describing overflowing shl operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
@@ -585,6 +587,125 @@ pub mod ops {
         type Type;
 
         fn shr_unbounded(lhs: &Lhs, rhs: Rhs) -> Self::Type;
+    }
+
+    /// `Nd` alternative to [`std::ops::AddAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
+        fn add_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::SubAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
+        fn sub_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::MulAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
+        fn mul_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::DivAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
+        fn div_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::RemAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
+        fn rem_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::BitOrAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
+        fn bitor_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::BitAndAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
+        fn bitand_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::BitXorAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
+        fn bitxor_assign(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::ShlAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
+        fn shl_assign(lhs: &mut Lhs, rhs: Rhs);
+    }
+
+    /// `Nd` alternative to [`std::ops::ShrAssign`] for describing operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
+        fn shr_assign(lhs: &mut Lhs, rhs: Rhs);
+    }
+
+    /// `Nd` variant for describing strict add assign operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdAddAssignStrict<Lhs = Self, Rhs = Self> {
+        fn add_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` variant for describing strict sub assign operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdSubAssignStrict<Lhs = Self, Rhs = Self> {
+        fn sub_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` variant for describing strict mul assign operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdMulAssignStrict<Lhs = Self, Rhs = Self> {
+        fn mul_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` variant for describing strict div assign operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdDivAssignStrict<Lhs = Self, Rhs = Self> {
+        fn div_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` variant for describing strict rem assign operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdRemAssignStrict<Lhs = Self, Rhs = Self> {
+        fn rem_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+    }
+
+    /// `Nd` variant for describing strict shl assign operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShlAssignStrict<Lhs = Self, Rhs = usize> {
+        fn shl_assign_strict(lhs: &mut Lhs, rhs: Rhs);
+    }
+
+    /// `Nd` variant for describing strict shr assign operations.
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdShrAssignStrict<Lhs = Self, Rhs = usize> {
+        fn shr_assign_strict(lhs: &mut Lhs, rhs: Rhs);
     }
 
     /// `Nd` variant for describing wrapping add assign operations.
@@ -671,7 +792,7 @@ pub mod ops {
         fn shr_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
     }
 
-    /// Convenience trait for describing types that support all standard Rust binary operations of `Std-kind`
+    /// Aggregate trait for describing types that support all standard Rust binary operations of `Std-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait Ops<Rhs = Self, ShiftRhs = usize>:
@@ -691,7 +812,7 @@ pub mod ops {
         type Type;
     }
 
-    /// Convenience trait for describing types that support all standard Rust assign operations of `Std-kind`
+    /// Aggregate trait for describing types that support all standard Rust assign operations of `Std-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait OpsAssign<Rhs = Self, ShiftRhs = usize>:
@@ -709,7 +830,7 @@ pub mod ops {
     {
     }
 
-    /// Convenience trait for describing types that support all standard Rust binary operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all standard Rust binary operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOps<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
@@ -727,7 +848,7 @@ pub mod ops {
         type All;
     }
 
-    /// Convenience trait for describing types that support all checked operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all checked operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsChecked<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
@@ -742,7 +863,22 @@ pub mod ops {
         type All;
     }
 
-    /// Convenience trait for describing types that support all wrapping operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all strict operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsStrict<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdAddStrict<Lhs, Rhs, Type = Self::All>
+        + NdSubStrict<Lhs, Rhs, Type = Self::All>
+        + NdMulStrict<Lhs, Rhs, Type = Self::All>
+        + NdDivStrict<Lhs, Rhs, Type = Self::All>
+        + NdRemStrict<Lhs, Rhs, Type = Self::All>
+        + NdShlStrict<Lhs, ShiftRhs, Type = Self::All>
+        + NdShrStrict<Lhs, ShiftRhs, Type = Self::All>
+    {
+        type All;
+    }
+
+    /// Aggregate trait for describing types that support all wrapping operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsWrapping<Lhs = Self, Rhs = Self>:
@@ -755,7 +891,7 @@ pub mod ops {
         type All;
     }
 
-    /// Convenience trait for describing types that support all saturating operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all saturating operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsSaturating<Lhs = Self, Rhs = Self>:
@@ -768,20 +904,22 @@ pub mod ops {
         type All;
     }
 
-    /// Convenience trait for describing types that support all overflowing operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all overflowing operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdOpsOverflowing<Lhs = Self, Rhs = Self>:
+    pub trait NdOpsOverflowing<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
         NdAddOverflowing<Lhs, Rhs, Type = Self::All>
         + NdSubOverflowing<Lhs, Rhs, Type = Self::All>
         + NdMulOverflowing<Lhs, Rhs, Type = Self::All>
         + NdDivOverflowing<Lhs, Rhs, Type = Self::All>
         + NdRemOverflowing<Lhs, Rhs, Type = Self::All>
+        + NdShlOverflowing<Lhs, ShiftRhs, Type = Self::All>
+        + NdShrOverflowing<Lhs, ShiftRhs, Type = Self::All>
     {
         type All;
     }
 
-    /// Convenience trait for describing types that support all unbounded operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all unbounded operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsUnbounded<Lhs = Self, Rhs = Self>:
@@ -790,7 +928,7 @@ pub mod ops {
         type All;
     }
 
-    /// Convenience trait for describing types that support all standard Rust assign operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all standard Rust assign operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsAssign<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
@@ -807,7 +945,21 @@ pub mod ops {
     {
     }
 
-    /// Convenience trait for describing types that support all wrapping assign operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all strict assign operations of `Nd-kind`
+    ///
+    /// For more information and examples, see [crate-level](crate) documentation.
+    pub trait NdOpsAssignStrict<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+        NdAddAssignStrict<Lhs, Rhs>
+        + NdSubAssignStrict<Lhs, Rhs>
+        + NdMulAssignStrict<Lhs, Rhs>
+        + NdDivAssignStrict<Lhs, Rhs>
+        + NdRemAssignStrict<Lhs, Rhs>
+        + NdShlAssignStrict<Lhs, Rhs>
+        + NdShrAssignStrict<Lhs, Rhs>
+    {
+    }
+
+    /// Aggregate trait for describing types that support all wrapping assign operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsAssignWrapping<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
@@ -819,7 +971,7 @@ pub mod ops {
     {
     }
 
-    /// Convenience trait for describing types that support all saturating assign operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all saturating assign operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsAssignSaturating<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
@@ -831,7 +983,7 @@ pub mod ops {
     {
     }
 
-    /// Convenience trait for describing types that support all unbounded assign operations of `Nd-kind`
+    /// Aggregate trait for describing types that support all unbounded assign operations of `Nd-kind`
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdOpsAssignUnbounded<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
@@ -902,6 +1054,19 @@ pub mod ops {
         type All = Type;
     }
 
+    impl<Any, Lhs, Rhs, ShiftRhs, Type> NdOpsStrict<Lhs, Rhs, ShiftRhs> for Any
+    where
+        Any: NdAddStrict<Lhs, Rhs, Type = Type>
+            + NdSubStrict<Lhs, Rhs, Type = Type>
+            + NdMulStrict<Lhs, Rhs, Type = Type>
+            + NdDivStrict<Lhs, Rhs, Type = Type>
+            + NdRemStrict<Lhs, Rhs, Type = Type>
+            + NdShlStrict<Lhs, ShiftRhs, Type = Type>
+            + NdShrStrict<Lhs, ShiftRhs, Type = Type>,
+    {
+        type All = Type;
+    }
+
     impl<Any, Lhs, Rhs, Type> NdOpsWrapping<Lhs, Rhs> for Any
     where
         Any: NdAddWrapping<Lhs, Rhs, Type = Type>
@@ -924,13 +1089,15 @@ pub mod ops {
         type All = Type;
     }
 
-    impl<Any, Lhs, Rhs, Type> NdOpsOverflowing<Lhs, Rhs> for Any
+    impl<Any, Lhs, Rhs, ShiftRhs, Type> NdOpsOverflowing<Lhs, Rhs, ShiftRhs> for Any
     where
         Any: NdAddOverflowing<Lhs, Rhs, Type = Type>
             + NdSubOverflowing<Lhs, Rhs, Type = Type>
             + NdMulOverflowing<Lhs, Rhs, Type = Type>
             + NdDivOverflowing<Lhs, Rhs, Type = Type>
-            + NdRemOverflowing<Lhs, Rhs, Type = Type>,
+            + NdRemOverflowing<Lhs, Rhs, Type = Type>
+            + NdShlOverflowing<Lhs, ShiftRhs, Type = Type>
+            + NdShrOverflowing<Lhs, ShiftRhs, Type = Type>,
     {
         type All = Type;
     }
@@ -953,6 +1120,17 @@ pub mod ops {
             + NdBitXorAssign<Lhs, Rhs>
             + NdShlAssign<Lhs, ShiftRhs>
             + NdShrAssign<Lhs, ShiftRhs>
+    {
+    }
+
+    impl<Any, Lhs, Rhs> NdOpsAssignStrict<Lhs, Rhs> for Any where
+        Any: NdAddAssignStrict<Lhs, Rhs>
+            + NdSubAssignStrict<Lhs, Rhs>
+            + NdMulAssignStrict<Lhs, Rhs>
+            + NdDivAssignStrict<Lhs, Rhs>
+            + NdRemAssignStrict<Lhs, Rhs>
+            + NdShlAssignStrict<Lhs, Rhs>
+            + NdShrAssignStrict<Lhs, Rhs>
     {
     }
 

@@ -24,6 +24,7 @@ mod kw {
     syn::custom_keyword!(ext);
 
     syn::custom_keyword!(checked);
+    syn::custom_keyword!(strict);
     syn::custom_keyword!(wrapping);
     syn::custom_keyword!(saturating);
     syn::custom_keyword!(overflowing);
@@ -363,6 +364,13 @@ enum OpsAssignExt {
     BitXor(Token![^=]),
     Shl(Token![<<=]),
     Shr(Token![>>=]),
+    AddStrict(Token![+=], Token![@], kw::strict),
+    SubStrict(Token![-=], Token![@], kw::strict),
+    MulStrict(Token![*=], Token![@], kw::strict),
+    DivStrict(Token![/=], Token![@], kw::strict),
+    RemStrict(Token![%=], Token![@], kw::strict),
+    ShlStrict(Token![<<=], Token![@], kw::strict),
+    ShrStrict(Token![>>=], Token![@], kw::strict),
     AddWrapping(Token![+=], Token![@], kw::wrapping),
     SubWrapping(Token![-=], Token![@], kw::wrapping),
     MulWrapping(Token![*=], Token![@], kw::wrapping),
@@ -396,6 +404,13 @@ enum OpsBinaryExt {
     RemChecked(Token![%], Token![@], kw::checked),
     ShlChecked(Token![<<], Token![@], kw::checked),
     ShrChecked(Token![>>], Token![@], kw::checked),
+    AddStrict(Token![+], Token![@], kw::strict),
+    SubStrict(Token![-], Token![@], kw::strict),
+    MulStrict(Token![*], Token![@], kw::strict),
+    DivStrict(Token![/], Token![@], kw::strict),
+    RemStrict(Token![%], Token![@], kw::strict),
+    ShlStrict(Token![<<], Token![@], kw::strict),
+    ShrStrict(Token![>>], Token![@], kw::strict),
     AddWrapping(Token![+], Token![@], kw::wrapping),
     SubWrapping(Token![-], Token![@], kw::wrapping),
     MulWrapping(Token![*], Token![@], kw::wrapping),
@@ -422,6 +437,7 @@ enum OpsUnaryExt {
     Neg(Token![-]),
     Not(Token![!]),
     NegChecked(Token![-], Token![@], kw::checked),
+    NegStrict(Token![-], Token![@], kw::strict),
     NegWrapping(Token![-], Token![@], kw::wrapping),
     NegSaturating(Token![-], Token![@], kw::saturating),
     NegOverflowing(Token![-], Token![@], kw::overflowing),
@@ -1041,7 +1057,23 @@ impl Parse for OpsAssignExt {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::wrapping) {
+        if lookahead.peek(kw::strict) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsAssign::Add(val) => Ok(Self::AddStrict(val, token, ext)),
+                OpsAssign::Sub(val) => Ok(Self::SubStrict(val, token, ext)),
+                OpsAssign::Mul(val) => Ok(Self::MulStrict(val, token, ext)),
+                OpsAssign::Div(val) => Ok(Self::DivStrict(val, token, ext)),
+                OpsAssign::Rem(val) => Ok(Self::RemStrict(val, token, ext)),
+                OpsAssign::Shl(val) => Ok(Self::ShlStrict(val, token, ext)),
+                OpsAssign::Shr(val) => Ok(Self::ShrStrict(val, token, ext)),
+                OpsAssign::BitOr(_) | OpsAssign::BitAnd(_) | OpsAssign::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @strict is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::wrapping) {
             let ext = input.parse()?;
 
             match op {
@@ -1125,6 +1157,22 @@ impl Parse for OpsBinaryExt {
                 OpsBinary::BitOr(_) | OpsBinary::BitAnd(_) | OpsBinary::BitXor(_) => Err(Error::new_spanned(
                     ext,
                     "Failed to parse bitwise operation, @checked is unsupported",
+                )),
+            }
+        } else if lookahead.peek(kw::strict) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsBinary::Add(val) => Ok(Self::AddStrict(val, token, ext)),
+                OpsBinary::Sub(val) => Ok(Self::SubStrict(val, token, ext)),
+                OpsBinary::Mul(val) => Ok(Self::MulStrict(val, token, ext)),
+                OpsBinary::Div(val) => Ok(Self::DivStrict(val, token, ext)),
+                OpsBinary::Rem(val) => Ok(Self::RemStrict(val, token, ext)),
+                OpsBinary::Shl(val) => Ok(Self::ShlStrict(val, token, ext)),
+                OpsBinary::Shr(val) => Ok(Self::ShrStrict(val, token, ext)),
+                OpsBinary::BitOr(_) | OpsBinary::BitAnd(_) | OpsBinary::BitXor(_) => Err(Error::new_spanned(
+                    ext,
+                    "Failed to parse bitwise operation, @strict is unsupported",
                 )),
             }
         } else if lookahead.peek(kw::wrapping) {
@@ -1222,6 +1270,15 @@ impl Parse for OpsUnaryExt {
                     ext,
                     "Failed to parse not operation, @checked is unsupported",
                 )),
+            }
+        } else if lookahead.peek(kw::strict) {
+            let ext = input.parse()?;
+
+            match op {
+                OpsUnary::Neg(val) => Ok(Self::NegStrict(val, token, ext)),
+                OpsUnary::Not(_) => {
+                    Err(Error::new_spanned(ext, "Failed to parse not operation, @strict is unsupported"))
+                },
             }
         } else if lookahead.peek(kw::wrapping) {
             let ext = input.parse()?;
@@ -2043,6 +2100,13 @@ impl OpsAssignExt {
             OpsAssignExt::BitXor(_) => parse_quote! { bitxor_assign },
             OpsAssignExt::Shl(_) => parse_quote! { shl_assign },
             OpsAssignExt::Shr(_) => parse_quote! { shr_assign },
+            OpsAssignExt::AddStrict(_, _, _) => parse_quote! { add_assign_strict },
+            OpsAssignExt::SubStrict(_, _, _) => parse_quote! { sub_assign_strict },
+            OpsAssignExt::MulStrict(_, _, _) => parse_quote! { mul_assign_strict },
+            OpsAssignExt::DivStrict(_, _, _) => parse_quote! { div_assign_strict },
+            OpsAssignExt::RemStrict(_, _, _) => parse_quote! { rem_assign_strict },
+            OpsAssignExt::ShlStrict(_, _, _) => parse_quote! { shl_assign_strict },
+            OpsAssignExt::ShrStrict(_, _, _) => parse_quote! { shr_assign_strict },
             OpsAssignExt::AddWrapping(_, _, _) => parse_quote! { add_assign_wrapping },
             OpsAssignExt::SubWrapping(_, _, _) => parse_quote! { sub_assign_wrapping },
             OpsAssignExt::MulWrapping(_, _, _) => parse_quote! { mul_assign_wrapping },
@@ -2072,6 +2136,13 @@ impl OpsAssignExt {
             OpsAssignExt::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
             OpsAssignExt::Shl(_) => parse_quote! { #prefix::ops::NdShlAssign },
             OpsAssignExt::Shr(_) => parse_quote! { #prefix::ops::NdShrAssign },
+            OpsAssignExt::AddStrict(_, _, _) => parse_quote! { #prefix::ops::NdAddAssignStrict },
+            OpsAssignExt::SubStrict(_, _, _) => parse_quote! { #prefix::ops::NdSubAssignStrict },
+            OpsAssignExt::MulStrict(_, _, _) => parse_quote! { #prefix::ops::NdMulAssignStrict },
+            OpsAssignExt::DivStrict(_, _, _) => parse_quote! { #prefix::ops::NdDivAssignStrict },
+            OpsAssignExt::RemStrict(_, _, _) => parse_quote! { #prefix::ops::NdRemAssignStrict },
+            OpsAssignExt::ShlStrict(_, _, _) => parse_quote! { #prefix::ops::NdShlAssignStrict },
+            OpsAssignExt::ShrStrict(_, _, _) => parse_quote! { #prefix::ops::NdShrAssignStrict },
             OpsAssignExt::AddWrapping(_, _, _) => parse_quote! { #prefix::ops::NdAddAssignWrapping },
             OpsAssignExt::SubWrapping(_, _, _) => parse_quote! { #prefix::ops::NdSubAssignWrapping },
             OpsAssignExt::MulWrapping(_, _, _) => parse_quote! { #prefix::ops::NdMulAssignWrapping },
@@ -2108,6 +2179,13 @@ impl OpsBinaryExt {
             OpsBinaryExt::RemChecked(_, _, _) => parse_quote! { rem_checked },
             OpsBinaryExt::ShlChecked(_, _, _) => parse_quote! { shl_checked },
             OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { shr_checked },
+            OpsBinaryExt::AddStrict(_, _, _) => parse_quote! { add_strict },
+            OpsBinaryExt::SubStrict(_, _, _) => parse_quote! { sub_strict },
+            OpsBinaryExt::MulStrict(_, _, _) => parse_quote! { mul_strict },
+            OpsBinaryExt::DivStrict(_, _, _) => parse_quote! { div_strict },
+            OpsBinaryExt::RemStrict(_, _, _) => parse_quote! { rem_strict },
+            OpsBinaryExt::ShlStrict(_, _, _) => parse_quote! { shl_strict },
+            OpsBinaryExt::ShrStrict(_, _, _) => parse_quote! { shr_strict },
             OpsBinaryExt::AddWrapping(_, _, _) => parse_quote! { add_wrapping },
             OpsBinaryExt::SubWrapping(_, _, _) => parse_quote! { sub_wrapping },
             OpsBinaryExt::MulWrapping(_, _, _) => parse_quote! { mul_wrapping },
@@ -2151,6 +2229,13 @@ impl OpsBinaryExt {
             OpsBinaryExt::RemChecked(_, _, _) => parse_quote! { #prefix::ops::NdRemChecked },
             OpsBinaryExt::ShlChecked(_, _, _) => parse_quote! { #prefix::ops::NdShlChecked },
             OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { #prefix::ops::NdShrChecked },
+            OpsBinaryExt::AddStrict(_, _, _) => parse_quote! { #prefix::ops::NdAddStrict },
+            OpsBinaryExt::SubStrict(_, _, _) => parse_quote! { #prefix::ops::NdSubStrict },
+            OpsBinaryExt::MulStrict(_, _, _) => parse_quote! { #prefix::ops::NdMulStrict },
+            OpsBinaryExt::DivStrict(_, _, _) => parse_quote! { #prefix::ops::NdDivStrict },
+            OpsBinaryExt::RemStrict(_, _, _) => parse_quote! { #prefix::ops::NdRemStrict },
+            OpsBinaryExt::ShlStrict(_, _, _) => parse_quote! { #prefix::ops::NdShlStrict },
+            OpsBinaryExt::ShrStrict(_, _, _) => parse_quote! { #prefix::ops::NdShrStrict },
             OpsBinaryExt::AddWrapping(_, _, _) => parse_quote! { #prefix::ops::NdAddWrapping },
             OpsBinaryExt::SubWrapping(_, _, _) => parse_quote! { #prefix::ops::NdSubWrapping },
             OpsBinaryExt::MulWrapping(_, _, _) => parse_quote! { #prefix::ops::NdMulWrapping },
@@ -2180,6 +2265,7 @@ impl OpsUnaryExt {
             OpsUnaryExt::Neg(_) => parse_quote! { neg },
             OpsUnaryExt::Not(_) => parse_quote! { not },
             OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { neg_checked },
+            OpsUnaryExt::NegStrict(_, _, _) => parse_quote! { neg_strict },
             OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { neg_wrapping },
             OpsUnaryExt::NegSaturating(_, _, _) => parse_quote! { neg_saturating },
             OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { neg_overflowing },
@@ -2193,6 +2279,7 @@ impl OpsUnaryExt {
             OpsUnaryExt::Neg(_) => parse_quote! { #prefix::ops::NdNeg },
             OpsUnaryExt::Not(_) => parse_quote! { #prefix::ops::NdNot },
             OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { #prefix::ops::NdNegChecked },
+            OpsUnaryExt::NegStrict(_, _, _) => parse_quote! { #prefix::ops::NdNegStrict },
             OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { #prefix::ops::NdNegWrapping },
             OpsUnaryExt::NegSaturating(_, _, _) => parse_quote! { #prefix::ops::NdNegSaturating },
             OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
