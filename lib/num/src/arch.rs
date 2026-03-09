@@ -160,8 +160,8 @@ impl<T> From<T> for Aligned<T> {
 }
 
 ndops::all! { @ndun <T> (value: &Aligned<T>) -> Aligned<T>, [
-    - T::neg(&value.0) where [T: NdNeg<Type = T>],
     ! T::not(&value.0) where [T: NdNot<Type = T>],
+    - T::neg(&value.0) where [T: NdNeg<Type = T>],
 ] }
 
 ndops::all! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> Aligned<T>, [

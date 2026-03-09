@@ -1857,8 +1857,8 @@ impl<const L: usize> UpperHex for Bytes<L> {
 }
 
 ndops::all! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
-    - Signed::<L>(neg(&value.0)),
     ! Signed::<L>(not(&value.0)),
+    - Signed::<L>(neg(&value.0)),
 ] }
 
 ndops::all! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Signed<L>, [
