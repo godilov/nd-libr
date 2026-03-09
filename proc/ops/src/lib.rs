@@ -1431,7 +1431,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
                 impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ref #lhs_ty #gen_where {
                     type Output = #res_ty;
 
-                    fn #ident(self, rhs: #rhs_ref #rhs_ty) -> #res_ty {
+                    fn #ident(self, rhs: #rhs_ref #rhs_ty) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
                         <#res_ty>::from((|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { #expr })(self, rhs))
                     }
@@ -1538,7 +1538,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                 impl #gen_impl #path for #lhs_ref #self_ty #gen_where {
                     type Output = #res_ty;
 
-                    fn #ident(self) -> #res_ty {
+                    fn #ident(self) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
                         <#res_ty>::from((|#self_pat: #lhs_ref #self_ty| { #expr })(self))
                     }
@@ -1647,6 +1647,7 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
             let res_ty = &self.signature.res_ty;
+            let ty = definition.op.get_type(res_ty);
 
             let expr = &definition.expr;
 
@@ -1655,8 +1656,8 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
                     impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
                         type Type = #res_ty;
 
-                        fn #ident(#lhs_pat, #rhs_pat) -> #res_ty {
-                            <#res_ty>::from(#expr)
+                        fn #ident(#lhs_pat, #rhs_pat) -> #ty {
+                            <#ty>::from(#expr)
                         }
                     }
                 }
@@ -1693,6 +1694,7 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
             let self_pat = &self.signature.self_pat;
             let self_ty = &self.signature.self_ty;
             let res_ty = &self.signature.res_ty;
+            let ty = definition.op.get_type(res_ty);
 
             let expr = &definition.expr;
 
@@ -1701,8 +1703,8 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
                     impl #gen_impl #path<#self_ty> for #impl_ty #gen_where {
                         type Type = #res_ty;
 
-                        fn #ident(#self_pat) -> #res_ty {
-                            <#res_ty>::from(#expr)
+                        fn #ident(#self_pat) -> #ty {
+                            <#ty>::from(#expr)
                         }
                     }
                 }
@@ -2158,8 +2160,8 @@ impl OpsAssignExt {
             OpsAssignExt::MulSaturating(_, _, _) => parse_quote! { #prefix::ops::NdMulAssignSaturating },
             OpsAssignExt::DivSaturating(_, _, _) => parse_quote! { #prefix::ops::NdDivAssignSaturating },
             OpsAssignExt::RemSaturating(_, _, _) => parse_quote! { #prefix::ops::NdRemAssignSaturating },
-            OpsAssignExt::ShlUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdDivAssignUnbounded },
-            OpsAssignExt::ShrUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdRemAssignUnbounded },
+            OpsAssignExt::ShlUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdShlAssignUnbounded },
+            OpsAssignExt::ShrUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdShrAssignUnbounded },
         }
     }
 }
@@ -2262,6 +2264,26 @@ impl OpsBinaryExt {
             OpsBinaryExt::ShrUnbounded(_, _, _) => parse_quote! { #prefix::ops::NdShrUnbounded },
         }
     }
+
+    fn get_type(&self, ty: &Type) -> Type {
+        match self {
+            OpsBinaryExt::AddChecked(_, _, _)
+            | OpsBinaryExt::SubChecked(_, _, _)
+            | OpsBinaryExt::MulChecked(_, _, _)
+            | OpsBinaryExt::DivChecked(_, _, _)
+            | OpsBinaryExt::RemChecked(_, _, _)
+            | OpsBinaryExt::ShlChecked(_, _, _)
+            | OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { Option<#ty> },
+            OpsBinaryExt::AddOverflowing(_, _, _)
+            | OpsBinaryExt::SubOverflowing(_, _, _)
+            | OpsBinaryExt::MulOverflowing(_, _, _)
+            | OpsBinaryExt::DivOverflowing(_, _, _)
+            | OpsBinaryExt::RemOverflowing(_, _, _)
+            | OpsBinaryExt::ShlOverflowing(_, _, _)
+            | OpsBinaryExt::ShrOverflowing(_, _, _) => parse_quote! { (#ty, bool) },
+            _ => ty.clone(),
+        }
+    }
 }
 
 impl OpsUnaryExt {
@@ -2288,6 +2310,14 @@ impl OpsUnaryExt {
             OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { #prefix::ops::NdNegWrapping },
             OpsUnaryExt::NegSaturating(_, _, _) => parse_quote! { #prefix::ops::NdNegSaturating },
             OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
+        }
+    }
+
+    fn get_type(&self, ty: &Type) -> Type {
+        match self {
+            OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { Option<#ty> },
+            OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { (#ty, bool) },
+            _ => ty.clone(),
         }
     }
 }

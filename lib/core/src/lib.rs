@@ -120,22 +120,105 @@ pub mod ops {
             $(nd_ops_impl!(@unsigned $primitive);)+
         };
         (@signed $primitive:ty $(,)?) => {
-            ndops::all_auto! { @ndun crate (&value: &$primitive) -> $primitive, (value) [-, !] }
+            ndops::all! { @ndun crate (value: &$primitive) -> $primitive, [
+                ! !value,
+                - -value,
+                - @checked value.checked_neg(),
+                - @strict value.strict_neg(),
+                - @wrapping value.wrapping_neg(),
+                - @saturating value.saturating_neg(),
+                - @overflowing value.overflowing_neg(),
+            ] }
 
-            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^] }
-            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=] }
-
-            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>] }
-            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=] }
+            nd_ops_impl!(@impl $primitive);
         };
         (@unsigned $primitive:ty $(,)?) => {
-            ndops::all_auto! { @ndun crate (&value: &$primitive) -> $primitive, (value) [!] }
+            ndops::all! { @ndun crate (value: &$primitive) -> $primitive, [
+                ! !value,
+            ] }
 
-            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, &rhs: &$primitive) -> $primitive, (lhs) (rhs) [+, -, *, /, %, |, &, ^] }
-            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, &rhs: &$primitive), (*lhs) (rhs) [+=, -=, *=, /=, %=, |=, &=, ^=] }
+            nd_ops_impl!(@impl $primitive);
+        };
+        (@impl $primitive:ty $(,)?) => {
+            ndops::all! { @ndbin crate (lhs: &$primitive, rhs: &$primitive) -> $primitive, [
+                + lhs.add(rhs),
+                - lhs.sub(rhs),
+                * lhs.mul(rhs),
+                / lhs.div(rhs),
+                % lhs.rem(rhs),
+                | lhs.bitor(rhs),
+                & lhs.bitand(rhs),
+                ^ lhs.bitxor(rhs),
+                + @checked lhs.checked_add(*rhs),
+                - @checked lhs.checked_sub(*rhs),
+                * @checked lhs.checked_mul(*rhs),
+                / @checked lhs.checked_div(*rhs),
+                % @checked lhs.checked_rem(*rhs),
+                + @strict lhs.strict_add(*rhs),
+                - @strict lhs.strict_sub(*rhs),
+                * @strict lhs.strict_mul(*rhs),
+                / @strict lhs.strict_div(*rhs),
+                % @strict lhs.strict_rem(*rhs),
+                + @wrapping lhs.wrapping_add(*rhs),
+                - @wrapping lhs.wrapping_sub(*rhs),
+                * @wrapping lhs.wrapping_mul(*rhs),
+                / @wrapping lhs.wrapping_div(*rhs),
+                % @wrapping lhs.wrapping_rem(*rhs),
+                + @saturating lhs.saturating_add(*rhs),
+                - @saturating lhs.saturating_sub(*rhs),
+                * @saturating lhs.saturating_mul(*rhs),
+                / @saturating lhs.saturating_div(*rhs),
+                % @saturating lhs.wrapping_rem(*rhs),
+                + @overflowing lhs.overflowing_add(*rhs),
+                - @overflowing lhs.overflowing_sub(*rhs),
+                * @overflowing lhs.overflowing_mul(*rhs),
+                / @overflowing lhs.overflowing_div(*rhs),
+                % @overflowing lhs.overflowing_rem(*rhs),
+            ] }
 
-            ndops::all_auto! { @ndbin crate (&lhs: &$primitive, rhs: usize) -> $primitive, (lhs) (rhs) [<<, >>] }
-            ndops::all_auto! { @ndmut crate (lhs: &mut $primitive, rhs: usize), (*lhs) (rhs) [<<=, >>=] }
+            ndops::all! { @ndbin crate (lhs: &$primitive, rhs: usize) -> $primitive, [
+                << lhs.shl(rhs),
+                >> lhs.shr(rhs),
+                << @checked lhs.checked_shl(rhs as u32),
+                >> @checked lhs.checked_shr(rhs as u32),
+                << @overflowing lhs.overflowing_shl(rhs as u32),
+                >> @overflowing lhs.overflowing_shr(rhs as u32),
+                << @unbounded lhs.unbounded_shl(rhs as u32),
+                >> @unbounded lhs.unbounded_shr(rhs as u32),
+            ] }
+
+            ndops::all! { @ndmut crate (lhs: &mut $primitive, rhs: &$primitive), [
+                += lhs.add_assign(rhs),
+                -= lhs.sub_assign(rhs),
+                *= lhs.mul_assign(rhs),
+                /= lhs.div_assign(rhs),
+                %= lhs.rem_assign(rhs),
+                |= lhs.bitor_assign(rhs),
+                &= lhs.bitand_assign(rhs),
+                ^= lhs.bitxor_assign(rhs),
+                += @strict *lhs = lhs.strict_add(*rhs),
+                -= @strict *lhs = lhs.strict_sub(*rhs),
+                *= @strict *lhs = lhs.strict_mul(*rhs),
+                /= @strict *lhs = lhs.strict_div(*rhs),
+                %= @strict *lhs = lhs.strict_rem(*rhs),
+                += @wrapping *lhs = lhs.wrapping_add(*rhs),
+                -= @wrapping *lhs = lhs.wrapping_sub(*rhs),
+                *= @wrapping *lhs = lhs.wrapping_mul(*rhs),
+                /= @wrapping *lhs = lhs.wrapping_div(*rhs),
+                %= @wrapping *lhs = lhs.wrapping_rem(*rhs),
+                += @saturating *lhs = lhs.saturating_add(*rhs),
+                -= @saturating *lhs = lhs.saturating_sub(*rhs),
+                *= @saturating *lhs = lhs.saturating_mul(*rhs),
+                /= @saturating *lhs = lhs.saturating_div(*rhs),
+                %= @saturating *lhs = lhs.wrapping_rem(*rhs),
+            ] }
+
+            ndops::all! { @ndmut crate (lhs: &mut $primitive, rhs: usize), [
+                <<= lhs.shl_assign(rhs),
+                >>= lhs.shr_assign(rhs),
+                <<= @unbounded *lhs = lhs.unbounded_shl(rhs as u32),
+                >>= @unbounded *lhs = lhs.unbounded_shr(rhs as u32),
+            ] }
         };
     }
 
@@ -160,46 +243,46 @@ pub mod ops {
     /// `Nd` variant for describing checked neg operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegChecked<Lhs = Self, Rhs = Self> {
+    pub trait NdNegChecked<Value = Self> {
         type Type;
 
-        fn neg_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+        fn neg_checked(value: &Value) -> Option<Self::Type>;
     }
 
     /// `Nd` variant for describing strict neg operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegStrict<Lhs = Self, Rhs = Self> {
+    pub trait NdNegStrict<Value = Self> {
         type Type;
 
-        fn neg_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn neg_strict(value: &Value) -> Self::Type;
     }
 
     /// `Nd` variant for describing wrapping neg operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegWrapping<Lhs = Self, Rhs = Self> {
+    pub trait NdNegWrapping<Value = Self> {
         type Type;
 
-        fn neg_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn neg_wrapping(value: &Value) -> Self::Type;
     }
 
     /// `Nd` variant for describing saturating neg operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegSaturating<Lhs = Self, Rhs = Self> {
+    pub trait NdNegSaturating<Value = Self> {
         type Type;
 
-        fn neg_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn neg_saturating(value: &Value) -> Self::Type;
     }
 
     /// `Nd` variant for describing overflowing neg operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
-    pub trait NdNegOverflowing<Lhs = Self, Rhs = Self> {
+    pub trait NdNegOverflowing<Value = Self> {
         type Type;
 
-        fn neg_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+        fn neg_overflowing(value: &Value) -> (Self::Type, bool);
     }
 
     /// `Nd` alternative to [`std::ops::Add`] for describing operations.
@@ -469,7 +552,7 @@ pub mod ops {
     pub trait NdAddSaturating<Lhs = Self, Rhs = Self> {
         type Type;
 
-        fn add_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn add_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
     /// `Nd` variant for describing saturating sub operations.
@@ -478,7 +561,7 @@ pub mod ops {
     pub trait NdSubSaturating<Lhs = Self, Rhs = Self> {
         type Type;
 
-        fn sub_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn sub_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
     /// `Nd` variant for describing saturating mul operations.
@@ -487,7 +570,7 @@ pub mod ops {
     pub trait NdMulSaturating<Lhs = Self, Rhs = Self> {
         type Type;
 
-        fn mul_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn mul_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
     /// `Nd` variant for describing saturating div operations.
@@ -496,7 +579,7 @@ pub mod ops {
     pub trait NdDivSaturating<Lhs = Self, Rhs = Self> {
         type Type;
 
-        fn div_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn div_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
     /// `Nd` variant for describing saturating rem operations.
@@ -505,7 +588,7 @@ pub mod ops {
     pub trait NdRemSaturating<Lhs = Self, Rhs = Self> {
         type Type;
 
-        fn rem_saturing(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+        fn rem_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
     }
 
     /// `Nd` variant for describing overflowing add operations.
@@ -747,35 +830,35 @@ pub mod ops {
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdAddAssignSaturating<Lhs = Self, Rhs = Self> {
-        fn add_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+        fn add_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
     }
 
     /// `Nd` variant for describing saturating sub assign operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdSubAssignSaturating<Lhs = Self, Rhs = Self> {
-        fn sub_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+        fn sub_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
     }
 
     /// `Nd` variant for describing saturating mul assign operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdMulAssignSaturating<Lhs = Self, Rhs = Self> {
-        fn mul_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+        fn mul_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
     }
 
     /// `Nd` variant for describing saturating div assign operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdDivAssignSaturating<Lhs = Self, Rhs = Self> {
-        fn div_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+        fn div_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
     }
 
     /// `Nd` variant for describing saturating rem assign operations.
     ///
     /// For more information and examples, see [crate-level](crate) documentation.
     pub trait NdRemAssignSaturating<Lhs = Self, Rhs = Self> {
-        fn rem_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+        fn rem_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
     }
 
     /// `Nd` variant for describing unbounded shl assign operations.
