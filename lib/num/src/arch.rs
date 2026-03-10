@@ -175,9 +175,9 @@ ndops::all! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> A
     ^ T::bitxor(&lhs.0, &rhs.0) where [T: NdBitXor<Lhs, Rhs, Type = T>],
 ] }
 
-ndops::all! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: Aligned<Rhs>) -> Aligned<T>, [
-    << T::shl(&lhs.0, rhs.0) where [T: NdShl<Lhs, Rhs, Type = T>],
-    >> T::shr(&lhs.0, rhs.0) where [T: NdShr<Lhs, Rhs, Type = T>],
+ndops::all! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: Rhs) -> Aligned<T>, [
+    << T::shl(&lhs.0, rhs) where [T: NdShl<Lhs, Rhs, Type = T>],
+    >> T::shr(&lhs.0, rhs) where [T: NdShr<Lhs, Rhs, Type = T>],
 ] }
 
 ndops::all! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: &Aligned<Rhs>), [
@@ -191,9 +191,9 @@ ndops::all! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: &Aligned<Rhs>), [
     ^= Lhs::bitxor_assign(&mut lhs.0, &rhs.0) where [Lhs: NdBitXorAssign<Lhs, Rhs>],
 ] }
 
-ndops::all! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Aligned<Rhs>), [
-    <<= Lhs::shl_assign(&mut lhs.0, rhs.0) where [Lhs: NdShlAssign<Lhs, Rhs>],
-    >>= Lhs::shr_assign(&mut lhs.0, rhs.0) where [Lhs: NdShrAssign<Lhs, Rhs>],
+ndops::all! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Rhs), [
+    <<= Lhs::shl_assign(&mut lhs.0, rhs) where [Lhs: NdShlAssign<Lhs, Rhs>],
+    >>= Lhs::shr_assign(&mut lhs.0, rhs) where [Lhs: NdShrAssign<Lhs, Rhs>],
 ] }
 
 ndops::all! { @stdun <T> (*value: &Aligned<T>) -> Aligned<T>, [
@@ -212,9 +212,9 @@ ndops::all! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>, *rhs: &Aligned<Rhs>) -
     ^ T::bitxor(&lhs.0, &rhs.0) where [Lhs: NdBitXor<Lhs, Rhs, Type = T>, Rhs: NdBitXor<Lhs, Rhs, Type = T>, T: NdBitXor<Lhs, Rhs, Type = T>],
 ] }
 
-ndops::all! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>, rhs: Aligned<Rhs>) -> Aligned<T>, [
-    << T::shl(&lhs.0, rhs.0) where [Lhs: NdShl<Lhs, Rhs, Type = T>, Rhs: NdShl<Lhs, Rhs, Type = T>, T: NdShl<Lhs, Rhs, Type = T>],
-    >> T::shr(&lhs.0, rhs.0) where [Lhs: NdShr<Lhs, Rhs, Type = T>, Rhs: NdShr<Lhs, Rhs, Type = T>, T: NdShr<Lhs, Rhs, Type = T>],
+ndops::all! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>, rhs: Rhs) -> Aligned<T>, [
+    << T::shl(&lhs.0, rhs) where [Lhs: NdShl<Lhs, Rhs, Type = T>, Rhs: NdShl<Lhs, Rhs, Type = T>, T: NdShl<Lhs, Rhs, Type = T>],
+    >> T::shr(&lhs.0, rhs) where [Lhs: NdShr<Lhs, Rhs, Type = T>, Rhs: NdShr<Lhs, Rhs, Type = T>, T: NdShr<Lhs, Rhs, Type = T>],
 ] }
 
 ndops::all! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, *rhs: &Aligned<Rhs>), [
@@ -228,9 +228,9 @@ ndops::all! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, *rhs: &Aligned<Rhs>), 
     ^= Lhs::bitxor_assign(&mut lhs.0, &rhs.0) where [Lhs: NdBitXorAssign<Lhs, Rhs>],
 ] }
 
-ndops::all! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Aligned<Rhs>), [
-    <<= Lhs::shl_assign(&mut lhs.0, rhs.0) where [Lhs: NdShlAssign<Lhs, Rhs>],
-    >>= Lhs::shr_assign(&mut lhs.0, rhs.0) where [Lhs: NdShrAssign<Lhs, Rhs>],
+ndops::all! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Rhs), [
+    <<= Lhs::shl_assign(&mut lhs.0, rhs) where [Lhs: NdShlAssign<Lhs, Rhs>],
+    >>= Lhs::shr_assign(&mut lhs.0, rhs) where [Lhs: NdShrAssign<Lhs, Rhs>],
 ] }
 
 #[cfg(test)]
@@ -386,16 +386,16 @@ mod tests {
             lhs in ndassert::range!(i64, 48).map(S64::from),
             rhs in 0..128,
         ) [
-            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
+            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 48).map(U64::from),
             rhs in 0..128,
         ) [
-            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
+            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
         ] }
     }
 
@@ -461,16 +461,16 @@ mod tests {
             lhs in ndassert::range!(i64, 48).map(S64::from),
             rhs in 0..128,
         ) [
-            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
+            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 48).map(U64::from),
             rhs in 0..128,
         ) [
-            (Aligned(lhs) << Aligned(rhs), Aligned(lhs << rhs)),
-            (Aligned(lhs) >> Aligned(rhs), Aligned(lhs >> rhs)),
+            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
+            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
         ] }
     }
 }
