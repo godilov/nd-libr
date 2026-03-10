@@ -192,8 +192,6 @@ ndops::fwd! { @stdun <N: Sized + Copy> (*value: X1<N>) -> Z1<N>, (N) (&value.0) 
 ] }
 
 mod ops {
-    use ndassert::catch;
-
     use super::*;
 
     #[test]
@@ -202,29 +200,29 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in ndassert::range!(i64, 60, 1),
         ) [
-            (catch!(&A0(lhs) + &B0(rhs)), catch!(C0(lhs + rhs))),
-            (catch!(&A0(lhs) - &B0(rhs)), catch!(C0(lhs - rhs))),
-            (catch!(&A0(lhs) * &B0(rhs)), catch!(C0(lhs * rhs))),
-            (catch!(&A0(lhs) / &B0(rhs)), catch!(C0(lhs / rhs))),
-            (catch!(&A0(lhs) % &B0(rhs)), catch!(C0(lhs % rhs))),
+            ndassert::catch!(&A0(lhs) + &B0(rhs), C0(lhs + rhs)),
+            ndassert::catch!(&A0(lhs) - &B0(rhs), C0(lhs - rhs)),
+            ndassert::catch!(&A0(lhs) * &B0(rhs), C0(lhs * rhs)),
+            ndassert::catch!(&A0(lhs) / &B0(rhs), C0(lhs / rhs)),
+            ndassert::catch!(&A0(lhs) % &B0(rhs), C0(lhs % rhs)),
 
-            (catch!(&A0(lhs) + B0(rhs)), catch!(C0(lhs + rhs))),
-            (catch!(&A0(lhs) - B0(rhs)), catch!(C0(lhs - rhs))),
-            (catch!(&A0(lhs) * B0(rhs)), catch!(C0(lhs * rhs))),
-            (catch!(&A0(lhs) / B0(rhs)), catch!(C0(lhs / rhs))),
-            (catch!(&A0(lhs) % B0(rhs)), catch!(C0(lhs % rhs))),
+            ndassert::catch!(&A0(lhs) + B0(rhs), C0(lhs + rhs)),
+            ndassert::catch!(&A0(lhs) - B0(rhs), C0(lhs - rhs)),
+            ndassert::catch!(&A0(lhs) * B0(rhs), C0(lhs * rhs)),
+            ndassert::catch!(&A0(lhs) / B0(rhs), C0(lhs / rhs)),
+            ndassert::catch!(&A0(lhs) % B0(rhs), C0(lhs % rhs)),
 
-            (catch!(A0(lhs) + &B0(rhs)), catch!(C0(lhs + rhs))),
-            (catch!(A0(lhs) - &B0(rhs)), catch!(C0(lhs - rhs))),
-            (catch!(A0(lhs) * &B0(rhs)), catch!(C0(lhs * rhs))),
-            (catch!(A0(lhs) / &B0(rhs)), catch!(C0(lhs / rhs))),
-            (catch!(A0(lhs) % &B0(rhs)), catch!(C0(lhs % rhs))),
+            ndassert::catch!(A0(lhs) + &B0(rhs), C0(lhs + rhs)),
+            ndassert::catch!(A0(lhs) - &B0(rhs), C0(lhs - rhs)),
+            ndassert::catch!(A0(lhs) * &B0(rhs), C0(lhs * rhs)),
+            ndassert::catch!(A0(lhs) / &B0(rhs), C0(lhs / rhs)),
+            ndassert::catch!(A0(lhs) % &B0(rhs), C0(lhs % rhs)),
 
-            (catch!(A0(lhs) + B0(rhs)), catch!(C0(lhs + rhs))),
-            (catch!(A0(lhs) - B0(rhs)), catch!(C0(lhs - rhs))),
-            (catch!(A0(lhs) * B0(rhs)), catch!(C0(lhs * rhs))),
-            (catch!(A0(lhs) / B0(rhs)), catch!(C0(lhs / rhs))),
-            (catch!(A0(lhs) % B0(rhs)), catch!(C0(lhs % rhs))),
+            ndassert::catch!(A0(lhs) + B0(rhs), C0(lhs + rhs)),
+            ndassert::catch!(A0(lhs) - B0(rhs), C0(lhs - rhs)),
+            ndassert::catch!(A0(lhs) * B0(rhs), C0(lhs * rhs)),
+            ndassert::catch!(A0(lhs) / B0(rhs), C0(lhs / rhs)),
+            ndassert::catch!(A0(lhs) % B0(rhs), C0(lhs % rhs)),
 
             (&A0(lhs) | &B0(rhs), C0(lhs | rhs)),
             (&A0(lhs) & &B0(rhs), C0(lhs & rhs)),
@@ -247,16 +245,16 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in 0..128,
         ) [
-            (catch!(&A0(lhs) << rhs), catch!(C0(lhs << rhs))),
-            (catch!(A0(lhs) >> rhs), catch!(C0(lhs >> rhs))),
+            ndassert::catch!(&A0(lhs) << rhs, C0(lhs << rhs)),
+            ndassert::catch!(A0(lhs) >> rhs, C0(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (val in ndassert::range!(i64, 60)) [
             (!&A0(val), C0(!val)),
             (!A0(val), C0(!val)),
 
-            (catch!(-&A0(val)), catch!(C0(-val))),
-            (catch!(-A0(val)), catch!(C0(-val))),
+            ndassert::catch!(-&A0(val), C0(-val)),
+            ndassert::catch!(-A0(val), C0(-val)),
         ] }
     }
 
@@ -267,29 +265,29 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in ndassert::range!(i64, 60, 1),
         ) [
-            (catch!(&X0(lhs) + &Y0(rhs)), catch!(Z0(lhs + rhs))),
-            (catch!(&X0(lhs) - &Y0(rhs)), catch!(Z0(lhs - rhs))),
-            (catch!(&X0(lhs) * &Y0(rhs)), catch!(Z0(lhs * rhs))),
-            (catch!(&X0(lhs) / &Y0(rhs)), catch!(Z0(lhs / rhs))),
-            (catch!(&X0(lhs) % &Y0(rhs)), catch!(Z0(lhs % rhs))),
+            ndassert::catch!(&X0(lhs) + &Y0(rhs), Z0(lhs + rhs)),
+            ndassert::catch!(&X0(lhs) - &Y0(rhs), Z0(lhs - rhs)),
+            ndassert::catch!(&X0(lhs) * &Y0(rhs), Z0(lhs * rhs)),
+            ndassert::catch!(&X0(lhs) / &Y0(rhs), Z0(lhs / rhs)),
+            ndassert::catch!(&X0(lhs) % &Y0(rhs), Z0(lhs % rhs)),
 
-            (catch!(&X0(lhs) + Y0(rhs)), catch!(Z0(lhs + rhs))),
-            (catch!(&X0(lhs) - Y0(rhs)), catch!(Z0(lhs - rhs))),
-            (catch!(&X0(lhs) * Y0(rhs)), catch!(Z0(lhs * rhs))),
-            (catch!(&X0(lhs) / Y0(rhs)), catch!(Z0(lhs / rhs))),
-            (catch!(&X0(lhs) % Y0(rhs)), catch!(Z0(lhs % rhs))),
+            ndassert::catch!(&X0(lhs) + Y0(rhs), Z0(lhs + rhs)),
+            ndassert::catch!(&X0(lhs) - Y0(rhs), Z0(lhs - rhs)),
+            ndassert::catch!(&X0(lhs) * Y0(rhs), Z0(lhs * rhs)),
+            ndassert::catch!(&X0(lhs) / Y0(rhs), Z0(lhs / rhs)),
+            ndassert::catch!(&X0(lhs) % Y0(rhs), Z0(lhs % rhs)),
 
-            (catch!(X0(lhs) + &Y0(rhs)), catch!(Z0(lhs + rhs))),
-            (catch!(X0(lhs) - &Y0(rhs)), catch!(Z0(lhs - rhs))),
-            (catch!(X0(lhs) * &Y0(rhs)), catch!(Z0(lhs * rhs))),
-            (catch!(X0(lhs) / &Y0(rhs)), catch!(Z0(lhs / rhs))),
-            (catch!(X0(lhs) % &Y0(rhs)), catch!(Z0(lhs % rhs))),
+            ndassert::catch!(X0(lhs) + &Y0(rhs), Z0(lhs + rhs)),
+            ndassert::catch!(X0(lhs) - &Y0(rhs), Z0(lhs - rhs)),
+            ndassert::catch!(X0(lhs) * &Y0(rhs), Z0(lhs * rhs)),
+            ndassert::catch!(X0(lhs) / &Y0(rhs), Z0(lhs / rhs)),
+            ndassert::catch!(X0(lhs) % &Y0(rhs), Z0(lhs % rhs)),
 
-            (catch!(X0(lhs) + Y0(rhs)), catch!(Z0(lhs + rhs))),
-            (catch!(X0(lhs) - Y0(rhs)), catch!(Z0(lhs - rhs))),
-            (catch!(X0(lhs) * Y0(rhs)), catch!(Z0(lhs * rhs))),
-            (catch!(X0(lhs) / Y0(rhs)), catch!(Z0(lhs / rhs))),
-            (catch!(X0(lhs) % Y0(rhs)), catch!(Z0(lhs % rhs))),
+            ndassert::catch!(X0(lhs) + Y0(rhs), Z0(lhs + rhs)),
+            ndassert::catch!(X0(lhs) - Y0(rhs), Z0(lhs - rhs)),
+            ndassert::catch!(X0(lhs) * Y0(rhs), Z0(lhs * rhs)),
+            ndassert::catch!(X0(lhs) / Y0(rhs), Z0(lhs / rhs)),
+            ndassert::catch!(X0(lhs) % Y0(rhs), Z0(lhs % rhs)),
 
             (&X0(lhs) | &Y0(rhs), Z0(lhs | rhs)),
             (&X0(lhs) & &Y0(rhs), Z0(lhs & rhs)),
@@ -312,16 +310,16 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in 0..128,
         ) [
-            (catch!(&X0(lhs) << rhs), catch!(Z0(lhs << rhs))),
-            (catch!(X0(lhs) << rhs), catch!(Z0(lhs << rhs))),
+            ndassert::catch!(&X0(lhs) << rhs, Z0(lhs << rhs)),
+            ndassert::catch!(X0(lhs) << rhs, Z0(lhs << rhs)),
         ] }
 
         ndassert::check! { @eq (val in ndassert::range!(i64, 60)) [
             (!&X0(val), Z0(!val)),
             (!X0(val), Z0(!val)),
 
-            (catch!(-&X0(val)), catch!(Z0(-val))),
-            (catch!(-X0(val)), catch!(Z0(-val))),
+            ndassert::catch!(-&X0(val), Z0(-val)),
+            ndassert::catch!(-X0(val), Z0(-val)),
         ] }
     }
 
@@ -332,17 +330,17 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in ndassert::range!(i64, 60, 1),
         ) [
-            (catch!({ let mut val = A0(lhs); val += &B0(rhs); val }), catch!(A0(lhs + rhs))),
-            (catch!({ let mut val = A0(lhs); val -= &B0(rhs); val }), catch!(A0(lhs - rhs))),
-            (catch!({ let mut val = A0(lhs); val *= &B0(rhs); val }), catch!(A0(lhs * rhs))),
-            (catch!({ let mut val = A0(lhs); val /= &B0(rhs); val }), catch!(A0(lhs / rhs))),
-            (catch!({ let mut val = A0(lhs); val %= &B0(rhs); val }), catch!(A0(lhs % rhs))),
+            ndassert::catch!({ let mut val = A0(lhs); val += &B0(rhs); val }, A0(lhs + rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val -= &B0(rhs); val }, A0(lhs - rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val *= &B0(rhs); val }, A0(lhs * rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val /= &B0(rhs); val }, A0(lhs / rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val %= &B0(rhs); val }, A0(lhs % rhs)),
 
-            (catch!({ let mut val = A0(lhs); val += B0(rhs); val }), catch!(A0(lhs + rhs))),
-            (catch!({ let mut val = A0(lhs); val -= B0(rhs); val }), catch!(A0(lhs - rhs))),
-            (catch!({ let mut val = A0(lhs); val *= B0(rhs); val }), catch!(A0(lhs * rhs))),
-            (catch!({ let mut val = A0(lhs); val /= B0(rhs); val }), catch!(A0(lhs / rhs))),
-            (catch!({ let mut val = A0(lhs); val %= B0(rhs); val }), catch!(A0(lhs % rhs))),
+            ndassert::catch!({ let mut val = A0(lhs); val += B0(rhs); val }, A0(lhs + rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val -= B0(rhs); val }, A0(lhs - rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val *= B0(rhs); val }, A0(lhs * rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val /= B0(rhs); val }, A0(lhs / rhs)),
+            ndassert::catch!({ let mut val = A0(lhs); val %= B0(rhs); val }, A0(lhs % rhs)),
 
             ({ let mut val = A0(lhs); val |= &B0(rhs); val }, A0(lhs | rhs)),
             ({ let mut val = A0(lhs); val &= &B0(rhs); val }, A0(lhs & rhs)),
@@ -357,7 +355,7 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in 0..128,
         ) [
-            (catch!({ let mut val = A0(lhs); val <<= rhs; val }), catch!(A0(lhs << rhs))),
+            ndassert::catch!({ let mut val = A0(lhs); val <<= rhs; val }, A0(lhs << rhs)),
         ] }
     }
 
@@ -368,17 +366,17 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in ndassert::range!(i64, 60, 1),
         ) [
-            (catch!({ let mut val = X0(lhs); val += &Y0(rhs); val }), catch!(X0(lhs + rhs))),
-            (catch!({ let mut val = X0(lhs); val -= &Y0(rhs); val }), catch!(X0(lhs - rhs))),
-            (catch!({ let mut val = X0(lhs); val *= &Y0(rhs); val }), catch!(X0(lhs * rhs))),
-            (catch!({ let mut val = X0(lhs); val /= &Y0(rhs); val }), catch!(X0(lhs / rhs))),
-            (catch!({ let mut val = X0(lhs); val %= &Y0(rhs); val }), catch!(X0(lhs % rhs))),
+            ndassert::catch!({ let mut val = X0(lhs); val += &Y0(rhs); val }, X0(lhs + rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val -= &Y0(rhs); val }, X0(lhs - rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val *= &Y0(rhs); val }, X0(lhs * rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val /= &Y0(rhs); val }, X0(lhs / rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val %= &Y0(rhs); val }, X0(lhs % rhs)),
 
-            (catch!({ let mut val = X0(lhs); val += Y0(rhs); val }), catch!(X0(lhs + rhs))),
-            (catch!({ let mut val = X0(lhs); val -= Y0(rhs); val }), catch!(X0(lhs - rhs))),
-            (catch!({ let mut val = X0(lhs); val *= Y0(rhs); val }), catch!(X0(lhs * rhs))),
-            (catch!({ let mut val = X0(lhs); val /= Y0(rhs); val }), catch!(X0(lhs / rhs))),
-            (catch!({ let mut val = X0(lhs); val %= Y0(rhs); val }), catch!(X0(lhs % rhs))),
+            ndassert::catch!({ let mut val = X0(lhs); val += Y0(rhs); val }, X0(lhs + rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val -= Y0(rhs); val }, X0(lhs - rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val *= Y0(rhs); val }, X0(lhs * rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val /= Y0(rhs); val }, X0(lhs / rhs)),
+            ndassert::catch!({ let mut val = X0(lhs); val %= Y0(rhs); val }, X0(lhs % rhs)),
 
             ({ let mut val = X0(lhs); val |= &Y0(rhs); val }, X0(lhs | rhs)),
             ({ let mut val = X0(lhs); val &= &Y0(rhs); val }, X0(lhs & rhs)),
@@ -393,7 +391,7 @@ mod ops {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in 0..128,
         ) [
-            (catch!({ let mut val = X0(lhs); val <<= rhs; val }), catch!(X0(lhs << rhs))),
+            ndassert::catch!({ let mut val = X0(lhs); val <<= rhs; val }, X0(lhs << rhs)),
         ] }
     }
 }

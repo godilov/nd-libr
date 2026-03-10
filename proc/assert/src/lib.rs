@@ -104,10 +104,10 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
 
 #[proc_macro]
 pub fn catch(stream: TokenStreamStd) -> TokenStreamStd {
-    let expr = parse_macro_input!(stream as Expr);
+    let catch = parse_macro_input!(stream as AssertCatch);
 
     quote! {
-        std::panic::catch_unwind(|| #expr).ok()
+        #catch
     }
     .into()
 }
@@ -161,6 +161,12 @@ const PRIMES: [[u64; 4]; 15] = [
     ],
 ];
 
+enum AssertKind {
+    Eq,
+    EqNot,
+    Default,
+}
+
 #[allow(unused)]
 struct AssertCheck {
     kind: AssertKind,
@@ -168,12 +174,6 @@ struct AssertCheck {
     args: Punctuated<AssertArg, Token![,]>,
     exprs_bracket: Bracket,
     exprs: Punctuated<Expr, Token![,]>,
-}
-
-enum AssertKind {
-    Eq,
-    EqNot,
-    Default,
 }
 
 #[allow(unused)]
@@ -195,6 +195,34 @@ struct AssertRand {
 struct AssertPrime {
     len: usize,
     class: usize,
+}
+
+struct AssertCatch {
+    elems: Punctuated<Expr, Token![,]>,
+}
+
+impl Parse for AssertKind {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Token![@]) {
+            return Ok(Self::Default);
+        }
+
+        input.parse::<Token![@]>()?;
+
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::eq) {
+            input.parse::<kw::eq>()?;
+
+            Ok(Self::Eq)
+        } else if lookahead.peek(kw::ne) {
+            input.parse::<kw::ne>()?;
+
+            Ok(Self::EqNot)
+        } else {
+            Err(lookahead.error())
+        }
+    }
 }
 
 impl Parse for AssertCheck {
@@ -228,30 +256,6 @@ impl Parse for AssertArg {
             let expr = input.parse()?;
 
             Ok(Self::Multiple(ident, token, expr))
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl Parse for AssertKind {
-    fn parse(input: ParseStream) -> Result<Self> {
-        if !input.peek(Token![@]) {
-            return Ok(Self::Default);
-        }
-
-        input.parse::<Token![@]>()?;
-
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(kw::eq) {
-            input.parse::<kw::eq>()?;
-
-            Ok(Self::Eq)
-        } else if lookahead.peek(kw::ne) {
-            input.parse::<kw::ne>()?;
-
-            Ok(Self::EqNot)
         } else {
             Err(lookahead.error())
         }
@@ -304,6 +308,14 @@ impl Parse for AssertPrime {
     }
 }
 
+impl Parse for AssertCatch {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            elems: input.parse_terminated(Expr::parse, Token![,])?,
+        })
+    }
+}
+
 impl ToTokens for AssertCheck {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let args = self.args.iter().fold(quote! {}, |acc, arg| match arg {
@@ -325,12 +337,12 @@ impl ToTokens for AssertCheck {
                 AssertKind::Eq => quote! {{
                     let res = (#expr);
 
-                    assert_eq!(res.0, res.1, concat!("{:?} != {:?}\nExpression: {}\n", #args_msg), &res.0, &res.1, stringify!(#expr), #args);
+                    assert_eq!(res.0, res.1, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args);
                 }},
                 AssertKind::EqNot => quote! {{
                     let res = (#expr);
 
-                    assert_ne!(res.0, res.1, concat!("{:?} == {:?}\nExpression: {}\n", #args_msg), &res.0, &res.1, stringify!(#expr), #args);
+                    assert_ne!(res.0, res.1, concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args);
                 }},
                 AssertKind::Default => quote! {
                     assert!((#expr), concat!("Expression: {}\n", #args_msg), stringify!(#expr), #args);
@@ -386,5 +398,13 @@ impl ToTokens for AssertPrime {
         let prime = primes[class % primes.len()];
 
         tokens.extend(quote! { #prime });
+    }
+}
+
+impl ToTokens for AssertCatch {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let elems = self.elems.iter();
+
+        tokens.extend(quote! { (#(std::panic::catch_unwind(|| #elems).ok()),*) })
     }
 }

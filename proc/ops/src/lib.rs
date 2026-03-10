@@ -126,6 +126,13 @@ pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+struct OpsStdKindAssign;
+struct OpsStdKindBinary;
+struct OpsStdKindUnary;
+struct OpsNdKindAssign;
+struct OpsNdKindBinary;
+struct OpsNdKindUnary;
+
 #[allow(clippy::large_enum_variant)]
 enum Ops {
     StdAssign(OpsImpl<OpsStdKindAssign>),
@@ -145,13 +152,6 @@ enum OpsFwd {
     NdBinary(OpsImplFwd<OpsNdKindBinary>),
     NdUnary(OpsImplFwd<OpsNdKindUnary>),
 }
-
-struct OpsStdKindAssign;
-struct OpsStdKindBinary;
-struct OpsStdKindUnary;
-struct OpsNdKindAssign;
-struct OpsNdKindBinary;
-struct OpsNdKindUnary;
 
 #[allow(unused)]
 struct OpsImpl<Kind: OpsKind> {
