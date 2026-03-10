@@ -55,6 +55,3 @@ ndops    = { path = "proc/ops" }
 [profile.release]
 panic = "abort"
 lto   = true
-
-[profile.test.package.ndops]
-overflow-checks = false

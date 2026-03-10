@@ -5,7 +5,7 @@
 The crate allows to define complex and structured operations implementation in all combinations.
 
 - [`ndops::all!`](all) implements `std::ops::*` and `ndcore::ops::*` operations with **explicitly** provided expressions.
-- [`ndops::all_auto!`](all_auto) implements `std::ops::*` and `ndcore::ops::*` operations with **implicitly** derived expressions.
+- [`ndops::fwd!`](fwd) implements `std::ops::*` and `ndcore::ops::*` operations with **implicitly** derived expressions.
 
 ## Start
 
@@ -58,16 +58,16 @@ merging them when implementing every specific operation.
 #### Expressions
 
 - [`ndops::all!`](all) implements operations with explicitly provided expressions.
-- [`ndops::all_auto!`](all_auto) implements operations with implicitly derived expressions.
+- [`ndops::fwd!`](fwd) implements operations with implicitly derived expressions.
 
-| Kind                    | Expression               |
-| ----------------------- | ------------------------ |
-| `ndops::all! *mut`      | `EXPR`                   |
-| `ndops::all! *bin`      | `<TY>::from(EXPR)`       |
-| `ndops::all! *un`       | `<TY>::from(EXPR)`       |
-| `ndops::all_auto! *mut` | `EXPR`                   |
-| `ndops::all_auto! *bin` | `<TY>::from(LHS OP RHS)` |
-| `ndops::all_auto! *un`  | `<TY>::from(OP VALUE)`   |
+| Kind               | Expression               |
+| ------------------ | ------------------------ |
+| `ndops::all! *mut` | `EXPR`                   |
+| `ndops::all! *bin` | `<TY>::from(EXPR)`       |
+| `ndops::all! *un`  | `<TY>::from(EXPR)`       |
+| `ndops::fwd! *mut` | `EXPR`                   |
+| `ndops::fwd! *bin` | `<TY>::from(LHS OP RHS)` |
+| `ndops::fwd! *un`  | `<TY>::from(OP VALUE)`   |
 
 ## Syntax
 
@@ -87,10 +87,10 @@ OP_CONDITIONS := where [(OP_PREDICATE),*]
 - For `SIGNATURE` reference, see [section](#signatures).
 - For `OP` reference, see [section](#kinds).
 
-### [`ndops::all_auto!`](all_auto)
+### [`ndops::fwd!`](fwd)
 
 ```text
-ndops::all_auto! { KIND SIGNATURE, [
+ndops::fwd! { KIND SIGNATURE, [
     (OP OP_CONDITIONS?),*
 ] }
 
@@ -293,25 +293,25 @@ impl From<i64> for Num {
 }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all_auto! { @stdmut (lhs: &mut Num, *rhs: &Num), (lhs.0) (rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=] }
+ndops::fwd! { @stdmut (lhs: &mut Num, *rhs: &Num), (i64) (&mut lhs.0) (&rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=] }
 
-// Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all_auto! { @stdmut (lhs: &mut Num, *rhs: &Num), (lhs.0) (rhs.0) [<<=, >>=] }
-
-// Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all_auto! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, (lhs.0) (rhs.0) [+, -, *, /, %, |, &, ^] }
+// Implements corresponding std::ops::* for Num
+ndops::fwd! { @stdmut (lhs: &mut Num, rhs: usize), (i64) (&mut lhs.0) (rhs) [<<=, >>=] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all_auto! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, (lhs.0) (rhs.0) [<<, >>] }
+ndops::fwd! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, (i64) (&lhs.0) (&rhs.0) [+, -, *, /, %, |, &, ^] }
 
 // Implements corresponding std::ops::* for &Num, Num
-ndops::all_auto! { @stdun (*value: &Num) -> Num, (value.0) [-, !] }
+ndops::fwd! { @stdbin (*lhs: &Num, rhs: usize) -> Num, (i64) (&lhs.0) (rhs) [<<, >>] }
+
+// Implements corresponding std::ops::* for &Num, Num
+ndops::fwd! { @stdun (*value: &Num) -> Num, (i64) (&value.0) [!, -] }
 ```
 
 ### All Auto Generic
 
 ```rust
-use std::ops::*;
+use ndcore::ops::*;
 
 struct Any<N>(N);
 
@@ -325,52 +325,52 @@ impl<N: Copy> From<N> for Any<N> {
 // Implements corresponding std::ops::* for (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all_auto! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), (lhs.0) (rhs.0) [
-    += where [N: AddAssign<N>],
-    -= where [N: SubAssign<N>],
-    *= where [N: MulAssign<N>],
-    /= where [N: DivAssign<N>],
-    %= where [N: RemAssign<N>],
-    |= where [N: BitOrAssign<N>],
-    &= where [N: BitAndAssign<N>],
-    ^= where [N: BitXorAssign<N>],
+ndops::fwd! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), (N) (&mut lhs.0) (&rhs.0) [
+    += where [N: NdAddAssign],
+    -= where [N: NdSubAssign],
+    *= where [N: NdMulAssign],
+    /= where [N: NdDivAssign],
+    %= where [N: NdRemAssign],
+    |= where [N: NdBitOrAssign],
+    &= where [N: NdBitAndAssign],
+    ^= where [N: NdBitXorAssign],
 ] }
 
-// Implements corresponding std::ops::* for (Any, &Any), (Any, Any)
+// Implements corresponding std::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all_auto! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), (lhs.0) (rhs.0) [
-    <<= where [N: ShlAssign<N>],
-    >>= where [N: ShrAssign<N>],
-] }
-
-// Implements corresponding std::ops::* for (&Any, &Any), (&Any, Any), (Any, &Any), (Any, Any)
-// with signature-level condition N: Copy
-// with operation-level conditions per operation
-ndops::all_auto! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, (lhs.0) (rhs.0) [
-    + where [N: Add<N, Output = N>],
-    - where [N: Sub<N, Output = N>],
-    * where [N: Mul<N, Output = N>],
-    / where [N: Div<N, Output = N>],
-    % where [N: Rem<N, Output = N>],
-    | where [N: BitOr<N, Output = N>],
-    & where [N: BitAnd<N, Output = N>],
-    ^ where [N: BitXor<N, Output = N>],
+ndops::fwd! { @stdmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), (N) (&mut lhs.0) (rhs) [
+    <<= where [N: NdShlAssign],
+    >>= where [N: NdShrAssign],
 ] }
 
 // Implements corresponding std::ops::* for (&Any, &Any), (&Any, Any), (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all_auto! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, (lhs.0) (rhs.0) [
-    << where [N: Shl<N, Output = N>],
-    >> where [N: Shr<N, Output = N>],
+ndops::fwd! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, (N) (&lhs.0) (&rhs.0) [
+    + where [N: NdAdd<Type = N>],
+    - where [N: NdSub<Type = N>],
+    * where [N: NdMul<Type = N>],
+    / where [N: NdDiv<Type = N>],
+    % where [N: NdRem<Type = N>],
+    | where [N: NdBitOr<Type = N>],
+    & where [N: NdBitAnd<Type = N>],
+    ^ where [N: NdBitXor<Type = N>],
 ] }
 
 // Implements corresponding std::ops::* for &Any, Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all_auto! { @stdun <N: Copy> (*value: &Any<N>) -> Any<N>, (value.0) [
-    - where [N: Neg<Output = N>],
-    ! where [N: Not<Output = N>],
+ndops::fwd! { @stdbin <N: Copy> (*lhs: &Any<N>, rhs: usize) -> Any<N>, (N) (&lhs.0) (rhs) [
+    << where [N: NdShl<Type = N>],
+    >> where [N: NdShr<Type = N>],
+] }
+
+// Implements corresponding std::ops::* for &Any, Any
+// with signature-level condition N: Copy
+// with operation-level conditions per operation
+ndops::fwd! { @stdun <N: Copy> (*value: &Any<N>) -> Any<N>, (N) (&value.0) [
+    ! where [N: NdNot<Type = N>],
+    - where [N: NdNeg<Type = N>],
 ] }
 ```

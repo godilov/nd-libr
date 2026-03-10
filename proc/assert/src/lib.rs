@@ -102,6 +102,16 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+#[proc_macro]
+pub fn catch(stream: TokenStreamStd) -> TokenStreamStd {
+    let expr = parse_macro_input!(stream as Expr);
+
+    quote! {
+        std::panic::catch_unwind(|| #expr).ok()
+    }
+    .into()
+}
+
 #[rustfmt::skip]
 const PRIMES: [[u64; 4]; 15] = [
     [            13,             11,              7,              5],
