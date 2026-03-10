@@ -395,14 +395,14 @@ pub mod prime {
             Self::primes().take_while(|p| p <= &sqrt).all(|p| {
                 let one = Self::one();
 
-                let x = Self::sub(self, &one);
+                let x = Self::nd_sub(self, &one);
 
-                let shr = Self::sub(&x, &one);
-                let shr = Self::bitxor(&x, &shr);
+                let shr = Self::nd_sub(&x, &one);
+                let shr = Self::nd_bitxor(&x, &shr);
                 let shr = shr.order();
 
                 let mut any = false;
-                let mut pow = Self::shr(&x, shr);
+                let mut pow = Self::nd_shr(&x, shr);
                 let mut exp = p.powrem(pow.clone(), self);
 
                 while pow < x && one < exp && exp < x {
@@ -410,9 +410,9 @@ pub mod prime {
 
                     let val = exp.clone();
 
-                    Self::shl_assign(&mut pow, 1);
-                    Self::mul_assign(&mut exp, &val);
-                    Self::rem_assign(&mut exp, self);
+                    Self::nd_shl_assign(&mut pow, 1);
+                    Self::nd_mul_assign(&mut exp, &val);
+                    Self::nd_rem_assign(&mut exp, self);
                 }
 
                 !any && exp == one || exp == x
@@ -490,18 +490,18 @@ pub mod prime {
             let one = Prime::from(1);
             let two = Prime::from(2);
 
-            let offset = Prime::bitand(&self.next, &one);
-            let offset = Prime::add(&offset, &one);
+            let offset = Prime::nd_bitand(&self.next, &one);
+            let offset = Prime::nd_add(&offset, &one);
 
-            let mut val = Prime::add(&self.next, &offset);
+            let mut val = Prime::nd_add(&self.next, &offset);
 
             while self
                 .primes
                 .iter()
-                .take_while(|&p| Prime::mul(p, p) <= val)
-                .any(|p| Prime::rem(&val, p) == zero)
+                .take_while(|&p| Prime::nd_mul(p, p) <= val)
+                .any(|p| Prime::nd_rem(&val, p) == zero)
             {
-                Prime::add_assign(&mut val, &two);
+                Prime::nd_add_assign(&mut val, &two);
 
                 if self.limit.as_ref().is_some_and(|limit| &val > limit) {
                     self.count = 0;
@@ -531,13 +531,13 @@ pub mod prime {
             let one = Prime::from(1);
             let two = Prime::from(2);
 
-            let offset = Prime::bitand(&self.next, &one);
-            let offset = Prime::add(&offset, &one);
+            let offset = Prime::nd_bitand(&self.next, &one);
+            let offset = Prime::nd_add(&offset, &one);
 
-            let mut val = Prime::add(&self.next, &offset);
+            let mut val = Prime::nd_add(&self.next, &offset);
 
             while !val.is_prime() {
-                Prime::add_assign(&mut val, &two);
+                Prime::nd_add_assign(&mut val, &two);
 
                 if self.limit.as_ref().is_some_and(|limit| &val > limit) {
                     self.count = 0;
@@ -637,7 +637,7 @@ pub trait NumCore:
         let zero = Self::zero();
 
         while rhs != zero {
-            let rem = Self::rem(&lhs, &rhs);
+            let rem = Self::nd_rem(&lhs, &rhs);
 
             lhs = rhs;
             rhs = rem;
@@ -654,7 +654,7 @@ pub trait NumCore:
         let zero = Self::zero();
 
         while rhs != zero {
-            let rem = Self::rem_checked(&lhs, &rhs)?;
+            let rem = Self::nd_rem_checked(&lhs, &rhs)?;
 
             lhs = rhs;
             rhs = rem;
@@ -676,11 +676,11 @@ pub trait NumCore:
         let mut y1 = one.clone();
 
         while r1 != zero {
-            let div = Self::div(&r0, &r1);
+            let div = Self::nd_div(&r0, &r1);
 
-            let r = Self::sub(&r0, &Self::mul(&div, &r1));
-            let x = Self::sub(&x0, &Self::mul(&div, &x1));
-            let y = Self::sub(&y0, &Self::mul(&div, &y1));
+            let r = Self::nd_sub(&r0, &Self::nd_mul(&div, &r1));
+            let x = Self::nd_sub(&x0, &Self::nd_mul(&div, &x1));
+            let y = Self::nd_sub(&y0, &Self::nd_mul(&div, &y1));
 
             r0 = r1;
             r1 = r;
@@ -711,11 +711,11 @@ pub trait NumCore:
         let mut y1 = one.clone();
 
         while r1 != zero {
-            let div = Self::div(&r0, &r1);
+            let div = Self::nd_div(&r0, &r1);
 
-            let r = Self::sub_checked(&r0, &Self::mul_checked(&div, &r1)?)?;
-            let x = Self::sub_checked(&x0, &Self::mul_checked(&div, &x1)?)?;
-            let y = Self::sub_checked(&y0, &Self::mul_checked(&div, &y1)?)?;
+            let r = Self::nd_sub_checked(&r0, &Self::nd_mul_checked(&div, &r1)?)?;
+            let x = Self::nd_sub_checked(&x0, &Self::nd_mul_checked(&div, &x1)?)?;
+            let y = Self::nd_sub_checked(&y0, &Self::nd_mul_checked(&div, &y1)?)?;
 
             r0 = r1;
             r1 = r;
@@ -733,9 +733,9 @@ pub trait NumCore:
     #[ndfwd::as_into]
     fn lcm(lhs: Self, rhs: Self) -> Self {
         let val = Self::gcd(lhs.clone(), rhs.clone());
-        let val = Self::div(&lhs, &val);
+        let val = Self::nd_div(&lhs, &val);
 
-        Self::mul(&val, &rhs)
+        Self::nd_mul(&val, &rhs)
     }
 
     #[ndfwd::as_into]
@@ -744,9 +744,9 @@ pub trait NumCore:
         Self: NdOpsChecked<All = Self>,
     {
         let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;
-        let val = Self::div_checked(&lhs, &val)?;
+        let val = Self::nd_div_checked(&lhs, &val)?;
 
-        Self::mul_checked(&val, &rhs)
+        Self::nd_mul_checked(&val, &rhs)
     }
 }
 
@@ -860,13 +860,13 @@ pub trait NumExt: NumCore {
 
         while exp != zero {
             if exp.is_odd() {
-                Self::mul_assign(&mut res, &acc);
+                Self::nd_mul_assign(&mut res, &acc);
             }
 
             let val = acc.clone();
 
-            Self::mul_assign(&mut acc, &val);
-            Self::shr_assign(&mut exp, 1);
+            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_shr_assign(&mut exp, 1);
         }
 
         res
@@ -882,15 +882,15 @@ pub trait NumExt: NumCore {
 
         while exp != zero {
             if exp.is_odd() {
-                Self::mul_assign(&mut res, &acc);
-                Self::rem_assign(&mut res, rem);
+                Self::nd_mul_assign(&mut res, &acc);
+                Self::nd_rem_assign(&mut res, rem);
             }
 
             let val = acc.clone();
 
-            Self::mul_assign(&mut acc, &val);
-            Self::rem_assign(&mut acc, rem);
-            Self::shr_assign(&mut exp, 1);
+            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_rem_assign(&mut acc, rem);
+            Self::nd_shr_assign(&mut exp, 1);
         }
 
         res
@@ -1125,7 +1125,7 @@ impl<N: Num + NumExt + NumUnsigned, M: Modulus<N>> Modular<N, M> {
     }
 
     pub(crate) fn normalize(&mut self) -> &mut Self {
-        N::rem_assign(&mut self.0, &M::MOD);
+        N::nd_rem_assign(&mut self.0, &M::MOD);
 
         self
     }

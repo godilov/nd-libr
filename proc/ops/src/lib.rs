@@ -1847,7 +1847,7 @@ impl From<OpsImplFwd<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
 
                     OpsDefinition::<OpsAssign> {
                         op,
-                        expr: parse_quote! {{ <#ty as #path>::#ident(#lhs, #rhs); }},
+                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs); }},
                         conditions,
                     }
                 })
@@ -1879,7 +1879,7 @@ impl From<OpsImplFwd<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
 
                     OpsDefinition::<OpsBinary> {
                         op,
-                        expr: parse_quote! {{ <#ty as #path>::#ident(#lhs, #rhs) }},
+                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs) }},
                         conditions,
                     }
                 })
@@ -1910,7 +1910,7 @@ impl From<OpsImplFwd<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
 
                     OpsDefinition::<OpsUnary> {
                         op,
-                        expr: parse_quote! {{ <#ty as #path>::#ident(#expr) }},
+                        expr: parse_quote! {{ use #path; #ty::#ident(#expr) }},
                         conditions,
                     }
                 })
@@ -1941,7 +1941,7 @@ impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
 
                     OpsDefinition::<OpsAssignExt> {
                         op,
-                        expr: parse_quote! {{ <#ty as #path>::#ident(#lhs, #rhs); }},
+                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs); }},
                         conditions,
                     }
                 })
@@ -1972,7 +1972,7 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
 
                     OpsDefinition::<OpsBinaryExt> {
                         op,
-                        expr: parse_quote! {{ <#ty as #path>::#ident(#lhs, #rhs) }},
+                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs) }},
                         conditions,
                     }
                 })
@@ -2002,7 +2002,7 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
 
                     OpsDefinition::<OpsUnaryExt> {
                         op,
-                        expr: parse_quote! {{ <#ty as #path>::#ident(#expr) }},
+                        expr: parse_quote! {{ use #path; #ty::#ident(#expr) }},
                         conditions,
                     }
                 })
@@ -2137,35 +2137,35 @@ impl OpsUnary {
 impl OpsAssignExt {
     fn get_ident(&self) -> Ident {
         match self {
-            OpsAssignExt::Add(_) => parse_quote! { add_assign },
-            OpsAssignExt::Sub(_) => parse_quote! { sub_assign },
-            OpsAssignExt::Mul(_) => parse_quote! { mul_assign },
-            OpsAssignExt::Div(_) => parse_quote! { div_assign },
-            OpsAssignExt::Rem(_) => parse_quote! { rem_assign },
-            OpsAssignExt::BitOr(_) => parse_quote! { bitor_assign },
-            OpsAssignExt::BitAnd(_) => parse_quote! { bitand_assign },
-            OpsAssignExt::BitXor(_) => parse_quote! { bitxor_assign },
-            OpsAssignExt::Shl(_) => parse_quote! { shl_assign },
-            OpsAssignExt::Shr(_) => parse_quote! { shr_assign },
-            OpsAssignExt::AddStrict(_, _, _) => parse_quote! { add_assign_strict },
-            OpsAssignExt::SubStrict(_, _, _) => parse_quote! { sub_assign_strict },
-            OpsAssignExt::MulStrict(_, _, _) => parse_quote! { mul_assign_strict },
-            OpsAssignExt::DivStrict(_, _, _) => parse_quote! { div_assign_strict },
-            OpsAssignExt::RemStrict(_, _, _) => parse_quote! { rem_assign_strict },
-            OpsAssignExt::ShlStrict(_, _, _) => parse_quote! { shl_assign_strict },
-            OpsAssignExt::ShrStrict(_, _, _) => parse_quote! { shr_assign_strict },
-            OpsAssignExt::AddWrapping(_, _, _) => parse_quote! { add_assign_wrapping },
-            OpsAssignExt::SubWrapping(_, _, _) => parse_quote! { sub_assign_wrapping },
-            OpsAssignExt::MulWrapping(_, _, _) => parse_quote! { mul_assign_wrapping },
-            OpsAssignExt::DivWrapping(_, _, _) => parse_quote! { div_assign_wrapping },
-            OpsAssignExt::RemWrapping(_, _, _) => parse_quote! { rem_assign_wrapping },
-            OpsAssignExt::AddSaturating(_, _, _) => parse_quote! { add_assign_saturating },
-            OpsAssignExt::SubSaturating(_, _, _) => parse_quote! { sub_assign_saturating },
-            OpsAssignExt::MulSaturating(_, _, _) => parse_quote! { mul_assign_saturating },
-            OpsAssignExt::DivSaturating(_, _, _) => parse_quote! { div_assign_saturating },
-            OpsAssignExt::RemSaturating(_, _, _) => parse_quote! { rem_assign_saturating },
-            OpsAssignExt::ShlUnbounded(_, _, _) => parse_quote! { shl_assign_unbounded },
-            OpsAssignExt::ShrUnbounded(_, _, _) => parse_quote! { shr_assign_unbounded },
+            OpsAssignExt::Add(_) => parse_quote! { nd_add_assign },
+            OpsAssignExt::Sub(_) => parse_quote! { nd_sub_assign },
+            OpsAssignExt::Mul(_) => parse_quote! { nd_mul_assign },
+            OpsAssignExt::Div(_) => parse_quote! { nd_div_assign },
+            OpsAssignExt::Rem(_) => parse_quote! { nd_rem_assign },
+            OpsAssignExt::BitOr(_) => parse_quote! { nd_bitor_assign },
+            OpsAssignExt::BitAnd(_) => parse_quote! { nd_bitand_assign },
+            OpsAssignExt::BitXor(_) => parse_quote! { nd_bitxor_assign },
+            OpsAssignExt::Shl(_) => parse_quote! { nd_shl_assign },
+            OpsAssignExt::Shr(_) => parse_quote! { nd_shr_assign },
+            OpsAssignExt::AddStrict(_, _, _) => parse_quote! { nd_add_assign_strict },
+            OpsAssignExt::SubStrict(_, _, _) => parse_quote! { nd_sub_assign_strict },
+            OpsAssignExt::MulStrict(_, _, _) => parse_quote! { nd_mul_assign_strict },
+            OpsAssignExt::DivStrict(_, _, _) => parse_quote! { nd_div_assign_strict },
+            OpsAssignExt::RemStrict(_, _, _) => parse_quote! { nd_rem_assign_strict },
+            OpsAssignExt::ShlStrict(_, _, _) => parse_quote! { nd_shl_assign_strict },
+            OpsAssignExt::ShrStrict(_, _, _) => parse_quote! { nd_shr_assign_strict },
+            OpsAssignExt::AddWrapping(_, _, _) => parse_quote! { nd_add_assign_wrapping },
+            OpsAssignExt::SubWrapping(_, _, _) => parse_quote! { nd_sub_assign_wrapping },
+            OpsAssignExt::MulWrapping(_, _, _) => parse_quote! { nd_mul_assign_wrapping },
+            OpsAssignExt::DivWrapping(_, _, _) => parse_quote! { nd_div_assign_wrapping },
+            OpsAssignExt::RemWrapping(_, _, _) => parse_quote! { nd_rem_assign_wrapping },
+            OpsAssignExt::AddSaturating(_, _, _) => parse_quote! { nd_add_assign_saturating },
+            OpsAssignExt::SubSaturating(_, _, _) => parse_quote! { nd_sub_assign_saturating },
+            OpsAssignExt::MulSaturating(_, _, _) => parse_quote! { nd_mul_assign_saturating },
+            OpsAssignExt::DivSaturating(_, _, _) => parse_quote! { nd_div_assign_saturating },
+            OpsAssignExt::RemSaturating(_, _, _) => parse_quote! { nd_rem_assign_saturating },
+            OpsAssignExt::ShlUnbounded(_, _, _) => parse_quote! { nd_shl_assign_unbounded },
+            OpsAssignExt::ShrUnbounded(_, _, _) => parse_quote! { nd_shr_assign_unbounded },
         }
     }
 
@@ -2209,49 +2209,49 @@ impl OpsAssignExt {
 impl OpsBinaryExt {
     fn get_ident(&self) -> Ident {
         match self {
-            OpsBinaryExt::Add(_) => parse_quote! { add },
-            OpsBinaryExt::Sub(_) => parse_quote! { sub },
-            OpsBinaryExt::Mul(_) => parse_quote! { mul },
-            OpsBinaryExt::Div(_) => parse_quote! { div },
-            OpsBinaryExt::Rem(_) => parse_quote! { rem },
-            OpsBinaryExt::BitOr(_) => parse_quote! { bitor },
-            OpsBinaryExt::BitAnd(_) => parse_quote! { bitand },
-            OpsBinaryExt::BitXor(_) => parse_quote! { bitxor },
-            OpsBinaryExt::Shl(_) => parse_quote! { shl },
-            OpsBinaryExt::Shr(_) => parse_quote! { shr },
-            OpsBinaryExt::AddChecked(_, _, _) => parse_quote! { add_checked },
-            OpsBinaryExt::SubChecked(_, _, _) => parse_quote! { sub_checked },
-            OpsBinaryExt::MulChecked(_, _, _) => parse_quote! { mul_checked },
-            OpsBinaryExt::DivChecked(_, _, _) => parse_quote! { div_checked },
-            OpsBinaryExt::RemChecked(_, _, _) => parse_quote! { rem_checked },
-            OpsBinaryExt::ShlChecked(_, _, _) => parse_quote! { shl_checked },
-            OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { shr_checked },
-            OpsBinaryExt::AddStrict(_, _, _) => parse_quote! { add_strict },
-            OpsBinaryExt::SubStrict(_, _, _) => parse_quote! { sub_strict },
-            OpsBinaryExt::MulStrict(_, _, _) => parse_quote! { mul_strict },
-            OpsBinaryExt::DivStrict(_, _, _) => parse_quote! { div_strict },
-            OpsBinaryExt::RemStrict(_, _, _) => parse_quote! { rem_strict },
-            OpsBinaryExt::ShlStrict(_, _, _) => parse_quote! { shl_strict },
-            OpsBinaryExt::ShrStrict(_, _, _) => parse_quote! { shr_strict },
-            OpsBinaryExt::AddWrapping(_, _, _) => parse_quote! { add_wrapping },
-            OpsBinaryExt::SubWrapping(_, _, _) => parse_quote! { sub_wrapping },
-            OpsBinaryExt::MulWrapping(_, _, _) => parse_quote! { mul_wrapping },
-            OpsBinaryExt::DivWrapping(_, _, _) => parse_quote! { div_wrapping },
-            OpsBinaryExt::RemWrapping(_, _, _) => parse_quote! { rem_wrapping },
-            OpsBinaryExt::AddSaturating(_, _, _) => parse_quote! { add_saturating },
-            OpsBinaryExt::SubSaturating(_, _, _) => parse_quote! { sub_saturating },
-            OpsBinaryExt::MulSaturating(_, _, _) => parse_quote! { mul_saturating },
-            OpsBinaryExt::DivSaturating(_, _, _) => parse_quote! { div_saturating },
-            OpsBinaryExt::RemSaturating(_, _, _) => parse_quote! { rem_saturating },
-            OpsBinaryExt::AddOverflowing(_, _, _) => parse_quote! { add_overflowing },
-            OpsBinaryExt::SubOverflowing(_, _, _) => parse_quote! { sub_overflowing },
-            OpsBinaryExt::MulOverflowing(_, _, _) => parse_quote! { mul_overflowing },
-            OpsBinaryExt::DivOverflowing(_, _, _) => parse_quote! { div_overflowing },
-            OpsBinaryExt::RemOverflowing(_, _, _) => parse_quote! { rem_overflowing },
-            OpsBinaryExt::ShlOverflowing(_, _, _) => parse_quote! { shl_overflowing },
-            OpsBinaryExt::ShrOverflowing(_, _, _) => parse_quote! { shr_overflowing },
-            OpsBinaryExt::ShlUnbounded(_, _, _) => parse_quote! { shl_unbounded },
-            OpsBinaryExt::ShrUnbounded(_, _, _) => parse_quote! { shr_unbounded },
+            OpsBinaryExt::Add(_) => parse_quote! { nd_add },
+            OpsBinaryExt::Sub(_) => parse_quote! { nd_sub },
+            OpsBinaryExt::Mul(_) => parse_quote! { nd_mul },
+            OpsBinaryExt::Div(_) => parse_quote! { nd_div },
+            OpsBinaryExt::Rem(_) => parse_quote! { nd_rem },
+            OpsBinaryExt::BitOr(_) => parse_quote! { nd_bitor },
+            OpsBinaryExt::BitAnd(_) => parse_quote! { nd_bitand },
+            OpsBinaryExt::BitXor(_) => parse_quote! { nd_bitxor },
+            OpsBinaryExt::Shl(_) => parse_quote! { nd_shl },
+            OpsBinaryExt::Shr(_) => parse_quote! { nd_shr },
+            OpsBinaryExt::AddChecked(_, _, _) => parse_quote! { nd_add_checked },
+            OpsBinaryExt::SubChecked(_, _, _) => parse_quote! { nd_sub_checked },
+            OpsBinaryExt::MulChecked(_, _, _) => parse_quote! { nd_mul_checked },
+            OpsBinaryExt::DivChecked(_, _, _) => parse_quote! { nd_div_checked },
+            OpsBinaryExt::RemChecked(_, _, _) => parse_quote! { nd_rem_checked },
+            OpsBinaryExt::ShlChecked(_, _, _) => parse_quote! { nd_shl_checked },
+            OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { nd_shr_checked },
+            OpsBinaryExt::AddStrict(_, _, _) => parse_quote! { nd_add_strict },
+            OpsBinaryExt::SubStrict(_, _, _) => parse_quote! { nd_sub_strict },
+            OpsBinaryExt::MulStrict(_, _, _) => parse_quote! { nd_mul_strict },
+            OpsBinaryExt::DivStrict(_, _, _) => parse_quote! { nd_div_strict },
+            OpsBinaryExt::RemStrict(_, _, _) => parse_quote! { nd_rem_strict },
+            OpsBinaryExt::ShlStrict(_, _, _) => parse_quote! { nd_shl_strict },
+            OpsBinaryExt::ShrStrict(_, _, _) => parse_quote! { nd_shr_strict },
+            OpsBinaryExt::AddWrapping(_, _, _) => parse_quote! { nd_add_wrapping },
+            OpsBinaryExt::SubWrapping(_, _, _) => parse_quote! { nd_sub_wrapping },
+            OpsBinaryExt::MulWrapping(_, _, _) => parse_quote! { nd_mul_wrapping },
+            OpsBinaryExt::DivWrapping(_, _, _) => parse_quote! { nd_div_wrapping },
+            OpsBinaryExt::RemWrapping(_, _, _) => parse_quote! { nd_rem_wrapping },
+            OpsBinaryExt::AddSaturating(_, _, _) => parse_quote! { nd_add_saturating },
+            OpsBinaryExt::SubSaturating(_, _, _) => parse_quote! { nd_sub_saturating },
+            OpsBinaryExt::MulSaturating(_, _, _) => parse_quote! { nd_mul_saturating },
+            OpsBinaryExt::DivSaturating(_, _, _) => parse_quote! { nd_div_saturating },
+            OpsBinaryExt::RemSaturating(_, _, _) => parse_quote! { nd_rem_saturating },
+            OpsBinaryExt::AddOverflowing(_, _, _) => parse_quote! { nd_add_overflowing },
+            OpsBinaryExt::SubOverflowing(_, _, _) => parse_quote! { nd_sub_overflowing },
+            OpsBinaryExt::MulOverflowing(_, _, _) => parse_quote! { nd_mul_overflowing },
+            OpsBinaryExt::DivOverflowing(_, _, _) => parse_quote! { nd_div_overflowing },
+            OpsBinaryExt::RemOverflowing(_, _, _) => parse_quote! { nd_rem_overflowing },
+            OpsBinaryExt::ShlOverflowing(_, _, _) => parse_quote! { nd_shl_overflowing },
+            OpsBinaryExt::ShrOverflowing(_, _, _) => parse_quote! { nd_shr_overflowing },
+            OpsBinaryExt::ShlUnbounded(_, _, _) => parse_quote! { nd_shl_unbounded },
+            OpsBinaryExt::ShrUnbounded(_, _, _) => parse_quote! { nd_shr_unbounded },
         }
     }
 
@@ -2329,13 +2329,13 @@ impl OpsBinaryExt {
 impl OpsUnaryExt {
     fn get_ident(&self) -> Ident {
         match self {
-            OpsUnaryExt::Not(_) => parse_quote! { not },
-            OpsUnaryExt::Neg(_) => parse_quote! { neg },
-            OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { neg_checked },
-            OpsUnaryExt::NegStrict(_, _, _) => parse_quote! { neg_strict },
-            OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { neg_wrapping },
-            OpsUnaryExt::NegSaturating(_, _, _) => parse_quote! { neg_saturating },
-            OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { neg_overflowing },
+            OpsUnaryExt::Not(_) => parse_quote! { nd_not },
+            OpsUnaryExt::Neg(_) => parse_quote! { nd_neg },
+            OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { nd_neg_checked },
+            OpsUnaryExt::NegStrict(_, _, _) => parse_quote! { nd_neg_strict },
+            OpsUnaryExt::NegWrapping(_, _, _) => parse_quote! { nd_neg_wrapping },
+            OpsUnaryExt::NegSaturating(_, _, _) => parse_quote! { nd_neg_saturating },
+            OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { nd_neg_overflowing },
         }
     }
 

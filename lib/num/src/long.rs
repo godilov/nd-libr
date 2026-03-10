@@ -400,83 +400,83 @@ macro_rules! ops_primitive_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::all! { @stdbin <const L: usize> (*lhs: &Signed<L>, rhs: $primitive) -> Signed<L>, [
-            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&lhs, &rhs),
-            - <Signed<L> as NdSub<Signed<L>, $primitive>>::sub(&lhs, &rhs),
-            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&lhs, &rhs),
-            / <Signed<L> as NdDiv<Signed<L>, $primitive>>::div(&lhs, &rhs),
-            % <Signed<L> as NdRem<Signed<L>, $primitive>>::rem(&lhs, &rhs),
-            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&lhs, &rhs),
-            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&lhs, &rhs),
-            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&lhs, &rhs),
+            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::nd_add(&lhs, &rhs),
+            - <Signed<L> as NdSub<Signed<L>, $primitive>>::nd_sub(&lhs, &rhs),
+            * <Signed<L> as NdMul<Signed<L>, $primitive>>::nd_mul(&lhs, &rhs),
+            / <Signed<L> as NdDiv<Signed<L>, $primitive>>::nd_div(&lhs, &rhs),
+            % <Signed<L> as NdRem<Signed<L>, $primitive>>::nd_rem(&lhs, &rhs),
+            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::nd_bitor(&lhs, &rhs),
+            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::nd_bitand(&lhs, &rhs),
+            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::nd_bitxor(&lhs, &rhs),
         ] }
 
         ndops::all! { @stdbin <const L: usize> (lhs: $primitive, *rhs: &Signed<L>) -> Signed<L>, [
-            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::add(&rhs, &lhs),
-            * <Signed<L> as NdMul<Signed<L>, $primitive>>::mul(&rhs, &lhs),
-            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::bitor(&rhs, &lhs),
-            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::bitand(&rhs, &lhs),
-            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::bitxor(&rhs, &lhs),
+            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::nd_add(&rhs, &lhs),
+            * <Signed<L> as NdMul<Signed<L>, $primitive>>::nd_mul(&rhs, &lhs),
+            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::nd_bitor(&rhs, &lhs),
+            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::nd_bitand(&rhs, &lhs),
+            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::nd_bitxor(&rhs, &lhs),
         ] }
 
         ndops::all! { @stdmut <const L: usize> (lhs: &mut Signed<L>, rhs: $primitive), [
-            += <Signed<L> as NdAddAssign<Signed<L>, $primitive>>::add_assign(lhs, &rhs),
-            -= <Signed<L> as NdSubAssign<Signed<L>, $primitive>>::sub_assign(lhs, &rhs),
-            *= <Signed<L> as NdMulAssign<Signed<L>, $primitive>>::mul_assign(lhs, &rhs),
-            /= <Signed<L> as NdDivAssign<Signed<L>, $primitive>>::div_assign(lhs, &rhs),
-            %= <Signed<L> as NdRemAssign<Signed<L>, $primitive>>::rem_assign(lhs, &rhs),
-            |= <Signed<L> as NdBitOrAssign<Signed<L>, $primitive>>::bitor_assign(lhs, &rhs),
-            &= <Signed<L> as NdBitAndAssign<Signed<L>, $primitive>>::bitand_assign(lhs, &rhs),
-            ^= <Signed<L> as NdBitXorAssign<Signed<L>, $primitive>>::bitxor_assign(lhs, &rhs),
+            += <Signed<L> as NdAddAssign<Signed<L>, $primitive>>::nd_add_assign(lhs, &rhs),
+            -= <Signed<L> as NdSubAssign<Signed<L>, $primitive>>::nd_sub_assign(lhs, &rhs),
+            *= <Signed<L> as NdMulAssign<Signed<L>, $primitive>>::nd_mul_assign(lhs, &rhs),
+            /= <Signed<L> as NdDivAssign<Signed<L>, $primitive>>::nd_div_assign(lhs, &rhs),
+            %= <Signed<L> as NdRemAssign<Signed<L>, $primitive>>::nd_rem_assign(lhs, &rhs),
+            |= <Signed<L> as NdBitOrAssign<Signed<L>, $primitive>>::nd_bitor_assign(lhs, &rhs),
+            &= <Signed<L> as NdBitAndAssign<Signed<L>, $primitive>>::nd_bitand_assign(lhs, &rhs),
+            ^= <Signed<L> as NdBitXorAssign<Signed<L>, $primitive>>::nd_bitxor_assign(lhs, &rhs),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
         ndops::all! { @stdbin <const L: usize> (*lhs: &Unsigned<L>, rhs: $primitive) -> Unsigned<L>, [
-            + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::add(&lhs, &rhs),
-            - <Unsigned<L> as NdSub<Unsigned<L>, $primitive>>::sub(&lhs, &rhs),
-            * <Unsigned<L> as NdMul<Unsigned<L>, $primitive>>::mul(&lhs, &rhs),
-            / <Unsigned<L> as NdDiv<Unsigned<L>, $primitive>>::div(&lhs, &rhs),
-            % <Unsigned<L> as NdRem<Unsigned<L>, $primitive>>::rem(&lhs, &rhs),
-            | <Unsigned<L> as NdBitOr<Unsigned<L>, $primitive>>::bitor(&lhs, &rhs),
-            & <Unsigned<L> as NdBitAnd<Unsigned<L>, $primitive>>::bitand(&lhs, &rhs),
-            ^ <Unsigned<L> as NdBitXor<Unsigned<L>, $primitive>>::bitxor(&lhs, &rhs),
+            + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::nd_add(&lhs, &rhs),
+            - <Unsigned<L> as NdSub<Unsigned<L>, $primitive>>::nd_sub(&lhs, &rhs),
+            * <Unsigned<L> as NdMul<Unsigned<L>, $primitive>>::nd_mul(&lhs, &rhs),
+            / <Unsigned<L> as NdDiv<Unsigned<L>, $primitive>>::nd_div(&lhs, &rhs),
+            % <Unsigned<L> as NdRem<Unsigned<L>, $primitive>>::nd_rem(&lhs, &rhs),
+            | <Unsigned<L> as NdBitOr<Unsigned<L>, $primitive>>::nd_bitor(&lhs, &rhs),
+            & <Unsigned<L> as NdBitAnd<Unsigned<L>, $primitive>>::nd_bitand(&lhs, &rhs),
+            ^ <Unsigned<L> as NdBitXor<Unsigned<L>, $primitive>>::nd_bitxor(&lhs, &rhs),
         ] }
 
         ndops::all! { @stdbin <const L: usize> (lhs: $primitive, *rhs: &Unsigned<L>) -> Unsigned<L>, [
-            + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::add(&rhs, &lhs),
-            * <Unsigned<L> as NdMul<Unsigned<L>, $primitive>>::mul(&rhs, &lhs),
-            | <Unsigned<L> as NdBitOr<Unsigned<L>, $primitive>>::bitor(&rhs, &lhs),
-            & <Unsigned<L> as NdBitAnd<Unsigned<L>, $primitive>>::bitand(&rhs, &lhs),
-            ^ <Unsigned<L> as NdBitXor<Unsigned<L>, $primitive>>::bitxor(&rhs, &lhs),
+            + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::nd_add(&rhs, &lhs),
+            * <Unsigned<L> as NdMul<Unsigned<L>, $primitive>>::nd_mul(&rhs, &lhs),
+            | <Unsigned<L> as NdBitOr<Unsigned<L>, $primitive>>::nd_bitor(&rhs, &lhs),
+            & <Unsigned<L> as NdBitAnd<Unsigned<L>, $primitive>>::nd_bitand(&rhs, &lhs),
+            ^ <Unsigned<L> as NdBitXor<Unsigned<L>, $primitive>>::nd_bitxor(&rhs, &lhs),
         ] }
 
         ndops::all! { @stdmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: $primitive), [
-            += <Unsigned<L> as NdAddAssign<Unsigned<L>, $primitive>>::add_assign(lhs, &rhs),
-            -= <Unsigned<L> as NdSubAssign<Unsigned<L>, $primitive>>::sub_assign(lhs, &rhs),
-            *= <Unsigned<L> as NdMulAssign<Unsigned<L>, $primitive>>::mul_assign(lhs, &rhs),
-            /= <Unsigned<L> as NdDivAssign<Unsigned<L>, $primitive>>::div_assign(lhs, &rhs),
-            %= <Unsigned<L> as NdRemAssign<Unsigned<L>, $primitive>>::rem_assign(lhs, &rhs),
-            |= <Unsigned<L> as NdBitOrAssign<Unsigned<L>, $primitive>>::bitor_assign(lhs, &rhs),
-            &= <Unsigned<L> as NdBitAndAssign<Unsigned<L>, $primitive>>::bitand_assign(lhs, &rhs),
-            ^= <Unsigned<L> as NdBitXorAssign<Unsigned<L>, $primitive>>::bitxor_assign(lhs, &rhs),
+            += <Unsigned<L> as NdAddAssign<Unsigned<L>, $primitive>>::nd_add_assign(lhs, &rhs),
+            -= <Unsigned<L> as NdSubAssign<Unsigned<L>, $primitive>>::nd_sub_assign(lhs, &rhs),
+            *= <Unsigned<L> as NdMulAssign<Unsigned<L>, $primitive>>::nd_mul_assign(lhs, &rhs),
+            /= <Unsigned<L> as NdDivAssign<Unsigned<L>, $primitive>>::nd_div_assign(lhs, &rhs),
+            %= <Unsigned<L> as NdRemAssign<Unsigned<L>, $primitive>>::nd_rem_assign(lhs, &rhs),
+            |= <Unsigned<L> as NdBitOrAssign<Unsigned<L>, $primitive>>::nd_bitor_assign(lhs, &rhs),
+            &= <Unsigned<L> as NdBitAndAssign<Unsigned<L>, $primitive>>::nd_bitand_assign(lhs, &rhs),
+            ^= <Unsigned<L> as NdBitXorAssign<Unsigned<L>, $primitive>>::nd_bitxor_assign(lhs, &rhs),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
         ndops::all! { @stdbin <const L: usize> (*lhs: &Bytes<L>, rhs: $primitive) -> Bytes<L>, [
-            | <Bytes<L> as NdBitOr<Bytes<L>, $primitive>>::bitor(&lhs, &rhs),
-            & <Bytes<L> as NdBitAnd<Bytes<L>, $primitive>>::bitand(&lhs, &rhs),
-            ^ <Bytes<L> as NdBitXor<Bytes<L>, $primitive>>::bitxor(&lhs, &rhs),
+            | <Bytes<L> as NdBitOr<Bytes<L>, $primitive>>::nd_bitor(&lhs, &rhs),
+            & <Bytes<L> as NdBitAnd<Bytes<L>, $primitive>>::nd_bitand(&lhs, &rhs),
+            ^ <Bytes<L> as NdBitXor<Bytes<L>, $primitive>>::nd_bitxor(&lhs, &rhs),
         ] }
 
         ndops::all! { @stdbin <const L: usize> (lhs: $primitive, *rhs: &Bytes<L>) -> Bytes<L>, [
-            | <Bytes<L> as NdBitOr<Bytes<L>, $primitive>>::bitor(&rhs, &lhs),
-            & <Bytes<L> as NdBitAnd<Bytes<L>, $primitive>>::bitand(&rhs, &lhs),
-            ^ <Bytes<L> as NdBitXor<Bytes<L>, $primitive>>::bitxor(&rhs, &lhs),
+            | <Bytes<L> as NdBitOr<Bytes<L>, $primitive>>::nd_bitor(&rhs, &lhs),
+            & <Bytes<L> as NdBitAnd<Bytes<L>, $primitive>>::nd_bitand(&rhs, &lhs),
+            ^ <Bytes<L> as NdBitXor<Bytes<L>, $primitive>>::nd_bitxor(&rhs, &lhs),
         ] }
 
         ndops::all! { @stdmut <const L: usize> (lhs: &mut Bytes<L>, rhs: $primitive), [
-            |= <Bytes<L> as NdBitOrAssign<Bytes<L>, $primitive>>::bitor_assign(lhs, &rhs),
-            &= <Bytes<L> as NdBitAndAssign<Bytes<L>, $primitive>>::bitand_assign(lhs, &rhs),
-            ^= <Bytes<L> as NdBitXorAssign<Bytes<L>, $primitive>>::bitxor_assign(lhs, &rhs),
+            |= <Bytes<L> as NdBitOrAssign<Bytes<L>, $primitive>>::nd_bitor_assign(lhs, &rhs),
+            &= <Bytes<L> as NdBitAndAssign<Bytes<L>, $primitive>>::nd_bitand_assign(lhs, &rhs),
+            ^= <Bytes<L> as NdBitXorAssign<Bytes<L>, $primitive>>::nd_bitxor_assign(lhs, &rhs),
         ] }
     };
 }
@@ -1961,24 +1961,24 @@ ndops::all! { @stdun <const L: usize> (mut value: Signed<L>) -> Signed<L>, [
 ] }
 
 ndops::all! { @stdun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
-    - <Signed<L> as NdNeg>::neg(value),
-    ! <Signed<L> as NdNot>::not(value),
+    - <Signed<L> as NdNeg>::nd_neg(value),
+    ! <Signed<L> as NdNot>::nd_not(value),
 ] }
 
 ndops::all! { @stdbin <const L: usize> (*lhs: &Signed<L>, *rhs: &Signed<L>) -> Signed<L>, [
-    + <Signed<L> as NdAdd>::add(&lhs, &rhs),
-    - <Signed<L> as NdSub>::sub(&lhs, &rhs),
-    * <Signed<L> as NdMul>::mul(&lhs, &rhs),
-    / <Signed<L> as NdDiv>::div(&lhs, &rhs),
-    % <Signed<L> as NdRem>::rem(&lhs, &rhs),
-    | <Signed<L> as NdBitOr>::bitor(&lhs, &rhs),
-    & <Signed<L> as NdBitAnd>::bitand(&lhs, &rhs),
-    ^ <Signed<L> as NdBitXor>::bitxor(&lhs, &rhs),
+    + <Signed<L> as NdAdd>::nd_add(&lhs, &rhs),
+    - <Signed<L> as NdSub>::nd_sub(&lhs, &rhs),
+    * <Signed<L> as NdMul>::nd_mul(&lhs, &rhs),
+    / <Signed<L> as NdDiv>::nd_div(&lhs, &rhs),
+    % <Signed<L> as NdRem>::nd_rem(&lhs, &rhs),
+    | <Signed<L> as NdBitOr>::nd_bitor(&lhs, &rhs),
+    & <Signed<L> as NdBitAnd>::nd_bitand(&lhs, &rhs),
+    ^ <Signed<L> as NdBitXor>::nd_bitxor(&lhs, &rhs),
 ] }
 
 ndops::all! { @stdbin <const L: usize> (*lhs: &Signed<L>, rhs: usize) -> Signed<L>, [
-    << <Signed<L> as NdShl>::shl(&lhs, rhs),
-    >> <Signed<L> as NdShr>::shr(&lhs, rhs),
+    << <Signed<L> as NdShl>::nd_shl(&lhs, rhs),
+    >> <Signed<L> as NdShr>::nd_shr(&lhs, rhs),
 ] }
 
 ndops::all! { @stdun <const L: usize> (mut value: Unsigned<L>) -> Unsigned<L>, [
@@ -1986,23 +1986,23 @@ ndops::all! { @stdun <const L: usize> (mut value: Unsigned<L>) -> Unsigned<L>, [
 ] }
 
 ndops::all! { @stdun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
-    ! <Unsigned<L> as NdNot>::not(value),
+    ! <Unsigned<L> as NdNot>::nd_not(value),
 ] }
 
 ndops::all! { @stdbin <const L: usize> (*lhs: &Unsigned<L>, *rhs: &Unsigned<L>) -> Unsigned<L>, [
-    + <Unsigned<L> as NdAdd>::add(&lhs, &rhs),
-    - <Unsigned<L> as NdSub>::sub(&lhs, &rhs),
-    * <Unsigned<L> as NdMul>::mul(&lhs, &rhs),
-    / <Unsigned<L> as NdDiv>::div(&lhs, &rhs),
-    % <Unsigned<L> as NdRem>::rem(&lhs, &rhs),
-    | <Unsigned<L> as NdBitOr>::bitor(&lhs, &rhs),
-    & <Unsigned<L> as NdBitAnd>::bitand(&lhs, &rhs),
-    ^ <Unsigned<L> as NdBitXor>::bitxor(&lhs, &rhs),
+    + <Unsigned<L> as NdAdd>::nd_add(&lhs, &rhs),
+    - <Unsigned<L> as NdSub>::nd_sub(&lhs, &rhs),
+    * <Unsigned<L> as NdMul>::nd_mul(&lhs, &rhs),
+    / <Unsigned<L> as NdDiv>::nd_div(&lhs, &rhs),
+    % <Unsigned<L> as NdRem>::nd_rem(&lhs, &rhs),
+    | <Unsigned<L> as NdBitOr>::nd_bitor(&lhs, &rhs),
+    & <Unsigned<L> as NdBitAnd>::nd_bitand(&lhs, &rhs),
+    ^ <Unsigned<L> as NdBitXor>::nd_bitxor(&lhs, &rhs),
 ] }
 
 ndops::all! { @stdbin <const L: usize> (*lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L>, [
-    << <Unsigned<L> as NdShl>::shl(&lhs, rhs),
-    >> <Unsigned<L> as NdShr>::shr(&lhs, rhs),
+    << <Unsigned<L> as NdShl>::nd_shl(&lhs, rhs),
+    >> <Unsigned<L> as NdShr>::nd_shr(&lhs, rhs),
 ] }
 
 ndops::all! { @stdun <const L: usize> (mut value: Bytes<L>) -> Bytes<L>, [
@@ -2010,61 +2010,61 @@ ndops::all! { @stdun <const L: usize> (mut value: Bytes<L>) -> Bytes<L>, [
 ] }
 
 ndops::all! { @stdun <const L: usize> (value: &Bytes<L>) -> Bytes<L>, [
-    ! <Bytes<L> as NdNot>::not(value),
+    ! <Bytes<L> as NdNot>::nd_not(value),
 ] }
 
 ndops::all! { @stdbin <const L: usize> (*lhs: &Bytes<L>, *rhs: &Bytes<L>) -> Bytes<L>, [
-    | <Bytes<L> as NdBitOr>::bitor(&lhs, &rhs),
-    & <Bytes<L> as NdBitAnd>::bitand(&lhs, &rhs),
-    ^ <Bytes<L> as NdBitXor>::bitxor(&lhs, &rhs),
+    | <Bytes<L> as NdBitOr>::nd_bitor(&lhs, &rhs),
+    & <Bytes<L> as NdBitAnd>::nd_bitand(&lhs, &rhs),
+    ^ <Bytes<L> as NdBitXor>::nd_bitxor(&lhs, &rhs),
 ] }
 
 ndops::all! { @stdbin <const L: usize> (*lhs: &Bytes<L>, rhs: usize) -> Bytes<L>, [
-    << <Bytes<L> as NdShl>::shl(&lhs, rhs),
-    >> <Bytes<L> as NdShr>::shr(&lhs, rhs),
+    << <Bytes<L> as NdShl>::nd_shl(&lhs, rhs),
+    >> <Bytes<L> as NdShr>::nd_shr(&lhs, rhs),
 ] }
 
 ndops::all! { @stdmut <const L: usize> (lhs: &mut Signed<L>, *rhs: &Signed<L>), [
-    += <Signed<L> as NdAddAssign>::add_assign(lhs, &rhs),
-    -= <Signed<L> as NdSubAssign>::sub_assign(lhs, &rhs),
-    *= <Signed<L> as NdMulAssign>::mul_assign(lhs, &rhs),
-    /= <Signed<L> as NdDivAssign>::div_assign(lhs, &rhs),
-    %= <Signed<L> as NdRemAssign>::rem_assign(lhs, &rhs),
-    |= <Signed<L> as NdBitOrAssign>::bitor_assign(lhs, &rhs),
-    &= <Signed<L> as NdBitAndAssign>::bitand_assign(lhs, &rhs),
-    ^= <Signed<L> as NdBitXorAssign>::bitxor_assign(lhs, &rhs),
+    += <Signed<L> as NdAddAssign>::nd_add_assign(lhs, &rhs),
+    -= <Signed<L> as NdSubAssign>::nd_sub_assign(lhs, &rhs),
+    *= <Signed<L> as NdMulAssign>::nd_mul_assign(lhs, &rhs),
+    /= <Signed<L> as NdDivAssign>::nd_div_assign(lhs, &rhs),
+    %= <Signed<L> as NdRemAssign>::nd_rem_assign(lhs, &rhs),
+    |= <Signed<L> as NdBitOrAssign>::nd_bitor_assign(lhs, &rhs),
+    &= <Signed<L> as NdBitAndAssign>::nd_bitand_assign(lhs, &rhs),
+    ^= <Signed<L> as NdBitXorAssign>::nd_bitxor_assign(lhs, &rhs),
 ] }
 
 ndops::all! { @stdmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize), [
-    <<= <Signed<L> as NdShlAssign>::shl_assign(lhs, rhs),
-    >>= <Signed<L> as NdShrAssign>::shr_assign(lhs, rhs),
+    <<= <Signed<L> as NdShlAssign>::nd_shl_assign(lhs, rhs),
+    >>= <Signed<L> as NdShrAssign>::nd_shr_assign(lhs, rhs),
 ] }
 
 ndops::all! { @stdmut <const L: usize> (lhs: &mut Unsigned<L>, *rhs: &Unsigned<L>), [
-    += <Unsigned<L> as NdAddAssign>::add_assign(lhs, &rhs),
-    -= <Unsigned<L> as NdSubAssign>::sub_assign(lhs, &rhs),
-    *= <Unsigned<L> as NdMulAssign>::mul_assign(lhs, &rhs),
-    /= <Unsigned<L> as NdDivAssign>::div_assign(lhs, &rhs),
-    %= <Unsigned<L> as NdRemAssign>::rem_assign(lhs, &rhs),
-    |= <Unsigned<L> as NdBitOrAssign>::bitor_assign(lhs, &rhs),
-    &= <Unsigned<L> as NdBitAndAssign>::bitand_assign(lhs, &rhs),
-    ^= <Unsigned<L> as NdBitXorAssign>::bitxor_assign(lhs, &rhs),
+    += <Unsigned<L> as NdAddAssign>::nd_add_assign(lhs, &rhs),
+    -= <Unsigned<L> as NdSubAssign>::nd_sub_assign(lhs, &rhs),
+    *= <Unsigned<L> as NdMulAssign>::nd_mul_assign(lhs, &rhs),
+    /= <Unsigned<L> as NdDivAssign>::nd_div_assign(lhs, &rhs),
+    %= <Unsigned<L> as NdRemAssign>::nd_rem_assign(lhs, &rhs),
+    |= <Unsigned<L> as NdBitOrAssign>::nd_bitor_assign(lhs, &rhs),
+    &= <Unsigned<L> as NdBitAndAssign>::nd_bitand_assign(lhs, &rhs),
+    ^= <Unsigned<L> as NdBitXorAssign>::nd_bitxor_assign(lhs, &rhs),
 ] }
 
 ndops::all! { @stdmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize), [
-    <<= <Unsigned<L> as NdShlAssign>::shl_assign(lhs, rhs),
-    >>= <Unsigned<L> as NdShrAssign>::shr_assign(lhs, rhs),
+    <<= <Unsigned<L> as NdShlAssign>::nd_shl_assign(lhs, rhs),
+    >>= <Unsigned<L> as NdShrAssign>::nd_shr_assign(lhs, rhs),
 ] }
 
 ndops::all! { @stdmut <const L: usize> (lhs: &mut Bytes<L>, *rhs: &Bytes<L>), [
-    |= <Bytes<L> as NdBitOrAssign>::bitor_assign(lhs, &rhs),
-    &= <Bytes<L> as NdBitAndAssign>::bitand_assign(lhs, &rhs),
-    ^= <Bytes<L> as NdBitXorAssign>::bitxor_assign(lhs, &rhs),
+    |= <Bytes<L> as NdBitOrAssign>::nd_bitor_assign(lhs, &rhs),
+    &= <Bytes<L> as NdBitAndAssign>::nd_bitand_assign(lhs, &rhs),
+    ^= <Bytes<L> as NdBitXorAssign>::nd_bitxor_assign(lhs, &rhs),
 ] }
 
 ndops::all! { @stdmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize), [
-    <<= <Bytes<L> as NdShlAssign>::shl_assign(lhs, rhs),
-    >>= <Bytes<L> as NdShrAssign>::shr_assign(lhs, rhs),
+    <<= <Bytes<L> as NdShlAssign>::nd_shl_assign(lhs, rhs),
+    >>= <Bytes<L> as NdShrAssign>::nd_shr_assign(lhs, rhs),
 ] }
 
 impl<const L: usize> Signed<L> {
