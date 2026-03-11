@@ -146,6 +146,7 @@ pub mod word {
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
+#[ndfwd::def(self.0 with T: crate::NumCore)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]

@@ -24,6 +24,8 @@ macro_rules! num_impl {
     (@impl $primitive:ty $(,)?) => {
         impl NumCore for $primitive {}
 
+        impl NumChecked for $primitive {}
+
         impl Num for $primitive {}
 
         impl NumExt for $primitive {
@@ -565,6 +567,7 @@ pub mod prime {
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: NumCore)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Strict<N: Num + NumExt>(pub N);
@@ -572,6 +575,7 @@ pub struct Strict<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: NumCore)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Wrapping<N: Num + NumExt>(pub N);
@@ -579,6 +583,7 @@ pub struct Wrapping<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: NumCore)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Saturating<N: Num + NumExt>(pub N);
@@ -586,6 +591,7 @@ pub struct Saturating<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: NumCore)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Unbounded<N: Num + NumExt>(pub N);
@@ -593,6 +599,7 @@ pub struct Unbounded<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: NumCore)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -602,6 +609,7 @@ pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: NumCore)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -646,23 +654,6 @@ pub trait NumCore:
         lhs
     }
 
-    #[ndfwd::as_into]
-    fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self>
-    where
-        Self: NdOpsChecked<All = Self>,
-    {
-        let zero = Self::zero();
-
-        while rhs != zero {
-            let rem = Self::nd_rem_checked(&lhs, &rhs)?;
-
-            lhs = rhs;
-            rhs = rem;
-        }
-
-        Some(lhs)
-    }
-
     #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
         let zero = Self::zero();
@@ -695,11 +686,33 @@ pub trait NumCore:
         (r0, x0, y0)
     }
 
+    #[ndfwd::as_into]
+    fn lcm(lhs: Self, rhs: Self) -> Self {
+        let val = Self::gcd(lhs.clone(), rhs.clone());
+        let val = Self::nd_div(&lhs, &val);
+
+        Self::nd_mul(&val, &rhs)
+    }
+}
+
+#[ndfwd::decl]
+pub trait NumChecked: NumCore + NdOpsChecked<All = Self> {
+    #[ndfwd::as_into]
+    fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
+        let zero = Self::zero();
+
+        while rhs != zero {
+            let rem = Self::nd_rem_checked(&lhs, &rhs)?;
+
+            lhs = rhs;
+            rhs = rem;
+        }
+
+        Some(lhs)
+    }
+
     #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
-    fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)>
-    where
-        Self: NdOpsChecked<All = Self>,
-    {
+    fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)> {
         let zero = Self::zero();
         let one = Self::one();
 
@@ -731,18 +744,7 @@ pub trait NumCore:
     }
 
     #[ndfwd::as_into]
-    fn lcm(lhs: Self, rhs: Self) -> Self {
-        let val = Self::gcd(lhs.clone(), rhs.clone());
-        let val = Self::nd_div(&lhs, &val);
-
-        Self::nd_mul(&val, &rhs)
-    }
-
-    #[ndfwd::as_into]
-    fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self>
-    where
-        Self: NdOpsChecked<All = Self>,
-    {
+    fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self> {
         let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;
         let val = Self::nd_div_checked(&lhs, &val)?;
 
