@@ -29,7 +29,7 @@ mod kw {
 }
 
 #[proc_macro]
-pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
+pub fn def(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
         Ops::StdAssign(ops) => quote! { #ops }.into(),
         Ops::StdBinary(ops) => quote! { #ops }.into(),

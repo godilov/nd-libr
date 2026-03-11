@@ -8,7 +8,7 @@ impl From<i64> for Num {
 }
 
 // Implements corresponding ndcore::ops::* for Num
-ndops::all! { @ndmut (lhs: &mut Num, rhs: &Num), [
+ndops::def! { @ndmut (lhs: &mut Num, rhs: &Num), [
     += lhs.0 += rhs.0,
     -= lhs.0 -= rhs.0,
     *= lhs.0 *= rhs.0,
@@ -20,13 +20,13 @@ ndops::all! { @ndmut (lhs: &mut Num, rhs: &Num), [
 ] }
 
 // Implements corresponding ndcore::ops::* for Num
-ndops::all! { @ndmut (lhs: &mut Num, rhs: usize), [
+ndops::def! { @ndmut (lhs: &mut Num, rhs: usize), [
     <<= lhs.0 <<= rhs,
     >>= lhs.0 >>= rhs,
 ] }
 
 // Implements corresponding ndcore::ops::* for Num
-ndops::all! { @ndbin (lhs: &Num, rhs: &Num) -> Num, [
+ndops::def! { @ndbin (lhs: &Num, rhs: &Num) -> Num, [
     + lhs.0 + rhs.0,
     - lhs.0 - rhs.0,
     * lhs.0 * rhs.0,
@@ -38,19 +38,19 @@ ndops::all! { @ndbin (lhs: &Num, rhs: &Num) -> Num, [
 ] }
 
 // Implements corresponding ndcore::ops::* for Num
-ndops::all! { @ndbin (lhs: &Num, rhs: usize) -> Num, [
+ndops::def! { @ndbin (lhs: &Num, rhs: usize) -> Num, [
     << lhs.0 << rhs,
     >> lhs.0 >> rhs,
 ] }
 
 // Implements corresponding ndcore::ops::* for Num
-ndops::all! { @ndun (value: &Num) -> Num, [
+ndops::def! { @ndun (value: &Num) -> Num, [
     - -value.0,
     ! !value.0,
 ] }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
+ndops::def! { @stdmut (lhs: &mut Num, *rhs: &Num), [
     += lhs.0 += rhs.0,
     -= lhs.0 -= rhs.0,
     *= lhs.0 *= rhs.0,
@@ -62,13 +62,13 @@ ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
 ] }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
+ndops::def! { @stdmut (lhs: &mut Num, *rhs: &Num), [
     <<= lhs.0 <<= rhs.0,
     >>= lhs.0 >>= rhs.0,
 ] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
+ndops::def! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
     + lhs.0 + rhs.0,
     - lhs.0 - rhs.0,
     * lhs.0 * rhs.0,
@@ -80,13 +80,13 @@ ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
 ] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
+ndops::def! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
     << lhs.0 << rhs.0,
     >> lhs.0 >> rhs.0,
 ] }
 
 // Implements corresponding std::ops::* for &Num, Num
-ndops::all! { @stdun (*value: &Num) -> Num, [
+ndops::def! { @stdun (*value: &Num) -> Num, [
     - -value.0,
     ! !value.0,
 ] }

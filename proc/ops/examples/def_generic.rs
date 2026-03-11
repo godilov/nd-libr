@@ -12,7 +12,7 @@ impl<N> From<N> for Any<N> {
 // Implements corresponding ndcore::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: &Any<N>), [
+ndops::def! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: &Any<N>), [
     += lhs.0 += rhs.0 where [N: AddAssign<N>],
     -= lhs.0 -= rhs.0 where [N: SubAssign<N>],
     *= lhs.0 *= rhs.0 where [N: MulAssign<N>],
@@ -26,7 +26,7 @@ ndops::all! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: &Any<N>), [
 // Implements corresponding ndcore::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), [
+ndops::def! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), [
     <<= lhs.0 <<= rhs where [N: ShlAssign<usize>],
     >>= lhs.0 >>= rhs where [N: ShrAssign<usize>],
 ] }
@@ -34,7 +34,7 @@ ndops::all! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), [
 // Implements corresponding ndcore::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: &Any<N>) -> Any<N>, [
+ndops::def! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: &Any<N>) -> Any<N>, [
     + lhs.0 + rhs.0 where [N: Add<N, Output = N>],
     - lhs.0 - rhs.0 where [N: Sub<N, Output = N>],
     * lhs.0 * rhs.0 where [N: Mul<N, Output = N>],
@@ -48,7 +48,7 @@ ndops::all! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: &Any<N>) -> Any<N>, [
 // Implements corresponding ndcore::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, [
+ndops::def! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, [
     << lhs.0 << rhs where [N: Shl<usize, Output = N>],
     >> lhs.0 >> rhs where [N: Shr<usize, Output = N>],
 ] }
@@ -56,7 +56,7 @@ ndops::all! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, [
 // Implements corresponding ndcore::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @ndun <N: Copy> (value: &Any<N>) -> Any<N>, [
+ndops::def! { @ndun <N: Copy> (value: &Any<N>) -> Any<N>, [
     - -value.0 where [N: Neg<Output = N>],
     ! !value.0 where [N: Not<Output = N>],
 ] }
@@ -64,7 +64,7 @@ ndops::all! { @ndun <N: Copy> (value: &Any<N>) -> Any<N>, [
 // Implements corresponding std::ops::* for (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
+ndops::def! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
     += lhs.0 += rhs.0 where [N: AddAssign<N>],
     -= lhs.0 -= rhs.0 where [N: SubAssign<N>],
     *= lhs.0 *= rhs.0 where [N: MulAssign<N>],
@@ -78,7 +78,7 @@ ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
 // Implements corresponding std::ops::* for (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
+ndops::def! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
     <<= lhs.0 <<= rhs.0 where [N: ShlAssign<N>],
     >>= lhs.0 >>= rhs.0 where [N: ShrAssign<N>],
 ] }
@@ -86,7 +86,7 @@ ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
 // Implements corresponding std::ops::* for (&Any, &Any), (&Any, Any), (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
+ndops::def! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
     + lhs.0 + rhs.0 where [N: Add<N, Output = N>],
     - lhs.0 - rhs.0 where [N: Sub<N, Output = N>],
     * lhs.0 * rhs.0 where [N: Mul<N, Output = N>],
@@ -100,7 +100,7 @@ ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
 // Implements corresponding std::ops::* for (&Any, &Any), (&Any, Any), (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
+ndops::def! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
     << lhs.0 << rhs.0 where [N: Shl<N, Output = N>],
     >> lhs.0 >> rhs.0 where [N: Shr<N, Output = N>],
 ] }
@@ -108,7 +108,7 @@ ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
 // Implements corresponding std::ops::* for &Any, Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdun <N: Copy> (*value: &Any<N>) -> Any<N>, [
+ndops::def! { @stdun <N: Copy> (*value: &Any<N>) -> Any<N>, [
     - -value.0 where [N: Neg<Output = N>],
     ! !value.0 where [N: Not<Output = N>],
 ] }
