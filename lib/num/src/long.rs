@@ -17,7 +17,7 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    Binary as NumBinary, Max as NumMax, Min as NumMin, Num, NumCore, NumExt, NumSigned, NumUnsigned, Offset,
+    Binary as NumBinary, Max as NumMax, Min as NumMin, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset,
     One as NumOne, Sign, Zero as NumZero,
     arch::word::*,
     long::{radix::*, uops::*},
@@ -2552,8 +2552,8 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     }
 }
 
-impl<const L: usize> NumCore for Signed<L> {}
-impl<const L: usize> NumCore for Unsigned<L> {}
+impl<const L: usize> NumFn for Signed<L> {}
+impl<const L: usize> NumFn for Unsigned<L> {}
 
 impl<const L: usize> Num for Signed<L> {}
 impl<const L: usize> Num for Unsigned<L> {}

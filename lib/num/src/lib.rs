@@ -22,9 +22,9 @@ macro_rules! num_impl {
         $(num_impl!(@unsigned $primitive);)+
     };
     (@impl $primitive:ty $(,)?) => {
-        impl NumCore for $primitive {}
+        impl NumFn for $primitive {}
 
-        impl NumChecked for $primitive {}
+        impl NumFnChecked for $primitive {}
 
         impl Num for $primitive {}
 
@@ -567,7 +567,7 @@ pub mod prime {
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: NumCore)]
+#[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Strict<N: Num + NumExt>(pub N);
@@ -575,7 +575,7 @@ pub struct Strict<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: NumCore)]
+#[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Wrapping<N: Num + NumExt>(pub N);
@@ -583,7 +583,7 @@ pub struct Wrapping<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: NumCore)]
+#[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Saturating<N: Num + NumExt>(pub N);
@@ -591,7 +591,7 @@ pub struct Saturating<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: NumCore)]
+#[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Unbounded<N: Num + NumExt>(pub N);
@@ -599,7 +599,7 @@ pub struct Unbounded<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: NumCore)]
+#[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -609,7 +609,7 @@ pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: NumCore)]
+#[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -637,7 +637,7 @@ type MaskCt = u8;
 type SignCt = i8;
 
 #[ndfwd::decl]
-pub trait NumCore:
+pub trait NumFn:
     Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
 {
     #[ndfwd::as_into]
@@ -696,7 +696,7 @@ pub trait NumCore:
 }
 
 #[ndfwd::decl]
-pub trait NumChecked: NumCore + NdOpsChecked<All = Self> {
+pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
     #[ndfwd::as_into]
     fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
         let zero = Self::zero();
@@ -753,13 +753,13 @@ pub trait NumChecked: NumCore + NdOpsChecked<All = Self> {
 }
 
 #[ndfwd::decl]
-pub trait Num: NumCore + Zero + One + Copy {}
+pub trait Num: NumFn + Zero + One + Copy {}
 
 #[ndfwd::decl]
-pub trait NumDyn: NumCore {}
+pub trait NumDyn: NumFn {}
 
 #[ndfwd::decl]
-pub trait NumExt: NumCore {
+pub trait NumExt: NumFn {
     fn read(&self, offset: Offset) -> u64;
 
     #[ndfwd::as_self]
@@ -900,10 +900,10 @@ pub trait NumExt: NumCore {
 }
 
 #[ndfwd::decl]
-pub trait NumSigned: NumCore + From<i8> {}
+pub trait NumSigned: NumFn + From<i8> {}
 
 #[ndfwd::decl]
-pub trait NumUnsigned: NumCore + From<u8> {
+pub trait NumUnsigned: NumFn + From<u8> {
     fn order(&self) -> usize;
 
     #[ndfwd::as_into]
