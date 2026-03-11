@@ -703,7 +703,7 @@ pub trait NumFn:
 
 #[ndfwd::decl]
 pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
-    #[ndfwd::as_map(|res| Self::from(res))]
+    #[ndfwd::as_map(Self::from)]
     fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
         let zero = Self::zero();
 
@@ -749,7 +749,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
         Some((r0, x0, y0))
     }
 
-    #[ndfwd::as_map(|res| Self::from(res))]
+    #[ndfwd::as_map(Self::from)]
     fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self> {
         let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;
         let val = Self::nd_div_checked(&lhs, &val)?;

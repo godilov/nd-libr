@@ -861,42 +861,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     self
                 }
             } else if let Some(as_expr) = as_expr {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_expr.meta)?;
+                let expr = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
-                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
-                    (self.forward_mut().#ident(#(#definitions),*))
+                    (#expr)(self.forward_mut().#ident(#(#definitions),*))
                 }
             } else if let Some(as_map) = as_map {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_map.meta)?;
+                let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    self.forward_mut().#ident(#(#definitions),*)
-                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
+                    self.forward_mut().#ident(#(#definitions),*).map(expr)
                 }
             } else {
                 quote! {
@@ -915,42 +889,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     self
                 }
             } else if let Some(as_expr) = as_expr {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_expr.meta)?;
+                let expr = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
-                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
-                    (self.forward_ref().#ident(#(#definitions),*))
+                    (#expr)(self.forward_ref().#ident(#(#definitions),*))
                 }
             } else if let Some(as_map) = as_map {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_map.meta)?;
+                let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    self.forward_ref().#ident(#(#definitions),*)
-                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
+                    self.forward_ref().#ident(#(#definitions),*).map(#expr)
                 }
             } else {
                 quote! {
@@ -969,42 +917,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     self
                 }
             } else if let Some(as_expr) = as_expr {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_expr.meta)?;
+                let expr = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
-                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
-                    (self.forward().#ident(#(#definitions),*))
+                    (#expr)(self.forward().#ident(#(#definitions),*))
                 }
             } else if let Some(as_map) = as_map {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_map.meta)?;
+                let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    self.forward().#ident(#(#definitions),*)
-                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
+                    self.forward().#ident(#(#definitions),*).map(#expr)
                 }
             } else {
                 quote! {
@@ -1018,42 +940,16 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     <$ty>::#ident(#(#definitions),*).into()
                 }
             } else if let Some(as_expr) = as_expr {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_expr.meta)?;
+                let expr = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
-                    (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
-                    (<$ty>::#ident(#(#definitions),*))
+                    (#expr)(<$ty>::#ident(#(#definitions),*))
                 }
             } else if let Some(as_map) = as_map {
-                let ExprClosure {
-                    attrs: _,
-                    lifetimes,
-                    constness,
-                    movability,
-                    asyncness,
-                    capture,
-                    or1_token: _,
-                    inputs,
-                    or2_token: _,
-                    output,
-                    body,
-                } = get_forward_expr(&as_map.meta)?;
+                let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    <$ty>::#ident(#(#definitions),*)
-                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
+                    <$ty>::#ident(#(#definitions),*).map(#expr)
                 }
             } else {
                 quote! {
@@ -1080,17 +976,11 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
     ))
 }
 
-fn get_forward_expr(meta: &Meta) -> Result<ExprClosure> {
+fn get_forward_expr(meta: &Meta) -> Result<Expr> {
     match meta {
-        Meta::Path(val) => Err(Error::new_spanned(
-            val,
-            "Failed to forward as expression, expected closure expression",
-        )),
-        Meta::List(val) => syn::parse2::<ExprClosure>(val.tokens.clone()),
-        Meta::NameValue(val) => Err(Error::new_spanned(
-            val,
-            "Failed to forward as expression, expected closure expression",
-        )),
+        Meta::List(val) => syn::parse2::<Expr>(val.tokens.clone()),
+        Meta::Path(val) => Err(Error::new_spanned(val, "Failed to forward as expression, expected expression")),
+        Meta::NameValue(val) => Err(Error::new_spanned(val, "Failed to forward as expression, expected expression")),
     }
 }
 
