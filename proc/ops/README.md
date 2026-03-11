@@ -4,7 +4,7 @@
 
 The crate allows to define complex and structured operations implementation in all combinations.
 
-- [`ndops::all!`](all) implements `std::ops::*` and `ndcore::ops::*` operations with **explicitly** provided expressions.
+- [`ndops::def!`](def) implements `std::ops::*` and `ndcore::ops::*` operations with **explicitly** provided expressions.
 - [`ndops::fwd!`](fwd) implements `std::ops::*` and `ndcore::ops::*` operations with **implicitly** derived expressions.
 
 ## Start
@@ -57,24 +57,24 @@ merging them when implementing every specific operation.
 
 #### Expressions
 
-- [`ndops::all!`](all) implements operations with explicitly provided expressions.
+- [`ndops::def!`](all) implements operations with explicitly provided expressions.
 - [`ndops::fwd!`](fwd) implements operations with implicitly derived expressions.
 
 | Kind               | Expression               |
 | ------------------ | ------------------------ |
-| `ndops::all! *mut` | `EXPR`                   |
-| `ndops::all! *bin` | `<TY>::from(EXPR)`       |
-| `ndops::all! *un`  | `<TY>::from(EXPR)`       |
+| `ndops::def! *mut` | `EXPR`                   |
+| `ndops::def! *bin` | `<TY>::from(EXPR)`       |
+| `ndops::def! *un`  | `<TY>::from(EXPR)`       |
 | `ndops::fwd! *mut` | `EXPR`                   |
 | `ndops::fwd! *bin` | `<TY>::from(LHS OP RHS)` |
 | `ndops::fwd! *un`  | `<TY>::from(OP VALUE)`   |
 
 ## Syntax
 
-### [`ndops::all!`](all)
+### [`ndops::def!`](all)
 
 ```text
-ndops::all! { KIND SIGNATURE, [
+ndops::def! { KIND SIGNATURE, [
     (OP EXPR OP_CONDITIONS?),*
 ] }
 
@@ -171,7 +171,7 @@ impl From<i64> for Num {
 }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
+ndops::def! { @stdmut (lhs: &mut Num, *rhs: &Num), [
     += lhs.0 += rhs.0,
     -= lhs.0 -= rhs.0,
     *= lhs.0 *= rhs.0,
@@ -183,13 +183,13 @@ ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
 ] }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
-ndops::all! { @stdmut (lhs: &mut Num, *rhs: &Num), [
+ndops::def! { @stdmut (lhs: &mut Num, *rhs: &Num), [
     <<= lhs.0 <<= rhs.0,
     >>= lhs.0 >>= rhs.0,
 ] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
+ndops::def! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
     + lhs.0 + rhs.0,
     - lhs.0 - rhs.0,
     * lhs.0 * rhs.0,
@@ -201,13 +201,13 @@ ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
 ] }
 
 // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
-ndops::all! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
+ndops::def! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
     << lhs.0 << rhs.0,
     >> lhs.0 >> rhs.0,
 ] }
 
 // Implements corresponding std::ops::* for &Num, Num
-ndops::all! { @stdun (*value: &Num) -> Num, [
+ndops::def! { @stdun (*value: &Num) -> Num, [
     - -value.0,
     ! !value.0,
 ] }
@@ -230,7 +230,7 @@ impl<N> From<N> for Any<N> {
 // Implements corresponding std::ops::* for (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
+ndops::def! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
     += lhs.0 += rhs.0 where [N: AddAssign<N>],
     -= lhs.0 -= rhs.0 where [N: SubAssign<N>],
     *= lhs.0 *= rhs.0 where [N: MulAssign<N>],
@@ -244,7 +244,7 @@ ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
 // Implements corresponding std::ops::* for (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
+ndops::def! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
     <<= lhs.0 <<= rhs.0 where [N: ShlAssign<N>],
     >>= lhs.0 >>= rhs.0 where [N: ShrAssign<N>],
 ] }
@@ -252,7 +252,7 @@ ndops::all! { @stdmut <N: Copy> (lhs: &mut Any<N>, *rhs: &Any<N>), [
 // Implements corresponding std::ops::* for (&Any, &Any), (&Any, Any), (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
+ndops::def! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
     + lhs.0 + rhs.0 where [N: Add<N, Output = N>],
     - lhs.0 - rhs.0 where [N: Sub<N, Output = N>],
     * lhs.0 * rhs.0 where [N: Mul<N, Output = N>],
@@ -266,7 +266,7 @@ ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
 // Implements corresponding std::ops::* for (&Any, &Any), (&Any, Any), (Any, &Any), (Any, Any)
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
+ndops::def! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
     << lhs.0 << rhs.0 where [N: Shl<N, Output = N>],
     >> lhs.0 >> rhs.0 where [N: Shr<N, Output = N>],
 ] }
@@ -274,7 +274,7 @@ ndops::all! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
 // Implements corresponding std::ops::* for &Any, Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
-ndops::all! { @stdun <N: Copy> (*value: &Any<N>) -> Any<N>, [
+ndops::def! { @stdun <N: Copy> (*value: &Any<N>) -> Any<N>, [
     - -value.0 where [N: Neg<Output = N>],
     ! !value.0 where [N: Not<Output = N>],
 ] }

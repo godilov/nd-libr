@@ -120,7 +120,7 @@ pub mod ops {
             $(nd_ops_impl!(@unsigned $primitive);)+
         };
         (@signed $primitive:ty $(,)?) => {
-            ndops::all! { @ndun crate (value: &$primitive) -> $primitive, [
+            ndops::def! { @ndun crate (value: &$primitive) -> $primitive, [
                 ! !value,
                 - -value,
                 - @checked value.checked_neg(),
@@ -133,14 +133,14 @@ pub mod ops {
             nd_ops_impl!(@impl $primitive);
         };
         (@unsigned $primitive:ty $(,)?) => {
-            ndops::all! { @ndun crate (value: &$primitive) -> $primitive, [
+            ndops::def! { @ndun crate (value: &$primitive) -> $primitive, [
                 ! !value,
             ] }
 
             nd_ops_impl!(@impl $primitive);
         };
         (@impl $primitive:ty $(,)?) => {
-            ndops::all! { @ndbin crate (lhs: &$primitive, rhs: &$primitive) -> $primitive, [
+            ndops::def! { @ndbin crate (lhs: &$primitive, rhs: &$primitive) -> $primitive, [
                 + lhs.add(rhs),
                 - lhs.sub(rhs),
                 * lhs.mul(rhs),
@@ -176,7 +176,7 @@ pub mod ops {
                 % @overflowing lhs.overflowing_rem(*rhs),
             ] }
 
-            ndops::all! { @ndbin crate (lhs: &$primitive, rhs: usize) -> $primitive, [
+            ndops::def! { @ndbin crate (lhs: &$primitive, rhs: usize) -> $primitive, [
                 << lhs.shl(rhs),
                 >> lhs.shr(rhs),
                 << @checked lhs.checked_shl(rhs as u32),
@@ -187,7 +187,7 @@ pub mod ops {
                 >> @unbounded lhs.unbounded_shr(rhs as u32),
             ] }
 
-            ndops::all! { @ndmut crate (lhs: &mut $primitive, rhs: &$primitive), [
+            ndops::def! { @ndmut crate (lhs: &mut $primitive, rhs: &$primitive), [
                 += lhs.add_assign(rhs),
                 -= lhs.sub_assign(rhs),
                 *= lhs.mul_assign(rhs),
@@ -213,7 +213,7 @@ pub mod ops {
                 %= @saturating *lhs = lhs.wrapping_rem(*rhs),
             ] }
 
-            ndops::all! { @ndmut crate (lhs: &mut $primitive, rhs: usize), [
+            ndops::def! { @ndmut crate (lhs: &mut $primitive, rhs: usize), [
                 <<= lhs.shl_assign(rhs),
                 >>= lhs.shr_assign(rhs),
                 <<= @unbounded *lhs = lhs.unbounded_shl(rhs as u32),

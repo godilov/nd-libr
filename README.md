@@ -57,7 +57,7 @@ Traits `ndlibr::ops::NdAdd`, `ndlibr::ops::NdSub`, etc. and `ndlibr::ops::NdAddA
 
 ### Ops Generation
 
-Macroses `ndops::all` and `ndops::all_auto` with `@stdun`/`@stdbin`/`@stdmut` implement all specified standard Rust operations from `std::ops::*`.
+Macroses `ndops::def` and `ndops::fwd` with `@stdun`/`@stdbin`/`@stdmut` implement all specified standard Rust operations from `std::ops::*`.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -65,13 +65,13 @@ struct A<N>(N);
 
 /// Implements `std::ops::Neg` and `std::ops::Not` for A<N>
 /// Note: asterisk in `*value` specifies implementation by value and by reference
-ndops::all!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> (*value: &A<N>) -> A<N>,
+ndops::def!(@stdun <N: Clone + Copy + Neg<Output = N> + Not<Output = N>> (*value: &A<N>) -> A<N>,
     - A::<N>(-value.0),
     ! A::<N>(!value.0));
 
 /// Implements `std::ops::Add`, `std::ops::Sub`, `std::ops::Mul`, `std::ops::Div`, `std::ops::Rem` for A<N>
 /// Note: asterisk in `*lhs` and `*rhs` specifies implementation by value and by reference
-ndops::all!(@stdbin <N: Ops<Type = N>> (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
+ndops::def!(@stdbin <N: Ops<Type = N>> (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
     + A::<N>(lhs.0 + rhs.0),
     - A::<N>(lhs.0 - rhs.0),
     * A::<N>(lhs.0 * rhs.0),
@@ -80,7 +80,7 @@ ndops::all!(@stdbin <N: Ops<Type = N>> (*lhs: &A<N>, *rhs: &A<N>) -> A<N>,
 
 /// Implements `std::ops::AddAssign`, `std::ops::SubAssign`, `std::ops::MulAssign`, `std::ops::DivAssign`, `std::ops::RemAssign` for A<N>
 /// Note: asterisk in `*rhs` specifies implementation by value and by reference
-ndops::all!(@stdmut <N: OpsAssign> (lhs: &mut A<N>, *rhs: &A<N>),
+ndops::def!(@stdmut <N: OpsAssign> (lhs: &mut A<N>, *rhs: &A<N>),
     += { lhs.0 += rhs.0; },
     -= { lhs.0 -= rhs.0; },
     *= { lhs.0 *= rhs.0; },
@@ -88,19 +88,19 @@ ndops::all!(@stdmut <N: OpsAssign> (lhs: &mut A<N>, *rhs: &A<N>),
     %= { lhs.0 %= rhs.0; });
 ```
 
-Macroses `ndops::all` and `ndops::all_auto` with `@ndun`/`@ndbin`/`@ndmut` implement all specified standard Rust operations from `ndlibr::ops::*`.
+Macroses `ndops::def` and `ndops::def_auto` with `@ndun`/`@ndbin`/`@ndmut` implement all specified standard Rust operations from `ndlibr::ops::*`.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct A<N>(N);
 
 /// Implements `ndlibr::ops::Neg` and `ndlibr::ops::Not` for A<N>
-ndops::all!(@ndun crate <N: NdNeg<Type = N> + NdNot<Type = N>> (value: &A<N>) -> A<N>,
+ndops::def!(@ndun crate <N: NdNeg<Type = N> + NdNot<Type = N>> (value: &A<N>) -> A<N>,
     - A::<N>(N::neg(&value.0)),
     ! A::<N>(N::not(&value.0)));
 
 /// Implements `ndlibr::ops::Add`, `ndlibr::ops::Sub`, `ndlibr::ops::Mul`, `ndlibr::ops::Div`, `ndlibr::ops::Rem` for A<N>
-ndops::all!(@ndbin crate <N: NdOps<All = N>> (lhs: &A<N>, rhs: &A<N>) -> A<N>,
+ndops::def!(@ndbin crate <N: NdOps<All = N>> (lhs: &A<N>, rhs: &A<N>) -> A<N>,
     + A::<N>(N::add(&lhs.0, &rhs.0)),
     - A::<N>(N::sub(&lhs.0, &rhs.0)),
     * A::<N>(N::mul(&lhs.0, &rhs.0)),
@@ -108,7 +108,7 @@ ndops::all!(@ndbin crate <N: NdOps<All = N>> (lhs: &A<N>, rhs: &A<N>) -> A<N>,
     % A::<N>(N::rem(&lhs.0, &rhs.0)));
 
 /// Implements `ndlibr::ops::AddAssign`, `ndlibr::ops::SubAssign`, `ndlibr::ops::MulAssign`, `ndlibr::ops::DivAssign`, `ndlibr::ops::RemAssign` for A<N>
-ndops::all!(@ndmut crate <N: NdOpsAssign> (lhs: &mut A<N>, rhs: &A<N>),
+ndops::def!(@ndmut crate <N: NdOpsAssign> (lhs: &mut A<N>, rhs: &A<N>),
     += { N::add_assign(&mut lhs.0, &rhs.0); },
     -= { N::sub_assign(&mut lhs.0, &rhs.0); },
     *= { N::mul_assign(&mut lhs.0, &rhs.0); },
