@@ -4,8 +4,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Error, Expr, ExprClosure, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta,
-    Path, Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
+    Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta, Path,
+    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
@@ -870,7 +870,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    self.forward_mut().#ident(#(#definitions),*).map(expr)
+                    self.forward_mut().#ident(#(#definitions),*).map(#expr)
                 }
             } else {
                 quote! {
