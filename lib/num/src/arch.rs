@@ -147,6 +147,7 @@ pub mod word {
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
+#[ndfwd::def(self.0 with T: crate::NumFnChecked)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]

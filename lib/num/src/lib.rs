@@ -568,6 +568,7 @@ pub mod prime {
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
+#[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Strict<N: Num + NumExt>(pub N);
@@ -576,6 +577,7 @@ pub struct Strict<N: Num + NumExt>(pub N);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
+#[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Wrapping<N: Num + NumExt>(pub N);
@@ -584,6 +586,7 @@ pub struct Wrapping<N: Num + NumExt>(pub N);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
+#[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Saturating<N: Num + NumExt>(pub N);
@@ -592,6 +595,7 @@ pub struct Saturating<N: Num + NumExt>(pub N);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
+#[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 pub struct Unbounded<N: Num + NumExt>(pub N);
@@ -600,6 +604,7 @@ pub struct Unbounded<N: Num + NumExt>(pub N);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
+#[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -610,6 +615,7 @@ pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub 
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
+#[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -697,7 +703,7 @@ pub trait NumFn:
 
 #[ndfwd::decl]
 pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
-    #[ndfwd::as_into]
+    #[ndfwd::as_map(|res| Self::from(res))]
     fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
         let zero = Self::zero();
 
@@ -711,7 +717,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
         Some(lhs)
     }
 
-    #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
+    #[ndfwd::as_map(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)> {
         let zero = Self::zero();
         let one = Self::one();
@@ -743,7 +749,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
         Some((r0, x0, y0))
     }
 
-    #[ndfwd::as_into]
+    #[ndfwd::as_map(|res| Self::from(res))]
     fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self> {
         let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;
         let val = Self::nd_div_checked(&lhs, &val)?;

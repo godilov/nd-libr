@@ -498,6 +498,16 @@ pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+/// Alters return expression to `EXPR.call().map(CLOSURE)`.
+///
+/// The modifier **must** be used as fully qualified path in forwardable trait declaration.
+///
+/// For more information and examples, see [crate-level](crate) documentation.
+#[proc_macro_attribute]
+pub fn as_map(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    item
+}
+
 #[allow(unused)]
 struct Forward {
     expr: Expr,
@@ -832,10 +842,12 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
     let as_into_path: Path = parse_quote! { ndfwd::as_into };
     let as_self_path: Path = parse_quote! { ndfwd::as_self };
     let as_expr_path: Path = parse_quote! { ndfwd::as_expr };
+    let as_map_path: Path = parse_quote! { ndfwd::as_map };
 
     let as_into = attrs.iter().any(|attr| *attr.path() == as_into_path);
     let as_self = attrs.iter().any(|attr| *attr.path() == as_self_path);
     let as_expr = attrs.iter().find(|attr| *attr.path() == as_expr_path);
+    let as_map = attrs.iter().find(|attr| *attr.path() == as_map_path);
 
     let expr = match recv {
         Some(val) if val.reference.is_some() && val.mutability.is_some() => {
@@ -866,6 +878,25 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
                     (self.forward_mut().#ident(#(#definitions),*))
+                }
+            } else if let Some(as_map) = as_map {
+                let ExprClosure {
+                    attrs: _,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_expr(&as_map.meta)?;
+
+                quote! {
+                    self.forward_mut().#ident(#(#definitions),*)
+                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
                 }
             } else {
                 quote! {
@@ -902,6 +933,25 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
                     (self.forward_ref().#ident(#(#definitions),*))
                 }
+            } else if let Some(as_map) = as_map {
+                let ExprClosure {
+                    attrs: _,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_expr(&as_map.meta)?;
+
+                quote! {
+                    self.forward_ref().#ident(#(#definitions),*)
+                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
+                }
             } else {
                 quote! {
                     self.forward_ref().#ident(#(#definitions),*)
@@ -937,6 +987,25 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
                     (self.forward().#ident(#(#definitions),*))
                 }
+            } else if let Some(as_map) = as_map {
+                let ExprClosure {
+                    attrs: _,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_expr(&as_map.meta)?;
+
+                quote! {
+                    self.forward().#ident(#(#definitions),*)
+                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
+                }
             } else {
                 quote! {
                     self.forward().#ident(#(#definitions),*)
@@ -966,6 +1035,25 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
                 quote! {
                     (#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body)
                     (<$ty>::#ident(#(#definitions),*))
+                }
+            } else if let Some(as_map) = as_map {
+                let ExprClosure {
+                    attrs: _,
+                    lifetimes,
+                    constness,
+                    movability,
+                    asyncness,
+                    capture,
+                    or1_token: _,
+                    inputs,
+                    or2_token: _,
+                    output,
+                    body,
+                } = get_forward_expr(&as_map.meta)?;
+
+                quote! {
+                    <$ty>::#ident(#(#definitions),*)
+                        .map((#lifetimes #constness #movability #asyncness #capture |#inputs| #output #body))
                 }
             } else {
                 quote! {
