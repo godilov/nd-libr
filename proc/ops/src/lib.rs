@@ -20,8 +20,6 @@ mod kw {
     syn::custom_keyword!(ndbin);
     syn::custom_keyword!(ndun);
 
-    syn::custom_keyword!(ext);
-
     syn::custom_keyword!(checked);
     syn::custom_keyword!(strict);
     syn::custom_keyword!(wrapping);
@@ -30,30 +28,6 @@ mod kw {
     syn::custom_keyword!(unbounded);
 }
 
-/// Implements `std::ops::*` and `ndcore::ops::*` operations with explicitly provided expressions.
-///
-/// | Kind      | Operations                                                     | Traits           |
-/// | --------- | -------------------------------------------------------------- | ---------------- |
-/// | `@stdmut` | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `std::ops::*`    |
-/// | `@ndmut`  | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `ndcore::ops::*` |
-/// | `@stdbin` | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `std::ops::*`    |
-/// | `@ndbin`  | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `ndcore::ops::*` |
-/// | `@stdun`  | `-`, `!`                                                       | `std::ops::*`    |
-/// | `@ndun`   | `-`, `!`                                                       | `ndcore::ops::*` |
-///
-/// # Syntax
-///
-/// ```text
-/// ndops::all! { KIND SIGNATURE, [
-///     (OP EXPR OP_CONDITIONS?),*
-/// ] }
-///
-/// KIND := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
-/// OP_CONDITIONS := where [(OP_PREDICATE),*]
-/// SIG_CONDITIONS := where [(SIG_PREDICATE),*]
-/// ```
-///
-/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
@@ -66,30 +40,6 @@ pub fn all(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
-/// Implements `std::ops::*` and `ndcore::ops::*` operations with implicitly derived expressions.
-///
-/// | Kind      | Operations                                                     | Traits           |
-/// | --------- | -------------------------------------------------------------- | ---------------- |
-/// | `@stdmut` | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `std::ops::*`    |
-/// | `@ndmut`  | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `ndcore::ops::*` |
-/// | `@stdbin` | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `std::ops::*`    |
-/// | `@ndbin`  | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `ndcore::ops::*` |
-/// | `@stdun`  | `-`, `!`                                                       | `std::ops::*`    |
-/// | `@ndun`   | `-`, `!`                                                       | `ndcore::ops::*` |
-///
-/// # Syntax
-///
-/// ```text
-/// ndops::fwd! { KIND SIGNATURE, [
-///     (OP OP_CONDITIONS?),*
-/// ] }
-///
-/// KIND := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
-/// OP_CONDITIONS := where [(OP_PREDICATE),*]
-/// SIG_CONDITIONS := where [(SIG_PREDICATE),*]
-/// ```
-///
-/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsFwd) {
@@ -227,7 +177,7 @@ struct OpsNdSignatureAssign {
     comma: Token![,],
     rhs_pat: PatType,
     rhs_ty: Type,
-    impl_ty: OpsNdImplType,
+    impl_ty: OpsImplType,
 }
 
 #[allow(unused)]
@@ -242,7 +192,7 @@ struct OpsNdSignatureBinary {
     rhs_ty: Type,
     arrow: Token![->],
     res_ty: Type,
-    impl_ty: OpsNdImplType,
+    impl_ty: OpsImplType,
 }
 
 #[allow(unused)]
@@ -254,23 +204,23 @@ struct OpsNdSignatureUnary {
     self_ty: Type,
     arrow: Token![->],
     res_ty: Type,
-    impl_ty: OpsNdImplType,
+    impl_ty: OpsImplType,
 }
 
-enum OpsNdImplType {
+enum OpsImplType {
     Empty,
-    Single(OpsNdImplTypeSingle),
-    Multiple(OpsNdImplTypeMultiple),
+    Single(OpsImplTypeSingle),
+    Multiple(OpsImplTypeMultiple),
 }
 
 #[allow(unused)]
-struct OpsNdImplTypeSingle {
+struct OpsImplTypeSingle {
     token: Token![for],
     impl_ty: Type,
 }
 
 #[allow(unused)]
-struct OpsNdImplTypeMultiple {
+struct OpsImplTypeMultiple {
     token: Token![for],
     impl_ty: Punctuated<Type, Token![,]>,
 }
@@ -448,18 +398,6 @@ enum OpsUnaryExt {
     NegWrapping(Token![-], Token![@], kw::wrapping),
     NegSaturating(Token![-], Token![@], kw::saturating),
     NegOverflowing(Token![-], Token![@], kw::overflowing),
-}
-
-#[allow(unused)]
-#[derive(Clone, Copy)]
-enum OpsMode {
-    Default,
-    Checked(Token![@], kw::checked),
-    Strict(Token![@], kw::strict),
-    Wrapping(Token![@], kw::wrapping),
-    Saturating(Token![@], kw::saturating),
-    Overflowing(Token![@], kw::overflowing),
-    Unbounded(Token![@], kw::unbounded),
 }
 
 trait OpsKind {
@@ -883,7 +821,7 @@ impl Parse for OpsNdSignatureUnary {
     }
 }
 
-impl Parse for OpsNdImplType {
+impl Parse for OpsImplType {
     fn parse(input: ParseStream) -> Result<Self> {
         if !input.peek(Token![for]) {
             return Ok(Self::Empty);
@@ -897,7 +835,7 @@ impl Parse for OpsNdImplType {
     }
 }
 
-impl Parse for OpsNdImplTypeSingle {
+impl Parse for OpsImplTypeSingle {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             token: input.parse()?,
@@ -906,7 +844,7 @@ impl Parse for OpsNdImplTypeSingle {
     }
 }
 
-impl Parse for OpsNdImplTypeMultiple {
+impl Parse for OpsImplTypeMultiple {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
 
@@ -1636,9 +1574,9 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
             };
 
             match &self.signature.impl_ty {
-                OpsNdImplType::Empty => tokens.extend(quote(lhs_ty)),
-                OpsNdImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
-                OpsNdImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
+                OpsImplType::Empty => tokens.extend(quote(lhs_ty)),
+                OpsImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
+                OpsImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
             }
         }
     }
@@ -1684,9 +1622,9 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
             };
 
             match &self.signature.impl_ty {
-                OpsNdImplType::Empty => tokens.extend(quote(res_ty)),
-                OpsNdImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
-                OpsNdImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
+                OpsImplType::Empty => tokens.extend(quote(res_ty)),
+                OpsImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
+                OpsImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
             }
         }
     }
@@ -1730,9 +1668,9 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
             };
 
             match &self.signature.impl_ty {
-                OpsNdImplType::Empty => tokens.extend(quote(res_ty)),
-                OpsNdImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
-                OpsNdImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
+                OpsImplType::Empty => tokens.extend(quote(res_ty)),
+                OpsImplType::Single(val) => tokens.extend(quote(&val.impl_ty)),
+                OpsImplType::Multiple(val) => val.impl_ty.iter().for_each(|ty| tokens.extend(quote(ty))),
             }
         }
     }
