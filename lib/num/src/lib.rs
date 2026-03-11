@@ -1204,11 +1204,11 @@ mod tests {
     #[test]
     fn gcde() {
         ndassert::check! { @eq (val in ndassert::range!(i64, 40).map(|val| val + 1)) [
-            (i64::gcde(val, 0).0, val),
-            (i64::gcde(0, val).0, val),
-            (i64::gcde(val, 1).0, 1),
-            (i64::gcde(1, val).0, 1),
-            (i64::gcde(val, val).0, val),
+            (i64::gcde(val, 0), (val, 1, 0)),
+            (i64::gcde(0, val), (val, 0, 1)),
+            (i64::gcde(val, 1), (1, 0, 1)),
+            (i64::gcde(1, val), (1, 1, 0)),
+            (i64::gcde(val, val), (val, 0, 1)),
         ] }
 
         ndassert::check! { @eq (
@@ -1279,6 +1279,9 @@ mod tests {
         const POW: u64 = ndassert::prime!(16, 0);
         const MOD: u64 = ndassert::prime!(16, 1);
     }
+
+    #[test]
+    fn strict() {}
 
     #[test]
     fn wrapping() {}
