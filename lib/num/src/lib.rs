@@ -663,7 +663,7 @@ pub trait NumCore:
         Some(lhs)
     }
 
-    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
+    #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
         let zero = Self::zero();
         let one = Self::one();
@@ -695,7 +695,7 @@ pub trait NumCore:
         (r0, x0, y0)
     }
 
-    #[ndfwd::as_expr(|(x, y, z)| (Self::from(x), Self::from(y), Self::from(z)))]
+    #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)>
     where
         Self: NdOpsChecked<All = Self>,

@@ -450,6 +450,18 @@ enum OpsUnaryExt {
     NegOverflowing(Token![-], Token![@], kw::overflowing),
 }
 
+#[allow(unused)]
+#[derive(Clone, Copy)]
+enum OpsMode {
+    Default,
+    Checked(Token![@], kw::checked),
+    Strict(Token![@], kw::strict),
+    Wrapping(Token![@], kw::wrapping),
+    Saturating(Token![@], kw::saturating),
+    Overflowing(Token![@], kw::overflowing),
+    Unbounded(Token![@], kw::unbounded),
+}
+
 trait OpsKind {
     type Definition: Parse;
     type Signature: Parse;
