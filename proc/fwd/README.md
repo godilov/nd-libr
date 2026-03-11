@@ -81,12 +81,13 @@ The second step creates a private `module` with auxiliary definitions and trait 
 
 For return types, there are four options:
 
-| Type                          | Expression               | Usecase                      |
-| ----------------------------- | ------------------------ | ---------------------------- |
-| **As-is**                     | `EXPR.call()`            | `Default`                    |
-| [`ndfwd::as_into`](as_into)\* | `EXPR.call().into()`     | `fn(self) -> Self`           |
-| [`ndfwd::as_self`](as_self)\* | `EXPR.call(); self`      | `fn(&mut self) -> &mut Self` |
-| [`ndfwd::as_expr`](as_expr)\* | `(CLOSURE)(EXPR.call())` | `fn(self) -> (Self, Self)`   |
+| Type                          | Expression                 | Usecase                      |
+| ----------------------------- | -------------------------- | ---------------------------- |
+| **As-is**                     | `EXPR.call()`              | `Default`                    |
+| [`ndfwd::as_into`](as_into)\* | `EXPR.call().into()`       | `fn(self) -> Self`           |
+| [`ndfwd::as_self`](as_self)\* | `EXPR.call(); self`        | `fn(&mut self) -> &mut Self` |
+| [`ndfwd::as_expr`](as_expr)\* | `(CLOSURE)(EXPR.call())`   | `fn(self) -> (Self, Self)`   |
+| [`ndfwd::as_map`](as_map)\*   | `EXPR.call().map(CLOSURE)` | `fn(self) -> Option<Self>`   |
 
 \* Note that modifiers **must** be used as fully qualified path in forwardable trait declaration.
 

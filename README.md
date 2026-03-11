@@ -11,7 +11,8 @@ nd-libr
 ├── lib         # All library crates
 │   ├── core
 │   ├── evm
-│   └── num
+│   ├── num
+│   └── mem
 └── proc        # All procedural macro crates
     ├── arch
     ├── assert
@@ -143,12 +144,13 @@ Macroses `ndfwd::decl` and `ndfwd::def` conditionally implement user-defined tra
 - `decl`: Used on user-defined trait to generate forwarding
 - `def`: Used on user-defined structs, enums, unions to generate forwarding implementation
 
-Macroses `ndfwd::as_into`, `ndfwd::as_self` and `ndfwd::as_expr` specify forwarding result expression.
+Macroses `ndfwd::as_into`, `ndfwd::as_self`, `ndfwd::as_expr`, `ndfwd::as_map` specify forwarding result expression.
 
 - Raw: returns raw result
 - `as_into`: returns `expr.call().into()`. Needed for `fn() -> Self`
 - `as_self`: returns `expr.call(); expr`. Needed for `fn() -> &mut Self`
 - `as_expr`: returns `(closure)(expr.call())`. Needed for `fn() -> (Self, Self)`
+- `as_map`: returns `expr.call().map(closure)(`. Needed for `fn() -> Option<Self>`
 
 ```rust
 #[ndfwd::def(self.0 with Impl: crate::X)]
