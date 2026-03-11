@@ -1351,8 +1351,8 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
         }
 
         fn get_impl(spec: OpsSpec, rhs_ref: Option<Token![&]>) -> TokenStream {
-            let ident = spec.op.get_ident();
-            let path = spec.op.get_path();
+            let ident = spec.op.ident();
+            let path = spec.op.path();
 
             let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
@@ -1426,8 +1426,8 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>, rhs_ref: Option<Token![&]>) -> TokenStream {
-            let ident = spec.op.get_ident();
-            let path = spec.op.get_path();
+            let ident = spec.op.ident();
+            let path = spec.op.path();
 
             let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
@@ -1535,8 +1535,8 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
         }
 
         fn get_impl(spec: OpsSpec, lhs_ref: Option<Token![&]>) -> TokenStream {
-            let ident = spec.op.get_ident();
-            let path = spec.op.get_path();
+            let ident = spec.op.ident();
+            let path = spec.op.path();
 
             let (gen_impl, _, _) = spec.signature.generics.split_for_impl();
 
@@ -1603,8 +1603,8 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
 impl ToTokens for OpsImpl<OpsNdKindAssign> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
-            let ident = definition.op.get_ident();
-            let path = definition.op.get_path(self.token);
+            let ident = definition.op.ident();
+            let path = definition.op.path(self.token);
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
@@ -1647,8 +1647,8 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
 impl ToTokens for OpsImpl<OpsNdKindBinary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
-            let ident = definition.op.get_ident();
-            let path = definition.op.get_path(self.token);
+            let ident = definition.op.ident();
+            let path = definition.op.path(self.token);
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
@@ -1667,7 +1667,7 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
             let lhs_ty = &self.signature.lhs_ty;
             let rhs_ty = &self.signature.rhs_ty;
             let res_ty = &self.signature.res_ty;
-            let ty = definition.op.get_type(res_ty);
+            let ty = definition.op.ty(res_ty);
 
             let expr = &definition.expr;
 
@@ -1695,8 +1695,8 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
 impl ToTokens for OpsImpl<OpsNdKindUnary> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         for definition in &self.definitions {
-            let ident = definition.op.get_ident();
-            let path = definition.op.get_path(self.token);
+            let ident = definition.op.ident();
+            let path = definition.op.path(self.token);
 
             let (gen_impl, _, _) = self.signature.generics.split_for_impl();
 
@@ -1713,7 +1713,7 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
             let self_pat = &self.signature.self_pat;
             let self_ty = &self.signature.self_ty;
             let res_ty = &self.signature.res_ty;
-            let ty = definition.op.get_type(res_ty);
+            let ty = definition.op.ty(res_ty);
 
             let expr = &definition.expr;
 
@@ -1756,8 +1756,8 @@ impl From<OpsImplFwd<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
                     let conditions = definition.conditions;
 
                     let ext = OpsAssignExt::from(op);
-                    let ident = ext.get_ident();
-                    let path = ext.get_path(value.token);
+                    let ident = ext.ident();
+                    let path = ext.path(value.token);
 
                     OpsDefinition::<OpsAssign> {
                         op,
@@ -1788,8 +1788,8 @@ impl From<OpsImplFwd<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
                     let conditions = definition.conditions;
 
                     let ext = OpsBinaryExt::from(op);
-                    let ident = ext.get_ident();
-                    let path = ext.get_path(value.token);
+                    let ident = ext.ident();
+                    let path = ext.path(value.token);
 
                     OpsDefinition::<OpsBinary> {
                         op,
@@ -1819,8 +1819,8 @@ impl From<OpsImplFwd<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
                     let conditions = definition.conditions;
 
                     let ext = OpsUnaryExt::from(op);
-                    let ident = ext.get_ident();
-                    let path = ext.get_path(value.token);
+                    let ident = ext.ident();
+                    let path = ext.path(value.token);
 
                     OpsDefinition::<OpsUnary> {
                         op,
@@ -1850,8 +1850,8 @@ impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
                     let rhs = &value.expression.rhs_expr;
                     let conditions = definition.conditions;
 
-                    let ident = op.get_ident();
-                    let path = op.get_path(value.token);
+                    let ident = op.ident();
+                    let path = op.path(value.token);
 
                     OpsDefinition::<OpsAssignExt> {
                         op,
@@ -1881,8 +1881,8 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
                     let rhs = &value.expression.rhs_expr;
                     let conditions = definition.conditions;
 
-                    let ident = op.get_ident();
-                    let path = op.get_path(value.token);
+                    let ident = op.ident();
+                    let path = op.path(value.token);
 
                     OpsDefinition::<OpsBinaryExt> {
                         op,
@@ -1911,8 +1911,8 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
                     let expr = &value.expression.self_expr;
                     let conditions = definition.conditions;
 
-                    let ident = op.get_ident();
-                    let path = op.get_path(value.token);
+                    let ident = op.ident();
+                    let path = op.path(value.token);
 
                     OpsDefinition::<OpsUnaryExt> {
                         op,
@@ -1969,7 +1969,7 @@ impl From<OpsUnary> for OpsUnaryExt {
 }
 
 impl OpsAssign {
-    fn get_ident(&self) -> Ident {
+    fn ident(&self) -> Ident {
         match self {
             OpsAssign::Add(_) => parse_quote! { add_assign },
             OpsAssign::Sub(_) => parse_quote! { sub_assign },
@@ -1984,7 +1984,7 @@ impl OpsAssign {
         }
     }
 
-    fn get_path(&self) -> Path {
+    fn path(&self) -> Path {
         match self {
             OpsAssign::Add(_) => parse_quote! { std::ops::AddAssign },
             OpsAssign::Sub(_) => parse_quote! { std::ops::SubAssign },
@@ -2001,7 +2001,7 @@ impl OpsAssign {
 }
 
 impl OpsBinary {
-    fn get_ident(&self) -> Ident {
+    fn ident(&self) -> Ident {
         match self {
             OpsBinary::Add(_) => parse_quote! { add },
             OpsBinary::Sub(_) => parse_quote! { sub },
@@ -2016,7 +2016,7 @@ impl OpsBinary {
         }
     }
 
-    fn get_path(&self) -> Path {
+    fn path(&self) -> Path {
         match self {
             OpsBinary::Add(_) => parse_quote! { std::ops::Add },
             OpsBinary::Sub(_) => parse_quote! { std::ops::Sub },
@@ -2033,14 +2033,14 @@ impl OpsBinary {
 }
 
 impl OpsUnary {
-    fn get_ident(&self) -> Ident {
+    fn ident(&self) -> Ident {
         match self {
             OpsUnary::Not(_) => parse_quote! { not },
             OpsUnary::Neg(_) => parse_quote! { neg },
         }
     }
 
-    fn get_path(&self) -> Path {
+    fn path(&self) -> Path {
         match self {
             OpsUnary::Not(_) => parse_quote! { std::ops::Not },
             OpsUnary::Neg(_) => parse_quote! { std::ops::Neg },
@@ -2049,7 +2049,7 @@ impl OpsUnary {
 }
 
 impl OpsAssignExt {
-    fn get_ident(&self) -> Ident {
+    fn ident(&self) -> Ident {
         match self {
             OpsAssignExt::Add(_) => parse_quote! { nd_add_assign },
             OpsAssignExt::Sub(_) => parse_quote! { nd_sub_assign },
@@ -2083,7 +2083,7 @@ impl OpsAssignExt {
         }
     }
 
-    fn get_path(&self, token: Option<Token![crate]>) -> Path {
+    fn path(&self, token: Option<Token![crate]>) -> Path {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
 
         match self {
@@ -2121,7 +2121,7 @@ impl OpsAssignExt {
 }
 
 impl OpsBinaryExt {
-    fn get_ident(&self) -> Ident {
+    fn ident(&self) -> Ident {
         match self {
             OpsBinaryExt::Add(_) => parse_quote! { nd_add },
             OpsBinaryExt::Sub(_) => parse_quote! { nd_sub },
@@ -2169,7 +2169,7 @@ impl OpsBinaryExt {
         }
     }
 
-    fn get_path(&self, token: Option<Token![crate]>) -> Path {
+    fn path(&self, token: Option<Token![crate]>) -> Path {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
 
         match self {
@@ -2219,7 +2219,7 @@ impl OpsBinaryExt {
         }
     }
 
-    fn get_type(&self, ty: &Type) -> Type {
+    fn ty(&self, ty: &Type) -> Type {
         match self {
             OpsBinaryExt::AddChecked(_, _, _)
             | OpsBinaryExt::SubChecked(_, _, _)
@@ -2241,7 +2241,7 @@ impl OpsBinaryExt {
 }
 
 impl OpsUnaryExt {
-    fn get_ident(&self) -> Ident {
+    fn ident(&self) -> Ident {
         match self {
             OpsUnaryExt::Not(_) => parse_quote! { nd_not },
             OpsUnaryExt::Neg(_) => parse_quote! { nd_neg },
@@ -2253,7 +2253,7 @@ impl OpsUnaryExt {
         }
     }
 
-    fn get_path(&self, token: Option<Token![crate]>) -> Path {
+    fn path(&self, token: Option<Token![crate]>) -> Path {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
 
         match self {
@@ -2267,7 +2267,7 @@ impl OpsUnaryExt {
         }
     }
 
-    fn get_type(&self, ty: &Type) -> Type {
+    fn ty(&self, ty: &Type) -> Type {
         match self {
             OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { Option<#ty> },
             OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { (#ty, bool) },
