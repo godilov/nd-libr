@@ -463,16 +463,16 @@ mod tests {
             lhs in ndassert::range!(i64, 48).map(S64::from),
             rhs in 0..128,
         ) [
-            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
-            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
+            ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
+            ({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 48).map(U64::from),
             rhs in 0..128,
         ) [
-            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
-            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
+            ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
+            ({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
         ] }
     }
 }
