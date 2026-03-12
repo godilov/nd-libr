@@ -1,5 +1,3 @@
-#![doc = include_str!("../README.md")]
-
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
@@ -16,18 +14,6 @@ mod kw {
     syn::custom_keyword!(ne);
 }
 
-/// Generates structured assertions.
-///
-/// # Syntax
-///
-/// ```text
-/// ndassert::check! { KIND?
-///     ((ARG_EXPR),*)
-///     [(CHECK_EXPR),*]
-/// }
-/// ```
-///
-/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     let assert = parse_macro_input!(stream as AssertCheck);
@@ -38,18 +24,6 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Generates range of primitive type with prime number step.
-///
-/// # Syntax
-///
-/// ```text
-/// ndassert::range!(TY, LEN, CLASS?)
-/// ```
-/// - `TY` - primitive type
-/// - `LEN` - length of step in binary
-/// - `CLASS` - class of step
-///
-/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     let range = parse_macro_input!(stream as AssertRange);
@@ -60,18 +34,6 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Generates seeded random number generator.
-///
-/// # Syntax
-///
-/// ```text
-/// ndassert::rand!(TY, LEN, CLASS?)
-/// ```
-/// - `TY` - `rand` type implementing `TY::seed_from_u64()`.
-/// - `LEN` - length of prime number seed in binary
-/// - `CLASS` - class pf prime number seed
-///
-/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
     let rand = parse_macro_input!(stream as AssertRand);
@@ -82,17 +44,6 @@ pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Generates prime number.
-///
-/// # Syntax
-///
-/// ```text
-/// ndassert::prime!(LEN, CLASS?)
-/// ```
-/// - `LEN` - length of prime number in binary
-/// - `CLASS` - class of prime number
-///
-/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     let prime = parse_macro_input!(stream as AssertPrime);
@@ -103,16 +54,6 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Generates tuple with catched panic expressions.
-///
-/// # Syntax
-///
-/// ```text
-/// ndassert::prime!((EXPR),*)
-/// ```
-/// - `EXPR` - general expression
-///
-/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn catch(stream: TokenStreamStd) -> TokenStreamStd {
     let catch = parse_macro_input!(stream as AssertCatch);
