@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
@@ -14,6 +16,71 @@ mod kw {
     syn::custom_keyword!(ne);
 }
 
+/// Creates structured assertions.
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::check! { <kind>
+///     (<arg_expr>,*)
+///     [<check_expr>,*]
+/// }
+///
+/// <kind> := "" | "@eq" | "@ne"
+/// <arg_expr> := <ident> in <expr> | <ident> as <expr>
+/// <check_expr> := <expr>
+/// ```
+///
+/// **Kinds**:
+///
+/// - None - checks as `assert!()`, `<check_expr>` **must** return bool.
+/// - `@eq` - checks as `assert_eq!()`, `<check_expr>` **must** return tuple of 2 elems.
+/// - `@ne` - checks as `assert_ne!()`, `<check_expr>` **must** return tuple of 2 elems.
+///
+/// **Args**:
+///
+/// - `<ident> in <expr>` - creates `for <ident> in <expr> { ... }`.
+/// - `<ident> as <expr>` - creates `let <ident> = <expr>; ...`.
+///
+/// # Examples
+///
+/// ```rust
+/// // Checks for all combinations of lhs and rhs
+/// ndassert::check! { (
+///     lhs in (i8::MIN / 4..i8::MAX / 4),
+///     rhs in (i8::MIN / 4..i8::MAX / 4),
+///     sum as lhs + rhs,
+/// ) [
+///     sum == lhs + rhs, // Direct
+///     sum == rhs + lhs, // Inverse
+/// ] }
+/// ```
+///
+/// ```rust
+/// // Checks for all combinations of lhs and rhs
+/// ndassert::check! { @eq (
+///     lhs in (i8::MIN / 4..i8::MAX / 4),
+///     rhs in (i8::MIN / 4..i8::MAX / 4),
+///     sum as lhs + rhs,
+/// ) [
+///     (sum, lhs + rhs), // Direct
+///     (sum, rhs + lhs), // Inverse
+/// ] }
+/// ```
+///
+/// ```rust
+/// // Checks for all combinations of lhs and rhs
+/// ndassert::check! { @ne (
+///     lhs in (i8::MIN / 4..i8::MAX / 4),
+///     rhs in (i8::MIN / 4..i8::MAX / 4),
+///     sum as lhs + rhs,
+/// ) [
+///     (sum, lhs + rhs + 1), // Direct
+///     (sum, rhs + lhs + 1), // Inverse
+/// ] }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     let assert = parse_macro_input!(stream as AssertCheck);
@@ -24,26 +91,9 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-#[proc_macro]
-pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
-    let range = parse_macro_input!(stream as AssertRange);
-
-    quote! {
-        #range
-    }
-    .into()
-}
-
-#[proc_macro]
-pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
-    let rand = parse_macro_input!(stream as AssertRand);
-
-    quote! {
-        #rand
-    }
-    .into()
-}
-
+/// Creates prime number.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     let prime = parse_macro_input!(stream as AssertPrime);
@@ -54,6 +104,35 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Creates range of primitive type.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro]
+pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
+    let range = parse_macro_input!(stream as AssertRange);
+
+    quote! {
+        #range
+    }
+    .into()
+}
+
+/// Creates `rand` with seed.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro]
+pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
+    let rand = parse_macro_input!(stream as AssertRand);
+
+    quote! {
+        #rand
+    }
+    .into()
+}
+
+/// Creates tuple with panic catch.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn catch(stream: TokenStreamStd) -> TokenStreamStd {
     let catch = parse_macro_input!(stream as AssertCatch);
@@ -134,6 +213,11 @@ enum AssertArg {
     Multiple(Ident, Token![in], Expr),
 }
 
+struct AssertPrime {
+    len: usize,
+    class: usize,
+}
+
 struct AssertRange {
     ty: Type,
     prime: AssertPrime,
@@ -142,11 +226,6 @@ struct AssertRange {
 struct AssertRand {
     ty: Type,
     prime: AssertPrime,
-}
-
-struct AssertPrime {
-    len: usize,
-    class: usize,
 }
 
 struct AssertCatch {
@@ -214,26 +293,6 @@ impl Parse for AssertArg {
     }
 }
 
-impl Parse for AssertRange {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let ty = input.parse()?;
-        let _ = input.parse::<Token![,]>()?;
-        let prime = input.parse()?;
-
-        Ok(Self { ty, prime })
-    }
-}
-
-impl Parse for AssertRand {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let ty = input.parse()?;
-        let _ = input.parse::<Token![,]>()?;
-        let prime = input.parse()?;
-
-        Ok(Self { ty, prime })
-    }
-}
-
 impl Parse for AssertPrime {
     fn parse(input: ParseStream) -> Result<Self> {
         let len = input.parse::<LitInt>()?;
@@ -257,6 +316,26 @@ impl Parse for AssertPrime {
         };
 
         Ok(Self { len, class })
+    }
+}
+
+impl Parse for AssertRange {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ty = input.parse()?;
+        let _ = input.parse::<Token![,]>()?;
+        let prime = input.parse()?;
+
+        Ok(Self { ty, prime })
+    }
+}
+
+impl Parse for AssertRand {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ty = input.parse()?;
+        let _ = input.parse::<Token![,]>()?;
+        let prime = input.parse()?;
+
+        Ok(Self { ty, prime })
     }
 }
 
@@ -324,6 +403,17 @@ impl ToTokens for AssertCheck {
     }
 }
 
+impl ToTokens for AssertPrime {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let len = self.len;
+        let class = self.class;
+        let primes = PRIMES[len];
+        let prime = primes[class % primes.len()];
+
+        tokens.extend(quote! { #prime });
+    }
+}
+
 impl ToTokens for AssertRange {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let ty = &self.ty;
@@ -339,17 +429,6 @@ impl ToTokens for AssertRand {
         let prime = &self.prime;
 
         tokens.extend(quote! { <#ty>::seed_from_u64(#prime) });
-    }
-}
-
-impl ToTokens for AssertPrime {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let len = self.len;
-        let class = self.class;
-        let primes = PRIMES[len];
-        let prime = primes[class % primes.len()];
-
-        tokens.extend(quote! { #prime });
     }
 }
 

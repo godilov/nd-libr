@@ -1,12 +1,12 @@
-# NdArch
+# NdAssert
 
-**Architecture-aware procedural macros**
+**Assertions procedural macros**
 
 ## Start
 
 ```toml
 [dependencies]
-ndarch = "*"
+ndassert = "*"
 ```
 
 ## License

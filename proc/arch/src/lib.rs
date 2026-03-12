@@ -13,6 +13,23 @@ use syn::{Error, Item, parse_macro_input};
 /// | **arm**      | 64 bytes  |
 /// | **aarch64**  | 128 bytes |
 ///
+/// ```rust
+/// #[ndarch::align]
+/// struct Any<T>(T);
+///
+/// #[cfg(target_arch = "x86")]
+/// assert_eq!(std::mem::align_of::<Any::<usize>>(), 64);
+///
+/// #[cfg(target_arch = "x86_64")]
+/// assert_eq!(std::mem::align_of::<Any::<usize>>(), 64);
+///
+/// #[cfg(target_arch = "arm")]
+/// assert_eq!(std::mem::align_of::<Any::<usize>>(), 64);
+///
+/// #[cfg(target_arch = "aarch64")]
+/// assert_eq!(std::mem::align_of::<Any::<usize>>(), 128);
+/// ```
+///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn align(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
