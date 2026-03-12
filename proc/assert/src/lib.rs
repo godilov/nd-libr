@@ -223,8 +223,12 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
 /// ndassert::check! { @eq (
 ///     lhs in ndassert::range!(i64, 60, 0),
 ///     rhs in ndassert::range!(i64, 60, 1),
+///     sum as ndassert::catch!(lhs + rhs),
 /// ) [
 ///     ndassert::catch!(lhs + rhs, rhs + lhs),
+///
+///     (sum, ndassert::catch!(lhs + rhs)), // Direct
+///     (sum, ndassert::catch!(rhs + lhs)), // Inverse
 /// ] }
 /// ```
 ///
@@ -454,8 +458,8 @@ impl ToTokens for AssertCheck {
             .args
             .iter()
             .map(|arg| match arg {
-                AssertArg::Single(ident, _, _) => format!("{}: {{}}\n", ident),
-                AssertArg::Multiple(ident, _, _) => format!("{}: {{}}\n", ident),
+                AssertArg::Single(ident, _, _) => format!("{}: {{:?}}\n", ident),
+                AssertArg::Multiple(ident, _, _) => format!("{}: {{:?}}\n", ident),
             })
             .fold(quote! {}, |acc, msg| quote! { #acc #msg, });
 
