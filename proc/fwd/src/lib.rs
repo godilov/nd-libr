@@ -1059,6 +1059,6 @@ fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArg
         Type::ImplTrait(_) => Ok(ForwardArgument::Raw(expr.stream())),
         Type::TraitObject(_) => Ok(ForwardArgument::Raw(expr.stream())),
         Type::Verbatim(val) => Err(Error::new_spanned(val, "Failed to forward argument, verbatim was found")),
-        _ => todo!(),
+        ty => Err(Error::new_spanned(ty, "Failed to forward argument, unknown type was found")),
     }
 }
