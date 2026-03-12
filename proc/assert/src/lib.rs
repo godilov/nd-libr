@@ -93,6 +93,38 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
 
 /// Creates prime number.
 ///
+/// # Syntax
+///
+/// ```text
+/// ndassert::prime!(<len>, <class>);
+///
+/// <len> := <num>
+/// <class> := <num>?
+/// ```
+///
+/// - `<len>` **must** be `4 * N`, where `N in [1; 15]`.
+/// - `<class>` **must** be non-negative.
+///
+/// `<len>` is approximate binary length of prime numbers.
+/// `<class>` is cyclic index in predetermined prime numbers sequence.
+///
+/// # Examples
+///
+/// ```rust
+/// assert_eq!(ndassert::prime!(4).ilog2(), 3);
+/// assert_eq!(ndassert::prime!(8).ilog2(), 7);
+///
+/// assert_ne!(ndassert::prime!(60, 0), ndassert::prime!(60, 1));
+/// assert_ne!(ndassert::prime!(60, 1), ndassert::prime!(60, 2));
+/// assert_ne!(ndassert::prime!(60, 2), ndassert::prime!(60, 3));
+/// assert_ne!(ndassert::prime!(60, 3), ndassert::prime!(60, 4));
+///
+/// assert_eq!(ndassert::prime!(60, 0), ndassert::prime!(60, 4));
+/// assert_eq!(ndassert::prime!(60, 1), ndassert::prime!(60, 5));
+/// assert_eq!(ndassert::prime!(60, 2), ndassert::prime!(60, 6));
+/// assert_eq!(ndassert::prime!(60, 3), ndassert::prime!(60, 7));
+/// ```
+///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
