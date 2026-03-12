@@ -43,14 +43,16 @@ syn         = "2"
 
 criterion = "0"
 
-ndprimes = { path = "cli/primes" }
-ndcore   = { path = "lib/core" }
-ndevm    = { path = "lib/evm" }
-ndnum    = { path = "lib/num" }
 ndarch   = { path = "proc/arch" }
 ndassert = { path = "proc/assert" }
 ndfwd    = { path = "proc/fwd" }
 ndops    = { path = "proc/ops" }
+ndlibr   = { path = "lib/libr" }
+ndcore   = { path = "lib/core" }
+ndnum    = { path = "lib/num" }
+ndmem    = { path = "lib/mem" }
+ndevm    = { path = "lib/evm" }
+ndprimes = { path = "cli/primes" }
 
 [profile.release]
 panic = "abort"

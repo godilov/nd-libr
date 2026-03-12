@@ -1,0 +1,37 @@
+[package]
+name                 = "ndlibr"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+homepage.workspace   = true
+authors.workspace    = true
+categories.workspace = true
+keywords.workspace   = true
+readme.workspace     = true
+description          = "Nd Rust Library"
+
+[dependencies]
+ndarch   = { workspace = true, optional = true }
+ndassert = { workspace = true, optional = true }
+ndfwd    = { workspace = true, optional = true }
+ndops    = { workspace = true, optional = true }
+ndcore   = { workspace = true, optional = true }
+ndmem    = { workspace = true, optional = true }
+ndnum    = { workspace = true, optional = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true
+
+[features]
+default = []
+all     = ["arch", "assert", "fwd", "ops", "core", "mem", "num"]
+arch    = ["dep:ndarch"]
+assert  = ["dep:ndassert"]
+fwd     = ["dep:ndfwd"]
+ops     = ["dep:ndops"]
+core    = ["dep:ndcore"]
+mem     = ["dep:ndmem"]
+num     = ["dep:ndnum"]
