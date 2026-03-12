@@ -12,7 +12,7 @@ The module defines `Nd-kind` operations traits and aggregate traits on top of `S
 - Defines operations for any type.
 - Defines operations for modes: `default`, `checked`, `strict`, `wrapping`, `saturating`, `overflowing`, `unbounded`.
 
-It allows to avoid HRTB and expensive clonning/copying in generic context.
+It allows avoiding HRTB and expensive clonning/copying in generic context.
 
 **Operations per Mode**:
 

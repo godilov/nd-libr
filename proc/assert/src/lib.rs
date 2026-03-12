@@ -113,6 +113,8 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
 /// ```rust
 /// assert_eq!(ndassert::prime!(4).ilog2(), 3);
 /// assert_eq!(ndassert::prime!(8).ilog2(), 7);
+/// assert_eq!(ndassert::prime!(12).ilog2(), 11);
+/// assert_eq!(ndassert::prime!(16).ilog2(), 15);
 ///
 /// assert_ne!(ndassert::prime!(60, 0), ndassert::prime!(60, 1));
 /// assert_ne!(ndassert::prime!(60, 1), ndassert::prime!(60, 2));
@@ -136,19 +138,6 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates range of primitive type.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[proc_macro]
-pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
-    let range = parse_macro_input!(stream as AssertRange);
-
-    quote! {
-        #range
-    }
-    .into()
-}
-
 /// Creates `rand` with seed.
 ///
 /// For more info, see [crate-level](crate) documentation.
@@ -158,6 +147,37 @@ pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
 
     quote! {
         #rand
+    }
+    .into()
+}
+
+/// Creates range of primitive type.
+///
+/// It allows producing single or multiple uniform ranges over the type `(MIN..MAX)`
+/// with relative variety of combinations.
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::range!(<type>, <len>, <class>);
+///
+/// <len> := <num>
+/// <class> := <num>?
+/// ```
+///
+/// - `<type>` **must** be standard Rust primitive type.
+/// - `<len>` **must** be as in [`prime`].
+/// - `<class>` **must** be as in [`prime`].
+///
+/// `<len>` and `<class>` determine prime number to be used as step in range.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro]
+pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
+    let range = parse_macro_input!(stream as AssertRange);
+
+    quote! {
+        #range
     }
     .into()
 }
@@ -250,12 +270,12 @@ struct AssertPrime {
     class: usize,
 }
 
-struct AssertRange {
+struct AssertRand {
     ty: Type,
     prime: AssertPrime,
 }
 
-struct AssertRand {
+struct AssertRange {
     ty: Type,
     prime: AssertPrime,
 }
@@ -351,7 +371,7 @@ impl Parse for AssertPrime {
     }
 }
 
-impl Parse for AssertRange {
+impl Parse for AssertRand {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty = input.parse()?;
         let _ = input.parse::<Token![,]>()?;
@@ -361,7 +381,7 @@ impl Parse for AssertRange {
     }
 }
 
-impl Parse for AssertRand {
+impl Parse for AssertRange {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty = input.parse()?;
         let _ = input.parse::<Token![,]>()?;
@@ -446,21 +466,21 @@ impl ToTokens for AssertPrime {
     }
 }
 
-impl ToTokens for AssertRange {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let ty = &self.ty;
-        let prime = &self.prime;
-
-        tokens.extend(quote! { (#ty::MIN..=#ty::MAX).step_by(#prime as usize) });
-    }
-}
-
 impl ToTokens for AssertRand {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let ty = &self.ty;
         let prime = &self.prime;
 
         tokens.extend(quote! { <#ty>::seed_from_u64(#prime) });
+    }
+}
+
+impl ToTokens for AssertRange {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let ty = &self.ty;
+        let prime = &self.prime;
+
+        tokens.extend(quote! { (#ty::MIN..=#ty::MAX).step_by(#prime as usize) });
     }
 }
 
