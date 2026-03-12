@@ -8,6 +8,7 @@ The crate allows to define complex and structured assertion cases involving mult
 - [`ndassert::range!`](range) generates range of primitive type with prime number step.
 - [`ndassert::rand!`](range) generates seeded random number generator.
 - [`ndassert::prime!`](prime) generates prime number.
+- [`ndassert::catch!`](catch) generates prime number.
 
 ## Start
 

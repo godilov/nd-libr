@@ -65,8 +65,9 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
 /// # Syntax
 ///
 /// ```text
-/// ndassert::prime!(LEN, CLASS?)
+/// ndassert::rand!(TY, LEN, CLASS?)
 /// ```
+/// - `TY` - `rand` type implementing `TY::seed_from_u64()`.
 /// - `LEN` - length of prime number seed in binary
 /// - `CLASS` - class pf prime number seed
 ///
@@ -81,7 +82,7 @@ pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Generates prime number for seed.
+/// Generates prime number.
 ///
 /// # Syntax
 ///
@@ -102,6 +103,16 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Generates tuple with catched panic expressions.
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::prime!((EXPR),*)
+/// ```
+/// - `EXPR` - general expression
+///
+/// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn catch(stream: TokenStreamStd) -> TokenStreamStd {
     let catch = parse_macro_input!(stream as AssertCatch);
