@@ -14,7 +14,7 @@ keywords   = ["math", "cryptography", "nums", "mem"]
 readme     = "README.md"
 
 [workspace.lints.rust]
-missing_docs = "allow"
+missing_docs = "warn"
 unsafe_code  = "deny"
 
 [workspace.lints.clippy]

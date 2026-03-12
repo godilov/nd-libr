@@ -1,0 +1,57 @@
+#![doc = include_str!("../docs/iter.md")]
+
+/// `Nd-kind` extension for [std::iter::Iterator].
+///
+/// For more info, see [module-level](crate::iter) and [crate-level](crate) documentation.
+pub trait IteratorExt: Iterator {
+    /// Collects iterator with pre-allocated destination collection taken and returned by value.
+    ///
+    /// Consumes at most `dst.len()` amount of elements.
+    ///
+    /// ```rust
+    /// # use ndcore::iter::IteratorExt;
+    ///
+    /// let mut iter = (0..3).into_iter();
+    ///
+    /// let dst = [0; 4];
+    ///
+    /// let val = iter.collect_with(dst);
+    ///
+    /// assert_eq!(val, [0, 1, 2, 0]);
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    fn collect_with<Dst>(&mut self, mut dst: Dst) -> Dst
+    where
+        for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
+    {
+        dst.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
+        dst
+    }
+
+    /// Collects iterator with pre-allocated destination collection taken and returned by reference.
+    ///
+    /// Consumes at most `dst.len()` amount of elements.
+    ///
+    /// ```rust
+    /// # use ndcore::iter::IteratorExt;
+    ///
+    /// let mut iter = (0..3).into_iter();
+    ///
+    /// let mut dst = [0; 4];
+    ///
+    /// let val = iter.collect_with_mut(&mut dst);
+    ///
+    /// assert_eq!(val, &[0, 1, 2, 0]);
+    /// assert_eq!(dst, [0, 1, 2, 0]);
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    fn collect_with_mut<'dst, Dst>(&mut self, dst: &'dst mut Dst) -> &'dst mut Dst
+    where
+        for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
+    {
+        dst.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
+        dst
+    }
+}
+
+impl<Iter: Iterator> IteratorExt for Iter {}
