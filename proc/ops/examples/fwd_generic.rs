@@ -1,3 +1,5 @@
+//! # NdOps Fwd Generic Example
+
 use ndcore::ops::*;
 
 struct Any<N>(N);

@@ -1,3 +1,5 @@
+//! # NdOps Tests
+
 use ndcore::ops::*;
 
 macro_rules! struct_def {

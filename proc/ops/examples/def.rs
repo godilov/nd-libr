@@ -1,3 +1,5 @@
+//! # NdOps Def Example
+
 struct Num(i64);
 
 // Required (optionally) to construct operation result

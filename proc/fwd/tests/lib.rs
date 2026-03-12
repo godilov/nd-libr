@@ -1,3 +1,5 @@
+//! # NdFwd Tests
+
 #[ndfwd::decl]
 trait Greeter {
     type Type;

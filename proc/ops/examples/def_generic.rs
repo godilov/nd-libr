@@ -1,3 +1,5 @@
+//! # NdOps Def Generic Example
+
 use std::ops::*;
 
 struct Any<N>(N);

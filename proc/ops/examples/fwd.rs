@@ -1,3 +1,5 @@
+//! # NdOps Fwd Example
+
 struct Num(i64);
 
 // Required to construct operation result
