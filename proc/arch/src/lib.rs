@@ -8,17 +8,10 @@ use syn::{Error, Item, parse_macro_input};
 ///
 /// | Architecture | Alignment |
 /// | ------------ | --------- |
-/// | x86          | 64 bytes  |
-/// | x86_64       | 64 bytes  |
-/// | arm          | 64 bytes  |
-/// | aarch64      | 128 bytes |
-///
-/// # Syntax
-///
-/// ```text
-/// #[ndarch::align]
-/// (STRUCT | ENUM | UNION)
-/// ```
+/// | **x86**      | 64 bytes  |
+/// | **x86_64**   | 64 bytes  |
+/// | **arm**      | 64 bytes  |
+/// | **aarch64**  | 128 bytes |
 ///
 /// For more information and examples, see [crate-level](crate) documentation.
 #[proc_macro_attribute]

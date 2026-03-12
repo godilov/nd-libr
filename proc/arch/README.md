@@ -22,10 +22,10 @@ The macro aligns **struct**, **enum** or **union** according to approximate arch
 
 | Architecture | Alignment |
 | ------------ | --------- |
-| x86          | 64 bytes  |
-| x86_64       | 64 bytes  |
-| arm          | 64 bytes  |
-| aarch64      | 128 bytes |
+| **x86**      | 64 bytes  |
+| **x86_64**   | 64 bytes  |
+| **arm**      | 64 bytes  |
+| **aarch64**  | 128 bytes |
 
 ## Examples
 
