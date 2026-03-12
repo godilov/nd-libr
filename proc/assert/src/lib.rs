@@ -138,7 +138,22 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates `rand` with seed.
+/// Creates random number generator.
+///
+/// # Syntax
+///
+/// ```text
+/// ndassert::rand!(<type>, <len>, <class>);
+///
+/// <len> := <num>
+/// <class> := <num>?
+/// ```
+///
+/// - `<type>` **must** contain `<type>::seed_from_u64()`.
+/// - `<len>` **must** be as in [`prime`].
+/// - `<class>` **must** be as in [`prime`].
+///
+/// `<len>` and `<class>` determine prime number to be used as seed in generator.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
@@ -151,10 +166,10 @@ pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates range of primitive type.
+/// Creates range.
 ///
-/// It allows producing single or multiple uniform ranges over the type `(MIN..MAX)`
-/// with relative variety of combinations.
+/// Allows producing single or multiple uniform ranges over the type `(MIN..MAX)`
+/// with relative variety of combinations for [`ndassert::check!`](check) args expressions.
 ///
 /// # Syntax
 ///
@@ -171,6 +186,21 @@ pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
 ///
 /// `<len>` and `<class>` determine prime number to be used as step in range.
 ///
+/// # Examples
+///
+/// ```rust
+/// // Lhs takes approximately 16 different uniformly distributed values in (i64::MIN..i64::MAX)
+/// // Rhs takes approximately 16 different uniformly distributed values in (i64::MIN..i64::MAX)
+/// ndassert::check! { @eq (
+///     lhs in ndassert::range!(i64, 60, 0),
+///     rhs in ndassert::range!(i64, 60, 1),
+///     sum as lhs.wrapping_add(rhs),
+/// ) [
+///     (sum, lhs.wrapping_add(rhs)), // Direct
+///     (sum, rhs.wrapping_add(lhs)), // Inverse
+/// ] }
+/// ```
+///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
@@ -182,7 +212,21 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates tuple with panic catch.
+/// Creates catch.
+///
+/// Allows catching panics for [`ndassert::check!`](check) check expressions.
+///
+/// # Examples
+///
+/// ```rust
+/// // Add operations panics on first iteration with overflow, but catched with macro
+/// ndassert::check! { @eq (
+///     lhs in ndassert::range!(i64, 60, 0),
+///     rhs in ndassert::range!(i64, 60, 1),
+/// ) [
+///     ndassert::catch!(lhs + rhs, rhs + lhs),
+/// ] }
+/// ```
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
