@@ -34,9 +34,12 @@ trait Builder: Sized {
 }
 
 #[ndfwd::decl]
-trait Split: Sized {
+trait Num: Sized {
     #[ndfwd::as_expr(|(a, b)| (Self::from(a), Self::from(b)))]
-    fn split(value: &Self) -> (Self, Self);
+    fn split(&self) -> (Self, Self);
+
+    #[ndfwd::as_map(Self::from)]
+    fn option(&self) -> Option<Self>;
 }
 
 #[ndfwd::std(self.0 with T)]
@@ -44,7 +47,7 @@ trait Split: Sized {
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::def(self.0 with T: Greeter)]
 #[ndfwd::def(self.0 with T: Builder)]
-#[ndfwd::def(self.0 with T: Split)]
+#[ndfwd::def(self.0 with T: Num)]
 #[derive(Debug, Clone, Copy)]
 struct Any<T>(T);
 
@@ -109,9 +112,13 @@ impl Builder for BuilderImpl {
     }
 }
 
-impl Split for usize {
-    fn split(value: &Self) -> (Self, Self) {
-        (value / 2, value - value / 2)
+impl Num for usize {
+    fn split(&self) -> (Self, Self) {
+        (self / 2, self - self / 2)
+    }
+
+    fn option(&self) -> Option<Self> {
+        Some(*self)
     }
 }
 
@@ -181,7 +188,8 @@ mod fwd {
         assert_eq!(Any::<GreeterImpl>::hello(), GreeterImpl::hello());
         assert_eq!(Any::<GreeterImpl>::goodbye(), GreeterImpl::goodbye());
 
-        assert_eq!(Any::split(&Any(4usize)).0.0, usize::split(&4).0);
-        assert_eq!(Any::split(&Any(4usize)).1.0, usize::split(&4).1);
+        assert_eq!(Any(4usize).split().0.0, 4.split().0);
+        assert_eq!(Any(4usize).split().1.0, 4.split().1);
+        assert_eq!(Any(4usize).option(), 4.option().map(Any::from));
     }
 }
