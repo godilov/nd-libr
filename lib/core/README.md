@@ -5,6 +5,7 @@
 ## Start
 
 ```toml
+[dependencies]
 ndcore = "*"
 ```
 
