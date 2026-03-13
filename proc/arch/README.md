@@ -1,4 +1,4 @@
-# NdArch
+# NdArch Procedural Macros
 
 **Architecture-aware procedural macros**
 

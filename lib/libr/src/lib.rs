@@ -3,6 +3,9 @@
 #[cfg(feature = "core")]
 #[doc(inline)]
 pub use ndcore::{convert, iter, ops};
+#[cfg(feature = "crypto")]
+#[doc(inline)]
+pub use ndcrypto as crypto;
 #[cfg(feature = "mem")]
 #[doc(inline)]
 pub use ndmem as mem;

@@ -1,4 +1,4 @@
-# NdCore
+# NdCore Library
 
 **`Nd-kind` extensions for `Std-kind` library**
 
