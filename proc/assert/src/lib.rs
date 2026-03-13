@@ -91,7 +91,7 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates prime number.
+/// Creates assertion prime number.
 ///
 /// # Syntax
 ///
@@ -106,6 +106,7 @@ pub fn check(stream: TokenStreamStd) -> TokenStreamStd {
 /// - `<class>` **must** be non-negative.
 ///
 /// `<len>` is approximate binary length of prime numbers.
+///
 /// `<class>` is cyclic index in predetermined prime numbers sequence.
 ///
 /// # Examples
@@ -138,7 +139,7 @@ pub fn prime(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates random number generator.
+/// Creates assertion random number generator.
 ///
 /// # Syntax
 ///
@@ -166,7 +167,7 @@ pub fn rand(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates range.
+/// Creates assertion range.
 ///
 /// Allows producing single or multiple uniform ranges over the type `(MIN..MAX)`
 /// with relative variety of combinations for [`ndassert::check!`](check) args expressions.
@@ -212,7 +213,7 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Creates catch.
+/// Creates assertion catch.
 ///
 /// Allows catching panics for [`ndassert::check!`](check) check expressions.
 ///

@@ -1,6 +1,6 @@
-# Ops Extensions
+# NdCore ops extensions
 
-**`Nd-kind` extensions for [`std::ops`] operations**
+**`Nd-kind` extensions for [`std::ops`]**
 
 ## Overview
 
