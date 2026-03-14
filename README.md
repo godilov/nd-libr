@@ -1,1 +1,5 @@
 # NdLibr
+
+## License
+
+MIT License

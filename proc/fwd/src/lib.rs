@@ -28,7 +28,7 @@ mod kw {
 ///
 /// ```text
 /// #[ndfwd::std(<expr> with <type>)]
-/// struct Num(i64);
+/// struct Any(<type>);
 /// ```
 ///
 /// # Examples
@@ -120,7 +120,7 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// ```text
 /// #[ndfwd::cmp(<expr> with <type>)]
-/// struct Num(i64);
+/// struct Any(<type>);
 /// ```
 ///
 /// # Examples
@@ -209,7 +209,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// ```text
 /// #[ndfwd::fmt(<expr> with <type>)]
-/// struct Num(i64);
+/// struct Any(<type>);
 /// ```
 ///
 /// # Examples
@@ -411,6 +411,18 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// Zero-boilerplate user traits forwarding definition.
 ///
 /// Defines forwardable trait.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::def(<expr> with <type>: <trait> <conditions>?)]
+/// struct Any(<type>);
+///
+/// <trait> := <path>
+/// <conditions> := where [<predicate>,*]
+/// ```
+///
+/// # Examples
 ///
 /// ```rust,ignore
 /// #[ndfwd::decl]

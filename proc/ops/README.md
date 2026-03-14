@@ -89,3 +89,7 @@ ndops::fwd! { <kind> <generics> <signature>, <impl> [
     (<type>) (<lhs_expr>) (<rhs_expr>) | // @stdmut, @stdbin, @ndmut, @ndbin
     (<type>) (<value_expr>)            | // @stdun, @ndun
 ```
+
+## License
+
+MIT License
