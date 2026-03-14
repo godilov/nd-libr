@@ -15,6 +15,37 @@ mod kw {
     syn::custom_keyword!(with);
 }
 
+/// Zero-boilerplate standard traits forwarding for **struct**, **enum** and **union**.
+///
+/// Forwards [`Deref`](std::ops::Deref), [`DerefMut`](std::ops::DerefMut), [`AsRef`], [`AsMut`],
+/// [`FromIterator`](std::iter::FromIterator) to specified expression.
+///
+/// Requires [`From`] for [`FromIterator`](std::iter::FromIterator).
+///
+/// **Note:** `deref`/`deref_mut` return expression itself, while `as_ref`/`as_mut` call `as_ref`/`as_mut`.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::std(<expr> with <type>)]
+/// struct Num(i64);
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// #[ndfwd::std(self.0 with i64)]
+/// struct Num(i64);
+///
+/// // Required for FromIterator
+/// impl From<i64> for Num {
+///     fn from(value: i64) -> Num {
+///         Num(value)
+///     }
+/// }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -81,6 +112,28 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Zero-boilerplate comparison traits forwarding for **struct**, **enum** and **union**.
+///
+/// Forwards [`PartialEq`], [`Eq`], [`PartialOrd`], [`Ord`] to specified expression.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::cmp(<expr> with <type>)]
+/// struct Num(i64);
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// #[ndfwd::cmp(self.0 with i64)]
+/// struct Num(i64);
+///
+/// assert_eq!(Num(1337).eq(&Num(1338)), 1337.eq(&1338));
+/// assert_eq!(Num(1337).cmp(&Num(1338)), 1337.cmp(&1338));
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDataItem);
@@ -147,6 +200,32 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Zero-boilerplate formatting traits forwarding for **struct**, **enum** and **union**.
+///
+/// Forwards [`Display`](std::fmt::Display), [`Binary`](std::fmt::Binary), [`Octal`](std::fmt::Octal),
+/// [`LowerHex`](std::fmt::LowerHex), [`UpperHex`](std::fmt::UpperHex) to specified expression.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::fmt(<expr> with <type>)]
+/// struct Num(i64);
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// #[ndfwd::fmt(self.0 with i64)]
+/// struct Num(i64);
+///
+/// assert_eq!(format!("{:}", Num(1337)), format!("{:}", 1337));
+/// assert_eq!(format!("{:b}", Num(1337)), format!("{:b}", 1337));
+/// assert_eq!(format!("{:o}", Num(1337)), format!("{:o}", 1337));
+/// assert_eq!(format!("{:x}", Num(1337)), format!("{:x}", 1337));
+/// assert_eq!(format!("{:X}", Num(1337)), format!("{:X}", 1337));
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     fn fmt_impl(
@@ -243,6 +322,17 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Zero-boilerplate user traits forwarding declaration.
+///
+/// Declares forwardable trait.
+///
+/// # Related
+///
+/// - [`def`]
+/// - [`as_into`]
+/// - [`as_self`]
+/// - [`as_expr`]
+/// - [`as_map`]
 #[proc_macro_attribute]
 pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
@@ -318,6 +408,34 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Zero-boilerplate user traits forwarding definition.
+///
+/// Defines forwardable trait.
+///
+/// ```rust,ignore
+/// #[ndfwd::decl]
+/// trait Trait {
+///     fn function() -> usize;
+/// }
+///
+/// #[ndfwd::def(self.0 with Inner: Trait)]
+/// struct Outer(Inner);
+/// struct Inner;
+///
+/// impl Trait for Inner {
+///     fn function() -> usize {
+///         1337
+///     }
+/// }
+/// ```
+///
+/// # Related
+///
+/// - [`decl`]
+/// - [`as_into`]
+/// - [`as_self`]
+/// - [`as_expr`]
+/// - [`as_map`]
 #[proc_macro_attribute]
 pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
@@ -418,21 +536,81 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+/// Alters expression for [`decl`].
+///
+/// The resulting forwarding expression: `<expr>.into()`.
+///
+/// # Example
+///
+/// ```rust
+/// #[ndfwd::decl]
+/// trait Trait {
+///     #[ndfwd::as_into]
+///     fn function() -> Self;
+/// }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn as_into(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+/// Alters expression for [`decl`].
+///
+/// The resulting forwarding expression: `<expr>; self`.
+///
+/// # Example
+///
+/// ```rust
+/// #[ndfwd::decl]
+/// trait Trait {
+///     #[ndfwd::as_self]
+///     fn function(&mut self) -> &mut Self;
+/// }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+/// Alters expression for [`decl`].
+///
+/// The resulting forwarding expression: `(<closure>)(<expr>)`.
+///
+/// # Example
+///
+/// ```rust
+/// #[ndfwd::decl]
+/// trait Trait {
+///     #[ndfwd::as_expr(|(a, b)| (Self::from(a), Self::from(b)))]
+///     fn function() -> (Self, Self);
+/// }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+/// Alters expression for [`decl`].
+///
+/// The resulting forwarding expression: `<expr>.map(<closure>)`.
+///
+/// # Example
+///
+/// ```rust
+/// #[ndfwd::decl]
+/// trait Trait {
+///     #[ndfwd::as_map(Self::from)]
+///     fn function() -> Option<Self>;
+/// }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn as_map(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
