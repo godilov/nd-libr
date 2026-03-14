@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::{fs::File, path::PathBuf};
 
 use anyhow::Error;
