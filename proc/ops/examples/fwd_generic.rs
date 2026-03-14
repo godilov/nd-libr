@@ -59,8 +59,8 @@ ndops::fwd! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, (N) (&lhs.0
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::fwd! { @ndun <N: Copy> (value: &Any<N>) -> Any<N>, (N) (&value.0) [
-    - where [N: NdNeg<Type = N>],
     ! where [N: NdNot<Type = N>],
+    - where [N: NdNeg<Type = N>],
 ] }
 
 // Implements corresponding std::ops::* for (Any, &Any), (Any, Any)

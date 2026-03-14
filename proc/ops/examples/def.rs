@@ -47,8 +47,8 @@ ndops::def! { @ndbin (lhs: &Num, rhs: usize) -> Num, [
 
 // Implements corresponding ndcore::ops::* for Num
 ndops::def! { @ndun (value: &Num) -> Num, [
-    - -value.0,
     ! !value.0,
+    - -value.0,
 ] }
 
 // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
@@ -89,8 +89,8 @@ ndops::def! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
 
 // Implements corresponding std::ops::* for &Num, Num
 ndops::def! { @stdun (*value: &Num) -> Num, [
-    - -value.0,
     ! !value.0,
+    - -value.0,
 ] }
 
 fn main() {}

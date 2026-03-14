@@ -59,8 +59,8 @@ ndops::def! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, [
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::def! { @ndun <N: Copy> (value: &Any<N>) -> Any<N>, [
-    - -value.0 where [N: Neg<Output = N>],
     ! !value.0 where [N: Not<Output = N>],
+    - -value.0 where [N: Neg<Output = N>],
 ] }
 
 // Implements corresponding std::ops::* for (Any, &Any), (Any, Any)
@@ -111,8 +111,8 @@ ndops::def! { @stdbin <N: Copy> (*lhs: &Any<N>, *rhs: &Any<N>) -> Any<N>, [
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::def! { @stdun <N: Copy> (*value: &Any<N>) -> Any<N>, [
-    - -value.0 where [N: Neg<Output = N>],
     ! !value.0 where [N: Not<Output = N>],
+    - -value.0 where [N: Neg<Output = N>],
 ] }
 
 fn main() {}

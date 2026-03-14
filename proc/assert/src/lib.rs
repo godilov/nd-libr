@@ -26,7 +26,7 @@ mod kw {
 ///     [<check_expr>,*]
 /// }
 ///
-/// <kind> := "" | "@eq" | "@ne"
+/// <kind> := "" | @eq | @ne
 /// <arg_expr> := <ident> in <expr> | <ident> as <expr>
 /// <check_expr> := <expr>
 /// ```

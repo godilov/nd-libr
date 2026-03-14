@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
@@ -26,6 +28,97 @@ mod kw {
     syn::custom_keyword!(unbounded);
 }
 
+/// Zero-boilerplate operations defintion.
+///
+/// The macro defines operation implementation with provided expressions.
+///
+/// - For `Std-kind` operations definition it supports asterisk notation.
+/// - For `Nd-kind` operations definition it supports seven modes.
+///
+/// # Syntax
+///
+/// ```text
+/// ndops::def! { <kind> <generics> <signature>, [
+///     (<operation> <expr> <conditions>?),*
+/// ] }
+///
+/// <kind> := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
+/// <mode> := "" | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
+///
+/// <operation> := <op> <mode>?
+///
+/// <generics> := <<param>,*> <conditions>?
+/// <conditions> := where [<predicate>,*]
+///
+/// <signature> :=
+///     (<pat>: &mut <type>, (*)? <pat>: <type>)                    | // @stdmut
+///     ((*)? <pat>: <type>, (*)? <pat>: <type>) -> <type>          | // @stdbin
+///     ((*)? <pat>: <type>)                     -> <type>          | // @stdun
+///     (<pat>: &mut <type>, <pat>: &<type>)           <impl_type>? | // @ndmut
+///     (<pat>: &<type>,     <pat>: &<type>) -> <type> <impl_type>? | // @ndbin
+///     (<pat>: &<type>)                     -> <type> <impl_type>? | // @ndun
+///
+/// <impl_type> := for <type> | for [<type>,*]
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// struct Num(i64);
+///
+/// // Required (optionally) to construct operation result
+/// impl From<i64> for Num {
+///     fn from(value: i64) -> Self {
+///         Num(value)
+///     }
+/// }
+///
+/// // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
+/// ndops::def! { @stdmut (lhs: &mut Num, *rhs: &Num), [
+///     += lhs.0 += rhs.0,
+///     -= lhs.0 -= rhs.0,
+///     *= lhs.0 *= rhs.0,
+///     /= lhs.0 /= rhs.0,
+///     %= lhs.0 %= rhs.0,
+///     |= lhs.0 |= rhs.0,
+///     &= lhs.0 &= rhs.0,
+///     ^= lhs.0 ^= rhs.0,
+/// ] }
+///
+/// // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
+/// ndops::def! { @stdmut (lhs: &mut Num, *rhs: &Num), [
+///     <<= lhs.0 <<= rhs.0,
+///     >>= lhs.0 >>= rhs.0,
+/// ] }
+///
+/// // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
+/// ndops::def! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
+///     + lhs.0 + rhs.0,
+///     - lhs.0 - rhs.0,
+///     * lhs.0 * rhs.0,
+///     / lhs.0 / rhs.0,
+///     % lhs.0 % rhs.0,
+///     | lhs.0 | rhs.0,
+///     & lhs.0 & rhs.0,
+///     ^ lhs.0 ^ rhs.0,
+/// ] }
+///
+/// // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
+/// ndops::def! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, [
+///     << lhs.0 << rhs.0,
+///     >> lhs.0 >> rhs.0,
+/// ] }
+///
+/// // Implements corresponding std::ops::* for &Num, Num
+/// ndops::def! { @stdun (*value: &Num) -> Num, [
+///     ! !value.0,
+///     - -value.0,
+/// ] }
+/// ```
+///
+/// For more examples, see `ndlibr/proc/ops/examples`.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn def(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as Ops) {
@@ -38,6 +131,74 @@ pub fn def(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+/// Zero-boilerplate operations forwarding.
+///
+/// The macro forwards operation implementation to corresponding `Nd-kind`
+/// operation of type specified in `<impl>`.
+///
+/// - For `Std-kind` operations forwarding it supports asterisk notation.
+/// - For `Nd-kind` operations forwarding it supports seven modes.
+///
+/// # Syntax
+///
+/// ```text
+/// ndops::fwd! { <kind> <generics> <signature>, <impl> [
+///     (<operation> <conditions>?),*
+/// ] }
+///
+/// <kind> := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
+/// <mode> := "" | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
+///
+/// <operation> := <op> <mode>?
+///
+/// <generics> := <<param>,*> <conditions>?
+/// <conditions> := where [<predicate>,*]
+///
+/// <signature> :=
+///     (<pat>: &mut <type>, (*)? <pat>: <type>)                    | // @stdmut
+///     ((*)? <pat>: <type>, (*)? <pat>: <type>) -> <type>          | // @stdbin
+///     ((*)? <pat>: <type>)                     -> <type>          | // @stdun
+///     (<pat>: &mut <type>, <pat>: &<type>)           <impl_type>? | // @ndmut
+///     (<pat>: &<type>,     <pat>: &<type>) -> <type> <impl_type>? | // @ndbin
+///     (<pat>: &<type>)                     -> <type> <impl_type>? | // @ndun
+///
+/// <impl_type> := for <type> | for [<type>,*]
+/// <impl> :=
+///     (<type>) (<lhs_expr>) (<rhs_expr>) | // @stdmut, @stdbin, @ndmut, @ndbin
+///     (<type>) (<value_expr>)            | // @stdun, @ndun
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// struct Num(i64);
+///
+/// // Required to construct operation result
+/// impl From<i64> for Num {
+///     fn from(value: i64) -> Self {
+///         Num(value)
+///     }
+/// }
+///
+/// // Implements corresponding std::ops::* for (Num, &Num), (Num, Num)
+/// ndops::fwd! { @stdmut (lhs: &mut Num, *rhs: &Num), (i64) (&mut lhs.0) (&rhs.0) [+=, -=, *=, /=, %=, |=, &=, ^=] }
+///
+/// // Implements corresponding std::ops::* for Num
+/// ndops::fwd! { @stdmut (lhs: &mut Num, rhs: usize), (i64) (&mut lhs.0) (rhs) [<<=, >>=] }
+///
+/// // Implements corresponding std::ops::* for (&Num, &Num), (&Num, Num), (Num, &Num), (Num, Num)
+/// ndops::fwd! { @stdbin (*lhs: &Num, *rhs: &Num) -> Num, (i64) (&lhs.0) (&rhs.0) [+, -, *, /, %, |, &, ^] }
+///
+/// // Implements corresponding std::ops::* for &Num, Num
+/// ndops::fwd! { @stdbin (*lhs: &Num, rhs: usize) -> Num, (i64) (&lhs.0) (rhs) [<<, >>] }
+///
+/// // Implements corresponding std::ops::* for &Num, Num
+/// ndops::fwd! { @stdun (*value: &Num) -> Num, (i64) (&value.0) [!, -] }
+/// ```
+///
+/// For more examples, see `ndlibr/proc/ops/examples`.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[proc_macro]
 pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsFwd) {

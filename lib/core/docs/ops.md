@@ -10,7 +10,7 @@ The module defines `Nd-kind` operations traits and aggregate traits on top of `S
 
 - Defines operations by reference.
 - Defines operations for any type.
-- Defines operations for modes: `default`, `checked`, `strict`, `wrapping`, `saturating`, `overflowing`, `unbounded`.
+- Defines operations for modes: `Default`, `Checked`, `Strict`, `Wrapping`, `Saturating`, `Overflowing`, `Unbounded`.
 
 It allows avoiding HRTB and expensive clonning/copying in generic context.
 
@@ -41,4 +41,4 @@ It allows avoiding HRTB and expensive clonning/copying in generic context.
 
 ## Related
 
-Instead of implementing `Std-kind` and `Nd-kind` operations directly, use [`ndops`] procedural macros.
+Instead of implementing `Std-kind` and `Nd-kind` operations directly, use `ndops` procedural macros.
