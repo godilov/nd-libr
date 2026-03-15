@@ -1,4 +1,6 @@
+#![doc = include_str!("../docs/long.md")]
 #![allow(clippy::manual_div_ceil)]
+
 use std::{
     cmp::Ordering,
     fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},

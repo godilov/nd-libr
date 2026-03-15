@@ -1,3 +1,5 @@
+#![doc = include_str!("../docs/arch.md")]
+
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
 use ndcore::ops::*;
