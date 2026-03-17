@@ -20,13 +20,7 @@ macro_rules! num_impl {
         $(num_impl!(@unsigned $primitive);)+
     };
     (@impl $primitive:ty $(,)?) => {
-        impl NumFn for $primitive {}
-
-        impl NumFnChecked for $primitive {}
-
-        impl Num for $primitive {}
-
-        impl NumExt for $primitive {
+        impl BytesExt for $primitive {
             fn read(&self, offset: Offset) -> u64 {
                 match offset {
                     Offset::Left(val) => self.unbounded_shr(val as u32) as u64,
@@ -63,6 +57,14 @@ macro_rules! num_impl {
                 self
             }
         }
+
+        impl NumFn for $primitive {}
+
+        impl NumFnChecked for $primitive {}
+
+        impl Num for $primitive {}
+
+        impl NumExt for $primitive {}
 
         impl Zero for $primitive {
             const ZERO: Self = 0;
@@ -331,6 +333,7 @@ macro_rules! sign_from {
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
@@ -340,6 +343,7 @@ pub struct Strict<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
@@ -349,6 +353,7 @@ pub struct Wrapping<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
@@ -358,6 +363,7 @@ pub struct Saturating<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
@@ -367,6 +373,7 @@ pub struct Unbounded<N: Num + NumExt>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
@@ -378,6 +385,7 @@ pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
@@ -405,6 +413,38 @@ type MaskCt = u8;
 
 #[cfg(feature = "const-time")]
 type SignCt = i8;
+
+#[ndfwd::decl]
+pub trait BytesExt: Sized {
+    fn read(&self, offset: Offset) -> u64;
+
+    #[ndfwd::as_self]
+    fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self;
+
+    #[ndfwd::as_self]
+    fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self;
+
+    #[ndfwd::as_self]
+    fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self;
+
+    #[ndfwd::as_into]
+    fn into_bitor(mut self, mask: u64, offset: Offset) -> Self {
+        self.write_bitor(mask, offset);
+        self
+    }
+
+    #[ndfwd::as_into]
+    fn into_bitand(mut self, mask: u64, offset: Offset) -> Self {
+        self.write_bitand(mask, offset);
+        self
+    }
+
+    #[ndfwd::as_into]
+    fn into_bitxor(mut self, mask: u64, offset: Offset) -> Self {
+        self.write_bitxor(mask, offset);
+        self
+    }
+}
 
 #[ndfwd::decl]
 pub trait NumFn:
@@ -529,18 +569,7 @@ pub trait Num: NumFn + Zero + One + Copy {}
 pub trait NumDyn: NumFn {}
 
 #[ndfwd::decl]
-pub trait NumExt: NumFn {
-    fn read(&self, offset: Offset) -> u64;
-
-    #[ndfwd::as_self]
-    fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self;
-
-    #[ndfwd::as_self]
-    fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self;
-
-    #[ndfwd::as_self]
-    fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self;
-
+pub trait NumExt: NumFn + BytesExt {
     #[ndfwd::as_self]
     fn write_odd(&mut self) -> &mut Self {
         self.write_bitor(1, Offset::Left(0));
@@ -556,24 +585,6 @@ pub trait NumExt: NumFn {
     #[ndfwd::as_self]
     fn write_alt(&mut self) -> &mut Self {
         self.write_bitxor(1, Offset::Left(0));
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn into_bitor(mut self, mask: u64, offset: Offset) -> Self {
-        self.write_bitor(mask, offset);
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn into_bitand(mut self, mask: u64, offset: Offset) -> Self {
-        self.write_bitand(mask, offset);
-        self
-    }
-
-    #[ndfwd::as_into]
-    fn into_bitxor(mut self, mask: u64, offset: Offset) -> Self {
-        self.write_bitxor(mask, offset);
         self
     }
 
