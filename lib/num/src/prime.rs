@@ -4,7 +4,56 @@ use std::mem::{replace, take};
 
 use crate::{NumExt, NumUnsigned};
 
-pub(super) const PRIMES: [u16; 128] = [
+macro_rules! prime_impl {
+    ($(($primitive:ty, $count:expr)),+ $(,)?) => {
+        $(prime_impl!($primitive, $count);)+
+    };
+    ($primitive:ty, $count:expr $(,)?) => {
+        impl Primality for $primitive {
+            fn primes() -> impl Iterator<Item = Self> {
+                PRIMES.iter().map(|&p| p as $primitive).take($count).take_while(|&p| p <= Self::MAX.isqrt())
+            }
+
+            fn as_count_estimate(&self) -> usize {
+                *self as usize
+            }
+
+            fn as_limit_estimate(&self) -> usize {
+                let val = *self as f64;
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+
+            fn as_count_check_estimate(&self) -> usize {
+                let val = *self as f64;
+                let val = val * (val.ln() + val.ln().ln());
+                let val = val.max(6.0).sqrt();
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+
+            fn as_limit_check_estimate(&self) -> usize {
+                let val = (*self as f64).sqrt();
+                let inv = 1.0 / val.ln();
+
+                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
+                let est = est.max(val);
+
+                est.ceil() as usize
+            }
+        }
+    };
+}
+
+const PRIMES: [u16; 128] = [
     2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109,
     113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239,
     241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379,
@@ -181,6 +230,12 @@ struct PrimesFastIter<Prime: Primality> {
     count: usize,
     limit: Option<Prime>,
 }
+
+#[cfg(target_pointer_width = "64")]
+prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 12));
+
+#[cfg(target_pointer_width = "32")]
+prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 
 impl<Prime: Primality> Iterator for PrimesFullIter<Prime> {
     type Item = Prime;

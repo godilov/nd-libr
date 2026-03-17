@@ -4,8 +4,6 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
-use crate::prime::*;
-
 pub mod arch;
 pub mod long;
 pub mod prime;
@@ -220,55 +218,6 @@ macro_rules! num_ct_impl {
                 let rhs_mask = <$primitive>::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
 
                 lhs & lhs_mask | rhs & rhs_mask
-            }
-        }
-    };
-}
-
-macro_rules! prime_impl {
-    ($(($primitive:ty, $count:expr)),+ $(,)?) => {
-        $(prime_impl!($primitive, $count);)+
-    };
-    ($primitive:ty, $count:expr $(,)?) => {
-        impl Primality for $primitive {
-            fn primes() -> impl Iterator<Item = Self> {
-                PRIMES.iter().map(|&p| p as $primitive).take($count).take_while(|&p| p <= Self::MAX.isqrt())
-            }
-
-            fn as_count_estimate(&self) -> usize {
-                *self as usize
-            }
-
-            fn as_limit_estimate(&self) -> usize {
-                let val = *self as f64;
-                let inv = 1.0 / val.ln();
-
-                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
-
-                est.ceil() as usize
-            }
-
-            fn as_count_check_estimate(&self) -> usize {
-                let val = *self as f64;
-                let val = val * (val.ln() + val.ln().ln());
-                let val = val.max(6.0).sqrt();
-                let inv = 1.0 / val.ln();
-
-                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
-
-                est.ceil() as usize
-            }
-
-            fn as_limit_check_estimate(&self) -> usize {
-                let val = (*self as f64).sqrt();
-                let inv = 1.0 / val.ln();
-
-                let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
-
-                est.ceil() as usize
             }
         }
     };
@@ -1025,12 +974,6 @@ num_ct_impl!(@signed [i8:u8, i16:u16, i32:u32, i64:u64, i128:u128, isize:usize])
 
 #[cfg(feature = "const-time")]
 num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
-
-#[cfg(target_pointer_width = "64")]
-prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 12));
-
-#[cfg(target_pointer_width = "32")]
-prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
