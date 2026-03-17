@@ -13,9 +13,13 @@ pub(super) const PRIMES: [u16; 128] = [
     673, 677, 683, 691, 701, 709, 719,
 ];
 
+/// Entry point for generating primes.
 pub struct Primes;
 
 impl Primes {
+    /// Generates primes by count.
+    ///
+    /// Uses full-search.
     pub fn by_count_full<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
         PrimesFullIter {
             next: Prime::from(2),
@@ -25,6 +29,9 @@ impl Primes {
         }
     }
 
+    /// Generates primes by limit.
+    ///
+    /// Uses full-search.
     pub fn by_limit_full<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
         PrimesFullIter {
             next: Prime::from(2),
@@ -34,6 +41,9 @@ impl Primes {
         }
     }
 
+    /// Generates primes by count.
+    ///
+    /// Uses fast-search.
     pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
         PrimesFastIter {
             next: Prime::from(2),
@@ -42,6 +52,9 @@ impl Primes {
         }
     }
 
+    /// Generates primes by limit.
+    ///
+    /// Uses fast-search.
     pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
         PrimesFastIter {
             next: Prime::from(2),
@@ -51,17 +64,26 @@ impl Primes {
     }
 }
 
+/// Primality test functions.
 pub trait Primality: NumExt + NumUnsigned {
+    /// Prime numbers iterator to use in `is_prime` implementation.
     fn primes() -> impl Iterator<Item = Self>;
 
+    /// Prime numbers amount estimate depending on count.
     fn as_count_estimate(&self) -> usize;
 
+    /// Prime numbers amount estimate depending on limit.
     fn as_limit_estimate(&self) -> usize;
 
+    /// Prime numbers amount estimate depending on count (for check).
     fn as_count_check_estimate(&self) -> usize;
 
+    /// Prime numbers amount estimate depending on limit (for check).
     fn as_limit_check_estimate(&self) -> usize;
 
+    /// Primality test.
+    ///
+    /// Miller-Rabin by default.
     fn is_prime(&self) -> bool {
         let sqrt = self.sqrt();
 
@@ -93,7 +115,11 @@ pub trait Primality: NumExt + NumUnsigned {
     }
 }
 
+/// Primality test functions extensions.
 pub trait PrimalityExt: Send + Primality {
+    /// Generates random prime number.
+    ///
+    /// Order represents position of the most significant bit.
     #[cfg(feature = "rand")]
     fn rand_prime(order: usize) -> Self {
         let mut rng = rand::rng();
@@ -106,11 +132,17 @@ pub trait PrimalityExt: Send + Primality {
         val
     }
 
+    /// Generates random prime numbers.
+    ///
+    /// Order represents position of the most significant bit.
     #[cfg(feature = "rand")]
     fn rand_primes(order: usize, count: usize) -> Vec<Self> {
         (0..count).map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
     }
 
+    /// Generates random prime number in parallel.
+    ///
+    /// Order represents position of the most significant bit.
     #[cfg(all(feature = "rand", feature = "rayon"))]
     fn rand_prime_par(order: usize) -> Self {
         use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -123,6 +155,9 @@ pub trait PrimalityExt: Send + Primality {
             .unwrap_or_default()
     }
 
+    /// Generates random prime numbers in parallel.
+    ///
+    /// Order represents position of the most significant bit.
     #[cfg(all(feature = "rand", feature = "rayon"))]
     fn rand_primes_par(order: usize, count: usize) -> Vec<Self> {
         use rayon::iter::{IntoParallelIterator, ParallelIterator};
