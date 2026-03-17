@@ -1,4 +1,4 @@
-# NdExtensions convert
+# NdExtensions Convert
 
 **`Nd-kind` extensions for [`std::convert`]**
 

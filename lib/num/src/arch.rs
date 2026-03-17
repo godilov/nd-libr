@@ -10,20 +10,29 @@ use crate::*;
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
         /// Single CPU-word unsigned primitive.
+        ///
+        /// # Examples
+        ///
         /// ```rust
         /// # use std::mem::size_of;
         /// # use ndnum::arch::word::*;
         /// assert_eq!(size_of::<Single>(), size_of::<usize>());
         /// ```
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         pub type Single = $single;
 
         /// Double CPU-word unsigned primitive.
+        ///
+        /// # Examples
         ///
         /// ```rust
         /// # use std::mem::size_of;
         /// # use ndnum::arch::word::*;
         /// assert_eq!(size_of::<Double>(), 2 * size_of::<usize>());
         /// ```
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         pub type Double = $double;
 
         $($tokens)*
@@ -79,6 +88,8 @@ macro_rules! word_impl {
 
 pub mod word {
     //! CPU-word related definitions.
+    //!
+    //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
 
     use super::*;
 
@@ -117,48 +128,70 @@ pub mod word {
 
     /// Maximum CPU-word unsigned value.
     ///
+    /// # Examples
+    ///
     /// ```rust
     /// # use ndnum::arch::word::*;
     /// assert_eq!(MAX, Single::MAX);
     /// ```
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     pub const MAX: Single = Single::MAX;
 
     /// Minimum CPU-word unsigned value.
+    ///
+    /// # Examples
     ///
     /// ```rust
     /// # use ndnum::arch::word::*;
     /// assert_eq!(MIN, Single::MIN);
     /// ```
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     pub const MIN: Single = Single::MIN;
 
     /// Bits per CPU-word primitive.
+    ///
+    /// # Examples
     ///
     /// ```rust
     /// # use ndnum::arch::word::*;
     /// assert_eq!(BITS, Single::BITS as usize);
     /// ```
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     pub const BITS: usize = Single::BITS as usize;
 
     /// Bytes per CPU-word primitive.
+    ///
+    /// # Examples
     ///
     /// ```rust
     /// # use ndnum::arch::word::*;
     /// assert_eq!(BYTES, Single::BITS as usize / 8);
     /// ```
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     pub const BYTES: usize = Single::BITS as usize / 8;
 
     /// Radix of CPU-word primitive.
+    ///
+    /// # Examples
     ///
     /// ```rust
     /// # use ndnum::arch::word::*;
     /// assert_eq!(RADIX, Single::MAX as Double + 1);
     /// ```
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     pub const RADIX: Double = Single::MAX as Double + 1;
 
     /// Word-like primitive.
     ///
     /// - On **64-bit** tragets, implemented for: [`usize`], [`u8`], [`u16`], [`u32`], [`u64`].
     /// - On **32-bit** tragets, implemented for: [`usize`], [`u8`], [`u16`], [`u32`].
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     #[rustfmt::skip]
     pub trait Word: Clone + Copy
         + PartialEq + Eq
@@ -168,74 +201,108 @@ pub mod word {
     {
         /// Bits per Word-like primitive.
         ///
+        /// # Examples
+        ///
         /// ```rust
         /// # use ndnum::arch::word::*;
         /// assert_eq!(<u8 as Word>::BITS, u8::BITS as usize);
         /// assert_eq!(<u16 as Word>::BITS, u16::BITS as usize);
         /// ```
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const BITS: usize;
 
         /// Bytes per Word-like primitive.
+        ///
+        /// # Examples
         ///
         /// ```rust
         /// # use ndnum::arch::word::*;
         /// assert_eq!(<u8 as Word>::BYTES, u8::BITS as usize / 8);
         /// assert_eq!(<u16 as Word>::BYTES, u16::BITS as usize / 8);
         /// ```
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const BYTES: usize;
 
         /// Zero value of Word-like primitive.
+        ///
+        /// # Examples
         ///
         /// ```rust
         /// # use ndnum::arch::word::*;
         /// assert_eq!(<u8 as Word>::ZERO, 0);
         /// assert_eq!(<u16 as Word>::ZERO, 0);
         /// ```
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const ZERO: Self;
 
         /// One value of Word-like primitive.
+        ///
+        /// # Examples
         ///
         /// ```rust
         /// # use ndnum::arch::word::*;
         /// assert_eq!(<u8 as Word>::ONE, 1);
         /// assert_eq!(<u16 as Word>::ONE, 1);
         /// ```
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const ONE: Self;
 
         /// Word-like primitive from [`usize`].
         ///
         /// Truncates on overflow.
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn from_usize(value: usize) -> Self;
 
         /// Word-like primitive from [`Single`].
         ///
         /// Truncates on overflow.
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn from_single(value: Single) -> Self;
 
         /// Word-like primitive from [`Double`].
         ///
         /// Truncates on overflow.
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn from_double(value: Double) -> Self;
 
         /// Word-like primitive to [`usize`].
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn as_usize(self) -> usize;
 
         /// Word-like primitive to [`Single`].
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn as_single(self) -> Single;
 
         /// Word-like primitive to [`Double`].
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn as_double(self) -> Double;
 
         /// Order of Word-like value.
         ///
         /// Represents position of most significant bit.
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn order(self) -> usize;
 
         /// Checks if Word-like value is power of 2.
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn is_pow2(self) -> bool;
     }
 
     /// Iterator of Word-like primitives.
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     pub trait WordsIterator: Clone + Iterator + ExactSizeIterator
     where
         <Self as Iterator>::Item: Word,
@@ -265,6 +332,8 @@ pub mod word {
 /// | **wasm32**   | 64 bytes  |
 /// | **wasm64**   | 64 bytes  |
 ///
+/// # Examples
+///
 /// ```rust
 /// # use std::mem::align_of;
 /// # use ndnum::arch::*;
@@ -289,7 +358,7 @@ pub mod word {
 /// assert_eq!((Aligned(1) / Aligned(2)), Aligned(1 / 2));
 /// ```
 ///
-/// For more info, see [crate-level](crate) documentation.
+/// For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
 #[rustfmt::skip]
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]

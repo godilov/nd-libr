@@ -1,4 +1,4 @@
-# NdExtensions ops
+# NdExtensions Operations
 
 **`Nd-kind` extensions for [`std::ops`]**
 
