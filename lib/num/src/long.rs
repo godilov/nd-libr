@@ -19,8 +19,7 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    Binary as NumBinary, Max as NumMax, Min as NumMin, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset,
-    One as NumOne, Sign, Zero as NumZero,
+    Binary as NumBinary, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset, One, Sign, Zero,
     arch::word::*,
     long::{radix::*, uops::*},
 };
@@ -1143,7 +1142,7 @@ mod uops {
     pub(super) fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
 
-        <MaskCt as NumZero>::ZERO.wrapping_sub(neg)
+        <MaskCt as Zero>::ZERO.wrapping_sub(neg)
     }
 
     #[cfg(feature = "const-time")]
@@ -2677,15 +2676,15 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 }
 
-impl<const L: usize> NumZero for Signed<L> {
+impl<const L: usize> Zero for Signed<L> {
     const ZERO: Self = Self([0; L]);
 }
 
-impl<const L: usize> NumZero for Unsigned<L> {
+impl<const L: usize> Zero for Unsigned<L> {
     const ZERO: Self = Self([0; L]);
 }
 
-impl<const L: usize> NumOne for Signed<L> {
+impl<const L: usize> One for Signed<L> {
     const ONE: Self = Self({
         let mut res = [MIN; L];
 
@@ -2694,7 +2693,7 @@ impl<const L: usize> NumOne for Signed<L> {
     });
 }
 
-impl<const L: usize> NumOne for Unsigned<L> {
+impl<const L: usize> One for Unsigned<L> {
     const ONE: Self = Self({
         let mut res = [MIN; L];
 
@@ -2703,7 +2702,7 @@ impl<const L: usize> NumOne for Unsigned<L> {
     });
 }
 
-impl<const L: usize> NumMin for Signed<L> {
+impl<const L: usize> Min for Signed<L> {
     const MIN: Self = Self({
         let mut res = [MIN; L];
 
@@ -2712,11 +2711,11 @@ impl<const L: usize> NumMin for Signed<L> {
     });
 }
 
-impl<const L: usize> NumMin for Unsigned<L> {
+impl<const L: usize> Min for Unsigned<L> {
     const MIN: Self = Self([MIN; L]);
 }
 
-impl<const L: usize> NumMax for Signed<L> {
+impl<const L: usize> Max for Signed<L> {
     const MAX: Self = Self({
         let mut res = [MAX; L];
 
@@ -2725,7 +2724,7 @@ impl<const L: usize> NumMax for Signed<L> {
     });
 }
 
-impl<const L: usize> NumMax for Unsigned<L> {
+impl<const L: usize> Max for Unsigned<L> {
     const MAX: Self = Self([MAX; L]);
 }
 

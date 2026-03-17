@@ -9,7 +9,21 @@ use crate::*;
 
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
+        /// Single CPU-word unsigned primitive.
+        /// ```rust
+        /// # use std::mem::size_of;
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(size_of::<Single>(), size_of::<usize>());
+        /// ```
         pub type Single = $single;
+
+        /// Double CPU-word unsigned primitive.
+        ///
+        /// ```rust
+        /// # use std::mem::size_of;
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(size_of::<Double>(), 2 * size_of::<usize>());
+        /// ```
         pub type Double = $double;
 
         $($tokens)*
@@ -64,6 +78,8 @@ macro_rules! word_impl {
 }
 
 pub mod word {
+    //! CPU-word related definitions.
+
     use super::*;
 
     #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -99,12 +115,50 @@ pub mod word {
         word_impl!([u8]);
     });
 
+    /// Maximum CPU-word unsigned value.
+    ///
+    /// ```rust
+    /// # use ndnum::arch::word::*;
+    /// assert_eq!(MAX, Single::MAX);
+    /// ```
     pub const MAX: Single = Single::MAX;
+
+    /// Minimum CPU-word unsigned value.
+    ///
+    /// ```rust
+    /// # use ndnum::arch::word::*;
+    /// assert_eq!(MIN, Single::MIN);
+    /// ```
     pub const MIN: Single = Single::MIN;
+
+    /// Bits per CPU-word primitive.
+    ///
+    /// ```rust
+    /// # use ndnum::arch::word::*;
+    /// assert_eq!(BITS, Single::BITS as usize);
+    /// ```
     pub const BITS: usize = Single::BITS as usize;
+
+    /// Bytes per CPU-word primitive.
+    ///
+    /// ```rust
+    /// # use ndnum::arch::word::*;
+    /// assert_eq!(BYTES, Single::BITS as usize / 8);
+    /// ```
     pub const BYTES: usize = Single::BITS as usize / 8;
+
+    /// Radix of CPU-word primitive.
+    ///
+    /// ```rust
+    /// # use ndnum::arch::word::*;
+    /// assert_eq!(RADIX, Single::MAX as Double + 1);
+    /// ```
     pub const RADIX: Double = Single::MAX as Double + 1;
 
+    /// Word-like primitive.
+    ///
+    /// - On **64-bit** tragets, implemented for: [`usize`], [`u8`], [`u16`], [`u32`], [`u64`].
+    /// - On **32-bit** tragets, implemented for: [`usize`], [`u8`], [`u16`], [`u32`].
     #[rustfmt::skip]
     pub trait Word: Clone + Copy
         + PartialEq + Eq
@@ -112,24 +166,76 @@ pub mod word {
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
         + FromBytes + IntoBytes + Immutable
     {
+        /// Bits per Word-like primitive.
+        ///
+        /// ```rust
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(<u8 as Word>::BITS, u8::BITS as usize);
+        /// assert_eq!(<u16 as Word>::BITS, u16::BITS as usize);
+        /// ```
         const BITS: usize;
+
+        /// Bytes per Word-like primitive.
+        ///
+        /// ```rust
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(<u8 as Word>::BYTES, u8::BITS as usize / 8);
+        /// assert_eq!(<u16 as Word>::BYTES, u16::BITS as usize / 8);
+        /// ```
         const BYTES: usize;
+
+        /// Zero value of Word-like primitive.
+        ///
+        /// ```rust
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(<u8 as Word>::ZERO, 0);
+        /// assert_eq!(<u16 as Word>::ZERO, 0);
+        /// ```
         const ZERO: Self;
+
+        /// One value of Word-like primitive.
+        ///
+        /// ```rust
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(<u8 as Word>::ONE, 1);
+        /// assert_eq!(<u16 as Word>::ONE, 1);
+        /// ```
         const ONE: Self;
 
+        /// Word-like primitive from [`usize`].
+        ///
+        /// Truncates on overflow.
         fn from_usize(value: usize) -> Self;
+
+        /// Word-like primitive from [`Single`].
+        ///
+        /// Truncates on overflow.
         fn from_single(value: Single) -> Self;
+
+        /// Word-like primitive from [`Double`].
+        ///
+        /// Truncates on overflow.
         fn from_double(value: Double) -> Self;
 
+        /// Word-like primitive to [`usize`].
         fn as_usize(self) -> usize;
+
+        /// Word-like primitive to [`Single`].
         fn as_single(self) -> Single;
+
+        /// Word-like primitive to [`Double`].
         fn as_double(self) -> Double;
 
+        /// Order of Word-like value.
+        ///
+        /// Represents position of most significant bit.
         fn order(self) -> usize;
 
+        /// Checks if Word-like value is power of 2.
         fn is_pow2(self) -> bool;
     }
 
+    /// Iterator of Word-like primitives.
     pub trait WordsIterator: Clone + Iterator + ExactSizeIterator
     where
         <Self as Iterator>::Item: Word,
@@ -144,7 +250,47 @@ pub mod word {
     }
 }
 
-#[ndarch::align]
+/// Aligned to approximate architecture cacheline size type.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// | Architecture | Alignment |
+/// | ------------ | --------- |
+/// | **x86-32**   | 64 bytes  |
+/// | **x86-64**   | 64 bytes  |
+/// | **arm32**    | 64 bytes  |
+/// | **arm64**    | 64 bytes  |
+/// | **riscv32**  | 64 bytes  |
+/// | **riscv64**  | 64 bytes  |
+/// | **wasm32**   | 64 bytes  |
+/// | **wasm64**   | 64 bytes  |
+///
+/// ```rust
+/// # use std::mem::align_of;
+/// # use ndnum::arch::*;
+/// #[cfg(target_arch = "x86")]
+/// assert_eq!(align_of::<Aligned::<usize>>(), 64);
+///
+/// #[cfg(target_arch = "x86_64")]
+/// assert_eq!(align_of::<Aligned::<usize>>(), 64);
+///
+/// assert_eq!(Aligned(1).eq(&Aligned(2)), 1.eq(&2));
+/// assert_eq!(Aligned(1).cmp(&Aligned(2)), 1.cmp(&2));
+///
+/// assert_eq!(format!("{:}", Aligned(1)), format!("{:}", 1));
+/// assert_eq!(format!("{:b}", Aligned(1)), format!("{:b}", 1));
+/// assert_eq!(format!("{:o}", Aligned(1)), format!("{:o}", 1));
+/// assert_eq!(format!("{:x}", Aligned(1)), format!("{:x}", 1));
+/// assert_eq!(format!("{:X}", Aligned(1)), format!("{:X}", 1));
+///
+/// assert_eq!((Aligned(1) + Aligned(2)), Aligned(1 + 2));
+/// assert_eq!((Aligned(1) - Aligned(2)), Aligned(1 - 2));
+/// assert_eq!((Aligned(1) * Aligned(2)), Aligned(1 * 2));
+/// assert_eq!((Aligned(1) / Aligned(2)), Aligned(1 / 2));
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
+#[rustfmt::skip]
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -154,6 +300,14 @@ pub mod word {
 #[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(target_arch = "x86",     repr(align(64)))]
+#[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
+#[cfg_attr(target_arch = "arm",     repr(align(64)))]
+#[cfg_attr(target_arch = "aarch64", repr(align(64)))]
+#[cfg_attr(target_arch = "riscv32", repr(align(64)))]
+#[cfg_attr(target_arch = "riscv64", repr(align(64)))]
+#[cfg_attr(target_arch = "wasm32",  repr(align(64)))]
+#[cfg_attr(target_arch = "wasm64",  repr(align(64)))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 

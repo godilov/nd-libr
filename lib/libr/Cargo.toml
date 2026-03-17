@@ -12,7 +12,6 @@ readme.workspace     = true
 description          = "Nd Rust Library"
 
 [dependencies]
-ndarch   = { workspace = true, optional = true }
 ndassert = { workspace = true, optional = true }
 ndfwd    = { workspace = true, optional = true }
 ndops    = { workspace = true, optional = true }
@@ -28,8 +27,7 @@ workspace = true
 
 [features]
 default = []
-all     = ["arch", "assert", "fwd", "ops", "crypto", "ext", "mem", "num"]
-arch    = ["dep:ndarch"]
+all     = ["assert", "fwd", "ops", "crypto", "ext", "mem", "num"]
 assert  = ["dep:ndassert"]
 fwd     = ["dep:ndfwd"]
 ops     = ["dep:ndops"]

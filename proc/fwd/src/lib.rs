@@ -18,9 +18,9 @@ mod kw {
 /// Zero-boilerplate standard traits forwarding for **struct**, **enum** and **union**.
 ///
 /// Forwards [`Deref`](std::ops::Deref), [`DerefMut`](std::ops::DerefMut), [`AsRef`], [`AsMut`],
-/// [`FromIterator`](std::iter::FromIterator) to specified expression.
+/// [`FromIterator`] to specified expression.
 ///
-/// Requires [`From`] for [`FromIterator`](std::iter::FromIterator).
+/// Requires [`From`] for [`FromIterator`].
 ///
 /// **Note:** `deref`/`deref_mut` return expression itself, while `as_ref`/`as_mut` call `as_ref`/`as_mut`.
 ///
