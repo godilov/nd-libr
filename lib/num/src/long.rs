@@ -19,12 +19,13 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    Binary as NumBinary, BytesExt, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset, One, Sign, Zero,
+    Binary as NumBinary, BytesExt, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset, One, SelectCt, Sign,
+    Zero,
     arch::word::*,
     long::{radix::*, uops::*},
 };
 #[cfg(feature = "const-time")]
-use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, SignCt};
+use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, MaxCt, MinCt, SignCt};
 
 macro_rules! signed {
     ($bits:expr) => {
@@ -2485,6 +2486,38 @@ impl<const L: usize> CmpCt for Signed<L> {}
 #[cfg(feature = "const-time")]
 impl<const L: usize> CmpCt for Unsigned<L> {}
 
+#[cfg(feature = "const-time")]
+impl<const L: usize> MinCt for Signed<L> {}
+
+#[cfg(feature = "const-time")]
+impl<const L: usize> MinCt for Unsigned<L> {}
+
+#[cfg(feature = "const-time")]
+impl<const L: usize> MaxCt for Signed<L> {}
+
+#[cfg(feature = "const-time")]
+impl<const L: usize> MaxCt for Unsigned<L> {}
+
+#[cfg(feature = "const-time")]
+impl<const L: usize> SelectCt for Signed<L> {
+    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
+        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
+
+        lhs & lhs_mask | rhs & rhs_mask
+    }
+}
+
+#[cfg(feature = "const-time")]
+impl<const L: usize> SelectCt for Unsigned<L> {
+    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
+        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
+
+        lhs & lhs_mask | rhs & rhs_mask
+    }
+}
+
 impl<'words, const L: usize, W: Word> ExactSizeIterator for DigitsIter<'words, L, W> {}
 impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
     type Item = W;
@@ -2648,11 +2681,11 @@ impl<const L: usize> BytesExt for Unsigned<L> {
 impl<const L: usize> NumFn for Signed<L> {}
 impl<const L: usize> NumFn for Unsigned<L> {}
 
-impl<const L: usize> Num for Signed<L> {}
-impl<const L: usize> Num for Unsigned<L> {}
-
 impl<const L: usize> NumExt for Signed<L> {}
 impl<const L: usize> NumExt for Unsigned<L> {}
+
+impl<const L: usize> Num for Signed<L> {}
+impl<const L: usize> Num for Unsigned<L> {}
 
 impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
@@ -3991,22 +4024,28 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
         ) [
+            (S64::from(lhs).cmp_ct(&S64::from(rhs)), lhs.cmp(&rhs) as SignCt),
             (S64::from(lhs).eq_ct(&S64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (S64::from(lhs).lt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (S64::from(lhs).min_ct(&S64::from(rhs)), S64::from(lhs.min(rhs))),
+            (S64::from(lhs).max_ct(&S64::from(rhs)), S64::from(lhs.max(rhs))),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0),
             rhs in ndassert::range!(u64, 56, 1),
         ) [
+            (U64::from(lhs).cmp_ct(&U64::from(rhs)), lhs.cmp(&rhs) as SignCt),
             (U64::from(lhs).eq_ct(&U64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (U64::from(lhs).lt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (U64::from(lhs).min_ct(&U64::from(rhs)), U64::from(lhs.min(rhs))),
+            (U64::from(lhs).max_ct(&U64::from(rhs)), U64::from(lhs.max(rhs))),
         ] }
     }
 

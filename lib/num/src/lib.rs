@@ -62,9 +62,9 @@ macro_rules! num_impl {
 
         impl NumFnChecked for $primitive {}
 
-        impl Num for $primitive {}
-
         impl NumExt for $primitive {}
+
+        impl Num for $primitive {}
 
         impl Zero for $primitive {
             const ZERO: Self = 0;
@@ -165,9 +165,9 @@ macro_rules! num_ct_impl {
         impl LeCt for $signed {}
         impl GeCt for $signed {}
         impl CmpCt for $signed {}
+        impl MinCt for $signed {}
+        impl MaxCt for $signed {}
 
-        num_ct_impl!(@min $signed);
-        num_ct_impl!(@max $signed);
         num_ct_impl!(@select $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
@@ -208,44 +208,18 @@ macro_rules! num_ct_impl {
         impl LeCt for $unsigned {}
         impl GeCt for $unsigned {}
         impl CmpCt for $unsigned {}
+        impl MinCt for $unsigned {}
+        impl MaxCt for $unsigned {}
 
-        num_ct_impl!(@min $unsigned);
-        num_ct_impl!(@max $unsigned);
         num_ct_impl!(@select $unsigned);
-    };
-    (@min $primitive:ty $(,)?) => {
-        impl MinCt for $primitive {
-            fn min_ct(&self, other: &Self) -> Self {
-                let lhs = self;
-                let rhs = other;
-
-                let lt = lhs.lt_ct(rhs);
-                let lt = <$primitive>::from_ne_bytes([lt; (<$primitive>::BITS / 8) as usize]);
-
-                lt & lhs | !lt & rhs
-            }
-        }
-    };
-    (@max $primitive:ty $(,)?) => {
-        impl MaxCt for $primitive {
-            fn max_ct(&self, other: &Self) -> Self {
-                let lhs = self;
-                let rhs = other;
-
-                let gt = lhs.gt_ct(rhs);
-                let gt = <$primitive>::from_ne_bytes([gt; (<$primitive>::BITS / 8) as usize]);
-
-                gt & lhs | !gt & rhs
-            }
-        }
     };
     (@select $primitive:ty $(,)?) => {
         impl SelectCt for $primitive {
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-                let mask_lhs = <$primitive>::from_ne_bytes([mask; (<$primitive>::BITS / 8) as usize]);
-                let mask_rhs = <$primitive>::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
+                let lhs_mask = <$primitive>::from_ne_bytes([mask; (<$primitive>::BITS / 8) as usize]);
+                let rhs_mask = <$primitive>::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
 
-                mask_lhs & lhs | mask_rhs & rhs
+                lhs & lhs_mask | rhs & rhs_mask
             }
         }
     };
@@ -330,81 +304,123 @@ macro_rules! sign_from {
     };
 }
 
+/// Number with Strict operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-pub struct Strict<N: Num + NumExt>(pub N);
+#[ndfwd::def(self.0 with N: Num)]
+pub struct Strict<N>(pub N);
 
+/// Number with Wrapping operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-pub struct Wrapping<N: Num + NumExt>(pub N);
+#[ndfwd::def(self.0 with N: Num)]
+pub struct Wrapping<N>(pub N);
 
+/// Number with Saturating operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-pub struct Saturating<N: Num + NumExt>(pub N);
+#[ndfwd::def(self.0 with N: Num)]
+pub struct Saturating<N>(pub N);
 
+/// Number with Unbounded operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
-pub struct Unbounded<N: Num + NumExt>(pub N);
+#[ndfwd::def(self.0 with N: Num)]
+pub struct Unbounded<N>(pub N);
 
+/// Number with specified binary width.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
+#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub N);
 
+/// Number with specified modulus.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: BytesExt)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
+#[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumExt + NumUnsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
 
+/// Number sign.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
+    /// Zero number variant.
     #[default]
     ZERO = 0,
+
+    /// Negative number variant.
     NEG = -1,
+
+    /// Positive number variant.
     POS = 1,
 }
 
+/// Offset for reading/writing binary mask.
+///
+/// - `Offset::Left(val)` specifies `val`-bits offset from `0`.
+/// - `Offset::Right(val)` specifies `val`-bits offset from `N = size_of::<Self>()`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Offset {
+    /// Offset in left direction of usize bits.
     Left(usize),
+    /// Offset in right direction of usize bits.
     Right(usize),
 }
 
@@ -414,31 +430,43 @@ type MaskCt = u8;
 #[cfg(feature = "const-time")]
 type SignCt = i8;
 
+/// Bytes extensions.
+///
+/// Allows reading/writing in raw binary representation.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait BytesExt: Sized {
+    /// Reads 64-bits of underlying value at specified Offset in bits.
     fn read(&self, offset: Offset) -> u64;
 
+    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
     #[ndfwd::as_self]
     fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
+    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
     #[ndfwd::as_self]
     fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
+    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
     #[ndfwd::as_self]
     fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self;
 
+    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
     #[ndfwd::as_into]
     fn into_bitor(mut self, mask: u64, offset: Offset) -> Self {
         self.write_bitor(mask, offset);
         self
     }
 
+    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
     #[ndfwd::as_into]
     fn into_bitand(mut self, mask: u64, offset: Offset) -> Self {
         self.write_bitand(mask, offset);
         self
     }
 
+    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
     #[ndfwd::as_into]
     fn into_bitxor(mut self, mask: u64, offset: Offset) -> Self {
         self.write_bitxor(mask, offset);
@@ -446,10 +474,20 @@ pub trait BytesExt: Sized {
     }
 }
 
+/// Numbers functions with default semantics.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumFn:
     Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
 {
+    /// Calculates Greatest Common Divisor of two numbers.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    ///
+    /// See [`NumFnChecked`] for checked semantics.
     #[ndfwd::as_into]
     fn gcd(mut lhs: Self, mut rhs: Self) -> Self {
         let zero = Self::zero();
@@ -464,6 +502,13 @@ pub trait NumFn:
         lhs
     }
 
+    /// Calculates Greatest Common Divisor Extended of two numbers.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    ///
+    /// See [`NumFnChecked`] for checked semantics.
     #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
         let zero = Self::zero();
@@ -496,6 +541,13 @@ pub trait NumFn:
         (r0, x0, y0)
     }
 
+    /// Calculates Least Common Multiple of two numbers.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    ///
+    /// See [`NumFnChecked`] for checked semantics.
     #[ndfwd::as_into]
     fn lcm(lhs: Self, rhs: Self) -> Self {
         let val = Self::gcd(lhs.clone(), rhs.clone());
@@ -505,8 +557,17 @@ pub trait NumFn:
     }
 }
 
+/// Numbers functions with checked semantics.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
+    /// Calculates Greatest Common Divisor of two numbers.
+    ///
+    /// # Returns
+    ///
+    /// - `Some` when value exists.
+    /// - `None` when non-checked could panic.
     #[ndfwd::as_map(Self::from)]
     fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
         let zero = Self::zero();
@@ -521,6 +582,12 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
         Some(lhs)
     }
 
+    /// Calculates Greatest Common Divisor Extended of two numbers.
+    ///
+    /// # Returns
+    ///
+    /// - `Some` when value exists.
+    /// - `None` when non-checked could panic.
     #[ndfwd::as_map(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)> {
         let zero = Self::zero();
@@ -553,6 +620,12 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
         Some((r0, x0, y0))
     }
 
+    /// Calculates Least Common Multiple of two numbers.
+    ///
+    /// # Returns
+    ///
+    /// - `Some` when value exists.
+    /// - `None` when non-checked could panic.
     #[ndfwd::as_map(Self::from)]
     fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self> {
         let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;
@@ -562,58 +635,73 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
     }
 }
 
-#[ndfwd::decl]
-pub trait Num: NumFn + Zero + One + Copy {}
-
-#[ndfwd::decl]
-pub trait NumDyn: NumFn {}
-
+/// Numbers extensions.
+///
+/// Exposes additional functions on top of [`NumFn`] and [`BytesExt`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumExt: NumFn + BytesExt {
+    /// Writes odd number.
     #[ndfwd::as_self]
     fn write_odd(&mut self) -> &mut Self {
         self.write_bitor(1, Offset::Left(0));
         self
     }
 
+    /// Writes even number.
     #[ndfwd::as_self]
     fn write_even(&mut self) -> &mut Self {
         self.write_bitand(u64::MAX - 1, Offset::Left(0));
         self
     }
 
+    /// Alters odd/even number.
     #[ndfwd::as_self]
     fn write_alt(&mut self) -> &mut Self {
         self.write_bitxor(1, Offset::Left(0));
         self
     }
 
+    /// Writes odd number.
     #[ndfwd::as_into]
     fn into_odd(mut self) -> Self {
         self.write_odd();
         self
     }
 
+    /// Writes even number.
     #[ndfwd::as_into]
     fn into_even(mut self) -> Self {
         self.write_even();
         self
     }
 
+    /// Alters odd/even number.
     #[ndfwd::as_into]
     fn into_alt(mut self) -> Self {
         self.write_alt();
         self
     }
 
+    /// Checks number is odd.
     fn is_odd(&self) -> bool {
         self.read(Offset::Left(0)) & 1 != 0
     }
 
+    /// Checks number is even.
     fn is_even(&self) -> bool {
         self.read(Offset::Left(0)) & 1 == 0
     }
 
+    /// Creates random number.
+    ///
+    /// Order represents position of the most significant bit.
+    ///
+    /// # Panics
+    ///
+    /// - When `order` is zero.
+    /// - When `BytesExt` implementation panics.
     #[cfg(feature = "rand")]
     #[ndfwd::as_into]
     fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
@@ -633,6 +721,11 @@ pub trait NumExt: NumFn + BytesExt {
         res
     }
 
+    /// Calculates `self ^ exp`.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     #[ndfwd::as_into]
     fn pow(self, mut exp: Self) -> Self {
         let zero = Self::zero();
@@ -655,6 +748,11 @@ pub trait NumExt: NumFn + BytesExt {
         res
     }
 
+    /// Calculates `self ^ exp % rem`.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     #[ndfwd::as_into]
     fn powrem(self, mut exp: Self, rem: &Self) -> Self {
         let zero = Self::zero();
@@ -680,93 +778,162 @@ pub trait NumExt: NumFn + BytesExt {
     }
 }
 
+/// Number with static allocation.
+#[ndfwd::decl]
+pub trait Num: NumFn + Zero + One + Copy {}
+
+/// Number with dynamic allocation.
+#[ndfwd::decl]
+pub trait NumDyn: NumFn {}
+
+/// Number with sign.
 #[ndfwd::decl]
 pub trait NumSigned: NumFn + From<i8> {}
 
+/// Number without sign.
 #[ndfwd::decl]
 pub trait NumUnsigned: NumFn + From<u8> {
+    /// Order of number.
+    ///
+    /// Represents position of the most significant bit.
     fn order(&self) -> usize;
 
+    /// Logarithm (base 2) of number.
     #[ndfwd::as_into]
     fn log(&self) -> Self;
 
+    /// Square root of number.
     #[ndfwd::as_into]
     fn sqrt(&self) -> Self;
 }
 
+/// Modulus for [`Modular`] numbers.
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
+    /// Modulus for arithmetics.
     const MOD: N;
 }
 
+/// Zero with static allocation.
 pub trait Zero {
+    /// Zero value.
     const ZERO: Self;
 }
 
+/// One with static allocation.
 pub trait One {
+    /// One value.
     const ONE: Self;
 }
 
+/// Minimum with static allocation.
 pub trait Min {
+    /// Minimum value.
     const MIN: Self;
 }
 
+/// Maximum with static allocation.
 pub trait Max {
+    /// Maximum value.
     const MAX: Self;
 }
 
+/// Numbers representable in binary statically.
 #[ndfwd::decl]
 pub trait Binary {
+    /// Allocated static size in bits.
     const BITS: usize;
+
+    /// Allocated static size in bytes.
     const BYTES: usize;
 }
 
+/// Zero with dynamic allocation.
 #[ndfwd::decl]
 pub trait ZeroFn {
+    /// Returns zero value.
     #[ndfwd::as_into]
     fn zero() -> Self;
 }
 
+/// One with dynamic allocation.
 #[ndfwd::decl]
 pub trait OneFn {
+    /// Returns one value.
     #[ndfwd::as_into]
     fn one() -> Self;
 }
 
+/// Minimum with dynamic allocation.
 #[ndfwd::decl]
 pub trait MinFn {
+    /// Returns minimum value.
     #[ndfwd::as_into]
     fn min() -> Self;
 }
 
+/// Maximum with dynamic allocation.
 #[ndfwd::decl]
 pub trait MaxFn {
+    /// Returns maximum value.
     #[ndfwd::as_into]
     fn max() -> Self;
 }
 
+/// Numbers representable in binary dynamically.
 #[ndfwd::decl]
 pub trait BinaryFn {
+    /// Allocated dynamic size in bits.
     fn bits(&self) -> usize;
+
+    /// Allocated dynamic size in bytes.
     fn bytes(&self) -> usize;
 }
 
+/// Const-time equality comparison.
 #[cfg(feature = "const-time")]
 pub trait EqCt {
+    /// Const-time equality function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `lhs != rhs`.
+    /// - `MaskCt::MAX` => `lhs == rhs`.
     fn eq_ct(&self, other: &Self) -> MaskCt;
 }
 
+/// Const-time less-then comparison.
 #[cfg(feature = "const-time")]
 pub trait LtCt {
+    /// Const-time less-then function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `lhs >= rhs`.
+    /// - `MaskCt::MAX` => `lhs < rhs`.
     fn lt_ct(&self, other: &Self) -> MaskCt;
 }
 
+/// Const-time greater-then comparison.
 #[cfg(feature = "const-time")]
 pub trait GtCt {
+    /// Const-time greater-then function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `lhs <= rhs`.
+    /// - `MaskCt::MAX` => `lhs > rhs`.
     fn gt_ct(&self, other: &Self) -> MaskCt;
 }
 
+/// Const-time less-or-equal-then comparison.
 #[cfg(feature = "const-time")]
 pub trait LeCt {
+    /// Const-time less-or-equal-then function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `lhs > rhs`.
+    /// - `MaskCt::MAX` => `lhs <= rhs`.
     fn le_ct(&self, other: &Self) -> MaskCt
     where
         Self: GtCt,
@@ -775,8 +942,15 @@ pub trait LeCt {
     }
 }
 
+/// Const-time greater-or-equal-then comparison.
 #[cfg(feature = "const-time")]
 pub trait GeCt {
+    /// Const-time greater-or-equal-then function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `lhs < rhs`.
+    /// - `MaskCt::MAX` => `lhs >= rhs`.
     fn ge_ct(&self, other: &Self) -> MaskCt
     where
         Self: LtCt,
@@ -785,8 +959,16 @@ pub trait GeCt {
     }
 }
 
+/// Const-time comparison.
 #[cfg(feature = "const-time")]
 pub trait CmpCt {
+    /// Const-time comparison function.
+    ///
+    /// # Returns
+    ///
+    /// - `-1` => `lhs < rhs`
+    /// - `0` => `lhs == rhs`.
+    /// - `1` => `lhs > rhs`
     fn cmp_ct(&self, other: &Self) -> SignCt
     where
         Self: EqCt + LtCt + GtCt,
@@ -798,18 +980,40 @@ pub trait CmpCt {
     }
 }
 
+/// Const-time minimum value.
 #[cfg(feature = "const-time")]
 pub trait MinCt: Copy {
-    fn min_ct(&self, other: &Self) -> Self;
+    /// Const-time minimum function.
+    fn min_ct(&self, other: &Self) -> Self
+    where
+        Self: LtCt + SelectCt,
+    {
+        SelectCt::select_ct(self, other, self.lt_ct(other))
+    }
 }
 
+/// Const-time maximum value.
 #[cfg(feature = "const-time")]
 pub trait MaxCt: Copy {
-    fn max_ct(&self, other: &Self) -> Self;
+    /// Const-time maximum function.
+    fn max_ct(&self, other: &Self) -> Self
+    where
+        Self: GtCt + SelectCt,
+    {
+        SelectCt::select_ct(self, other, self.gt_ct(other))
+    }
 }
 
+/// Const-time select value.
 #[cfg(feature = "const-time")]
 pub trait SelectCt: Copy {
+    /// Const-time select function.
+    ///
+    /// # Returns
+    ///
+    /// `lhs & mask | rhs & !mask`
+    ///
+    /// `mask` is repeated to match `size_of::<Self>()`.
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self;
 }
 
@@ -833,25 +1037,25 @@ sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 
-impl<N: Num + NumExt> From<N> for Strict<N> {
+impl<N> From<N> for Strict<N> {
     fn from(value: N) -> Self {
         Strict(value)
     }
 }
 
-impl<N: Num + NumExt> From<N> for Wrapping<N> {
+impl<N> From<N> for Wrapping<N> {
     fn from(value: N) -> Self {
         Wrapping(value)
     }
 }
 
-impl<N: Num + NumExt> From<N> for Saturating<N> {
+impl<N> From<N> for Saturating<N> {
     fn from(value: N) -> Self {
         Saturating(value)
     }
 }
 
-impl<N: Num + NumExt> From<N> for Unbounded<N> {
+impl<N> From<N> for Unbounded<N> {
     fn from(value: N) -> Self {
         Unbounded(value)
     }
@@ -935,6 +1139,16 @@ impl<Any: Min> MinFn for Any {
 impl<Any: Max> MaxFn for Any {
     fn max() -> Self {
         Any::MAX
+    }
+}
+
+impl<Any: Binary> BinaryFn for Any {
+    fn bits(&self) -> usize {
+        Any::BITS
+    }
+
+    fn bytes(&self) -> usize {
+        Any::BYTES
     }
 }
 

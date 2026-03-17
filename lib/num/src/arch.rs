@@ -289,7 +289,7 @@ pub mod word {
 
         /// Order of Word-like value.
         ///
-        /// Represents position of most significant bit.
+        /// Represents position of the most significant bit.
         ///
         /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn order(self) -> usize;
@@ -365,8 +365,8 @@ pub mod word {
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::NumFnChecked)]
-#[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
+#[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
 #[cfg_attr(target_arch = "x86",     repr(align(64)))]
