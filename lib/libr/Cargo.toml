@@ -16,8 +16,8 @@ ndarch   = { workspace = true, optional = true }
 ndassert = { workspace = true, optional = true }
 ndfwd    = { workspace = true, optional = true }
 ndops    = { workspace = true, optional = true }
-ndcore   = { workspace = true, optional = true }
 ndcrypto = { workspace = true, optional = true }
+ndext    = { workspace = true, optional = true }
 ndmem    = { workspace = true, optional = true }
 ndnum    = { workspace = true, optional = true }
 
@@ -28,12 +28,12 @@ workspace = true
 
 [features]
 default = []
-all     = ["arch", "assert", "fwd", "ops", "core", "crypto", "mem", "num"]
+all     = ["arch", "assert", "fwd", "ops", "crypto", "ext", "mem", "num"]
 arch    = ["dep:ndarch"]
 assert  = ["dep:ndassert"]
 fwd     = ["dep:ndfwd"]
 ops     = ["dep:ndops"]
-core    = ["dep:ndcore"]
 crypto  = ["dep:ndcrypto"]
+ext     = ["dep:ndext"]
 mem     = ["dep:ndmem"]
 num     = ["dep:ndnum"]

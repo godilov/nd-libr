@@ -1,5 +1,5 @@
 [package]
-name                 = "ndcore"
+name                 = "ndext"
 version.workspace    = true
 edition.workspace    = true
 license.workspace    = true
@@ -9,7 +9,7 @@ authors.workspace    = true
 categories.workspace = true
 keywords.workspace   = true
 readme.workspace     = true
-description          = "Nd Core Library"
+description          = "Nd Extensions Library"
 
 [dependencies]
 ndops = { workspace = true }

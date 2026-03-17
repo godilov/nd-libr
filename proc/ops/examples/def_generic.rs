@@ -11,7 +11,7 @@ impl<N> From<N> for Any<N> {
     }
 }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::def! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: &Any<N>), [
@@ -25,7 +25,7 @@ ndops::def! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: &Any<N>), [
     ^= lhs.0 ^= rhs.0 where [N: BitXorAssign<N>],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::def! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), [
@@ -33,7 +33,7 @@ ndops::def! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), [
     >>= lhs.0 >>= rhs where [N: ShrAssign<usize>],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::def! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: &Any<N>) -> Any<N>, [
@@ -47,7 +47,7 @@ ndops::def! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: &Any<N>) -> Any<N>, [
     ^ lhs.0 ^ rhs.0 where [N: BitXor<N, Output = N>],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::def! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, [
@@ -55,7 +55,7 @@ ndops::def! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, [
     >> lhs.0 >> rhs where [N: Shr<usize, Output = N>],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::def! { @ndun <N: Copy> (value: &Any<N>) -> Any<N>, [

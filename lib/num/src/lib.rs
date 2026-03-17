@@ -2,7 +2,7 @@
 
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
-use ndcore::ops::*;
+use ndext::ops::*;
 
 use crate::prime::*;
 

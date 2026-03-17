@@ -2,7 +2,7 @@
 
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndcore::ops::*;
+use ndext::ops::*;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 use crate::*;

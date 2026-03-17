@@ -1,3 +1,3 @@
-# NdCore iter extensions
+# NdExtensions iter
 
 **`Nd-kind` extensions for [`std::iter`]**

@@ -2181,7 +2181,7 @@ impl OpsAssignExt {
     }
 
     fn path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
             OpsAssignExt::Add(_) => parse_quote! { #prefix::ops::NdAddAssign },
@@ -2267,7 +2267,7 @@ impl OpsBinaryExt {
     }
 
     fn path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
             OpsBinaryExt::Add(_) => parse_quote! { #prefix::ops::NdAdd },
@@ -2351,7 +2351,7 @@ impl OpsUnaryExt {
     }
 
     fn path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndcore });
+        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
             OpsUnaryExt::Not(_) => parse_quote! { #prefix::ops::NdNot },

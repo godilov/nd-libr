@@ -2,7 +2,7 @@
 
 #[cfg(feature = "core")]
 #[doc(inline)]
-pub use ndcore::{convert, iter, ops};
+pub use ndext as ext;
 #[cfg(feature = "crypto")]
 #[doc(inline)]
 pub use ndcrypto as crypto;

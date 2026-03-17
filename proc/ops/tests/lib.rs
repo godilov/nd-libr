@@ -1,6 +1,6 @@
 //! # NdOps Tests
 
-use ndcore::ops::*;
+use ndext::ops::*;
 
 macro_rules! struct_def {
     ($([$($gen:tt)+][$($generics:tt)+])? ($type1:ident, $type2:ident, $type3:ident), $type:ty $(,)?) => {

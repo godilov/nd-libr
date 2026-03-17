@@ -596,7 +596,7 @@ pub fn as_self(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// ```rust
 /// #[ndfwd::decl]
-/// trait Trait {
+/// trait Trait: Sized {
 ///     #[ndfwd::as_expr(|(a, b)| (Self::from(a), Self::from(b)))]
 ///     fn function() -> (Self, Self);
 /// }
@@ -616,7 +616,7 @@ pub fn as_expr(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// ```rust
 /// #[ndfwd::decl]
-/// trait Trait {
+/// trait Trait: Sized {
 ///     #[ndfwd::as_map(Self::from)]
 ///     fn function() -> Option<Self>;
 /// }

@@ -20,7 +20,7 @@ zerocopy  = { workspace = true }
 ndarch = { workspace = true }
 ndfwd  = { workspace = true }
 ndops  = { workspace = true }
-ndcore = { workspace = true }
+ndext  = { workspace = true }
 
 [dev-dependencies]
 rand      = { workspace = true }

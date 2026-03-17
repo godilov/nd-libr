@@ -1,6 +1,6 @@
 //! # NdOps Fwd Generic Example
 
-use ndcore::ops::*;
+use ndext::ops::*;
 
 struct Any<N>(N);
 
@@ -11,7 +11,7 @@ impl<N: Copy> From<N> for Any<N> {
     }
 }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::fwd! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: &Any<N>), (N) (&mut lhs.0) (&rhs.0) [
@@ -25,7 +25,7 @@ ndops::fwd! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: &Any<N>), (N) (&mut lhs.0
     ^= where [N: NdBitXorAssign],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::fwd! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), (N) (&mut lhs.0) (rhs) [
@@ -33,7 +33,7 @@ ndops::fwd! { @ndmut <N: Copy> (lhs: &mut Any<N>, rhs: usize), (N) (&mut lhs.0) 
     >>= where [N: NdShrAssign],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::fwd! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: &Any<N>) -> Any<N>, (N) (&lhs.0) (&rhs.0) [
@@ -47,7 +47,7 @@ ndops::fwd! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: &Any<N>) -> Any<N>, (N) (&lhs
     ^ where [N: NdBitXor<Type = N>],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::fwd! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, (N) (&lhs.0) (rhs) [
@@ -55,7 +55,7 @@ ndops::fwd! { @ndbin <N: Copy> (lhs: &Any<N>, rhs: usize) -> Any<N>, (N) (&lhs.0
     >> where [N: NdShr<Type = N>],
 ] }
 
-// Implements corresponding ndcore::ops::* for Any
+// Implements corresponding ndext::ops::* for Any
 // with signature-level condition N: Copy
 // with operation-level conditions per operation
 ndops::fwd! { @ndun <N: Copy> (value: &Any<N>) -> Any<N>, (N) (&value.0) [

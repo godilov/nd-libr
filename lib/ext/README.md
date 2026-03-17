@@ -1,4 +1,4 @@
-# NdCore Library
+# NdExtensions Library
 
 **`Nd-kind` extensions for `Std-kind` library**
 
@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-ndcore = "*"
+ndext = "*"
 ```
 
 ## License

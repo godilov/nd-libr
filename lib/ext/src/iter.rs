@@ -9,7 +9,7 @@ pub trait IteratorExt: Iterator {
     /// Consumes at most `dst.len()` amount of elements.
     ///
     /// ```rust
-    /// # use ndcore::iter::IteratorExt;
+    /// # use ndext::iter::IteratorExt;
     ///
     /// let mut iter = (0..3).into_iter();
     ///
@@ -33,7 +33,7 @@ pub trait IteratorExt: Iterator {
     /// Consumes at most `dst.len()` amount of elements.
     ///
     /// ```rust
-    /// # use ndcore::iter::IteratorExt;
+    /// # use ndext::iter::IteratorExt;
     ///
     /// let mut iter = (0..3).into_iter();
     ///

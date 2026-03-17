@@ -7,7 +7,7 @@
 ```toml
 [dependencies]
 ndops = "*"
-ndcore = "*" # Nd-kind operations
+ndext = "*" # Nd-kind operations
 ```
 
 ## Features
@@ -17,21 +17,21 @@ ndcore = "*" # Nd-kind operations
 The crate allows implementing operations in six **kinds**: `@stdmut`, `@stdbin`, `@stdun`, `@ndmut`, `@ndbin`, `@ndun`.
 Each kind determines set of **operations** it supports, set of **traits** it supports and **signature** syntax.
 
-| Kind      | Operations                                                     | Traits        |
-| --------- | -------------------------------------------------------------- | ------------- |
-| `@stdmut` | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | [`std::ops`]  |
-| `@ndmut`  | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `ndcore::ops` |
-| `@stdbin` | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | [`std::ops`]  |
-| `@ndbin`  | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `ndcore::ops` |
-| `@stdun`  | `!`, `-`                                                       | [`std::ops`]  |
-| `@ndun`   | `!`, `-`                                                       | `ndcore::ops` |
+| Kind      | Operations                                                     | Traits       |
+| --------- | -------------------------------------------------------------- | ------------ |
+| `@stdmut` | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | [`std::ops`] |
+| `@ndmut`  | `+=`, `-=`, `\*=`, `/=`, `%=`, `\|=`, `&=`, `^=`, `<<=`, `>>=` | `ndext::ops` |
+| `@stdbin` | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | [`std::ops`] |
+| `@ndbin`  | `+`, `-`, `\*`, `/`, `%`, `\|`, `&`, `^`, `<<`, `>>`           | `ndext::ops` |
+| `@stdun`  | `!`, `-`                                                       | [`std::ops`] |
+| `@ndun`   | `!`, `-`                                                       | `ndext::ops` |
 
 #### Modes
 
 The crate allows implementing operations in seven **modes**: `Default`, `Checked`, `Strict`, `Wrapping`, `Saturating`, `Overflowing`, `Unbounded`.
 Each mode is used within specific operations set.
 
-For more info, see `ndcore::ops` and [syntax](#syntax) documentation.
+For more info, see `ndext::ops` and [syntax](#syntax) documentation.
 
 #### Generics
 

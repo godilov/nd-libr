@@ -1,4 +1,4 @@
-//! # NdFwd Tests
+//! # NdForward Tests
 
 #[ndfwd::decl]
 trait Greeter {

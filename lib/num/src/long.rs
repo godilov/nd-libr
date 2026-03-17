@@ -10,7 +10,7 @@ use std::{
     str::FromStr,
 };
 
-use ndcore::{
+use ndext::{
     convert::{NdFrom, NdFromStr, NdTryFrom},
     iter::IteratorExt,
     ops::*,

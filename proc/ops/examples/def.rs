@@ -9,7 +9,7 @@ impl From<i64> for Num {
     }
 }
 
-// Implements corresponding ndcore::ops::* for Num
+// Implements corresponding ndext::ops::* for Num
 ndops::def! { @ndmut (lhs: &mut Num, rhs: &Num), [
     += lhs.0 += rhs.0,
     -= lhs.0 -= rhs.0,
@@ -21,13 +21,13 @@ ndops::def! { @ndmut (lhs: &mut Num, rhs: &Num), [
     ^= lhs.0 ^= rhs.0,
 ] }
 
-// Implements corresponding ndcore::ops::* for Num
+// Implements corresponding ndext::ops::* for Num
 ndops::def! { @ndmut (lhs: &mut Num, rhs: usize), [
     <<= lhs.0 <<= rhs,
     >>= lhs.0 >>= rhs,
 ] }
 
-// Implements corresponding ndcore::ops::* for Num
+// Implements corresponding ndext::ops::* for Num
 ndops::def! { @ndbin (lhs: &Num, rhs: &Num) -> Num, [
     + lhs.0 + rhs.0,
     - lhs.0 - rhs.0,
@@ -39,13 +39,13 @@ ndops::def! { @ndbin (lhs: &Num, rhs: &Num) -> Num, [
     ^ lhs.0 ^ rhs.0,
 ] }
 
-// Implements corresponding ndcore::ops::* for Num
+// Implements corresponding ndext::ops::* for Num
 ndops::def! { @ndbin (lhs: &Num, rhs: usize) -> Num, [
     << lhs.0 << rhs,
     >> lhs.0 >> rhs,
 ] }
 
-// Implements corresponding ndcore::ops::* for Num
+// Implements corresponding ndext::ops::* for Num
 ndops::def! { @ndun (value: &Num) -> Num, [
     ! !value.0,
     - -value.0,

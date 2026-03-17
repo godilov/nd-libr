@@ -1,4 +1,4 @@
-# NdFwd Procedural Macros
+# NdForward Procedural Macros
 
 **Zero-boilerplate traits implementation procedural macros**
 
