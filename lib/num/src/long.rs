@@ -1610,7 +1610,9 @@ pub enum IntoDigitsError {
     },
 }
 
-/// Implements conversion From/To/Into digits by exponent.
+/// `From`/`To`/`Into` digits conversion by `exp` details.
+///
+/// For more info, see [`FromDigits`], [`FromDigitsIter`], [`ToDigits`], [`ToDigitsIter`] documentation.
 pub struct ExpImpl<W: Word> {
     /// Exponent used in conversions.
     ///
@@ -1618,7 +1620,9 @@ pub struct ExpImpl<W: Word> {
     pub exp: W,
 }
 
-/// Implements conversion From/To/Into digits by radix.
+/// `From`/`To`/`Into` digits conversion by `radix` details.
+///
+/// For more info, see [`FromDigits`], [`FromDigitsIter`], [`IntoDigits`], [`IntoDigitsIter`] documentation.
 pub struct RadixImpl<W: Word> {
     /// Radix used in conversions.
     ///
@@ -1626,19 +1630,19 @@ pub struct RadixImpl<W: Word> {
     pub radix: W,
 }
 
-/// From/To/Into digits conversion implementation trait.
+/// `From`/`To`/`Into` digits conversion implementation trait.
 ///
 /// - [`ExpImpl`] - for conversion by `exp`.
 /// - [`RadixImpl`] - for conversion by `radix`.
 pub trait DigitsImpl<W: Word> {}
 
-/// Converts from arbitrary digits represented by [`Word`].
+/// Conversion from arbitrary digits represented by [`Word`].
 pub trait FromDigits<W: Word, Impl: DigitsImpl<W>>: Sized {
     /// Conversion function.
     fn from_digits(digits: impl AsRef<[W]>, arg: Impl) -> Result<Self, FromDigitsError>;
 }
 
-/// Converts from arbitrary digits iterator represented by [`Word`].
+/// Conversion from arbitrary digits iterator represented by [`Word`].
 pub trait FromDigitsIter<W: Word, Impl: DigitsImpl<W>>: Sized {
     /// Conversion function.
     fn from_digits_iter<Words>(digits: Words, arg: Impl) -> Result<Self, FromDigitsError>
@@ -1646,13 +1650,13 @@ pub trait FromDigitsIter<W: Word, Impl: DigitsImpl<W>>: Sized {
         Words: WordsIterator<Item = W> + DoubleEndedIterator;
 }
 
-/// Converts to arbitrary digits represented by [`Word`] with `exp`-implementation.
+/// Conversion to arbitrary digits represented by [`Word`] with `exp`.
 pub trait ToDigits<'words>: Sized {
     /// Conversion function.
     fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError>;
 }
 
-/// Converts to arbitrary digits iterator represented by [`Word`] with `exp`-implementation.
+/// Conversion to arbitrary digits iterator represented by [`Word`] with `exp`.
 pub trait ToDigitsIter<'words>: Sized {
     /// Conversion iterator.
     type Iter<W: Word>: WordsIterator<Item = W> + ExactSizeIterator
@@ -1663,13 +1667,13 @@ pub trait ToDigitsIter<'words>: Sized {
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError>;
 }
 
-/// Converts into arbitrary digits represented by [`Word`] with `radix`-implementation.
+/// Conversion into arbitrary digits represented by [`Word`] with `radix`.
 pub trait IntoDigits: Sized {
     /// Conversion function.
     fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError>;
 }
 
-/// Converts into arbitrary digits iterator represented by [`Word`] with `radix`-implementation.
+/// Conversion into arbitrary digits iterator represented by [`Word`] with `radix`.
 pub trait IntoDigitsIter: Sized {
     /// Conversion iterator.
     type Iter<W: Word>: WordsIterator<Item = W> + ExactSizeIterator;
@@ -2355,6 +2359,8 @@ impl<const L: usize> Signed<L> {
 
     /// Const conversion from bytes.
     ///
+    /// Truncates on overflow.
+    ///
     /// **Must** be used **ONLY** in const context.
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
@@ -2423,6 +2429,8 @@ impl<const L: usize> Unsigned<L> {
 
     /// Const conversion from bytes.
     ///
+    /// Truncates on overflow.
+    ///
     /// **Must** be used **ONLY** in const context.
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
@@ -2481,6 +2489,8 @@ impl<const L: usize> Bytes<L> {
     ]);
 
     /// Const conversion from bytes.
+    ///
+    /// Truncates on overflow.
     ///
     /// **Must** be used **ONLY** in const context.
     pub const fn from_bytes(bytes: &[u8]) -> Self {
