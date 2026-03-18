@@ -93,6 +93,11 @@ macro_rules! from_primitive_const {
         $(from_primitive_const!($fn, $primitive);)+
     };
     ($fn:ident, $primitive:ty $(,)?) => {
+        /// Creates long number/bytes from primitive.
+        ///
+        /// Truncates on overflow.
+        ///
+        /// **Must** be used **ONLY** in const context.
         #[allow(unused_comparisons)]
         pub const fn $fn(value: $primitive) -> Self {
             let default = if value >= 0 { 0 } else { MAX };
@@ -884,51 +889,100 @@ macro_rules! length {
 }
 
 pub mod radix {
+    //! Radix related definitions.
+
     use super::*;
 
+    /// Dec Radix.
     pub struct Dec;
+
+    /// Bin Radix.
     pub struct Bin;
+
+    /// Oct Radix.
     pub struct Oct;
+
+    /// Hex Radix.
     pub struct Hex;
 
+    /// Arbitrary Radix.
     pub struct Radix {
+        /// Radix prefix in string.
         pub prefix: &'static str,
+
+        /// Radix of a single entry to iterate when building a string.
         pub value: Double,
+
+        /// Width of a single entry at `RADIX` when building a string.
         pub width: u8,
     }
 
     #[rustfmt::skip]
     impl Dec {
+        /// Dec radix prefix in a string.
         pub const PREFIX: &str = "";
+
+        /// Dec radix of a single entry to iterate when building a string.
         pub const RADIX: Double = DEC_RADIX;
+
+        /// Dec width of a single entry at `RADIX` when building a string.
         pub const WIDTH: u8 = DEC_WIDTH;
+
+        /// Dec radix value base.
         pub const VALUE: u8 = 10;
     }
 
     #[rustfmt::skip]
     impl Bin {
+        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
         pub const EXP: u8 = RADIX.ilog2() as u8;
+
+        /// Bin radix prefix in a string.
         pub const PREFIX: &str = "0b";
+
+        /// Bin radix of a single entry to iterate when building a string.
         pub const RADIX: Double = RADIX;
+
+        /// Bin width of a single entry at `RADIX` when building a string.
         pub const WIDTH: u8 = BITS as u8;
+
+        /// Bin radix value base.
         pub const VALUE: u8 = 2;
     }
 
     #[rustfmt::skip]
     impl Oct {
+        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
         pub const EXP: u8 = OCT_RADIX.ilog2() as u8;
+
+        /// Oct radix prefix in a string.
         pub const PREFIX: &str = "0o";
+
+        /// Oct radix of a single entry to iterate when building a string.
         pub const RADIX: Double = OCT_RADIX;
+
+        /// Oct width of a single entry at `RADIX` when building a string.
         pub const WIDTH: u8 = OCT_WIDTH;
+
+        /// Oct radix value base.
         pub const VALUE: u8 = 8;
     }
 
     #[rustfmt::skip]
     impl Hex {
+        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
         pub const EXP: u8 = RADIX.ilog2() as u8;
+
+        /// Hex radix prefix in a string.
         pub const PREFIX: &str = "0x";
+
+        /// Hex radix of a single entry to iterate when building a string.
         pub const RADIX: Double = RADIX;
+
+        /// Hex width of a single entry at `RADIX` when building a string.
         pub const WIDTH: u8 = BITS as u8 / 4;
+
+        /// Hex radix value base.
         pub const VALUE: u8 = 16;
     }
 
@@ -1203,101 +1257,247 @@ mod _impl {
     ops_primitive_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
 
+/// Signed long of at least 8-bits length.
 pub type S8 = signed!(8);
+
+/// Signed long of at least 12-bits length.
 pub type S12 = signed!(12);
+
+/// Signed long of at least 16-bits length.
 pub type S16 = signed!(16);
+
+/// Signed long of at least 24-bits length.
 pub type S24 = signed!(24);
+
+/// Signed long of at least 32-bits length.
 pub type S32 = signed!(32);
+
+/// Signed long of at least 48-bits length.
 pub type S48 = signed!(48);
+
+/// Signed long of at least 64-bits length.
 pub type S64 = signed!(64);
+
+/// Signed long of at least 96-bits length.
 pub type S96 = signed!(96);
+
+/// Signed long of at least 128-bits length.
 pub type S128 = signed!(128);
+
+/// Signed long of at least 192-bits length.
 pub type S192 = signed!(192);
+
+/// Signed long of at least 256-bits length.
 pub type S256 = signed!(256);
+
+/// Signed long of at least 384-bits length.
 pub type S384 = signed!(384);
+
+/// Signed long of at least 512-bits length.
 pub type S512 = signed!(512);
+
+/// Signed long of at least 768-bits length.
 pub type S768 = signed!(768);
+
+/// Signed long of at least 1024-bits length.
 pub type S1024 = signed!(1024);
+
+/// Signed long of at least 1536-bits length.
 pub type S1536 = signed!(1536);
+
+/// Signed long of at least 2048-bits length.
 pub type S2048 = signed!(2048);
+
+/// Signed long of at least 3072-bits length.
 pub type S3072 = signed!(3072);
+
+/// Signed long of at least 4096-bits length.
 pub type S4096 = signed!(4096);
+
+/// Signed long of at least 6144-bits length.
 pub type S6144 = signed!(6144);
+
+/// Signed long of at least 8192-bits length.
 pub type S8192 = signed!(8192);
 
+/// Unsigned long of at least 8-bits length.
 pub type U8 = unsigned!(8);
+
+/// Unsigned long of at least 12-bits length.
 pub type U12 = unsigned!(12);
+
+/// Unsigned long of at least 16-bits length.
 pub type U16 = unsigned!(16);
+
+/// Unsigned long of at least 24-bits length.
 pub type U24 = unsigned!(24);
+
+/// Unsigned long of at least 32-bits length.
 pub type U32 = unsigned!(32);
+
+/// Unsigned long of at least 48-bits length.
 pub type U48 = unsigned!(48);
+
+/// Unsigned long of at least 64-bits length.
 pub type U64 = unsigned!(64);
+
+/// Unsigned long of at least 96-bits length.
 pub type U96 = unsigned!(96);
+
+/// Unsigned long of at least 128-bits length.
 pub type U128 = unsigned!(128);
+
+/// Unsigned long of at least 192-bits length.
 pub type U192 = unsigned!(192);
+
+/// Unsigned long of at least 256-bits length.
 pub type U256 = unsigned!(256);
+
+/// Unsigned long of at least 384-bits length.
 pub type U384 = unsigned!(384);
+
+/// Unsigned long of at least 512-bits length.
 pub type U512 = unsigned!(512);
+
+/// Unsigned long of at least 768-bits length.
 pub type U768 = unsigned!(768);
+
+/// Unsigned long of at least 1024-bits length.
 pub type U1024 = unsigned!(1024);
+
+/// Unsigned long of at least 1536-bits length.
 pub type U1536 = unsigned!(1536);
+
+/// Unsigned long of at least 2048-bits length.
 pub type U2048 = unsigned!(2048);
+
+/// Unsigned long of at least 3072-bits length.
 pub type U3072 = unsigned!(3072);
+
+/// Unsigned long of at least 4096-bits length.
 pub type U4096 = unsigned!(4096);
+
+/// Unsigned long of at least 6144-bits length.
 pub type U6144 = unsigned!(6144);
+
+/// Unsigned long of at least 8192-bits length.
 pub type U8192 = unsigned!(8192);
 
+/// Bytes long of at least 8-bits length.
 pub type B8 = bytes!(8);
+
+/// Bytes long of at least 12-bits length.
 pub type B12 = bytes!(12);
+
+/// Bytes long of at least 16-bits length.
 pub type B16 = bytes!(16);
+
+/// Bytes long of at least 24-bits length.
 pub type B24 = bytes!(24);
+
+/// Bytes long of at least 32-bits length.
 pub type B32 = bytes!(32);
+
+/// Bytes long of at least 48-bits length.
 pub type B48 = bytes!(48);
+
+/// Bytes long of at least 64-bits length.
 pub type B64 = bytes!(64);
+
+/// Bytes long of at least 96-bits length.
 pub type B96 = bytes!(96);
+
+/// Bytes long of at least 128-bits length.
 pub type B128 = bytes!(128);
+
+/// Bytes long of at least 192-bits length.
 pub type B192 = bytes!(192);
+
+/// Bytes long of at least 256-bits length.
 pub type B256 = bytes!(256);
+
+/// Bytes long of at least 384-bits length.
 pub type B384 = bytes!(384);
+
+/// Bytes long of at least 512-bits length.
 pub type B512 = bytes!(512);
+
+/// Bytes long of at least 768-bits length.
 pub type B768 = bytes!(768);
+
+/// Bytes long of at least 1024-bits length.
 pub type B1024 = bytes!(1024);
+
+/// Bytes long of at least 1536-bits length.
 pub type B1536 = bytes!(1536);
+
+/// Bytes long of at least 2048-bits length.
 pub type B2048 = bytes!(2048);
+
+/// Bytes long of at least 3072-bits length.
 pub type B3072 = bytes!(3072);
+
+/// Bytes long of at least 4096-bits length.
 pub type B4096 = bytes!(4096);
+
+/// Bytes long of at least 6144-bits length.
 pub type B6144 = bytes!(6144);
+
+/// Bytes long of at least 8192-bits length.
 pub type B8192 = bytes!(8192);
 
+/// Signed long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations.
+///
+/// All operations performace depends on `const L: usize` only.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
+/// Unsigned long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations.
+///
+/// All operations performace depends on `const L: usize` only.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
+/// Bytes long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and bitwise/shift operations.
+///
+/// All operations performace depends on `const L: usize` only.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
 
+/// Signed long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedDyn(Vec<Single>, Sign);
 
+/// Unsigned long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsignedDyn(Vec<Single>);
 
+/// Bytes long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BytesDyn(Vec<Single>);
 
+/// Signed SIMD-optimized long. (**WIP**)
 #[cfg(feature = "simd")]
 #[derive(Debug, Clone, Copy)]
 pub struct SignedSimd<const L: usize>(pub [Single; L]);
 
+/// Unsigned SIMD-optimized long. (**WIP**)
 #[cfg(feature = "simd")]
 #[derive(Debug, Clone, Copy)]
 pub struct UnsignedSimd<const L: usize>(pub [Single; L]);
 
+/// Digits iterator by `exp`.
+///
+/// For more info, see [`ToDigitsIter`] documentation.
 #[derive(Debug, Clone)]
 pub struct DigitsIter<'words, const L: usize, W: Word> {
     words: &'words [Single; L],
@@ -1311,6 +1511,9 @@ pub struct DigitsIter<'words, const L: usize, W: Word> {
     _phantom: PhantomData<W>,
 }
 
+/// Digits iterator by `radix`.
+///
+/// For more info, see [`IntoDigitsIter`] documentation.
 #[derive(Debug, Clone)]
 pub struct DigitsRadixIter<const L: usize, W: Word> {
     words: [Single; L],
@@ -1318,89 +1521,160 @@ pub struct DigitsRadixIter<const L: usize, W: Word> {
     len: usize,
 }
 
+/// Error type for failable long conversion from array.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromArrError {
+    /// Found invalid length during initializing from array.
+    ///
+    /// Array doesn't fit long by type (without leading-zeroes check).
     #[error("Found invalid length during initializing from array")]
     InvalidLength,
 }
 
+/// Error type for failable long conversion from slice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TryFromSliceError {
+    /// Found invalid length during initializing from slice
+    ///
+    /// Slice doesn't fit long by type (without leading-zeroes check).
     #[error("Found invalid length during initializing from slice")]
     InvalidLength,
 }
 
+/// Error type for failable long conversion from digits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum FromDigitsError {
+    /// Found invalid radix.
     #[error("Found invalid radix '{radix}'")]
-    InvalidRadix { radix: usize },
+    InvalidRadix {
+        /// Radix value.
+        radix: usize,
+    },
+    /// Found invalid exp.
     #[error("Found invalid exp '{exp}'")]
-    InvalidExponent { exp: usize },
+    InvalidExponent {
+        /// Exponent value.
+        exp: usize,
+    },
+    /// Found invalid digit.
     #[error("Found invalid digit '{digit}' during parsing from slice of radix '{radix}'")]
-    InvalidDigit { digit: usize, radix: usize },
+    InvalidDigit {
+        /// Digit value.
+        digit: usize,
+        /// Radix value.
+        radix: usize,
+    },
 }
 
+/// Error type for failable long conversion from string.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum FromStrError {
+    /// Found empty during parsing from string.
     #[error("Found empty during parsing from string")]
     InvalidLength,
+    /// Found invalid radix.
     #[error("Found invalid radix '{radix}'")]
-    InvalidRadix { radix: usize },
-    #[error("Found invalid symbol '{ch}' during parsing from string of radix '{radix}'")]
-    InvalidSymbol { ch: char, radix: u8 },
+    InvalidRadix {
+        /// Radix value.
+        radix: usize,
+    },
+    /// Found invalid char.
+    #[error("Found invalid char '{char}' during parsing from string of radix '{radix}'")]
+    InvalidSymbol {
+        /// Char value.
+        char: char,
+        /// Radix value.
+        radix: u8,
+    },
 }
 
+/// Error type for failable long conversion to digits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum ToDigitsError {
+    /// Found invalid exp.
     #[error("Found invalid exp '{exp}'")]
-    InvalidExponent { exp: usize },
+    InvalidExponent {
+        /// Exponent value.
+        exp: usize,
+    },
 }
 
+/// Error type for failable long conversion into digits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum IntoDigitsError {
+    /// Found invalid radix.
     #[error("Found invalid radix '{radix}'")]
-    InvalidRadix { radix: usize },
+    InvalidRadix {
+        /// Radix value.
+        radix: usize,
+    },
 }
 
+/// Implements conversion From/To/Into digits by exponent.
 pub struct ExpImpl<W: Word> {
+    /// Exponent used in conversions.
+    ///
+    /// Radix is `1 << exp`.
     pub exp: W,
 }
 
+/// Implements conversion From/To/Into digits by radix.
 pub struct RadixImpl<W: Word> {
+    /// Radix used in conversions.
+    ///
+    /// Radix is arbitrary.
     pub radix: W,
 }
 
+/// From/To/Into digits conversion implementation trait.
+///
+/// - [`ExpImpl`] - for conversion by `exp`.
+/// - [`RadixImpl`] - for conversion by `radix`.
 pub trait DigitsImpl<W: Word> {}
 
+/// Converts from arbitrary digits represented by [`Word`].
 pub trait FromDigits<W: Word, Impl: DigitsImpl<W>>: Sized {
+    /// Conversion function.
     fn from_digits(digits: impl AsRef<[W]>, arg: Impl) -> Result<Self, FromDigitsError>;
 }
 
+/// Converts from arbitrary digits iterator represented by [`Word`].
 pub trait FromDigitsIter<W: Word, Impl: DigitsImpl<W>>: Sized {
+    /// Conversion function.
     fn from_digits_iter<Words>(digits: Words, arg: Impl) -> Result<Self, FromDigitsError>
     where
         Words: WordsIterator<Item = W> + DoubleEndedIterator;
 }
 
+/// Converts to arbitrary digits represented by [`Word`] with `exp`-implementation.
 pub trait ToDigits<'words>: Sized {
+    /// Conversion function.
     fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError>;
 }
 
+/// Converts to arbitrary digits iterator represented by [`Word`] with `exp`-implementation.
 pub trait ToDigitsIter<'words>: Sized {
+    /// Conversion iterator.
     type Iter<W: Word>: WordsIterator<Item = W> + ExactSizeIterator
     where
         Self: 'words;
 
+    /// Conversion function.
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError>;
 }
 
+/// Converts into arbitrary digits represented by [`Word`] with `radix`-implementation.
 pub trait IntoDigits: Sized {
+    /// Conversion function.
     fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError>;
 }
 
+/// Converts into arbitrary digits iterator represented by [`Word`] with `radix`-implementation.
 pub trait IntoDigitsIter: Sized {
+    /// Conversion iterator.
     type Iter<W: Word>: WordsIterator<Item = W> + ExactSizeIterator;
 
+    /// Conversion function.
     fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError>;
 }
 
@@ -2079,30 +2353,39 @@ impl<const L: usize> Signed<L> {
         (from_isize, isize),
     ]);
 
+    /// Const conversion from bytes.
+    ///
+    /// **Must** be used **ONLY** in const context.
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
 
+    /// `self.0` as raw bytes ref.
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
+    /// `self.0` as raw bytes mut.
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
+    /// `self.0` as raw [`Words`](Word) ref.
     pub fn as_words<W: Word>(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 
+    /// `self.0` as raw [`Words`](Word) mut.
     pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 
+    /// Long number sign.
     pub fn sign(&self) -> Sign {
         sign(&self.0, Sign::POS, Sign::NEG)
     }
 
+    /// Absolute value.
     pub fn abs(&self) -> Signed<L> {
         match self.sign() {
             Sign::ZERO => Signed::<L>(self.0),
@@ -2111,6 +2394,7 @@ impl<const L: usize> Signed<L> {
         }
     }
 
+    /// Creates new signed with specified sign from raw `self.0`.
     pub fn signed(mut self, sign: Sign) -> Self {
         match self.sign() * sign {
             Sign::ZERO => return Self::default(),
@@ -2121,6 +2405,7 @@ impl<const L: usize> Signed<L> {
         self
     }
 
+    /// Creates new unsigned from raw `self.0`.
     pub fn unsigned(self) -> Unsigned<L> {
         Unsigned::<L>(self.0)
     }
@@ -2136,30 +2421,39 @@ impl<const L: usize> Unsigned<L> {
         (from_usize, usize),
     ]);
 
+    /// Const conversion from bytes.
+    ///
+    /// **Must** be used **ONLY** in const context.
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
 
+    /// `self.0` as raw bytes ref.
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
+    /// `self.0` as raw bytes mut.
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
+    /// `self.0` as raw [`Words`](Word) ref.
     pub fn as_words<W: Word>(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 
+    /// `self.0` as raw [`Words`](Word) mut.
     pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 
+    /// Long number sign.
     pub fn sign(&self) -> Sign {
         sign(&self.0, Sign::POS, Sign::POS)
     }
 
+    /// Creates new signed with specified sign from raw `self.0`.
     pub fn signed(mut self, sign: Sign) -> Signed<L> {
         match self.sign() * sign {
             Sign::ZERO => return Signed::<L>::default(),
@@ -2170,6 +2464,7 @@ impl<const L: usize> Unsigned<L> {
         Signed::<L>(self.0)
     }
 
+    /// Creates new unsigned from raw `self.0`.
     pub fn unsigned(self) -> Self {
         Self(self.0)
     }
@@ -2185,22 +2480,29 @@ impl<const L: usize> Bytes<L> {
         (from_usize, usize),
     ]);
 
+    /// Const conversion from bytes.
+    ///
+    /// **Must** be used **ONLY** in const context.
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
 
+    /// `self.0` as raw bytes ref.
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
+    /// `self.0` as raw bytes mut.
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
+    /// `self.0` as raw [`Words`](Word) ref.
     pub fn as_words<W: Word>(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 
+    /// `self.0` as raw [`Words`](Word) mut.
     pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
@@ -2900,7 +3202,7 @@ fn from_str_validate(s: &str, radix: u8) -> Result<(), FromStrError> {
             _ => false,
         }
     }) {
-        return Err(FromStrError::InvalidSymbol { ch, radix });
+        return Err(FromStrError::InvalidSymbol { char: ch, radix });
     }
 
     Ok(())
@@ -2929,7 +3231,7 @@ fn into_digits_validate<W: Word>(radix: W) -> Result<(), IntoDigitsError> {
 fn from_digits<const L: usize, W: Word>(digits: &[W], exp: W) -> Result<[Single; L], FromDigitsError> {
     let exp = exp.as_usize();
 
-    if exp >= W::BITS {
+    if exp == 0 || exp >= W::BITS {
         return Err(FromDigitsError::InvalidExponent { exp });
     }
 
@@ -2946,7 +3248,7 @@ where
 {
     let exp = exp.as_usize();
 
-    if exp >= W::BITS {
+    if exp == 0 || exp >= W::BITS {
         return Err(FromDigitsError::InvalidExponent { exp });
     }
 
