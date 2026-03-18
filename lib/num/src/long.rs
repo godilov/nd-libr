@@ -1450,7 +1450,9 @@ pub type B8192 = bytes!(8192);
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations.
 ///
-/// All operations performace depends on `const L: usize` only.
+/// All operations performace (with some exceptions) depends on `const L: usize` only.
+///
+/// For more info, see [module-level](crate::num) and [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
@@ -1458,7 +1460,9 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations.
 ///
-/// All operations performace depends on `const L: usize` only.
+/// All operations performace (with some exceptions) depends on `const L: usize` only.
+///
+/// For more info, see [module-level](crate::num) and [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
@@ -1466,7 +1470,9 @@ pub struct Unsigned<const L: usize>(pub [Single; L]);
 ///
 /// Implements all standard Rust traits and bitwise/shift operations.
 ///
-/// All operations performace depends on `const L: usize` only.
+/// All operations performace (with some exceptions) depends on `const L: usize` only.
+///
+/// For more info, see [module-level](crate::num) and [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
 
