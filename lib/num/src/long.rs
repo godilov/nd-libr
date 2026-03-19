@@ -1642,12 +1642,16 @@ pub struct RadixImpl<W: Word> {
 pub trait DigitsImpl<W: Word> {}
 
 /// Conversion from arbitrary digits represented by [`Word`].
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
 pub trait FromDigits<W: Word, Impl: DigitsImpl<W>>: Sized {
     /// Conversion function.
     fn from_digits(digits: impl AsRef<[W]>, arg: Impl) -> Result<Self, FromDigitsError>;
 }
 
 /// Conversion from arbitrary digits iterator represented by [`Word`].
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
 pub trait FromDigitsIter<W: Word, Impl: DigitsImpl<W>>: Sized {
     /// Conversion function.
     fn from_digits_iter<Words>(digits: Words, arg: Impl) -> Result<Self, FromDigitsError>
@@ -1656,12 +1660,16 @@ pub trait FromDigitsIter<W: Word, Impl: DigitsImpl<W>>: Sized {
 }
 
 /// Conversion to arbitrary digits represented by [`Word`] with `exp`.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
 pub trait ToDigits<'words>: Sized {
     /// Conversion function.
     fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError>;
 }
 
 /// Conversion to arbitrary digits iterator represented by [`Word`] with `exp`.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
 pub trait ToDigitsIter<'words>: Sized {
     /// Conversion iterator.
     type Iter<W: Word>: WordsIterator<Item = W> + ExactSizeIterator
@@ -1673,12 +1681,16 @@ pub trait ToDigitsIter<'words>: Sized {
 }
 
 /// Conversion into arbitrary digits represented by [`Word`] with `radix`.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
 pub trait IntoDigits: Sized {
     /// Conversion function.
     fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError>;
 }
 
 /// Conversion into arbitrary digits iterator represented by [`Word`] with `radix`.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
 pub trait IntoDigitsIter: Sized {
     /// Conversion iterator.
     type Iter<W: Word>: WordsIterator<Item = W> + ExactSizeIterator;
