@@ -36,7 +36,7 @@ name    = "long"
 harness = false
 
 [features]
-default    = ["std", "rand"]
+default    = []
 all        = ["std", "dyn", "simd", "rand", "rayon", "const-time"]
 std        = []
 dyn        = ["std"]
