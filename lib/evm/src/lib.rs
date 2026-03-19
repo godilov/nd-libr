@@ -138,6 +138,8 @@ macro_rules! abi_len {
 /// EVM-memory slice.
 ///
 /// Contains static and dynamic memory spans with appropriate offsets.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub struct Slice<'bytes> {
     offset: usize,
     offset_dyn: usize,
@@ -146,15 +148,23 @@ pub struct Slice<'bytes> {
 }
 
 /// Encode as bytes.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub struct AsBytes<'ref_>(pub &'ref_ [u8]);
 
 /// Encode as relative offsets.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub struct AsRelative<'ref_, A: Abi>(pub &'ref_ A);
 
 /// Encode as `abi.encode()`.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub struct AsEncode<'ref_, A: Abi>(pub &'ref_ A);
 
 /// Encode as `abi.encode_packed()`.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub struct AsEncodePacked<'ref_, A: Abi>(pub &'ref_ A);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -164,6 +174,8 @@ enum Alignment {
 }
 
 /// Slice errors.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum SliceError {
     /// Failed to split bytes.
@@ -172,6 +184,8 @@ pub enum SliceError {
 }
 
 /// Abi errors.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum AbiError {
     /// Failed to encode value: out of static bounds
@@ -186,6 +200,8 @@ pub enum AbiError {
 }
 
 /// Static memory.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub trait Memory {
     /// Allocate new memory span.
     fn alloc() -> Self;
@@ -195,6 +211,8 @@ pub trait Memory {
 }
 
 /// Dynamic memory.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub trait MemoryDyn {
     /// Allocate new memory span of `len`-bytes.
     fn alloc(len: usize) -> Self;
@@ -204,6 +222,8 @@ pub trait MemoryDyn {
 }
 
 /// EVM ABI encode.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[allow(clippy::len_without_is_empty)]
 pub trait Abi {
     /// Lengths of memory allocations on [`Slice`] for `abi.encode()`.
