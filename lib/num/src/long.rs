@@ -26,6 +26,11 @@ use crate::{
 #[cfg(feature = "const-time")]
 use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, MaxCt, MinCt, SelectCt, SignCt};
 
+// LENS[0] => (1 << 8)-bits
+// LENS[1] => (1 << 12)-bits
+// LENS[2] => (1 << 16)-bits
+const LENS: [usize; 3] = [4, 64, 1024];
+
 macro_rules! signed {
     ($bits:expr) => {
         $crate::long::Signed<{ ($bits as usize).div_ceil($crate::arch::word::BITS as usize) }>
@@ -3583,10 +3588,16 @@ where
     write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn add_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
     add_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_with([0; L])
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn sub_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
     sub_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_with([0; L])
 }

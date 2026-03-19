@@ -1,3 +1,5 @@
+//! # NdNumbers Long Benchmarks
+
 use std::{str::FromStr, time::Duration};
 
 use criterion::{

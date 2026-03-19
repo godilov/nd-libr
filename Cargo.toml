@@ -44,6 +44,7 @@ syn         = "2"
 
 criterion = "0"
 
+ndasm    = { path = "proc/asm" }
 ndassert = { path = "proc/assert" }
 ndfwd    = { path = "proc/fwd" }
 ndops    = { path = "proc/ops" }
