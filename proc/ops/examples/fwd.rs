@@ -1,4 +1,4 @@
-//! # NdOps Fwd Example
+//! # NdOperations Forward Example
 
 struct Num(i64);
 

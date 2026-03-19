@@ -87,7 +87,9 @@ macro_rules! word_impl {
 }
 
 pub mod word {
-    //! CPU-word related definitions.
+    //! # Word
+    //!
+    //! **CPU-word related definitions**
     //!
     //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
 
@@ -276,7 +278,7 @@ pub mod word {
         fn is_pow2(self) -> bool;
     }
 
-    /// Iterator of Word-like primitives.
+    /// Word-like primitives iterator.
     ///
     /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     pub trait WordsIterator: Clone + Iterator + ExactSizeIterator

@@ -1,4 +1,4 @@
-//! # NdOps Def Generic Example
+//! # NdOperations Definition Generic Example
 
 use std::ops::*;
 

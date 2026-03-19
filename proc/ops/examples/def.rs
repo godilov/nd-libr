@@ -1,4 +1,4 @@
-//! # NdOps Def Example
+//! # NdOperations Definition Example
 
 struct Num(i64);
 

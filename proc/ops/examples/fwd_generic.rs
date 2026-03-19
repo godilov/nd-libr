@@ -1,4 +1,4 @@
-//! # NdOps Fwd Generic Example
+//! # NdOperations Forward Generic Example
 
 use ndext::ops::*;
 

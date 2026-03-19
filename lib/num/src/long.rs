@@ -888,7 +888,9 @@ macro_rules! length {
 }
 
 pub mod radix {
-    //! Radix related definitions.
+    //! # Radix
+    //!
+    //! **Radix related definitions**
 
     use super::*;
 
@@ -1449,8 +1451,6 @@ pub type B8192 = bytes!(8192);
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
-/// All operations performace (with some exceptions) depends on `const L: usize` only.
-///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
@@ -1459,8 +1459,6 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
-/// All operations performace (with some exceptions) depends on `const L: usize` only.
-///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
@@ -1468,8 +1466,6 @@ pub struct Unsigned<const L: usize>(pub [Single; L]);
 /// Bytes long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
-///
-/// All operations performace (with some exceptions) depends on `const L: usize` only.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

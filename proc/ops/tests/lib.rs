@@ -1,4 +1,4 @@
-//! # NdOps Tests
+//! # NdOperations Tests
 
 use ndext::ops::*;
 
