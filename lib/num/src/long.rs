@@ -26,10 +26,7 @@ use crate::{
 #[cfg(feature = "const-time")]
 use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, MaxCt, MinCt, SelectCt, SignCt};
 
-// LENS[0] => (1 << 8)-bits
-// LENS[1] => (1 << 12)-bits
-// LENS[2] => (1 << 16)-bits
-const LENS: [usize; 3] = [4, 64, 1024];
+const LENS: [usize; 3] = [(1 << 8) / BITS, (1 << 12) / BITS, (1 << 16) / BITS];
 
 macro_rules! signed {
     ($bits:expr) => {
@@ -3602,6 +3599,9 @@ fn sub_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L]
     sub_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_with([0; L])
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn mul_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
     let mut res = [0; L];
 
@@ -3615,10 +3615,16 @@ fn mul_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L]
     res
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn div_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], [Single; L]) {
     div_long_impl!(*lhs, rhs.iter().copied())
 }
 
+#[ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_long<const L: usize, F>(lhs: &[Single; L], rhs: &[Single; L], f: F) -> [Single; L]
 where
     F: Fn(Single, Single) -> Single,
@@ -3630,24 +3636,39 @@ where
         .collect_with([0; L])
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn add_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
     add_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn sub_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
     sub_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn mul_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
     mul_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn div_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> ([Single; L], [Single; L]) {
     let (div, rem) = div_single_impl!(*lhs, rhs);
 
     (div, from_arr(&rem.to_le_bytes(), 0))
 }
 
+#[ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_single<const L: usize, F>(lhs: &[Single; L], rhs: Single, default: Single, f: F) -> [Single; L]
 where
     F: Fn(Single, Single) -> Single,
@@ -3659,6 +3680,9 @@ where
         .collect_with([0; L])
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn add_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) -> [Single; L] {
     match sign {
         Sign::ZERO => sub_single(lhs, rhs),
@@ -3667,6 +3691,9 @@ fn add_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) ->
     }
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn sub_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) -> [Single; L] {
     match sign {
         Sign::ZERO => add_single(lhs, rhs),
@@ -3675,6 +3702,9 @@ fn sub_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) ->
     }
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn mul_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) -> [Single; L] {
     let mut mul = mul_single(lhs, rhs);
 
@@ -3685,28 +3715,46 @@ fn mul_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) ->
     mul
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn add_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     add_long_mut_impl!(lhs.iter_mut(), rhs.iter().copied());
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn sub_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     sub_long_mut_impl!(lhs.iter_mut(), rhs.iter().copied());
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn mul_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     *lhs = mul_long(lhs, rhs);
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn div_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     div_long_impl!(lhs, rhs.iter().copied());
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn rem_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     let (_, rem) = div_long_impl!(*lhs, rhs.iter().copied());
 
     *lhs = rem;
 }
 
+#[ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_long_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: &[Single; L], f: F)
 where
     F: Fn(Single, Single) -> Single,
@@ -3716,28 +3764,46 @@ where
         .for_each(|(ptr, val)| *ptr = f(*ptr, val));
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn add_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     add_single_mut_impl!(lhs.iter_mut(), rhs);
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn sub_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     sub_single_mut_impl!(lhs.iter_mut(), rhs);
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     mul_single_mut_impl!(lhs.iter_mut(), rhs);
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     div_single_impl!(lhs, rhs);
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     let (_, rem) = div_single_impl!(*lhs, rhs);
 
     *lhs = from_arr(&rem.to_le_bytes(), 0);
 }
 
+#[ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_single_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: Single, default: Single, f: F)
 where
     F: Fn(Single, Single) -> Single,
@@ -3747,6 +3813,9 @@ where
         .for_each(|(ptr, val)| *ptr = f(*ptr, val));
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, Sign)) {
     match sign {
         Sign::ZERO => sub_single_mut(lhs, rhs),
@@ -3755,6 +3824,9 @@ fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, S
     }
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, Sign)) {
     match sign {
         Sign::ZERO => add_single_mut(lhs, rhs),
@@ -3763,6 +3835,9 @@ fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, S
     }
 }
 
+#[ndasm::emit(const L: usize = LENS[0])]
+#[ndasm::emit(const L: usize = LENS[1])]
+#[ndasm::emit(const L: usize = LENS[2])]
 fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, Sign)) {
     mul_single_mut(lhs, rhs);
 
