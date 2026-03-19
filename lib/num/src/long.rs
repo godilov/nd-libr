@@ -601,7 +601,7 @@ macro_rules! shr_impl {
     }};
 }
 
-macro_rules! bit_offset_impl {
+macro_rules! write_bitop_impl {
     ($words:expr, $mask:expr, $offset:expr, $op:tt $(, $($mod:tt)*)?) => {{
         let mask = $mask;
         let offset = $offset;
@@ -2929,7 +2929,7 @@ impl<const L: usize> BytesExt for Signed<L> {
             Offset::Right(val) => (L * BITS).saturating_sub(val),
         };
 
-        bit_offset_impl!(&mut self.0, mask, offset, |=);
+        write_bitop_impl!(&mut self.0, mask, offset, |=);
 
         self
     }
@@ -2942,7 +2942,7 @@ impl<const L: usize> BytesExt for Signed<L> {
             Offset::Right(val) => (L * BITS).saturating_sub(val),
         };
 
-        bit_offset_impl!(&mut self.0, mask, offset, &=, .not());
+        write_bitop_impl!(&mut self.0, mask, offset, &=, .not());
 
         self
     }
@@ -2953,7 +2953,7 @@ impl<const L: usize> BytesExt for Signed<L> {
             Offset::Right(val) => (L * BITS).saturating_sub(val),
         };
 
-        bit_offset_impl!(&mut self.0, mask, offset, ^=);
+        write_bitop_impl!(&mut self.0, mask, offset, ^=);
 
         self
     }
@@ -2975,7 +2975,7 @@ impl<const L: usize> BytesExt for Unsigned<L> {
             Offset::Right(val) => (L * BITS).saturating_sub(val),
         };
 
-        bit_offset_impl!(&mut self.0, mask, offset, |=);
+        write_bitop_impl!(&mut self.0, mask, offset, |=);
 
         self
     }
@@ -2988,7 +2988,7 @@ impl<const L: usize> BytesExt for Unsigned<L> {
             Offset::Right(val) => (L * BITS).saturating_sub(val),
         };
 
-        bit_offset_impl!(&mut self.0, mask, offset, &=, .not());
+        write_bitop_impl!(&mut self.0, mask, offset, &=, .not());
 
         self
     }
@@ -2999,7 +2999,7 @@ impl<const L: usize> BytesExt for Unsigned<L> {
             Offset::Right(val) => (L * BITS).saturating_sub(val),
         };
 
-        bit_offset_impl!(&mut self.0, mask, offset, ^=);
+        write_bitop_impl!(&mut self.0, mask, offset, ^=);
 
         self
     }
