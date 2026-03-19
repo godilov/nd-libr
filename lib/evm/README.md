@@ -1,10 +1,10 @@
-# NdCryptography Library
+# NdEvm Library
 
 ## Start
 
 ```toml
 [dependencies]
-ndcrypto = "*"
+ndevm = "*"
 ```
 
 ## License

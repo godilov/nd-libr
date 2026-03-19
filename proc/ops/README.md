@@ -1,4 +1,4 @@
-# NdOps Procedural Macros
+# NdOperations Procedural Macros
 
 **Zero-boilerplate operations implementation procedural macros**
 
