@@ -208,8 +208,6 @@ pub mod word {
         /// assert_eq!(<u8 as Word>::BITS, u8::BITS as usize);
         /// assert_eq!(<u16 as Word>::BITS, u16::BITS as usize);
         /// ```
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const BITS: usize;
 
         /// Bytes per Word-like primitive.
@@ -221,8 +219,6 @@ pub mod word {
         /// assert_eq!(<u8 as Word>::BYTES, u8::BITS as usize / 8);
         /// assert_eq!(<u16 as Word>::BYTES, u16::BITS as usize / 8);
         /// ```
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const BYTES: usize;
 
         /// Zero value of Word-like primitive.
@@ -234,8 +230,6 @@ pub mod word {
         /// assert_eq!(<u8 as Word>::ZERO, 0);
         /// assert_eq!(<u16 as Word>::ZERO, 0);
         /// ```
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const ZERO: Self;
 
         /// One value of Word-like primitive.
@@ -247,56 +241,38 @@ pub mod word {
         /// assert_eq!(<u8 as Word>::ONE, 1);
         /// assert_eq!(<u16 as Word>::ONE, 1);
         /// ```
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         const ONE: Self;
 
         /// Word-like primitive from [`usize`].
         ///
         /// Truncates on overflow.
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn from_usize(value: usize) -> Self;
 
         /// Word-like primitive from [`Single`].
         ///
         /// Truncates on overflow.
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn from_single(value: Single) -> Self;
 
         /// Word-like primitive from [`Double`].
         ///
         /// Truncates on overflow.
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn from_double(value: Double) -> Self;
 
         /// Word-like primitive to [`usize`].
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn as_usize(self) -> usize;
 
         /// Word-like primitive to [`Single`].
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn as_single(self) -> Single;
 
         /// Word-like primitive to [`Double`].
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn as_double(self) -> Double;
 
         /// Order of Word-like value.
         ///
         /// Represents position of the most significant bit.
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn order(self) -> usize;
 
         /// Checks if Word-like value is power of 2.
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
         fn is_pow2(self) -> bool;
     }
 

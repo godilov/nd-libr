@@ -114,6 +114,8 @@ impl Primes {
 }
 
 /// Primality test functions.
+///
+/// For more info, see [module-level](crate::primes) and [crate-level](crate) documentation.
 pub trait Primality: NumExt + NumUnsigned {
     /// Prime numbers iterator to use in `is_prime` implementation.
     fn primes() -> impl Iterator<Item = Self>;
@@ -165,6 +167,8 @@ pub trait Primality: NumExt + NumUnsigned {
 }
 
 /// Primality test functions extensions.
+///
+/// For more info, see [module-level](crate::primes) and [crate-level](crate) documentation.
 pub trait PrimalityExt: Send + Primality {
     /// Generates random prime number.
     ///

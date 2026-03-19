@@ -1448,7 +1448,7 @@ pub type B8192 = bytes!(8192);
 
 /// Signed long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
-/// Implements all standard Rust traits and arithmetic/bitwise/shift operations.
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
 /// All operations performace (with some exceptions) depends on `const L: usize` only.
 ///
@@ -1458,7 +1458,7 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 
 /// Unsigned long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
-/// Implements all standard Rust traits and arithmetic/bitwise/shift operations.
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
 /// All operations performace (with some exceptions) depends on `const L: usize` only.
 ///
@@ -1468,7 +1468,7 @@ pub struct Unsigned<const L: usize>(pub [Single; L]);
 
 /// Bytes long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
-/// Implements all standard Rust traits and bitwise/shift operations.
+/// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
 /// All operations performace (with some exceptions) depends on `const L: usize` only.
 ///
