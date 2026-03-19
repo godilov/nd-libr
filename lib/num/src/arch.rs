@@ -295,7 +295,8 @@ pub mod word {
 
 /// Aligned to approximate architecture cacheline size type.
 ///
-/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+/// Implements (conditionally) all standard Rust traits and operations of
+/// `Std-kind` and `Nd-kind` if underlying type supports it.
 ///
 /// | Architecture | Alignment |
 /// | ------------ | --------- |
@@ -363,8 +364,13 @@ impl<T> From<T> for Aligned<T> {
 }
 
 ndops::fwd! { @ndun <T> (value: &Aligned<T>) -> Aligned<T>, (T) (&value.0) [
-    ! where [T: NdNot<Type = T>],
-    - where [T: NdNeg<Type = T>],
+    ! where                 [T: NdNot           <Type = T>],
+    - where                 [T: NdNeg           <Type = T>],
+    - @checked where        [T: NdNegChecked    <Type = T>],
+    - @strict where         [T: NdNegStrict     <Type = T>],
+    - @wrapping where       [T: NdNegWrapping   <Type = T>],
+    - @saturating where     [T: NdNegSaturating <Type = T>],
+    - @overflowing where    [T: NdNegOverflowing<Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> Aligned<T>, (Lhs) (&lhs.0) (&rhs.0) [
@@ -379,8 +385,16 @@ ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: &Aligned<Rhs>) -> A
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>, rhs: Rhs) -> Aligned<T>, (Lhs) (&lhs.0) (rhs) [
-    << where [Lhs: NdShl<Lhs, Rhs, Type = T>],
-    >> where [Lhs: NdShr<Lhs, Rhs, Type = T>],
+    << where                [Lhs: NdShl             <Lhs, Rhs, Type = T>],
+    >> where                [Lhs: NdShr             <Lhs, Rhs, Type = T>],
+    << @checked where       [Lhs: NdShlChecked      <Lhs, Rhs, Type = T>],
+    >> @checked where       [Lhs: NdShrChecked      <Lhs, Rhs, Type = T>],
+    << @strict where        [Lhs: NdShlStrict       <Lhs, Rhs, Type = T>],
+    >> @strict where        [Lhs: NdShrStrict       <Lhs, Rhs, Type = T>],
+    << @overflowing where   [Lhs: NdShlOverflowing  <Lhs, Rhs, Type = T>],
+    >> @overflowing where   [Lhs: NdShrOverflowing  <Lhs, Rhs, Type = T>],
+    << @unbounded where     [Lhs: NdShlUnbounded    <Lhs, Rhs, Type = T>],
+    >> @unbounded where     [Lhs: NdShrUnbounded    <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: &Aligned<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
@@ -395,8 +409,12 @@ ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: &Aligned<Rhs>), (L
 ] }
 
 ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
-    <<= where [Lhs: NdShlAssign<Lhs, Rhs>],
-    >>= where [Lhs: NdShrAssign<Lhs, Rhs>],
+    <<= where               [Lhs: NdShlAssign           <Lhs, Rhs>],
+    >>= where               [Lhs: NdShrAssign           <Lhs, Rhs>],
+    <<= @strict where       [Lhs: NdShlAssignStrict     <Lhs, Rhs>],
+    >>= @strict where       [Lhs: NdShrAssignStrict     <Lhs, Rhs>],
+    <<= @unbounded where    [Lhs: NdShlAssignUnbounded  <Lhs, Rhs>],
+    >>= @unbounded where    [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
 ] }
 
 ndops::fwd! { @stdun <T> (*value: &Aligned<T>) -> Aligned<T>, (T) (&value.0) [

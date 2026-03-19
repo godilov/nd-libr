@@ -1949,12 +1949,9 @@ impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
 
                     let ident = op.ident();
                     let path = op.path(value.token);
+                    let expr = parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs); }};
 
-                    OpsDefinition::<OpsAssignExt> {
-                        op,
-                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs); }},
-                        conditions,
-                    }
+                    OpsDefinition::<OpsAssignExt> { op, expr, conditions }
                 })
                 .collect(),
         }
@@ -1980,12 +1977,9 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
 
                     let ident = op.ident();
                     let path = op.path(value.token);
+                    let expr = op.expr(parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs) }});
 
-                    OpsDefinition::<OpsBinaryExt> {
-                        op,
-                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs) }},
-                        conditions,
-                    }
+                    OpsDefinition::<OpsBinaryExt> { op, expr, conditions }
                 })
                 .collect(),
         }
@@ -2010,12 +2004,9 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
 
                     let ident = op.ident();
                     let path = op.path(value.token);
+                    let expr = op.expr(parse_quote! {{ use #path; #ty::#ident(#expr) }});
 
-                    OpsDefinition::<OpsUnaryExt> {
-                        op,
-                        expr: parse_quote! {{ use #path; #ty::#ident(#expr) }},
-                        conditions,
-                    }
+                    OpsDefinition::<OpsUnaryExt> { op, expr, conditions }
                 })
                 .collect(),
         }
@@ -2335,6 +2326,28 @@ impl OpsBinaryExt {
             _ => ty.clone(),
         }
     }
+
+    fn expr(&self, expr: Expr) -> Expr {
+        match self {
+            OpsBinaryExt::AddChecked(_, _, _)
+            | OpsBinaryExt::SubChecked(_, _, _)
+            | OpsBinaryExt::MulChecked(_, _, _)
+            | OpsBinaryExt::DivChecked(_, _, _)
+            | OpsBinaryExt::RemChecked(_, _, _)
+            | OpsBinaryExt::ShlChecked(_, _, _)
+            | OpsBinaryExt::ShrChecked(_, _, _) => parse_quote! { (#expr).map(Self::from) },
+            OpsBinaryExt::AddOverflowing(_, _, _)
+            | OpsBinaryExt::SubOverflowing(_, _, _)
+            | OpsBinaryExt::MulOverflowing(_, _, _)
+            | OpsBinaryExt::DivOverflowing(_, _, _)
+            | OpsBinaryExt::RemOverflowing(_, _, _)
+            | OpsBinaryExt::ShlOverflowing(_, _, _)
+            | OpsBinaryExt::ShrOverflowing(_, _, _) => {
+                parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+            },
+            _ => expr,
+        }
+    }
 }
 
 impl OpsUnaryExt {
@@ -2369,6 +2382,16 @@ impl OpsUnaryExt {
             OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { Option<#ty> },
             OpsUnaryExt::NegOverflowing(_, _, _) => parse_quote! { (#ty, bool) },
             _ => ty.clone(),
+        }
+    }
+
+    fn expr(&self, expr: Expr) -> Expr {
+        match self {
+            OpsUnaryExt::NegChecked(_, _, _) => parse_quote! { (#expr).map(Self::from) },
+            OpsUnaryExt::NegOverflowing(_, _, _) => {
+                parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+            },
+            _ => expr,
         }
     }
 }
