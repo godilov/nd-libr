@@ -19,13 +19,12 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    Binary as NumBinary, BytesExt, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset, One, SelectCt, Sign,
-    Zero,
+    Binary as NumBinary, BytesExt, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset, One, Sign, Zero,
     arch::word::*,
     long::{radix::*, uops::*},
 };
 #[cfg(feature = "const-time")]
-use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, MaxCt, MinCt, SignCt};
+use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, MaxCt, MinCt, SelectCt, SignCt};
 
 macro_rules! signed {
     ($bits:expr) => {
