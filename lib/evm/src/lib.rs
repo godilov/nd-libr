@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use alloy_primitives::{Address, aliases::*};
 use thiserror::Error;
 
@@ -133,6 +135,9 @@ macro_rules! abi_len {
     };
 }
 
+/// EVM-memory slice.
+///
+/// Contains static and dynamic memory spans with appropriate offsets.
 pub struct Slice<'bytes> {
     offset: usize,
     offset_dyn: usize,
@@ -140,9 +145,16 @@ pub struct Slice<'bytes> {
     bytes_dyn: &'bytes mut [u8],
 }
 
+/// Encode as bytes.
 pub struct AsBytes<'ref_>(pub &'ref_ [u8]);
+
+/// Encode as relative offsets.
 pub struct AsRelative<'ref_, A: Abi>(pub &'ref_ A);
+
+/// Encode as `abi.encode()`.
 pub struct AsEncode<'ref_, A: Abi>(pub &'ref_ A);
+
+/// Encode as `abi.encode_packed()`.
 pub struct AsEncodePacked<'ref_, A: Abi>(pub &'ref_ A);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -151,44 +163,67 @@ enum Alignment {
     Right,
 }
 
+/// Slice errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum SliceError {
+    /// Failed to split bytes.
     #[error("Failed to split bytes: out of bounds")]
     Bounds,
 }
 
+/// Abi errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum AbiError {
+    /// Failed to encode value: out of static bounds
     #[error("Failed to encode value: out of static bounds")]
     EncodeBounds,
+    /// Failed to encode value: out of dynamic bounds
     #[error("Failed to encode value: out of dynamic bounds")]
     EncodeBoundsDyn,
+    /// Failed to allocate memory
     #[error("Failed to allocate memory")]
     Memory,
 }
 
+/// Static memory.
 pub trait Memory {
+    /// Allocate new memory span.
     fn alloc() -> Self;
 
+    /// Raw bytes.
     fn as_bytes(&mut self) -> &mut [u8];
 }
 
+/// Dynamic memory.
 pub trait MemoryDyn {
+    /// Allocate new memory span of `len`-bytes.
     fn alloc(len: usize) -> Self;
 
+    /// Raw bytes.
     fn as_bytes(&mut self) -> &mut [u8];
 }
 
+/// EVM ABI encode.
 #[allow(clippy::len_without_is_empty)]
 pub trait Abi {
+    /// Lengths of memory allocations on [`Slice`] for `abi.encode()`.
+    ///
+    /// Returns `[len, len_dyn]`:
+    ///
+    /// - `len` is length for static-span.
+    /// - `len_dyn` is length for dynamic-span.
     fn len(&self) -> [usize; 2];
 
+    /// Length of memory allocation on [`Slice`] for `abi.encode_packed()`.
     fn len_packed(&self) -> usize;
 
+    /// Try to encode into already existing [`Slice`] of memory.
     fn encode_into<'bytes>(&self, slice: Slice<'bytes>) -> Result<Slice<'bytes>, AbiError>;
 
+    /// Try to encode packed into already existing [`Slice`] of memory.
     fn encode_packed_into<'bytes>(&self, slice: Slice<'bytes>) -> Result<Slice<'bytes>, AbiError>;
 
+    /// Try to encode with static memory.
     fn encode<M: Memory>(&self) -> Result<M, AbiError> {
         let [len, _] = self.len();
 
@@ -199,6 +234,7 @@ pub trait Abi {
         Ok(memory)
     }
 
+    /// Try to encode packed with static memory.
     fn encode_packed<M: Memory>(&self) -> Result<M, AbiError> {
         let mut memory = M::alloc();
 
@@ -207,6 +243,7 @@ pub trait Abi {
         Ok(memory)
     }
 
+    /// Try to encode with dynamic memory.
     fn encode_dyn<M: MemoryDyn>(&self) -> Result<M, AbiError> {
         let [len, len_dyn] = self.len();
 
@@ -217,6 +254,7 @@ pub trait Abi {
         Ok(memory)
     }
 
+    /// Try to encode packed with dynamic memory.
     fn encode_packed_dyn<M: MemoryDyn>(&self) -> Result<M, AbiError> {
         let len = self.len_packed();
 
@@ -257,6 +295,9 @@ impl MemoryDyn for Vec<u8> {
 }
 
 impl<'bytes> Slice<'bytes> {
+    /// Creates new [`Slice`] from bytes and split.
+    ///
+    /// Initializes dynamic memory at `split`.
     pub fn new(bytes: &mut [u8], split: usize) -> Result<Slice<'_>, SliceError> {
         let (bytes, bytes_dyn) = bytes.split_at_mut_checked(split).ok_or(SliceError::Bounds)?;
 
@@ -268,6 +309,9 @@ impl<'bytes> Slice<'bytes> {
         })
     }
 
+    /// Creates new [`Slice`] from bytes and split.
+    ///
+    /// Initializes dynamic memory at `bytes.len()`.
     pub fn new_packed(bytes: &mut [u8]) -> Slice<'_> {
         let len = bytes.len();
         let (bytes, bytes_dyn) = bytes.split_at_mut(len);
@@ -280,6 +324,7 @@ impl<'bytes> Slice<'bytes> {
         }
     }
 
+    /// Allocates new [`Slice`] on top of static span.
     pub fn alloc(&mut self, split: usize) -> Result<Slice<'_>, SliceError> {
         let (bytes, bytes_dyn) = self.bytes.split_at_mut_checked(split).ok_or(SliceError::Bounds)?;
 
@@ -291,6 +336,7 @@ impl<'bytes> Slice<'bytes> {
         })
     }
 
+    /// Allocates new [`Slice`] on top of dynamic span.
     pub fn alloc_dyn(&mut self, split: usize) -> Result<Slice<'_>, SliceError> {
         let (bytes, bytes_dyn) = self.bytes_dyn.split_at_mut_checked(split).ok_or(SliceError::Bounds)?;
 
