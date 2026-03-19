@@ -26,6 +26,7 @@ use crate::{
 #[cfg(feature = "const-time")]
 use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, MaxCt, MinCt, SelectCt, SignCt};
 
+#[cfg(feature = "asm")]
 const LENS: [usize; 3] = [(1 << 8) / BITS, (1 << 12) / BITS, (1 << 16) / BITS];
 
 macro_rules! signed {
@@ -534,15 +535,11 @@ macro_rules! dec_impl {
 }
 
 macro_rules! shl_impl {
-    ($words:expr, $words_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
+    ($words:expr, $words_ret:expr, $shift:expr, $default:expr) => {{
         let shift = $shift;
-        let offset = shift / BITS;
+        let offset = (shift / BITS).min(L);
         let shl = shift % BITS;
         let shr = BITS - shl;
-
-        if offset >= L {
-            return ($fn)($words_ret);
-        }
 
         #[allow(unused_mut)]
         let mut res = $words;
@@ -560,23 +557,21 @@ macro_rules! shl_impl {
         let val_h = res[0].unbounded_shl(shl as u32);
         let val_l = $default.unbounded_shr(shr as u32);
 
-        res[offset] = val_h | val_l;
+        if offset < L {
+            res[offset] = val_h | val_l;
+        }
 
-        res.iter_mut().take(offset).for_each(|ptr| *ptr = $default);
+        res[..offset].iter_mut().for_each(|ptr| *ptr = $default);
         res
     }};
 }
 
 macro_rules! shr_impl {
-    ($words:expr, $words_ret:expr, $shift:expr, $default:expr, $fn:expr) => {{
+    ($words:expr, $words_ret:expr, $shift:expr, $default:expr) => {{
         let shift = $shift;
-        let offset = shift / BITS;
+        let offset = (shift / BITS).min(L);
         let shr = shift % BITS;
         let shl = BITS - shr;
-
-        if offset >= L {
-            return ($fn)($words_ret);
-        }
 
         #[allow(unused_mut)]
         let mut res = $words;
@@ -594,9 +589,11 @@ macro_rules! shr_impl {
         let val_h = $default.unbounded_shl(shl as u32);
         let val_l = res[L - 1].unbounded_shr(shr as u32);
 
-        res[L - offset - 1] = val_h | val_l;
+        if offset < L {
+            res[L - offset - 1] = val_h | val_l;
+        }
 
-        res.iter_mut().skip(L - offset).for_each(|ptr| *ptr = $default);
+        res[L - offset..].iter_mut().for_each(|ptr| *ptr = $default);
         res
     }};
 }
@@ -1084,33 +1081,19 @@ mod uops {
     }
 
     pub(super) fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shl_impl!(*words, words, shift, default, |words: &[Single; L]| { [default; L] })
+        shl_impl!(*words, words, shift, default)
     }
 
     pub(super) fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shr_impl!(*words, words, shift, default, |words: &[Single; L]| { [default; L] })
+        shr_impl!(*words, words, shift, default)
     }
 
-    pub(super) fn shl_mut<'words, const L: usize>(
-        words: &'words mut [Single; L],
-        shift: usize,
-        default: Single,
-    ) -> &'words mut [Single; L] {
-        shl_impl!(words, words, shift, default, |words: &'words mut [Single; L]| {
-            *words = [default; L];
-            words
-        })
+    pub(super) fn shl_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
+        shl_impl!(words, words, shift, default)
     }
 
-    pub(super) fn shr_mut<'words, const L: usize>(
-        words: &'words mut [Single; L],
-        shift: usize,
-        default: Single,
-    ) -> &'words mut [Single; L] {
-        shr_impl!(words, words, shift, default, |words: &'words mut [Single; L]| {
-            *words = [default; L];
-            words
-        })
+    pub(super) fn shr_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
+        shr_impl!(words, words, shift, default)
     }
 
     pub(super) fn shl_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
