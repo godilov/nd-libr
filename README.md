@@ -2,6 +2,10 @@
 
 A Rust collection of numerical, cryptography, blockchain and memory-related libraries.
 
+## Start
+
+For entry-point, see [Libr README](/lib/libr/README.md).
+
 ## Requirements
 
 - [Cargo Asm](https://github.com/pacak/cargo-show-asm) (`cargo asm`/`optional`)
