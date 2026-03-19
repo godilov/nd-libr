@@ -1,6 +1,6 @@
 # NdEvm Library
 
-**Efficient EVM interaction**
+**EVM primitives definitions library**
 
 ## Start
 

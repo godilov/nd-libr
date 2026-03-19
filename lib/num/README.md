@@ -1,5 +1,7 @@
 # NdNumbers Library
 
+**Numbers primitives definitions library**
+
 ## Start
 
 ```toml
@@ -9,13 +11,13 @@ ndnum = "*"
 
 **Feature-flags:**
 
-- `all` - enable all features.
-- `std` - enable `stdlib`.
-- `dyn` - enable dyn-allocated long numbers.
-- `simd` - enable SIMD-optimized long numbers.
-- `rand` - enable `rand` dependency.
-- `rayon` - enable `rayon` dependency.
-- `const-time` - enable const-time operations.
+- `all` - enables all features.
+- `std` - enables `stdlib`.
+- `dyn` - enables dyn-allocated long numbers.
+- `simd` - enables SIMD-optimized long numbers.
+- `rand` - enables `rand` dependency.
+- `rayon` - enables `rayon` dependency.
+- `const-time` - enables const-time operations.
 
 ## License
 
