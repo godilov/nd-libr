@@ -313,21 +313,6 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Unbounded<N>(pub N);
 
-/// Number with Rotated operations semantics.
-///
-/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::std(self.0 with N)]
-#[ndfwd::cmp(self.0 with N)]
-#[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
-#[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
-#[ndfwd::def(self.0 with N: Num)]
-pub struct Rotated<N>(pub N);
-
 /// Number with Clamped operations semantics.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
@@ -1029,12 +1014,6 @@ impl<N> From<N> for Saturating<N> {
 }
 
 impl<N> From<N> for Unbounded<N> {
-    fn from(value: N) -> Self {
-        Self(value)
-    }
-}
-
-impl<N> From<N> for Rotated<N> {
     fn from(value: N) -> Self {
         Self(value)
     }
