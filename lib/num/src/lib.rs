@@ -313,7 +313,7 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Unbounded<N>(pub N);
 
-/// Number with Clamped operations semantics.
+/// Number within Range.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
 ///
@@ -326,7 +326,7 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
-pub struct Clamped<N>(pub N);
+pub struct Ranged<N>(pub N);
 
 /// Number with specified binary width.
 ///
@@ -1019,7 +1019,7 @@ impl<N> From<N> for Unbounded<N> {
     }
 }
 
-impl<N> From<N> for Clamped<N> {
+impl<N> From<N> for Ranged<N> {
     fn from(value: N) -> Self {
         Self(value)
     }
