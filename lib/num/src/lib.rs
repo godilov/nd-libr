@@ -20,38 +20,43 @@ macro_rules! num_impl {
     (@impl $primitive:ty $(,)?) => {
         impl BytesExt for $primitive {
             fn read(&self, offset: Offset) -> u64 {
-                match offset {
-                    Offset::Left(val) => self.unbounded_shr(val as u32) as u64,
-                    Offset::Right(val) => self.unbounded_shr(<$primitive>::BITS.saturating_sub(val as u32)) as u64,
-                }
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                };
+
+                self.unbounded_shr(offset) as u64
             }
 
             fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self {
-                match offset {
-                    Offset::Left(val) => *self |= (mask as $primitive).unbounded_shl(val as u32),
-                    Offset::Right(val) => *self |= (mask as $primitive).unbounded_shl(<$primitive>::BITS.saturating_sub(val as u32)),
-                }
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                };
 
+                *self |= (mask as $primitive).unbounded_shl(offset);
                 self
             }
 
             fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self {
                 use std::ops::Not;
 
-                match offset {
-                    Offset::Left(val) => *self &= (mask.not() as $primitive).unbounded_shl(val as u32).not(),
-                    Offset::Right(val) => *self &= (mask.not() as $primitive).unbounded_shl(<$primitive>::BITS.saturating_sub(val as u32)).not(),
-                }
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                };
 
+                *self &= (mask.not() as $primitive).unbounded_shl(offset).not();
                 self
             }
 
             fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self {
-                match offset {
-                    Offset::Left(val) => *self ^= (mask as $primitive).unbounded_shl(val as u32),
-                    Offset::Right(val) => *self ^= (mask as $primitive).unbounded_shl(<$primitive>::BITS.saturating_sub(val as u32)),
-                }
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                };
 
+                *self ^= (mask as $primitive).unbounded_shl(offset);
                 self
             }
         }
