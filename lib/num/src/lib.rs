@@ -4,6 +4,8 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
+use crate::arch::{BytesFn, Offset, word::Single};
+
 pub mod arch;
 pub mod long;
 pub mod prime;
@@ -18,50 +20,58 @@ macro_rules! num_impl {
         $(num_impl!(@unsigned $primitive);)+
     };
     (@impl $primitive:ty $(,)?) => {
-        impl BytesExt for $primitive {
-            fn read(&self, offset: Offset) -> u64 {
+        impl BytesFn for $primitive {
+            fn read(&self, offset: Offset) -> Single {
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
-                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
                 };
 
-                self.unbounded_shr(offset) as u64
+                self.unbounded_shr(offset) as Single
             }
 
-            fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self {
+            fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
-                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
                 };
 
-                *self |= (mask as $primitive).unbounded_shl(offset);
+                *self |= (mask as Self).unbounded_shl(offset);
                 self
             }
 
-            fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self {
+            fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
                 use std::ops::Not;
 
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
-                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
                 };
 
-                *self &= (mask.not() as $primitive).unbounded_shl(offset).not();
+                *self &= (mask.not() as Self).unbounded_shl(offset).not();
                 self
             }
 
-            fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self {
+            fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
-                    Offset::Right(val) => <$primitive>::BITS.saturating_sub(val as u32),
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
                 };
 
-                *self ^= (mask as $primitive).unbounded_shl(offset);
+                *self ^= (mask as Self).unbounded_shl(offset);
                 self
             }
         }
 
-        impl NumFn for $primitive {}
+        impl NumFn for $primitive {
+            fn is_odd(&self) -> bool {
+                self & 1 == 1
+            }
+
+            fn is_even(&self) -> bool {
+                self & 1 == 0
+            }
+        }
 
         impl NumFnChecked for $primitive {}
 
@@ -86,8 +96,8 @@ macro_rules! num_impl {
         }
 
         impl Binary for $primitive {
-            const BITS: usize = <$primitive>::BITS as usize;
-            const BYTES: usize = <$primitive>::BITS as usize / 8;
+            const BITS: usize = Self::BITS as usize;
+            const BYTES: usize = Self::BITS as usize / 8;
         }
     };
     (@signed $primitive:ty $(,)?) => {
@@ -219,8 +229,8 @@ macro_rules! num_ct_impl {
     (@select $primitive:ty $(,)?) => {
         impl SelectCt for $primitive {
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-                let lhs_mask = <$primitive>::from_ne_bytes([mask; (<$primitive>::BITS / 8) as usize]);
-                let rhs_mask = <$primitive>::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
+                let lhs_mask = Self::from_ne_bytes([mask; (<$primitive>::BITS / 8) as usize]);
+                let rhs_mask = Self::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
 
                 lhs & lhs_mask | rhs & rhs_mask
             }
@@ -266,7 +276,7 @@ macro_rules! sign_from {
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
@@ -281,7 +291,7 @@ pub struct Strict<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
@@ -296,7 +306,7 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
@@ -311,7 +321,7 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
@@ -326,7 +336,7 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
@@ -341,7 +351,7 @@ pub struct Ranged<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
@@ -358,7 +368,7 @@ pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: BytesExt)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: NumExt)]
@@ -381,67 +391,13 @@ pub enum Sign {
     POS = 1,
 }
 
-/// Offset for reading/writing binary mask.
-///
-/// - `Offset::Left(val)` specifies `val`-bits offset from `0`.
-/// - `Offset::Right(val)` specifies `val`-bits offset from `N = size_of::<Self>()`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Offset {
-    /// Offset in left direction of usize bits.
-    Left(usize),
-    /// Offset in right direction of usize bits.
-    Right(usize),
-}
-
+/// Mask for Const-time operations.
 #[cfg(feature = "const-time")]
-type MaskCt = u8;
+pub type MaskCt = u8;
 
+/// Sign for Const-time operations.
 #[cfg(feature = "const-time")]
-type SignCt = i8;
-
-/// Bytes extensions.
-///
-/// Allows reading/writing in raw binary representation.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait BytesExt: Sized {
-    /// Reads 64-bits of underlying value at specified Offset in bits.
-    fn read(&self, offset: Offset) -> u64;
-
-    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_self]
-    fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self;
-
-    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_self]
-    fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self;
-
-    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_self]
-    fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self;
-
-    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_into]
-    fn into_bitor(mut self, mask: u64, offset: Offset) -> Self {
-        self.write_bitor(mask, offset);
-        self
-    }
-
-    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_into]
-    fn into_bitand(mut self, mask: u64, offset: Offset) -> Self {
-        self.write_bitand(mask, offset);
-        self
-    }
-
-    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_into]
-    fn into_bitxor(mut self, mask: u64, offset: Offset) -> Self {
-        self.write_bitxor(mask, offset);
-        self
-    }
-}
+pub type SignCt = i8;
 
 /// Numbers functions with default semantics.
 ///
@@ -450,6 +406,12 @@ pub trait BytesExt: Sized {
 pub trait NumFn:
     Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
 {
+    /// Checks number is odd.
+    fn is_odd(&self) -> bool;
+
+    /// Checks number is even.
+    fn is_even(&self) -> bool;
+
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Panics
@@ -523,6 +485,62 @@ pub trait NumFn:
         let val = Self::nd_div(&lhs, &val);
 
         Self::nd_mul(&val, &rhs)
+    }
+
+    /// Calculates `self ^ exp`.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[ndfwd::as_into]
+    fn pow(self, mut exp: Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one;
+
+        while exp != zero {
+            if exp.is_odd() {
+                Self::nd_mul_assign(&mut res, &acc);
+            }
+
+            let val = acc.clone();
+
+            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_shr_assign(&mut exp, 1);
+        }
+
+        res
+    }
+
+    /// Calculates `self ^ exp % rem`.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[ndfwd::as_into]
+    fn powrem(self, mut exp: Self, rem: &Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one;
+
+        while exp != zero {
+            if exp.is_odd() {
+                Self::nd_mul_assign(&mut res, &acc);
+                Self::nd_rem_assign(&mut res, rem);
+            }
+
+            let val = acc.clone();
+
+            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_rem_assign(&mut acc, rem);
+            Self::nd_shr_assign(&mut exp, 1);
+        }
+
+        res
     }
 }
 
@@ -610,7 +628,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumExt: NumFn + BytesExt {
+pub trait NumExt: NumFn + BytesFn {
     /// Writes odd number.
     #[ndfwd::as_self]
     fn write_odd(&mut self) -> &mut Self {
@@ -621,7 +639,7 @@ pub trait NumExt: NumFn + BytesExt {
     /// Writes even number.
     #[ndfwd::as_self]
     fn write_even(&mut self) -> &mut Self {
-        self.write_bitand(u64::MAX - 1, Offset::Left(0));
+        self.write_bitand(Single::MAX - 1, Offset::Left(0));
         self
     }
 
@@ -651,99 +669,6 @@ pub trait NumExt: NumFn + BytesExt {
     fn into_alt(mut self) -> Self {
         self.write_alt();
         self
-    }
-
-    /// Checks number is odd.
-    fn is_odd(&self) -> bool {
-        self.read(Offset::Left(0)) & 1 != 0
-    }
-
-    /// Checks number is even.
-    fn is_even(&self) -> bool {
-        self.read(Offset::Left(0)) & 1 == 0
-    }
-
-    /// Creates random number.
-    ///
-    /// Order represents position of the most significant bit.
-    ///
-    /// # Panics
-    ///
-    /// - When `order` is zero.
-    /// - When `BytesExt` implementation panics.
-    #[cfg(feature = "rand")]
-    #[ndfwd::as_into]
-    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
-        let shift = order - 1;
-        let div = shift / 64;
-        let rem = shift % 64;
-        let bit = 1 << rem;
-
-        let mut res = Self::zero();
-
-        res.write_bitor(bit | (bit - 1) & rng.next_u64(), Offset::Left(div * 64));
-
-        for idx in 0..div {
-            res.write_bitor(rng.next_u64(), Offset::Left(idx * 64));
-        }
-
-        res
-    }
-
-    /// Calculates `self ^ exp`.
-    ///
-    /// # Panics
-    ///
-    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
-    #[ndfwd::as_into]
-    fn pow(self, mut exp: Self) -> Self {
-        let zero = Self::zero();
-        let one = Self::one();
-
-        let mut acc = self;
-        let mut res = one;
-
-        while exp != zero {
-            if exp.is_odd() {
-                Self::nd_mul_assign(&mut res, &acc);
-            }
-
-            let val = acc.clone();
-
-            Self::nd_mul_assign(&mut acc, &val);
-            Self::nd_shr_assign(&mut exp, 1);
-        }
-
-        res
-    }
-
-    /// Calculates `self ^ exp % rem`.
-    ///
-    /// # Panics
-    ///
-    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
-    #[ndfwd::as_into]
-    fn powrem(self, mut exp: Self, rem: &Self) -> Self {
-        let zero = Self::zero();
-        let one = Self::one();
-
-        let mut acc = self;
-        let mut res = one;
-
-        while exp != zero {
-            if exp.is_odd() {
-                Self::nd_mul_assign(&mut res, &acc);
-                Self::nd_rem_assign(&mut res, rem);
-            }
-
-            let val = acc.clone();
-
-            Self::nd_mul_assign(&mut acc, &val);
-            Self::nd_rem_assign(&mut acc, rem);
-            Self::nd_shr_assign(&mut exp, 1);
-        }
-
-        res
     }
 }
 
@@ -1061,15 +986,15 @@ impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Width<N, BITS> {
             return self;
         }
 
-        let diff = N::BITS - BITS;
-        let div = diff / 64;
-        let rem = diff % 64;
+        let bits = N::BITS - BITS;
+        let div = bits / Single::BITS as usize;
+        let rem = bits % Single::BITS as usize;
 
         for idx in 0..div {
-            self.write_bitand(0, Offset::Right((idx + 1) * 64));
+            self.write_bitand(0, Offset::Right((idx + 1) * BITS));
         }
 
-        self.write_bitand(u64::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * 64));
+        self.write_bitand(Single::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * BITS));
         self
     }
 }
@@ -1255,4 +1180,37 @@ mod tests {
 
     #[test]
     fn modular() {}
+
+    #[cfg(feature = "const-time")]
+    #[test]
+    #[rustfmt::skip]
+    fn cmp_ct() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
+            (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (lhs.min_ct(&rhs), lhs.min(rhs)),
+            (lhs.max_ct(&rhs), lhs.max(rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(u64, 56, 0),
+            rhs in ndassert::range!(u64, 56, 1),
+        ) [
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
+            (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (lhs.min_ct(&rhs), lhs.min(rhs)),
+            (lhs.max_ct(&rhs), lhs.max(rhs)),
+        ] }
+    }
 }

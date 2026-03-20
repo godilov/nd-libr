@@ -19,8 +19,8 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    Binary as NumBinary, BytesExt, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, Offset, One, Sign, Zero,
-    arch::word::*,
+    Binary as NumBinary, BytesFn, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
+    arch::{Offset, word::*},
     long::{radix::*, uops::*},
 };
 #[cfg(feature = "const-time")]
@@ -1182,24 +1182,19 @@ mod uops {
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
     #[allow(clippy::unnecessary_cast)]
-    pub(super) fn read<const L: usize>(words: &[Single; L], offset: usize) -> u64 {
-        let bits = u64::BITS as usize;
+    pub(super) fn read<const L: usize>(words: &[Single; L], offset: usize) -> Single {
+        let idx = offset / BITS;
+        let shr = offset % BITS;
+        let shl = BITS - shr;
 
         let mut res = 0;
 
-        for idx in 0..bits.div_ceil(BITS) {
-            let shift = idx * BITS;
+        if let Some(elem) = words.get(idx) {
+            res |= elem.unbounded_shr(shr as u32);
+        }
 
-            let shr = offset % BITS;
-            let shl = BITS - shr;
-
-            if let Some(elem) = words.get((offset + shift) / BITS) {
-                res |= (*elem as u64).unbounded_shr(shr as u32).unbounded_shl(shift as u32);
-            }
-
-            if let Some(elem) = words.get((offset + shift) / BITS + 1) {
-                res |= (*elem as u64).unbounded_shl(shl as u32).unbounded_shl(shift as u32);
-            }
+        if let Some(elem) = words.get(idx + 1) {
+            res |= elem.unbounded_shl(shl as u32);
         }
 
         res
@@ -2968,8 +2963,8 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     }
 }
 
-impl<const L: usize> BytesExt for Signed<L> {
-    fn read(&self, offset: Offset) -> u64 {
+impl<const L: usize> BytesFn for Signed<L> {
+    fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
             Offset::Right(val) => (L * BITS).saturating_sub(val),
@@ -2978,7 +2973,7 @@ impl<const L: usize> BytesExt for Signed<L> {
         uops::read(&self.0, offset)
     }
 
-    fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self {
+    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
             Offset::Right(val) => (L * BITS).saturating_sub(val),
@@ -2989,7 +2984,7 @@ impl<const L: usize> BytesExt for Signed<L> {
         self
     }
 
-    fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self {
+    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
         use std::ops::Not;
 
         let offset = match offset {
@@ -3002,7 +2997,7 @@ impl<const L: usize> BytesExt for Signed<L> {
         self
     }
 
-    fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self {
+    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
             Offset::Right(val) => (L * BITS).saturating_sub(val),
@@ -3014,8 +3009,8 @@ impl<const L: usize> BytesExt for Signed<L> {
     }
 }
 
-impl<const L: usize> BytesExt for Unsigned<L> {
-    fn read(&self, offset: Offset) -> u64 {
+impl<const L: usize> BytesFn for Unsigned<L> {
+    fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
             Offset::Right(val) => (L * BITS).saturating_sub(val),
@@ -3024,7 +3019,7 @@ impl<const L: usize> BytesExt for Unsigned<L> {
         uops::read(&self.0, offset)
     }
 
-    fn write_bitor(&mut self, mask: u64, offset: Offset) -> &mut Self {
+    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
             Offset::Right(val) => (L * BITS).saturating_sub(val),
@@ -3035,7 +3030,7 @@ impl<const L: usize> BytesExt for Unsigned<L> {
         self
     }
 
-    fn write_bitand(&mut self, mask: u64, offset: Offset) -> &mut Self {
+    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
         use std::ops::Not;
 
         let offset = match offset {
@@ -3048,7 +3043,7 @@ impl<const L: usize> BytesExt for Unsigned<L> {
         self
     }
 
-    fn write_bitxor(&mut self, mask: u64, offset: Offset) -> &mut Self {
+    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
             Offset::Right(val) => (L * BITS).saturating_sub(val),
@@ -3060,8 +3055,71 @@ impl<const L: usize> BytesExt for Unsigned<L> {
     }
 }
 
-impl<const L: usize> NumFn for Signed<L> {}
-impl<const L: usize> NumFn for Unsigned<L> {}
+impl<const L: usize> BytesFn for Bytes<L> {
+    fn read(&self, offset: Offset) -> Single {
+        let offset = match offset {
+            Offset::Left(val) => val,
+            Offset::Right(val) => (L * BITS).saturating_sub(val),
+        };
+
+        uops::read(&self.0, offset)
+    }
+
+    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
+        let offset = match offset {
+            Offset::Left(val) => val,
+            Offset::Right(val) => (L * BITS).saturating_sub(val),
+        };
+
+        write_bitop_impl!(&mut self.0, mask, offset, |=);
+
+        self
+    }
+
+    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
+        use std::ops::Not;
+
+        let offset = match offset {
+            Offset::Left(val) => val,
+            Offset::Right(val) => (L * BITS).saturating_sub(val),
+        };
+
+        write_bitop_impl!(&mut self.0, mask, offset, &=, .not());
+
+        self
+    }
+
+    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
+        let offset = match offset {
+            Offset::Left(val) => val,
+            Offset::Right(val) => (L * BITS).saturating_sub(val),
+        };
+
+        write_bitop_impl!(&mut self.0, mask, offset, ^=);
+
+        self
+    }
+}
+
+impl<const L: usize> NumFn for Signed<L> {
+    fn is_odd(&self) -> bool {
+        self.0[0] & 1 == 1
+    }
+
+    fn is_even(&self) -> bool {
+        self.0[0] & 1 == 0
+    }
+}
+
+impl<const L: usize> NumFn for Unsigned<L> {
+    fn is_odd(&self) -> bool {
+        self.0[0] & 1 == 1
+    }
+
+    fn is_even(&self) -> bool {
+        self.0[0] & 1 == 0
+    }
+}
 
 impl<const L: usize> NumExt for Signed<L> {}
 impl<const L: usize> NumExt for Unsigned<L> {}

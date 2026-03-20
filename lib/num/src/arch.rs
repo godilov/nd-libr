@@ -5,7 +5,7 @@ use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 use ndext::ops::*;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
-use crate::*;
+use crate::{arch::word::*, *};
 
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
@@ -81,6 +81,15 @@ macro_rules! word_impl {
 
             fn is_pow2(self) -> bool {
                 (self & (self - 1) == 0) && self != 0
+            }
+
+            #[cfg(feature = "rand")]
+            fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
+                let mut bytes = [0; Self::BYTES];
+
+                rng.fill_bytes(&mut bytes);
+
+                Self::from_ne_bytes(bytes)
             }
         }
     };
@@ -276,6 +285,10 @@ pub mod word {
 
         /// Checks if Word-like value is power of 2.
         fn is_pow2(self) -> bool;
+
+        /// Random Word-like value.
+        #[cfg(feature = "rand")]
+        fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self;
     }
 
     /// Word-like primitives iterator.
@@ -342,6 +355,7 @@ pub mod word {
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
+#[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::NumFnChecked)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -358,6 +372,89 @@ pub mod word {
 #[cfg_attr(target_arch = "wasm64",  repr(align(64)))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
+
+/// Offset for reading/writing binary mask.
+///
+/// - `Offset::Left(val)` specifies `val`-bits offset from `0`.
+/// - `Offset::Right(val)` specifies `val`-bits offset from `N = size_of::<Self>()`
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Offset {
+    /// Offset in left direction of usize bits.
+    Left(usize),
+    /// Offset in right direction of usize bits.
+    Right(usize),
+}
+
+/// Bytes functions.
+///
+/// Allows reading/writing in raw binary representation.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait BytesFn: Sized + Default {
+    /// Reads 64-bits of underlying value at specified Offset in bits.
+    fn read(&self, offset: Offset) -> Single;
+
+    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
+    #[ndfwd::as_self]
+    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self;
+
+    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
+    #[ndfwd::as_self]
+    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self;
+
+    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
+    #[ndfwd::as_self]
+    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self;
+
+    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
+    #[ndfwd::as_into]
+    fn into_bitor(mut self, mask: Single, offset: Offset) -> Self {
+        self.write_bitor(mask, offset);
+        self
+    }
+
+    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
+    #[ndfwd::as_into]
+    fn into_bitand(mut self, mask: Single, offset: Offset) -> Self {
+        self.write_bitand(mask, offset);
+        self
+    }
+
+    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
+    #[ndfwd::as_into]
+    fn into_bitxor(mut self, mask: Single, offset: Offset) -> Self {
+        self.write_bitxor(mask, offset);
+        self
+    }
+
+    /// Creates random bytes.
+    ///
+    /// Order represents position of the most significant bit.
+    ///
+    /// # Panics
+    ///
+    /// - When `order` is zero.
+    /// - When `BytesExt` implementation panics.
+    #[cfg(feature = "rand")]
+    #[ndfwd::as_into]
+    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
+        let shift = order - 1;
+        let div = shift / BITS;
+        let rem = shift % BITS;
+        let bit = 1 << rem;
+
+        let mut res = Self::default();
+
+        res.write_bitor(bit | (bit - 1) & <Single as Word>::rand(rng), Offset::Left(div * BITS));
+
+        for idx in 0..div {
+            res.write_bitor(<Single as Word>::rand(rng), Offset::Left(idx * BITS));
+        }
+
+        res
+    }
+}
 
 impl<T> From<T> for Aligned<T> {
     fn from(value: T) -> Self {
