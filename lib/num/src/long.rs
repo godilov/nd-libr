@@ -19,8 +19,8 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    Binary as NumBinary, BytesFn, Max, Min, Num, NumExt, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
-    arch::{Offset, word::*},
+    BytesFn, Max, Min, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
+    arch::{BytesLen, Offset, word::*},
     long::{radix::*, uops::*},
 };
 #[cfg(feature = "const-time")]
@@ -2963,6 +2963,21 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     }
 }
 
+impl<const L: usize> BytesLen for Signed<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+}
+
+impl<const L: usize> BytesLen for Unsigned<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+}
+
+impl<const L: usize> BytesLen for Bytes<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+}
+
 impl<const L: usize> BytesFn for Signed<L> {
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
@@ -3109,6 +3124,21 @@ impl<const L: usize> NumFn for Signed<L> {
     fn is_even(&self) -> bool {
         self.0[0] & 1 == 0
     }
+
+    fn write_odd(&mut self) -> &mut Self {
+        self.0[0] |= 1;
+        self
+    }
+
+    fn write_even(&mut self) -> &mut Self {
+        self.0[0] &= !1;
+        self
+    }
+
+    fn write_alt(&mut self) -> &mut Self {
+        self.0[0] ^= 1;
+        self
+    }
 }
 
 impl<const L: usize> NumFn for Unsigned<L> {
@@ -3119,10 +3149,22 @@ impl<const L: usize> NumFn for Unsigned<L> {
     fn is_even(&self) -> bool {
         self.0[0] & 1 == 0
     }
-}
 
-impl<const L: usize> NumExt for Signed<L> {}
-impl<const L: usize> NumExt for Unsigned<L> {}
+    fn write_odd(&mut self) -> &mut Self {
+        self.0[0] |= 1;
+        self
+    }
+
+    fn write_even(&mut self) -> &mut Self {
+        self.0[0] &= !1;
+        self
+    }
+
+    fn write_alt(&mut self) -> &mut Self {
+        self.0[0] ^= 1;
+        self
+    }
+}
 
 impl<const L: usize> Num for Signed<L> {}
 impl<const L: usize> Num for Unsigned<L> {}
@@ -3202,16 +3244,6 @@ impl<const L: usize> Max for Signed<L> {
 
 impl<const L: usize> Max for Unsigned<L> {
     const MAX: Self = Self([MAX; L]);
-}
-
-impl<const L: usize> NumBinary for Signed<L> {
-    const BITS: usize = L * BITS;
-    const BYTES: usize = L * BYTES;
-}
-
-impl<const L: usize> NumBinary for Unsigned<L> {
-    const BITS: usize = L * BITS;
-    const BYTES: usize = L * BYTES;
 }
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {

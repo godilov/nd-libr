@@ -4,7 +4,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
-use crate::arch::{BytesFn, Offset, word::Single};
+use crate::arch::{BytesFn, BytesLen, Offset, word::Single};
 
 pub mod arch;
 pub mod long;
@@ -20,6 +20,11 @@ macro_rules! num_impl {
         $(num_impl!(@unsigned $primitive);)+
     };
     (@impl $primitive:ty $(,)?) => {
+        impl BytesLen for $primitive {
+            const BITS: usize = Self::BITS as usize;
+            const BYTES: usize = Self::BITS as usize / 8;
+        }
+
         impl BytesFn for $primitive {
             fn read(&self, offset: Offset) -> Single {
                 let offset = match offset {
@@ -71,11 +76,24 @@ macro_rules! num_impl {
             fn is_even(&self) -> bool {
                 self & 1 == 0
             }
+
+            fn write_odd(&mut self) -> &mut Self {
+                *self |= 1;
+                self
+            }
+
+            fn write_even(&mut self) -> &mut Self {
+                *self &= !1;
+                self
+            }
+
+            fn write_alt(&mut self) -> &mut Self {
+                *self ^= 1;
+                self
+            }
         }
 
         impl NumFnChecked for $primitive {}
-
-        impl NumExt for $primitive {}
 
         impl Num for $primitive {}
 
@@ -93,11 +111,6 @@ macro_rules! num_impl {
 
         impl Max for $primitive {
             const MAX: Self = Self::MAX;
-        }
-
-        impl Binary for $primitive {
-            const BITS: usize = Self::BITS as usize;
-            const BYTES: usize = Self::BITS as usize / 8;
         }
     };
     (@signed $primitive:ty $(,)?) => {
@@ -288,10 +301,10 @@ macro_rules! sign_from {
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Strict<N>(pub N);
 
@@ -303,10 +316,10 @@ pub struct Strict<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Wrapping<N>(pub N);
 
@@ -318,10 +331,10 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Saturating<N>(pub N);
 
@@ -333,10 +346,10 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Unbounded<N>(pub N);
 
@@ -348,10 +361,10 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
+#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Ranged<N>(pub N);
 
@@ -366,11 +379,10 @@ pub struct Ranged<N>(pub N);
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub N);
+pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(pub N);
 
 /// Number with specified modulus.
 ///
@@ -380,14 +392,12 @@ pub struct Width<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize>(pub 
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modular<N: Num + NumExt + NumUnsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
+pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
 
 /// Number sign.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -423,6 +433,39 @@ pub trait NumFn:
 
     /// Checks number is even.
     fn is_even(&self) -> bool;
+
+    /// Writes odd number.
+    #[ndfwd::as_self]
+    fn write_odd(&mut self) -> &mut Self;
+
+    /// Writes even number.
+    #[ndfwd::as_self]
+    fn write_even(&mut self) -> &mut Self;
+
+    /// Alters odd/even number.
+    #[ndfwd::as_self]
+    fn write_alt(&mut self) -> &mut Self;
+
+    /// Writes odd number.
+    #[ndfwd::as_into]
+    fn into_odd(mut self) -> Self {
+        self.write_odd();
+        self
+    }
+
+    /// Writes even number.
+    #[ndfwd::as_into]
+    fn into_even(mut self) -> Self {
+        self.write_even();
+        self
+    }
+
+    /// Alters odd/even number.
+    #[ndfwd::as_into]
+    fn into_alt(mut self) -> Self {
+        self.write_alt();
+        self
+    }
 
     /// Calculates Greatest Common Divisor of two numbers.
     ///
@@ -634,56 +677,6 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
     }
 }
 
-/// Numbers extensions.
-///
-/// Exposes additional functions on top of [`NumFn`] and [`BytesFn`].
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait NumExt: NumFn + BytesFn {
-    /// Writes odd number.
-    #[ndfwd::as_self]
-    fn write_odd(&mut self) -> &mut Self {
-        self.write_bitor(1, Offset::Left(0));
-        self
-    }
-
-    /// Writes even number.
-    #[ndfwd::as_self]
-    fn write_even(&mut self) -> &mut Self {
-        self.write_bitand(Single::MAX - 1, Offset::Left(0));
-        self
-    }
-
-    /// Alters odd/even number.
-    #[ndfwd::as_self]
-    fn write_alt(&mut self) -> &mut Self {
-        self.write_bitxor(1, Offset::Left(0));
-        self
-    }
-
-    /// Writes odd number.
-    #[ndfwd::as_into]
-    fn into_odd(mut self) -> Self {
-        self.write_odd();
-        self
-    }
-
-    /// Writes even number.
-    #[ndfwd::as_into]
-    fn into_even(mut self) -> Self {
-        self.write_even();
-        self
-    }
-
-    /// Alters odd/even number.
-    #[ndfwd::as_into]
-    fn into_alt(mut self) -> Self {
-        self.write_alt();
-        self
-    }
-}
-
 /// Number with static allocation.
 #[ndfwd::decl]
 pub trait Num: NumFn + Zero + One + Copy {}
@@ -743,16 +736,6 @@ pub trait Max {
     const MAX: Self;
 }
 
-/// Numbers representable in binary statically.
-#[ndfwd::decl]
-pub trait Binary {
-    /// Allocated static size in bits.
-    const BITS: usize;
-
-    /// Allocated static size in bytes.
-    const BYTES: usize;
-}
-
 /// Zero with dynamic allocation.
 #[ndfwd::decl]
 pub trait ZeroFn {
@@ -783,16 +766,6 @@ pub trait MaxFn {
     /// Returns maximum value.
     #[ndfwd::as_into]
     fn max() -> Self;
-}
-
-/// Numbers representable in binary dynamically.
-#[ndfwd::decl]
-pub trait BinaryFn {
-    /// Allocated dynamic size in bits.
-    fn bits(&self) -> usize;
-
-    /// Allocated dynamic size in bytes.
-    fn bytes(&self) -> usize;
 }
 
 /// Const-time equality comparison.
@@ -967,24 +940,24 @@ impl<N> From<N> for Ranged<N> {
     }
 }
 
-impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> From<N> for Width<N, BITS> {
+impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> From<N> for Width<N, BITS> {
     fn from(value: N) -> Self {
         Self(value).normalized()
     }
 }
 
-impl<N: Num + NumExt + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
+impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
     fn from(value: N) -> Self {
         Self(value, PhantomData).normalized()
     }
 }
 
-impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Binary for Width<N, BITS> {
+impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> BytesLen for Width<N, BITS> {
     const BITS: usize = BITS;
-    const BYTES: usize = BITS / 8;
+    const BYTES: usize = BITS.div_ceil(8);
 }
 
-impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Width<N, BITS> {
+impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> Width<N, BITS> {
     #[allow(unused)]
     const CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
 
@@ -1011,7 +984,7 @@ impl<N: Num + NumExt + NumUnsigned + Binary, const BITS: usize> Width<N, BITS> {
     }
 }
 
-impl<N: Num + NumExt + NumUnsigned, M: Modulus<N>> Modular<N, M> {
+impl<N: Num + NumUnsigned, M: Modulus<N>> Modular<N, M> {
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
@@ -1045,16 +1018,6 @@ impl<Any: Min> MinFn for Any {
 impl<Any: Max> MaxFn for Any {
     fn max() -> Self {
         Any::MAX
-    }
-}
-
-impl<Any: Binary> BinaryFn for Any {
-    fn bits(&self) -> usize {
-        Any::BITS
-    }
-
-    fn bytes(&self) -> usize {
-        Any::BYTES
     }
 }
 

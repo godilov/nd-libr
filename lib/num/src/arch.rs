@@ -85,7 +85,7 @@ macro_rules! word_impl {
 
             #[cfg(feature = "rand")]
             fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
-                let mut bytes = [0; Self::BYTES];
+                let mut bytes = [0; <Self as Word>::BYTES];
 
                 rng.fill_bytes(&mut bytes);
 
@@ -355,10 +355,10 @@ pub mod word {
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
+#[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::NumFnChecked)]
-#[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
@@ -385,13 +385,23 @@ pub enum Offset {
     Right(usize),
 }
 
+/// Bytes length.
+#[ndfwd::decl]
+pub trait BytesLen {
+    /// Effective static allocation len in bits.
+    const BITS: usize;
+
+    /// Effective static allocation len in bytes.
+    const BYTES: usize;
+}
+
 /// Bytes functions.
 ///
 /// Allows reading/writing in raw binary representation.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait BytesFn: Sized + Default {
+pub trait BytesFn: Sized + Default + BytesLen {
     /// Reads 64-bits of underlying value at specified Offset in bits.
     fn read(&self, offset: Offset) -> Single;
 

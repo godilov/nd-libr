@@ -2,7 +2,7 @@
 
 use std::mem::{replace, take};
 
-use crate::{NumExt, NumUnsigned};
+use crate::{NumUnsigned, arch::BytesFn};
 
 macro_rules! prime_impl {
     ($(($primitive:ty, $count:expr)),+ $(,)?) => {
@@ -116,7 +116,7 @@ impl Primes {
 /// Primality test functions.
 ///
 /// For more info, see [module-level](crate::prime) and [crate-level](crate) documentation.
-pub trait Primality: NumExt + NumUnsigned {
+pub trait Primality: NumUnsigned + BytesFn {
     /// Prime numbers iterator to use in `is_prime` implementation.
     fn primes() -> impl Iterator<Item = Self>;
 
@@ -326,4 +326,4 @@ impl<Prime: Primality> Iterator for PrimesFastIter<Prime> {
 impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> {}
 impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> {}
 
-impl<Any: Send + Primality + NumExt> PrimalityExt for Any {}
+impl<Any: Send + Primality> PrimalityExt for Any {}
