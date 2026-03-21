@@ -360,6 +360,7 @@ pub mod word {
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::NumFnChecked)]
 #[ndfwd::def(self.0 with T: crate::Num)]
+#[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
 #[cfg_attr(target_arch = "x86",     repr(align(64)))]
@@ -447,7 +448,7 @@ pub trait BytesFn: Sized + Default + BytesLen {
     /// Creates random bytes.
     #[cfg(feature = "rand")]
     #[ndfwd::as_into]
-    fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
+    fn rand_bytes<Rng: rand::Rng>(rng: &mut Rng) -> Self {
         let mut res = Self::default();
 
         rng.fill_bytes(res.as_bytes_mut());

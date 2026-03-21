@@ -317,6 +317,7 @@ macro_rules! sign_from {
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumRand)]
 pub struct Strict<N>(pub N);
 
 /// Number with Wrapping operations semantics.
@@ -332,6 +333,7 @@ pub struct Strict<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumRand)]
 pub struct Wrapping<N>(pub N);
 
 /// Number with Saturating operations semantics.
@@ -347,6 +349,7 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumRand)]
 pub struct Saturating<N>(pub N);
 
 /// Number with Unbounded operations semantics.
@@ -362,6 +365,7 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumRand)]
 pub struct Unbounded<N>(pub N);
 
 /// Number within Range.
@@ -389,6 +393,7 @@ pub struct Ranged<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumRand)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(pub N);
@@ -702,7 +707,7 @@ pub trait NumRand: NumFn + BytesFn {
     /// Order represents position of the most significant bit.
     #[cfg(feature = "rand")]
     #[ndfwd::as_into]
-    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
+    fn rand_num<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
         if order == 0 {
             return Self::default();
         }
