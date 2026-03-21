@@ -361,8 +361,6 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::std(self.0 with N)]
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
-#[ndfwd::def(self.0 with N: arch::BytesLen)]
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
