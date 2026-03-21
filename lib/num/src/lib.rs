@@ -190,7 +190,7 @@ macro_rules! num_ct_impl {
                 let rhs = *other as $unsigned;
 
                 let diff = lhs ^ rhs;
-                let diff = (diff | diff.wrapping_neg()) >> (<$unsigned>::BITS - 1);
+                let diff = (diff | diff.wrapping_neg()) >> (Self::BITS - 1);
 
                 diff.wrapping_sub(1) as MaskCt
             }
@@ -201,9 +201,15 @@ macro_rules! num_ct_impl {
                 let lhs = self;
                 let rhs = other;
 
-                let neg = (lhs.wrapping_sub(*rhs) >> (<$unsigned>::BITS - 1)) as MaskCt;
+                let lt = (lhs.wrapping_sub(*rhs) >> (Self::BITS - 1)) as MaskCt;
 
-                MaskCt::ZERO.wrapping_sub(neg)
+                let lhs_bit = (lhs >> (Self::BITS - 1)) as u8;
+                let rhs_bit = (rhs >> (Self::BITS - 1)) as u8;
+
+                let xor = lhs_bit ^ rhs_bit;
+                let res = xor & rhs_bit | !xor & lt;
+
+                MaskCt::ZERO.wrapping_sub(res)
             }
         }
 
@@ -212,9 +218,15 @@ macro_rules! num_ct_impl {
                 let lhs = self;
                 let rhs = other;
 
-                let neg = (rhs.wrapping_sub(*lhs) >> (<$unsigned>::BITS - 1)) as MaskCt;
+                let gt = (rhs.wrapping_sub(*lhs) >> (Self::BITS - 1)) as MaskCt;
 
-                MaskCt::ZERO.wrapping_sub(neg)
+                let lhs_bit = (lhs >> (Self::BITS - 1)) as u8;
+                let rhs_bit = (rhs >> (Self::BITS - 1)) as u8;
+
+                let xor = lhs_bit ^ rhs_bit;
+                let res = xor & lhs_bit | !xor & gt;
+
+                MaskCt::ZERO.wrapping_sub(res)
             }
         }
 
@@ -229,8 +241,8 @@ macro_rules! num_ct_impl {
     (@select $primitive:ty $(,)?) => {
         impl SelectCt for $primitive {
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-                let lhs_mask = Self::from_ne_bytes([mask; (<$primitive>::BITS / 8) as usize]);
-                let rhs_mask = Self::from_ne_bytes([!mask; (<$primitive>::BITS / 8) as usize]);
+                let lhs_mask = Self::from_ne_bytes([mask; (Self::BITS / 8) as usize]);
+                let rhs_mask = Self::from_ne_bytes([!mask; (Self::BITS / 8) as usize]);
 
                 lhs & lhs_mask | rhs & rhs_mask
             }
