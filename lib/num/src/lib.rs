@@ -636,7 +636,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
 
 /// Numbers extensions.
 ///
-/// Exposes additional functions on top of [`NumFn`] and [`BytesExt`].
+/// Exposes additional functions on top of [`NumFn`] and [`BytesFn`].
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]

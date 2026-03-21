@@ -435,7 +435,7 @@ pub trait BytesFn: Sized + Default {
     /// # Panics
     ///
     /// - When `order` is zero.
-    /// - When `BytesExt` implementation panics.
+    /// - When `BytesFn` implementation panics.
     #[cfg(feature = "rand")]
     #[ndfwd::as_into]
     fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
