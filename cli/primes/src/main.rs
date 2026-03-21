@@ -4,7 +4,7 @@ use std::{fs::File, path::PathBuf};
 
 use anyhow::Error;
 use clap::{Parser, Subcommand};
-use ndnum::prime::{PrimalityExt, Primes};
+use ndnum::prime::{PrimalityRand, Primes};
 
 #[derive(Parser)]
 #[command(version, about, long_about)]

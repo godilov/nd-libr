@@ -166,10 +166,10 @@ pub trait Primality: NumUnsigned + BytesFn {
     }
 }
 
-/// Primality test functions extensions.
+/// Primality test functions random extensions.
 ///
 /// For more info, see [module-level](crate::prime) and [crate-level](crate) documentation.
-pub trait PrimalityExt: Send + Primality {
+pub trait PrimalityRand: Send + Primality {
     /// Generates random prime number.
     ///
     /// Order represents position of the most significant bit.
@@ -326,4 +326,4 @@ impl<Prime: Primality> Iterator for PrimesFastIter<Prime> {
 impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> {}
 impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> {}
 
-impl<Any: Send + Primality> PrimalityExt for Any {}
+impl<Any: Send + Primality> PrimalityRand for Any {}
