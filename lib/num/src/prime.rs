@@ -2,7 +2,7 @@
 
 use std::mem::{replace, take};
 
-use crate::{NumUnsigned, arch::BytesFn};
+use crate::{NumRand, NumUnsigned};
 
 macro_rules! prime_impl {
     ($(($primitive:ty, $count:expr)),+ $(,)?) => {
@@ -116,7 +116,7 @@ impl Primes {
 /// Primality test functions.
 ///
 /// For more info, see [module-level](crate::prime) and [crate-level](crate) documentation.
-pub trait Primality: NumUnsigned + BytesFn {
+pub trait Primality: NumUnsigned + NumRand {
     /// Prime numbers iterator to use in `is_prime` implementation.
     fn primes() -> impl Iterator<Item = Self>;
 
@@ -176,10 +176,10 @@ pub trait PrimalityRand: Send + Primality {
     #[cfg(feature = "rand")]
     fn rand_prime(order: usize) -> Self {
         let mut rng = rand::rng();
-        let mut val = Self::rand(order, &mut rng).into_odd();
+        let mut val = <Self as NumRand>::rand(order, &mut rng).into_odd();
 
         while !val.is_prime() {
-            val = Self::rand(order, &mut rng).into_odd();
+            val = <Self as NumRand>::rand(order, &mut rng).into_odd();
         }
 
         val

@@ -3,6 +3,7 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
+use zerocopy::IntoBytes;
 
 use crate::arch::{BytesFn, BytesLen, Offset, word::Single};
 
@@ -26,6 +27,14 @@ macro_rules! num_impl {
         }
 
         impl BytesFn for $primitive {
+            fn as_bytes_ref(&self) -> &[u8] {
+                self.as_bytes()
+            }
+
+            fn as_bytes_mut(&mut self) -> &mut [u8] {
+                self.as_mut_bytes()
+            }
+
             fn read(&self, offset: Offset) -> Single {
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
@@ -96,6 +105,8 @@ macro_rules! num_impl {
         impl NumFnChecked for $primitive {}
 
         impl Num for $primitive {}
+
+        impl NumRand for $primitive {}
 
         impl Zero for $primitive {
             const ZERO: Self = 0;
@@ -682,6 +693,40 @@ pub trait Num: NumFn + Zero + One + Copy {}
 /// Number with dynamic allocation.
 #[ndfwd::decl]
 pub trait NumDyn: NumFn {}
+
+/// Number with random generation.
+#[ndfwd::decl]
+pub trait NumRand: NumFn + BytesFn {
+    /// Creates random number.
+    ///
+    /// Order represents position of the most significant bit.
+    #[cfg(feature = "rand")]
+    #[ndfwd::as_into]
+    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
+        if order == 0 {
+            return Self::default();
+        }
+
+        let order = order.min(Self::BYTES);
+        let len = order.div_ceil(u8::BITS as usize);
+        let idx = order.div_ceil(u8::BITS as usize) - 1;
+
+        let shift = order % u8::BITS as usize;
+        let mask = u8::MAX.unbounded_shr(u8::BITS - shift as u32);
+        let bit = 1u8 << shift;
+
+        let mut res = Self::default();
+
+        let bytes = &mut res.as_bytes_mut()[..len];
+
+        rng.fill_bytes(bytes);
+
+        bytes[idx] &= mask;
+        bytes[idx] |= bit;
+
+        res
+    }
+}
 
 /// Number with sign.
 #[ndfwd::decl]

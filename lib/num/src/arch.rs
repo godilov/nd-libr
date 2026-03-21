@@ -402,6 +402,12 @@ pub trait BytesLen {
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait BytesFn: Sized + Default + BytesLen {
+    /// As ref-slice of bytes.
+    fn as_bytes_ref(&self) -> &[u8];
+
+    /// As mut-slice of bytes.
+    fn as_bytes_mut(&mut self) -> &mut [u8];
+
     /// Reads 64-bits of underlying value at specified Offset in bits.
     fn read(&self, offset: Offset) -> Single;
 
@@ -439,28 +445,12 @@ pub trait BytesFn: Sized + Default + BytesLen {
     }
 
     /// Creates random bytes.
-    ///
-    /// Order represents position of the most significant bit.
-    ///
-    /// # Panics
-    ///
-    /// - When `order` is zero.
-    /// - When `BytesFn` implementation panics.
     #[cfg(feature = "rand")]
     #[ndfwd::as_into]
-    fn rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
-        let shift = order - 1;
-        let div = shift / BITS;
-        let rem = shift % BITS;
-        let bit = 1 << rem;
-
+    fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
         let mut res = Self::default();
 
-        res.write_bitor(bit | (bit - 1) & <Single as Word>::rand(rng), Offset::Left(div * BITS));
-
-        for idx in 0..div {
-            res.write_bitor(<Single as Word>::rand(rng), Offset::Left(idx * BITS));
-        }
+        rng.fill_bytes(res.as_bytes_mut());
 
         res
     }

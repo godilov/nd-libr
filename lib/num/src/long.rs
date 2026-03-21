@@ -2413,6 +2413,9 @@ ndops::def! { @stdmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize), [
 ] }
 
 impl<const L: usize> Signed<L> {
+    #[allow(unused)]
+    const CHECK: () = assert!(0 < L);
+
     from_primitive_const!([
         (from_i8, i8),
         (from_i16, i16),
@@ -2483,6 +2486,9 @@ impl<const L: usize> Signed<L> {
 }
 
 impl<const L: usize> Unsigned<L> {
+    #[allow(unused)]
+    const CHECK: () = assert!(0 < L);
+
     from_primitive_const!([
         (from_u8, u8),
         (from_u16, u16),
@@ -2544,6 +2550,9 @@ impl<const L: usize> Unsigned<L> {
 }
 
 impl<const L: usize> Bytes<L> {
+    #[allow(unused)]
+    const CHECK: () = assert!(0 < L);
+
     from_primitive_const!([
         (from_u8, u8),
         (from_u16, u16),
@@ -2979,6 +2988,14 @@ impl<const L: usize> BytesLen for Bytes<L> {
 }
 
 impl<const L: usize> BytesFn for Signed<L> {
+    fn as_bytes_ref(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+
+    fn as_bytes_mut(&mut self) -> &mut [u8] {
+        self.0.as_mut_bytes()
+    }
+
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -3025,6 +3042,14 @@ impl<const L: usize> BytesFn for Signed<L> {
 }
 
 impl<const L: usize> BytesFn for Unsigned<L> {
+    fn as_bytes_ref(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+
+    fn as_bytes_mut(&mut self) -> &mut [u8] {
+        self.0.as_mut_bytes()
+    }
+
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -3071,6 +3096,14 @@ impl<const L: usize> BytesFn for Unsigned<L> {
 }
 
 impl<const L: usize> BytesFn for Bytes<L> {
+    fn as_bytes_ref(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+
+    fn as_bytes_mut(&mut self) -> &mut [u8] {
+        self.0.as_mut_bytes()
+    }
+
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
