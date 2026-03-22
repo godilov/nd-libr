@@ -3330,6 +3330,9 @@ fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], T
     }
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], const N: usize = LENS[0] / 2, type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], const N: usize = LENS[1] / 2, type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], const N: usize = LENS[2] / 2, type W = Single))]
 fn from_arr<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
     let len = N.min(L * BYTES / W::BYTES);
 
@@ -3345,6 +3348,9 @@ fn from_arr<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Sing
     res
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type W = Single))]
 fn from_slice<const L: usize, W: Word>(slice: &[W]) -> [Single; L] {
     let len = slice.len().min(L * BYTES / W::BYTES);
 
@@ -3431,6 +3437,9 @@ fn into_digits_validate<W: Word>(radix: W) -> Result<(), IntoDigitsError> {
     Ok(())
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type W = Single))]
 fn from_digits<const L: usize, W: Word>(digits: &[W], exp: W) -> Result<[Single; L], FromDigitsError> {
     let exp = exp.as_usize();
 
@@ -3462,6 +3471,9 @@ where
     Ok(res)
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
 fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
     from_str_validate(s, 1 << exp)?;
 
@@ -3474,6 +3486,9 @@ fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L],
     Ok(res)
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type W = Single))]
 fn from_digits_radix<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<[Single; L], FromDigitsError> {
     if radix.is_pow2() {
         return from_digits(digits, W::from_single(radix.order() as Single));
@@ -3504,6 +3519,9 @@ where
     Ok(res)
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
 fn from_str_radix<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
     if radix.is_pow2() {
         return from_str(s, radix.order() as u8, sign);
@@ -3520,6 +3538,9 @@ fn from_str_radix<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Sin
     Ok(res)
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type W = Single))]
 fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec<W>, ToDigitsError> {
     to_digits_validate(exp)?;
 
@@ -3571,6 +3592,9 @@ fn to_digits_iter<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Resul
     })
 }
 
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type W = Single))]
+#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type W = Single))]
 fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Result<Vec<W>, IntoDigitsError> {
     if radix.is_pow2() {
         return Ok(to_digits(&words, W::from_single(radix.order() as Single))?);
