@@ -4086,7 +4086,7 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
     }
 }
 
-fn get_sign<W: Word, const L: usize>(words: &[W; L], sign: Sign) -> Sign {
+fn get_sign<const L: usize, W: Word>(words: &[W; L], sign: Sign) -> Sign {
     if words != &[W::ZERO; L] { sign } else { Sign::ZERO }
 }
 
