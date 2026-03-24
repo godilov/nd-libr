@@ -1199,6 +1199,9 @@ mod tests {
     fn unbounded() {}
 
     #[test]
+    fn ranged() {}
+
+    #[test]
     fn width() {}
 
     #[test]
