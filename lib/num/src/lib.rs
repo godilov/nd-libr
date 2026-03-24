@@ -1215,12 +1215,12 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
         ) [
-            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
             (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
         ] }
@@ -1229,12 +1229,12 @@ mod tests {
             lhs in ndassert::range!(u64, 56, 0),
             rhs in ndassert::range!(u64, 56, 1),
         ) [
-            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
             (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
         ] }

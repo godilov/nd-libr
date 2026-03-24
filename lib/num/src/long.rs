@@ -4637,12 +4637,12 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
         ) [
-            (S64::from(lhs).cmp_ct(&S64::from(rhs)), lhs.cmp(&rhs) as SignCt),
             (S64::from(lhs).eq_ct(&S64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (S64::from(lhs).lt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (S64::from(lhs).cmp_ct(&S64::from(rhs)), lhs.cmp(&rhs) as SignCt),
             (S64::from(lhs).min_ct(&S64::from(rhs)), S64::from(lhs.min(rhs))),
             (S64::from(lhs).max_ct(&S64::from(rhs)), S64::from(lhs.max(rhs))),
         ] }
@@ -4651,12 +4651,12 @@ mod tests {
             lhs in ndassert::range!(u64, 56, 0),
             rhs in ndassert::range!(u64, 56, 1),
         ) [
-            (U64::from(lhs).cmp_ct(&U64::from(rhs)), lhs.cmp(&rhs) as SignCt),
             (U64::from(lhs).eq_ct(&U64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (U64::from(lhs).lt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (U64::from(lhs).cmp_ct(&U64::from(rhs)), lhs.cmp(&rhs) as SignCt),
             (U64::from(lhs).min_ct(&U64::from(rhs)), U64::from(lhs.min(rhs))),
             (U64::from(lhs).max_ct(&U64::from(rhs)), U64::from(lhs.max(rhs))),
         ] }
