@@ -844,6 +844,8 @@ pub trait GtCt {
 }
 
 /// Const-time less-or-equal-then comparison.
+///
+/// Auto-implemented for all types with [`GtCt`].
 #[cfg(feature = "const-time")]
 pub trait LeCt {
     /// Const-time less-or-equal-then function.
@@ -856,6 +858,8 @@ pub trait LeCt {
 }
 
 /// Const-time greater-or-equal-then comparison.
+///
+/// Auto-implemented for all types with [`LtCt`].
 #[cfg(feature = "const-time")]
 pub trait GeCt {
     /// Const-time greater-or-equal-then function.
@@ -868,6 +872,8 @@ pub trait GeCt {
 }
 
 /// Const-time comparison.
+///
+/// Auto-implemented for all types with [`EqCt`], [`LtCt`], [`GtCt`].
 #[cfg(feature = "const-time")]
 pub trait CmpCt {
     /// Const-time comparison function.
@@ -881,6 +887,8 @@ pub trait CmpCt {
 }
 
 /// Const-time minimum value.
+///
+/// Auto-implemented for all types with [`LtCt`], [`SelectCt`].
 #[cfg(feature = "const-time")]
 pub trait MinCt: Copy {
     /// Const-time minimum function.
@@ -888,6 +896,8 @@ pub trait MinCt: Copy {
 }
 
 /// Const-time maximum value.
+///
+/// Auto-implemented for all types with [`GtCt`], [`SelectCt`].
 #[cfg(feature = "const-time")]
 pub trait MaxCt: Copy {
     /// Const-time maximum function.
