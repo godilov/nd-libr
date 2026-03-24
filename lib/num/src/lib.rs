@@ -199,12 +199,6 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl LeCt for $signed {}
-        impl GeCt for $signed {}
-        impl CmpCt for $signed {}
-        impl MinCt for $signed {}
-        impl MaxCt for $signed {}
-
         num_ct_impl!(@select $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
@@ -253,12 +247,6 @@ macro_rules! num_ct_impl {
                 MaskCt::ZERO.wrapping_sub(res)
             }
         }
-
-        impl LeCt for $unsigned {}
-        impl GeCt for $unsigned {}
-        impl CmpCt for $unsigned {}
-        impl MinCt for $unsigned {}
-        impl MaxCt for $unsigned {}
 
         num_ct_impl!(@select $unsigned);
     };
@@ -818,6 +806,7 @@ pub trait MaxFn {
 
 /// Const-time equality comparison.
 #[cfg(feature = "const-time")]
+#[ndfwd::decl]
 pub trait EqCt {
     /// Const-time equality function.
     ///
@@ -830,6 +819,7 @@ pub trait EqCt {
 
 /// Const-time less-then comparison.
 #[cfg(feature = "const-time")]
+#[ndfwd::decl]
 pub trait LtCt {
     /// Const-time less-then function.
     ///
@@ -842,6 +832,7 @@ pub trait LtCt {
 
 /// Const-time greater-then comparison.
 #[cfg(feature = "const-time")]
+#[ndfwd::decl]
 pub trait GtCt {
     /// Const-time greater-then function.
     ///
@@ -861,12 +852,7 @@ pub trait LeCt {
     ///
     /// - `MaskCt::MIN` => `lhs > rhs`.
     /// - `MaskCt::MAX` => `lhs <= rhs`.
-    fn le_ct(&self, other: &Self) -> MaskCt
-    where
-        Self: GtCt,
-    {
-        !self.gt_ct(other)
-    }
+    fn le_ct(&self, other: &Self) -> MaskCt;
 }
 
 /// Const-time greater-or-equal-then comparison.
@@ -878,12 +864,7 @@ pub trait GeCt {
     ///
     /// - `MaskCt::MIN` => `lhs < rhs`.
     /// - `MaskCt::MAX` => `lhs >= rhs`.
-    fn ge_ct(&self, other: &Self) -> MaskCt
-    where
-        Self: LtCt,
-    {
-        !self.lt_ct(other)
-    }
+    fn ge_ct(&self, other: &Self) -> MaskCt;
 }
 
 /// Const-time comparison.
@@ -896,43 +877,26 @@ pub trait CmpCt {
     /// - `-1` => `lhs < rhs`
     /// - `0` => `lhs == rhs`.
     /// - `1` => `lhs > rhs`
-    fn cmp_ct(&self, other: &Self) -> SignCt
-    where
-        Self: EqCt + LtCt + GtCt,
-    {
-        let lt = self.lt_ct(other) as SignCt;
-        let gt = self.gt_ct(other) as SignCt;
-
-        lt | gt & 1
-    }
+    fn cmp_ct(&self, other: &Self) -> SignCt;
 }
 
 /// Const-time minimum value.
 #[cfg(feature = "const-time")]
 pub trait MinCt: Copy {
     /// Const-time minimum function.
-    fn min_ct(&self, other: &Self) -> Self
-    where
-        Self: LtCt + SelectCt,
-    {
-        SelectCt::select_ct(self, other, self.lt_ct(other))
-    }
+    fn min_ct(&self, other: &Self) -> Self;
 }
 
 /// Const-time maximum value.
 #[cfg(feature = "const-time")]
 pub trait MaxCt: Copy {
     /// Const-time maximum function.
-    fn max_ct(&self, other: &Self) -> Self
-    where
-        Self: GtCt + SelectCt,
-    {
-        SelectCt::select_ct(self, other, self.gt_ct(other))
-    }
+    fn max_ct(&self, other: &Self) -> Self;
 }
 
 /// Const-time select value.
 #[cfg(feature = "const-time")]
+#[ndfwd::decl]
 pub trait SelectCt: Copy {
     /// Const-time select function.
     ///
@@ -941,6 +905,7 @@ pub trait SelectCt: Copy {
     /// `lhs & mask | rhs & !mask`
     ///
     /// `mask` is repeated to match `size_of::<Self>()`.
+    #[ndfwd::as_into]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self;
 }
 
@@ -1066,6 +1031,44 @@ impl<Any: Min> MinFn for Any {
 impl<Any: Max> MaxFn for Any {
     fn max() -> Self {
         Any::MAX
+    }
+}
+
+#[cfg(feature = "const-time")]
+impl<Any: GtCt> LeCt for Any {
+    fn le_ct(&self, other: &Self) -> MaskCt {
+        !self.gt_ct(other)
+    }
+}
+
+#[cfg(feature = "const-time")]
+impl<Any: LtCt> GeCt for Any {
+    fn ge_ct(&self, other: &Self) -> MaskCt {
+        !self.lt_ct(other)
+    }
+}
+
+#[cfg(feature = "const-time")]
+impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {
+    fn cmp_ct(&self, other: &Self) -> SignCt {
+        let lt = self.lt_ct(other) as SignCt;
+        let gt = self.gt_ct(other) as SignCt;
+
+        lt | gt & 1
+    }
+}
+
+#[cfg(feature = "const-time")]
+impl<Any: LtCt + SelectCt> MinCt for Any {
+    fn min_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.lt_ct(other))
+    }
+}
+
+#[cfg(feature = "const-time")]
+impl<Any: GtCt + SelectCt> MaxCt for Any {
+    fn max_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.gt_ct(other))
     }
 }
 
@@ -1209,7 +1212,6 @@ mod tests {
 
     #[cfg(feature = "const-time")]
     #[test]
-    #[rustfmt::skip]
     fn cmp_ct() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),

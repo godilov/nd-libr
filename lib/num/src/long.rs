@@ -24,7 +24,7 @@ use crate::{
     long::{radix::*, uops::*},
 };
 #[cfg(feature = "const-time")]
-use crate::{CmpCt, EqCt, GeCt, GtCt, LeCt, LtCt, MaskCt, MaxCt, MinCt, SelectCt, SignCt};
+use crate::{EqCt, GtCt, LtCt, MaskCt, SelectCt, SignCt};
 
 #[cfg(feature = "asm")]
 const LENS: [usize; 3] = [(1 << 8) / BITS, (1 << 12) / BITS, (1 << 16) / BITS];
@@ -2791,40 +2791,6 @@ impl<const L: usize> GtCt for Signed<L> {
 }
 
 #[cfg(feature = "const-time")]
-impl<const L: usize> LeCt for Signed<L> {
-    fn le_ct(&self, other: &Self) -> MaskCt {
-        let lhs_sign = sign_ct(&self.0);
-        let rhs_sign = sign_ct(&other.0);
-
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
-
-        let sign_lt = lhs_sign.lt_ct(&rhs_sign);
-        let sign_eq = lhs_sign.eq_ct(&rhs_sign);
-        let cmp_lt = cmp.eq_ct(&-1);
-        let cmp_eq = cmp.eq_ct(&0);
-
-        sign_lt | sign_eq & (cmp_lt | cmp_eq)
-    }
-}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> GeCt for Signed<L> {
-    fn ge_ct(&self, other: &Self) -> MaskCt {
-        let lhs_sign = sign_ct(&self.0);
-        let rhs_sign = sign_ct(&other.0);
-
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
-
-        let sign_gt = lhs_sign.gt_ct(&rhs_sign);
-        let sign_eq = lhs_sign.eq_ct(&rhs_sign);
-        let cmp_gt = cmp.eq_ct(&1);
-        let cmp_eq = cmp.eq_ct(&0);
-
-        sign_gt | sign_eq & (cmp_gt | cmp_eq)
-    }
-}
-
-#[cfg(feature = "const-time")]
 impl<const L: usize> LtCt for Unsigned<L> {
     fn lt_ct(&self, other: &Self) -> MaskCt {
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
@@ -2841,48 +2807,6 @@ impl<const L: usize> GtCt for Unsigned<L> {
         cmp.eq_ct(&1) & MaskCt::MAX
     }
 }
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> LeCt for Unsigned<L> {
-    fn le_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
-
-        let cmp_lt = cmp.eq_ct(&-1);
-        let cmp_eq = cmp.eq_ct(&0);
-
-        cmp_lt | cmp_eq
-    }
-}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> GeCt for Unsigned<L> {
-    fn ge_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
-
-        let cmp_gt = cmp.eq_ct(&1);
-        let cmp_eq = cmp.eq_ct(&0);
-
-        cmp_gt | cmp_eq
-    }
-}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> CmpCt for Signed<L> {}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> CmpCt for Unsigned<L> {}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> MinCt for Signed<L> {}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> MinCt for Unsigned<L> {}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> MaxCt for Signed<L> {}
-
-#[cfg(feature = "const-time")]
-impl<const L: usize> MaxCt for Unsigned<L> {}
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> SelectCt for Signed<L> {
@@ -4098,6 +4022,8 @@ mod tests {
 
     use super::*;
     use crate::long::{S64, U64};
+    #[cfg(feature = "const-time")]
+    use crate::{CmpCt, GeCt, LeCt, MaxCt, MinCt};
 
     fn sdiv_default(_: i64, _: i64) -> i64 {
         0

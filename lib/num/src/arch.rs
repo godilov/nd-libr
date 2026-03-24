@@ -371,6 +371,10 @@ pub mod word {
 #[cfg_attr(target_arch = "riscv64", repr(align(64)))]
 #[cfg_attr(target_arch = "wasm32",  repr(align(64)))]
 #[cfg_attr(target_arch = "wasm64",  repr(align(64)))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
@@ -832,6 +836,38 @@ mod tests {
         ) [
             ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
             ({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
+        ] }
+    }
+
+    #[cfg(feature = "const-time")]
+    #[test]
+    fn cmp_ct() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            (Aligned(lhs).eq_ct(&Aligned(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (Aligned(lhs).lt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (Aligned(lhs).gt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (Aligned(lhs).le_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (Aligned(lhs).ge_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (Aligned(lhs).cmp_ct(&Aligned(rhs)), lhs.cmp(&rhs) as SignCt),
+            (Aligned(lhs).min_ct(&Aligned(rhs)), Aligned(lhs.min(rhs))),
+            (Aligned(lhs).max_ct(&Aligned(rhs)), Aligned(lhs.max(rhs))),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(u64, 56, 0),
+            rhs in ndassert::range!(u64, 56, 1),
+        ) [
+            (Aligned(lhs).eq_ct(&Aligned(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (Aligned(lhs).lt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (Aligned(lhs).gt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (Aligned(lhs).le_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (Aligned(lhs).ge_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (Aligned(lhs).cmp_ct(&Aligned(rhs)), lhs.cmp(&rhs) as SignCt),
+            (Aligned(lhs).min_ct(&Aligned(rhs)), Aligned(lhs.min(rhs))),
+            (Aligned(lhs).max_ct(&Aligned(rhs)), Aligned(lhs.max(rhs))),
         ] }
     }
 }
