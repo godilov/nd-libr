@@ -63,11 +63,11 @@ fn main() -> anyhow::Result<()> {
 
     let primes = match cli.cmd {
         Commands::Count { val, fast } => match fast {
-            false => Primes::by_count_full(val).collect::<Vec<u128>>(),
+            false => Primes::by_count(val).collect::<Vec<u128>>(),
             true => Primes::by_count_fast(val).collect::<Vec<u128>>(),
         },
         Commands::Limit { val, fast } => match fast {
-            false => Primes::by_limit_full(val).collect::<Vec<u128>>(),
+            false => Primes::by_limit(val).collect::<Vec<u128>>(),
             true => Primes::by_limit_fast(val).collect::<Vec<u128>>(),
         },
         Commands::Rand { order, count } => {

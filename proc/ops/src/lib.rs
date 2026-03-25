@@ -235,6 +235,7 @@ pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+#[allow(unused)]
 struct OpsNoop;
 struct OpsStdKindAssign;
 struct OpsStdKindBinary;
@@ -446,6 +447,7 @@ enum OpsAssign {
     Shr(Token![>>=]),
 }
 
+#[allow(unused)]
 enum OpsAssignModeArithm<Ext: Parse> {
     Default(Ext),
     Strict(Token![@], kw::strict),
@@ -453,6 +455,7 @@ enum OpsAssignModeArithm<Ext: Parse> {
     Saturating(Token![@], kw::saturating),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsAssignModeArithmFrom {
     Default,
@@ -461,12 +464,14 @@ enum OpsAssignModeArithmFrom {
     Saturating(Token![@], kw::saturating),
 }
 
+#[allow(unused)]
 enum OpsAssignModeShift<Ext: Parse> {
     Default(Ext),
     Strict(Token![@], kw::strict),
     Unbounded(Token![@], kw::unbounded),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsAssignModeShiftFrom {
     Default,
@@ -488,6 +493,7 @@ enum OpsBinary {
     Shr(Token![>>]),
 }
 
+#[allow(unused)]
 enum OpsBinaryModeArithm<Ext: Parse> {
     Default(Ext),
     Checked(Token![@], kw::checked),
@@ -497,6 +503,7 @@ enum OpsBinaryModeArithm<Ext: Parse> {
     Overflowing(Token![@], kw::overflowing),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsBinaryModeArithmFrom {
     Default,
@@ -505,6 +512,7 @@ enum OpsBinaryModeArithmFrom {
     Saturating(Token![@], kw::saturating),
 }
 
+#[allow(unused)]
 enum OpsBinaryModeShift<Ext: Parse> {
     Default(Ext),
     Checked(Token![@], kw::checked),
@@ -513,6 +521,7 @@ enum OpsBinaryModeShift<Ext: Parse> {
     Overflowing(Token![@], kw::overflowing),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsBinaryModeShiftFrom {
     Default,
@@ -526,6 +535,7 @@ enum OpsUnary {
     Neg(Token![-]),
 }
 
+#[allow(unused)]
 enum OpsUnaryMode<Ext: Parse> {
     Default(Ext),
     Checked(Token![@], kw::checked),
@@ -535,6 +545,7 @@ enum OpsUnaryMode<Ext: Parse> {
     Overflowing(Token![@], kw::overflowing),
 }
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsUnaryModeFrom {
     Default,
