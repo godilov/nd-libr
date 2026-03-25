@@ -235,6 +235,7 @@ pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+struct OpsNoop;
 struct OpsStdKindAssign;
 struct OpsStdKindBinary;
 struct OpsStdKindUnary;
@@ -445,6 +446,34 @@ enum OpsAssign {
     Shr(Token![>>=]),
 }
 
+enum OpsAssignModeArithm<Ext: Parse> {
+    Default(Ext),
+    Strict(Token![@], kw::strict),
+    Wrapping(Token![@], kw::wrapping),
+    Saturating(Token![@], kw::saturating),
+}
+
+#[derive(Clone, Copy)]
+enum OpsAssignModeArithmFrom {
+    Default,
+    Strict(Token![@], kw::strict),
+    Wrapping(Token![@], kw::wrapping),
+    Saturating(Token![@], kw::saturating),
+}
+
+enum OpsAssignModeShift<Ext: Parse> {
+    Default(Ext),
+    Strict(Token![@], kw::strict),
+    Unbounded(Token![@], kw::unbounded),
+}
+
+#[derive(Clone, Copy)]
+enum OpsAssignModeShiftFrom {
+    Default,
+    Strict(Token![@], kw::strict),
+    Unbounded(Token![@], kw::saturating),
+}
+
 #[derive(Clone, Copy)]
 enum OpsBinary {
     Add(Token![+]),
@@ -459,10 +488,59 @@ enum OpsBinary {
     Shr(Token![>>]),
 }
 
+enum OpsBinaryModeArithm<Ext: Parse> {
+    Default(Ext),
+    Checked(Token![@], kw::checked),
+    Strict(Token![@], kw::strict),
+    Wrapping(Token![@], kw::wrapping),
+    Saturating(Token![@], kw::saturating),
+    Overflowing(Token![@], kw::overflowing),
+}
+
+#[derive(Clone, Copy)]
+enum OpsBinaryModeArithmFrom {
+    Default,
+    Strict(Token![@], kw::strict),
+    Wrapping(Token![@], kw::wrapping),
+    Saturating(Token![@], kw::saturating),
+}
+
+enum OpsBinaryModeShift<Ext: Parse> {
+    Default(Ext),
+    Checked(Token![@], kw::checked),
+    Strict(Token![@], kw::strict),
+    Unbounded(Token![@], kw::unbounded),
+    Overflowing(Token![@], kw::overflowing),
+}
+
+#[derive(Clone, Copy)]
+enum OpsBinaryModeShiftFrom {
+    Default,
+    Strict(Token![@], kw::strict),
+    Unbounded(Token![@], kw::saturating),
+}
+
 #[derive(Clone, Copy)]
 enum OpsUnary {
     Not(Token![!]),
     Neg(Token![-]),
+}
+
+enum OpsUnaryMode<Ext: Parse> {
+    Default(Ext),
+    Checked(Token![@], kw::checked),
+    Strict(Token![@], kw::strict),
+    Wrapping(Token![@], kw::wrapping),
+    Saturating(Token![@], kw::saturating),
+    Overflowing(Token![@], kw::overflowing),
+}
+
+#[derive(Clone, Copy)]
+enum OpsUnaryModeFrom {
+    Default,
+    Strict(Token![@], kw::strict),
+    Wrapping(Token![@], kw::wrapping),
+    Saturating(Token![@], kw::saturating),
 }
 
 #[allow(unused)]
@@ -634,6 +712,12 @@ impl OpsKindFwd for OpsNdKindUnary {
     type Definition = OpsDefinitionFwd<OpsUnaryExt>;
     type Expression = OpsExpressionUnary;
     type Signature = OpsNdSignatureUnary;
+}
+
+impl Parse for OpsNoop {
+    fn parse(_: ParseStream) -> Result<Self> {
+        Ok(Self)
+    }
 }
 
 impl Parse for Ops {
