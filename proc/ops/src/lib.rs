@@ -2476,9 +2476,9 @@ impl OpsNdBinary {
                 OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdRemSaturating },
                 OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdRemOverflowing },
             },
-            OpsBinary::BitOr(_) => parse_quote! { #prefix::ops:: },
-            OpsBinary::BitAnd(_) => parse_quote! { #prefix::ops:: },
-            OpsBinary::BitXor(_) => parse_quote! { #prefix::ops:: },
+            OpsBinary::BitOr(_) => parse_quote! { #prefix::ops::NdBitOr },
+            OpsBinary::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAnd },
+            OpsBinary::BitXor(_) => parse_quote! { #prefix::ops::NdBitXor },
             OpsBinary::Shl(_, mode) => match mode {
                 OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShl },
                 OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::ops::NdShlChecked },
