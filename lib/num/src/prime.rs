@@ -23,7 +23,6 @@ macro_rules! prime_impl {
                 let inv = 1.0 / val.ln();
 
                 let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
 
                 est.ceil() as usize
             }
@@ -35,7 +34,6 @@ macro_rules! prime_impl {
                 let inv = 1.0 / val.ln();
 
                 let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
 
                 est.ceil() as usize
             }
@@ -45,7 +43,6 @@ macro_rules! prime_impl {
                 let inv = 1.0 / val.ln();
 
                 let est = val * inv * (1.0 + inv + 2.0 * inv * inv + 7.59 * inv * inv * inv);
-                let est = est.max(val);
 
                 est.ceil() as usize
             }
@@ -343,7 +340,7 @@ mod tests {
         let count = PRIMES
             .last()
             .and_then(|&prime| (prime as u64).checked_pow(2))
-            .map(|prime| prime.as_count_estimate());
+            .map(|prime| prime.as_limit_estimate());
 
         let count = match count {
             Some(val) => val,
@@ -396,7 +393,7 @@ mod tests {
         let count = PRIMES
             .last()
             .and_then(|&prime| (prime as u64).checked_pow(2))
-            .map(|prime| prime.as_count_estimate());
+            .map(|prime| prime.as_limit_estimate());
 
         let count = match count {
             Some(val) => val,
