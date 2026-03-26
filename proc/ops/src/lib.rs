@@ -447,33 +447,29 @@ enum OpsAssign {
     Shr(Token![>>=]),
 }
 
-#[allow(unused)]
-enum OpsAssignModeArithm<Ext: Parse> {
+enum OpsAssignMode<Ext: Parse> {
     Default(Ext),
     Strict(Token![@], kw::strict),
     Wrapping(Token![@], kw::wrapping),
     Saturating(Token![@], kw::saturating),
 }
 
-#[allow(unused)]
 #[derive(Clone, Copy)]
-enum OpsAssignModeArithmFrom {
+enum OpsAssignModeFrom {
     Default,
     Strict(Token![@], kw::strict),
     Wrapping(Token![@], kw::wrapping),
     Saturating(Token![@], kw::saturating),
 }
 
-#[allow(unused)]
-enum OpsAssignModeShift<Ext: Parse> {
+enum OpsAssignShiftMode<Ext: Parse> {
     Default(Ext),
     Strict(Token![@], kw::strict),
     Unbounded(Token![@], kw::unbounded),
 }
 
-#[allow(unused)]
 #[derive(Clone, Copy)]
-enum OpsAssignModeShiftFrom {
+enum OpsAssignShiftModeFrom {
     Default,
     Strict(Token![@], kw::strict),
     Unbounded(Token![@], kw::saturating),
@@ -493,8 +489,7 @@ enum OpsBinary {
     Shr(Token![>>]),
 }
 
-#[allow(unused)]
-enum OpsBinaryModeArithm<Ext: Parse> {
+enum OpsBinaryMode<Ext: Parse> {
     Default(Ext),
     Checked(Token![@], kw::checked),
     Strict(Token![@], kw::strict),
@@ -503,17 +498,15 @@ enum OpsBinaryModeArithm<Ext: Parse> {
     Overflowing(Token![@], kw::overflowing),
 }
 
-#[allow(unused)]
 #[derive(Clone, Copy)]
-enum OpsBinaryModeArithmFrom {
+enum OpsBinaryModeFrom {
     Default,
     Strict(Token![@], kw::strict),
     Wrapping(Token![@], kw::wrapping),
     Saturating(Token![@], kw::saturating),
 }
 
-#[allow(unused)]
-enum OpsBinaryModeShift<Ext: Parse> {
+enum OpsBinaryShiftMode<Ext: Parse> {
     Default(Ext),
     Checked(Token![@], kw::checked),
     Strict(Token![@], kw::strict),
@@ -521,9 +514,8 @@ enum OpsBinaryModeShift<Ext: Parse> {
     Overflowing(Token![@], kw::overflowing),
 }
 
-#[allow(unused)]
 #[derive(Clone, Copy)]
-enum OpsBinaryModeShiftFrom {
+enum OpsBinaryShiftModeFrom {
     Default,
     Strict(Token![@], kw::strict),
     Unbounded(Token![@], kw::saturating),
@@ -535,7 +527,6 @@ enum OpsUnary {
     Neg(Token![-]),
 }
 
-#[allow(unused)]
 enum OpsUnaryMode<Ext: Parse> {
     Default(Ext),
     Checked(Token![@], kw::checked),
@@ -545,7 +536,6 @@ enum OpsUnaryMode<Ext: Parse> {
     Overflowing(Token![@], kw::overflowing),
 }
 
-#[allow(unused)]
 #[derive(Clone, Copy)]
 enum OpsUnaryModeFrom {
     Default,
