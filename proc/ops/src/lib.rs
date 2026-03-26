@@ -12,6 +12,8 @@ use syn::{
 };
 
 mod kw {
+    syn::custom_keyword!(with);
+
     syn::custom_keyword!(stdmut);
     syn::custom_keyword!(stdbin);
     syn::custom_keyword!(stdun);
@@ -455,7 +457,7 @@ enum OpsAssignMode<Ext: Parse> {
 }
 
 #[derive(Clone, Copy)]
-enum OpsAssignModeFrom {
+enum OpsAssignModeWith {
     Default,
     Strict(Token![@], kw::strict),
     Wrapping(Token![@], kw::wrapping),
@@ -469,7 +471,7 @@ enum OpsAssignShiftMode<Ext: Parse> {
 }
 
 #[derive(Clone, Copy)]
-enum OpsAssignShiftModeFrom {
+enum OpsAssignShiftModeWith {
     Default,
     Strict(Token![@], kw::strict),
     Unbounded(Token![@], kw::saturating),
@@ -499,7 +501,7 @@ enum OpsBinaryMode<Ext: Parse> {
 }
 
 #[derive(Clone, Copy)]
-enum OpsBinaryModeFrom {
+enum OpsBinaryModeWith {
     Default,
     Strict(Token![@], kw::strict),
     Wrapping(Token![@], kw::wrapping),
@@ -515,7 +517,7 @@ enum OpsBinaryShiftMode<Ext: Parse> {
 }
 
 #[derive(Clone, Copy)]
-enum OpsBinaryShiftModeFrom {
+enum OpsBinaryShiftModeWith {
     Default,
     Strict(Token![@], kw::strict),
     Unbounded(Token![@], kw::saturating),
@@ -537,7 +539,7 @@ enum OpsUnaryMode<Ext: Parse> {
 }
 
 #[derive(Clone, Copy)]
-enum OpsUnaryModeFrom {
+enum OpsUnaryModeWith {
     Default,
     Strict(Token![@], kw::strict),
     Wrapping(Token![@], kw::wrapping),
@@ -1208,6 +1210,90 @@ impl Parse for OpsAssign {
     }
 }
 
+impl<Ext: Parse> Parse for OpsAssignMode<Ext> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Token![@]) {
+            return Ok(Self::Default(input.parse()?));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Wrapping(token, input.parse()?))
+        } else if lookahead.peek(kw::saturating) {
+            Ok(Self::Saturating(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsAssignModeWith {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(kw::with) {
+            return Ok(Self::Default);
+        }
+
+        input.parse::<kw::with>()?;
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Wrapping(token, input.parse()?))
+        } else if lookahead.peek(kw::saturating) {
+            Ok(Self::Saturating(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl<Ext: Parse> Parse for OpsAssignShiftMode<Ext> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Token![@]) {
+            return Ok(Self::Default(input.parse()?));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::unbounded) {
+            Ok(Self::Unbounded(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsAssignShiftModeWith {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(kw::with) {
+            return Ok(Self::Default);
+        }
+
+        input.parse::<kw::with>()?;
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Unbounded(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
 impl Parse for OpsBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
@@ -1238,6 +1324,94 @@ impl Parse for OpsBinary {
     }
 }
 
+impl<Ext: Parse> Parse for OpsBinaryMode<Ext> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Token![@]) {
+            return Ok(Self::Default(input.parse()?));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::checked) {
+            Ok(Self::Checked(token, input.parse()?))
+        } else if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Wrapping(token, input.parse()?))
+        } else if lookahead.peek(kw::saturating) {
+            Ok(Self::Saturating(token, input.parse()?))
+        } else if lookahead.peek(kw::overflowing) {
+            Ok(Self::Overflowing(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsBinaryModeWith {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(kw::with) {
+            return Ok(Self::Default);
+        }
+
+        input.parse::<kw::with>()?;
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Wrapping(token, input.parse()?))
+        } else if lookahead.peek(kw::saturating) {
+            Ok(Self::Saturating(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl<Ext: Parse> Parse for OpsBinaryShiftMode<Ext> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Token![@]) {
+            return Ok(Self::Default(input.parse()?));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::unbounded) {
+            Ok(Self::Unbounded(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsBinaryShiftModeWith {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(kw::with) {
+            return Ok(Self::Default);
+        }
+
+        input.parse::<kw::with>()?;
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Unbounded(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
 impl Parse for OpsUnary {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
@@ -1246,6 +1420,54 @@ impl Parse for OpsUnary {
             input.parse::<Token![!]>().map(Self::Not)
         } else if lookahead.peek(Token![-]) {
             input.parse::<Token![-]>().map(Self::Neg)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl<Ext: Parse> Parse for OpsUnaryMode<Ext> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Token![@]) {
+            return Ok(Self::Default(input.parse()?));
+        }
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::checked) {
+            Ok(Self::Checked(token, input.parse()?))
+        } else if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Wrapping(token, input.parse()?))
+        } else if lookahead.peek(kw::saturating) {
+            Ok(Self::Saturating(token, input.parse()?))
+        } else if lookahead.peek(kw::overflowing) {
+            Ok(Self::Overflowing(token, input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for OpsUnaryModeWith {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(kw::with) {
+            return Ok(Self::Default);
+        }
+
+        input.parse::<kw::with>()?;
+
+        let token = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::strict) {
+            Ok(Self::Strict(token, input.parse()?))
+        } else if lookahead.peek(kw::wrapping) {
+            Ok(Self::Wrapping(token, input.parse()?))
+        } else if lookahead.peek(kw::saturating) {
+            Ok(Self::Saturating(token, input.parse()?))
         } else {
             Err(lookahead.error())
         }
