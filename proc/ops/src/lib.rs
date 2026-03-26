@@ -1228,13 +1228,10 @@ impl<Ext: Parse, ShiftExt: Parse> Parse for OpsBinary<Ext, ShiftExt> {
         } else if lookahead.peek(Token![%]) {
             Ok(Self::Rem(input.parse()?, input.parse()?))
         } else if lookahead.peek(Token![|]) {
-            println!("Hello, BitOr!");
             Ok(Self::BitOr(input.parse()?))
         } else if lookahead.peek(Token![&]) {
-            println!("Hello, BitAnd!");
             Ok(Self::BitAnd(input.parse()?))
         } else if lookahead.peek(Token![^]) {
-            println!("Hello, BitXor!");
             Ok(Self::BitXor(input.parse()?))
         } else if lookahead.peek(Token![<<]) {
             Ok(Self::Shl(input.parse()?, input.parse()?))
