@@ -355,6 +355,10 @@ mod tests {
                 PRIMES
                     .iter()
                     .map(|&p| p as u64)
+                    .take_while(|&p| match p.checked_pow(2) {
+                        Some(p) => p <= prime,
+                        None => false,
+                    })
                     .find_map(|p| prime.is_multiple_of(p).then_some((prime, p)))
             })
             .map_or(Ok(()), |res| {
@@ -376,6 +380,10 @@ mod tests {
                 PRIMES
                     .iter()
                     .map(|&p| p as u64)
+                    .take_while(|&p| match p.checked_pow(2) {
+                        Some(p) => p <= prime,
+                        None => false,
+                    })
                     .find_map(|p| prime.is_multiple_of(p).then_some((prime, p)))
             })
             .map_or(Ok(()), |res| {
@@ -400,6 +408,10 @@ mod tests {
                 PRIMES
                     .iter()
                     .map(|&p| p as u64)
+                    .take_while(|&p| match p.checked_pow(2) {
+                        Some(p) => p <= prime,
+                        None => false,
+                    })
                     .find_map(|p| prime.is_multiple_of(p).then_some((prime, p)))
             })
             .map_or(Ok(()), |res| {
