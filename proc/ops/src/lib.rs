@@ -1432,6 +1432,7 @@ impl ToTokens for OpsImpl<OpsStdKindAssign> {
 
             quote! {
                 impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ty #gen_where {
+                    #[inline]
                     fn #ident(&mut self, rhs: #rhs_ref #rhs_ty) {
                         #[allow(clippy::needless_borrow)]
                         (|#lhs_pat, #rhs_pat: #rhs_ref #rhs_ty| { #expr })(self, rhs);
@@ -1510,6 +1511,7 @@ impl ToTokens for OpsImpl<OpsStdKindBinary> {
                 impl #gen_impl #path<#rhs_ref #rhs_ty> for #lhs_ref #lhs_ty #gen_where {
                     type Output = #res_ty;
 
+                    #[inline]
                     fn #ident(self, rhs: #rhs_ref #rhs_ty) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
                         <#res_ty>::from((|#lhs_pat: #lhs_ref #lhs_ty, #rhs_pat: #rhs_ref #rhs_ty| { #expr })(self, rhs))
@@ -1617,6 +1619,7 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                 impl #gen_impl #path for #lhs_ref #self_ty #gen_where {
                     type Output = #res_ty;
 
+                    #[inline]
                     fn #ident(self) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
                         <#res_ty>::from((|#self_pat: #lhs_ref #self_ty| { #expr })(self))
@@ -1685,6 +1688,7 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
             let quote = |impl_ty: &Type| {
                 quote! {
                     impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
+                        #[inline]
                         fn #ident(#lhs_pat, #rhs_pat) {
                             #expr
                         }
@@ -1733,6 +1737,7 @@ impl ToTokens for OpsImpl<OpsNdKindBinary> {
                     impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
                         type Type = #res_ty;
 
+                        #[inline]
                         fn #ident(#lhs_pat, #rhs_pat) -> #ty {
                             <#ty>::from(#expr)
                         }
@@ -1779,6 +1784,7 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
                     impl #gen_impl #path<#self_ty> for #impl_ty #gen_where {
                         type Type = #res_ty;
 
+                        #[inline]
                         fn #ident(#self_pat) -> #ty {
                             <#ty>::from(#expr)
                         }
