@@ -51,39 +51,48 @@ macro_rules! word_impl {
             const ZERO: Self = 0;
             const ONE: Self = 1;
 
+            #[inline]
             fn from_usize(value: usize) -> Self {
                 value as Self
             }
 
+            #[inline]
             fn from_single(value: Single) -> Self {
                 value as Self
             }
 
+            #[inline]
             fn from_double(value: Double) -> Self {
                 value as Self
             }
 
+            #[inline]
             fn as_usize(self) -> usize {
                 self as usize
             }
 
+            #[inline]
             fn as_single(self) -> Single {
                 self as Single
             }
 
+            #[inline]
             fn as_double(self) -> Double {
                 self as Double
             }
 
+            #[inline]
             fn order(self) -> usize {
                 self.ilog2() as usize
             }
 
+            #[inline]
             fn is_pow2(self) -> bool {
                 (self & (self - 1) == 0) && self != 0
             }
 
             #[cfg(feature = "rand")]
+            #[inline]
             fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
                 let mut bytes = [0; <Self as Word>::BYTES];
 
@@ -429,6 +438,7 @@ pub trait BytesFn: Sized + Default + BytesLen {
     fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self;
 
     /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
+    #[inline]
     #[ndfwd::as_into]
     fn into_bitor(mut self, mask: Single, offset: Offset) -> Self {
         self.write_bitor(mask, offset);
@@ -436,6 +446,7 @@ pub trait BytesFn: Sized + Default + BytesLen {
     }
 
     /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
+    #[inline]
     #[ndfwd::as_into]
     fn into_bitand(mut self, mask: Single, offset: Offset) -> Self {
         self.write_bitand(mask, offset);
@@ -443,6 +454,7 @@ pub trait BytesFn: Sized + Default + BytesLen {
     }
 
     /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
+    #[inline]
     #[ndfwd::as_into]
     fn into_bitxor(mut self, mask: Single, offset: Offset) -> Self {
         self.write_bitxor(mask, offset);
@@ -451,6 +463,7 @@ pub trait BytesFn: Sized + Default + BytesLen {
 
     /// Creates random bytes.
     #[cfg(feature = "rand")]
+    #[inline]
     #[ndfwd::as_into]
     fn rand_bytes<Rng: rand::Rng>(rng: &mut Rng) -> Self {
         let mut res = Self::default();
@@ -462,6 +475,7 @@ pub trait BytesFn: Sized + Default + BytesLen {
 }
 
 impl<T> From<T> for Aligned<T> {
+    #[inline]
     fn from(value: T) -> Self {
         Aligned(value)
     }

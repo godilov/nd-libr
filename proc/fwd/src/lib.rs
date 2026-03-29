@@ -80,30 +80,35 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         impl #gen_impl std::ops::Deref for #ident #gen_type #gen_where {
             type Target = #ty;
 
+            #[inline]
             fn deref(&self) -> &Self::Target {
                 &#expr
             }
         }
 
         impl #gen_impl std::ops::DerefMut for #ident #gen_type #gen_where {
+            #[inline]
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut #expr
             }
         }
 
         impl<AsRefRet, #gen_params> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref {
+            #[inline]
             fn as_ref(&self) -> &AsRefRet {
                 #expr.as_ref()
             }
         }
 
         impl<AsMutRet, #gen_params> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut {
+            #[inline]
             fn as_mut(&mut self) -> &mut AsMutRet {
                 #expr.as_mut()
             }
         }
 
         impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
+            #[inline]
             fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
                 <#ty>::from_iter(iter).into()
             }
@@ -174,6 +179,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         impl #gen_impl std::cmp::Eq for #ident #gen_type #eq {}
 
         impl #gen_impl std::cmp::Ord for #ident #gen_type #ord {
+            #[inline]
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
                 #forward_impl
 
@@ -182,6 +188,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         }
 
         impl #gen_impl std::cmp::PartialEq for #ident #gen_type #partial_eq {
+            #[inline]
             fn eq(&self, other: &Self) -> bool {
                 #forward_impl
 
@@ -190,6 +197,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         }
 
         impl #gen_impl std::cmp::PartialOrd for #ident #gen_type #partial_ord {
+            #[inline]
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
                 #forward_impl
 
@@ -239,6 +247,7 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
         quote! {
             impl #gen_impl #display for #ident #gen_type #display_where {
+                #[inline]
                 fn fmt(&self,f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     #expr.fmt(f)
                 }
@@ -963,11 +972,13 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
     let as_self_path: Path = parse_quote! { ndfwd::as_self };
     let as_expr_path: Path = parse_quote! { ndfwd::as_expr };
     let as_map_path: Path = parse_quote! { ndfwd::as_map };
+    let inline_path: Path = parse_quote! { inline };
 
     let as_into = attrs.iter().any(|attr| *attr.path() == as_into_path);
     let as_self = attrs.iter().any(|attr| *attr.path() == as_self_path);
     let as_expr = attrs.iter().find(|attr| *attr.path() == as_expr_path);
     let as_map = attrs.iter().find(|attr| *attr.path() == as_map_path);
+    let attrs = attrs.iter().filter(|attr| *attr.path() != inline_path);
 
     let expr = match recv {
         Some(val) if val.reference.is_some() && val.mutability.is_some() => {
@@ -1088,6 +1099,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
         ident,
         quote! {
             #[allow(unused_mut)]
+            #[inline]
             #(#attrs)*
             #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#declarations),*) #output {
                 #expr

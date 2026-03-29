@@ -27,14 +27,17 @@ macro_rules! num_impl {
         }
 
         impl BytesFn for $primitive {
+            #[inline]
             fn as_bytes_ref(&self) -> &[u8] {
                 self.as_bytes()
             }
 
+            #[inline]
             fn as_bytes_mut(&mut self) -> &mut [u8] {
                 self.as_mut_bytes()
             }
 
+            #[inline]
             fn read(&self, offset: Offset) -> Single {
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
@@ -44,6 +47,7 @@ macro_rules! num_impl {
                 self.unbounded_shr(offset) as Single
             }
 
+            #[inline]
             fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
@@ -54,6 +58,7 @@ macro_rules! num_impl {
                 self
             }
 
+            #[inline]
             fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
                 use std::ops::Not;
 
@@ -66,6 +71,7 @@ macro_rules! num_impl {
                 self
             }
 
+            #[inline]
             fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
                 let offset = match offset {
                     Offset::Left(val) => val as u32,
@@ -78,24 +84,29 @@ macro_rules! num_impl {
         }
 
         impl NumFn for $primitive {
+            #[inline]
             fn is_odd(&self) -> bool {
                 self & 1 == 1
             }
 
+            #[inline]
             fn is_even(&self) -> bool {
                 self & 1 == 0
             }
 
+            #[inline]
             fn write_odd(&mut self) -> &mut Self {
                 *self |= 1;
                 self
             }
 
+            #[inline]
             fn write_even(&mut self) -> &mut Self {
                 *self &= !1;
                 self
             }
 
+            #[inline]
             fn write_alt(&mut self) -> &mut Self {
                 *self ^= 1;
                 self
@@ -129,14 +140,17 @@ macro_rules! num_impl {
     };
     (@unsigned $primitive:ty $(,)?) => {
         impl NumUnsigned for $primitive {
+            #[inline]
             fn order(&self) -> usize {
                 self.ilog2() as usize
             }
 
+            #[inline]
             fn log(&self) -> Self {
                 self.ilog2() as $primitive
             }
 
+            #[inline]
             fn sqrt(&self) -> Self {
                 self.isqrt() as $primitive
             }
@@ -271,6 +285,7 @@ macro_rules! sign_from {
     };
     (@signed $primitive:ty $(,)?) => {
         impl From<$primitive> for Sign {
+            #[inline]
             fn from(value: $primitive) -> Self {
                 match value.cmp(&0) {
                     Ordering::Less => Sign::NEG,
@@ -282,6 +297,7 @@ macro_rules! sign_from {
     };
     (@unsigned $primitive:ty $(,)?) => {
         impl From<$primitive> for Sign {
+            #[inline]
             fn from(value: $primitive) -> Self {
                 match value {
                     0 => Sign::ZERO,
@@ -449,6 +465,7 @@ pub trait NumFn:
     fn write_alt(&mut self) -> &mut Self;
 
     /// Writes odd number.
+    #[inline]
     #[ndfwd::as_into]
     fn into_odd(mut self) -> Self {
         self.write_odd();
@@ -456,6 +473,7 @@ pub trait NumFn:
     }
 
     /// Writes even number.
+    #[inline]
     #[ndfwd::as_into]
     fn into_even(mut self) -> Self {
         self.write_even();
@@ -463,6 +481,7 @@ pub trait NumFn:
     }
 
     /// Alters odd/even number.
+    #[inline]
     #[ndfwd::as_into]
     fn into_alt(mut self) -> Self {
         self.write_alt();
@@ -476,6 +495,7 @@ pub trait NumFn:
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     ///
     /// See [`NumFnChecked`] for checked semantics.
+    #[inline]
     #[ndfwd::as_into]
     fn gcd(mut lhs: Self, mut rhs: Self) -> Self {
         let zero = Self::zero();
@@ -497,6 +517,7 @@ pub trait NumFn:
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     ///
     /// See [`NumFnChecked`] for checked semantics.
+    #[inline]
     #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
         let zero = Self::zero();
@@ -536,6 +557,7 @@ pub trait NumFn:
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     ///
     /// See [`NumFnChecked`] for checked semantics.
+    #[inline]
     #[ndfwd::as_into]
     fn lcm(lhs: Self, rhs: Self) -> Self {
         let val = Self::gcd(lhs.clone(), rhs.clone());
@@ -549,6 +571,7 @@ pub trait NumFn:
     /// # Panics
     ///
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[inline]
     #[ndfwd::as_into]
     fn pow(self, mut exp: Self) -> Self {
         let zero = Self::zero();
@@ -576,6 +599,7 @@ pub trait NumFn:
     /// # Panics
     ///
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[inline]
     #[ndfwd::as_into]
     fn powrem(self, mut exp: Self, rem: &Self) -> Self {
         let zero = Self::zero();
@@ -612,6 +636,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
     ///
     /// - `Some` when value exists.
     /// - `None` when non-checked could panic.
+    #[inline]
     #[ndfwd::as_map(Self::from)]
     fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
         let zero = Self::zero();
@@ -632,6 +657,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
     ///
     /// - `Some` when value exists.
     /// - `None` when non-checked could panic.
+    #[inline]
     #[ndfwd::as_map(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)> {
         let zero = Self::zero();
@@ -670,6 +696,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
     ///
     /// - `Some` when value exists.
     /// - `None` when non-checked could panic.
+    #[inline]
     #[ndfwd::as_map(Self::from)]
     fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self> {
         let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;

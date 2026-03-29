@@ -20,6 +20,7 @@ pub trait IteratorExt: Iterator {
     /// assert_eq!(val, [0, 1, 2, 0]);
     /// assert_eq!(iter.next(), None);
     /// ```
+    #[inline]
     fn collect_with<Dst>(&mut self, mut dst: Dst) -> Dst
     where
         for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
@@ -45,6 +46,7 @@ pub trait IteratorExt: Iterator {
     /// assert_eq!(dst, [0, 1, 2, 0]);
     /// assert_eq!(iter.next(), None);
     /// ```
+    #[inline]
     fn collect_with_mut<'dst, Dst>(&mut self, dst: &'dst mut Dst) -> &'dst mut Dst
     where
         for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,

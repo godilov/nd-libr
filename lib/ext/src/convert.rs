@@ -45,6 +45,7 @@ pub trait NdFromStr<Ctx>: Sized {
 }
 
 impl<U, V: From<U>> NdFrom<U> for V {
+    #[inline]
     fn nd_from(value: U) -> Self {
         V::from(value)
     }
@@ -53,6 +54,7 @@ impl<U, V: From<U>> NdFrom<U> for V {
 impl<U, V: TryFrom<U>> NdTryFrom<U> for V {
     type Error = V::Error;
 
+    #[inline]
     fn nd_try_from(value: U) -> Result<Self, Self::Error> {
         V::try_from(value)
     }
@@ -61,6 +63,7 @@ impl<U, V: TryFrom<U>> NdTryFrom<U> for V {
 impl<T: FromStr> NdFromStr<()> for T {
     type Err = T::Err;
 
+    #[inline]
     fn nd_from_str(s: &str, _: ()) -> Result<Self, Self::Err> {
         T::from_str(s)
     }

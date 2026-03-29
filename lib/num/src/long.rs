@@ -79,6 +79,7 @@ macro_rules! from_primitive {
     };
     ($long:ident, $primitive:ty $(,)?) => {
         impl<const L: usize> From<$primitive> for $long<L> {
+            #[inline]
             #[allow(unused_comparisons)]
             fn from(value: $primitive) -> Self {
                 let bytes = value.to_le_bytes();
@@ -100,6 +101,7 @@ macro_rules! from_primitive_const {
         /// Truncates on overflow.
         ///
         /// **Must** be used **ONLY** in const context.
+        #[inline]
         #[allow(unused_comparisons)]
         pub const fn $fn(value: $primitive) -> Self {
             let default = if value >= 0 { 0 } else { MAX };
@@ -987,6 +989,7 @@ pub mod radix {
     }
 
     impl From<Dec> for Radix {
+        #[inline]
         fn from(_: Dec) -> Self {
             Self {
                 prefix: Dec::PREFIX,
@@ -997,6 +1000,7 @@ pub mod radix {
     }
 
     impl From<Bin> for Radix {
+        #[inline]
         fn from(_: Bin) -> Self {
             Self {
                 prefix: Bin::PREFIX,
@@ -1007,6 +1011,7 @@ pub mod radix {
     }
 
     impl From<Oct> for Radix {
+        #[inline]
         fn from(_: Oct) -> Self {
             Self {
                 prefix: Oct::PREFIX,
@@ -1017,6 +1022,7 @@ pub mod radix {
     }
 
     impl From<Hex> for Radix {
+        #[inline]
         fn from(_: Hex) -> Self {
             Self {
                 prefix: Hex::PREFIX,
@@ -1031,6 +1037,7 @@ pub mod radix {
 mod uops {
     use super::*;
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1038,6 +1045,7 @@ mod uops {
         *words
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1045,6 +1053,7 @@ mod uops {
         words
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1057,6 +1066,7 @@ mod uops {
         words
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1067,6 +1077,7 @@ mod uops {
         words
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1074,6 +1085,7 @@ mod uops {
         words.iter().map(|&word| !word).collect_with([0; L])
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1082,6 +1094,7 @@ mod uops {
         words
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1089,6 +1102,7 @@ mod uops {
         inc_impl!(*words)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1096,6 +1110,7 @@ mod uops {
         inc_impl!(words)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1103,6 +1118,7 @@ mod uops {
         dec_impl!(*words)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1138,6 +1154,7 @@ mod uops {
         shr_impl!(words, words, shift, default)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1145,6 +1162,7 @@ mod uops {
         shl(words, shift, 0)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1158,6 +1176,7 @@ mod uops {
         shr(words, shift, default)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1165,6 +1184,7 @@ mod uops {
         shl_mut(words, shift, 0)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1178,6 +1198,7 @@ mod uops {
         shr_mut(words, shift, default)
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1200,6 +1221,7 @@ mod uops {
         res
     }
 
+    #[inline]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
     #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
@@ -1751,6 +1773,7 @@ impl<W: Word> DigitsImpl<W> for ExpImpl<W> {}
 impl<W: Word> DigitsImpl<W> for RadixImpl<W> {}
 
 impl From<ToDigitsError> for IntoDigitsError {
+    #[inline]
     fn from(value: ToDigitsError) -> Self {
         match value {
             ToDigitsError::InvalidExponent { exp } => Self::InvalidRadix { radix: exp.order() },
@@ -1759,36 +1782,42 @@ impl From<ToDigitsError> for IntoDigitsError {
 }
 
 impl<const L: usize> Default for Signed<L> {
+    #[inline]
     fn default() -> Self {
         Self([0; L])
     }
 }
 
 impl<const L: usize> Default for Unsigned<L> {
+    #[inline]
     fn default() -> Self {
         Self([0; L])
     }
 }
 
 impl<const L: usize> Default for Bytes<L> {
+    #[inline]
     fn default() -> Self {
         Self([0; L])
     }
 }
 
 impl<const L: usize> From<bool> for Signed<L> {
+    #[inline]
     fn from(value: bool) -> Self {
         Self::from(value as i8)
     }
 }
 
 impl<const L: usize> From<bool> for Unsigned<L> {
+    #[inline]
     fn from(value: bool) -> Self {
         Self::from(value as u8)
     }
 }
 
 impl<const L: usize> From<bool> for Bytes<L> {
+    #[inline]
     fn from(value: bool) -> Self {
         Self::from(value as u8)
     }
@@ -1799,36 +1828,42 @@ from_primitive!(Unsigned [u8, u16, u32, u64, u128, usize]);
 from_primitive!(Bytes [u8, u16, u32, u64, u128, usize]);
 
 impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Signed<L> {
+    #[inline]
     fn nd_from(value: &[W; N]) -> Self {
         Self(from_arr(value, 0))
     }
 }
 
 impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Unsigned<L> {
+    #[inline]
     fn nd_from(value: &[W; N]) -> Self {
         Self(from_arr(value, 0))
     }
 }
 
 impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Bytes<L> {
+    #[inline]
     fn nd_from(value: &[W; N]) -> Self {
         Self(from_arr(value, 0))
     }
 }
 
 impl<const L: usize, W: Word> NdFrom<&[W]> for Signed<L> {
+    #[inline]
     fn nd_from(value: &[W]) -> Self {
         Self(from_slice(value))
     }
 }
 
 impl<const L: usize, W: Word> NdFrom<&[W]> for Unsigned<L> {
+    #[inline]
     fn nd_from(value: &[W]) -> Self {
         Self(from_slice(value))
     }
 }
 
 impl<const L: usize, W: Word> NdFrom<&[W]> for Bytes<L> {
+    #[inline]
     fn nd_from(value: &[W]) -> Self {
         Self(from_slice(value))
     }
@@ -1837,6 +1872,7 @@ impl<const L: usize, W: Word> NdFrom<&[W]> for Bytes<L> {
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Signed<L> {
     type Error = TryFromArrError;
 
+    #[inline]
     fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
         try_from_arr(value, 0).map(Self)
     }
@@ -1845,6 +1881,7 @@ impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Signed<L> {
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Unsigned<L> {
     type Error = TryFromArrError;
 
+    #[inline]
     fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
         try_from_arr(value, 0).map(Self)
     }
@@ -1853,6 +1890,7 @@ impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Unsigned<L>
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Bytes<L> {
     type Error = TryFromArrError;
 
+    #[inline]
     fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
         try_from_arr(value, 0).map(Self)
     }
@@ -1861,6 +1899,7 @@ impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Bytes<L> {
 impl<const L: usize, W: Word> NdTryFrom<&[W]> for Signed<L> {
     type Error = TryFromSliceError;
 
+    #[inline]
     fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
         try_from_slice(value).map(Self)
     }
@@ -1869,6 +1908,7 @@ impl<const L: usize, W: Word> NdTryFrom<&[W]> for Signed<L> {
 impl<const L: usize, W: Word> NdTryFrom<&[W]> for Unsigned<L> {
     type Error = TryFromSliceError;
 
+    #[inline]
     fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
         try_from_slice(value).map(Self)
     }
@@ -1877,24 +1917,28 @@ impl<const L: usize, W: Word> NdTryFrom<&[W]> for Unsigned<L> {
 impl<const L: usize, W: Word> NdTryFrom<&[W]> for Bytes<L> {
     type Error = TryFromSliceError;
 
+    #[inline]
     fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
         try_from_slice(value).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> FromIterator<W> for Signed<L> {
+    #[inline]
     fn from_iter<Iter: IntoIterator<Item = W>>(iter: Iter) -> Self {
         Self(from_iter(iter.into_iter()))
     }
 }
 
 impl<const L: usize, W: Word> FromIterator<W> for Unsigned<L> {
+    #[inline]
     fn from_iter<Iter: IntoIterator<Item = W>>(iter: Iter) -> Self {
         Self(from_iter(iter.into_iter()))
     }
 }
 
 impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
+    #[inline]
     fn from_iter<Iter: IntoIterator<Item = W>>(iter: Iter) -> Self {
         Self(from_iter(iter.into_iter()))
     }
@@ -1903,6 +1947,7 @@ impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
 impl<const L: usize> NdFromStr<Dec> for Signed<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Dec).map(Self)
     }
@@ -1911,6 +1956,7 @@ impl<const L: usize> NdFromStr<Dec> for Signed<L> {
 impl<const L: usize> NdFromStr<Dec> for Unsigned<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Dec).map(Self)
     }
@@ -1919,6 +1965,7 @@ impl<const L: usize> NdFromStr<Dec> for Unsigned<L> {
 impl<const L: usize> NdFromStr<Bin> for Signed<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Bin).map(Self)
     }
@@ -1927,6 +1974,7 @@ impl<const L: usize> NdFromStr<Bin> for Signed<L> {
 impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Bin).map(Self)
     }
@@ -1935,6 +1983,7 @@ impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
 impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Bin).map(Self)
     }
@@ -1943,6 +1992,7 @@ impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
 impl<const L: usize> NdFromStr<Oct> for Signed<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Oct).map(Self)
     }
@@ -1951,6 +2001,7 @@ impl<const L: usize> NdFromStr<Oct> for Signed<L> {
 impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Oct).map(Self)
     }
@@ -1959,6 +2010,7 @@ impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
 impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Oct).map(Self)
     }
@@ -1967,6 +2019,7 @@ impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
 impl<const L: usize> NdFromStr<Hex> for Signed<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Hex).map(Self)
     }
@@ -1975,6 +2028,7 @@ impl<const L: usize> NdFromStr<Hex> for Signed<L> {
 impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Hex).map(Self)
     }
@@ -1983,6 +2037,7 @@ impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
 impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
         from_str_impl!(@radix s, Hex).map(Self)
     }
@@ -1991,6 +2046,7 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
 impl<const L: usize> FromStr for Signed<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         from_str_impl!(@long s).map(Self)
     }
@@ -1999,6 +2055,7 @@ impl<const L: usize> FromStr for Signed<L> {
 impl<const L: usize> FromStr for Unsigned<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         from_str_impl!(@long s).map(Self)
     }
@@ -2007,48 +2064,56 @@ impl<const L: usize> FromStr for Unsigned<L> {
 impl<const L: usize> FromStr for Bytes<L> {
     type Err = FromStrError;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         from_str_impl!(@bytes s).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> AsRef<[W]> for Signed<L> {
+    #[inline]
     fn as_ref(&self) -> &[W] {
         self.as_words()
     }
 }
 
 impl<const L: usize, W: Word> AsRef<[W]> for Unsigned<L> {
+    #[inline]
     fn as_ref(&self) -> &[W] {
         self.as_words()
     }
 }
 
 impl<const L: usize, W: Word> AsRef<[W]> for Bytes<L> {
+    #[inline]
     fn as_ref(&self) -> &[W] {
         self.as_words()
     }
 }
 
 impl<const L: usize, W: Word> AsMut<[W]> for Signed<L> {
+    #[inline]
     fn as_mut(&mut self) -> &mut [W] {
         self.as_words_mut()
     }
 }
 
 impl<const L: usize, W: Word> AsMut<[W]> for Unsigned<L> {
+    #[inline]
     fn as_mut(&mut self) -> &mut [W] {
         self.as_words_mut()
     }
 }
 
 impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
+    #[inline]
     fn as_mut(&mut self) -> &mut [W] {
         self.as_words_mut()
     }
 }
 
 impl<const L: usize> Ord for Signed<L> {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         let x = self.sign();
         let y = other.sign();
@@ -2066,24 +2131,28 @@ impl<const L: usize> Ord for Signed<L> {
 }
 
 impl<const L: usize> Ord for Unsigned<L> {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.iter().rev().cmp(other.0.iter().rev())
     }
 }
 
 impl<const L: usize> PartialOrd for Signed<L> {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl<const L: usize> PartialOrd for Unsigned<L> {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl<const L: usize> Display for Signed<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self
             .signed(Sign::POS)
@@ -2098,6 +2167,7 @@ impl<const L: usize> Display for Signed<L> {
 }
 
 impl<const L: usize> Display for Unsigned<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self.into_digits_iter(RadixImpl { radix: Dec::RADIX as Single }) {
             Ok(val) => val,
@@ -2109,30 +2179,35 @@ impl<const L: usize> Display for Unsigned<L> {
 }
 
 impl<const L: usize> Display for Bytes<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Bytes<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Octal for Signed<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self.to_digits_iter(ExpImpl { exp: Oct::EXP as Single }) {
             Ok(val) => val,
@@ -2144,6 +2219,7 @@ impl<const L: usize> Octal for Signed<L> {
 }
 
 impl<const L: usize> Octal for Unsigned<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self.to_digits_iter(ExpImpl { exp: Oct::EXP as Single }) {
             Ok(val) => val,
@@ -2155,6 +2231,7 @@ impl<const L: usize> Octal for Unsigned<L> {
 }
 
 impl<const L: usize> Octal for Bytes<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self.to_digits_iter(ExpImpl { exp: Oct::EXP as Single }) {
             Ok(val) => val,
@@ -2166,36 +2243,42 @@ impl<const L: usize> Octal for Bytes<L> {
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Bytes<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Bytes<L> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
     }
@@ -2430,36 +2513,43 @@ impl<const L: usize> Signed<L> {
     /// Truncates on overflow.
     ///
     /// **Must** be used **ONLY** in const context.
+    #[inline]
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
 
     /// `self.0` as raw bytes ref.
+    #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
     /// `self.0` as raw bytes mut.
+    #[inline]
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
     /// `self.0` as raw [`Words`](Word) ref.
+    #[inline]
     pub fn as_words<W: Word>(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 
     /// `self.0` as raw [`Words`](Word) mut.
+    #[inline]
     pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 
     /// Long number sign.
+    #[inline]
     pub fn sign(&self) -> Sign {
         sign(&self.0, Sign::POS, Sign::NEG)
     }
 
     /// Absolute value.
+    #[inline]
     pub fn abs(&self) -> Signed<L> {
         match self.sign() {
             Sign::ZERO => Signed::<L>(self.0),
@@ -2469,6 +2559,7 @@ impl<const L: usize> Signed<L> {
     }
 
     /// Creates new signed with specified sign from raw `self.0`.
+    #[inline]
     pub fn signed(mut self, sign: Sign) -> Self {
         match self.sign() * sign {
             Sign::ZERO => return Self::default(),
@@ -2480,6 +2571,7 @@ impl<const L: usize> Signed<L> {
     }
 
     /// Creates new unsigned from raw `self.0`.
+    #[inline]
     pub fn unsigned(self) -> Unsigned<L> {
         Unsigned::<L>(self.0)
     }
@@ -2503,36 +2595,43 @@ impl<const L: usize> Unsigned<L> {
     /// Truncates on overflow.
     ///
     /// **Must** be used **ONLY** in const context.
+    #[inline]
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
 
     /// `self.0` as raw bytes ref.
+    #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
     /// `self.0` as raw bytes mut.
+    #[inline]
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
     /// `self.0` as raw [`Words`](Word) ref.
+    #[inline]
     pub fn as_words<W: Word>(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 
     /// `self.0` as raw [`Words`](Word) mut.
+    #[inline]
     pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 
     /// Long number sign.
+    #[inline]
     pub fn sign(&self) -> Sign {
         sign(&self.0, Sign::POS, Sign::POS)
     }
 
     /// Creates new signed with specified sign from raw `self.0`.
+    #[inline]
     pub fn signed(mut self, sign: Sign) -> Signed<L> {
         match self.sign() * sign {
             Sign::ZERO => return Signed::<L>::default(),
@@ -2544,6 +2643,7 @@ impl<const L: usize> Unsigned<L> {
     }
 
     /// Creates new unsigned from raw `self.0`.
+    #[inline]
     pub fn unsigned(self) -> Self {
         Self(self.0)
     }
@@ -2567,50 +2667,59 @@ impl<const L: usize> Bytes<L> {
     /// Truncates on overflow.
     ///
     /// **Must** be used **ONLY** in const context.
+    #[inline]
     pub const fn from_bytes(bytes: &[u8]) -> Self {
         Self(from_bytes(bytes))
     }
 
     /// `self.0` as raw bytes ref.
+    #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
     /// `self.0` as raw bytes mut.
+    #[inline]
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
     /// `self.0` as raw [`Words`](Word) ref.
+    #[inline]
     pub fn as_words<W: Word>(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 
     /// `self.0` as raw [`Words`](Word) mut.
+    #[inline]
     pub fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 
 impl<const L: usize, W: Word> FromDigits<W, ExpImpl<W>> for Signed<L> {
+    #[inline]
     fn from_digits(digits: impl AsRef<[W]>, arg: ExpImpl<W>) -> Result<Self, FromDigitsError> {
         from_digits(digits.as_ref(), arg.exp).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> FromDigits<W, ExpImpl<W>> for Unsigned<L> {
+    #[inline]
     fn from_digits(digits: impl AsRef<[W]>, arg: ExpImpl<W>) -> Result<Self, FromDigitsError> {
         from_digits(digits.as_ref(), arg.exp).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> FromDigits<W, ExpImpl<W>> for Bytes<L> {
+    #[inline]
     fn from_digits(digits: impl AsRef<[W]>, arg: ExpImpl<W>) -> Result<Self, FromDigitsError> {
         from_digits(digits.as_ref(), arg.exp).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl<W>> for Signed<L> {
+    #[inline]
     fn from_digits_iter<Words>(digits: Words, arg: ExpImpl<W>) -> Result<Self, FromDigitsError>
     where
         Words: WordsIterator<Item = W>,
@@ -2620,6 +2729,7 @@ impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl<W>> for Signed<L> {
 }
 
 impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl<W>> for Unsigned<L> {
+    #[inline]
     fn from_digits_iter<Words>(digits: Words, arg: ExpImpl<W>) -> Result<Self, FromDigitsError>
     where
         Words: WordsIterator<Item = W>,
@@ -2629,6 +2739,7 @@ impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl<W>> for Unsigned<L> {
 }
 
 impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl<W>> for Bytes<L> {
+    #[inline]
     fn from_digits_iter<Words>(digits: Words, arg: ExpImpl<W>) -> Result<Self, FromDigitsError>
     where
         Words: WordsIterator<Item = W>,
@@ -2638,18 +2749,21 @@ impl<const L: usize, W: Word> FromDigitsIter<W, ExpImpl<W>> for Bytes<L> {
 }
 
 impl<const L: usize, W: Word> FromDigits<W, RadixImpl<W>> for Signed<L> {
+    #[inline]
     fn from_digits(digits: impl AsRef<[W]>, arg: RadixImpl<W>) -> Result<Self, FromDigitsError> {
         from_digits_radix(digits.as_ref(), arg.radix).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> FromDigits<W, RadixImpl<W>> for Unsigned<L> {
+    #[inline]
     fn from_digits(digits: impl AsRef<[W]>, arg: RadixImpl<W>) -> Result<Self, FromDigitsError> {
         from_digits_radix(digits.as_ref(), arg.radix).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> FromDigitsIter<W, RadixImpl<W>> for Signed<L> {
+    #[inline]
     fn from_digits_iter<Words>(digits: Words, arg: RadixImpl<W>) -> Result<Self, FromDigitsError>
     where
         Words: WordsIterator<Item = W> + DoubleEndedIterator,
@@ -2659,6 +2773,7 @@ impl<const L: usize, W: Word> FromDigitsIter<W, RadixImpl<W>> for Signed<L> {
 }
 
 impl<const L: usize, W: Word> FromDigitsIter<W, RadixImpl<W>> for Unsigned<L> {
+    #[inline]
     fn from_digits_iter<Words>(digits: Words, arg: RadixImpl<W>) -> Result<Self, FromDigitsError>
     where
         Words: WordsIterator<Item = W> + DoubleEndedIterator,
@@ -2668,18 +2783,21 @@ impl<const L: usize, W: Word> FromDigitsIter<W, RadixImpl<W>> for Unsigned<L> {
 }
 
 impl<'words, const L: usize> ToDigits<'words> for Signed<L> {
+    #[inline]
     fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError> {
         to_digits(&self.0, arg.exp)
     }
 }
 
 impl<'words, const L: usize> ToDigits<'words> for Unsigned<L> {
+    #[inline]
     fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError> {
         to_digits(&self.0, arg.exp)
     }
 }
 
 impl<'words, const L: usize> ToDigits<'words> for Bytes<L> {
+    #[inline]
     fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError> {
         to_digits(&self.0, arg.exp)
     }
@@ -2688,6 +2806,7 @@ impl<'words, const L: usize> ToDigits<'words> for Bytes<L> {
 impl<'words, const L: usize> ToDigitsIter<'words> for Signed<L> {
     type Iter<W: Word> = DigitsIter<'words, L, W>;
 
+    #[inline]
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
         to_digits_iter(&self.0, arg.exp)
     }
@@ -2696,6 +2815,7 @@ impl<'words, const L: usize> ToDigitsIter<'words> for Signed<L> {
 impl<'words, const L: usize> ToDigitsIter<'words> for Unsigned<L> {
     type Iter<W: Word> = DigitsIter<'words, L, W>;
 
+    #[inline]
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
         to_digits_iter(&self.0, arg.exp)
     }
@@ -2704,18 +2824,21 @@ impl<'words, const L: usize> ToDigitsIter<'words> for Unsigned<L> {
 impl<'words, const L: usize> ToDigitsIter<'words> for Bytes<L> {
     type Iter<W: Word> = DigitsIter<'words, L, W>;
 
+    #[inline]
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
         to_digits_iter(&self.0, arg.exp)
     }
 }
 
 impl<const L: usize> IntoDigits for Signed<L> {
+    #[inline]
     fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError> {
         into_digits(self.0, arg.radix)
     }
 }
 
 impl<const L: usize> IntoDigits for Unsigned<L> {
+    #[inline]
     fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError> {
         into_digits(self.0, arg.radix)
     }
@@ -2724,6 +2847,7 @@ impl<const L: usize> IntoDigits for Unsigned<L> {
 impl<const L: usize> IntoDigitsIter for Signed<L> {
     type Iter<W: Word> = DigitsRadixIter<L, W>;
 
+    #[inline]
     fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError> {
         into_digits_iter(self.0, arg.radix)
     }
@@ -2732,6 +2856,7 @@ impl<const L: usize> IntoDigitsIter for Signed<L> {
 impl<const L: usize> IntoDigitsIter for Unsigned<L> {
     type Iter<W: Word> = DigitsRadixIter<L, W>;
 
+    #[inline]
     fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError> {
         into_digits_iter(self.0, arg.radix)
     }
@@ -2912,14 +3037,17 @@ impl<const L: usize> BytesLen for Bytes<L> {
 }
 
 impl<const L: usize> BytesFn for Signed<L> {
+    #[inline]
     fn as_bytes_ref(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
+    #[inline]
     fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
+    #[inline]
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -2929,6 +3057,7 @@ impl<const L: usize> BytesFn for Signed<L> {
         uops::read(&self.0, offset)
     }
 
+    #[inline]
     fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -2940,6 +3069,7 @@ impl<const L: usize> BytesFn for Signed<L> {
         self
     }
 
+    #[inline]
     fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
         use std::ops::Not;
 
@@ -2953,6 +3083,7 @@ impl<const L: usize> BytesFn for Signed<L> {
         self
     }
 
+    #[inline]
     fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -2966,14 +3097,17 @@ impl<const L: usize> BytesFn for Signed<L> {
 }
 
 impl<const L: usize> BytesFn for Unsigned<L> {
+    #[inline]
     fn as_bytes_ref(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
+    #[inline]
     fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
+    #[inline]
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -2983,6 +3117,7 @@ impl<const L: usize> BytesFn for Unsigned<L> {
         uops::read(&self.0, offset)
     }
 
+    #[inline]
     fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -2994,6 +3129,7 @@ impl<const L: usize> BytesFn for Unsigned<L> {
         self
     }
 
+    #[inline]
     fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
         use std::ops::Not;
 
@@ -3007,6 +3143,7 @@ impl<const L: usize> BytesFn for Unsigned<L> {
         self
     }
 
+    #[inline]
     fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -3020,14 +3157,17 @@ impl<const L: usize> BytesFn for Unsigned<L> {
 }
 
 impl<const L: usize> BytesFn for Bytes<L> {
+    #[inline]
     fn as_bytes_ref(&self) -> &[u8] {
         self.0.as_bytes()
     }
 
+    #[inline]
     fn as_bytes_mut(&mut self) -> &mut [u8] {
         self.0.as_mut_bytes()
     }
 
+    #[inline]
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -3037,6 +3177,7 @@ impl<const L: usize> BytesFn for Bytes<L> {
         uops::read(&self.0, offset)
     }
 
+    #[inline]
     fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -3048,6 +3189,7 @@ impl<const L: usize> BytesFn for Bytes<L> {
         self
     }
 
+    #[inline]
     fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
         use std::ops::Not;
 
@@ -3061,6 +3203,7 @@ impl<const L: usize> BytesFn for Bytes<L> {
         self
     }
 
+    #[inline]
     fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
         let offset = match offset {
             Offset::Left(val) => val,
@@ -3074,24 +3217,29 @@ impl<const L: usize> BytesFn for Bytes<L> {
 }
 
 impl<const L: usize> NumFn for Signed<L> {
+    #[inline]
     fn is_odd(&self) -> bool {
         self.0[0] & 1 == 1
     }
 
+    #[inline]
     fn is_even(&self) -> bool {
         self.0[0] & 1 == 0
     }
 
+    #[inline]
     fn write_odd(&mut self) -> &mut Self {
         self.0[0] |= 1;
         self
     }
 
+    #[inline]
     fn write_even(&mut self) -> &mut Self {
         self.0[0] &= !1;
         self
     }
 
+    #[inline]
     fn write_alt(&mut self) -> &mut Self {
         self.0[0] ^= 1;
         self
@@ -3099,24 +3247,29 @@ impl<const L: usize> NumFn for Signed<L> {
 }
 
 impl<const L: usize> NumFn for Unsigned<L> {
+    #[inline]
     fn is_odd(&self) -> bool {
         self.0[0] & 1 == 1
     }
 
+    #[inline]
     fn is_even(&self) -> bool {
         self.0[0] & 1 == 0
     }
 
+    #[inline]
     fn write_odd(&mut self) -> &mut Self {
         self.0[0] |= 1;
         self
     }
 
+    #[inline]
     fn write_even(&mut self) -> &mut Self {
         self.0[0] &= !1;
         self
     }
 
+    #[inline]
     fn write_alt(&mut self) -> &mut Self {
         self.0[0] ^= 1;
         self
@@ -3128,6 +3281,7 @@ impl<const L: usize> Num for Unsigned<L> {}
 
 impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
+    #[inline]
     fn order(&self) -> usize {
         let len = length!(&self.0);
 
@@ -3137,6 +3291,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
         }
     }
 
+    #[inline]
     fn log(&self) -> Self {
         let len = length!(&self.0);
 
@@ -3146,6 +3301,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
         }
     }
 
+    #[inline]
     fn sqrt(&self) -> Self {
         todo!()
     }
@@ -3571,6 +3727,7 @@ fn into_digits_iter<const L: usize, W: Word>(
     Ok(DigitsRadixIter { words, radix, len })
 }
 
+#[inline]
 fn write_dec(mut cursor: Cursor<&mut [u8]>, word: usize, width: usize) -> std::fmt::Result {
     match cursor.write_fmt(format_args!("{word:0width$}")) {
         Ok(()) => (),
@@ -3580,6 +3737,7 @@ fn write_dec(mut cursor: Cursor<&mut [u8]>, word: usize, width: usize) -> std::f
     Ok(())
 }
 
+#[inline]
 fn write_bin(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     let buf = cursor.into_inner();
 
@@ -3592,6 +3750,7 @@ fn write_bin(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::f
     Ok(())
 }
 
+#[inline]
 fn write_oct(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     let buf = cursor.into_inner();
 
@@ -3604,6 +3763,7 @@ fn write_oct(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::f
     Ok(())
 }
 
+#[inline]
 fn write_lhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     const HEX: [u8; 16] = [
         b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
@@ -3619,6 +3779,7 @@ fn write_lhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::
     Ok(())
 }
 
+#[inline]
 fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     const HEX: [u8; 16] = [
         b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F',

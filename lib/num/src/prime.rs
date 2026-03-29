@@ -72,6 +72,7 @@ impl Primes {
     /// Generates primes by count.
     ///
     /// Uses full-search.
+    #[inline]
     pub fn by_count<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
         PrimesFullIter {
             next: Prime::from(2),
@@ -84,6 +85,7 @@ impl Primes {
     /// Generates primes by limit.
     ///
     /// Uses full-search.
+    #[inline]
     pub fn by_limit<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
         PrimesFullIter {
             next: Prime::from(2),
@@ -96,6 +98,7 @@ impl Primes {
     /// Generates primes by count.
     ///
     /// Uses fast-search.
+    #[inline]
     pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
         PrimesFastIter {
             next: Prime::from(2),
@@ -107,6 +110,7 @@ impl Primes {
     /// Generates primes by limit.
     ///
     /// Uses fast-search.
+    #[inline]
     pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
         PrimesFastIter {
             next: Prime::from(2),
@@ -177,6 +181,7 @@ pub trait PrimalityRand: Send + Primality {
     ///
     /// Order represents position of the most significant bit.
     #[cfg(feature = "rand")]
+    #[inline]
     fn rand_prime(order: usize) -> Self {
         let mut rng = rand::rng();
         let mut val = Self::rand_num(order, &mut rng).into_odd();
@@ -192,6 +197,7 @@ pub trait PrimalityRand: Send + Primality {
     ///
     /// Order represents position of the most significant bit.
     #[cfg(feature = "rand")]
+    #[inline]
     fn rand_primes(order: usize, count: usize) -> Vec<Self> {
         (0..count).map(|_| Self::rand_prime(order)).collect::<Vec<Self>>()
     }
@@ -200,6 +206,7 @@ pub trait PrimalityRand: Send + Primality {
     ///
     /// Order represents position of the most significant bit.
     #[cfg(all(feature = "rand", feature = "rayon"))]
+    #[inline]
     fn rand_prime_par(order: usize) -> Self {
         use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -215,6 +222,7 @@ pub trait PrimalityRand: Send + Primality {
     ///
     /// Order represents position of the most significant bit.
     #[cfg(all(feature = "rand", feature = "rayon"))]
+    #[inline]
     fn rand_primes_par(order: usize, count: usize) -> Vec<Self> {
         use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
