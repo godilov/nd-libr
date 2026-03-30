@@ -1395,6 +1395,12 @@ pub type S6144 = signed!(6144);
 /// Signed long of at least 8192-bits length.
 pub type S8192 = signed!(8192);
 
+/// Signed long of at least 12288-bits length.
+pub type S12288 = signed!(12288);
+
+/// Signed long of at least 16384-bits length.
+pub type S16384 = signed!(16384);
+
 /// Unsigned long of at least 8-bits length.
 pub type U8 = unsigned!(8);
 
@@ -1458,6 +1464,12 @@ pub type U6144 = unsigned!(6144);
 /// Unsigned long of at least 8192-bits length.
 pub type U8192 = unsigned!(8192);
 
+/// Unsigned long of at least 12288-bits length.
+pub type U12288 = unsigned!(12288);
+
+/// Unsigned long of at least 16384-bits length.
+pub type U16384 = unsigned!(16384);
+
 /// Bytes long of at least 8-bits length.
 pub type B8 = bytes!(8);
 
@@ -1520,6 +1532,12 @@ pub type B6144 = bytes!(6144);
 
 /// Bytes long of at least 8192-bits length.
 pub type B8192 = bytes!(8192);
+
+/// Bytes long of at least 12288-bits length.
+pub type B12288 = bytes!(12288);
+
+/// Bytes long of at least 16384-bits length.
+pub type B16384 = bytes!(16384);
 
 /// Signed long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
