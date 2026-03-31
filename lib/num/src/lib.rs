@@ -958,8 +958,6 @@ num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
-
 impl<N> From<N> for Strict<N> {
     fn from(value: N) -> Self {
         Self(value)
@@ -1001,6 +999,44 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
         Self(value, PhantomData).normalized()
     }
 }
+
+ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
+
+ndops::fwd! { @ndun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
+    !                   where [N: NdNot             <N, Type = N>],
+    - with @strict      where [N: NdNegStrict       <N, Type = N>],
+    - @checked          where [N: NdNegChecked      <N, Type = N>],
+    - @overflowing      where [N: NdNegOverflowing  <N, Type = N>],
+] }
+
+ndops::fwd! { @ndun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
+    !                   where [N: NdNot             <N, Type = N>],
+    - with @wrapping    where [N: NdNegWrapping     <N, Type = N>],
+    - @checked          where [N: NdNegChecked      <N, Type = N>],
+    - @overflowing      where [N: NdNegOverflowing  <N, Type = N>],
+] }
+
+ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
+    !                   where [N: NdNot             <N, Type = N>],
+    - with @saturating  where [N: NdNegSaturating   <N, Type = N>],
+    - @checked          where [N: NdNegChecked      <N, Type = N>],
+    - @overflowing      where [N: NdNegOverflowing  <N, Type = N>],
+] }
+
+ndops::fwd! { @stdun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
+    !                   where [N: NdNot             <N, Type = N>],
+    - with @strict      where [N: NdNegStrict       <N, Type = N>],
+] }
+
+ndops::fwd! { @stdun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
+    !                   where [N: NdNot             <N, Type = N>],
+    - with @wrapping    where [N: NdNegWrapping     <N, Type = N>],
+] }
+
+ndops::fwd! { @stdun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
+    !                   where [N: NdNot             <N, Type = N>],
+    - with @saturating  where [N: NdNegSaturating   <N, Type = N>],
+] }
 
 impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> BytesLen for Width<N, BITS> {
     const BITS: usize = BITS;
