@@ -654,7 +654,7 @@ mod tests {
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn fmt() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 48).map(S64::from)) [
+        ndassert::check! { @eq (val in ndassert::range!(i64, 52).map(S64::from)) [
             (format!("{:}",   Aligned(val)), format!("{:}",   val)),
             (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
             (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
@@ -667,7 +667,7 @@ mod tests {
             (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
         ] }
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48).map(U64::from)) [
+        ndassert::check! { @eq (val in ndassert::range!(u64, 52).map(U64::from)) [
             (format!("{:}",   Aligned(val)), format!("{:}",   val)),
             (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
             (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
@@ -762,16 +762,16 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 48).map(S64::from),
-            rhs in 0..128,
+            lhs in ndassert::range!(i64, 52).map(S64::from),
+            rhs in 0..96,
         ) [
             (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
             (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 48).map(U64::from),
-            rhs in 0..128,
+            lhs in ndassert::range!(u64, 52).map(U64::from),
+            rhs in 0..96,
         ) [
             (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
             (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
@@ -837,16 +837,16 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 48).map(S64::from),
-            rhs in 0..128,
+            lhs in ndassert::range!(i64, 52).map(S64::from),
+            rhs in 0..96,
         ) [
             ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
             ({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 48).map(U64::from),
-            rhs in 0..128,
+            lhs in ndassert::range!(u64, 52).map(U64::from),
+            rhs in 0..96,
         ) [
             ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
             ({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),

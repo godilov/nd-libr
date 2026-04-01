@@ -72,6 +72,8 @@ macro_rules! nd_ops_impl {
         ndops::def! { @ndbin crate (lhs: &$primitive, rhs: usize) -> $primitive, [
             << lhs.shl(rhs),
             >> lhs.shr(rhs),
+            << @strict lhs.strict_shl(rhs as u32),
+            >> @strict lhs.strict_shr(rhs as u32),
             << @checked lhs.checked_shl(rhs as u32),
             >> @checked lhs.checked_shr(rhs as u32),
             << @overflowing lhs.overflowing_shl(rhs as u32),
@@ -109,6 +111,8 @@ macro_rules! nd_ops_impl {
         ndops::def! { @ndmut crate (lhs: &mut $primitive, rhs: usize), [
             <<= lhs.shl_assign(rhs),
             >>= lhs.shr_assign(rhs),
+            <<= @strict *lhs = lhs.strict_shl(rhs as u32),
+            >>= @strict *lhs = lhs.strict_shr(rhs as u32),
             <<= @unbounded *lhs = lhs.unbounded_shl(rhs as u32),
             >>= @unbounded *lhs = lhs.unbounded_shr(rhs as u32),
         ] }

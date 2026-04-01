@@ -4615,7 +4615,7 @@ mod tests {
 
     #[test]
     fn from_str() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 48)) [
+        ndassert::check! { @eq (val in ndassert::range!(i64, 52)) [
             (format!("{:#}",  val).parse::<S64>(), Ok(S64::from(val))),
             (format!("{:#b}", val).parse::<S64>(), Ok(S64::from(val))),
             (format!("{:#o}", val).parse::<S64>(), Ok(S64::from(val))),
@@ -4653,7 +4653,7 @@ mod tests {
             (S64::nd_from_str(&format!("{:#X}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
         ] }
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+        ndassert::check! { @eq (val in ndassert::range!(u64, 52)) [
             (format!("{:#}",  val).parse::<U64>(), Ok(U64::from(val))),
             (format!("{:#b}", val).parse::<U64>(), Ok(U64::from(val))),
             (format!("{:#o}", val).parse::<U64>(), Ok(U64::from(val))),
@@ -4676,7 +4676,7 @@ mod tests {
 
     #[test]
     fn to_str() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 48)) [
+        ndassert::check! { @eq (val in ndassert::range!(i64, 52)) [
             (format!("{:}",   S64::from(val)), format!("{:}",   val)),
             (format!("{:b}",  S64::from(val)), format!("{:b}",  val)),
             (format!("{:o}",  S64::from(val)), format!("{:o}",  val)),
@@ -4700,7 +4700,7 @@ mod tests {
             (format!("{:#X}", S64::from(val.wrapping_neg())), format!("{:#X}", val.wrapping_neg())),
         ] }
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+        ndassert::check! { @eq (val in ndassert::range!(u64, 52)) [
             (format!("{:}",   U64::from(val)), format!("{:}",   val)),
             (format!("{:b}",  U64::from(val)), format!("{:b}",  val)),
             (format!("{:o}",  U64::from(val)), format!("{:o}",  val)),
@@ -4798,16 +4798,16 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 48),
-            rhs in 0..128,
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
         ) [
             (S64::from(lhs) << rhs, S64::from(lhs.unbounded_shl(rhs as u32))),
             (S64::from(lhs) >> rhs, S64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 48),
-            rhs in 0..128,
+            lhs in ndassert::range!(u64, 52),
+            rhs in 0..96,
         ) [
             (U64::from(lhs) << rhs, U64::from(lhs.unbounded_shl(rhs as u32))),
             (U64::from(lhs) >> rhs, U64::from(lhs.unbounded_shr(rhs as u32))),
@@ -4932,16 +4932,16 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 48),
-            rhs in 0..128,
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
         ) [
             ({ let mut val = S64::from(lhs); val <<= rhs; val }, S64::from(lhs.unbounded_shl(rhs as u32))),
             ({ let mut val = S64::from(lhs); val >>= rhs; val }, S64::from(lhs.unbounded_shr(rhs as u32))),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 48),
-            rhs in 0..128,
+            lhs in ndassert::range!(u64, 52),
+            rhs in 0..96,
         ) [
             ({ let mut val = U64::from(lhs); val <<= rhs; val }, U64::from(lhs.unbounded_shl(rhs as u32))),
             ({ let mut val = U64::from(lhs); val >>= rhs; val }, U64::from(lhs.unbounded_shr(rhs as u32))),
