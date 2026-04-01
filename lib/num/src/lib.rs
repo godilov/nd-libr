@@ -1023,6 +1023,16 @@ ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0)
     - @overflowing where        [N: NdNegOverflowing  <N, Type = N>],
 ] }
 
+ndops::fwd! { @ndun <T> (value: &Unbounded<T>) -> Unbounded<T>, (T) (&value.0) [
+    ! where                 [T: NdNot           <Type = T>],
+    - where                 [T: NdNeg           <Type = T>],
+    - @checked where        [T: NdNegChecked    <Type = T>],
+    - @strict where         [T: NdNegStrict     <Type = T>],
+    - @wrapping where       [T: NdNegWrapping   <Type = T>],
+    - @saturating where     [T: NdNegSaturating <Type = T>],
+    - @overflowing where    [T: NdNegOverflowing<Type = T>],
+] }
+
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Strict<Lhs>, rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [
     + with @strict where        [Lhs: NdAddStrict       <Lhs, Rhs, Type = T>],
     - with @strict where        [Lhs: NdSubStrict       <Lhs, Rhs, Type = T>],
@@ -1175,6 +1185,11 @@ ndops::fwd! { @stdun <N> (*value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
 ndops::fwd! { @stdun <N> (*value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
     ! where                     [N: NdNot             <N, Type = N>],
     - with @saturating where    [N: NdNegSaturating   <N, Type = N>],
+] }
+
+ndops::fwd! { @stdun <T> (*value: &Unbounded<T>) -> Unbounded<T>, (T) (&value.0) [
+    - where [T: NdNeg<T, Type = T>],
+    ! where [T: NdNot<T, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Strict<Lhs>, *rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [
