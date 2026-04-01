@@ -2307,6 +2307,14 @@ ndops::def! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
     - Signed::<L>(neg(&value.0)),
 ] }
 
+ndops::def! { @ndun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
+    ! Unsigned::<L>(not(&value.0)),
+] }
+
+ndops::def! { @ndun <const L: usize> (value: &Bytes<L>) -> Bytes<L>, [
+    ! Bytes::<L>(not(&value.0)),
+] }
+
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Signed<L>, [
     + Signed::<L>(add_long(&lhs.0, &rhs.0)),
     - Signed::<L>(sub_long(&lhs.0, &rhs.0)),
@@ -2323,10 +2331,6 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L>
     >> Signed::<L>(shr_signed(&lhs.0, rhs)),
 ] }
 
-ndops::def! { @ndun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
-    ! Unsigned::<L>(not(&value.0)),
-] }
-
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
     + Unsigned::<L>(add_long(&lhs.0, &rhs.0)),
     - Unsigned::<L>(sub_long(&lhs.0, &rhs.0)),
@@ -2341,10 +2345,6 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
     << Unsigned::<L>(shl(&lhs.0, rhs, 0)),
     >> Unsigned::<L>(shr(&lhs.0, rhs, 0)),
-] }
-
-ndops::def! { @ndun <const L: usize> (value: &Bytes<L>) -> Bytes<L>, [
-    ! Bytes::<L>(not(&value.0)),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
@@ -2402,13 +2402,29 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for [Byte
 ] }
 
 ndops::def! { @stdun <const L: usize> (mut value: Signed<L>) -> Signed<L>, [
+    ! { not_mut(&mut value.0); value },
     - { neg_mut(&mut value.0); value },
+] }
+
+ndops::def! { @stdun <const L: usize> (mut value: Unsigned<L>) -> Unsigned<L>, [
+    ! { not_mut(&mut value.0); value },
+] }
+
+ndops::def! { @stdun <const L: usize> (mut value: Bytes<L>) -> Bytes<L>, [
     ! { not_mut(&mut value.0); value },
 ] }
 
 ndops::def! { @stdun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
-    - <Signed<L> as NdNeg>::nd_neg(value),
     ! <Signed<L> as NdNot>::nd_not(value),
+    - <Signed<L> as NdNeg>::nd_neg(value),
+] }
+
+ndops::def! { @stdun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
+    ! <Unsigned<L> as NdNot>::nd_not(value),
+] }
+
+ndops::def! { @stdun <const L: usize> (value: &Bytes<L>) -> Bytes<L>, [
+    ! <Bytes<L> as NdNot>::nd_not(value),
 ] }
 
 ndops::def! { @stdbin <const L: usize> (*lhs: &Signed<L>, *rhs: &Signed<L>) -> Signed<L>, [
@@ -2427,14 +2443,6 @@ ndops::def! { @stdbin <const L: usize> (*lhs: &Signed<L>, rhs: usize) -> Signed<
     >> <Signed<L> as NdShr>::nd_shr(&lhs, rhs),
 ] }
 
-ndops::def! { @stdun <const L: usize> (mut value: Unsigned<L>) -> Unsigned<L>, [
-    ! { not_mut(&mut value.0); value },
-] }
-
-ndops::def! { @stdun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
-    ! <Unsigned<L> as NdNot>::nd_not(value),
-] }
-
 ndops::def! { @stdbin <const L: usize> (*lhs: &Unsigned<L>, *rhs: &Unsigned<L>) -> Unsigned<L>, [
     + <Unsigned<L> as NdAdd>::nd_add(&lhs, &rhs),
     - <Unsigned<L> as NdSub>::nd_sub(&lhs, &rhs),
@@ -2449,14 +2457,6 @@ ndops::def! { @stdbin <const L: usize> (*lhs: &Unsigned<L>, *rhs: &Unsigned<L>) 
 ndops::def! { @stdbin <const L: usize> (*lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L>, [
     << <Unsigned<L> as NdShl>::nd_shl(&lhs, rhs),
     >> <Unsigned<L> as NdShr>::nd_shr(&lhs, rhs),
-] }
-
-ndops::def! { @stdun <const L: usize> (mut value: Bytes<L>) -> Bytes<L>, [
-    ! { not_mut(&mut value.0); value },
-] }
-
-ndops::def! { @stdun <const L: usize> (value: &Bytes<L>) -> Bytes<L>, [
-    ! <Bytes<L> as NdNot>::nd_not(value),
 ] }
 
 ndops::def! { @stdbin <const L: usize> (*lhs: &Bytes<L>, *rhs: &Bytes<L>) -> Bytes<L>, [

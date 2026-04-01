@@ -1205,7 +1205,7 @@ impl Parse for OpsAssignShiftModeWith {
 
         if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
-        } else if lookahead.peek(kw::wrapping) {
+        } else if lookahead.peek(kw::unbounded) {
             Ok(Self::Unbounded(token, input.parse()?))
         } else {
             Err(lookahead.error())
@@ -1327,7 +1327,7 @@ impl Parse for OpsBinaryShiftModeWith {
 
         if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
-        } else if lookahead.peek(kw::wrapping) {
+        } else if lookahead.peek(kw::unbounded) {
             Ok(Self::Unbounded(token, input.parse()?))
         } else {
             Err(lookahead.error())
