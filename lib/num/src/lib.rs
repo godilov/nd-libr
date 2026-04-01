@@ -1003,257 +1003,400 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
 ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 
 ndops::fwd! { @ndun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
-    ! where                     [N: NdNot             <N, Type = N>],
-    - with @strict where        [N: NdNegStrict       <N, Type = N>],
-    - @checked where            [N: NdNegChecked      <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing  <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - with @strict where        [N: NdNegStrict             <N, Type = N>],
+    - @checked where            [N: NdNegChecked            <N, Type = N>],
+    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
-    ! where                     [N: NdNot             <N, Type = N>],
-    - with @wrapping where      [N: NdNegWrapping     <N, Type = N>],
-    - @checked where            [N: NdNegChecked      <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing  <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - with @wrapping where      [N: NdNegWrapping           <N, Type = N>],
+    - @checked where            [N: NdNegChecked            <N, Type = N>],
+    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
-    ! where                     [N: NdNot             <N, Type = N>],
-    - with @saturating where    [N: NdNegSaturating   <N, Type = N>],
-    - @checked where            [N: NdNegChecked      <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing  <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - with @saturating where    [N: NdNegSaturating         <N, Type = N>],
+    - @checked where            [N: NdNegChecked            <N, Type = N>],
+    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
 ] }
 
-ndops::fwd! { @ndun <T> (value: &Unbounded<T>) -> Unbounded<T>, (T) (&value.0) [
-    ! where                 [T: NdNot           <Type = T>],
-    - where                 [T: NdNeg           <Type = T>],
-    - @checked where        [T: NdNegChecked    <Type = T>],
-    - @strict where         [T: NdNegStrict     <Type = T>],
-    - @wrapping where       [T: NdNegWrapping   <Type = T>],
-    - @saturating where     [T: NdNegSaturating <Type = T>],
-    - @overflowing where    [T: NdNegOverflowing<Type = T>],
+ndops::fwd! { @ndun <N> (value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - where                     [N: NdNeg                   <N, Type = N>],
+    - @checked where            [N: NdNegChecked            <N, Type = N>],
+    - @strict where             [N: NdNegStrict             <N, Type = N>],
+    - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
+    - @saturating where         [N: NdNegSaturating         <N, Type = N>],
+    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Strict<Lhs>, rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + with @strict where        [Lhs: NdAddStrict       <Lhs, Rhs, Type = T>],
-    - with @strict where        [Lhs: NdSubStrict       <Lhs, Rhs, Type = T>],
-    * with @strict where        [Lhs: NdMulStrict       <Lhs, Rhs, Type = T>],
-    / with @strict where        [Lhs: NdDivStrict       <Lhs, Rhs, Type = T>],
-    % with @strict where        [Lhs: NdRemStrict       <Lhs, Rhs, Type = T>],
-    | where                     [Lhs: NdBitOr           <Lhs, Rhs, Type = T>],
-    & where                     [Lhs: NdBitAnd          <Lhs, Rhs, Type = T>],
-    ^ where                     [Lhs: NdBitXor          <Lhs, Rhs, Type = T>],
-    + @checked where            [Lhs: NdAddChecked      <Lhs, Rhs, Type = T>],
-    - @checked where            [Lhs: NdSubChecked      <Lhs, Rhs, Type = T>],
-    * @checked where            [Lhs: NdMulChecked      <Lhs, Rhs, Type = T>],
-    / @checked where            [Lhs: NdDivChecked      <Lhs, Rhs, Type = T>],
-    % @checked where            [Lhs: NdRemChecked      <Lhs, Rhs, Type = T>],
-    + @overflowing where        [Lhs: NdAddOverflowing  <Lhs, Rhs, Type = T>],
-    - @overflowing where        [Lhs: NdSubOverflowing  <Lhs, Rhs, Type = T>],
-    * @overflowing where        [Lhs: NdMulOverflowing  <Lhs, Rhs, Type = T>],
-    / @overflowing where        [Lhs: NdDivOverflowing  <Lhs, Rhs, Type = T>],
-    % @overflowing where        [Lhs: NdRemOverflowing  <Lhs, Rhs, Type = T>],
+    + with @strict where        [Lhs: NdAddStrict           <Lhs, Rhs, Type = T>],
+    - with @strict where        [Lhs: NdSubStrict           <Lhs, Rhs, Type = T>],
+    * with @strict where        [Lhs: NdMulStrict           <Lhs, Rhs, Type = T>],
+    / with @strict where        [Lhs: NdDivStrict           <Lhs, Rhs, Type = T>],
+    % with @strict where        [Lhs: NdRemStrict           <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
+    + @checked where            [Lhs: NdAddChecked          <Lhs, Rhs, Type = T>],
+    - @checked where            [Lhs: NdSubChecked          <Lhs, Rhs, Type = T>],
+    * @checked where            [Lhs: NdMulChecked          <Lhs, Rhs, Type = T>],
+    / @checked where            [Lhs: NdDivChecked          <Lhs, Rhs, Type = T>],
+    % @checked where            [Lhs: NdRemChecked          <Lhs, Rhs, Type = T>],
+    + @overflowing where        [Lhs: NdAddOverflowing      <Lhs, Rhs, Type = T>],
+    - @overflowing where        [Lhs: NdSubOverflowing      <Lhs, Rhs, Type = T>],
+    * @overflowing where        [Lhs: NdMulOverflowing      <Lhs, Rhs, Type = T>],
+    / @overflowing where        [Lhs: NdDivOverflowing      <Lhs, Rhs, Type = T>],
+    % @overflowing where        [Lhs: NdRemOverflowing      <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Strict<Lhs>, rhs: Rhs) -> Strict<T>, (Lhs) (&lhs.0) (rhs) [
-    << with @strict where       [Lhs: NdShlStrict       <Lhs, Rhs, Type = T>],
-    >> with @strict where       [Lhs: NdShrStrict       <Lhs, Rhs, Type = T>],
-    << @checked where           [Lhs: NdShlChecked      <Lhs, Rhs, Type = T>],
-    >> @checked where           [Lhs: NdShrChecked      <Lhs, Rhs, Type = T>],
-    << @overflowing where       [Lhs: NdShlOverflowing  <Lhs, Rhs, Type = T>],
-    >> @overflowing where       [Lhs: NdShrOverflowing  <Lhs, Rhs, Type = T>],
+    << with @strict where       [Lhs: NdShlStrict           <Lhs, Rhs, Type = T>],
+    >> with @strict where       [Lhs: NdShrStrict           <Lhs, Rhs, Type = T>],
+    << @checked where           [Lhs: NdShlChecked          <Lhs, Rhs, Type = T>],
+    >> @checked where           [Lhs: NdShrChecked          <Lhs, Rhs, Type = T>],
+    << @overflowing where       [Lhs: NdShlOverflowing      <Lhs, Rhs, Type = T>],
+    >> @overflowing where       [Lhs: NdShrOverflowing      <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Wrapping<Lhs>, rhs: &Wrapping<Rhs>) -> Wrapping<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + with @wrapping where      [Lhs: NdAddWrapping     <Lhs, Rhs, Type = T>],
-    - with @wrapping where      [Lhs: NdSubWrapping     <Lhs, Rhs, Type = T>],
-    * with @wrapping where      [Lhs: NdMulWrapping     <Lhs, Rhs, Type = T>],
-    / with @wrapping where      [Lhs: NdDivWrapping     <Lhs, Rhs, Type = T>],
-    % with @wrapping where      [Lhs: NdRemWrapping     <Lhs, Rhs, Type = T>],
-    | where                     [Lhs: NdBitOr           <Lhs, Rhs, Type = T>],
-    & where                     [Lhs: NdBitAnd          <Lhs, Rhs, Type = T>],
-    ^ where                     [Lhs: NdBitXor          <Lhs, Rhs, Type = T>],
-    + @checked where            [Lhs: NdAddChecked      <Lhs, Rhs, Type = T>],
-    - @checked where            [Lhs: NdSubChecked      <Lhs, Rhs, Type = T>],
-    * @checked where            [Lhs: NdMulChecked      <Lhs, Rhs, Type = T>],
-    / @checked where            [Lhs: NdDivChecked      <Lhs, Rhs, Type = T>],
-    % @checked where            [Lhs: NdRemChecked      <Lhs, Rhs, Type = T>],
-    + @overflowing where        [Lhs: NdAddOverflowing  <Lhs, Rhs, Type = T>],
-    - @overflowing where        [Lhs: NdSubOverflowing  <Lhs, Rhs, Type = T>],
-    * @overflowing where        [Lhs: NdMulOverflowing  <Lhs, Rhs, Type = T>],
-    / @overflowing where        [Lhs: NdDivOverflowing  <Lhs, Rhs, Type = T>],
-    % @overflowing where        [Lhs: NdRemOverflowing  <Lhs, Rhs, Type = T>],
+    + with @wrapping where      [Lhs: NdAddWrapping         <Lhs, Rhs, Type = T>],
+    - with @wrapping where      [Lhs: NdSubWrapping         <Lhs, Rhs, Type = T>],
+    * with @wrapping where      [Lhs: NdMulWrapping         <Lhs, Rhs, Type = T>],
+    / with @wrapping where      [Lhs: NdDivWrapping         <Lhs, Rhs, Type = T>],
+    % with @wrapping where      [Lhs: NdRemWrapping         <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
+    + @checked where            [Lhs: NdAddChecked          <Lhs, Rhs, Type = T>],
+    - @checked where            [Lhs: NdSubChecked          <Lhs, Rhs, Type = T>],
+    * @checked where            [Lhs: NdMulChecked          <Lhs, Rhs, Type = T>],
+    / @checked where            [Lhs: NdDivChecked          <Lhs, Rhs, Type = T>],
+    % @checked where            [Lhs: NdRemChecked          <Lhs, Rhs, Type = T>],
+    + @overflowing where        [Lhs: NdAddOverflowing      <Lhs, Rhs, Type = T>],
+    - @overflowing where        [Lhs: NdSubOverflowing      <Lhs, Rhs, Type = T>],
+    * @overflowing where        [Lhs: NdMulOverflowing      <Lhs, Rhs, Type = T>],
+    / @overflowing where        [Lhs: NdDivOverflowing      <Lhs, Rhs, Type = T>],
+    % @overflowing where        [Lhs: NdRemOverflowing      <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Wrapping<Lhs>, rhs: Rhs) -> Wrapping<T>, (Lhs) (&lhs.0) (rhs) [
-    << where                    [Lhs: NdShl             <Lhs, Rhs, Type = T>],
-    >> where                    [Lhs: NdShr             <Lhs, Rhs, Type = T>],
-    << @checked where           [Lhs: NdShlChecked      <Lhs, Rhs, Type = T>],
-    >> @checked where           [Lhs: NdShrChecked      <Lhs, Rhs, Type = T>],
-    << @overflowing where       [Lhs: NdShlOverflowing  <Lhs, Rhs, Type = T>],
-    >> @overflowing where       [Lhs: NdShrOverflowing  <Lhs, Rhs, Type = T>],
-    << @unbounded where         [Lhs: NdShlUnbounded    <Lhs, Rhs, Type = T>],
-    >> @unbounded where         [Lhs: NdShrUnbounded    <Lhs, Rhs, Type = T>],
+    << where                    [Lhs: NdShl                 <Lhs, Rhs, Type = T>],
+    >> where                    [Lhs: NdShr                 <Lhs, Rhs, Type = T>],
+    << @checked where           [Lhs: NdShlChecked          <Lhs, Rhs, Type = T>],
+    >> @checked where           [Lhs: NdShrChecked          <Lhs, Rhs, Type = T>],
+    << @overflowing where       [Lhs: NdShlOverflowing      <Lhs, Rhs, Type = T>],
+    >> @overflowing where       [Lhs: NdShrOverflowing      <Lhs, Rhs, Type = T>],
+    << @unbounded where         [Lhs: NdShlUnbounded        <Lhs, Rhs, Type = T>],
+    >> @unbounded where         [Lhs: NdShrUnbounded        <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Saturating<Lhs>, rhs: &Saturating<Rhs>) -> Saturating<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + with @saturating where    [Lhs: NdAddSaturating   <Lhs, Rhs, Type = T>],
-    - with @saturating where    [Lhs: NdSubSaturating   <Lhs, Rhs, Type = T>],
-    * with @saturating where    [Lhs: NdMulSaturating   <Lhs, Rhs, Type = T>],
-    / with @saturating where    [Lhs: NdDivSaturating   <Lhs, Rhs, Type = T>],
-    % with @saturating where    [Lhs: NdRemSaturating   <Lhs, Rhs, Type = T>],
-    | where                     [Lhs: NdBitOr           <Lhs, Rhs, Type = T>],
-    & where                     [Lhs: NdBitAnd          <Lhs, Rhs, Type = T>],
-    ^ where                     [Lhs: NdBitXor          <Lhs, Rhs, Type = T>],
-    + @checked where            [Lhs: NdAddChecked      <Lhs, Rhs, Type = T>],
-    - @checked where            [Lhs: NdSubChecked      <Lhs, Rhs, Type = T>],
-    * @checked where            [Lhs: NdMulChecked      <Lhs, Rhs, Type = T>],
-    / @checked where            [Lhs: NdDivChecked      <Lhs, Rhs, Type = T>],
-    % @checked where            [Lhs: NdRemChecked      <Lhs, Rhs, Type = T>],
-    + @overflowing where        [Lhs: NdAddOverflowing  <Lhs, Rhs, Type = T>],
-    - @overflowing where        [Lhs: NdSubOverflowing  <Lhs, Rhs, Type = T>],
-    * @overflowing where        [Lhs: NdMulOverflowing  <Lhs, Rhs, Type = T>],
-    / @overflowing where        [Lhs: NdDivOverflowing  <Lhs, Rhs, Type = T>],
-    % @overflowing where        [Lhs: NdRemOverflowing  <Lhs, Rhs, Type = T>],
+    + with @saturating where    [Lhs: NdAddSaturating       <Lhs, Rhs, Type = T>],
+    - with @saturating where    [Lhs: NdSubSaturating       <Lhs, Rhs, Type = T>],
+    * with @saturating where    [Lhs: NdMulSaturating       <Lhs, Rhs, Type = T>],
+    / with @saturating where    [Lhs: NdDivSaturating       <Lhs, Rhs, Type = T>],
+    % with @saturating where    [Lhs: NdRemSaturating       <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
+    + @checked where            [Lhs: NdAddChecked          <Lhs, Rhs, Type = T>],
+    - @checked where            [Lhs: NdSubChecked          <Lhs, Rhs, Type = T>],
+    * @checked where            [Lhs: NdMulChecked          <Lhs, Rhs, Type = T>],
+    / @checked where            [Lhs: NdDivChecked          <Lhs, Rhs, Type = T>],
+    % @checked where            [Lhs: NdRemChecked          <Lhs, Rhs, Type = T>],
+    + @overflowing where        [Lhs: NdAddOverflowing      <Lhs, Rhs, Type = T>],
+    - @overflowing where        [Lhs: NdSubOverflowing      <Lhs, Rhs, Type = T>],
+    * @overflowing where        [Lhs: NdMulOverflowing      <Lhs, Rhs, Type = T>],
+    / @overflowing where        [Lhs: NdDivOverflowing      <Lhs, Rhs, Type = T>],
+    % @overflowing where        [Lhs: NdRemOverflowing      <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Saturating<Lhs>, rhs: Rhs) -> Saturating<T>, (Lhs) (&lhs.0) (rhs) [
-    << where                    [Lhs: NdShl             <Lhs, Rhs, Type = T>],
-    >> where                    [Lhs: NdShr             <Lhs, Rhs, Type = T>],
-    << @checked where           [Lhs: NdShlChecked      <Lhs, Rhs, Type = T>],
-    >> @checked where           [Lhs: NdShrChecked      <Lhs, Rhs, Type = T>],
-    << @overflowing where       [Lhs: NdShlOverflowing  <Lhs, Rhs, Type = T>],
-    >> @overflowing where       [Lhs: NdShrOverflowing  <Lhs, Rhs, Type = T>],
-    << @unbounded where         [Lhs: NdShlUnbounded    <Lhs, Rhs, Type = T>],
-    >> @unbounded where         [Lhs: NdShrUnbounded    <Lhs, Rhs, Type = T>],
+    << where                    [Lhs: NdShl                 <Lhs, Rhs, Type = T>],
+    >> where                    [Lhs: NdShr                 <Lhs, Rhs, Type = T>],
+    << @checked where           [Lhs: NdShlChecked          <Lhs, Rhs, Type = T>],
+    >> @checked where           [Lhs: NdShrChecked          <Lhs, Rhs, Type = T>],
+    << @overflowing where       [Lhs: NdShlOverflowing      <Lhs, Rhs, Type = T>],
+    >> @overflowing where       [Lhs: NdShrOverflowing      <Lhs, Rhs, Type = T>],
+    << @unbounded where         [Lhs: NdShlUnbounded        <Lhs, Rhs, Type = T>],
+    >> @unbounded where         [Lhs: NdShrUnbounded        <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Unbounded<Lhs>, rhs: &Unbounded<Rhs>) -> Unbounded<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + where                     [Lhs: NdAdd             <Lhs, Rhs, Type = T>],
-    - where                     [Lhs: NdSub             <Lhs, Rhs, Type = T>],
-    * where                     [Lhs: NdMul             <Lhs, Rhs, Type = T>],
-    / where                     [Lhs: NdDiv             <Lhs, Rhs, Type = T>],
-    % where                     [Lhs: NdRem             <Lhs, Rhs, Type = T>],
-    | where                     [Lhs: NdBitOr           <Lhs, Rhs, Type = T>],
-    & where                     [Lhs: NdBitAnd          <Lhs, Rhs, Type = T>],
-    ^ where                     [Lhs: NdBitXor          <Lhs, Rhs, Type = T>],
-    + @checked where            [Lhs: NdAddChecked      <Lhs, Rhs, Type = T>],
-    - @checked where            [Lhs: NdSubChecked      <Lhs, Rhs, Type = T>],
-    * @checked where            [Lhs: NdMulChecked      <Lhs, Rhs, Type = T>],
-    / @checked where            [Lhs: NdDivChecked      <Lhs, Rhs, Type = T>],
-    % @checked where            [Lhs: NdRemChecked      <Lhs, Rhs, Type = T>],
-    + @strict where             [Lhs: NdAddStrict       <Lhs, Rhs, Type = T>],
-    - @strict where             [Lhs: NdSubStrict       <Lhs, Rhs, Type = T>],
-    * @strict where             [Lhs: NdMulStrict       <Lhs, Rhs, Type = T>],
-    / @strict where             [Lhs: NdDivStrict       <Lhs, Rhs, Type = T>],
-    % @strict where             [Lhs: NdRemStrict       <Lhs, Rhs, Type = T>],
-    + @wrapping where           [Lhs: NdAddWrapping     <Lhs, Rhs, Type = T>],
-    - @wrapping where           [Lhs: NdSubWrapping     <Lhs, Rhs, Type = T>],
-    * @wrapping where           [Lhs: NdMulWrapping     <Lhs, Rhs, Type = T>],
-    / @wrapping where           [Lhs: NdDivWrapping     <Lhs, Rhs, Type = T>],
-    % @wrapping where           [Lhs: NdRemWrapping     <Lhs, Rhs, Type = T>],
-    + @saturating where         [Lhs: NdAddSaturating   <Lhs, Rhs, Type = T>],
-    - @saturating where         [Lhs: NdSubSaturating   <Lhs, Rhs, Type = T>],
-    * @saturating where         [Lhs: NdMulSaturating   <Lhs, Rhs, Type = T>],
-    / @saturating where         [Lhs: NdDivSaturating   <Lhs, Rhs, Type = T>],
-    % @saturating where         [Lhs: NdRemSaturating   <Lhs, Rhs, Type = T>],
-    + @overflowing where        [Lhs: NdAddOverflowing  <Lhs, Rhs, Type = T>],
-    - @overflowing where        [Lhs: NdSubOverflowing  <Lhs, Rhs, Type = T>],
-    * @overflowing where        [Lhs: NdMulOverflowing  <Lhs, Rhs, Type = T>],
-    / @overflowing where        [Lhs: NdDivOverflowing  <Lhs, Rhs, Type = T>],
-    % @overflowing where        [Lhs: NdRemOverflowing  <Lhs, Rhs, Type = T>],
+    + where                     [Lhs: NdAdd                 <Lhs, Rhs, Type = T>],
+    - where                     [Lhs: NdSub                 <Lhs, Rhs, Type = T>],
+    * where                     [Lhs: NdMul                 <Lhs, Rhs, Type = T>],
+    / where                     [Lhs: NdDiv                 <Lhs, Rhs, Type = T>],
+    % where                     [Lhs: NdRem                 <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
+    + @checked where            [Lhs: NdAddChecked          <Lhs, Rhs, Type = T>],
+    - @checked where            [Lhs: NdSubChecked          <Lhs, Rhs, Type = T>],
+    * @checked where            [Lhs: NdMulChecked          <Lhs, Rhs, Type = T>],
+    / @checked where            [Lhs: NdDivChecked          <Lhs, Rhs, Type = T>],
+    % @checked where            [Lhs: NdRemChecked          <Lhs, Rhs, Type = T>],
+    + @strict where             [Lhs: NdAddStrict           <Lhs, Rhs, Type = T>],
+    - @strict where             [Lhs: NdSubStrict           <Lhs, Rhs, Type = T>],
+    * @strict where             [Lhs: NdMulStrict           <Lhs, Rhs, Type = T>],
+    / @strict where             [Lhs: NdDivStrict           <Lhs, Rhs, Type = T>],
+    % @strict where             [Lhs: NdRemStrict           <Lhs, Rhs, Type = T>],
+    + @wrapping where           [Lhs: NdAddWrapping         <Lhs, Rhs, Type = T>],
+    - @wrapping where           [Lhs: NdSubWrapping         <Lhs, Rhs, Type = T>],
+    * @wrapping where           [Lhs: NdMulWrapping         <Lhs, Rhs, Type = T>],
+    / @wrapping where           [Lhs: NdDivWrapping         <Lhs, Rhs, Type = T>],
+    % @wrapping where           [Lhs: NdRemWrapping         <Lhs, Rhs, Type = T>],
+    + @saturating where         [Lhs: NdAddSaturating       <Lhs, Rhs, Type = T>],
+    - @saturating where         [Lhs: NdSubSaturating       <Lhs, Rhs, Type = T>],
+    * @saturating where         [Lhs: NdMulSaturating       <Lhs, Rhs, Type = T>],
+    / @saturating where         [Lhs: NdDivSaturating       <Lhs, Rhs, Type = T>],
+    % @saturating where         [Lhs: NdRemSaturating       <Lhs, Rhs, Type = T>],
+    + @overflowing where        [Lhs: NdAddOverflowing      <Lhs, Rhs, Type = T>],
+    - @overflowing where        [Lhs: NdSubOverflowing      <Lhs, Rhs, Type = T>],
+    * @overflowing where        [Lhs: NdMulOverflowing      <Lhs, Rhs, Type = T>],
+    / @overflowing where        [Lhs: NdDivOverflowing      <Lhs, Rhs, Type = T>],
+    % @overflowing where        [Lhs: NdRemOverflowing      <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Unbounded<Lhs>, rhs: Rhs) -> Unbounded<T>, (Lhs) (&lhs.0) (rhs) [
-    << with @unbounded where    [Lhs: NdShlUnbounded    <Lhs, Rhs, Type = T>],
-    >> with @unbounded where    [Lhs: NdShrUnbounded    <Lhs, Rhs, Type = T>],
-    << @checked where           [Lhs: NdShlChecked      <Lhs, Rhs, Type = T>],
-    >> @checked where           [Lhs: NdShrChecked      <Lhs, Rhs, Type = T>],
-    << @overflowing where       [Lhs: NdShlOverflowing  <Lhs, Rhs, Type = T>],
-    >> @overflowing where       [Lhs: NdShrOverflowing  <Lhs, Rhs, Type = T>],
+    << with @unbounded where    [Lhs: NdShlUnbounded        <Lhs, Rhs, Type = T>],
+    >> with @unbounded where    [Lhs: NdShrUnbounded        <Lhs, Rhs, Type = T>],
+    << @checked where           [Lhs: NdShlChecked          <Lhs, Rhs, Type = T>],
+    >> @checked where           [Lhs: NdShrChecked          <Lhs, Rhs, Type = T>],
+    << @overflowing where       [Lhs: NdShlOverflowing      <Lhs, Rhs, Type = T>],
+    >> @overflowing where       [Lhs: NdShrOverflowing      <Lhs, Rhs, Type = T>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Strict<Lhs>, rhs: &Strict<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += with @strict where       [Lhs: NdAddAssignStrict     <Lhs, Rhs>],
+    -= with @strict where       [Lhs: NdSubAssignStrict     <Lhs, Rhs>],
+    *= with @strict where       [Lhs: NdMulAssignStrict     <Lhs, Rhs>],
+    /= with @strict where       [Lhs: NdDivAssignStrict     <Lhs, Rhs>],
+    %= with @strict where       [Lhs: NdRemAssignStrict     <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Strict<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= with @strict where      [Lhs: NdShlAssignStrict     <Lhs, Rhs>],
+    >>= with @strict where      [Lhs: NdShrAssignStrict     <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Wrapping<Lhs>, rhs: &Wrapping<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += with @wrapping where     [Lhs: NdAddAssignWrapping   <Lhs, Rhs>],
+    -= with @wrapping where     [Lhs: NdSubAssignWrapping   <Lhs, Rhs>],
+    *= with @wrapping where     [Lhs: NdMulAssignWrapping   <Lhs, Rhs>],
+    /= with @wrapping where     [Lhs: NdDivAssignWrapping   <Lhs, Rhs>],
+    %= with @wrapping where     [Lhs: NdRemAssignWrapping   <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Wrapping<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= where                   [Lhs: NdShlAssign           <Lhs, Rhs>],
+    >>= where                   [Lhs: NdShrAssign           <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, rhs: &Saturating<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += with @saturating where   [Lhs: NdAddAssignSaturating <Lhs, Rhs>],
+    -= with @saturating where   [Lhs: NdSubAssignSaturating <Lhs, Rhs>],
+    *= with @saturating where   [Lhs: NdMulAssignSaturating <Lhs, Rhs>],
+    /= with @saturating where   [Lhs: NdDivAssignSaturating <Lhs, Rhs>],
+    %= with @saturating where   [Lhs: NdRemAssignSaturating <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= where                   [Lhs: NdShlAssign           <Lhs, Rhs>],
+    >>= where                   [Lhs: NdShrAssign           <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Unbounded<Lhs>, rhs: &Unbounded<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += where                    [Lhs: NdAddAssign           <Lhs, Rhs>],
+    -= where                    [Lhs: NdSubAssign           <Lhs, Rhs>],
+    *= where                    [Lhs: NdMulAssign           <Lhs, Rhs>],
+    /= where                    [Lhs: NdDivAssign           <Lhs, Rhs>],
+    %= where                    [Lhs: NdRemAssign           <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+    += @strict where            [Lhs: NdAddAssignStrict     <Lhs, Rhs>],
+    -= @strict where            [Lhs: NdSubAssignStrict     <Lhs, Rhs>],
+    *= @strict where            [Lhs: NdMulAssignStrict     <Lhs, Rhs>],
+    /= @strict where            [Lhs: NdDivAssignStrict     <Lhs, Rhs>],
+    %= @strict where            [Lhs: NdRemAssignStrict     <Lhs, Rhs>],
+    += @wrapping where          [Lhs: NdAddAssignWrapping   <Lhs, Rhs>],
+    -= @wrapping where          [Lhs: NdSubAssignWrapping   <Lhs, Rhs>],
+    *= @wrapping where          [Lhs: NdMulAssignWrapping   <Lhs, Rhs>],
+    /= @wrapping where          [Lhs: NdDivAssignWrapping   <Lhs, Rhs>],
+    %= @wrapping where          [Lhs: NdRemAssignWrapping   <Lhs, Rhs>],
+    += @saturating where        [Lhs: NdAddAssignSaturating <Lhs, Rhs>],
+    -= @saturating where        [Lhs: NdSubAssignSaturating <Lhs, Rhs>],
+    *= @saturating where        [Lhs: NdMulAssignSaturating <Lhs, Rhs>],
+    /= @saturating where        [Lhs: NdDivAssignSaturating <Lhs, Rhs>],
+    %= @saturating where        [Lhs: NdRemAssignSaturating <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Unbounded<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= with @unbounded where   [Lhs: NdShlAssignUnbounded  <Lhs, Rhs>],
+    >>= with @unbounded where   [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
 ] }
 
 ndops::fwd! { @stdun <N> (*value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
-    ! where                     [N: NdNot             <N, Type = N>],
-    - with @strict where        [N: NdNegStrict       <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - with @strict where        [N: NdNegStrict             <N, Type = N>],
 ] }
 
 ndops::fwd! { @stdun <N> (*value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
-    ! where                     [N: NdNot             <N, Type = N>],
-    - with @wrapping where      [N: NdNegWrapping     <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - with @wrapping where      [N: NdNegWrapping           <N, Type = N>],
 ] }
 
 ndops::fwd! { @stdun <N> (*value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
-    ! where                     [N: NdNot             <N, Type = N>],
-    - with @saturating where    [N: NdNegSaturating   <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - with @saturating where    [N: NdNegSaturating         <N, Type = N>],
 ] }
 
-ndops::fwd! { @stdun <T> (*value: &Unbounded<T>) -> Unbounded<T>, (T) (&value.0) [
-    - where [T: NdNeg<T, Type = T>],
-    ! where [T: NdNot<T, Type = T>],
+ndops::fwd! { @stdun <N> (*value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
+    - where                     [N: NdNeg                   <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Strict<Lhs>, *rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + where [Lhs: NdAdd   <Lhs, Rhs, Type = T>],
-    - where [Lhs: NdSub   <Lhs, Rhs, Type = T>],
-    * where [Lhs: NdMul   <Lhs, Rhs, Type = T>],
-    / where [Lhs: NdDiv   <Lhs, Rhs, Type = T>],
-    % where [Lhs: NdRem   <Lhs, Rhs, Type = T>],
-    | where [Lhs: NdBitOr <Lhs, Rhs, Type = T>],
-    & where [Lhs: NdBitAnd<Lhs, Rhs, Type = T>],
-    ^ where [Lhs: NdBitXor<Lhs, Rhs, Type = T>],
+    + with @strict where        [Lhs: NdAddStrict           <Lhs, Rhs, Type = T>],
+    - with @strict where        [Lhs: NdSubStrict           <Lhs, Rhs, Type = T>],
+    * with @strict where        [Lhs: NdMulStrict           <Lhs, Rhs, Type = T>],
+    / with @strict where        [Lhs: NdDivStrict           <Lhs, Rhs, Type = T>],
+    % with @strict where        [Lhs: NdRemStrict           <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Strict<Lhs>, rhs: Rhs) -> Strict<T>, (Lhs) (&lhs.0) (rhs) [
-    << where [Lhs: NdShl<Lhs, Rhs, Type = T>],
-    >> where [Lhs: NdShr<Lhs, Rhs, Type = T>],
+    << with @strict where       [Lhs: NdShlStrict           <Lhs, Rhs, Type = T>],
+    >> with @strict where       [Lhs: NdShrStrict           <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Wrapping<Lhs>, *rhs: &Wrapping<Rhs>) -> Wrapping<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + where [Lhs: NdAdd   <Lhs, Rhs, Type = T>],
-    - where [Lhs: NdSub   <Lhs, Rhs, Type = T>],
-    * where [Lhs: NdMul   <Lhs, Rhs, Type = T>],
-    / where [Lhs: NdDiv   <Lhs, Rhs, Type = T>],
-    % where [Lhs: NdRem   <Lhs, Rhs, Type = T>],
-    | where [Lhs: NdBitOr <Lhs, Rhs, Type = T>],
-    & where [Lhs: NdBitAnd<Lhs, Rhs, Type = T>],
-    ^ where [Lhs: NdBitXor<Lhs, Rhs, Type = T>],
+    + with @wrapping where      [Lhs: NdAddWrapping         <Lhs, Rhs, Type = T>],
+    - with @wrapping where      [Lhs: NdSubWrapping         <Lhs, Rhs, Type = T>],
+    * with @wrapping where      [Lhs: NdMulWrapping         <Lhs, Rhs, Type = T>],
+    / with @wrapping where      [Lhs: NdDivWrapping         <Lhs, Rhs, Type = T>],
+    % with @wrapping where      [Lhs: NdRemWrapping         <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Wrapping<Lhs>, rhs: Rhs) -> Wrapping<T>, (Lhs) (&lhs.0) (rhs) [
-    << where [Lhs: NdShl<Lhs, Rhs, Type = T>],
-    >> where [Lhs: NdShr<Lhs, Rhs, Type = T>],
+    << where                    [Lhs: NdShl                 <Lhs, Rhs, Type = T>],
+    >> where                    [Lhs: NdShr                 <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Saturating<Lhs>, *rhs: &Saturating<Rhs>) -> Saturating<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + where [Lhs: NdAdd   <Lhs, Rhs, Type = T>],
-    - where [Lhs: NdSub   <Lhs, Rhs, Type = T>],
-    * where [Lhs: NdMul   <Lhs, Rhs, Type = T>],
-    / where [Lhs: NdDiv   <Lhs, Rhs, Type = T>],
-    % where [Lhs: NdRem   <Lhs, Rhs, Type = T>],
-    | where [Lhs: NdBitOr <Lhs, Rhs, Type = T>],
-    & where [Lhs: NdBitAnd<Lhs, Rhs, Type = T>],
-    ^ where [Lhs: NdBitXor<Lhs, Rhs, Type = T>],
+    + with @saturating where    [Lhs: NdAddSaturating       <Lhs, Rhs, Type = T>],
+    - with @saturating where    [Lhs: NdSubSaturating       <Lhs, Rhs, Type = T>],
+    * with @saturating where    [Lhs: NdMulSaturating       <Lhs, Rhs, Type = T>],
+    / with @saturating where    [Lhs: NdDivSaturating       <Lhs, Rhs, Type = T>],
+    % with @saturating where    [Lhs: NdRemSaturating       <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Saturating<Lhs>, rhs: Rhs) -> Saturating<T>, (Lhs) (&lhs.0) (rhs) [
-    << where [Lhs: NdShl<Lhs, Rhs, Type = T>],
-    >> where [Lhs: NdShr<Lhs, Rhs, Type = T>],
+    << where                    [Lhs: NdShl                 <Lhs, Rhs, Type = T>],
+    >> where                    [Lhs: NdShr                 <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Unbounded<Lhs>, *rhs: &Unbounded<Rhs>) -> Unbounded<T>, (Lhs) (&lhs.0) (&rhs.0) [
-    + where [Lhs: NdAdd   <Lhs, Rhs, Type = T>],
-    - where [Lhs: NdSub   <Lhs, Rhs, Type = T>],
-    * where [Lhs: NdMul   <Lhs, Rhs, Type = T>],
-    / where [Lhs: NdDiv   <Lhs, Rhs, Type = T>],
-    % where [Lhs: NdRem   <Lhs, Rhs, Type = T>],
-    | where [Lhs: NdBitOr <Lhs, Rhs, Type = T>],
-    & where [Lhs: NdBitAnd<Lhs, Rhs, Type = T>],
-    ^ where [Lhs: NdBitXor<Lhs, Rhs, Type = T>],
+    + where                     [Lhs: NdAdd                 <Lhs, Rhs, Type = T>],
+    - where                     [Lhs: NdSub                 <Lhs, Rhs, Type = T>],
+    * where                     [Lhs: NdMul                 <Lhs, Rhs, Type = T>],
+    / where                     [Lhs: NdDiv                 <Lhs, Rhs, Type = T>],
+    % where                     [Lhs: NdRem                 <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Unbounded<Lhs>, rhs: Rhs) -> Unbounded<T>, (Lhs) (&lhs.0) (rhs) [
-    << where [Lhs: NdShl<Lhs, Rhs, Type = T>],
-    >> where [Lhs: NdShr<Lhs, Rhs, Type = T>],
+    << with @unbounded where    [Lhs: NdShlUnbounded        <Lhs, Rhs, Type = T>],
+    >> with @unbounded where    [Lhs: NdShrUnbounded        <Lhs, Rhs, Type = T>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Strict<Lhs>, *rhs: &Strict<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += with @strict where       [Lhs: NdAddAssignStrict     <Lhs, Rhs>],
+    -= with @strict where       [Lhs: NdSubAssignStrict     <Lhs, Rhs>],
+    *= with @strict where       [Lhs: NdMulAssignStrict     <Lhs, Rhs>],
+    /= with @strict where       [Lhs: NdDivAssignStrict     <Lhs, Rhs>],
+    %= with @strict where       [Lhs: NdRemAssignStrict     <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Strict<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= with @strict where      [Lhs: NdShlAssignStrict     <Lhs, Rhs>],
+    >>= with @strict where      [Lhs: NdShrAssignStrict     <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Wrapping<Lhs>, *rhs: &Wrapping<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += with @wrapping where     [Lhs: NdAddAssignWrapping   <Lhs, Rhs>],
+    -= with @wrapping where     [Lhs: NdSubAssignWrapping   <Lhs, Rhs>],
+    *= with @wrapping where     [Lhs: NdMulAssignWrapping   <Lhs, Rhs>],
+    /= with @wrapping where     [Lhs: NdDivAssignWrapping   <Lhs, Rhs>],
+    %= with @wrapping where     [Lhs: NdRemAssignWrapping   <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Wrapping<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= where                   [Lhs: NdShlAssign           <Lhs, Rhs>],
+    >>= where                   [Lhs: NdShrAssign           <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, *rhs: &Saturating<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += with @saturating where   [Lhs: NdAddAssignSaturating <Lhs, Rhs>],
+    -= with @saturating where   [Lhs: NdSubAssignSaturating <Lhs, Rhs>],
+    *= with @saturating where   [Lhs: NdMulAssignSaturating <Lhs, Rhs>],
+    /= with @saturating where   [Lhs: NdDivAssignSaturating <Lhs, Rhs>],
+    %= with @saturating where   [Lhs: NdRemAssignSaturating <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= where                   [Lhs: NdShlAssign           <Lhs, Rhs>],
+    >>= where                   [Lhs: NdShrAssign           <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Unbounded<Lhs>, *rhs: &Unbounded<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += where                    [Lhs: NdAddAssign           <Lhs, Rhs>],
+    -= where                    [Lhs: NdSubAssign           <Lhs, Rhs>],
+    *= where                    [Lhs: NdMulAssign           <Lhs, Rhs>],
+    /= where                    [Lhs: NdDivAssign           <Lhs, Rhs>],
+    %= where                    [Lhs: NdRemAssign           <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Unbounded<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= with @unbounded where   [Lhs: NdShlAssignUnbounded  <Lhs, Rhs>],
+    >>= with @unbounded where   [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
 ] }
 
 impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> BytesLen for Width<N, BITS> {
