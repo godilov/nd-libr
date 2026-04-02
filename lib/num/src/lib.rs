@@ -322,7 +322,7 @@ macro_rules! sign_from {
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Strict<N>(pub N);
 
 /// Number with Wrapping operations semantics.
@@ -339,7 +339,7 @@ pub struct Strict<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Wrapping<N>(pub N);
 
 /// Number with Saturating operations semantics.
@@ -356,7 +356,7 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Saturating<N>(pub N);
 
 /// Number with Unbounded operations semantics.
@@ -373,7 +373,7 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Unbounded<N>(pub N);
 
 /// Number within Range.
@@ -1004,6 +1004,70 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
     }
 }
 
+impl<N: Zero> Zero for Strict<N> {
+    const ZERO: Self = Strict(N::ZERO);
+}
+
+impl<N: One> One for Strict<N> {
+    const ONE: Self = Strict(N::ONE);
+}
+
+impl<N: Min> Min for Strict<N> {
+    const MIN: Self = Strict(N::MIN);
+}
+
+impl<N: Max> Max for Strict<N> {
+    const MAX: Self = Strict(N::MAX);
+}
+
+impl<N: Zero> Zero for Wrapping<N> {
+    const ZERO: Self = Wrapping(N::ZERO);
+}
+
+impl<N: One> One for Wrapping<N> {
+    const ONE: Self = Wrapping(N::ONE);
+}
+
+impl<N: Min> Min for Wrapping<N> {
+    const MIN: Self = Wrapping(N::MIN);
+}
+
+impl<N: Max> Max for Wrapping<N> {
+    const MAX: Self = Wrapping(N::MAX);
+}
+
+impl<N: Zero> Zero for Saturating<N> {
+    const ZERO: Self = Saturating(N::ZERO);
+}
+
+impl<N: One> One for Saturating<N> {
+    const ONE: Self = Saturating(N::ONE);
+}
+
+impl<N: Min> Min for Saturating<N> {
+    const MIN: Self = Saturating(N::MIN);
+}
+
+impl<N: Max> Max for Saturating<N> {
+    const MAX: Self = Saturating(N::MAX);
+}
+
+impl<N: Zero> Zero for Unbounded<N> {
+    const ZERO: Self = Unbounded(N::ZERO);
+}
+
+impl<N: One> One for Unbounded<N> {
+    const ONE: Self = Unbounded(N::ONE);
+}
+
+impl<N: Min> Min for Unbounded<N> {
+    const MIN: Self = Unbounded(N::MIN);
+}
+
+impl<N: Max> Max for Unbounded<N> {
+    const MAX: Self = Unbounded(N::MAX);
+}
+
 ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 
 ndops::fwd! { @ndun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
@@ -1622,7 +1686,15 @@ mod tests {
     }
 
     #[test]
-    fn pow() {}
+    fn pow() {
+        // const EXP: u64 = ndassert::prime!(12);
+    }
+
+    #[test]
+    fn powrem() {
+        // const EXP: u64 = ndassert::prime!(8);
+        // const MOD: u64 = ndassert::prime!(16);
+    }
 
     #[test]
     fn strict() {
