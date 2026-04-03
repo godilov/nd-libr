@@ -125,19 +125,12 @@ impl Num for usize {
 }
 
 mod fwd {
-    use std::ops::{Deref, DerefMut};
-
     use super::*;
 
     #[test]
     #[allow(unused_allocation)]
     fn std() {
         ndassert::check! { (val in ndassert::range!(i64, 60)) [
-            *Any(val) == val,
-            Any(val).deref() == &val,
-            Any(val).deref_mut() == &val,
-
-            *Any(Box::new(val)) == Box::new(val),
             Any(Box::new(val)).as_ref() == &val,
             Any(Box::new(val)).as_mut() == &val,
 

@@ -620,14 +620,11 @@ mod tests {
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn std() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 48).map(S64::from)) [
-            (*Aligned(val), val),
-            (*Aligned(Aligned(val)), Aligned(val)),
-        ] }
+        ndassert::check! { (val in ndassert::range!(i64, 60)) [
+            Aligned(Box::new(val)).as_ref() == &val,
+            Aligned(Box::new(val)).as_mut() == &val,
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48).map(U64::from)) [
-            (*Aligned(val), val),
-            (*Aligned(Aligned(val)), Aligned(val)),
+            Aligned(vec![val]) == Aligned::<Vec<i64>>::from_iter([val]),
         ] }
     }
 

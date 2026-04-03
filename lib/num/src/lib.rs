@@ -322,7 +322,7 @@ macro_rules! sign_from {
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Strict<N>(pub N);
 
 /// Number with Wrapping operations semantics.
@@ -339,7 +339,7 @@ pub struct Strict<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Wrapping<N>(pub N);
 
 /// Number with Saturating operations semantics.
@@ -356,7 +356,7 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Saturating<N>(pub N);
 
 /// Number with Unbounded operations semantics.
@@ -373,7 +373,7 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Unbounded<N>(pub N);
 
 /// Number within Range.
@@ -577,7 +577,7 @@ pub trait NumFn:
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     #[inline]
     #[ndfwd::as_into]
-    fn pow(self, mut exp: Self) -> Self {
+    fn nd_pow(self, mut exp: Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
 
@@ -605,7 +605,7 @@ pub trait NumFn:
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     #[inline]
     #[ndfwd::as_into]
-    fn powrem(self, mut exp: Self, rem: &Self) -> Self {
+    fn nd_powrem(self, mut exp: Self, rem: &Self) -> Self {
         let zero = Self::zero();
         let one = Self::one();
 
@@ -1687,13 +1687,34 @@ mod tests {
 
     #[test]
     fn pow() {
-        // const EXP: u64 = ndassert::prime!(12);
+        const EXP: u64 = ndassert::prime!(8);
+
+        for value in ndassert::range!(u64, 56) {
+            let mut acc = Wrapping(1u64);
+
+            for exp in 0..EXP {
+                assert_eq!(acc, Wrapping(value).nd_pow(Wrapping(exp)));
+
+                acc *= Wrapping(value);
+            }
+        }
     }
 
     #[test]
     fn powrem() {
-        // const EXP: u64 = ndassert::prime!(8);
-        // const MOD: u64 = ndassert::prime!(16);
+        const EXP: u64 = ndassert::prime!(8);
+        const MOD: u64 = ndassert::prime!(32);
+
+        for value in ndassert::range!(u64, 56) {
+            let mut acc = Wrapping(1u64);
+
+            for exp in 0..EXP {
+                assert_eq!(acc, Wrapping(value).nd_powrem(Wrapping(exp), &Wrapping(MOD)));
+
+                acc *= Wrapping(value);
+                acc %= Wrapping(MOD);
+            }
+        }
     }
 
     #[test]

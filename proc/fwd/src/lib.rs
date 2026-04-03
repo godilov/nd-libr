@@ -17,12 +17,9 @@ mod kw {
 
 /// Zero-boilerplate standard traits forwarding for **struct**, **enum** and **union**.
 ///
-/// Forwards [`Deref`](std::ops::Deref), [`DerefMut`](std::ops::DerefMut), [`AsRef`], [`AsMut`],
-/// [`FromIterator`] to specified expression.
+/// Forwards [`AsRef`], [`AsMut`], [`FromIterator`] to specified expression.
 ///
 /// Requires [`From`] for [`FromIterator`].
-///
-/// **Note:** `deref`/`deref_mut` return expression itself, while `as_ref`/`as_mut` call `as_ref`/`as_mut`.
 ///
 /// # Syntax
 ///
@@ -55,7 +52,7 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let (expr, ty) = fwd.forward_args();
 
     let gen_params = &generics.params;
-    let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
+    let (_, gen_type, gen_where) = generics.split_for_impl();
 
     let predicates = gen_where.map(|val| val.predicates.iter());
 
@@ -76,22 +73,6 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
     quote! {
         #item
-
-        impl #gen_impl std::ops::Deref for #ident #gen_type #gen_where {
-            type Target = #ty;
-
-            #[inline]
-            fn deref(&self) -> &Self::Target {
-                &#expr
-            }
-        }
-
-        impl #gen_impl std::ops::DerefMut for #ident #gen_type #gen_where {
-            #[inline]
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut #expr
-            }
-        }
 
         impl<AsRefRet, #gen_params> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref {
             #[inline]

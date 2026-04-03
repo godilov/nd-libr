@@ -156,7 +156,7 @@ pub trait Primality: NumUnsigned + NumRand {
 
             let mut any = false;
             let mut pow = Self::nd_shr(&x, shr);
-            let mut exp = p.powrem(pow.clone(), self);
+            let mut exp = p.nd_powrem(pow.clone(), self);
 
             while pow < x && one < exp && exp < x {
                 any |= true;
