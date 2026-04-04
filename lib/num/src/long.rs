@@ -2882,6 +2882,7 @@ impl<const L: usize> IntoDigitsIter for Unsigned<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Signed<L> {
+    #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
         eq_const!(self.0.iter(), other.0.iter())
     }
@@ -2889,6 +2890,7 @@ impl<const L: usize> EqCt for Signed<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Unsigned<L> {
+    #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
         eq_const!(self.0.iter(), other.0.iter())
     }
@@ -2896,6 +2898,7 @@ impl<const L: usize> EqCt for Unsigned<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Bytes<L> {
+    #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
         eq_const!(self.0.iter(), other.0.iter())
     }
@@ -2903,6 +2906,7 @@ impl<const L: usize> EqCt for Bytes<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> LtCt for Signed<L> {
+    #[inline(never)]
     fn lt_ct(&self, other: &Self) -> MaskCt {
         let lhs_sign = sign_ct(&self.0);
         let rhs_sign = sign_ct(&other.0);
@@ -2919,6 +2923,7 @@ impl<const L: usize> LtCt for Signed<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> GtCt for Signed<L> {
+    #[inline(never)]
     fn gt_ct(&self, other: &Self) -> MaskCt {
         let lhs_sign = sign_ct(&self.0);
         let rhs_sign = sign_ct(&other.0);
@@ -2935,6 +2940,7 @@ impl<const L: usize> GtCt for Signed<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> LtCt for Unsigned<L> {
+    #[inline(never)]
     fn lt_ct(&self, other: &Self) -> MaskCt {
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
 
@@ -2944,6 +2950,7 @@ impl<const L: usize> LtCt for Unsigned<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> GtCt for Unsigned<L> {
+    #[inline(never)]
     fn gt_ct(&self, other: &Self) -> MaskCt {
         let cmp = cmp_const!(self.0.iter(), other.0.iter());
 
@@ -2953,6 +2960,7 @@ impl<const L: usize> GtCt for Unsigned<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> SelectCt for Signed<L> {
+    #[inline(never)]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
         let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
         let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
@@ -2963,6 +2971,7 @@ impl<const L: usize> SelectCt for Signed<L> {
 
 #[cfg(feature = "const-time")]
 impl<const L: usize> SelectCt for Unsigned<L> {
+    #[inline(never)]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
         let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
         let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);

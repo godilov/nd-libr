@@ -168,6 +168,7 @@ macro_rules! num_ct_impl {
     };
     (@signed $signed:ty:$unsigned:ty $(,)?) => {
         impl EqCt for $signed {
+            #[inline(never)]
             fn eq_ct(&self, other: &Self) -> MaskCt {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
@@ -180,6 +181,7 @@ macro_rules! num_ct_impl {
         }
 
         impl LtCt for $signed {
+            #[inline(never)]
             fn lt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
@@ -197,6 +199,7 @@ macro_rules! num_ct_impl {
         }
 
         impl GtCt for $signed {
+            #[inline(never)]
             fn gt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
@@ -217,6 +220,7 @@ macro_rules! num_ct_impl {
     };
     (@unsigned $unsigned:ty $(,)?) => {
         impl EqCt for $unsigned {
+            #[inline(never)]
             fn eq_ct(&self, other: &Self) -> MaskCt {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
@@ -229,6 +233,7 @@ macro_rules! num_ct_impl {
         }
 
         impl LtCt for $unsigned {
+            #[inline(never)]
             fn lt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = self;
                 let rhs = other;
@@ -246,6 +251,7 @@ macro_rules! num_ct_impl {
         }
 
         impl GtCt for $unsigned {
+            #[inline(never)]
             fn gt_ct(&self, other: &Self) -> MaskCt {
                 let lhs = self;
                 let rhs = other;
@@ -266,6 +272,7 @@ macro_rules! num_ct_impl {
     };
     (@select $primitive:ty $(,)?) => {
         impl SelectCt for $primitive {
+            #[inline(never)]
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
                 let lhs_mask = Self::from_ne_bytes([mask; (Self::BITS / 8) as usize]);
                 let rhs_mask = Self::from_ne_bytes([!mask; (Self::BITS / 8) as usize]);
@@ -1551,6 +1558,7 @@ impl<Any: Max> MaxFn for Any {
 
 #[cfg(feature = "const-time")]
 impl<Any: GtCt> LeCt for Any {
+    #[inline(never)]
     fn le_ct(&self, other: &Self) -> MaskCt {
         !self.gt_ct(other)
     }
@@ -1558,6 +1566,7 @@ impl<Any: GtCt> LeCt for Any {
 
 #[cfg(feature = "const-time")]
 impl<Any: LtCt> GeCt for Any {
+    #[inline(never)]
     fn ge_ct(&self, other: &Self) -> MaskCt {
         !self.lt_ct(other)
     }
@@ -1565,6 +1574,7 @@ impl<Any: LtCt> GeCt for Any {
 
 #[cfg(feature = "const-time")]
 impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {
+    #[inline(never)]
     fn cmp_ct(&self, other: &Self) -> SignCt {
         let lt = self.lt_ct(other) as SignCt;
         let gt = self.gt_ct(other) as SignCt;
@@ -1575,6 +1585,7 @@ impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {
 
 #[cfg(feature = "const-time")]
 impl<Any: LtCt + SelectCt> MinCt for Any {
+    #[inline]
     fn min_ct(&self, other: &Self) -> Self {
         SelectCt::select_ct(self, other, self.lt_ct(other))
     }
@@ -1582,6 +1593,7 @@ impl<Any: LtCt + SelectCt> MinCt for Any {
 
 #[cfg(feature = "const-time")]
 impl<Any: GtCt + SelectCt> MaxCt for Any {
+    #[inline]
     fn max_ct(&self, other: &Self) -> Self {
         SelectCt::select_ct(self, other, self.gt_ct(other))
     }
