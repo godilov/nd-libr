@@ -963,42 +963,49 @@ sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
 sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 impl<N> From<N> for Strict<N> {
+    #[inline]
     fn from(value: N) -> Self {
         Self(value)
     }
 }
 
 impl<N> From<N> for Wrapping<N> {
+    #[inline]
     fn from(value: N) -> Self {
         Self(value)
     }
 }
 
 impl<N> From<N> for Saturating<N> {
+    #[inline]
     fn from(value: N) -> Self {
         Self(value)
     }
 }
 
 impl<N> From<N> for Unbounded<N> {
+    #[inline]
     fn from(value: N) -> Self {
         Self(value)
     }
 }
 
 impl<N> From<N> for Ranged<N> {
+    #[inline]
     fn from(value: N) -> Self {
         Self(value)
     }
 }
 
 impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> From<N> for Width<N, BITS> {
+    #[inline]
     fn from(value: N) -> Self {
         Self(value).normalized()
     }
 }
 
 impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
+    #[inline]
     fn from(value: N) -> Self {
         Self(value, PhantomData).normalized()
     }
@@ -1476,6 +1483,7 @@ impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> Width<N, BITS
     #[allow(unused)]
     const CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
 
+    #[inline]
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
@@ -1500,6 +1508,7 @@ impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> Width<N, BITS
 }
 
 impl<N: Num + NumUnsigned, M: Modulus<N>> Modular<N, M> {
+    #[inline]
     pub(crate) fn normalized(mut self) -> Self {
         self.normalize();
         self
@@ -1513,24 +1522,28 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> Modular<N, M> {
 }
 
 impl<Any: Zero> ZeroFn for Any {
+    #[inline]
     fn zero() -> Self {
         Any::ZERO
     }
 }
 
 impl<Any: One> OneFn for Any {
+    #[inline]
     fn one() -> Self {
         Any::ONE
     }
 }
 
 impl<Any: Min> MinFn for Any {
+    #[inline]
     fn min() -> Self {
         Any::MIN
     }
 }
 
 impl<Any: Max> MaxFn for Any {
+    #[inline]
     fn max() -> Self {
         Any::MAX
     }
