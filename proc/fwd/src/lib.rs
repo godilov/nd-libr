@@ -357,15 +357,16 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             TraitItem::Fn(val) => Some(get_forward_fn(&interface, val)),
             _ => None,
         })
-        .collect::<Result<Vec<(&Ident, TokenStream)>>>();
+        .collect::<Result<Vec<(&Ident, bool, TokenStream)>>>();
 
     let forwards = match forwards {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let streams = forwards.iter().map(|(_, stream)| stream);
-    let cases = forwards.iter().map(|(ident, stream)| {
+    let streams_all = forwards.iter().map(|(_, _, stream)| stream);
+    let streams = forwards.iter().filter(|(_, flag, _)| !flag).map(|(_, _, stream)| stream);
+    let cases = forwards.iter().map(|(ident, _, stream)| {
         quote! {
             (#ident $ty:ty) => {
                 #stream
@@ -380,6 +381,12 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[allow(unused_macros)]
         macro_rules! #macros {
             (@ $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
+                impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
+                    #(#streams_all)*
+                }
+            };
+
+            (@ ! $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
                 impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
                     #(#streams)*
                 }
@@ -453,6 +460,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let expr = &attr.fwd.expr;
             let ty = &attr.fwd.ty;
             let path = &attr.path;
+            let defaults = &attr.defaults;
 
             let sig_predicates = item.generics.where_clause.as_ref().map(|val| val.predicates.iter());
             let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
@@ -486,7 +494,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                 mod #module {
                     #forward
 
-                    #macros!(@ #ident #gen_type, #ty, (#gen_params), (#gen_where));
+                    #macros!(@ #defaults #ident #gen_type, #ty, (#gen_params), (#gen_where));
 
                     use super::*;
 
@@ -647,6 +655,7 @@ struct ForwardData {
     fwd: Forward,
     colon: Token![:],
     path: Path,
+    defaults: Option<Token![!]>,
     conditions: Option<WhereClause>,
 }
 
@@ -733,6 +742,7 @@ impl Parse for ForwardData {
             fwd: input.parse()?,
             colon: input.parse()?,
             path: input.parse()?,
+            defaults: input.parse()?,
             conditions: input.parse()?,
         })
     }
@@ -854,7 +864,7 @@ fn get_forward_impl(ident: &Ident, generics: &Generics, expr: &Expr, ty: &Type) 
     }
 }
 
-fn get_forward_type<'item>(interface: &ItemTrait, item: &'item TraitItemType) -> (&'item Ident, TokenStream) {
+fn get_forward_type<'item>(interface: &ItemTrait, item: &'item TraitItemType) -> (&'item Ident, bool, TokenStream) {
     let attrs = &item.attrs;
     let ident = &item.ident;
 
@@ -865,6 +875,7 @@ fn get_forward_type<'item>(interface: &ItemTrait, item: &'item TraitItemType) ->
 
     (
         ident,
+        false,
         quote! {
             #(#attrs)*
             type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
@@ -872,7 +883,7 @@ fn get_forward_type<'item>(interface: &ItemTrait, item: &'item TraitItemType) ->
     )
 }
 
-fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) -> (&'item Ident, TokenStream) {
+fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) -> (&'item Ident, bool, TokenStream) {
     let attrs = &item.attrs;
     let ident = &item.ident;
     let ty = &item.ty;
@@ -882,6 +893,7 @@ fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) 
 
     (
         ident,
+        false,
         quote! {
             #(#attrs)*
             const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
@@ -889,11 +901,11 @@ fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) 
     )
 }
 
-fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'item Ident, TokenStream)> {
+fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'item Ident, bool, TokenStream)> {
     let TraitItemFn {
         attrs,
         sig,
-        default: _,
+        default,
         semi_token: _,
     } = &item;
 
@@ -1078,6 +1090,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
 
     Ok((
         ident,
+        default.is_some(),
         quote! {
             #[allow(unused_mut)]
             #[inline]

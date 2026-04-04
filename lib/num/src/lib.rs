@@ -318,10 +318,10 @@ macro_rules! sign_from {
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumRand)]
+#[ndfwd::def(self.0 with N: NumFn!)]
+#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Strict<N>(pub N);
 
@@ -335,10 +335,10 @@ pub struct Strict<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumRand)]
+#[ndfwd::def(self.0 with N: NumFn!)]
+#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Wrapping<N>(pub N);
 
@@ -352,10 +352,10 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumRand)]
+#[ndfwd::def(self.0 with N: NumFn!)]
+#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Saturating<N>(pub N);
 
@@ -369,10 +369,10 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
-#[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumRand)]
+#[ndfwd::def(self.0 with N: NumFn!)]
+#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Unbounded<N>(pub N);
 
