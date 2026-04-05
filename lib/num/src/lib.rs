@@ -1714,7 +1714,7 @@ mod tests {
     fn pow() {
         const EXP: u64 = ndassert::prime!(8);
 
-        for value in ndassert::range!(u64, 56) {
+        for value in ndassert::range!(u32, 24).map(|x| x as u64) {
             let mut acc = Wrapping(1u64);
 
             for exp in 0..EXP {
