@@ -2,7 +2,7 @@
 
 use std::mem::{replace, take};
 
-use crate::{NumRand, NumUnsigned};
+use crate::{NumPow, NumRand, NumUnsigned};
 
 macro_rules! prime_impl {
     ($(($primitive:ty, $count:expr)),+ $(,)?) => {
@@ -123,7 +123,7 @@ impl Primes {
 /// Primality test functions.
 ///
 /// For more info, see [module-level](crate::prime) and [crate-level](crate) documentation.
-pub trait Primality: NumUnsigned + NumRand {
+pub trait Primality: NumUnsigned + NumRand + NumPow {
     /// Prime numbers iterator to use in `is_prime` implementation.
     fn primes() -> impl Iterator<Item = Self>;
 

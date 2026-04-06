@@ -113,7 +113,11 @@ macro_rules! num_impl {
             }
         }
 
-        impl NumFnChecked for $primitive {}
+        impl NumPow for $primitive {}
+
+        impl NumGcd for $primitive {}
+
+        impl NumGcdChecked for $primitive {}
 
         impl Num for $primitive {}
 
@@ -326,7 +330,9 @@ macro_rules! sign_from {
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: NumPow!)]
+#[ndfwd::def(self.0 with N: NumGcd!)]
+#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
 #[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -343,7 +349,9 @@ pub struct Strict<N>(pub N);
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: NumPow!)]
+#[ndfwd::def(self.0 with N: NumGcd!)]
+#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
 #[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -360,7 +368,9 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: NumPow!)]
+#[ndfwd::def(self.0 with N: NumGcd!)]
+#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
 #[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -377,7 +387,9 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumFnChecked!)]
+#[ndfwd::def(self.0 with N: NumPow!)]
+#[ndfwd::def(self.0 with N: NumGcd!)]
+#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
 #[ndfwd::def(self.0 with N: NumRand!)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -392,7 +404,6 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Ranged<N>(pub N);
 
@@ -406,7 +417,9 @@ pub struct Ranged<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
+#[ndfwd::def(self.0 with N: NumPow!)]
+#[ndfwd::def(self.0 with N: NumGcd!)]
+#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumRand)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -422,7 +435,9 @@ pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(p
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumFnChecked)]
+#[ndfwd::def(self.0 with N: NumPow!)]
+#[ndfwd::def(self.0 with N: NumGcd!)]
+#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -450,7 +465,7 @@ pub type MaskCt = u8;
 #[cfg(feature = "const-time")]
 pub type SignCt = i8;
 
-/// Numbers functions with default semantics.
+/// Numbers functions.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
@@ -498,7 +513,77 @@ pub trait NumFn:
         self.write_alt();
         self
     }
+}
 
+/// Numbers with power functions.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumPow: NumFn {
+    /// Calculates `self ^ exp`.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[inline]
+    #[ndfwd::as_into]
+    fn nd_pow(self, mut exp: Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one;
+
+        while exp != zero {
+            if exp.is_odd() {
+                Self::nd_mul_assign(&mut res, &acc);
+            }
+
+            let val = acc.clone();
+
+            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_shr_assign(&mut exp, 1);
+        }
+
+        res
+    }
+
+    /// Calculates `self ^ exp % rem`.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[inline]
+    #[ndfwd::as_into]
+    fn nd_powrem(self, mut exp: Self, rem: &Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one;
+
+        while exp != zero {
+            if exp.is_odd() {
+                Self::nd_mul_assign(&mut res, &acc);
+                Self::nd_rem_assign(&mut res, rem);
+            }
+
+            let val = acc.clone();
+
+            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_rem_assign(&mut acc, rem);
+            Self::nd_shr_assign(&mut exp, 1);
+        }
+
+        res
+    }
+}
+
+/// Numbers with GCD/GCDE/LCM functions with default semantics.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumGcd: NumFn {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Panics
@@ -576,71 +661,13 @@ pub trait NumFn:
 
         Self::nd_mul(&val, &rhs)
     }
-
-    /// Calculates `self ^ exp`.
-    ///
-    /// # Panics
-    ///
-    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
-    #[inline]
-    #[ndfwd::as_into]
-    fn nd_pow(self, mut exp: Self) -> Self {
-        let zero = Self::zero();
-        let one = Self::one();
-
-        let mut acc = self;
-        let mut res = one;
-
-        while exp != zero {
-            if exp.is_odd() {
-                Self::nd_mul_assign(&mut res, &acc);
-            }
-
-            let val = acc.clone();
-
-            Self::nd_mul_assign(&mut acc, &val);
-            Self::nd_shr_assign(&mut exp, 1);
-        }
-
-        res
-    }
-
-    /// Calculates `self ^ exp % rem`.
-    ///
-    /// # Panics
-    ///
-    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
-    #[inline]
-    #[ndfwd::as_into]
-    fn nd_powrem(self, mut exp: Self, rem: &Self) -> Self {
-        let zero = Self::zero();
-        let one = Self::one();
-
-        let mut acc = self;
-        let mut res = one;
-
-        while exp != zero {
-            if exp.is_odd() {
-                Self::nd_mul_assign(&mut res, &acc);
-                Self::nd_rem_assign(&mut res, rem);
-            }
-
-            let val = acc.clone();
-
-            Self::nd_mul_assign(&mut acc, &val);
-            Self::nd_rem_assign(&mut acc, rem);
-            Self::nd_shr_assign(&mut exp, 1);
-        }
-
-        res
-    }
 }
 
-/// Numbers functions with checked semantics.
+/// Numbers with GCD/GCDE/LCM functions with checked semantics.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
+pub trait NumGcdChecked: NumFn + NdOpsChecked<All = Self> {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Returns
@@ -717,15 +744,7 @@ pub trait NumFnChecked: NumFn + NdOpsChecked<All = Self> {
     }
 }
 
-/// Number with static allocation.
-#[ndfwd::decl]
-pub trait Num: NumFn + Zero + One + Copy {}
-
-/// Number with dynamic allocation.
-#[ndfwd::decl]
-pub trait NumDyn: NumFn {}
-
-/// Number with random generation.
+/// Numbers with random generation functions.
 #[ndfwd::decl]
 pub trait NumRand: NumFn + BytesFn {
     /// Creates random number.
@@ -758,6 +777,14 @@ pub trait NumRand: NumFn + BytesFn {
         res
     }
 }
+
+/// Number with static allocation.
+#[ndfwd::decl]
+pub trait Num: NumFn + Zero + One + Copy {}
+
+/// Number with dynamic allocation.
+#[ndfwd::decl]
+pub trait NumDyn: NumFn {}
 
 /// Number with sign.
 #[ndfwd::decl]
