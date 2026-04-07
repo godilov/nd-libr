@@ -1038,25 +1038,25 @@ mod uops {
     use super::*;
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn pos<const L: usize>(words: &[Single; L]) -> [Single; L] {
         *words
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn pos_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         words
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn neg<const L: usize>(words: &[Single; L]) -> [Single; L] {
         let mut words = *words;
 
@@ -1067,9 +1067,9 @@ mod uops {
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         not_mut(words);
         inc_mut(words);
@@ -1078,94 +1078,94 @@ mod uops {
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn not<const L: usize>(words: &[Single; L]) -> [Single; L] {
         words.iter().map(|&word| !word).collect_with([0; L])
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn not_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         words.iter_mut().for_each(|word| *word = !*word);
         words
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
         inc_impl!(*words)
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         inc_impl!(words)
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
         dec_impl!(*words)
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         dec_impl!(words)
     }
 
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         shl_impl!(*words, words, shift, default)
     }
 
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         shr_impl!(*words, words, shift, default)
     }
 
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shl_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
         shl_impl!(words, words, shift, default)
     }
 
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shr_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
         shr_impl!(words, words, shift, default)
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shl_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
         shl(words, shift, 0)
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shr_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
         let default = match sign(words, Sign::POS, Sign::NEG) {
             Sign::ZERO => 0,
@@ -1177,17 +1177,17 @@ mod uops {
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
         shl_mut(words, shift, 0)
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
         let default = match sign(words, Sign::POS, Sign::NEG) {
             Sign::ZERO => 0,
@@ -1199,9 +1199,9 @@ mod uops {
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     #[allow(clippy::unnecessary_cast)]
     pub(super) fn read<const L: usize>(words: &[Single; L], offset: usize) -> Single {
         let idx = offset / BITS;
@@ -1222,9 +1222,9 @@ mod uops {
     }
 
     #[inline]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn sign<const L: usize>(words: &[Single; L], pos: Sign, neg: Sign) -> Sign {
         if words == &[0; L] {
             return Sign::ZERO;
@@ -1237,9 +1237,9 @@ mod uops {
     }
 
     #[cfg(feature = "const-time")]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     #[allow(clippy::unnecessary_cast)]
     pub(super) fn sign_ct<const L: usize>(words: &[Single; L]) -> SignCt {
         let zero = zero_ct(words);
@@ -1250,9 +1250,9 @@ mod uops {
     }
 
     #[cfg(feature = "const-time")]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     #[allow(clippy::unnecessary_cast)]
     pub(super) fn pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let zero = zero_ct(words);
@@ -1262,9 +1262,9 @@ mod uops {
     }
 
     #[cfg(feature = "const-time")]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     #[allow(clippy::unnecessary_cast)]
     pub(super) fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
@@ -1273,9 +1273,9 @@ mod uops {
     }
 
     #[cfg(feature = "const-time")]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-    #[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         eq_const!(words.iter(), std::hint::black_box(repeat(0)))
     }
