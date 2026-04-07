@@ -3899,23 +3899,23 @@ where
     write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
     add_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_with([0; L])
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
     sub_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_with([0; L])
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn mul_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
     let mut res = [0; L];
 
@@ -3929,16 +3929,16 @@ fn mul_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L]
     res
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn div_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], [Single; L]) {
     div_long_impl!(*lhs, rhs.iter().copied())
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_long<const L: usize, F>(lhs: &[Single; L], rhs: &[Single; L], f: F) -> [Single; L]
 where
     F: Fn(Single, Single) -> Single,
@@ -3950,39 +3950,39 @@ where
         .collect_with([0; L])
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
     add_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
     sub_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn mul_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
     mul_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn div_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> ([Single; L], [Single; L]) {
     let (div, rem) = div_single_impl!(*lhs, rhs);
 
     (div, from_arr(&rem.to_le_bytes(), 0))
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_single<const L: usize, F>(lhs: &[Single; L], rhs: Single, default: Single, f: F) -> [Single; L]
 where
     F: Fn(Single, Single) -> Single,
@@ -3994,9 +3994,9 @@ where
         .collect_with([0; L])
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) -> [Single; L] {
     match sign {
         Sign::ZERO => sub_single(lhs, rhs),
@@ -4005,9 +4005,9 @@ fn add_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) ->
     }
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) -> [Single; L] {
     match sign {
         Sign::ZERO => add_single(lhs, rhs),
@@ -4016,9 +4016,9 @@ fn sub_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) ->
     }
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn mul_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) -> [Single; L] {
     let mut mul = mul_single(lhs, rhs);
 
@@ -4029,46 +4029,46 @@ fn mul_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) ->
     mul
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     add_long_mut_impl!(lhs.iter_mut(), rhs.iter().copied());
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     sub_long_mut_impl!(lhs.iter_mut(), rhs.iter().copied());
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn mul_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     *lhs = mul_long(lhs, rhs);
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn div_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     div_long_impl!(lhs, rhs.iter().copied());
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn rem_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     let (_, rem) = div_long_impl!(*lhs, rhs.iter().copied());
 
     *lhs = rem;
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_long_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: &[Single; L], f: F)
 where
     F: Fn(Single, Single) -> Single,
@@ -4078,46 +4078,46 @@ where
         .for_each(|(ptr, val)| *ptr = f(*ptr, val));
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     add_single_mut_impl!(lhs.iter_mut(), rhs);
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     sub_single_mut_impl!(lhs.iter_mut(), rhs);
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     mul_single_mut_impl!(lhs.iter_mut(), rhs);
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     div_single_impl!(lhs, rhs);
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     let (_, rem) = div_single_impl!(*lhs, rhs);
 
     *lhs = from_arr(&rem.to_le_bytes(), 0);
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1], type F = fn(Single, Single) -> Single))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2], type F = fn(Single, Single) -> Single))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1], type F = fn(Single, Single) -> Single)]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2], type F = fn(Single, Single) -> Single)]
 fn bit_single_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: Single, default: Single, f: F)
 where
     F: Fn(Single, Single) -> Single,
@@ -4127,9 +4127,9 @@ where
         .for_each(|(ptr, val)| *ptr = f(*ptr, val));
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, Sign)) {
     match sign {
         Sign::ZERO => sub_single_mut(lhs, rhs),
@@ -4138,9 +4138,9 @@ fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, S
     }
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, Sign)) {
     match sign {
         Sign::ZERO => add_single_mut(lhs, rhs),
@@ -4149,9 +4149,9 @@ fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, S
     }
 }
 
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[0]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[1]))]
-#[cfg_attr(feature = "asm", ndasm::emit(const L: usize = LENS[2]))]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, Sign)) {
     mul_single_mut(lhs, rhs);
 

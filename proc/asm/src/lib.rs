@@ -6,10 +6,11 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Expr, FnArg, Ident, ItemFn, Result, Token, Type,
+    Expr, FnArg, Ident, ItemFn, Result, Token, Type, bracketed,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
+    token::Bracket,
 };
 
 /// Creates function monomorphization.
@@ -44,6 +45,44 @@ pub fn emit(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Creates (conditionally) function monomorphization.
+///
+/// Allows emitting asm output of generic function for verifying with `cargo asm`.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Asm contains monomorphization for sum::<16>, sum::<32>, sum::<64> functions
+/// #[ndasm::emit_if([feature = "asm"] const N: usize = 16)]
+/// #[ndasm::emit_if([feature = "asm"] const N: usize = 32)]
+/// #[ndasm::emit_if([feature = "asm"] const N: usize = 64)]
+/// fn sum<const N: usize>(arr: &[u64; N]) -> u64 {
+///     arr.iter().copied().sum::<u64>()
+/// }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro_attribute]
+pub fn emit_if(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let func = parse_macro_input!(item as AsmFunc);
+    let args = parse_macro_input!(attr as AsmArgsConditional);
+
+    let asm = Asm {
+        func: &func,
+        args: &AsmArgs { elems: args.elems },
+    };
+
+    let conditions = &args.conditions;
+
+    quote! {
+        #func
+
+        #[cfg(#conditions)]
+        #asm
+    }
+    .into()
+}
+
 struct Asm<'x> {
     func: &'x AsmFunc,
     args: &'x AsmArgs,
@@ -54,6 +93,13 @@ struct AsmFunc {
 }
 
 struct AsmArgs {
+    elems: Punctuated<AsmArgument, Token![,]>,
+}
+
+#[allow(unused)]
+struct AsmArgsConditional {
+    bracket: Bracket,
+    conditions: Punctuated<TokenStream, Token![,]>,
     elems: Punctuated<AsmArgument, Token![,]>,
 }
 
@@ -89,6 +135,18 @@ impl Parse for AsmFunc {
 impl Parse for AsmArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
+            elems: input.parse_terminated(AsmArgument::parse, Token![,])?,
+        })
+    }
+}
+
+impl Parse for AsmArgsConditional {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+
+        Ok(Self {
+            bracket: bracketed!(content in input),
+            conditions: content.parse_terminated(TokenStream::parse, Token![,])?,
             elems: input.parse_terminated(AsmArgument::parse, Token![,])?,
         })
     }
