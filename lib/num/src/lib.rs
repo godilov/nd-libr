@@ -405,7 +405,7 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-pub struct Ranged<N>(pub N);
+pub struct Ranged<N: Num, R: Range<N>>(pub N, pub PhantomData<R>);
 
 /// Number with specified binary width.
 ///
@@ -807,6 +807,15 @@ pub trait NumUnsigned: NumFn + From<u8> {
     fn sqrt(&self) -> Self;
 }
 
+/// Range for [`Ranged`] numbers.
+pub trait Range<N: Num>: Default + Debug + Clone {
+    /// Range inclusive minimum.
+    const MIN: N;
+
+    /// Range inclusive maximum.
+    const MAX: N;
+}
+
 /// Modulus for [`Modular`] numbers.
 pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
     /// Modulus for arithmetics.
@@ -1024,10 +1033,18 @@ impl<N> From<N> for Unbounded<N> {
     }
 }
 
-impl<N> From<N> for Ranged<N> {
+impl<N: Num, R: Range<N>> From<N> for Ranged<N, R> {
     #[inline]
     fn from(value: N) -> Self {
-        Self(value)
+        if value < R::MIN {
+            return Self(R::MIN, PhantomData);
+        }
+
+        if value > R::MAX {
+            return Self(R::MAX, PhantomData);
+        }
+
+        Self(value, PhantomData)
     }
 }
 
