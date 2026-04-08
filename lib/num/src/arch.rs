@@ -617,7 +617,7 @@ ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>, rhs: Rhs), (Lhs) (&mut
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::long::{S64, U64};
+    use crate::long::alias::{S64, U64};
 
     #[test]
     #[allow(clippy::unnecessary_cast)]

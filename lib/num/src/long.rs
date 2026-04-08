@@ -780,6 +780,219 @@ macro_rules! length {
     }};
 }
 
+pub mod alias {
+    //! # Alias
+    //!
+    //! **Long aliases**
+
+    /// Signed long of at least 8-bits length.
+    pub type S8 = signed!(8);
+
+    /// Signed long of at least 12-bits length.
+    pub type S12 = signed!(12);
+
+    /// Signed long of at least 16-bits length.
+    pub type S16 = signed!(16);
+
+    /// Signed long of at least 24-bits length.
+    pub type S24 = signed!(24);
+
+    /// Signed long of at least 32-bits length.
+    pub type S32 = signed!(32);
+
+    /// Signed long of at least 48-bits length.
+    pub type S48 = signed!(48);
+
+    /// Signed long of at least 64-bits length.
+    pub type S64 = signed!(64);
+
+    /// Signed long of at least 96-bits length.
+    pub type S96 = signed!(96);
+
+    /// Signed long of at least 128-bits length.
+    pub type S128 = signed!(128);
+
+    /// Signed long of at least 192-bits length.
+    pub type S192 = signed!(192);
+
+    /// Signed long of at least 256-bits length.
+    pub type S256 = signed!(256);
+
+    /// Signed long of at least 384-bits length.
+    pub type S384 = signed!(384);
+
+    /// Signed long of at least 512-bits length.
+    pub type S512 = signed!(512);
+
+    /// Signed long of at least 768-bits length.
+    pub type S768 = signed!(768);
+
+    /// Signed long of at least 1024-bits length.
+    pub type S1024 = signed!(1024);
+
+    /// Signed long of at least 1536-bits length.
+    pub type S1536 = signed!(1536);
+
+    /// Signed long of at least 2048-bits length.
+    pub type S2048 = signed!(2048);
+
+    /// Signed long of at least 3072-bits length.
+    pub type S3072 = signed!(3072);
+
+    /// Signed long of at least 4096-bits length.
+    pub type S4096 = signed!(4096);
+
+    /// Signed long of at least 6144-bits length.
+    pub type S6144 = signed!(6144);
+
+    /// Signed long of at least 8192-bits length.
+    pub type S8192 = signed!(8192);
+
+    /// Signed long of at least 12288-bits length.
+    pub type S12288 = signed!(12288);
+
+    /// Signed long of at least 16384-bits length.
+    pub type S16384 = signed!(16384);
+
+    /// Unsigned long of at least 8-bits length.
+    pub type U8 = unsigned!(8);
+
+    /// Unsigned long of at least 12-bits length.
+    pub type U12 = unsigned!(12);
+
+    /// Unsigned long of at least 16-bits length.
+    pub type U16 = unsigned!(16);
+
+    /// Unsigned long of at least 24-bits length.
+    pub type U24 = unsigned!(24);
+
+    /// Unsigned long of at least 32-bits length.
+    pub type U32 = unsigned!(32);
+
+    /// Unsigned long of at least 48-bits length.
+    pub type U48 = unsigned!(48);
+
+    /// Unsigned long of at least 64-bits length.
+    pub type U64 = unsigned!(64);
+
+    /// Unsigned long of at least 96-bits length.
+    pub type U96 = unsigned!(96);
+
+    /// Unsigned long of at least 128-bits length.
+    pub type U128 = unsigned!(128);
+
+    /// Unsigned long of at least 192-bits length.
+    pub type U192 = unsigned!(192);
+
+    /// Unsigned long of at least 256-bits length.
+    pub type U256 = unsigned!(256);
+
+    /// Unsigned long of at least 384-bits length.
+    pub type U384 = unsigned!(384);
+
+    /// Unsigned long of at least 512-bits length.
+    pub type U512 = unsigned!(512);
+
+    /// Unsigned long of at least 768-bits length.
+    pub type U768 = unsigned!(768);
+
+    /// Unsigned long of at least 1024-bits length.
+    pub type U1024 = unsigned!(1024);
+
+    /// Unsigned long of at least 1536-bits length.
+    pub type U1536 = unsigned!(1536);
+
+    /// Unsigned long of at least 2048-bits length.
+    pub type U2048 = unsigned!(2048);
+
+    /// Unsigned long of at least 3072-bits length.
+    pub type U3072 = unsigned!(3072);
+
+    /// Unsigned long of at least 4096-bits length.
+    pub type U4096 = unsigned!(4096);
+
+    /// Unsigned long of at least 6144-bits length.
+    pub type U6144 = unsigned!(6144);
+
+    /// Unsigned long of at least 8192-bits length.
+    pub type U8192 = unsigned!(8192);
+
+    /// Unsigned long of at least 12288-bits length.
+    pub type U12288 = unsigned!(12288);
+
+    /// Unsigned long of at least 16384-bits length.
+    pub type U16384 = unsigned!(16384);
+
+    /// Bytes long of at least 8-bits length.
+    pub type B8 = bytes!(8);
+
+    /// Bytes long of at least 12-bits length.
+    pub type B12 = bytes!(12);
+
+    /// Bytes long of at least 16-bits length.
+    pub type B16 = bytes!(16);
+
+    /// Bytes long of at least 24-bits length.
+    pub type B24 = bytes!(24);
+
+    /// Bytes long of at least 32-bits length.
+    pub type B32 = bytes!(32);
+
+    /// Bytes long of at least 48-bits length.
+    pub type B48 = bytes!(48);
+
+    /// Bytes long of at least 64-bits length.
+    pub type B64 = bytes!(64);
+
+    /// Bytes long of at least 96-bits length.
+    pub type B96 = bytes!(96);
+
+    /// Bytes long of at least 128-bits length.
+    pub type B128 = bytes!(128);
+
+    /// Bytes long of at least 192-bits length.
+    pub type B192 = bytes!(192);
+
+    /// Bytes long of at least 256-bits length.
+    pub type B256 = bytes!(256);
+
+    /// Bytes long of at least 384-bits length.
+    pub type B384 = bytes!(384);
+
+    /// Bytes long of at least 512-bits length.
+    pub type B512 = bytes!(512);
+
+    /// Bytes long of at least 768-bits length.
+    pub type B768 = bytes!(768);
+
+    /// Bytes long of at least 1024-bits length.
+    pub type B1024 = bytes!(1024);
+
+    /// Bytes long of at least 1536-bits length.
+    pub type B1536 = bytes!(1536);
+
+    /// Bytes long of at least 2048-bits length.
+    pub type B2048 = bytes!(2048);
+
+    /// Bytes long of at least 3072-bits length.
+    pub type B3072 = bytes!(3072);
+
+    /// Bytes long of at least 4096-bits length.
+    pub type B4096 = bytes!(4096);
+
+    /// Bytes long of at least 6144-bits length.
+    pub type B6144 = bytes!(6144);
+
+    /// Bytes long of at least 8192-bits length.
+    pub type B8192 = bytes!(8192);
+
+    /// Bytes long of at least 12288-bits length.
+    pub type B12288 = bytes!(12288);
+
+    /// Bytes long of at least 16384-bits length.
+    pub type B16384 = bytes!(16384);
+}
+
 pub mod radix {
     //! # Radix
     //!
@@ -1319,213 +1532,6 @@ mod _impl {
     ops_primitive_impl!(@unsigned [u8, u16, u32, u64, u128]);
     ops_primitive_impl!(@bytes [u8, u16, u32, u64, u128]);
 }
-
-/// Signed long of at least 8-bits length.
-pub type S8 = signed!(8);
-
-/// Signed long of at least 12-bits length.
-pub type S12 = signed!(12);
-
-/// Signed long of at least 16-bits length.
-pub type S16 = signed!(16);
-
-/// Signed long of at least 24-bits length.
-pub type S24 = signed!(24);
-
-/// Signed long of at least 32-bits length.
-pub type S32 = signed!(32);
-
-/// Signed long of at least 48-bits length.
-pub type S48 = signed!(48);
-
-/// Signed long of at least 64-bits length.
-pub type S64 = signed!(64);
-
-/// Signed long of at least 96-bits length.
-pub type S96 = signed!(96);
-
-/// Signed long of at least 128-bits length.
-pub type S128 = signed!(128);
-
-/// Signed long of at least 192-bits length.
-pub type S192 = signed!(192);
-
-/// Signed long of at least 256-bits length.
-pub type S256 = signed!(256);
-
-/// Signed long of at least 384-bits length.
-pub type S384 = signed!(384);
-
-/// Signed long of at least 512-bits length.
-pub type S512 = signed!(512);
-
-/// Signed long of at least 768-bits length.
-pub type S768 = signed!(768);
-
-/// Signed long of at least 1024-bits length.
-pub type S1024 = signed!(1024);
-
-/// Signed long of at least 1536-bits length.
-pub type S1536 = signed!(1536);
-
-/// Signed long of at least 2048-bits length.
-pub type S2048 = signed!(2048);
-
-/// Signed long of at least 3072-bits length.
-pub type S3072 = signed!(3072);
-
-/// Signed long of at least 4096-bits length.
-pub type S4096 = signed!(4096);
-
-/// Signed long of at least 6144-bits length.
-pub type S6144 = signed!(6144);
-
-/// Signed long of at least 8192-bits length.
-pub type S8192 = signed!(8192);
-
-/// Signed long of at least 12288-bits length.
-pub type S12288 = signed!(12288);
-
-/// Signed long of at least 16384-bits length.
-pub type S16384 = signed!(16384);
-
-/// Unsigned long of at least 8-bits length.
-pub type U8 = unsigned!(8);
-
-/// Unsigned long of at least 12-bits length.
-pub type U12 = unsigned!(12);
-
-/// Unsigned long of at least 16-bits length.
-pub type U16 = unsigned!(16);
-
-/// Unsigned long of at least 24-bits length.
-pub type U24 = unsigned!(24);
-
-/// Unsigned long of at least 32-bits length.
-pub type U32 = unsigned!(32);
-
-/// Unsigned long of at least 48-bits length.
-pub type U48 = unsigned!(48);
-
-/// Unsigned long of at least 64-bits length.
-pub type U64 = unsigned!(64);
-
-/// Unsigned long of at least 96-bits length.
-pub type U96 = unsigned!(96);
-
-/// Unsigned long of at least 128-bits length.
-pub type U128 = unsigned!(128);
-
-/// Unsigned long of at least 192-bits length.
-pub type U192 = unsigned!(192);
-
-/// Unsigned long of at least 256-bits length.
-pub type U256 = unsigned!(256);
-
-/// Unsigned long of at least 384-bits length.
-pub type U384 = unsigned!(384);
-
-/// Unsigned long of at least 512-bits length.
-pub type U512 = unsigned!(512);
-
-/// Unsigned long of at least 768-bits length.
-pub type U768 = unsigned!(768);
-
-/// Unsigned long of at least 1024-bits length.
-pub type U1024 = unsigned!(1024);
-
-/// Unsigned long of at least 1536-bits length.
-pub type U1536 = unsigned!(1536);
-
-/// Unsigned long of at least 2048-bits length.
-pub type U2048 = unsigned!(2048);
-
-/// Unsigned long of at least 3072-bits length.
-pub type U3072 = unsigned!(3072);
-
-/// Unsigned long of at least 4096-bits length.
-pub type U4096 = unsigned!(4096);
-
-/// Unsigned long of at least 6144-bits length.
-pub type U6144 = unsigned!(6144);
-
-/// Unsigned long of at least 8192-bits length.
-pub type U8192 = unsigned!(8192);
-
-/// Unsigned long of at least 12288-bits length.
-pub type U12288 = unsigned!(12288);
-
-/// Unsigned long of at least 16384-bits length.
-pub type U16384 = unsigned!(16384);
-
-/// Bytes long of at least 8-bits length.
-pub type B8 = bytes!(8);
-
-/// Bytes long of at least 12-bits length.
-pub type B12 = bytes!(12);
-
-/// Bytes long of at least 16-bits length.
-pub type B16 = bytes!(16);
-
-/// Bytes long of at least 24-bits length.
-pub type B24 = bytes!(24);
-
-/// Bytes long of at least 32-bits length.
-pub type B32 = bytes!(32);
-
-/// Bytes long of at least 48-bits length.
-pub type B48 = bytes!(48);
-
-/// Bytes long of at least 64-bits length.
-pub type B64 = bytes!(64);
-
-/// Bytes long of at least 96-bits length.
-pub type B96 = bytes!(96);
-
-/// Bytes long of at least 128-bits length.
-pub type B128 = bytes!(128);
-
-/// Bytes long of at least 192-bits length.
-pub type B192 = bytes!(192);
-
-/// Bytes long of at least 256-bits length.
-pub type B256 = bytes!(256);
-
-/// Bytes long of at least 384-bits length.
-pub type B384 = bytes!(384);
-
-/// Bytes long of at least 512-bits length.
-pub type B512 = bytes!(512);
-
-/// Bytes long of at least 768-bits length.
-pub type B768 = bytes!(768);
-
-/// Bytes long of at least 1024-bits length.
-pub type B1024 = bytes!(1024);
-
-/// Bytes long of at least 1536-bits length.
-pub type B1536 = bytes!(1536);
-
-/// Bytes long of at least 2048-bits length.
-pub type B2048 = bytes!(2048);
-
-/// Bytes long of at least 3072-bits length.
-pub type B3072 = bytes!(3072);
-
-/// Bytes long of at least 4096-bits length.
-pub type B4096 = bytes!(4096);
-
-/// Bytes long of at least 6144-bits length.
-pub type B6144 = bytes!(6144);
-
-/// Bytes long of at least 8192-bits length.
-pub type B8192 = bytes!(8192);
-
-/// Bytes long of at least 12288-bits length.
-pub type B12288 = bytes!(12288);
-
-/// Bytes long of at least 16384-bits length.
-pub type B16384 = bytes!(16384);
 
 /// Signed long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
@@ -4191,7 +4197,7 @@ mod tests {
     use rand::{RngExt, SeedableRng, rngs::StdRng};
 
     use super::*;
-    use crate::long::{S64, U64};
+    use crate::long::alias::{S32, S64, U32, U64};
     #[cfg(feature = "const-time")]
     use crate::{CmpCt, GeCt, LeCt, MaxCt, MinCt};
 
