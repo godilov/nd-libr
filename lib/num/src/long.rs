@@ -48,7 +48,7 @@ macro_rules! bytes {
 }
 
 #[cfg(feature = "const-time")]
-macro_rules! eq_const {
+macro_rules! eq_ct {
     ($lhs:expr, $rhs:expr) => {{
         let diff = $lhs.rev().zip($rhs.rev()).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
 
@@ -57,7 +57,7 @@ macro_rules! eq_const {
 }
 
 #[cfg(feature = "const-time")]
-macro_rules! cmp_const {
+macro_rules! cmp_ct {
     ($lhs:expr, $rhs:expr) => {{
         let (lt, gt) = $lhs.rev().zip($rhs.rev()).map(|(a, b)| ((a < b) as i8, (a > b) as i8)).fold(
             (0i8, 0i8),
@@ -490,114 +490,6 @@ macro_rules! ops_primitive_impl {
             ^= <Bytes<L> as NdBitXorAssign<Bytes<L>, $primitive>>::nd_bitxor_assign(lhs, &rhs),
         ] }
     };
-}
-
-macro_rules! inc_impl {
-    ($words:expr) => {{
-        #[allow(unused_mut)]
-        let mut words = $words;
-        let mut acc = 1;
-
-        for ptr in words.iter_mut() {
-            let word = *ptr as Double + acc as Double;
-
-            *ptr = word as Single;
-
-            acc = word / RADIX;
-
-            if acc == 0 {
-                break;
-            }
-        }
-
-        words
-    }};
-}
-
-macro_rules! dec_impl {
-    ($words:expr) => {{
-        #[allow(unused_mut)]
-        let mut words = $words;
-        let mut acc = 1;
-
-        for ptr in words.iter_mut() {
-            let word = RADIX + *ptr as Double - acc as Double;
-
-            *ptr = word as Single;
-
-            acc = (word < RADIX) as Double;
-
-            if acc == 0 {
-                break;
-            }
-        }
-
-        words
-    }};
-}
-
-macro_rules! shl_impl {
-    ($words:expr, $words_ret:expr, $shift:expr, $default:expr) => {{
-        let shift = $shift;
-        let offset = (shift / BITS).min(L);
-        let shl = shift % BITS;
-        let shr = BITS - shl;
-
-        #[allow(unused_mut)]
-        let mut res = $words;
-
-        for idx in ((offset + 1).min(L)..L).rev() {
-            let idx_h = idx - offset;
-            let idx_l = idx - offset - 1;
-
-            let val_h = res[idx_h].unbounded_shl(shl as u32);
-            let val_l = res[idx_l].unbounded_shr(shr as u32);
-
-            res[idx] = val_h | val_l;
-        }
-
-        let val_h = res[0].unbounded_shl(shl as u32);
-        let val_l = $default.unbounded_shr(shr as u32);
-
-        if offset < L {
-            res[offset] = val_h | val_l;
-        }
-
-        res[..offset].iter_mut().for_each(|ptr| *ptr = $default);
-        res
-    }};
-}
-
-macro_rules! shr_impl {
-    ($words:expr, $words_ret:expr, $shift:expr, $default:expr) => {{
-        let shift = $shift;
-        let offset = (shift / BITS).min(L);
-        let shr = shift % BITS;
-        let shl = BITS - shr;
-
-        #[allow(unused_mut)]
-        let mut res = $words;
-
-        for idx in 0..(L - offset).saturating_sub(1) {
-            let idx_h = idx + offset + 1;
-            let idx_l = idx + offset;
-
-            let val_h = res[idx_h].unbounded_shl(shl as u32);
-            let val_l = res[idx_l].unbounded_shr(shr as u32);
-
-            res[idx] = val_h | val_l;
-        }
-
-        let val_h = $default.unbounded_shl(shl as u32);
-        let val_l = res[L - 1].unbounded_shr(shr as u32);
-
-        if offset < L {
-            res[L - offset - 1] = val_h | val_l;
-        }
-
-        res[L - offset..].iter_mut().for_each(|ptr| *ptr = $default);
-        res
-    }};
 }
 
 macro_rules! write_bitop_impl {
@@ -1042,7 +934,11 @@ mod uops {
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn pos<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        *words
+        let mut words = *words;
+
+        pos_mut(&mut words);
+
+        words
     }
 
     #[inline]
@@ -1082,7 +978,11 @@ mod uops {
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn not<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        words.iter().map(|&word| !word).collect_with([0; L])
+        let mut words = *words;
+
+        not_mut(&mut words);
+
+        words
     }
 
     #[inline]
@@ -1099,15 +999,11 @@ mod uops {
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        inc_impl!(*words)
-    }
+        let mut words = *words;
 
-    #[inline]
-    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
-    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
-    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
-    pub(super) fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        inc_impl!(words)
+        inc_mut(&mut words);
+
+        words
     }
 
     #[inline]
@@ -1115,7 +1011,33 @@ mod uops {
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        dec_impl!(*words)
+        let mut words = *words;
+
+        dec_mut(&mut words);
+
+        words
+    }
+
+    #[inline]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
+    #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
+    pub(super) fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        let mut acc = 1;
+
+        for ptr in words.iter_mut() {
+            let word = *ptr as Double + acc as Double;
+
+            *ptr = word as Single;
+
+            acc = word / RADIX;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        words
     }
 
     #[inline]
@@ -1123,35 +1045,101 @@ mod uops {
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        dec_impl!(words)
+        let mut acc = 1;
+
+        for ptr in words.iter_mut() {
+            let word = RADIX + *ptr as Double - acc as Double;
+
+            *ptr = word as Single;
+
+            acc = (word < RADIX) as Double;
+
+            if acc == 0 {
+                break;
+            }
+        }
+
+        words
     }
 
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shl_impl!(*words, words, shift, default)
+        let mut words = *words;
+
+        shl_mut(&mut words, shift, default);
+
+        words
     }
 
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
-        shr_impl!(*words, words, shift, default)
+        let mut words = *words;
+
+        shr_mut(&mut words, shift, default);
+
+        words
     }
 
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shl_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
-        shl_impl!(words, words, shift, default)
+        let offset = (shift / BITS).min(L);
+        let shl = shift % BITS;
+        let shr = BITS - shl;
+
+        for idx in ((offset + 1).min(L)..L).rev() {
+            let idx_h = idx - offset;
+            let idx_l = idx - offset - 1;
+
+            let val_h = words[idx_h].unbounded_shl(shl as u32);
+            let val_l = words[idx_l].unbounded_shr(shr as u32);
+
+            words[idx] = val_h | val_l;
+        }
+
+        let val_h = words[0].unbounded_shl(shl as u32);
+        let val_l = default.unbounded_shr(shr as u32);
+
+        if offset < L {
+            words[offset] = val_h | val_l;
+        }
+
+        words[..offset].iter_mut().for_each(|ptr| *ptr = default);
+        words
     }
 
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn shr_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
-        shr_impl!(words, words, shift, default)
+        let offset = (shift / BITS).min(L);
+        let shr = shift % BITS;
+        let shl = BITS - shr;
+
+        for idx in 0..(L - offset).saturating_sub(1) {
+            let idx_h = idx + offset + 1;
+            let idx_l = idx + offset;
+
+            let val_h = words[idx_h].unbounded_shl(shl as u32);
+            let val_l = words[idx_l].unbounded_shr(shr as u32);
+
+            words[idx] = val_h | val_l;
+        }
+
+        let val_h = default.unbounded_shl(shl as u32);
+        let val_l = words[L - 1].unbounded_shr(shr as u32);
+
+        if offset < L {
+            words[L - offset - 1] = val_h | val_l;
+        }
+
+        words[L - offset..].iter_mut().for_each(|ptr| *ptr = default);
+        words
     }
 
     #[inline]
@@ -1277,7 +1265,7 @@ mod uops {
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        eq_const!(words.iter(), std::hint::black_box(repeat(0)))
+        eq_ct!(words.iter(), std::hint::black_box(repeat(0)))
     }
 }
 
@@ -2884,7 +2872,7 @@ impl<const L: usize> IntoDigitsIter for Unsigned<L> {
 impl<const L: usize> EqCt for Signed<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_const!(self.0.iter(), other.0.iter())
+        eq_ct!(self.0.iter(), other.0.iter())
     }
 }
 
@@ -2892,7 +2880,7 @@ impl<const L: usize> EqCt for Signed<L> {
 impl<const L: usize> EqCt for Unsigned<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_const!(self.0.iter(), other.0.iter())
+        eq_ct!(self.0.iter(), other.0.iter())
     }
 }
 
@@ -2900,7 +2888,7 @@ impl<const L: usize> EqCt for Unsigned<L> {
 impl<const L: usize> EqCt for Bytes<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_const!(self.0.iter(), other.0.iter())
+        eq_ct!(self.0.iter(), other.0.iter())
     }
 }
 
@@ -2911,7 +2899,7 @@ impl<const L: usize> LtCt for Signed<L> {
         let lhs_sign = sign_ct(&self.0);
         let rhs_sign = sign_ct(&other.0);
 
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
 
         let sign_lt = lhs_sign.lt_ct(&rhs_sign);
         let sign_eq = lhs_sign.eq_ct(&rhs_sign);
@@ -2928,7 +2916,7 @@ impl<const L: usize> GtCt for Signed<L> {
         let lhs_sign = sign_ct(&self.0);
         let rhs_sign = sign_ct(&other.0);
 
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
 
         let sign_gt = lhs_sign.gt_ct(&rhs_sign);
         let sign_eq = lhs_sign.eq_ct(&rhs_sign);
@@ -2942,7 +2930,7 @@ impl<const L: usize> GtCt for Signed<L> {
 impl<const L: usize> LtCt for Unsigned<L> {
     #[inline(never)]
     fn lt_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
 
         cmp.eq_ct(&-1) & MaskCt::MAX
     }
@@ -2952,7 +2940,7 @@ impl<const L: usize> LtCt for Unsigned<L> {
 impl<const L: usize> GtCt for Unsigned<L> {
     #[inline(never)]
     fn gt_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_const!(self.0.iter(), other.0.iter());
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
 
         cmp.eq_ct(&1) & MaskCt::MAX
     }
@@ -3437,9 +3425,6 @@ fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], T
     }
 }
 
-#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0], const N: usize = LENS[0] / 2, type W = Single)]
-#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1], const N: usize = LENS[1] / 2, type W = Single)]
-#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2], const N: usize = LENS[2] / 2, type W = Single)]
 fn from_arr<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
     let len = N.min(L * BYTES / W::BYTES);
 
@@ -3455,9 +3440,6 @@ fn from_arr<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Sing
     res
 }
 
-#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0], type W = Single)]
-#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1], type W = Single)]
-#[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2], type W = Single)]
 fn from_slice<const L: usize, W: Word>(slice: &[W]) -> [Single; L] {
     let len = slice.len().min(L * BYTES / W::BYTES);
 
