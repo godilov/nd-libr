@@ -200,7 +200,7 @@ fn from_primitive_const(c: &mut Criterion) {
 }
 
 fn from_bytes(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_bytes");
+    let mut group = get_group(c, "long::convert::from_bytes");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -220,7 +220,7 @@ fn from_bytes(c: &mut Criterion) {
 }
 
 fn from_primitive(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_primitive");
+    let mut group = get_group(c, "long::convert::from_primitive");
     let mut rng = get_rng();
 
     let s128 = rng.random::<i128>();
@@ -238,7 +238,7 @@ fn from_primitive(c: &mut Criterion) {
 }
 
 fn from_arr(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_arr");
+    let mut group = get_group(c, "long::convert::from_arr");
     let mut rng = get_rng();
 
     from_arr_impl!(group, rng, 4);
@@ -247,7 +247,7 @@ fn from_arr(c: &mut Criterion) {
 }
 
 fn from_slice(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_slice");
+    let mut group = get_group(c, "long::convert::from_slice");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -267,7 +267,7 @@ fn from_slice(c: &mut Criterion) {
 }
 
 fn from_iter(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_iter");
+    let mut group = get_group(c, "long::convert::from_iter");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -287,7 +287,7 @@ fn from_iter(c: &mut Criterion) {
 }
 
 fn from_digits(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_digits");
+    let mut group = get_group(c, "long::convert::from_digits");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -314,7 +314,7 @@ fn from_digits(c: &mut Criterion) {
 }
 
 fn from_digits_iter(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_digits_iter");
+    let mut group = get_group(c, "long::convert::from_digits_iter");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -341,7 +341,7 @@ fn from_digits_iter(c: &mut Criterion) {
 }
 
 fn from_digits_radix(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_digits_radix");
+    let mut group = get_group(c, "long::convert::from_digits_radix");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -367,7 +367,7 @@ fn from_digits_radix(c: &mut Criterion) {
 }
 
 fn from_digits_radix_iter(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_digits_radix_iter");
+    let mut group = get_group(c, "long::convert::from_digits_radix_iter");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -393,7 +393,7 @@ fn from_digits_radix_iter(c: &mut Criterion) {
 }
 
 fn to_digits(c: &mut Criterion) {
-    let mut group = get_group(c, "long::to_digits");
+    let mut group = get_group(c, "long::convert::to_digits");
     let mut rng = get_rng();
 
     for exp in [7u8, 4u8, 1u8] {
@@ -416,7 +416,7 @@ fn to_digits(c: &mut Criterion) {
 }
 
 fn to_digits_iter_count(c: &mut Criterion) {
-    let mut group = get_group(c, "long::to_digits_iter::count");
+    let mut group = get_group(c, "long::convert::to_digits_iter::count");
     let mut rng = get_rng();
 
     for exp in [7u8, 4u8, 1u8] {
@@ -439,7 +439,7 @@ fn to_digits_iter_count(c: &mut Criterion) {
 }
 
 fn to_digits_iter_collect(c: &mut Criterion) {
-    let mut group = get_group(c, "long::to_digits_iter::collect");
+    let mut group = get_group(c, "long::convert::to_digits_iter::collect");
     let mut rng = get_rng();
 
     for exp in [7u8, 4u8, 1u8] {
@@ -462,7 +462,7 @@ fn to_digits_iter_collect(c: &mut Criterion) {
 }
 
 fn into_digits(c: &mut Criterion) {
-    let mut group = get_group(c, "long::into_digits");
+    let mut group = get_group(c, "long::convert::into_digits");
     let mut rng = get_rng();
 
     for radix in [255u8, 31u8, 3u8] {
@@ -484,7 +484,7 @@ fn into_digits(c: &mut Criterion) {
 }
 
 fn into_digits_iter_count(c: &mut Criterion) {
-    let mut group = get_group(c, "long::into_digits_iter::count");
+    let mut group = get_group(c, "long::convert::into_digits_iter::count");
     let mut rng = get_rng();
 
     for radix in [255u8, 31u8, 3u8] {
@@ -506,7 +506,7 @@ fn into_digits_iter_count(c: &mut Criterion) {
 }
 
 fn into_digits_iter_collect(c: &mut Criterion) {
-    let mut group = get_group(c, "long::into_digits_iter::collect");
+    let mut group = get_group(c, "long::convert::into_digits_iter::collect");
     let mut rng = get_rng();
 
     for radix in [255u8, 31u8, 3u8] {
@@ -528,7 +528,7 @@ fn into_digits_iter_collect(c: &mut Criterion) {
 }
 
 fn from_str(c: &mut Criterion) {
-    let mut group = get_group(c, "long::from_str");
+    let mut group = get_group(c, "long::convert::from_str");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
@@ -607,7 +607,7 @@ fn from_str(c: &mut Criterion) {
 }
 
 fn to_str(c: &mut Criterion) {
-    let mut group = get_group(c, "long::to_str");
+    let mut group = get_group(c, "long::convert::to_str");
     let mut rng = get_rng();
 
     for shr in [4, 2, 0] {
