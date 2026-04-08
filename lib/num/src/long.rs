@@ -554,7 +554,7 @@ macro_rules! add_single_impl {
             Some(val as Single)
         })
     };
-    (@overflow $lhs:expr, $rhs:expr, $acc:expr) => {
+    ($lhs:expr, $rhs:expr, $acc:expr) => {
         $lhs.scan($rhs as Double, |_, a| {
             let val = a as Double + $acc;
 
@@ -587,7 +587,7 @@ macro_rules! mul_single_impl {
             Some(val as Single)
         })
     };
-    (@overflow $lhs:expr, $rhs:expr, $acc:expr) => {{
+    ($lhs:expr, $rhs:expr, $acc:expr) => {{
         $lhs.scan(0, |_, a| {
             let val = a as Double * $rhs as Double + $acc;
 
@@ -670,7 +670,7 @@ macro_rules! div_long_impl {
             let digit = search!(@upper 0, RADIX, |m: Double| {
                 let mut acc = 0;
 
-                let mul = mul_single_impl!(@overflow $rhs, m, acc).collect_with([0; L]);
+                let mul = mul_single_impl!($rhs, m, acc).collect_with([0; L]);
 
                 if acc > 0 {
                     return Ordering::Greater;
