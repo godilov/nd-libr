@@ -3909,10 +3909,9 @@ fn mul_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L]
     let mut res = [0; L];
 
     for (idx, x) in rhs.iter().enumerate() {
-        let res_iter = res.iter_mut().skip(idx);
-        let mul_iter = mul_single_impl!(lhs.iter().copied(), *x);
+        let iter = mul_single_impl!(lhs.iter().copied(), *x);
 
-        add_long_mut_impl!(res_iter, mul_iter);
+        add_long_mut_impl!(res[idx..].iter_mut(), iter);
     }
 
     res
