@@ -1137,8 +1137,11 @@ pub mod radix {
     }
 }
 
-#[allow(unused)]
-mod uops {
+pub mod uops {
+    //! # Uops
+    //!
+    //! **Long numbers/bytes uops**
+
     use super::*;
 
     #[inline]
