@@ -5,7 +5,6 @@ use std::{
     cmp::Ordering,
     fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
     io::{Cursor, Write},
-    iter::repeat,
     marker::PhantomData,
     str::FromStr,
 };
@@ -1478,6 +1477,8 @@ mod uops {
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
     #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
     pub(super) fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+        use std::iter::repeat;
+
         eq_ct!(words.iter(), std::hint::black_box(repeat(0)))
     }
 }
@@ -4105,9 +4106,11 @@ fn bit_single_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: Single, default
 where
     F: Fn(Single, Single) -> Single,
 {
+    let val = lhs[0];
+
     lhs.iter_mut().for_each(|ptr| *ptr = f(*ptr, default));
 
-    lhs[0] = f(lhs[0], rhs);
+    lhs[0] = f(val, rhs);
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
