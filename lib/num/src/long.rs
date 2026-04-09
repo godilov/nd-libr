@@ -1576,16 +1576,6 @@ pub struct UnsignedDyn(Vec<Single>);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BytesDyn(Vec<Single>);
 
-/// Signed SIMD-optimized long. (**WIP**)
-#[cfg(feature = "simd")]
-#[derive(Debug, Clone, Copy)]
-pub struct SignedSimd<const L: usize>(pub [Single; L]);
-
-/// Unsigned SIMD-optimized long. (**WIP**)
-#[cfg(feature = "simd")]
-#[derive(Debug, Clone, Copy)]
-pub struct UnsignedSimd<const L: usize>(pub [Single; L]);
-
 /// Digits iterator by `exp`.
 ///
 /// For more info, see [`ToDigitsIter`] documentation.
@@ -1610,6 +1600,20 @@ pub struct DigitsRadixIter<const L: usize, W: Word> {
     words: [Single; L],
     radix: W,
     len: usize,
+}
+
+struct AddIter<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> {
+    lhs: Lhs,
+    rhs: Rhs,
+    acc: Single,
+    ext: Single,
+}
+
+struct MulIter<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> {
+    lhs: Lhs,
+    rhs: Rhs,
+    acc: Single,
+    ext: Single,
 }
 
 /// Error type for failable long conversion from array.
@@ -3043,6 +3047,42 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
+    }
+}
+
+impl<LhsIter: Iterator<Item = Single>, RhsIter: Iterator<Item = Single>> Iterator for AddIter<LhsIter, RhsIter> {
+    type Item = Single;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let lhs = self.lhs.next()?;
+        let rhs = self.rhs.next()?;
+        let acc = self.acc;
+        let ext = self.ext;
+
+        let val = lhs as Double + rhs as Double + acc as Double + ext as Double;
+
+        self.acc = (val / RADIX) as Single;
+
+        Some(val as Single)
+    }
+}
+
+impl<LhsIter: Iterator<Item = Single>, RhsIter: Iterator<Item = Single>> Iterator for MulIter<LhsIter, RhsIter> {
+    type Item = Single;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let lhs = self.lhs.next()?;
+        let rhs = self.rhs.next()?;
+        let acc = self.acc;
+        let ext = self.ext;
+
+        let val = lhs as Double * rhs as Double + acc as Double + ext as Double;
+
+        self.acc = (val / RADIX) as Single;
+
+        Some(val as Single)
     }
 }
 
