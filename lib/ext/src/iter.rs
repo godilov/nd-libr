@@ -4,6 +4,34 @@
 ///
 /// For more info, see [module-level](crate::iter) and [crate-level](crate) documentation.
 pub trait IteratorExt: Iterator {
+    /// Collects iterator with static array.
+    ///
+    /// Consumes at most `N` amount of elements.
+    ///
+    /// ```rust
+    /// # use ndext::iter::IteratorExt;
+    ///
+    /// let mut iter = (0..3).into_iter();
+    ///
+    /// let arr = iter.collect_arr() as [i32; 4];
+    ///
+    /// assert_eq!(arr, [0, 1, 2, 0]);
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    #[inline]
+    fn collect_arr<const N: usize>(&mut self) -> [Self::Item; N]
+    where
+        Self::Item: Default + Copy,
+    {
+        let mut res = [Self::Item::default(); N];
+
+        for (idx, val) in self.take(N).enumerate() {
+            res[idx] = val;
+        }
+
+        res
+    }
+
     /// Collects iterator with pre-allocated destination collection taken and returned by value.
     ///
     /// Consumes at most `dst.len()` amount of elements.

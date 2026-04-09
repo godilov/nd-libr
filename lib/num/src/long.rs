@@ -5,7 +5,7 @@ use std::{
     cmp::Ordering,
     fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
     io::{Cursor, Write},
-    iter::{once, repeat},
+    iter::repeat,
     marker::PhantomData,
     str::FromStr,
 };
@@ -670,7 +670,7 @@ macro_rules! div_long_impl {
             let digit = search!(@upper 0, RADIX, |m: Double| {
                 let mut acc = 0;
 
-                let mul = mul_single_impl!($rhs, m, acc).collect_with([0; L]);
+                let mul = mul_single_impl!($rhs, m, acc).collect_arr() as [Single; L];
 
                 if acc > 0 {
                     return Ordering::Greater;
@@ -3891,14 +3891,14 @@ where
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
-    add_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_with([0; L])
+    add_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
-    sub_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_with([0; L])
+    sub_long_impl!(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
@@ -3931,32 +3931,28 @@ fn bit_long<const L: usize, F>(lhs: &[Single; L], rhs: &[Single; L], f: F) -> [S
 where
     F: Fn(Single, Single) -> Single,
 {
-    lhs.iter()
-        .copied()
-        .zip(rhs.iter().copied())
-        .map(|(a, b)| f(a, b))
-        .collect_with([0; L])
+    lhs.iter().copied().zip(rhs.iter().copied()).map(|(a, b)| f(a, b)).collect_arr()
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn add_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
-    add_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
+    add_single_impl!(lhs.iter().copied(), rhs).collect_arr()
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn sub_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
-    sub_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
+    sub_single_impl!(lhs.iter().copied(), rhs).collect_arr()
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[1])]
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[2])]
 fn mul_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
-    mul_single_impl!(lhs.iter().copied(), rhs).collect_with([0; L])
+    mul_single_impl!(lhs.iter().copied(), rhs).collect_arr()
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
@@ -3975,11 +3971,10 @@ fn bit_single<const L: usize, F>(lhs: &[Single; L], rhs: Single, default: Single
 where
     F: Fn(Single, Single) -> Single,
 {
-    lhs.iter()
-        .copied()
-        .zip(once(rhs).chain(repeat(default)))
-        .map(|(a, b)| f(a, b))
-        .collect_with([0; L])
+    let mut arr = lhs.iter().copied().map(|a| f(a, default)).collect_arr();
+
+    arr[0] = f(lhs[0], rhs);
+    arr
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
@@ -4110,9 +4105,9 @@ fn bit_single_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: Single, default
 where
     F: Fn(Single, Single) -> Single,
 {
-    lhs.iter_mut()
-        .zip(once(rhs).chain(repeat(default)))
-        .for_each(|(ptr, val)| *ptr = f(*ptr, val));
+    lhs.iter_mut().for_each(|ptr| *ptr = f(*ptr, default));
+
+    lhs[0] = f(lhs[0], rhs);
 }
 
 #[ndasm::emit_if([feature = "asm"] const L: usize = LENS[0])]
