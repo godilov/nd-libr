@@ -1141,49 +1141,28 @@ pub mod uops {
 
     use super::*;
 
-    struct AddIter<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> {
-        lhs: Lhs,
-        rhs: Rhs,
+    struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
+        iter: Iter,
+        add: Add,
+        mul: Mul,
         acc: Single,
         ext: Single,
     }
 
-    struct MulIter<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> {
-        lhs: Lhs,
-        rhs: Rhs,
-        acc: Single,
-        ext: Single,
-    }
-
-    impl<LhsIter: Iterator<Item = Single>, RhsIter: Iterator<Item = Single>> Iterator for AddIter<LhsIter, RhsIter> {
+    impl<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> Iterator
+        for ExprIter<Iter, Add, Mul>
+    {
         type Item = Single;
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
-            let lhs = self.lhs.next()?;
-            let rhs = self.rhs.next()?;
-            let acc = self.acc;
-            let ext = self.ext;
+            let elem = self.iter.next()? as Double;
+            let add = self.add.next()? as Double;
+            let mul = self.mul.next()? as Double;
+            let acc = self.acc as Double;
+            let ext = self.ext as Double;
 
-            let val = lhs as Double + rhs as Double + acc as Double + ext as Double;
-
-            self.acc = (val / RADIX) as Single;
-
-            Some(val as Single)
-        }
-    }
-
-    impl<LhsIter: Iterator<Item = Single>, RhsIter: Iterator<Item = Single>> Iterator for MulIter<LhsIter, RhsIter> {
-        type Item = Single;
-
-        #[inline]
-        fn next(&mut self) -> Option<Self::Item> {
-            let lhs = self.lhs.next()?;
-            let rhs = self.rhs.next()?;
-            let acc = self.acc;
-            let ext = self.ext;
-
-            let val = lhs as Double * rhs as Double + acc as Double + ext as Double;
+            let val = add + mul * elem + acc + ext;
 
             self.acc = (val / RADIX) as Single;
 
@@ -1203,18 +1182,27 @@ pub mod uops {
 
     #[inline]
     pub(super) fn neg<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        let mut words = *words;
-
-        not_mut(&mut words);
-        inc_mut(&mut words);
-
-        words
+        ExprIter {
+            iter: words.iter().map(|&word| !word),
+            add: std::iter::repeat(0),
+            mul: std::iter::repeat(1),
+            acc: 1,
+            ext: 0,
+        }
+        .collect_arr()
     }
 
     #[inline]
     pub(super) fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        not_mut(words);
-        inc_mut(words);
+        let mut acc = 1;
+
+        for ptr in words.iter_mut() {
+            let word = !*ptr as Double + acc as Double;
+
+            *ptr = word as Single;
+
+            acc = word / RADIX;
+        }
 
         words
     }
@@ -1232,9 +1220,10 @@ pub mod uops {
 
     #[inline]
     pub(super) fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        AddIter {
-            lhs: words.iter().copied(),
-            rhs: std::iter::repeat(0),
+        ExprIter {
+            iter: words.iter().copied(),
+            add: std::iter::repeat(0),
+            mul: std::iter::repeat(1),
             acc: 1,
             ext: 0,
         }
@@ -1242,10 +1231,12 @@ pub mod uops {
     }
 
     #[inline]
+    #[ndasm::emit(const L: usize = 64)]
     pub(super) fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        AddIter {
-            lhs: words.iter().copied(),
-            rhs: std::iter::repeat(0),
+        ExprIter {
+            iter: words.iter().copied(),
+            add: std::iter::repeat(0),
+            mul: std::iter::repeat(1),
             acc: 0,
             ext: MAX,
         }
