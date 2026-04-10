@@ -12,15 +12,15 @@ pub mod long;
 pub mod prime;
 
 macro_rules! num_impl {
-    (@signed [$($primitive:ty),+] $(,)?) => {
-        $(num_impl!(@impl $primitive);)+
+    (@signed [$($primitive:ty > $unsigned:ty),+] $(,)?) => {
+        $(num_impl!(@impl $primitive, $primitive, $unsigned);)+
         $(num_impl!(@signed $primitive);)+
     };
-    (@unsigned [$($primitive:ty),+] $(,)?) => {
-        $(num_impl!(@impl $primitive);)+
+    (@unsigned [$($primitive:ty > $signed:ty),+] $(,)?) => {
+        $(num_impl!(@impl $primitive, $signed, $primitive);)+
         $(num_impl!(@unsigned $primitive);)+
     };
-    (@impl $primitive:ty $(,)?) => {
+    (@impl $primitive:ty, $signed:ty, $unsigned:ty $(,)?) => {
         impl BytesLen for $primitive {
             const BITS: usize = Self::BITS as usize;
             const BYTES: usize = Self::BITS as usize / 8;
@@ -84,6 +84,9 @@ macro_rules! num_impl {
         }
 
         impl NumFn for $primitive {
+            type Signed = $signed;
+            type Unsigned = $unsigned;
+
             #[inline]
             fn is_odd(&self) -> bool {
                 self & 1 == 1
@@ -164,13 +167,13 @@ macro_rules! num_impl {
 
 #[cfg(feature = "const-time")]
 macro_rules! num_ct_impl {
-    (@signed [$($signed:ty:$unsigned:ty),+ $(,)?]) => {
-        $(num_ct_impl!(@signed $signed:$unsigned);)+
+    (@signed [$($signed:ty > $unsigned:ty),+ $(,)?]) => {
+        $(num_ct_impl!(@signed $signed > $unsigned);)+
     };
     (@unsigned [$($unsigned:ty),+ $(,)?]) => {
         $(num_ct_impl!(@unsigned $unsigned);)+
     };
-    (@signed $signed:ty:$unsigned:ty $(,)?) => {
+    (@signed $signed:ty > $unsigned:ty $(,)?) => {
         impl EqCt for $signed {
             #[inline(never)]
             fn eq_ct(&self, other: &Self) -> MaskCt {
@@ -472,6 +475,24 @@ pub type SignCt = i8;
 pub trait NumFn:
     Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
 {
+    /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
+    #[allow(unused)]
+    const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
+
+    /// Checks `size_of::<Self>() == size_of::<Self::Unsigned>`.
+    #[allow(unused)]
+    const CHECK_UNSIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Unsigned>());
+
+    /// Checks `size_of::<Self::Signed>() == size_of::<Self::Unsigned>`.
+    #[allow(unused)]
+    const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
+
+    /// Signed counterpart of the same size.
+    type Signed;
+
+    /// Unsigned counterpart of the same size.
+    type Unsigned;
+
     /// Checks number is odd.
     fn is_odd(&self) -> bool;
 
@@ -993,11 +1014,11 @@ pub trait SelectCt: Copy {
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self;
 }
 
-num_impl!(@signed [i8, i16, i32, i64, i128, isize]);
-num_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
+num_impl!(@signed [i8 > u8, i16 > u16, i32 > u32, i64 > u64, i128 > u128, isize > usize]);
+num_impl!(@unsigned [u8 > i8, u16 > i16, u32 > i32, u64 > i64, u128 > i128, usize > isize]);
 
 #[cfg(feature = "const-time")]
-num_ct_impl!(@signed [i8:u8, i16:u16, i32:u32, i64:u64, i128:u128, isize:usize]);
+num_ct_impl!(@signed [i8 > u8, i16 > u16, i32 > u32, i64 > u64, i128 > u128, isize > usize]);
 
 #[cfg(feature = "const-time")]
 num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
