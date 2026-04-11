@@ -1141,8 +1141,8 @@ pub mod uops {
 
     use super::*;
 
-    struct Expr;
-    struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
+    pub struct Expr;
+    pub struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
         iter: Iter,
         add: Add,
         mul: Mul,
@@ -1176,7 +1176,7 @@ pub mod uops {
 
     impl Expr {
         #[inline]
-        pub fn add_long<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+        pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
             rhs: Rhs,
         ) -> impl Iterator<Item = Single> {
@@ -1220,7 +1220,7 @@ pub mod uops {
         }
 
         #[inline]
-        pub fn sub_long<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+        pub fn sub<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
             rhs: Rhs,
         ) -> impl Iterator<Item = Single> {
@@ -1269,7 +1269,22 @@ pub mod uops {
         }
 
         #[inline]
-        pub fn mul<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+        pub fn mul<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: Rhs,
+        ) -> impl Iterator<Item = Single> {
+            ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: rhs,
+                acc: 0,
+                ext: 0,
+                once: 0,
+            }
+        }
+
+        #[inline]
+        pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
@@ -1281,18 +1296,21 @@ pub mod uops {
         }
     }
 
+    /// Returns `+words`.
     #[inline]
-    pub(super) fn pos<const L: usize>(words: &[Single; L]) -> [Single; L] {
+    pub fn pos<const L: usize>(words: &[Single; L]) -> [Single; L] {
         *words
     }
 
+    /// Applies `words = +words`.
     #[inline]
-    pub(super) fn pos_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn pos_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         words
     }
 
+    /// Returns `-words`.
     #[inline]
-    pub(super) fn neg<const L: usize>(words: &[Single; L]) -> [Single; L] {
+    pub fn neg<const L: usize>(words: &[Single; L]) -> [Single; L] {
         ExprIter {
             iter: words.iter().map(|&word| !word),
             add: std::iter::repeat(0),
@@ -1304,8 +1322,9 @@ pub mod uops {
         .collect_arr()
     }
 
+    /// Applies `words = -words`.
     #[inline]
-    pub(super) fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         let mut acc = 1;
 
         for ptr in words.iter_mut() {
@@ -1319,19 +1338,22 @@ pub mod uops {
         words
     }
 
+    /// Returns `!words`.
     #[inline]
-    pub(super) fn not<const L: usize>(words: &[Single; L]) -> [Single; L] {
+    pub fn not<const L: usize>(words: &[Single; L]) -> [Single; L] {
         words.iter().map(|&word| !word).collect_arr()
     }
 
+    /// Applies `words = !words`.
     #[inline]
-    pub(super) fn not_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn not_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         words.iter_mut().for_each(|word| *word = !*word);
         words
     }
 
+    /// Returns `words + 1`.
     #[inline]
-    pub(super) fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
+    pub fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
         ExprIter {
             iter: words.iter().copied(),
             add: std::iter::repeat(0),
@@ -1343,8 +1365,9 @@ pub mod uops {
         .collect_arr()
     }
 
+    /// Returns `words - 1`.
     #[inline]
-    pub(super) fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
+    pub fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
         ExprIter {
             iter: words.iter().copied(),
             add: std::iter::repeat(0),
@@ -1356,8 +1379,9 @@ pub mod uops {
         .collect_arr()
     }
 
+    /// Applies `words = words + 1`.
     #[inline]
-    pub(super) fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         let mut acc = 1;
 
         for ptr in words.iter_mut() {
@@ -1375,8 +1399,9 @@ pub mod uops {
         words
     }
 
+    /// Applies `words = words - 1`.
     #[inline]
-    pub(super) fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+    pub fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         let mut acc = 1;
 
         for ptr in words.iter_mut() {
@@ -1394,7 +1419,11 @@ pub mod uops {
         words
     }
 
-    pub(super) fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
+    /// Returns `words << shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
+    #[inline]
+    pub fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         let mut words = *words;
 
         shl_mut(&mut words, shift, default);
@@ -1402,7 +1431,11 @@ pub mod uops {
         words
     }
 
-    pub(super) fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
+    /// Returns `words >> shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
+    #[inline]
+    pub fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> [Single; L] {
         let mut words = *words;
 
         shr_mut(&mut words, shift, default);
@@ -1410,7 +1443,10 @@ pub mod uops {
         words
     }
 
-    pub(super) fn shl_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
+    /// Applies `words = words << shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
+    pub fn shl_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
         let offset = (shift / BITS).min(L);
         let shl = shift % BITS;
         let shr = BITS - shl;
@@ -1436,7 +1472,10 @@ pub mod uops {
         words
     }
 
-    pub(super) fn shr_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
+    /// Applies `words = words >> shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
+    pub fn shr_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
         let offset = (shift / BITS).min(L);
         let shr = shift % BITS;
         let shl = BITS - shr;
@@ -1462,13 +1501,15 @@ pub mod uops {
         words
     }
 
+    /// Returns `words << shift` with arithmetic semantics.
     #[inline]
-    pub(super) fn shl_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
+    pub fn shl_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
         shl(words, shift, 0)
     }
 
+    /// Returns `words >> shift` with arithmetic semantics.
     #[inline]
-    pub(super) fn shr_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
+    pub fn shr_signed<const L: usize>(words: &[Single; L], shift: usize) -> [Single; L] {
         let default = match sign(words, Sign::POS, Sign::NEG) {
             Sign::ZERO => 0,
             Sign::NEG => MAX,
@@ -1478,13 +1519,15 @@ pub mod uops {
         shr(words, shift, default)
     }
 
+    /// Applies `words = words << shift` with arithmetic semantics.
     #[inline]
-    pub(super) fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
+    pub fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
         shl_mut(words, shift, 0)
     }
 
+    /// Applies `words = words >> shift` with arithmetic semantics.
     #[inline]
-    pub(super) fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
+    pub fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
         let default = match sign(words, Sign::POS, Sign::NEG) {
             Sign::ZERO => 0,
             Sign::NEG => MAX,
@@ -1494,9 +1537,9 @@ pub mod uops {
         shr_mut(words, shift, default)
     }
 
+    /// Reads `[offset; offset + Single::BITS]`.
     #[inline]
-    #[allow(clippy::unnecessary_cast)]
-    pub(super) fn read<const L: usize>(words: &[Single; L], offset: usize) -> Single {
+    pub fn read<const L: usize>(words: &[Single; L], offset: usize) -> Single {
         let idx = offset / BITS;
         let shr = offset % BITS;
         let shl = BITS - shr;
@@ -1514,8 +1557,9 @@ pub mod uops {
         res
     }
 
+    /// Returns `words` two's complement sign.
     #[inline]
-    pub(super) fn sign<const L: usize>(words: &[Single; L], pos: Sign, neg: Sign) -> Sign {
+    pub fn sign<const L: usize>(words: &[Single; L], pos: Sign, neg: Sign) -> Sign {
         if words == &[0; L] {
             return Sign::ZERO;
         }
@@ -1526,9 +1570,10 @@ pub mod uops {
         }
     }
 
+    /// Returns `words` two's complement sign in const-time.
+    #[inline(never)]
     #[cfg(feature = "const-time")]
-    #[allow(clippy::unnecessary_cast)]
-    pub(super) fn sign_ct<const L: usize>(words: &[Single; L]) -> SignCt {
+    pub fn sign_ct<const L: usize>(words: &[Single; L]) -> SignCt {
         let zero = zero_ct(words);
         let neg = neg_ct(words);
         let pos = !zero & !neg & 1;
@@ -1536,25 +1581,29 @@ pub mod uops {
         neg as SignCt | pos as SignCt
     }
 
+    /// Checks if `words > 0` in const-time.
+    #[inline(never)]
     #[cfg(feature = "const-time")]
-    #[allow(clippy::unnecessary_cast)]
-    pub(super) fn pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+    pub fn pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let zero = zero_ct(words);
         let neg = neg_ct(words);
 
         !zero & !neg
     }
 
+    /// Checks if `words < 0` in const-time.
+    #[inline(never)]
     #[cfg(feature = "const-time")]
-    #[allow(clippy::unnecessary_cast)]
-    pub(super) fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+    pub fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
 
         <MaskCt as Zero>::ZERO.wrapping_sub(neg)
     }
 
+    /// Checks if `words == 0` in const-time.
+    #[inline(never)]
     #[cfg(feature = "const-time")]
-    pub(super) fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+    pub fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         use std::iter::repeat;
 
         eq_ct!(words.iter(), std::hint::black_box(repeat(0)))
