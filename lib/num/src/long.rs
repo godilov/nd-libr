@@ -1148,6 +1148,7 @@ pub mod uops {
         mul: Mul,
         acc: Single,
         ext: Single,
+        once: Single,
     }
 
     impl<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> Iterator
@@ -1161,17 +1162,20 @@ pub mod uops {
             let add = self.add.next()? as Double;
             let mul = self.mul.next()? as Double;
             let acc = self.acc as Double;
-            let ext = self.ext as Double;
+            let ext = self.ext;
+            let once = self.once;
 
-            let val = add + mul * elem + acc + ext;
+            let val = add + mul * elem + acc + ext.wrapping_add(once) as Double;
 
             self.acc = (val / RADIX) as Single;
+            self.once = 0;
 
             Some(val as Single)
         }
     }
 
     impl Expr {
+        #[inline]
         pub fn add_long<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
             rhs: Rhs,
@@ -1182,9 +1186,11 @@ pub mod uops {
                 mul: std::iter::repeat(1),
                 acc: 0,
                 ext: 0,
+                once: 0,
             }
         }
 
+        #[inline]
         pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             ExprIter {
                 iter: lhs,
@@ -1192,24 +1198,28 @@ pub mod uops {
                 mul: std::iter::repeat(1),
                 acc: rhs,
                 ext: 0,
+                once: 0,
             }
         }
 
+        #[inline]
         pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
-            let (acc, ext) = match rhs >> (BITS - 1) {
-                0 => (rhs, 0),
-                _ => (rhs.wrapping_sub(MAX), MAX),
+            let (ext, once) = match rhs >> (BITS - 1) {
+                0 => (0, 0),
+                _ => (MAX, 1),
             };
 
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc,
+                acc: rhs,
                 ext,
+                once,
             }
         }
 
+        #[inline]
         pub fn sub_long<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
             rhs: Rhs,
@@ -1220,13 +1230,15 @@ pub mod uops {
                 mul: std::iter::repeat(1),
                 acc: 1,
                 ext: 0,
+                once: 0,
             }
         }
 
+        #[inline]
         pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
-            let ext = match rhs == 0 {
-                false => MAX,
-                true => 0,
+            let (ext, once) = match rhs != 0 {
+                false => (0, 0),
+                true => (MAX, 1),
             };
 
             ExprIter {
@@ -1235,18 +1247,36 @@ pub mod uops {
                 mul: std::iter::repeat(1),
                 acc: !rhs + 1,
                 ext,
+                once,
             }
         }
 
-        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {}
+        #[inline]
+        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+            let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
+                (true, 0) => (MAX, 1),
+                (_, _) => (0, 0),
+            };
 
-        pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+            ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc: !rhs + 1,
+                ext,
+                once,
+            }
+        }
+
+        #[inline]
+        pub fn mul<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(rhs),
                 acc: 0,
                 ext: 0,
+                once: 0,
             }
         }
     }
@@ -1269,6 +1299,7 @@ pub mod uops {
             mul: std::iter::repeat(1),
             acc: 1,
             ext: 0,
+            once: 0,
         }
         .collect_arr()
     }
@@ -1307,12 +1338,12 @@ pub mod uops {
             mul: std::iter::repeat(1),
             acc: 1,
             ext: 0,
+            once: 0,
         }
         .collect_arr()
     }
 
     #[inline]
-    #[ndasm::emit(const L: usize = 64)]
     pub(super) fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
         ExprIter {
             iter: words.iter().copied(),
@@ -1320,6 +1351,7 @@ pub mod uops {
             mul: std::iter::repeat(1),
             acc: 0,
             ext: MAX,
+            once: 0,
         }
         .collect_arr()
     }
