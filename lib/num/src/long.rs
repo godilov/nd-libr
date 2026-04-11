@@ -1142,7 +1142,22 @@ pub mod uops {
     use super::*;
 
     pub struct Expr;
+
     pub struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
+        iter: Iter,
+        add: Add,
+        mul: Mul,
+        acc: Single,
+        ext: Single,
+        once: Single,
+    }
+
+    pub struct ExprIterMut<
+        'elem,
+        Iter: Iterator<Item = &'elem mut Single>,
+        Add: Iterator<Item = Single>,
+        Mul: Iterator<Item = Single>,
+    > {
         iter: Iter,
         add: Add,
         mul: Mul,
@@ -1158,19 +1173,46 @@ pub mod uops {
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
-            let elem = self.iter.next()? as Double;
+            let val = self.iter.next()? as Double;
             let add = self.add.next()? as Double;
             let mul = self.mul.next()? as Double;
             let acc = self.acc as Double;
             let ext = self.ext;
             let once = self.once;
 
-            let val = add + mul * elem + acc + ext.wrapping_add(once) as Double;
+            let val = add + mul * val + acc + ext.wrapping_add(once) as Double;
 
             self.acc = (val / RADIX) as Single;
             self.once = 0;
 
             Some(val as Single)
+        }
+    }
+
+    impl<'elem, Iter: Iterator<Item = &'elem mut Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>>
+        Iterator for ExprIterMut<'elem, Iter, Add, Mul>
+    {
+        type Item = Single;
+
+        #[inline]
+        fn next(&mut self) -> Option<Self::Item> {
+            let elem = self.iter.next()?;
+
+            let val = *elem as Double;
+            let add = self.add.next()? as Double;
+            let mul = self.mul.next()? as Double;
+            let acc = self.acc as Double;
+            let ext = self.ext;
+            let once = self.once;
+
+            let val = add + mul * val + acc + ext.wrapping_add(once) as Double;
+
+            self.acc = (val / RADIX) as Single;
+            self.once = 0;
+
+            *elem = val as Single;
+
+            Some(self.acc)
         }
     }
 
