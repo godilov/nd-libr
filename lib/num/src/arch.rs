@@ -303,15 +303,11 @@ pub mod word {
     /// Word-like primitives iterator.
     ///
     /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
-    pub trait WordsIterator: Clone + Iterator + ExactSizeIterator
-    where
-        <Self as Iterator>::Item: Word,
-    {
-    }
+    pub trait WordsIterator: Clone + Iterator<Item: Word> {}
 
     impl<Iter> WordsIterator for Iter
     where
-        Iter: Clone + Iterator + ExactSizeIterator,
+        Iter: Clone + Iterator,
         Iter::Item: Word,
     {
     }

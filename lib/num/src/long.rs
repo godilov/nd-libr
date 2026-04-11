@@ -1141,6 +1141,7 @@ pub mod uops {
 
     use super::*;
 
+    struct Expr;
     struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
         iter: Iter,
         add: Add,
@@ -1167,6 +1168,86 @@ pub mod uops {
             self.acc = (val / RADIX) as Single;
 
             Some(val as Single)
+        }
+    }
+
+    impl Expr {
+        pub fn add_long<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: Rhs,
+        ) -> impl Iterator<Item = Single> {
+            ExprIter {
+                iter: lhs,
+                add: rhs,
+                mul: std::iter::repeat(1),
+                acc: 0,
+                ext: 0,
+            }
+        }
+
+        pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+            ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc: rhs,
+                ext: 0,
+            }
+        }
+
+        pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+            let (acc, ext) = match rhs >> (BITS - 1) {
+                0 => (rhs, 0),
+                _ => (rhs.wrapping_sub(MAX), MAX),
+            };
+
+            ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc,
+                ext,
+            }
+        }
+
+        pub fn sub_long<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: Rhs,
+        ) -> impl Iterator<Item = Single> {
+            ExprIter {
+                iter: lhs,
+                add: rhs.map(|word| !word),
+                mul: std::iter::repeat(1),
+                acc: 1,
+                ext: 0,
+            }
+        }
+
+        pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+            let ext = match rhs == 0 {
+                false => MAX,
+                true => 0,
+            };
+
+            ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc: !rhs + 1,
+                ext,
+            }
+        }
+
+        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {}
+
+        pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+            ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(rhs),
+                acc: 0,
+                ext: 0,
+            }
         }
     }
 
@@ -3799,7 +3880,7 @@ fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt
     func: F,
 ) -> std::fmt::Result
 where
-    Words: WordsIterator<Item = W>,
+    Words: WordsIterator<Item = W> + ExactSizeIterator,
 {
     let prefix = if fmt.alternate() { radix.prefix } else { "" };
     let width = radix.width as usize;
