@@ -1411,29 +1411,13 @@ pub mod uops {
     /// Returns `words + 1`.
     #[inline]
     pub fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        ExprIter {
-            iter: words.iter().copied(),
-            add: std::iter::repeat(0),
-            mul: std::iter::repeat(1),
-            acc: 1,
-            ext: 0,
-            once: 0,
-        }
-        .collect_arr()
+        Expr::add_single(words.iter().copied(), 1).collect_arr()
     }
 
     /// Returns `words - 1`.
     #[inline]
     pub fn dec<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        ExprIter {
-            iter: words.iter().copied(),
-            add: std::iter::repeat(0),
-            mul: std::iter::repeat(1),
-            acc: 0,
-            ext: MAX,
-            once: 0,
-        }
-        .collect_arr()
+        Expr::sub_single(words.iter().copied(), 1).collect_arr()
     }
 
     /// Applies `words = words + 1`.
