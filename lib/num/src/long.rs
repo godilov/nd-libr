@@ -1141,8 +1141,10 @@ pub mod uops {
 
     use super::*;
 
+    /// Entry point for uops expressions.
     pub struct Expr;
 
+    /// Expression iterator for uops.
     pub struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
         iter: Iter,
         add: Add,
@@ -1152,6 +1154,7 @@ pub mod uops {
         once: Single,
     }
 
+    /// Expression iterator mutable for uops.
     pub struct ExprIterMut<
         'elem,
         Iter: Iterator<Item = &'elem mut Single>,
@@ -1217,6 +1220,7 @@ pub mod uops {
     }
 
     impl Expr {
+        /// Calculates `add(long, long)` with carry propagation.
         #[inline]
         pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
@@ -1232,6 +1236,7 @@ pub mod uops {
             }
         }
 
+        /// Calculates `add(long, single)` with carry propagation.
         #[inline]
         pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             ExprIter {
@@ -1244,6 +1249,7 @@ pub mod uops {
             }
         }
 
+        /// Calculates `add(long, signed)` with carry propagation.
         #[inline]
         pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             let (ext, once) = match rhs >> (BITS - 1) {
@@ -1261,6 +1267,7 @@ pub mod uops {
             }
         }
 
+        /// Calculates `sub(long, long)` with carry propagation.
         #[inline]
         pub fn sub<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
@@ -1276,6 +1283,7 @@ pub mod uops {
             }
         }
 
+        /// Calculates `sub(long, single)` with carry propagation.
         #[inline]
         pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             let (ext, once) = match rhs != 0 {
@@ -1293,6 +1301,7 @@ pub mod uops {
             }
         }
 
+        /// Calculates `sub(long, signed)` with carry propagation.
         #[inline]
         pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
@@ -1310,6 +1319,7 @@ pub mod uops {
             }
         }
 
+        /// Calculates `mul(long, long)` with carry propagation.
         #[inline]
         pub fn mul<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
@@ -1325,6 +1335,7 @@ pub mod uops {
             }
         }
 
+        /// Calculates `mul(long, single)` with carry propagation.
         #[inline]
         pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
             ExprIter {
