@@ -1145,6 +1145,8 @@ pub mod uops {
     pub struct Expr;
 
     /// Expression iterator for uops.
+    ///
+    /// Yields `add + mul * elem + acc + ext.wrapping_add(once)`.
     pub struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
         iter: Iter,
         add: Add,
@@ -1155,6 +1157,8 @@ pub mod uops {
     }
 
     /// Expression iterator mutable for uops.
+    ///
+    /// Yields `add + mul * elem + acc + ext.wrapping_add(once)`.
     pub struct ExprIterMut<
         'elem,
         Iter: Iterator<Item = &'elem mut Single>,
@@ -1168,6 +1172,15 @@ pub mod uops {
         ext: Single,
         once: Single,
     }
+
+    /// Expression iterator interface.
+    pub trait ExprIterator: Iterator<Item = Single> {
+        /// Acc.
+        fn acc(&self) -> Single;
+    }
+
+    /// Expression iterator mutable interface.
+    pub trait ExprIteratorMut: Iterator<Item = Single> {}
 
     impl<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> Iterator
         for ExprIter<Iter, Add, Mul>
@@ -1219,13 +1232,26 @@ pub mod uops {
         }
     }
 
+    impl<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> ExprIterator
+        for ExprIter<Iter, Add, Mul>
+    {
+        fn acc(&self) -> Single {
+            self.acc
+        }
+    }
+
+    impl<'elem, Iter: Iterator<Item = &'elem mut Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>>
+        ExprIteratorMut for ExprIterMut<'elem, Iter, Add, Mul>
+    {
+    }
+
     impl Expr {
         /// Calculates `add(long, long)` with carry propagation.
         #[inline]
         pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
             rhs: Rhs,
-        ) -> impl Iterator<Item = Single> {
+        ) -> impl ExprIterator {
             ExprIter {
                 iter: lhs,
                 add: rhs,
@@ -1238,7 +1264,7 @@ pub mod uops {
 
         /// Calculates `add(long, single)` with carry propagation.
         #[inline]
-        pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+        pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
@@ -1251,7 +1277,7 @@ pub mod uops {
 
         /// Calculates `add(long, signed)` with carry propagation.
         #[inline]
-        pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+        pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             let (ext, once) = match rhs >> (BITS - 1) {
                 0 => (0, 0),
                 _ => (MAX, 1),
@@ -1272,7 +1298,7 @@ pub mod uops {
         pub fn sub<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
             rhs: Rhs,
-        ) -> impl Iterator<Item = Single> {
+        ) -> impl ExprIterator {
             ExprIter {
                 iter: lhs,
                 add: rhs.map(|word| !word),
@@ -1285,7 +1311,7 @@ pub mod uops {
 
         /// Calculates `sub(long, single)` with carry propagation.
         #[inline]
-        pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+        pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             let (ext, once) = match rhs != 0 {
                 false => (0, 0),
                 true => (MAX, 1),
@@ -1303,7 +1329,7 @@ pub mod uops {
 
         /// Calculates `sub(long, signed)` with carry propagation.
         #[inline]
-        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
                 (true, 0) => (MAX, 1),
                 (_, _) => (0, 0),
@@ -1324,7 +1350,7 @@ pub mod uops {
         pub fn mul<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
             lhs: Lhs,
             rhs: Rhs,
-        ) -> impl Iterator<Item = Single> {
+        ) -> impl ExprIterator {
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
@@ -1337,7 +1363,7 @@ pub mod uops {
 
         /// Calculates `mul(long, single)` with carry propagation.
         #[inline]
-        pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl Iterator<Item = Single> {
+        pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
