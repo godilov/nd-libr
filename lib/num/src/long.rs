@@ -1367,15 +1367,19 @@ pub mod uops {
     /// Applies `words = -words`.
     #[inline]
     pub fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        let mut acc = 1;
+        let iter = ExprIterMut {
+            iter: words.iter_mut().map(|word| {
+                *word = !*word;
+                word
+            }),
+            add: std::iter::repeat(0),
+            mul: std::iter::repeat(1),
+            acc: 1,
+            ext: 0,
+            once: 0,
+        };
 
-        for ptr in words.iter_mut() {
-            let word = !*ptr as Double + acc as Double;
-
-            *ptr = word as Single;
-
-            acc = word / RADIX;
-        }
+        for _ in iter {}
 
         words
     }
@@ -1424,19 +1428,18 @@ pub mod uops {
     /// Applies `words = words + 1`.
     #[inline]
     pub fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        let mut acc = 1;
+        let mut iter = ExprIterMut {
+            iter: words.iter_mut(),
+            add: std::iter::repeat(0),
+            mul: std::iter::repeat(1),
+            acc: 1,
+            ext: 0,
+            once: 0,
+        };
 
-        for ptr in words.iter_mut() {
-            let word = *ptr as Double + acc as Double;
-
-            *ptr = word as Single;
-
-            acc = word / RADIX;
-
-            if acc == 0 {
-                break;
-            }
-        }
+        while let Some(acc) = iter.next()
+            && acc > 0
+        {}
 
         words
     }
@@ -1444,19 +1447,18 @@ pub mod uops {
     /// Applies `words = words - 1`.
     #[inline]
     pub fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        let mut acc = 1;
+        let mut iter = ExprIterMut {
+            iter: words.iter_mut(),
+            add: std::iter::repeat(0),
+            mul: std::iter::repeat(1),
+            acc: 0,
+            ext: MAX,
+            once: 0,
+        };
 
-        for ptr in words.iter_mut() {
-            let word = RADIX + *ptr as Double - acc as Double;
-
-            *ptr = word as Single;
-
-            acc = (word < RADIX) as Double;
-
-            if acc == 0 {
-                break;
-            }
-        }
+        while let Some(acc) = iter.next()
+            && acc > 0
+        {}
 
         words
     }
