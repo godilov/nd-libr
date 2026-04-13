@@ -5263,13 +5263,13 @@ mod tests {
     fn uops() {
         ndassert::check! { @eq (
             val in ndassert::range!(u64, 48),
-            val_bytes as val.to_le_bytes(),
+            bytes as val.to_le_bytes(),
         ) [
-            (uops::not(&val_bytes), (!val).to_le_bytes()),
-            (uops::pos(&val_bytes), val.to_le_bytes()),
-            (uops::neg(&val_bytes), val.wrapping_neg().to_le_bytes()),
-            (uops::inc(&val_bytes), val.wrapping_add(1).to_le_bytes()),
-            (uops::dec(&val_bytes), val.wrapping_sub(1).to_le_bytes()),
+            (uops::not(&bytes), (!val).to_le_bytes()),
+            (uops::pos(&bytes), val.to_le_bytes()),
+            (uops::neg(&bytes), val.wrapping_neg().to_le_bytes()),
+            (uops::inc(&bytes), val.wrapping_add(1).to_le_bytes()),
+            (uops::dec(&bytes), val.wrapping_sub(1).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -5281,19 +5281,32 @@ mod tests {
             (uops::add(&lhs_bytes, &rhs_bytes), lhs.wrapping_add(rhs).to_le_bytes()),
             (uops::sub(&lhs_bytes, &rhs_bytes), lhs.wrapping_sub(rhs).to_le_bytes()),
         ] }
+
+        ndassert::check! { @eq (
+            val in ndassert::range!(u64, 52),
+            shift in 0..96,
+            bytes as val.to_le_bytes(),
+            shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
+            shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
+        ) [
+            (shl(&bytes, shift, 0), val.unbounded_shl(shift as u32).to_le_bytes()),
+            (shr(&bytes, shift, 0), val.unbounded_shr(shift as u32).to_le_bytes()),
+            (shl(&bytes, shift, MAX), (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+            (shr(&bytes, shift, MAX), (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
+        ] }
     }
 
     #[test]
     fn uops_mut() {
         ndassert::check! { @eq (
             val in ndassert::range!(u64, 48),
-            val_bytes as val.to_le_bytes(),
+            bytes as val.to_le_bytes(),
         ) [
-            ({ let mut val = val_bytes; uops::not_mut(&mut val); val }, (!val).to_le_bytes()),
-            ({ let mut val = val_bytes; uops::pos_mut(&mut val); val }, val.to_le_bytes()),
-            ({ let mut val = val_bytes; uops::neg_mut(&mut val); val }, val.wrapping_neg().to_le_bytes()),
-            ({ let mut val = val_bytes; uops::inc_mut(&mut val); val }, val.wrapping_add(1).to_le_bytes()),
-            ({ let mut val = val_bytes; uops::dec_mut(&mut val); val }, val.wrapping_sub(1).to_le_bytes()),
+            ({ let mut val = bytes; uops::not_mut(&mut val); val }, (!val).to_le_bytes()),
+            ({ let mut val = bytes; uops::pos_mut(&mut val); val }, val.to_le_bytes()),
+            ({ let mut val = bytes; uops::neg_mut(&mut val); val }, val.wrapping_neg().to_le_bytes()),
+            ({ let mut val = bytes; uops::inc_mut(&mut val); val }, val.wrapping_add(1).to_le_bytes()),
+            ({ let mut val = bytes; uops::dec_mut(&mut val); val }, val.wrapping_sub(1).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -5302,8 +5315,21 @@ mod tests {
             lhs_bytes as lhs.to_le_bytes(),
             rhs_bytes as rhs.to_le_bytes(),
         ) [
-            ({ let mut lhs = lhs_bytes; uops::add_mut(&mut lhs, &rhs_bytes); lhs }, lhs.wrapping_add(rhs).to_le_bytes()),
-            ({ let mut lhs = lhs_bytes; uops::sub_mut(&mut lhs, &rhs_bytes); lhs }, lhs.wrapping_sub(rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::add_mut(&mut bytes, &rhs_bytes); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::sub_mut(&mut bytes, &rhs_bytes); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
+        ] }
+
+        ndassert::check! { @eq (
+            val in ndassert::range!(u64, 52),
+            shift in 0..96,
+            bytes as val.to_le_bytes(),
+            shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
+            shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
+        ) [
+            ({ let mut bytes = bytes; shl_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shl(shift as u32).to_le_bytes()),
+            ({ let mut bytes = bytes; shr_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shr(shift as u32).to_le_bytes()),
+            ({ let mut bytes = bytes; shl_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+            ({ let mut bytes = bytes; shr_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
         ] }
     }
 }
