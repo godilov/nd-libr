@@ -92,9 +92,8 @@ macro_rules! from_arr_impl {
     };
 }
 
-fn long_convert(c: &mut Criterion) {
-    let mut group = c.benchmark_group("long::convert");
-    let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
+fn long_convert_const(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert::const");
 
     group.sample_size(128);
     group.measurement_time(Duration::from_secs(6));
@@ -103,11 +102,31 @@ fn long_convert(c: &mut Criterion) {
     default(&mut group);
     from_primitive_const(&mut group);
     from_bytes_const(&mut group);
+}
+
+fn long_convert(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert");
+    let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
+
+    group.sample_size(128);
+    group.measurement_time(Duration::from_secs(6));
+    group.warm_up_time(Duration::from_secs(2));
+
     from_primitive(&mut group, &mut rng);
     from_bytes(&mut group, &mut rng);
     from_arr(&mut group, &mut rng);
     from_slice(&mut group, &mut rng);
     from_iter(&mut group, &mut rng);
+}
+
+fn long_convert_digits(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert::digits");
+    let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
+
+    group.sample_size(128);
+    group.measurement_time(Duration::from_secs(6));
+    group.warm_up_time(Duration::from_secs(2));
+
     from_digits(&mut group, &mut rng);
     from_digits_iter(&mut group, &mut rng);
     from_digits_radix(&mut group, &mut rng);
@@ -118,6 +137,16 @@ fn long_convert(c: &mut Criterion) {
     into_digits(&mut group, &mut rng);
     into_digits_iter_count(&mut group, &mut rng);
     into_digits_iter_collect(&mut group, &mut rng);
+}
+
+fn long_convert_str(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert::str");
+    let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
+
+    group.sample_size(128);
+    group.measurement_time(Duration::from_secs(6));
+    group.warm_up_time(Duration::from_secs(2));
+
     from_str(&mut group, &mut rng);
     to_str(&mut group, &mut rng);
 }
@@ -746,6 +775,14 @@ fn uops(_group: &mut BenchmarkGroup<'_, WallTime>) {}
 
 fn uops_mut(_group: &mut BenchmarkGroup<'_, WallTime>) {}
 
-criterion_group!(group, long_convert, long_ops, long_uops);
+criterion_group!(
+    group,
+    long_convert_const,
+    long_convert,
+    long_convert_digits,
+    long_convert_str,
+    long_ops,
+    long_uops
+);
 
 criterion_main!(group);
