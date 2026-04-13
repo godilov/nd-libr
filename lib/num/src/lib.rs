@@ -1834,6 +1834,32 @@ mod tests {
     }
 
     #[test]
+    fn strict_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ndassert::catch!({ let mut val = Strict(lhs); val += Strict(rhs); val }, Strict(lhs.strict_add(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val -= Strict(rhs); val }, Strict(lhs.strict_sub(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val *= Strict(rhs); val }, Strict(lhs.strict_mul(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val /= Strict(rhs); val }, Strict(lhs.strict_div(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val %= Strict(rhs); val }, Strict(lhs.strict_rem(rhs))),
+
+            ({ let mut val = Strict(lhs); val |= Strict(rhs); val }, Strict(lhs | rhs)),
+            ({ let mut val = Strict(lhs); val &= Strict(rhs); val }, Strict(lhs & rhs)),
+            ({ let mut val = Strict(lhs); val ^= Strict(rhs); val }, Strict(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!({ let mut val = Strict(lhs); val <<= rhs; val }, Strict(lhs.strict_shl(rhs as u32))),
+            ndassert::catch!({ let mut val = Strict(lhs); val >>= rhs; val }, Strict(lhs.strict_shr(rhs as u32))),
+        ] }
+    }
+
+    #[test]
     fn wrapping() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
@@ -1859,6 +1885,31 @@ mod tests {
     }
 
     #[test]
+    fn wrapping_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ({ let mut val = Wrapping(lhs); val += Wrapping(rhs); val }, Wrapping(lhs.wrapping_add(rhs))),
+            ({ let mut val = Wrapping(lhs); val -= Wrapping(rhs); val }, Wrapping(lhs.wrapping_sub(rhs))),
+            ({ let mut val = Wrapping(lhs); val *= Wrapping(rhs); val }, Wrapping(lhs.wrapping_mul(rhs))),
+            ({ let mut val = Wrapping(lhs); val /= Wrapping(rhs); val }, Wrapping(lhs.wrapping_div(rhs))),
+            ({ let mut val = Wrapping(lhs); val %= Wrapping(rhs); val }, Wrapping(lhs.wrapping_rem(rhs))),
+            ({ let mut val = Wrapping(lhs); val |= Wrapping(rhs); val }, Wrapping(lhs | rhs)),
+            ({ let mut val = Wrapping(lhs); val &= Wrapping(rhs); val }, Wrapping(lhs & rhs)),
+            ({ let mut val = Wrapping(lhs); val ^= Wrapping(rhs); val }, Wrapping(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!({ let mut val = Wrapping(lhs); val <<= rhs; val }, Wrapping(lhs << rhs)),
+            ndassert::catch!({ let mut val = Wrapping(lhs); val >>= rhs; val }, Wrapping(lhs >> rhs)),
+        ] }
+    }
+
+    #[test]
     fn saturating() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
@@ -1880,6 +1931,31 @@ mod tests {
         ) [
             ndassert::catch!(Saturating(lhs) << rhs, Saturating(lhs << rhs)),
             ndassert::catch!(Saturating(lhs) >> rhs, Saturating(lhs >> rhs)),
+        ] }
+    }
+
+    #[test]
+    fn saturating_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ({ let mut val = Saturating(lhs); val += Saturating(rhs); val }, Saturating(lhs.saturating_add(rhs))),
+            ({ let mut val = Saturating(lhs); val -= Saturating(rhs); val }, Saturating(lhs.saturating_sub(rhs))),
+            ({ let mut val = Saturating(lhs); val *= Saturating(rhs); val }, Saturating(lhs.saturating_mul(rhs))),
+            ({ let mut val = Saturating(lhs); val /= Saturating(rhs); val }, Saturating(lhs.saturating_div(rhs))),
+            ({ let mut val = Saturating(lhs); val %= Saturating(rhs); val }, Saturating(lhs.wrapping_rem(rhs))),
+            ({ let mut val = Saturating(lhs); val |= Saturating(rhs); val }, Saturating(lhs | rhs)),
+            ({ let mut val = Saturating(lhs); val &= Saturating(rhs); val }, Saturating(lhs & rhs)),
+            ({ let mut val = Saturating(lhs); val ^= Saturating(rhs); val }, Saturating(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!({ let mut val = Saturating(lhs); val <<= rhs; val }, Saturating(lhs << rhs)),
+            ndassert::catch!({ let mut val = Saturating(lhs); val >>= rhs; val }, Saturating(lhs >> rhs)),
         ] }
     }
 
@@ -1910,83 +1986,7 @@ mod tests {
     }
 
     #[test]
-    fn strict_assign() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0),
-            rhs in ndassert::range!(i64, 56, 1),
-        ) [
-            ndassert::catch!({ let mut val = Strict(lhs); val += Strict(rhs); val }, Strict(lhs.strict_add(rhs))),
-            ndassert::catch!({ let mut val = Strict(lhs); val -= Strict(rhs); val }, Strict(lhs.strict_sub(rhs))),
-            ndassert::catch!({ let mut val = Strict(lhs); val *= Strict(rhs); val }, Strict(lhs.strict_mul(rhs))),
-            ndassert::catch!({ let mut val = Strict(lhs); val /= Strict(rhs); val }, Strict(lhs.strict_div(rhs))),
-            ndassert::catch!({ let mut val = Strict(lhs); val %= Strict(rhs); val }, Strict(lhs.strict_rem(rhs))),
-
-            ({ let mut val = Strict(lhs); val |= Strict(rhs); val }, Strict(lhs | rhs)),
-            ({ let mut val = Strict(lhs); val &= Strict(rhs); val }, Strict(lhs & rhs)),
-            ({ let mut val = Strict(lhs); val ^= Strict(rhs); val }, Strict(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 52),
-            rhs in 0..96,
-        ) [
-            ndassert::catch!({ let mut val = Strict(lhs); val <<= rhs; val }, Strict(lhs.strict_shl(rhs as u32))),
-            ndassert::catch!({ let mut val = Strict(lhs); val >>= rhs; val }, Strict(lhs.strict_shr(rhs as u32))),
-        ] }
-    }
-
-    #[test]
-    fn wrapping_assign() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0),
-            rhs in ndassert::range!(i64, 56, 1),
-        ) [
-            ({ let mut val = Wrapping(lhs); val += Wrapping(rhs); val }, Wrapping(lhs.wrapping_add(rhs))),
-            ({ let mut val = Wrapping(lhs); val -= Wrapping(rhs); val }, Wrapping(lhs.wrapping_sub(rhs))),
-            ({ let mut val = Wrapping(lhs); val *= Wrapping(rhs); val }, Wrapping(lhs.wrapping_mul(rhs))),
-            ({ let mut val = Wrapping(lhs); val /= Wrapping(rhs); val }, Wrapping(lhs.wrapping_div(rhs))),
-            ({ let mut val = Wrapping(lhs); val %= Wrapping(rhs); val }, Wrapping(lhs.wrapping_rem(rhs))),
-            ({ let mut val = Wrapping(lhs); val |= Wrapping(rhs); val }, Wrapping(lhs | rhs)),
-            ({ let mut val = Wrapping(lhs); val &= Wrapping(rhs); val }, Wrapping(lhs & rhs)),
-            ({ let mut val = Wrapping(lhs); val ^= Wrapping(rhs); val }, Wrapping(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 52),
-            rhs in 0..96,
-        ) [
-            ndassert::catch!({ let mut val = Wrapping(lhs); val <<= rhs; val }, Wrapping(lhs << rhs)),
-            ndassert::catch!({ let mut val = Wrapping(lhs); val >>= rhs; val }, Wrapping(lhs >> rhs)),
-        ] }
-    }
-
-    #[test]
-    fn saturating_assign() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0),
-            rhs in ndassert::range!(i64, 56, 1),
-        ) [
-            ({ let mut val = Saturating(lhs); val += Saturating(rhs); val }, Saturating(lhs.saturating_add(rhs))),
-            ({ let mut val = Saturating(lhs); val -= Saturating(rhs); val }, Saturating(lhs.saturating_sub(rhs))),
-            ({ let mut val = Saturating(lhs); val *= Saturating(rhs); val }, Saturating(lhs.saturating_mul(rhs))),
-            ({ let mut val = Saturating(lhs); val /= Saturating(rhs); val }, Saturating(lhs.saturating_div(rhs))),
-            ({ let mut val = Saturating(lhs); val %= Saturating(rhs); val }, Saturating(lhs.wrapping_rem(rhs))),
-            ({ let mut val = Saturating(lhs); val |= Saturating(rhs); val }, Saturating(lhs | rhs)),
-            ({ let mut val = Saturating(lhs); val &= Saturating(rhs); val }, Saturating(lhs & rhs)),
-            ({ let mut val = Saturating(lhs); val ^= Saturating(rhs); val }, Saturating(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 52),
-            rhs in 0..96,
-        ) [
-            ndassert::catch!({ let mut val = Saturating(lhs); val <<= rhs; val }, Saturating(lhs << rhs)),
-            ndassert::catch!({ let mut val = Saturating(lhs); val >>= rhs; val }, Saturating(lhs >> rhs)),
-        ] }
-    }
-
-    #[test]
-    fn unbounded_assign() {
+    fn unbounded_mut() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),

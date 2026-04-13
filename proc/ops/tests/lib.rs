@@ -327,7 +327,7 @@ mod ops {
 
     #[test]
     #[rustfmt::skip]
-    fn all_assign() {
+    fn all_mut() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 60, 0),
             rhs in ndassert::range!(i64, 60, 1),
@@ -363,7 +363,7 @@ mod ops {
 
     #[test]
     #[rustfmt::skip]
-    fn all_assign_generic() {
+    fn all_mut_generic() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 60, 0),
             rhs in ndassert::range!(i64, 60, 1),

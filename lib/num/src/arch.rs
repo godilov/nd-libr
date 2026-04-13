@@ -774,7 +774,7 @@ mod tests {
     }
 
     #[test]
-    fn ops_assign() {
+    fn ops_mut() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 60, 0).map(S64::from),
             rhs in ndassert::range!(i64, 60, 1).map(S64::from),
