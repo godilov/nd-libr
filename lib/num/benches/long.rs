@@ -123,7 +123,7 @@ fn long_convert(c: &mut Criterion) {
 }
 
 fn long_ops(c: &mut Criterion) {
-    let mut group = c.benchmark_group("long::uops");
+    let mut group = c.benchmark_group("long::ops");
 
     group.sample_size(128);
     group.measurement_time(Duration::from_secs(6));
@@ -136,7 +136,7 @@ fn long_ops(c: &mut Criterion) {
 }
 
 fn long_uops(c: &mut Criterion) {
-    let mut group = c.benchmark_group("long::ops");
+    let mut group = c.benchmark_group("long::uops");
 
     group.sample_size(128);
     group.measurement_time(Duration::from_secs(6));
@@ -189,14 +189,14 @@ fn from_primitive(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     exec! { group => [
         BenchmarkId::new("S4096::from_primitive", i128::BITS), &rng.random::<i128>(), |&val: &i128| Aligned(S4096::from(val)),
         BenchmarkId::new("U4096::from_primitive", u128::BITS), &rng.random::<u128>(), |&val: &u128| Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",  i64::BITS), &rng.random::<i64>(),  |&val: &i64 | Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",  u64::BITS), &rng.random::<u64>(),  |&val: &u64 | Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",  i32::BITS), &rng.random::<i32>(),  |&val: &i32 | Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",  u32::BITS), &rng.random::<u32>(),  |&val: &u32 | Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",  i16::BITS), &rng.random::<i16>(),  |&val: &i16 | Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",  u16::BITS), &rng.random::<u16>(),  |&val: &u16 | Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",   i8::BITS), &rng.random::<i8>(),   |&val: &i8  | Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",   u8::BITS), &rng.random::<u8>(),   |&val: &u8  | Aligned(U4096::from(val)),
+        BenchmarkId::new("S4096::from_primitive",  i64::BITS), &rng.random::<i64>(),  |&val:  &i64| Aligned(S4096::from(val)),
+        BenchmarkId::new("U4096::from_primitive",  u64::BITS), &rng.random::<u64>(),  |&val:  &u64| Aligned(U4096::from(val)),
+        BenchmarkId::new("S4096::from_primitive",  i32::BITS), &rng.random::<i32>(),  |&val:  &i32| Aligned(S4096::from(val)),
+        BenchmarkId::new("U4096::from_primitive",  u32::BITS), &rng.random::<u32>(),  |&val:  &u32| Aligned(U4096::from(val)),
+        BenchmarkId::new("S4096::from_primitive",  i16::BITS), &rng.random::<i16>(),  |&val:  &i16| Aligned(S4096::from(val)),
+        BenchmarkId::new("U4096::from_primitive",  u16::BITS), &rng.random::<u16>(),  |&val:  &u16| Aligned(U4096::from(val)),
+        BenchmarkId::new("S4096::from_primitive",   i8::BITS), &rng.random::<i8>(),   |&val:   &i8| Aligned(S4096::from(val)),
+        BenchmarkId::new("U4096::from_primitive",   u8::BITS), &rng.random::<u8>(),   |&val:   &u8| Aligned(U4096::from(val)),
     ] };
 }
 
@@ -620,29 +620,29 @@ fn ops(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        BenchmarkId::new("S4096", "add"),    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs + rhs,
-        BenchmarkId::new("U4096", "add"),    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs + rhs,
-        BenchmarkId::new("S4096", "sub"),    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs - rhs,
-        BenchmarkId::new("U4096", "sub"),    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs - rhs,
-        BenchmarkId::new("S4096", "mul"),    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs * rhs,
-        BenchmarkId::new("U4096", "mul"),    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs * rhs,
-        BenchmarkId::new("S4096", "div"),    &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| lhs / rhs,
-        BenchmarkId::new("U4096", "div"),    &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| lhs / rhs,
-        BenchmarkId::new("S4096", "rem"),    &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| lhs % rhs,
-        BenchmarkId::new("U4096", "rem"),    &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| lhs % rhs,
-        BenchmarkId::new("S4096", "bitor"),  &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs | rhs,
-        BenchmarkId::new("U4096", "bitor"),  &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs | rhs,
-        BenchmarkId::new("S4096", "bitxor"), &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs & rhs,
-        BenchmarkId::new("U4096", "bitxor"), &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs & rhs,
-        BenchmarkId::new("S4096", "bitand"), &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs ^ rhs,
-        BenchmarkId::new("U4096", "bitand"), &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs ^ rhs,
+        "S4096::add",     &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs + rhs,
+        "U4096::add",     &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs + rhs,
+        "S4096::sub",     &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs - rhs,
+        "U4096::sub",     &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs - rhs,
+        "S4096::mul",     &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs * rhs,
+        "U4096::mul",     &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs * rhs,
+        "S4096::div",     &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| lhs / rhs,
+        "U4096::div",     &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| lhs / rhs,
+        "S4096::rem",     &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| lhs % rhs,
+        "U4096::rem",     &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| lhs % rhs,
+        "S4096::bitor",   &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs | rhs,
+        "U4096::bitor",   &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs | rhs,
+        "S4096::bitxor",  &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs & rhs,
+        "U4096::bitxor",  &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs & rhs,
+        "S4096::bitand",  &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| lhs ^ rhs,
+        "U4096::bitand",  &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| lhs ^ rhs,
     ] };
 
     exec! { group => [
-        BenchmarkId::new("S4096", "shl"), &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| val << 7,
-        BenchmarkId::new("U4096", "shl"), &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| val << 7,
-        BenchmarkId::new("S4096", "shr"), &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| val >> 7,
-        BenchmarkId::new("U4096", "shr"), &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| val >> 7,
+        "S4096::shl", &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| val << 7,
+        "U4096::shl", &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| val << 7,
+        "S4096::shr", &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| val >> 7,
+        "U4096::shr", &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| val >> 7,
     ] };
 }
 
@@ -662,29 +662,29 @@ fn ops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        BenchmarkId::new("S4096", "add_mut"),    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val += rhs },
-        BenchmarkId::new("U4096", "add_mut"),    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val += rhs },
-        BenchmarkId::new("S4096", "sub_mut"),    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val -= rhs },
-        BenchmarkId::new("U4096", "sub_mut"),    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val -= rhs },
-        BenchmarkId::new("S4096", "mul_mut"),    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val *= rhs },
-        BenchmarkId::new("U4096", "mul_mut"),    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val *= rhs },
-        BenchmarkId::new("S4096", "div_mut"),    &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val /= rhs },
-        BenchmarkId::new("U4096", "div_mut"),    &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val /= rhs },
-        BenchmarkId::new("S4096", "rem_mut"),    &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val %= rhs },
-        BenchmarkId::new("U4096", "rem_mut"),    &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val %= rhs },
-        BenchmarkId::new("S4096", "bitor_mut"),  &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val |= rhs },
-        BenchmarkId::new("U4096", "bitor_mut"),  &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val |= rhs },
-        BenchmarkId::new("S4096", "bitxor_mut"), &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val &= rhs },
-        BenchmarkId::new("U4096", "bitxor_mut"), &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val &= rhs },
-        BenchmarkId::new("S4096", "bitand_mut"), &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val ^= rhs },
-        BenchmarkId::new("U4096", "bitand_mut"), &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val ^= rhs },
+        "S4096::add_mut",    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val += rhs },
+        "U4096::add_mut",    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val += rhs },
+        "S4096::sub_mut",    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val -= rhs },
+        "U4096::sub_mut",    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val -= rhs },
+        "S4096::mul_mut",    &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val *= rhs },
+        "U4096::mul_mut",    &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val *= rhs },
+        "S4096::div_mut",    &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val /= rhs },
+        "U4096::div_mut",    &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val /= rhs },
+        "S4096::rem_mut",    &s4096, |[lhs, _, rhs]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val %= rhs },
+        "U4096::rem_mut",    &u4096, |[lhs, _, rhs]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val %= rhs },
+        "S4096::bitor_mut",  &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val |= rhs },
+        "U4096::bitor_mut",  &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val |= rhs },
+        "S4096::bitxor_mut", &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val &= rhs },
+        "U4096::bitxor_mut", &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val &= rhs },
+        "S4096::bitand_mut", &s4096, |[lhs, rhs, _]: &[Aligned<S4096>; 3]| { let mut val = *lhs; val ^= rhs },
+        "U4096::bitand_mut", &u4096, |[lhs, rhs, _]: &[Aligned<U4096>; 3]| { let mut val = *lhs; val ^= rhs },
     ] };
 
     exec! { group => [
-        BenchmarkId::new("S4096", "shl_mut"), &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| { let mut val = *val; val <<= 7 },
-        BenchmarkId::new("U4096", "shl_mut"), &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| { let mut val = *val; val <<= 7 },
-        BenchmarkId::new("S4096", "shr_mut"), &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| { let mut val = *val; val >>= 7 },
-        BenchmarkId::new("U4096", "shr_mut"), &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| { let mut val = *val; val >>= 7 },
+        "S4096::shl_mut", &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| { let mut val = *val; val <<= 7 },
+        "U4096::shl_mut", &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| { let mut val = *val; val <<= 7 },
+        "S4096::shr_mut", &s4096, |[val, _, _]: &[Aligned<S4096>; 3]| { let mut val = *val; val >>= 7 },
+        "U4096::shr_mut", &u4096, |[val, _, _]: &[Aligned<U4096>; 3]| { let mut val = *val; val >>= 7 },
     ] };
 }
 
@@ -696,22 +696,22 @@ fn ops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        BenchmarkId::new("S4096", "add_single"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs + rhs,
-        BenchmarkId::new("U4096", "add_single"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs + rhs,
-        BenchmarkId::new("S4096", "sub_single"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs - rhs,
-        BenchmarkId::new("U4096", "sub_single"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs - rhs,
-        BenchmarkId::new("S4096", "mul_single"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs * rhs,
-        BenchmarkId::new("U4096", "mul_single"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs * rhs,
-        BenchmarkId::new("S4096", "div_single"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs / rhs,
-        BenchmarkId::new("U4096", "div_single"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs / rhs,
-        BenchmarkId::new("S4096", "rem_single"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs % rhs,
-        BenchmarkId::new("U4096", "rem_single"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs % rhs,
-        BenchmarkId::new("S4096", "bitor_single"),  &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs | rhs,
-        BenchmarkId::new("U4096", "bitor_single"),  &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs | rhs,
-        BenchmarkId::new("S4096", "bitxor_single"), &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs & rhs,
-        BenchmarkId::new("U4096", "bitxor_single"), &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs & rhs,
-        BenchmarkId::new("S4096", "bitand_single"), &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs ^ rhs,
-        BenchmarkId::new("U4096", "bitand_single"), &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs ^ rhs,
+        "S4096::add_single",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs + rhs,
+        "U4096::add_single",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs + rhs,
+        "S4096::sub_single",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs - rhs,
+        "U4096::sub_single",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs - rhs,
+        "S4096::mul_single",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs * rhs,
+        "U4096::mul_single",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs * rhs,
+        "S4096::div_single",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs / rhs,
+        "U4096::div_single",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs / rhs,
+        "S4096::rem_single",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs % rhs,
+        "U4096::rem_single",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs % rhs,
+        "S4096::bitor_single",  &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs | rhs,
+        "U4096::bitor_single",  &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs | rhs,
+        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs & rhs,
+        "U4096::bitxor_single", &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs & rhs,
+        "S4096::bitand_single", &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| lhs ^ rhs,
+        "U4096::bitand_single", &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| lhs ^ rhs,
     ] };
 }
 
@@ -723,22 +723,22 @@ fn ops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        BenchmarkId::new("S4096", "add_single_mut"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val += rhs },
-        BenchmarkId::new("U4096", "add_single_mut"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val += rhs },
-        BenchmarkId::new("S4096", "sub_single_mut"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val -= rhs },
-        BenchmarkId::new("U4096", "sub_single_mut"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val -= rhs },
-        BenchmarkId::new("S4096", "mul_single_mut"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val *= rhs },
-        BenchmarkId::new("U4096", "mul_single_mut"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val *= rhs },
-        BenchmarkId::new("S4096", "div_single_mut"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val /= rhs },
-        BenchmarkId::new("U4096", "div_single_mut"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val /= rhs },
-        BenchmarkId::new("S4096", "rem_single_mut"),    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val %= rhs },
-        BenchmarkId::new("U4096", "rem_single_mut"),    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val %= rhs },
-        BenchmarkId::new("S4096", "bitor_single_mut"),  &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val |= rhs },
-        BenchmarkId::new("U4096", "bitor_single_mut"),  &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val |= rhs },
-        BenchmarkId::new("S4096", "bitxor_single_mut"), &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val &= rhs },
-        BenchmarkId::new("U4096", "bitxor_single_mut"), &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val &= rhs },
-        BenchmarkId::new("S4096", "bitand_single_mut"), &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val ^= rhs },
-        BenchmarkId::new("U4096", "bitand_single_mut"), &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val ^= rhs },
+        "S4096::add_single_mut",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val += rhs },
+        "U4096::add_single_mut",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val += rhs },
+        "S4096::sub_single_mut",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val -= rhs },
+        "U4096::sub_single_mut",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val -= rhs },
+        "S4096::mul_single_mut",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val *= rhs },
+        "U4096::mul_single_mut",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val *= rhs },
+        "S4096::div_single_mut",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val /= rhs },
+        "U4096::div_single_mut",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val /= rhs },
+        "S4096::rem_single_mut",    &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val %= rhs },
+        "U4096::rem_single_mut",    &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val %= rhs },
+        "S4096::bitor_single_mut",  &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val |= rhs },
+        "U4096::bitor_single_mut",  &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val |= rhs },
+        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val &= rhs },
+        "U4096::bitxor_single_mut", &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val &= rhs },
+        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(Aligned<S4096>, Aligned<i64>)| { let mut val = *lhs; val ^= rhs },
+        "U4096::bitand_single_mut", &u4096, |(lhs, rhs): &(Aligned<U4096>, Aligned<u64>)| { let mut val = *lhs; val ^= rhs },
     ] };
 }
 
