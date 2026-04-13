@@ -5261,23 +5261,49 @@ mod tests {
 
     #[test]
     fn uops() {
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (uops::not(&val.to_le_bytes()), (!val).to_le_bytes()),
-            (uops::pos(&val.to_le_bytes()), val.to_le_bytes()),
-            (uops::neg(&val.to_le_bytes()), val.wrapping_neg().to_le_bytes()),
-            (uops::inc(&val.to_le_bytes()), val.wrapping_add(1).to_le_bytes()),
-            (uops::dec(&val.to_le_bytes()), val.wrapping_sub(1).to_le_bytes()),
+        ndassert::check! { @eq (
+            val in ndassert::range!(u64, 48),
+            val_bytes as val.to_le_bytes(),
+        ) [
+            (uops::not(&val_bytes), (!val).to_le_bytes()),
+            (uops::pos(&val_bytes), val.to_le_bytes()),
+            (uops::neg(&val_bytes), val.wrapping_neg().to_le_bytes()),
+            (uops::inc(&val_bytes), val.wrapping_add(1).to_le_bytes()),
+            (uops::dec(&val_bytes), val.wrapping_sub(1).to_le_bytes()),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(u64, 56),
+            rhs in ndassert::range!(u64, 56),
+            lhs_bytes as lhs.to_le_bytes(),
+            rhs_bytes as rhs.to_le_bytes(),
+        ) [
+            (uops::add(&lhs_bytes, &rhs_bytes), lhs.wrapping_add(rhs).to_le_bytes()),
+            (uops::sub(&lhs_bytes, &rhs_bytes), lhs.wrapping_sub(rhs).to_le_bytes()),
         ] }
     }
 
     #[test]
     fn uops_mut() {
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            ({ let mut val = val.to_le_bytes(); uops::not_mut(&mut val); val }, (!val).to_le_bytes()),
-            ({ let mut val = val.to_le_bytes(); uops::pos_mut(&mut val); val }, val.to_le_bytes()),
-            ({ let mut val = val.to_le_bytes(); uops::neg_mut(&mut val); val }, val.wrapping_neg().to_le_bytes()),
-            ({ let mut val = val.to_le_bytes(); uops::inc_mut(&mut val); val }, val.wrapping_add(1).to_le_bytes()),
-            ({ let mut val = val.to_le_bytes(); uops::dec_mut(&mut val); val }, val.wrapping_sub(1).to_le_bytes()),
+        ndassert::check! { @eq (
+            val in ndassert::range!(u64, 48),
+            val_bytes as val.to_le_bytes(),
+        ) [
+            ({ let mut val = val_bytes; uops::not_mut(&mut val); val }, (!val).to_le_bytes()),
+            ({ let mut val = val_bytes; uops::pos_mut(&mut val); val }, val.to_le_bytes()),
+            ({ let mut val = val_bytes; uops::neg_mut(&mut val); val }, val.wrapping_neg().to_le_bytes()),
+            ({ let mut val = val_bytes; uops::inc_mut(&mut val); val }, val.wrapping_add(1).to_le_bytes()),
+            ({ let mut val = val_bytes; uops::dec_mut(&mut val); val }, val.wrapping_sub(1).to_le_bytes()),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(u64, 56),
+            rhs in ndassert::range!(u64, 56),
+            lhs_bytes as lhs.to_le_bytes(),
+            rhs_bytes as rhs.to_le_bytes(),
+        ) [
+            ({ let mut lhs = lhs_bytes; uops::add_mut(&mut lhs, &rhs_bytes); lhs }, lhs.wrapping_add(rhs).to_le_bytes()),
+            ({ let mut lhs = lhs_bytes; uops::sub_mut(&mut lhs, &rhs_bytes); lhs }, lhs.wrapping_sub(rhs).to_le_bytes()),
         ] }
     }
 }
