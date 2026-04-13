@@ -679,8 +679,8 @@ mod tests {
     #[test]
     fn ops() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
-            rhs in ndassert::range!(i64, 56, 1).map(S64::from),
+            lhs in ndassert::range!(i64, 60, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 60, 1).map(S64::from),
         ) [
             (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
             (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
@@ -693,8 +693,8 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
-            rhs in ndassert::range!(i64, 56, 1),
+            lhs in ndassert::range!(i64, 60, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 60, 1),
         ) [
             (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
             (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
@@ -707,8 +707,8 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0),
-            rhs in ndassert::range!(i64, 56, 1).map(S64::from),
+            lhs in ndassert::range!(i64, 60, 0),
+            rhs in ndassert::range!(i64, 60, 1).map(S64::from),
         ) [
             (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
             (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
@@ -718,22 +718,8 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
-            rhs in ndassert::range!(u64, 56, 1).map(U64::from),
-        ) [
-            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
-            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
-            rhs in ndassert::range!(u64, 56, 1),
+            lhs in ndassert::range!(u64, 60, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 60, 1).map(U64::from),
         ) [
             (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
             (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
@@ -746,8 +732,22 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0),
-            rhs in ndassert::range!(u64, 56, 1).map(U64::from),
+            lhs in ndassert::range!(u64, 60, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 60, 1),
+        ) [
+            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
+            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
+            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(u64, 60, 0),
+            rhs in ndassert::range!(u64, 60, 1).map(U64::from),
         ) [
             (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
             (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
@@ -757,7 +757,7 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 52).map(S64::from),
+            lhs in ndassert::range!(i64, 60).map(S64::from),
             rhs in 0..96,
         ) [
             (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
@@ -765,7 +765,7 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 52).map(U64::from),
+            lhs in ndassert::range!(u64, 60).map(U64::from),
             rhs in 0..96,
         ) [
             (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
@@ -776,8 +776,8 @@ mod tests {
     #[test]
     fn ops_assign() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
-            rhs in ndassert::range!(i64, 56, 1).map(S64::from),
+            lhs in ndassert::range!(i64, 60, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 60, 1).map(S64::from),
         ) [
             ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
             ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
@@ -790,8 +790,8 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).map(S64::from),
-            rhs in ndassert::range!(i64, 56, 1),
+            lhs in ndassert::range!(i64, 60, 0).map(S64::from),
+            rhs in ndassert::range!(i64, 60, 1),
         ) [
             ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
             ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
@@ -804,8 +804,8 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
-            rhs in ndassert::range!(u64, 56, 1).map(U64::from),
+            lhs in ndassert::range!(u64, 60, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 60, 1).map(U64::from),
         ) [
             ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
             ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
@@ -818,8 +818,8 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).map(U64::from),
-            rhs in ndassert::range!(u64, 56, 1),
+            lhs in ndassert::range!(u64, 60, 0).map(U64::from),
+            rhs in ndassert::range!(u64, 60, 1),
         ) [
             ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
             ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
@@ -832,7 +832,7 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 52).map(S64::from),
+            lhs in ndassert::range!(i64, 60).map(S64::from),
             rhs in 0..96,
         ) [
             ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
@@ -840,7 +840,7 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 52).map(U64::from),
+            lhs in ndassert::range!(u64, 60).map(U64::from),
             rhs in 0..96,
         ) [
             ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),

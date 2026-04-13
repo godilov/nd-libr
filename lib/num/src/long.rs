@@ -1518,6 +1518,19 @@ pub mod uops {
         }
     }
 
+    /// Returns `!words`.
+    #[inline]
+    pub fn not<const L: usize>(words: &[Single; L]) -> [Single; L] {
+        words.iter().map(|&word| !word).collect_arr()
+    }
+
+    /// Applies `words = !words`.
+    #[inline]
+    pub fn not_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        words.iter_mut().for_each(|word| *word = !*word);
+        words
+    }
+
     /// Returns `+words`.
     #[inline]
     pub fn pos<const L: usize>(words: &[Single; L]) -> [Single; L] {
@@ -1564,19 +1577,6 @@ pub mod uops {
         words
     }
 
-    /// Returns `!words`.
-    #[inline]
-    pub fn not<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        words.iter().map(|&word| !word).collect_arr()
-    }
-
-    /// Applies `words = !words`.
-    #[inline]
-    pub fn not_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        words.iter_mut().for_each(|word| *word = !*word);
-        words
-    }
-
     /// Returns `words + 1`.
     #[inline]
     pub fn inc<const L: usize>(words: &[Single; L]) -> [Single; L] {
@@ -1592,7 +1592,7 @@ pub mod uops {
     /// Applies `words = words + 1`.
     #[inline]
     pub fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        let mut iter = ExprIterMut {
+        let iter = ExprIterMut {
             iter: words.iter_mut(),
             add: std::iter::repeat(0),
             mul: std::iter::repeat(1),
@@ -1601,9 +1601,7 @@ pub mod uops {
             once: 0,
         };
 
-        while let Some(acc) = iter.next()
-            && acc > 0
-        {}
+        for _ in iter {}
 
         words
     }
@@ -1611,7 +1609,7 @@ pub mod uops {
     /// Applies `words = words - 1`.
     #[inline]
     pub fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        let mut iter = ExprIterMut {
+        let iter = ExprIterMut {
             iter: words.iter_mut(),
             add: std::iter::repeat(0),
             mul: std::iter::repeat(1),
@@ -1620,9 +1618,7 @@ pub mod uops {
             once: 0,
         };
 
-        while let Some(acc) = iter.next()
-            && acc > 0
-        {}
+        for _ in iter {}
 
         words
     }
@@ -4455,10 +4451,6 @@ mod tests {
     #[cfg(feature = "const-time")]
     use crate::{CmpCt, GeCt, LeCt, MaxCt, MinCt};
 
-    mod uops {
-        use super::*;
-    }
-
     fn sdiv_default(_: i64, _: i64) -> i64 {
         0
     }
@@ -5264,6 +5256,28 @@ mod tests {
             ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs as u64)),
             ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs as u64)),
             ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs as u64)),
+        ] }
+    }
+
+    #[test]
+    fn uops() {
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            (uops::not(&val.to_le_bytes()), (!val).to_le_bytes()),
+            (uops::pos(&val.to_le_bytes()), val.to_le_bytes()),
+            (uops::neg(&val.to_le_bytes()), val.wrapping_neg().to_le_bytes()),
+            (uops::inc(&val.to_le_bytes()), val.wrapping_add(1).to_le_bytes()),
+            (uops::dec(&val.to_le_bytes()), val.wrapping_sub(1).to_le_bytes()),
+        ] }
+    }
+
+    #[test]
+    fn uops_mut() {
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+            ({ let mut val = val.to_le_bytes(); uops::not_mut(&mut val); val }, (!val).to_le_bytes()),
+            ({ let mut val = val.to_le_bytes(); uops::pos_mut(&mut val); val }, val.to_le_bytes()),
+            ({ let mut val = val.to_le_bytes(); uops::neg_mut(&mut val); val }, val.wrapping_neg().to_le_bytes()),
+            ({ let mut val = val.to_le_bytes(); uops::inc_mut(&mut val); val }, val.wrapping_add(1).to_le_bytes()),
+            ({ let mut val = val.to_le_bytes(); uops::dec_mut(&mut val); val }, val.wrapping_sub(1).to_le_bytes()),
         ] }
     }
 }
