@@ -663,7 +663,7 @@ macro_rules! div_long_impl {
         for val in div.iter_mut().rev() {
             cycle!(rem, *val);
 
-            let digit = search!(@upper 0, RADIX, |m: Double| {
+            let digit = search!(@max 0, RADIX, |m: Double| {
                 let mut acc = 0;
 
                 let mul = mul_single_impl!($rhs, m, acc).collect_arr() as [Single; L];
@@ -701,7 +701,7 @@ macro_rules! div_single_impl {
             rem <<= BITS;
             rem |= *val as Double;
 
-            let digit = search!(@upper 0, RADIX, |m: Double| { (m * $rhs as Double).cmp(&rem) });
+            let digit = search!(@max 0, RADIX, |m: Double| { (m * $rhs as Double).cmp(&rem) });
             let digit = digit.saturating_sub(1) as Single;
 
             *val = digit;
@@ -723,9 +723,9 @@ macro_rules! cycle {
 }
 
 macro_rules! search {
-    (@lower $l:expr, $r:expr, $fn:expr) => {{
-        let mut l = 0;
-        let mut r = RADIX;
+    (@min $l:expr, $r:expr, $fn:expr) => {{
+        let mut l = $l;
+        let mut r = $r;
 
         while l < r {
             let m = l + (r - l) / 2;
@@ -739,9 +739,9 @@ macro_rules! search {
 
         l
     }};
-    (@upper $l:expr, $r:expr, $fn:expr) => {{
-        let mut l = 0;
-        let mut r = RADIX;
+    (@max $l:expr, $r:expr, $fn:expr) => {{
+        let mut l = $l;
+        let mut r = $r;
 
         while l < r {
             let m = l + (r - l) / 2;
@@ -1262,10 +1262,42 @@ pub mod uops {
             }
         }
 
+        /// Calculates `add(&mut long, long)` with carry propagation.
+        #[inline]
+        pub fn add_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: Rhs,
+        ) -> impl ExprIteratorMut {
+            ExprIterMut {
+                iter: lhs,
+                add: rhs,
+                mul: std::iter::repeat(1),
+                acc: 0,
+                ext: 0,
+                once: 0,
+            }
+        }
+
         /// Calculates `add(long, single)` with carry propagation.
         #[inline]
         pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc: rhs,
+                ext: 0,
+                once: 0,
+            }
+        }
+
+        /// Calculates `add(&mut long, single)` with carry propagation.
+        #[inline]
+        pub fn add_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
+            lhs: Lhs,
+            rhs: Single,
+        ) -> impl ExprIteratorMut {
+            ExprIterMut {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
@@ -1293,6 +1325,27 @@ pub mod uops {
             }
         }
 
+        /// Calculates `add(&mut long, signed)` with carry propagation.
+        #[inline]
+        pub fn add_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
+            lhs: Lhs,
+            rhs: Single,
+        ) -> impl ExprIteratorMut {
+            let (ext, once) = match rhs >> (BITS - 1) {
+                0 => (0, 0),
+                _ => (MAX, 1),
+            };
+
+            ExprIterMut {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc: rhs,
+                ext,
+                once,
+            }
+        }
+
         /// Calculates `sub(long, long)` with carry propagation.
         #[inline]
         pub fn sub<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
@@ -1300,6 +1353,22 @@ pub mod uops {
             rhs: Rhs,
         ) -> impl ExprIterator {
             ExprIter {
+                iter: lhs,
+                add: rhs.map(|word| !word),
+                mul: std::iter::repeat(1),
+                acc: 1,
+                ext: 0,
+                once: 0,
+            }
+        }
+
+        /// Calculates `sub(&mut long, long)` with carry propagation.
+        #[inline]
+        pub fn sub_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: Rhs,
+        ) -> impl ExprIteratorMut {
+            ExprIterMut {
                 iter: lhs,
                 add: rhs.map(|word| !word),
                 mul: std::iter::repeat(1),
@@ -1327,6 +1396,27 @@ pub mod uops {
             }
         }
 
+        /// Calculates `sub(&mut long, single)` with carry propagation.
+        #[inline]
+        pub fn sub_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
+            lhs: Lhs,
+            rhs: Single,
+        ) -> impl ExprIteratorMut {
+            let (ext, once) = match rhs != 0 {
+                false => (0, 0),
+                true => (MAX, 1),
+            };
+
+            ExprIterMut {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc: !rhs + 1,
+                ext,
+                once,
+            }
+        }
+
         /// Calculates `sub(long, signed)` with carry propagation.
         #[inline]
         pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
@@ -1336,6 +1426,27 @@ pub mod uops {
             };
 
             ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(1),
+                acc: !rhs + 1,
+                ext,
+                once,
+            }
+        }
+
+        /// Calculates `sub(&mut long, signed)` with carry propagation.
+        #[inline]
+        pub fn sub_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
+            lhs: Lhs,
+            rhs: Single,
+        ) -> impl ExprIteratorMut {
+            let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
+                (true, 0) => (MAX, 1),
+                (_, _) => (0, 0),
+            };
+
+            ExprIterMut {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
@@ -1361,10 +1472,42 @@ pub mod uops {
             }
         }
 
+        /// Calculates `mul(&mut long, long)` with carry propagation.
+        #[inline]
+        pub fn mul_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: Rhs,
+        ) -> impl ExprIteratorMut {
+            ExprIterMut {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: rhs,
+                acc: 0,
+                ext: 0,
+                once: 0,
+            }
+        }
+
         /// Calculates `mul(long, single)` with carry propagation.
         #[inline]
         pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: std::iter::repeat(rhs),
+                acc: 0,
+                ext: 0,
+                once: 0,
+            }
+        }
+
+        /// Calculates `mul(&mut long, single)` with carry propagation.
+        #[inline]
+        pub fn mul_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
+            lhs: Lhs,
+            rhs: Single,
+        ) -> impl ExprIteratorMut {
+            ExprIterMut {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(rhs),
@@ -1482,6 +1625,34 @@ pub mod uops {
         {}
 
         words
+    }
+
+    /// Returns `lhs + rhs`.
+    #[inline]
+    pub fn add<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        Expr::add(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
+    }
+
+    /// Returns `lhs - rhs`.
+    #[inline]
+    pub fn sub<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        Expr::sub(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
+    }
+
+    /// Applies `lhs = lhs + rhs`.
+    #[inline]
+    pub fn add_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
+        for _ in Expr::add_mut(lhs.iter_mut(), rhs.iter().copied()) {}
+
+        lhs
+    }
+
+    /// Applies `lhs = lhs - rhs`.
+    #[inline]
+    pub fn sub_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
+        for _ in Expr::sub_mut(lhs.iter_mut(), rhs.iter().copied()) {}
+
+        lhs
     }
 
     /// Returns `words << shift`.
@@ -4283,6 +4454,10 @@ mod tests {
     use crate::long::alias::{S32, S64, U32, U64};
     #[cfg(feature = "const-time")]
     use crate::{CmpCt, GeCt, LeCt, MaxCt, MinCt};
+
+    mod uops {
+        use super::*;
+    }
 
     fn sdiv_default(_: i64, _: i64) -> i64 {
         0
