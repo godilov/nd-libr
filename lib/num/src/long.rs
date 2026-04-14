@@ -1280,7 +1280,10 @@ pub mod uops {
 
         /// Calculates `add(long, single)` with carry propagation.
         #[inline]
-        pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
+        pub fn add_single<Lhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: <Single as NumFn>::Unsigned,
+        ) -> impl ExprIterator {
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
@@ -1295,7 +1298,7 @@ pub mod uops {
         #[inline]
         pub fn add_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: Single,
+            rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIteratorMut {
             ExprIterMut {
                 iter: lhs,
@@ -1311,7 +1314,7 @@ pub mod uops {
         ///
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
-        pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
+        pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
             let (ext, once) = match rhs >> (BITS - 1) {
                 0 => (0, 0),
                 _ => (MAX, 1),
@@ -1321,7 +1324,7 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: rhs,
+                acc: rhs as Single,
                 ext,
                 once,
             }
@@ -1333,7 +1336,7 @@ pub mod uops {
         #[inline]
         pub fn add_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: Single,
+            rhs: <Single as NumFn>::Signed,
         ) -> impl ExprIteratorMut {
             let (ext, once) = match rhs >> (BITS - 1) {
                 0 => (0, 0),
@@ -1344,7 +1347,7 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: rhs,
+                acc: rhs as Single,
                 ext,
                 once,
             }
@@ -1384,7 +1387,10 @@ pub mod uops {
 
         /// Calculates `sub(long, single)` with carry propagation.
         #[inline]
-        pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
+        pub fn sub_single<Lhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: <Single as NumFn>::Unsigned,
+        ) -> impl ExprIterator {
             let (ext, once) = match rhs != 0 {
                 false => (0, 0),
                 true => (MAX, 1),
@@ -1404,7 +1410,7 @@ pub mod uops {
         #[inline]
         pub fn sub_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: Single,
+            rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIteratorMut {
             let (ext, once) = match rhs != 0 {
                 false => (0, 0),
@@ -1425,7 +1431,7 @@ pub mod uops {
         ///
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
-        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
+        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
             let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
                 (true, 0) => (MAX, 1),
                 (_, _) => (0, 0),
@@ -1435,7 +1441,7 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: rhs.wrapping_neg(),
+                acc: (rhs as Single).wrapping_neg(),
                 ext,
                 once,
             }
@@ -1447,7 +1453,7 @@ pub mod uops {
         #[inline]
         pub fn sub_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: Single,
+            rhs: <Single as NumFn>::Signed,
         ) -> impl ExprIteratorMut {
             let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
                 (true, 0) => (MAX, 1),
@@ -1458,7 +1464,7 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: rhs.wrapping_neg(),
+                acc: (rhs as Single).wrapping_neg(),
                 ext,
                 once,
             }
