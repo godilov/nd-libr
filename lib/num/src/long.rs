@@ -5617,10 +5617,10 @@ mod tests {
             shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
             shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
         ) [
-            (shl(&bytes, shift, 0), val.unbounded_shl(shift as u32).to_le_bytes()),
-            (shr(&bytes, shift, 0), val.unbounded_shr(shift as u32).to_le_bytes()),
-            (shl(&bytes, shift, MAX), (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
-            (shr(&bytes, shift, MAX), (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
+            (uops::shl(&bytes, shift, 0), val.unbounded_shl(shift as u32).to_le_bytes()),
+            (uops::shr(&bytes, shift, 0), val.unbounded_shr(shift as u32).to_le_bytes()),
+            (uops::shl(&bytes, shift, MAX), (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+            (uops::shr(&bytes, shift, MAX), (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
         ] }
     }
 
@@ -5681,10 +5681,10 @@ mod tests {
             shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
             shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
         ) [
-            ({ let mut bytes = bytes; shl_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shl(shift as u32).to_le_bytes()),
-            ({ let mut bytes = bytes; shr_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shr(shift as u32).to_le_bytes()),
-            ({ let mut bytes = bytes; shl_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
-            ({ let mut bytes = bytes; shr_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shl_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shl(shift as u32).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shr_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shr(shift as u32).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shl_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shr_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
         ] }
     }
 }
