@@ -129,7 +129,7 @@ fn long_convert(c: &mut Criterion) {
     from_iter(&mut group, &mut rng);
 }
 
-fn long_convert_from_digits(c: &mut Criterion) {
+fn long_convert_digits_from(c: &mut Criterion) {
     let (mut group, mut rng) = state!(c, "long::convert::digits::from");
 
     from_digits(&mut group, &mut rng);
@@ -138,7 +138,7 @@ fn long_convert_from_digits(c: &mut Criterion) {
     from_digits_radix_iter(&mut group, &mut rng);
 }
 
-fn long_convert_to_digits(c: &mut Criterion) {
+fn long_convert_digits_to(c: &mut Criterion) {
     let (mut group, mut rng) = state!(c, "long::convert::digits::to");
 
     to_digits(&mut group, &mut rng);
@@ -146,7 +146,7 @@ fn long_convert_to_digits(c: &mut Criterion) {
     to_digits_iter_collect(&mut group, &mut rng);
 }
 
-fn long_convert_into_digits(c: &mut Criterion) {
+fn long_convert_digits_into(c: &mut Criterion) {
     let (mut group, mut rng) = state!(c, "long::convert::digits::into");
 
     into_digits(&mut group, &mut rng);
@@ -890,9 +890,9 @@ criterion_group!(
     long_convert_const,
     long_convert_primitive,
     long_convert,
-    long_convert_from_digits,
-    long_convert_to_digits,
-    long_convert_into_digits,
+    long_convert_digits_from,
+    long_convert_digits_to,
+    long_convert_digits_into,
     long_convert_str,
     long_ops,
     long_uops
