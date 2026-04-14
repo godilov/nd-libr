@@ -1625,10 +1625,10 @@ pub mod uops {
     pub fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         let iter = ExprIterMut {
             iter: words.iter_mut(),
-            add: std::iter::repeat(0),
+            add: std::iter::repeat(MAX),
             mul: std::iter::repeat(1),
             acc: 0,
-            ext: MAX,
+            ext: 0,
             once: 0,
         };
 
