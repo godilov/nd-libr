@@ -1,6 +1,9 @@
 #![doc = include_str!("../docs/arch.md")]
 
-use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
+use std::{
+    fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex},
+    ops::{Deref, DerefMut},
+};
 
 use ndext::ops::*;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
@@ -476,6 +479,20 @@ impl<T> From<T> for Aligned<T> {
     #[inline]
     fn from(value: T) -> Self {
         Aligned(value)
+    }
+}
+
+impl<T> Deref for Aligned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Aligned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
