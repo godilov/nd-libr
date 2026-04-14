@@ -1308,6 +1308,8 @@ pub mod uops {
         }
 
         /// Calculates `add(long, signed)` with carry propagation.
+        ///
+        /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             let (ext, once) = match rhs >> (BITS - 1) {
@@ -1326,6 +1328,8 @@ pub mod uops {
         }
 
         /// Calculates `add(&mut long, signed)` with carry propagation.
+        ///
+        /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn add_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
@@ -1390,7 +1394,7 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: !rhs + 1,
+                acc: rhs.wrapping_neg(),
                 ext,
                 once,
             }
@@ -1411,13 +1415,15 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: !rhs + 1,
+                acc: rhs.wrapping_neg(),
                 ext,
                 once,
             }
         }
 
         /// Calculates `sub(long, signed)` with carry propagation.
+        ///
+        /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
@@ -1429,13 +1435,15 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: !rhs + 1,
+                acc: rhs.wrapping_neg(),
                 ext,
                 once,
             }
         }
 
         /// Calculates `sub(&mut long, signed)` with carry propagation.
+        ///
+        /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn sub_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
@@ -1450,7 +1458,7 @@ pub mod uops {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
-                acc: !rhs + 1,
+                acc: rhs.wrapping_neg(),
                 ext,
                 once,
             }
@@ -1635,7 +1643,7 @@ pub mod uops {
         Expr::sub(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
     }
 
-    /// Applies `lhs = lhs + rhs`.
+    /// Applies `lhs += rhs`.
     #[inline]
     pub fn add_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
         for _ in Expr::add_mut(lhs.iter_mut(), rhs.iter().copied()) {}
@@ -1643,10 +1651,232 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs = lhs - rhs`.
+    /// Applies `lhs -= rhs`.
     #[inline]
     pub fn sub_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
         for _ in Expr::sub_mut(lhs.iter_mut(), rhs.iter().copied()) {}
+
+        lhs
+    }
+
+    /// Returns `lhs | rhs`.
+    #[inline]
+    pub fn bitor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .map(|(lhs, rhs)| lhs | rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs & rhs`.
+    #[inline]
+    pub fn bitand<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .map(|(lhs, rhs)| lhs & rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs ^ rhs`.
+    #[inline]
+    pub fn bitxor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .map(|(lhs, rhs)| lhs ^ rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs | rhs`.
+    #[inline]
+    pub fn bitor_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .map(|(lhs, rhs)| lhs | rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs & rhs`.
+    #[inline]
+    pub fn bitand_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .map(|(lhs, rhs)| lhs & rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs ^ rhs`.
+    #[inline]
+    pub fn bitxor_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .map(|(lhs, rhs)| lhs ^ rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs | rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn bitor_signed<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        lhs.iter()
+            .copied()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .map(|(lhs, rhs)| lhs | rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs & rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn bitand_signed<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        lhs.iter()
+            .copied()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .map(|(lhs, rhs)| lhs & rhs)
+            .collect_arr()
+    }
+
+    /// Returns `lhs ^ rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn bitxor_signed<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        lhs.iter()
+            .copied()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .map(|(lhs, rhs)| lhs ^ rhs)
+            .collect_arr()
+    }
+
+    /// Applies `lhs |= rhs`.
+    #[inline]
+    pub fn bitor_mut<'words, const L: usize>(
+        lhs: &'words mut [Single; L],
+        rhs: &[Single; L],
+    ) -> &'words mut [Single; L] {
+        lhs.iter_mut().zip(rhs.iter().copied()).for_each(|(ptr, val)| *ptr |= val);
+        lhs
+    }
+
+    /// Applies `lhs &= rhs`.
+    #[inline]
+    pub fn bitand_mut<'words, const L: usize>(
+        lhs: &'words mut [Single; L],
+        rhs: &[Single; L],
+    ) -> &'words mut [Single; L] {
+        lhs.iter_mut().zip(rhs.iter().copied()).for_each(|(ptr, val)| *ptr &= val);
+        lhs
+    }
+
+    /// Applies `lhs ^= rhs`.
+    #[inline]
+    pub fn bitxor_mut<'words, const L: usize>(
+        lhs: &'words mut [Single; L],
+        rhs: &[Single; L],
+    ) -> &'words mut [Single; L] {
+        lhs.iter_mut().zip(rhs.iter().copied()).for_each(|(ptr, val)| *ptr ^= val);
+        lhs
+    }
+
+    /// Applies `lhs |= rhs`.
+    #[inline]
+    pub fn bitor_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> &mut [Single; L] {
+        lhs.iter_mut()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .for_each(|(ptr, val)| *ptr |= val);
+
+        lhs
+    }
+
+    /// Applies `lhs &= rhs`.
+    #[inline]
+    pub fn bitand_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> &mut [Single; L] {
+        lhs.iter_mut()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .for_each(|(ptr, val)| *ptr &= val);
+
+        lhs
+    }
+
+    /// Applies `lhs ^= rhs`.
+    #[inline]
+    pub fn bitxor_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> &mut [Single; L] {
+        lhs.iter_mut()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .for_each(|(ptr, val)| *ptr ^= val);
+
+        lhs
+    }
+
+    /// Applies `lhs |= rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn bitor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> &mut [Single; L] {
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        lhs.iter_mut()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .for_each(|(ptr, val)| *ptr |= val);
+
+        lhs
+    }
+
+    /// Applies `lhs &= rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn bitand_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> &mut [Single; L] {
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        lhs.iter_mut()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .for_each(|(ptr, val)| *ptr &= val);
+
+        lhs
+    }
+
+    /// Applies `lhs ^= rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn bitxor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> &mut [Single; L] {
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        lhs.iter_mut()
+            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .for_each(|(ptr, val)| *ptr ^= val);
 
         lhs
     }

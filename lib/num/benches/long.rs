@@ -104,6 +104,17 @@ fn long_convert_const(c: &mut Criterion) {
     from_bytes_const(&mut group);
 }
 
+fn long_convert_primitive(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert::primitive");
+    let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
+
+    group.sample_size(128);
+    group.measurement_time(Duration::from_secs(6));
+    group.warm_up_time(Duration::from_secs(2));
+
+    from_primitive(&mut group, &mut rng);
+}
+
 fn long_convert(c: &mut Criterion) {
     let mut group = c.benchmark_group("long::convert");
     let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
@@ -112,15 +123,14 @@ fn long_convert(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(6));
     group.warm_up_time(Duration::from_secs(2));
 
-    from_primitive(&mut group, &mut rng);
     from_bytes(&mut group, &mut rng);
     from_arr(&mut group, &mut rng);
     from_slice(&mut group, &mut rng);
     from_iter(&mut group, &mut rng);
 }
 
-fn long_convert_digits(c: &mut Criterion) {
-    let mut group = c.benchmark_group("long::convert::digits");
+fn long_convert_from_digits(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert::from_digits");
     let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
 
     group.sample_size(128);
@@ -131,9 +141,29 @@ fn long_convert_digits(c: &mut Criterion) {
     from_digits_iter(&mut group, &mut rng);
     from_digits_radix(&mut group, &mut rng);
     from_digits_radix_iter(&mut group, &mut rng);
+}
+
+fn long_convert_to_digits(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert::to_digits");
+    let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
+
+    group.sample_size(128);
+    group.measurement_time(Duration::from_secs(6));
+    group.warm_up_time(Duration::from_secs(2));
+
     to_digits(&mut group, &mut rng);
     to_digits_iter_count(&mut group, &mut rng);
     to_digits_iter_collect(&mut group, &mut rng);
+}
+
+fn long_convert_into_digits(c: &mut Criterion) {
+    let mut group = c.benchmark_group("long::convert::into_digits");
+    let mut rng = StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]);
+
+    group.sample_size(128);
+    group.measurement_time(Duration::from_secs(6));
+    group.warm_up_time(Duration::from_secs(2));
+
     into_digits(&mut group, &mut rng);
     into_digits_iter_count(&mut group, &mut rng);
     into_digits_iter_collect(&mut group, &mut rng);
@@ -778,8 +808,11 @@ fn uops_mut(_group: &mut BenchmarkGroup<'_, WallTime>) {}
 criterion_group!(
     group,
     long_convert_const,
+    long_convert_primitive,
     long_convert,
-    long_convert_digits,
+    long_convert_from_digits,
+    long_convert_to_digits,
+    long_convert_into_digits,
     long_convert_str,
     long_ops,
     long_uops
