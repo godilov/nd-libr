@@ -1297,6 +1297,8 @@ pub mod uops {
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
+            let rhs = rhs as Single;
+
             let ext = match rhs >> (BITS - 1) {
                 0 => 0,
                 _ => MAX,
@@ -1304,9 +1306,9 @@ pub mod uops {
 
             ExprIter {
                 iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
+                add: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
                 mul: std::iter::repeat(1),
-                acc: rhs as Single,
+                acc: 0,
             }
         }
 
@@ -1318,6 +1320,8 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Signed,
         ) -> impl ExprIteratorMut {
+            let rhs = rhs as Single;
+
             let ext = match rhs >> (BITS - 1) {
                 0 => 0,
                 _ => MAX,
@@ -1325,9 +1329,9 @@ pub mod uops {
 
             ExprIterMut {
                 iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
+                add: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
                 mul: std::iter::repeat(1),
-                acc: rhs as Single,
+                acc: 0,
             }
         }
 
@@ -1365,6 +1369,9 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIterator {
+            let rhs = rhs as Single;
+            let neg = rhs.wrapping_neg();
+
             let ext = match rhs != 0 {
                 false => 0,
                 true => MAX,
@@ -1372,9 +1379,9 @@ pub mod uops {
 
             ExprIter {
                 iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
+                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
                 mul: std::iter::repeat(1),
-                acc: rhs.wrapping_neg(),
+                acc: 0,
             }
         }
 
@@ -1384,6 +1391,9 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIteratorMut {
+            let rhs = rhs as Single;
+            let neg = rhs.wrapping_neg();
+
             let ext = match rhs != 0 {
                 false => 0,
                 true => MAX,
@@ -1391,9 +1401,9 @@ pub mod uops {
 
             ExprIterMut {
                 iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
+                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
                 mul: std::iter::repeat(1),
-                acc: rhs.wrapping_neg(),
+                acc: 0,
             }
         }
 
@@ -1402,6 +1412,9 @@ pub mod uops {
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
+            let rhs = rhs as Single;
+            let neg = rhs.wrapping_neg();
+
             let ext = match (rhs != 0, rhs >> (BITS - 1)) {
                 (true, 0) => MAX,
                 (_, _) => 0,
@@ -1409,9 +1422,9 @@ pub mod uops {
 
             ExprIter {
                 iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
+                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
                 mul: std::iter::repeat(1),
-                acc: (rhs as Single).wrapping_neg(),
+                acc: 0,
             }
         }
 
@@ -1423,6 +1436,9 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Signed,
         ) -> impl ExprIteratorMut {
+            let rhs = rhs as Single;
+            let neg = rhs.wrapping_neg();
+
             let ext = match (rhs != 0, rhs >> (BITS - 1)) {
                 (true, 0) => MAX,
                 (_, _) => 0,
@@ -1430,9 +1446,9 @@ pub mod uops {
 
             ExprIterMut {
                 iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
+                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
                 mul: std::iter::repeat(1),
-                acc: (rhs as Single).wrapping_neg(),
+                acc: 0,
             }
         }
 
@@ -1466,7 +1482,10 @@ pub mod uops {
 
         /// Calculates `mul(long, single)` with carry propagation.
         #[inline]
-        pub fn mul_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
+        pub fn mul_single<Lhs: Iterator<Item = Single>>(
+            lhs: Lhs,
+            rhs: <Single as NumFn>::Unsigned,
+        ) -> impl ExprIterator {
             ExprIter {
                 iter: lhs,
                 add: std::iter::repeat(0),
@@ -1479,12 +1498,55 @@ pub mod uops {
         #[inline]
         pub fn mul_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: Single,
+            rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIteratorMut {
             ExprIterMut {
                 iter: lhs,
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(rhs),
+                acc: 0,
+            }
+        }
+
+        /// Calculates `mul(long, signed)` with carry propagation.
+        ///
+        /// Rhs is sign-extended instead of zero-extended.
+        #[inline]
+        pub fn mul_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
+            let rhs = rhs as Single;
+
+            let ext = match rhs >> (BITS - 1) {
+                0 => 0,
+                _ => MAX,
+            };
+
+            ExprIter {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
+                acc: 0,
+            }
+        }
+
+        /// Calculates `mul(&mut long, signed)` with carry propagation.
+        ///
+        /// Rhs is sign-extended instead of zero-extended.
+        #[inline]
+        pub fn mul_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
+            lhs: Lhs,
+            rhs: <Single as NumFn>::Signed,
+        ) -> impl ExprIteratorMut {
+            let rhs = rhs as Single;
+
+            let ext = match rhs >> (BITS - 1) {
+                0 => 0,
+                _ => MAX,
+            };
+
+            ExprIterMut {
+                iter: lhs,
+                add: std::iter::repeat(0),
+                mul: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
                 acc: 0,
             }
         }
