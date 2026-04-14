@@ -1146,19 +1146,17 @@ pub mod uops {
 
     /// Expression iterator for uops.
     ///
-    /// Yields `add + mul * elem + acc + ext.wrapping_add(once)`.
+    /// Yields `add + mul * elem + acc`.
     pub struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
         iter: Iter,
         add: Add,
         mul: Mul,
         acc: Single,
-        ext: Single,
-        once: Single,
     }
 
     /// Expression iterator mutable for uops.
     ///
-    /// Yields `add + mul * elem + acc + ext.wrapping_add(once)`.
+    /// Yields `add + mul * elem + acc`.
     pub struct ExprIterMut<
         'elem,
         Iter: Iterator<Item = &'elem mut Single>,
@@ -1169,8 +1167,6 @@ pub mod uops {
         add: Add,
         mul: Mul,
         acc: Single,
-        ext: Single,
-        once: Single,
     }
 
     /// Expression iterator interface.
@@ -1193,13 +1189,10 @@ pub mod uops {
             let add = self.add.next()? as Double;
             let mul = self.mul.next()? as Double;
             let acc = self.acc as Double;
-            let ext = self.ext;
-            let once = self.once;
 
-            let val = add + mul * val + acc + ext.wrapping_add(once) as Double;
+            let val = add + mul * val + acc;
 
             self.acc = (val / RADIX) as Single;
-            self.once = 0;
 
             Some(val as Single)
         }
@@ -1218,13 +1211,10 @@ pub mod uops {
             let add = self.add.next()? as Double;
             let mul = self.mul.next()? as Double;
             let acc = self.acc as Double;
-            let ext = self.ext;
-            let once = self.once;
 
-            let val = add + mul * val + acc + ext.wrapping_add(once) as Double;
+            let val = add + mul * val + acc;
 
             self.acc = (val / RADIX) as Single;
-            self.once = 0;
 
             *elem = val as Single;
 
@@ -1257,8 +1247,6 @@ pub mod uops {
                 add: rhs,
                 mul: std::iter::repeat(1),
                 acc: 0,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1273,8 +1261,6 @@ pub mod uops {
                 add: rhs,
                 mul: std::iter::repeat(1),
                 acc: 0,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1289,8 +1275,6 @@ pub mod uops {
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
                 acc: rhs,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1305,8 +1289,6 @@ pub mod uops {
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(1),
                 acc: rhs,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1315,18 +1297,16 @@ pub mod uops {
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
-            let (ext, once) = match rhs >> (BITS - 1) {
-                0 => (0, 0),
-                _ => (MAX, 1),
+            let ext = match rhs >> (BITS - 1) {
+                0 => 0,
+                _ => MAX,
             };
 
             ExprIter {
                 iter: lhs,
-                add: std::iter::repeat(0),
+                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
                 mul: std::iter::repeat(1),
                 acc: rhs as Single,
-                ext,
-                once,
             }
         }
 
@@ -1338,18 +1318,16 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Signed,
         ) -> impl ExprIteratorMut {
-            let (ext, once) = match rhs >> (BITS - 1) {
-                0 => (0, 0),
-                _ => (MAX, 1),
+            let ext = match rhs >> (BITS - 1) {
+                0 => 0,
+                _ => MAX,
             };
 
             ExprIterMut {
                 iter: lhs,
-                add: std::iter::repeat(0),
+                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
                 mul: std::iter::repeat(1),
                 acc: rhs as Single,
-                ext,
-                once,
             }
         }
 
@@ -1364,8 +1342,6 @@ pub mod uops {
                 add: rhs.map(|word| !word),
                 mul: std::iter::repeat(1),
                 acc: 1,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1380,8 +1356,6 @@ pub mod uops {
                 add: rhs.map(|word| !word),
                 mul: std::iter::repeat(1),
                 acc: 1,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1391,18 +1365,16 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIterator {
-            let (ext, once) = match rhs != 0 {
-                false => (0, 0),
-                true => (MAX, 1),
+            let ext = match rhs != 0 {
+                false => 0,
+                true => MAX,
             };
 
             ExprIter {
                 iter: lhs,
-                add: std::iter::repeat(0),
+                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
                 mul: std::iter::repeat(1),
                 acc: rhs.wrapping_neg(),
-                ext,
-                once,
             }
         }
 
@@ -1412,18 +1384,16 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIteratorMut {
-            let (ext, once) = match rhs != 0 {
-                false => (0, 0),
-                true => (MAX, 1),
+            let ext = match rhs != 0 {
+                false => 0,
+                true => MAX,
             };
 
             ExprIterMut {
                 iter: lhs,
-                add: std::iter::repeat(0),
+                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
                 mul: std::iter::repeat(1),
                 acc: rhs.wrapping_neg(),
-                ext,
-                once,
             }
         }
 
@@ -1432,18 +1402,16 @@ pub mod uops {
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
         pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
-            let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
-                (true, 0) => (MAX, 1),
-                (_, _) => (0, 0),
+            let ext = match (rhs != 0, rhs >> (BITS - 1)) {
+                (true, 0) => MAX,
+                (_, _) => 0,
             };
 
             ExprIter {
                 iter: lhs,
-                add: std::iter::repeat(0),
+                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
                 mul: std::iter::repeat(1),
                 acc: (rhs as Single).wrapping_neg(),
-                ext,
-                once,
             }
         }
 
@@ -1455,18 +1423,16 @@ pub mod uops {
             lhs: Lhs,
             rhs: <Single as NumFn>::Signed,
         ) -> impl ExprIteratorMut {
-            let (ext, once) = match (rhs != 0, rhs >> (BITS - 1)) {
-                (true, 0) => (MAX, 1),
-                (_, _) => (0, 0),
+            let ext = match (rhs != 0, rhs >> (BITS - 1)) {
+                (true, 0) => MAX,
+                (_, _) => 0,
             };
 
             ExprIterMut {
                 iter: lhs,
-                add: std::iter::repeat(0),
+                add: (0..).map(move |idx| if idx == 0 { 0 } else { ext }),
                 mul: std::iter::repeat(1),
                 acc: (rhs as Single).wrapping_neg(),
-                ext,
-                once,
             }
         }
 
@@ -1481,8 +1447,6 @@ pub mod uops {
                 add: std::iter::repeat(0),
                 mul: rhs,
                 acc: 0,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1497,8 +1461,6 @@ pub mod uops {
                 add: std::iter::repeat(0),
                 mul: rhs,
                 acc: 0,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1510,8 +1472,6 @@ pub mod uops {
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(rhs),
                 acc: 0,
-                ext: 0,
-                once: 0,
             }
         }
 
@@ -1526,8 +1486,6 @@ pub mod uops {
                 add: std::iter::repeat(0),
                 mul: std::iter::repeat(rhs),
                 acc: 0,
-                ext: 0,
-                once: 0,
             }
         }
     }
@@ -1565,8 +1523,6 @@ pub mod uops {
             add: std::iter::repeat(0),
             mul: std::iter::repeat(1),
             acc: 1,
-            ext: 0,
-            once: 0,
         }
         .collect_arr()
     }
@@ -1582,8 +1538,6 @@ pub mod uops {
             add: std::iter::repeat(0),
             mul: std::iter::repeat(1),
             acc: 1,
-            ext: 0,
-            once: 0,
         };
 
         for _ in iter {}

@@ -667,10 +667,10 @@ fn ops(group: &mut BenchmarkGroup<'_, WallTime>) {
         "U4096::rem",     &u4096, |[lhs, _, rhs]: &[U4096; 3]| lhs % rhs,
         "S4096::bitor",   &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs | rhs,
         "U4096::bitor",   &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs | rhs,
-        "S4096::bitxor",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs & rhs,
-        "U4096::bitxor",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs & rhs,
-        "S4096::bitand",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs ^ rhs,
-        "U4096::bitand",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs ^ rhs,
+        "S4096::bitand",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs & rhs,
+        "U4096::bitand",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs & rhs,
+        "S4096::bitxor",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs ^ rhs,
+        "U4096::bitxor",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs ^ rhs,
     ] };
 
     exec! { group => [
@@ -709,10 +709,10 @@ fn ops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
         "U4096::rem_mut",    &u4096, |[lhs, _, rhs]: &[U4096; 3]| { let mut val = *lhs; val %= rhs },
         "S4096::bitor_mut",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val |= rhs },
         "U4096::bitor_mut",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val |= rhs },
-        "S4096::bitxor_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val &= rhs },
-        "U4096::bitxor_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val &= rhs },
-        "S4096::bitand_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val ^= rhs },
-        "U4096::bitand_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val ^= rhs },
+        "S4096::bitand_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val &= rhs },
+        "U4096::bitand_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val &= rhs },
+        "S4096::bitxor_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val ^= rhs },
+        "U4096::bitxor_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val ^= rhs },
     ] };
 
     exec! { group => [
@@ -746,10 +746,10 @@ fn ops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
         "U4096::rem_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs % *rhs,
         "S4096::bitor_single",  &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs | *rhs,
         "U4096::bitor_single",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs | *rhs,
-        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs & *rhs,
-        "U4096::bitxor_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs & *rhs,
-        "S4096::bitand_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs ^ *rhs,
-        "U4096::bitand_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs ^ *rhs,
+        "S4096::bitand_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs & *rhs,
+        "U4096::bitand_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs & *rhs,
+        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs ^ *rhs,
+        "U4096::bitxor_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs ^ *rhs,
     ] };
 }
 
@@ -776,10 +776,10 @@ fn ops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
         "U4096::rem_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val %= *rhs },
         "S4096::bitor_single_mut",  &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val |= *rhs },
         "U4096::bitor_single_mut",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val |= *rhs },
-        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val &= *rhs },
-        "U4096::bitxor_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val &= *rhs },
-        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val ^= *rhs },
-        "U4096::bitand_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val ^= *rhs },
+        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val &= *rhs },
+        "U4096::bitand_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val &= *rhs },
+        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val ^= *rhs },
+        "U4096::bitxor_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val ^= *rhs },
     ] };
 }
 
@@ -792,8 +792,8 @@ fn uops(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add",     &args, |[lhs, rhs]: &[U4096; 2]| uops::add   (&lhs.0, &rhs.0),
         "sub",     &args, |[lhs, rhs]: &[U4096; 2]| uops::sub   (&lhs.0, &rhs.0),
         "bitor",   &args, |[lhs, rhs]: &[U4096; 2]| uops::bitor (&lhs.0, &rhs.0),
-        "bitxor",  &args, |[lhs, rhs]: &[U4096; 2]| uops::bitand(&lhs.0, &rhs.0),
-        "bitand",  &args, |[lhs, rhs]: &[U4096; 2]| uops::bitxor(&lhs.0, &rhs.0),
+        "bitand",  &args, |[lhs, rhs]: &[U4096; 2]| uops::bitand(&lhs.0, &rhs.0),
+        "bitxor",  &args, |[lhs, rhs]: &[U4096; 2]| uops::bitxor(&lhs.0, &rhs.0),
     ] };
 
     exec! { group => [
@@ -811,8 +811,8 @@ fn uops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::add_mut   (&mut val.0, &rhs.0); },
         "sub_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::sub_mut   (&mut val.0, &rhs.0); },
         "bitor_mut",   &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitor_mut (&mut val.0, &rhs.0); },
-        "bitxor_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitand_mut(&mut val.0, &rhs.0); },
-        "bitand_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitxor_mut(&mut val.0, &rhs.0); },
+        "bitand_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitand_mut(&mut val.0, &rhs.0); },
+        "bitxor_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitxor_mut(&mut val.0, &rhs.0); },
     ] };
 
     exec! { group => [
@@ -832,8 +832,8 @@ fn uops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| uops::add_single   (&lhs.0, *rhs),
         "sub_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| uops::sub_single   (&lhs.0, *rhs),
         "bitor_single",   &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitor_single (&lhs.0, *rhs),
-        "bitxor_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitand_single(&lhs.0, *rhs),
-        "bitand_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitxor_single(&lhs.0, *rhs),
+        "bitand_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitand_single(&lhs.0, *rhs),
+        "bitxor_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitxor_single(&lhs.0, *rhs),
     ] };
 }
 
@@ -848,8 +848,8 @@ fn uops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::add_single_mut   (&mut val.0, *rhs); },
         "sub_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::sub_single_mut   (&mut val.0, *rhs); },
         "bitor_single_mut",   &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitor_single_mut (&mut val.0, *rhs); },
-        "bitxor_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitand_single_mut(&mut val.0, *rhs); },
-        "bitand_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitxor_single_mut(&mut val.0, *rhs); },
+        "bitand_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitand_single_mut(&mut val.0, *rhs); },
+        "bitxor_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitxor_single_mut(&mut val.0, *rhs); },
     ] };
 }
 
@@ -864,8 +864,8 @@ fn uops_signed(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add_signed",     &args, |(lhs, rhs): &(S4096, Signed)| uops::add_signed   (&lhs.0, *rhs),
         "sub_signed",     &args, |(lhs, rhs): &(S4096, Signed)| uops::sub_signed   (&lhs.0, *rhs),
         "bitor_signed",   &args, |(lhs, rhs): &(S4096, Signed)| uops::bitor_signed (&lhs.0, *rhs),
-        "bitxor_signed",  &args, |(lhs, rhs): &(S4096, Signed)| uops::bitand_signed(&lhs.0, *rhs),
-        "bitand_signed",  &args, |(lhs, rhs): &(S4096, Signed)| uops::bitxor_signed(&lhs.0, *rhs),
+        "bitand_signed",  &args, |(lhs, rhs): &(S4096, Signed)| uops::bitand_signed(&lhs.0, *rhs),
+        "bitxor_signed",  &args, |(lhs, rhs): &(S4096, Signed)| uops::bitxor_signed(&lhs.0, *rhs),
     ] };
 }
 
@@ -880,8 +880,8 @@ fn uops_signed_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::add_signed_mut   (&mut val.0, *rhs); },
         "sub_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::sub_signed_mut   (&mut val.0, *rhs); },
         "bitor_signed_mut",   &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitor_signed_mut (&mut val.0, *rhs); },
-        "bitxor_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitand_signed_mut(&mut val.0, *rhs); },
-        "bitand_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitxor_signed_mut(&mut val.0, *rhs); },
+        "bitand_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitand_signed_mut(&mut val.0, *rhs); },
+        "bitxor_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitxor_signed_mut(&mut val.0, *rhs); },
     ] };
 }
 
