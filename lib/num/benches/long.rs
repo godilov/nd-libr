@@ -734,21 +734,21 @@ fn ops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_single",    &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs + *rhs,
+        "S4096::add_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs + *rhs,
         "U4096::add_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs + *rhs,
-        "S4096::sub_single",    &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs - *rhs,
+        "S4096::sub_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs - *rhs,
         "U4096::sub_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs - *rhs,
-        "S4096::mul_single",    &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs * *rhs,
+        "S4096::mul_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs * *rhs,
         "U4096::mul_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs * *rhs,
-        "S4096::div_single",    &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs / *rhs,
+        "S4096::div_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs / *rhs,
         "U4096::div_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs / *rhs,
-        "S4096::rem_single",    &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs % *rhs,
+        "S4096::rem_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs % *rhs,
         "U4096::rem_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs % *rhs,
-        "S4096::bitor_single",  &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs | *rhs,
+        "S4096::bitor_single",  &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs | *rhs,
         "U4096::bitor_single",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs | *rhs,
-        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs & *rhs,
+        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs & *rhs,
         "U4096::bitxor_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs & *rhs,
-        "S4096::bitand_single", &s4096, |(lhs, rhs): &(S4096, Signed  )| lhs ^ *rhs,
+        "S4096::bitand_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs ^ *rhs,
         "U4096::bitand_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs ^ *rhs,
     ] };
 }
@@ -764,21 +764,21 @@ fn ops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val += *rhs },
+        "S4096::add_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val += *rhs },
         "U4096::add_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val += *rhs },
-        "S4096::sub_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val -= *rhs },
+        "S4096::sub_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val -= *rhs },
         "U4096::sub_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val -= *rhs },
-        "S4096::mul_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val *= *rhs },
+        "S4096::mul_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val *= *rhs },
         "U4096::mul_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val *= *rhs },
-        "S4096::div_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val /= *rhs },
+        "S4096::div_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val /= *rhs },
         "U4096::div_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val /= *rhs },
-        "S4096::rem_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val %= *rhs },
+        "S4096::rem_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val %= *rhs },
         "U4096::rem_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val %= *rhs },
-        "S4096::bitor_single_mut",  &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val |= *rhs },
+        "S4096::bitor_single_mut",  &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val |= *rhs },
         "U4096::bitor_single_mut",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val |= *rhs },
-        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val &= *rhs },
+        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val &= *rhs },
         "U4096::bitxor_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val &= *rhs },
-        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed  )| { let mut val = *lhs; val ^= *rhs },
+        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val ^= *rhs },
         "U4096::bitand_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val ^= *rhs },
     ] };
 }
