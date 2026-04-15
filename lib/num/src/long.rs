@@ -1141,6 +1141,25 @@ pub mod uops {
 
     use super::*;
 
+    macro_rules! overflow {
+        ($iter:expr) => {{
+            let mut iter = $iter;
+
+            let res = iter.collect_arr();
+            let acc = iter.acc();
+
+            (res, (acc > 0).then_some(acc))
+        }};
+    }
+
+    macro_rules! overflow_mut {
+        ($iter:expr) => {{
+            let acc = $iter.last().unwrap_or(0);
+
+            (acc > 0).then_some(acc)
+        }};
+    }
+
     /// Entry point for uops expressions.
     pub struct Expr;
 
@@ -1180,7 +1199,7 @@ pub mod uops {
 
     /// Expression iterator interface.
     pub trait ExprIterator: Iterator<Item = Single> {
-        /// Acc.
+        /// Accumulator.
         fn acc(&self) -> Single;
     }
 
@@ -1229,6 +1248,7 @@ pub mod uops {
     }
 
     impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> ExprIterator for ExprIter<Lhs, Rhs> {
+        #[inline]
         fn acc(&self) -> Single {
             self.acc
         }
@@ -1536,7 +1556,19 @@ pub mod uops {
         Expr::sub_single(words.iter().copied(), 1).collect_arr()
     }
 
-    /// Applies `words = words + 1`.
+    /// Returns `words + 1` with overflow.
+    #[inline]
+    pub fn inc_overflow<const L: usize>(words: &[Single; L]) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::add_single(words.iter().copied(), 1))
+    }
+
+    /// Returns `words - 1` with overflow.
+    #[inline]
+    pub fn dec_overflow<const L: usize>(words: &[Single; L]) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::sub_single(words.iter().copied(), 1))
+    }
+
+    /// Applies `words += 1`.
     #[inline]
     pub fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         for _ in Expr::add_single_mut(words.iter_mut(), 1) {}
@@ -1544,7 +1576,7 @@ pub mod uops {
         words
     }
 
-    /// Applies `words = words - 1`.
+    /// Applies `words += 1`.
     #[inline]
     pub fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         for _ in Expr::sub_single_mut(words.iter_mut(), 1) {}
@@ -1552,8 +1584,21 @@ pub mod uops {
         words
     }
 
+    /// Applies `words += 1` with overflow.
+    #[inline]
+    pub fn inc_overflow_mut<const L: usize>(words: &mut [Single; L]) -> Option<Single> {
+        overflow_mut!(Expr::add_single_mut(words.iter_mut(), 1))
+    }
+
+    /// Applies `words += 1` with overflow.
+    #[inline]
+    pub fn dec_overflow_mut<const L: usize>(words: &mut [Single; L]) -> Option<Single> {
+        overflow_mut!(Expr::sub_single_mut(words.iter_mut(), 1))
+    }
+
     /// Returns `lhs + rhs`.
     #[inline]
+    #[ndasm::emit(const L: usize = 64)]
     pub fn add<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         Expr::add(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
     }
@@ -1562,6 +1607,19 @@ pub mod uops {
     #[inline]
     pub fn sub<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         Expr::sub(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
+    }
+
+    /// Returns `lhs + rhs` with overflow.
+    #[inline]
+    #[ndasm::emit(const L: usize = 64)]
+    pub fn add_overflow<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::add(lhs.iter().copied(), rhs.iter().copied()))
+    }
+
+    /// Returns `lhs - rhs` with overflow.
+    #[inline]
+    pub fn sub_overflow<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::sub(lhs.iter().copied(), rhs.iter().copied()))
     }
 
     /// Returns `lhs + rhs`.
@@ -1574,6 +1632,24 @@ pub mod uops {
     #[inline]
     pub fn sub_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
         Expr::sub_single(lhs.iter().copied(), rhs).collect_arr()
+    }
+
+    /// Returns `lhs + rhs` with overflow.
+    #[inline]
+    pub fn add_single_overflow<const L: usize>(
+        lhs: &[Single; L],
+        rhs: <Single as NumFn>::Unsigned,
+    ) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::add_single(lhs.iter().copied(), rhs))
+    }
+
+    /// Returns `lhs - rhs` with overflow.
+    #[inline]
+    pub fn sub_single_overflow<const L: usize>(
+        lhs: &[Single; L],
+        rhs: <Single as NumFn>::Unsigned,
+    ) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::sub_single(lhs.iter().copied(), rhs))
     }
 
     /// Returns `lhs + rhs`.
@@ -1592,6 +1668,28 @@ pub mod uops {
         Expr::sub_signed(lhs.iter().copied(), rhs).collect_arr()
     }
 
+    /// Returns `lhs + rhs` with overflow.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn add_signed_overflow<const L: usize>(
+        lhs: &[Single; L],
+        rhs: <Single as NumFn>::Signed,
+    ) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::add_signed(lhs.iter().copied(), rhs))
+    }
+
+    /// Returns `lhs - rhs` with overflow.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn sub_signed_overflow<const L: usize>(
+        lhs: &[Single; L],
+        rhs: <Single as NumFn>::Signed,
+    ) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::sub_signed(lhs.iter().copied(), rhs))
+    }
+
     /// Applies `lhs += rhs`.
     #[inline]
     pub fn add_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
@@ -1608,7 +1706,19 @@ pub mod uops {
         lhs
     }
 
-    /// Returns `lhs + rhs`.
+    /// Applies `lhs += rhs` with overflow.
+    #[inline]
+    pub fn add_overflow_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) -> Option<Single> {
+        overflow_mut!(Expr::add_mut(lhs.iter_mut(), rhs.iter().copied()))
+    }
+
+    /// Applies `lhs -= rhs` with overflow.
+    #[inline]
+    pub fn sub_overflow_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) -> Option<Single> {
+        overflow_mut!(Expr::sub_mut(lhs.iter_mut(), rhs.iter().copied()))
+    }
+
+    /// Applies `lhs + rhs`.
     #[inline]
     pub fn add_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
         for _ in Expr::add_single_mut(lhs.iter_mut(), rhs) {}
@@ -1616,7 +1726,7 @@ pub mod uops {
         lhs
     }
 
-    /// Returns `lhs - rhs`.
+    /// Applies `lhs - rhs`.
     #[inline]
     pub fn sub_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
         for _ in Expr::sub_single_mut(lhs.iter_mut(), rhs) {}
@@ -1624,7 +1734,25 @@ pub mod uops {
         lhs
     }
 
-    /// Returns `lhs + rhs`.
+    /// Applies `lhs + rhs` with overflow.
+    #[inline]
+    pub fn add_single_overflow_mut<const L: usize>(
+        lhs: &mut [Single; L],
+        rhs: <Single as NumFn>::Unsigned,
+    ) -> Option<Single> {
+        overflow_mut!(Expr::add_single_mut(lhs.iter_mut(), rhs))
+    }
+
+    /// Applies `lhs - rhs` with overflow.
+    #[inline]
+    pub fn sub_single_overflow_mut<const L: usize>(
+        lhs: &mut [Single; L],
+        rhs: <Single as NumFn>::Unsigned,
+    ) -> Option<Single> {
+        overflow_mut!(Expr::sub_single_mut(lhs.iter_mut(), rhs))
+    }
+
+    /// Applies `lhs + rhs`.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1634,7 +1762,7 @@ pub mod uops {
         lhs
     }
 
-    /// Returns `lhs - rhs`.
+    /// Applies `lhs - rhs`.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1642,6 +1770,28 @@ pub mod uops {
         for _ in Expr::sub_signed_mut(lhs.iter_mut(), rhs) {}
 
         lhs
+    }
+
+    /// Applies `lhs + rhs` with overflow.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn add_signed_overflow_mut<const L: usize>(
+        lhs: &mut [Single; L],
+        rhs: <Single as NumFn>::Signed,
+    ) -> Option<Single> {
+        overflow_mut!(Expr::add_signed_mut(lhs.iter_mut(), rhs))
+    }
+
+    /// Applies `lhs - rhs` with overflow.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn sub_signed_overflow_mut<const L: usize>(
+        lhs: &mut [Single; L],
+        rhs: <Single as NumFn>::Signed,
+    ) -> Option<Single> {
+        overflow_mut!(Expr::sub_signed_mut(lhs.iter_mut(), rhs))
     }
 
     /// Returns `lhs | rhs`.
