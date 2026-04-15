@@ -1146,26 +1146,21 @@ pub mod uops {
 
     /// Expression iterator for uops.
     ///
-    /// Yields `add + mul * elem + acc`.
-    pub struct ExprIter<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> {
-        iter: Iter,
-        add: Add,
-        mul: Mul,
+    /// Yields `lhs * mul + rhs + acc`.
+    pub struct ExprIter<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> {
+        lhs: Lhs,
+        rhs: Rhs,
+        mul: Single,
         acc: Single,
     }
 
     /// Expression iterator mutable for uops.
     ///
-    /// Yields `add + mul * elem + acc`.
-    pub struct ExprIterMut<
-        'elem,
-        Iter: Iterator<Item = &'elem mut Single>,
-        Add: Iterator<Item = Single>,
-        Mul: Iterator<Item = Single>,
-    > {
-        iter: Iter,
-        add: Add,
-        mul: Mul,
+    /// Yields `lhs * mul + rhs + acc`.
+    pub struct ExprIterMut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> {
+        lhs: Lhs,
+        rhs: Rhs,
+        mul: Single,
         acc: Single,
     }
 
@@ -1178,19 +1173,17 @@ pub mod uops {
     /// Expression iterator mutable interface.
     pub trait ExprIteratorMut: Iterator<Item = Single> {}
 
-    impl<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> Iterator
-        for ExprIter<Iter, Add, Mul>
-    {
+    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> Iterator for ExprIter<Lhs, Rhs> {
         type Item = Single;
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
-            let val = self.iter.next()? as Double;
-            let add = self.add.next()? as Double;
-            let mul = self.mul.next()? as Double;
+            let lhs = self.lhs.next()? as Double;
+            let rhs = self.rhs.next()? as Double;
+            let mul = self.mul as Double;
             let acc = self.acc as Double;
 
-            let val = add + mul * val + acc;
+            let val = lhs * mul + rhs + acc;
 
             self.acc = (val / RADIX) as Single;
 
@@ -1198,40 +1191,37 @@ pub mod uops {
         }
     }
 
-    impl<'elem, Iter: Iterator<Item = &'elem mut Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>>
-        Iterator for ExprIterMut<'elem, Iter, Add, Mul>
+    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> Iterator
+        for ExprIterMut<'elem, Lhs, Rhs>
     {
         type Item = Single;
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
-            let elem = self.iter.next()?;
-
-            let val = *elem as Double;
-            let add = self.add.next()? as Double;
-            let mul = self.mul.next()? as Double;
+            let lhs = self.lhs.next()?;
+            let rhs = self.rhs.next()? as Double;
+            let mul = self.mul as Double;
             let acc = self.acc as Double;
+            let elem = *lhs as Double;
 
-            let val = add + mul * val + acc;
+            let val = elem * mul + rhs + acc;
 
             self.acc = (val / RADIX) as Single;
 
-            *elem = val as Single;
+            *lhs = val as Single;
 
             Some(self.acc)
         }
     }
 
-    impl<Iter: Iterator<Item = Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>> ExprIterator
-        for ExprIter<Iter, Add, Mul>
-    {
+    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> ExprIterator for ExprIter<Lhs, Rhs> {
         fn acc(&self) -> Single {
             self.acc
         }
     }
 
-    impl<'elem, Iter: Iterator<Item = &'elem mut Single>, Add: Iterator<Item = Single>, Mul: Iterator<Item = Single>>
-        ExprIteratorMut for ExprIterMut<'elem, Iter, Add, Mul>
+    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> ExprIteratorMut
+        for ExprIterMut<'elem, Lhs, Rhs>
     {
     }
 
@@ -1242,12 +1232,7 @@ pub mod uops {
             lhs: Lhs,
             rhs: Rhs,
         ) -> impl ExprIterator {
-            ExprIter {
-                iter: lhs,
-                add: rhs,
-                mul: std::iter::repeat(1),
-                acc: 0,
-            }
+            ExprIter { lhs, rhs, mul: 1, acc: 0 }
         }
 
         /// Calculates `add(&mut long, long)` with carry propagation.
@@ -1256,12 +1241,7 @@ pub mod uops {
             lhs: Lhs,
             rhs: Rhs,
         ) -> impl ExprIteratorMut {
-            ExprIterMut {
-                iter: lhs,
-                add: rhs,
-                mul: std::iter::repeat(1),
-                acc: 0,
-            }
+            ExprIterMut { lhs, rhs, mul: 1, acc: 0 }
         }
 
         /// Calculates `add(long, single)` with carry propagation.
@@ -1271,9 +1251,9 @@ pub mod uops {
             rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIterator {
             ExprIter {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: std::iter::repeat(0),
+                mul: 1,
                 acc: rhs,
             }
         }
@@ -1285,9 +1265,9 @@ pub mod uops {
             rhs: <Single as NumFn>::Unsigned,
         ) -> impl ExprIteratorMut {
             ExprIterMut {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: std::iter::repeat(0),
+                mul: 1,
                 acc: rhs,
             }
         }
@@ -1305,9 +1285,9 @@ pub mod uops {
             };
 
             ExprIter {
-                iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
+                mul: 1,
                 acc: 0,
             }
         }
@@ -1328,9 +1308,9 @@ pub mod uops {
             };
 
             ExprIterMut {
-                iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
+                mul: 1,
                 acc: 0,
             }
         }
@@ -1342,9 +1322,9 @@ pub mod uops {
             rhs: Rhs,
         ) -> impl ExprIterator {
             ExprIter {
-                iter: lhs,
-                add: rhs.map(|word| !word),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: rhs.map(|word| !word),
+                mul: 1,
                 acc: 1,
             }
         }
@@ -1356,9 +1336,9 @@ pub mod uops {
             rhs: Rhs,
         ) -> impl ExprIteratorMut {
             ExprIterMut {
-                iter: lhs,
-                add: rhs.map(|word| !word),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: rhs.map(|word| !word),
+                mul: 1,
                 acc: 1,
             }
         }
@@ -1378,9 +1358,9 @@ pub mod uops {
             };
 
             ExprIter {
-                iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                mul: 1,
                 acc: 0,
             }
         }
@@ -1400,9 +1380,9 @@ pub mod uops {
             };
 
             ExprIterMut {
-                iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                mul: 1,
                 acc: 0,
             }
         }
@@ -1421,9 +1401,9 @@ pub mod uops {
             };
 
             ExprIter {
-                iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
-                mul: std::iter::repeat(1),
+                lhs,
+                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                mul: 1,
                 acc: 0,
             }
         }
@@ -1445,108 +1425,31 @@ pub mod uops {
             };
 
             ExprIterMut {
-                iter: lhs,
-                add: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
-                mul: std::iter::repeat(1),
-                acc: 0,
-            }
-        }
-
-        /// Calculates `mul(long, long)` with carry propagation.
-        #[inline]
-        pub fn mul<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
-            lhs: Lhs,
-            rhs: Rhs,
-        ) -> impl ExprIterator {
-            ExprIter {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: rhs,
-                acc: 0,
-            }
-        }
-
-        /// Calculates `mul(&mut long, long)` with carry propagation.
-        #[inline]
-        pub fn mul_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
-            lhs: Lhs,
-            rhs: Rhs,
-        ) -> impl ExprIteratorMut {
-            ExprIterMut {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: rhs,
+                lhs,
+                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                mul: 1,
                 acc: 0,
             }
         }
 
         /// Calculates `mul(long, single)` with carry propagation.
         #[inline]
-        pub fn mul_single<Lhs: Iterator<Item = Single>>(
-            lhs: Lhs,
-            rhs: <Single as NumFn>::Unsigned,
-        ) -> impl ExprIterator {
+        pub fn mul<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
             ExprIter {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: std::iter::repeat(rhs),
+                lhs,
+                rhs: std::iter::repeat(0),
+                mul: rhs,
                 acc: 0,
             }
         }
 
         /// Calculates `mul(&mut long, single)` with carry propagation.
         #[inline]
-        pub fn mul_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
-            lhs: Lhs,
-            rhs: <Single as NumFn>::Unsigned,
-        ) -> impl ExprIteratorMut {
+        pub fn mul_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(lhs: Lhs, rhs: Single) -> impl ExprIteratorMut {
             ExprIterMut {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: std::iter::repeat(rhs),
-                acc: 0,
-            }
-        }
-
-        /// Calculates `mul(long, signed)` with carry propagation.
-        ///
-        /// Rhs is sign-extended instead of zero-extended.
-        #[inline]
-        pub fn mul_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
-            let rhs = rhs as Single;
-
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
-            };
-
-            ExprIter {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
-                acc: 0,
-            }
-        }
-
-        /// Calculates `mul(&mut long, signed)` with carry propagation.
-        ///
-        /// Rhs is sign-extended instead of zero-extended.
-        #[inline]
-        pub fn mul_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
-            lhs: Lhs,
-            rhs: <Single as NumFn>::Signed,
-        ) -> impl ExprIteratorMut {
-            let rhs = rhs as Single;
-
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
-            };
-
-            ExprIterMut {
-                iter: lhs,
-                add: std::iter::repeat(0),
-                mul: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
+                lhs,
+                rhs: std::iter::repeat(0),
+                mul: rhs,
                 acc: 0,
             }
         }
@@ -1581,9 +1484,9 @@ pub mod uops {
     #[inline]
     pub fn neg<const L: usize>(words: &[Single; L]) -> [Single; L] {
         ExprIter {
-            iter: words.iter().map(|&word| !word),
-            add: std::iter::repeat(0),
-            mul: std::iter::repeat(1),
+            lhs: words.iter().map(|&word| !word),
+            rhs: std::iter::repeat(0),
+            mul: 1,
             acc: 1,
         }
         .collect_arr()
@@ -1593,12 +1496,12 @@ pub mod uops {
     #[inline]
     pub fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
         let iter = ExprIterMut {
-            iter: words.iter_mut().map(|word| {
+            lhs: words.iter_mut().map(|word| {
                 *word = !*word;
                 word
             }),
-            add: std::iter::repeat(0),
-            mul: std::iter::repeat(1),
+            rhs: std::iter::repeat(0),
+            mul: 1,
             acc: 1,
         };
 
@@ -1754,7 +1657,7 @@ pub mod uops {
     pub fn bitor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
         lhs.iter()
             .copied()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
             .map(|(lhs, rhs)| lhs | rhs)
             .collect_arr()
     }
@@ -1764,7 +1667,7 @@ pub mod uops {
     pub fn bitand_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
         lhs.iter()
             .copied()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
             .map(|(lhs, rhs)| lhs & rhs)
             .collect_arr()
     }
@@ -1774,7 +1677,7 @@ pub mod uops {
     pub fn bitxor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
         lhs.iter()
             .copied()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
             .map(|(lhs, rhs)| lhs ^ rhs)
             .collect_arr()
     }
@@ -1793,7 +1696,7 @@ pub mod uops {
 
         lhs.iter()
             .copied()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
             .map(|(lhs, rhs)| lhs | rhs)
             .collect_arr()
     }
@@ -1812,7 +1715,7 @@ pub mod uops {
 
         lhs.iter()
             .copied()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
             .map(|(lhs, rhs)| lhs & rhs)
             .collect_arr()
     }
@@ -1831,7 +1734,7 @@ pub mod uops {
 
         lhs.iter()
             .copied()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
             .map(|(lhs, rhs)| lhs ^ rhs)
             .collect_arr()
     }
@@ -1868,12 +1771,13 @@ pub mod uops {
 
     /// Applies `lhs |= rhs`.
     #[inline]
+    #[ndasm::emit(const L: usize = 64)]
     pub fn bitor_single_mut<const L: usize>(
         lhs: &mut [Single; L],
         rhs: <Single as NumFn>::Unsigned,
     ) -> &mut [Single; L] {
         lhs.iter_mut()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
             .for_each(|(ptr, val)| *ptr |= val);
 
         lhs
@@ -1886,7 +1790,7 @@ pub mod uops {
         rhs: <Single as NumFn>::Unsigned,
     ) -> &mut [Single; L] {
         lhs.iter_mut()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
             .for_each(|(ptr, val)| *ptr &= val);
 
         lhs
@@ -1899,7 +1803,7 @@ pub mod uops {
         rhs: <Single as NumFn>::Unsigned,
     ) -> &mut [Single; L] {
         lhs.iter_mut()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
             .for_each(|(ptr, val)| *ptr ^= val);
 
         lhs
@@ -1909,6 +1813,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
+    #[ndasm::emit(const L: usize = 64)]
     pub fn bitor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
         let rhs = rhs as Single;
 
@@ -1918,7 +1823,7 @@ pub mod uops {
         };
 
         lhs.iter_mut()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
             .for_each(|(ptr, val)| *ptr |= val);
 
         lhs
@@ -1940,7 +1845,7 @@ pub mod uops {
         };
 
         lhs.iter_mut()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
             .for_each(|(ptr, val)| *ptr &= val);
 
         lhs
@@ -1962,7 +1867,7 @@ pub mod uops {
         };
 
         lhs.iter_mut()
-            .zip((0..L).map(|idx| if idx == 0 { rhs } else { ext }))
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
             .for_each(|(ptr, val)| *ptr ^= val);
 
         lhs
