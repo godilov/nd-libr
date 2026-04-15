@@ -1771,7 +1771,6 @@ pub mod uops {
 
     /// Applies `lhs |= rhs`.
     #[inline]
-    #[ndasm::emit(const L: usize = 64)]
     pub fn bitor_single_mut<const L: usize>(
         lhs: &mut [Single; L],
         rhs: <Single as NumFn>::Unsigned,
@@ -1813,7 +1812,6 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    #[ndasm::emit(const L: usize = 64)]
     pub fn bitor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
         let rhs = rhs as Single;
 
@@ -1897,9 +1895,10 @@ pub mod uops {
         words
     }
 
-    /// Applies `words = words << shift`.
+    /// Applies `words <<= shift`.
     ///
     /// Argument `default` is used for filling bits outside of shift.
+    #[inline]
     pub fn shl_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
         let offset = (shift / BITS).min(L);
         let shl = shift % BITS;
@@ -1926,9 +1925,10 @@ pub mod uops {
         words
     }
 
-    /// Applies `words = words >> shift`.
+    /// Applies `words >>= shift`.
     ///
     /// Argument `default` is used for filling bits outside of shift.
+    #[inline]
     pub fn shr_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> &mut [Single; L] {
         let offset = (shift / BITS).min(L);
         let shr = shift % BITS;
@@ -1973,13 +1973,13 @@ pub mod uops {
         shr(words, shift, default)
     }
 
-    /// Applies `words = words << shift` with arithmetic semantics.
+    /// Applies `words <<= shift` with arithmetic semantics.
     #[inline]
     pub fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
         shl_mut(words, shift, 0)
     }
 
-    /// Applies `words = words >> shift` with arithmetic semantics.
+    /// Applies `words >>= shift` with arithmetic semantics.
     #[inline]
     pub fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> &mut [Single; L] {
         let default = match sign(words, Sign::POS, Sign::NEG) {
