@@ -1529,7 +1529,7 @@ pub mod uops {
     /// Applies `words = -words`.
     #[inline]
     pub fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        let iter = ExprIterMut {
+        ExprIterMut {
             lhs: words.iter_mut().map(|word| {
                 *word = !*word;
                 word
@@ -1537,9 +1537,8 @@ pub mod uops {
             rhs: std::iter::repeat(0),
             mul: 1,
             acc: 1,
-        };
-
-        for _ in iter {}
+        }
+        .for_each(|_| ());
 
         words
     }
@@ -1571,7 +1570,7 @@ pub mod uops {
     /// Applies `words += 1`.
     #[inline]
     pub fn inc_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        for _ in Expr::add_single_mut(words.iter_mut(), 1) {}
+        Expr::add_single_mut(words.iter_mut(), 1).for_each(|_| ());
 
         words
     }
@@ -1579,7 +1578,7 @@ pub mod uops {
     /// Applies `words += 1`.
     #[inline]
     pub fn dec_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        for _ in Expr::sub_single_mut(words.iter_mut(), 1) {}
+        Expr::sub_single_mut(words.iter_mut(), 1).for_each(|_| ());
 
         words
     }
@@ -1691,7 +1690,7 @@ pub mod uops {
     /// Applies `lhs += rhs`.
     #[inline]
     pub fn add_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
-        for _ in Expr::add_mut(lhs.iter_mut(), rhs.iter().copied()) {}
+        Expr::add_mut(lhs.iter_mut(), rhs.iter().copied()).for_each(|_| ());
 
         lhs
     }
@@ -1699,7 +1698,7 @@ pub mod uops {
     /// Applies `lhs -= rhs`.
     #[inline]
     pub fn sub_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
-        for _ in Expr::sub_mut(lhs.iter_mut(), rhs.iter().copied()) {}
+        Expr::sub_mut(lhs.iter_mut(), rhs.iter().copied()).for_each(|_| ());
 
         lhs
     }
@@ -1719,7 +1718,7 @@ pub mod uops {
     /// Applies `lhs + rhs`.
     #[inline]
     pub fn add_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
-        for _ in Expr::add_single_mut(lhs.iter_mut(), rhs) {}
+        Expr::add_single_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
     }
@@ -1727,7 +1726,7 @@ pub mod uops {
     /// Applies `lhs - rhs`.
     #[inline]
     pub fn sub_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
-        for _ in Expr::sub_single_mut(lhs.iter_mut(), rhs) {}
+        Expr::sub_single_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
     }
@@ -1755,7 +1754,7 @@ pub mod uops {
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
     pub fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
-        for _ in Expr::add_signed_mut(lhs.iter_mut(), rhs) {}
+        Expr::add_signed_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
     }
@@ -1765,7 +1764,7 @@ pub mod uops {
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
     pub fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
-        for _ in Expr::sub_signed_mut(lhs.iter_mut(), rhs) {}
+        Expr::sub_signed_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
     }
@@ -2247,19 +2246,16 @@ pub mod algo {
         let mut res = [0; L];
 
         for (idx, val) in rhs.iter().copied().enumerate() {
-            let iter = ExprIterMut {
-                lhs: res[idx..].iter_mut(),
-                rhs: ExprIter {
+            Expr::add_mut(
+                res[idx..].iter_mut(),
+                ExprIter {
                     lhs: lhs.iter().copied(),
                     rhs: std::iter::repeat(0),
                     mul: val,
                     acc: 0,
                 },
-                mul: val,
-                acc: 0,
-            };
-
-            for _ in iter {}
+            )
+            .for_each(|_| ());
         }
 
         res
