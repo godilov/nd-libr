@@ -1160,6 +1160,9 @@ pub mod uops {
         }};
     }
 
+    pub(super) use overflow;
+    pub(super) use overflow_mut;
+
     /// Entry point for uops expressions.
     pub struct Expr;
 
@@ -2252,10 +2255,36 @@ pub mod algo {
         res
     }
 
+    /// Returns `lhs * rhs` with overflow.
+    #[inline]
+    pub fn mul_overflow<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
+        let mut any = false;
+        let mut acc = 0 as Single;
+        let mut res = [0; L];
+
+        for (idx, val) in rhs.iter().copied().enumerate() {
+            let iter = Expr::mul(lhs.iter().copied(), val);
+
+            acc = acc.wrapping_add(Expr::add_mut(res[idx..].iter_mut(), iter).last().unwrap_or(0));
+            any |= acc > 0;
+        }
+
+        (res, any.then_some(acc))
+    }
+
     /// Returns `lhs * rhs`.
     #[inline]
     pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
         Expr::mul(lhs.iter().copied(), rhs).collect_arr()
+    }
+
+    /// Returns `lhs * rhs` with overflow.
+    #[inline]
+    pub fn mul_single_overflow<const L: usize>(
+        lhs: &[Single; L],
+        rhs: <Single as NumFn>::Unsigned,
+    ) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::mul(lhs.iter().copied(), rhs))
     }
 
     /// Returns `lhs * rhs`.
@@ -2281,11 +2310,50 @@ pub mod algo {
         res
     }
 
+    /// Returns `lhs * rhs` with overflow.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn mul_signed_overflow<const L: usize>(
+        lhs: &[Single; L],
+        rhs: <Single as NumFn>::Signed,
+    ) -> ([Single; L], Option<Single>) {
+        let rhs = rhs as Single;
+
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        let mut any = false;
+        let mut acc = 0 as Single;
+        let mut res = [0; L];
+
+        for (idx, val) in (0..L).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
+            let iter = Expr::mul(lhs.iter().copied(), val);
+
+            acc = acc.wrapping_add(Expr::add_mut(res[idx..].iter_mut(), iter).last().unwrap_or(0));
+            any |= acc > 0;
+        }
+
+        (res, any.then_some(acc))
+    }
+
     /// Applies `lhs *= rhs`.
     #[inline]
     pub fn mul_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
         *lhs = mul(lhs, rhs);
         lhs
+    }
+
+    /// Applies `lhs *= rhs` with overflow.
+    #[inline]
+    pub fn mul_overflow_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) -> Option<Single> {
+        let (res, overflow) = mul_overflow(lhs, rhs);
+
+        *lhs = res;
+
+        overflow
     }
 
     /// Applies `lhs *= rhs`.
@@ -2296,6 +2364,17 @@ pub mod algo {
         lhs
     }
 
+    /// Applies `lhs *= rhs` with overflow.
+    #[inline]
+    pub fn mul_single_overflow_mut<const L: usize>(
+        lhs: &mut [Single; L],
+        rhs: <Single as NumFn>::Unsigned,
+    ) -> Option<Single> {
+        let acc = Expr::mul_mut(lhs.iter_mut(), rhs).last().unwrap_or(0);
+
+        (acc > 0).then_some(acc)
+    }
+
     /// Applies `lhs *= rhs`.
     ///
     /// Rhs is sign-extended instead of zero-extended.
@@ -2303,6 +2382,21 @@ pub mod algo {
     pub fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
         *lhs = mul_signed(lhs, rhs);
         lhs
+    }
+
+    /// Applies `lhs *= rhs` with overflow.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn mul_signed_overflow_mut<const L: usize>(
+        lhs: &mut [Single; L],
+        rhs: <Single as NumFn>::Signed,
+    ) -> Option<Single> {
+        let (res, overflow) = mul_signed_overflow(lhs, rhs);
+
+        *lhs = res;
+
+        overflow
     }
 
     /// Returns `(lhs / rhs, lhs % rhs)`.
