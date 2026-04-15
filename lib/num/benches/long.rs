@@ -55,8 +55,8 @@ macro_rules! state {
     ($criterion:expr, $group:literal) => {{
         let mut group = $criterion.benchmark_group($group);
 
-        group.measurement_time(Duration::from_millis(12500));
-        group.warm_up_time(Duration::from_millis(2500));
+        group.measurement_time(Duration::from_millis(52500));
+        group.warm_up_time(Duration::from_millis(7500));
 
         (group, StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]))
     }};
@@ -788,6 +788,11 @@ fn uops(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
+        "not",     &args, |[lhs,   _]: &[U4096; 2]| uops::not   (&lhs.0),
+        "pos",     &args, |[lhs,   _]: &[U4096; 2]| uops::pos   (&lhs.0),
+        "neg",     &args, |[lhs,   _]: &[U4096; 2]| uops::neg   (&lhs.0),
+        "inc",     &args, |[lhs,   _]: &[U4096; 2]| uops::inc   (&lhs.0),
+        "dec",     &args, |[lhs,   _]: &[U4096; 2]| uops::dec   (&lhs.0),
         "add",     &args, |[lhs, rhs]: &[U4096; 2]| uops::add   (&lhs.0, &rhs.0),
         "sub",     &args, |[lhs, rhs]: &[U4096; 2]| uops::sub   (&lhs.0, &rhs.0),
         "bitor",   &args, |[lhs, rhs]: &[U4096; 2]| uops::bitor (&lhs.0, &rhs.0),
@@ -807,6 +812,11 @@ fn uops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
+        "not_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::not_mut   (&mut val.0); },
+        "pos_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::pos_mut   (&mut val.0); },
+        "neg_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::neg_mut   (&mut val.0); },
+        "inc_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::inc_mut   (&mut val.0); },
+        "dec_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::dec_mut   (&mut val.0); },
         "add_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::add_mut   (&mut val.0, &rhs.0); },
         "sub_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::sub_mut   (&mut val.0, &rhs.0); },
         "bitor_mut",   &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitor_mut (&mut val.0, &rhs.0); },
