@@ -17,6 +17,9 @@ use ndnum::{
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
+type Signed = <Single as NumFn>::Signed;
+type Unsigned = <Single as NumFn>::Unsigned;
+
 const BITS: usize = std::mem::size_of::<U4096>() * 8;
 const BYTES: usize = std::mem::size_of::<U4096>();
 const PRIMES: [u64; 256] = [
@@ -55,8 +58,8 @@ macro_rules! state {
     ($criterion:expr, $group:literal) => {{
         let mut group = $criterion.benchmark_group($group);
 
-        group.measurement_time(Duration::from_millis(52500));
-        group.warm_up_time(Duration::from_millis(7500));
+        group.measurement_time(Duration::from_secs(10));
+        group.warm_up_time(Duration::from_secs(5));
 
         (group, StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]))
     }};
@@ -654,29 +657,29 @@ fn ops(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs + rhs,
-        "U4096::add",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs + rhs,
-        "S4096::sub",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs - rhs,
-        "U4096::sub",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs - rhs,
-        "S4096::mul",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs * rhs,
-        "U4096::mul",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs * rhs,
-        "S4096::div",     &s4096, |[lhs, _, rhs]: &[S4096; 3]| lhs / rhs,
-        "U4096::div",     &u4096, |[lhs, _, rhs]: &[U4096; 3]| lhs / rhs,
-        "S4096::rem",     &s4096, |[lhs, _, rhs]: &[S4096; 3]| lhs % rhs,
-        "U4096::rem",     &u4096, |[lhs, _, rhs]: &[U4096; 3]| lhs % rhs,
-        "S4096::bitor",   &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs | rhs,
-        "U4096::bitor",   &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs | rhs,
-        "S4096::bitand",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs & rhs,
-        "U4096::bitand",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs & rhs,
-        "S4096::bitxor",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| lhs ^ rhs,
-        "U4096::bitxor",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| lhs ^ rhs,
+        "S4096::add",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs + rhs),
+        "U4096::add",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs + rhs),
+        "S4096::sub",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs - rhs),
+        "U4096::sub",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs - rhs),
+        "S4096::mul",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs * rhs),
+        "U4096::mul",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs * rhs),
+        "S4096::div",     &s4096, |[lhs, _, rhs]: &[S4096; 3]| std::hint::black_box(lhs / rhs),
+        "U4096::div",     &u4096, |[lhs, _, rhs]: &[U4096; 3]| std::hint::black_box(lhs / rhs),
+        "S4096::rem",     &s4096, |[lhs, _, rhs]: &[S4096; 3]| std::hint::black_box(lhs % rhs),
+        "U4096::rem",     &u4096, |[lhs, _, rhs]: &[U4096; 3]| std::hint::black_box(lhs % rhs),
+        "S4096::bitor",   &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs | rhs),
+        "U4096::bitor",   &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs | rhs),
+        "S4096::bitand",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs & rhs),
+        "U4096::bitand",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs & rhs),
+        "S4096::bitxor",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs ^ rhs),
+        "U4096::bitxor",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs ^ rhs),
     ] };
 
     exec! { group => [
-        "S4096::shl", &s4096, |[val, _, _]: &[S4096; 3]| val << 7,
-        "U4096::shl", &u4096, |[val, _, _]: &[U4096; 3]| val << 7,
-        "S4096::shr", &s4096, |[val, _, _]: &[S4096; 3]| val >> 7,
-        "U4096::shr", &u4096, |[val, _, _]: &[U4096; 3]| val >> 7,
+        "S4096::shl", &s4096, |[val, _, _]: &[S4096; 3]| std::hint::black_box(val << 7),
+        "U4096::shl", &u4096, |[val, _, _]: &[U4096; 3]| std::hint::black_box(val << 7),
+        "S4096::shr", &s4096, |[val, _, _]: &[S4096; 3]| std::hint::black_box(val >> 7),
+        "U4096::shr", &u4096, |[val, _, _]: &[U4096; 3]| std::hint::black_box(val >> 7),
     ] };
 }
 
@@ -696,89 +699,83 @@ fn ops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val += rhs },
-        "U4096::add_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val += rhs },
-        "S4096::sub_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val -= rhs },
-        "U4096::sub_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val -= rhs },
-        "S4096::mul_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val *= rhs },
-        "U4096::mul_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val *= rhs },
-        "S4096::div_mut",    &s4096, |[lhs, _, rhs]: &[S4096; 3]| { let mut val = *lhs; val /= rhs },
-        "U4096::div_mut",    &u4096, |[lhs, _, rhs]: &[U4096; 3]| { let mut val = *lhs; val /= rhs },
-        "S4096::rem_mut",    &s4096, |[lhs, _, rhs]: &[S4096; 3]| { let mut val = *lhs; val %= rhs },
-        "U4096::rem_mut",    &u4096, |[lhs, _, rhs]: &[U4096; 3]| { let mut val = *lhs; val %= rhs },
-        "S4096::bitor_mut",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val |= rhs },
-        "U4096::bitor_mut",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val |= rhs },
-        "S4096::bitand_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val &= rhs },
-        "U4096::bitand_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val &= rhs },
-        "S4096::bitxor_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val ^= rhs },
-        "U4096::bitxor_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val ^= rhs },
+        "S4096::add_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val += rhs; std::hint::black_box(&val); },
+        "U4096::add_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val += rhs; std::hint::black_box(&val); },
+        "S4096::sub_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val -= rhs; std::hint::black_box(&val); },
+        "U4096::sub_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val -= rhs; std::hint::black_box(&val); },
+        "S4096::mul_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val *= rhs; std::hint::black_box(&val); },
+        "U4096::mul_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val *= rhs; std::hint::black_box(&val); },
+        "S4096::div_mut",    &s4096, |[lhs, _, rhs]: &[S4096; 3]| { let mut val = *lhs; val /= rhs; std::hint::black_box(&val); },
+        "U4096::div_mut",    &u4096, |[lhs, _, rhs]: &[U4096; 3]| { let mut val = *lhs; val /= rhs; std::hint::black_box(&val); },
+        "S4096::rem_mut",    &s4096, |[lhs, _, rhs]: &[S4096; 3]| { let mut val = *lhs; val %= rhs; std::hint::black_box(&val); },
+        "U4096::rem_mut",    &u4096, |[lhs, _, rhs]: &[U4096; 3]| { let mut val = *lhs; val %= rhs; std::hint::black_box(&val); },
+        "S4096::bitor_mut",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val |= rhs; std::hint::black_box(&val); },
+        "U4096::bitor_mut",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val |= rhs; std::hint::black_box(&val); },
+        "S4096::bitand_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val &= rhs; std::hint::black_box(&val); },
+        "U4096::bitand_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val &= rhs; std::hint::black_box(&val); },
+        "S4096::bitxor_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val ^= rhs; std::hint::black_box(&val); },
+        "U4096::bitxor_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val ^= rhs; std::hint::black_box(&val); },
     ] };
 
     exec! { group => [
-        "S4096::shl_mut", &s4096, |[val, _, _]: &[S4096; 3]| { let mut val = *val; val <<= 7 },
-        "U4096::shl_mut", &u4096, |[val, _, _]: &[U4096; 3]| { let mut val = *val; val <<= 7 },
-        "S4096::shr_mut", &s4096, |[val, _, _]: &[S4096; 3]| { let mut val = *val; val >>= 7 },
-        "U4096::shr_mut", &u4096, |[val, _, _]: &[U4096; 3]| { let mut val = *val; val >>= 7 },
+        "S4096::shl_mut", &s4096, |[val, _, _]: &[S4096; 3]| { let mut val = *val; val <<= 7; std::hint::black_box(&val); },
+        "U4096::shl_mut", &u4096, |[val, _, _]: &[U4096; 3]| { let mut val = *val; val <<= 7; std::hint::black_box(&val); },
+        "S4096::shr_mut", &s4096, |[val, _, _]: &[S4096; 3]| { let mut val = *val; val >>= 7; std::hint::black_box(&val); },
+        "U4096::shr_mut", &u4096, |[val, _, _]: &[U4096; 3]| { let mut val = *val; val >>= 7; std::hint::black_box(&val); },
     ] };
 }
 
 #[allow(clippy::unnecessary_cast)]
 fn ops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
-    type Signed = <Single as NumFn>::Signed;
-    type Unsigned = <Single as NumFn>::Unsigned;
-
     let s4096 = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
     let u4096 = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs + *rhs,
-        "U4096::add_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs + *rhs,
-        "S4096::sub_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs - *rhs,
-        "U4096::sub_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs - *rhs,
-        "S4096::mul_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs * *rhs,
-        "U4096::mul_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs * *rhs,
-        "S4096::div_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs / *rhs,
-        "U4096::div_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs / *rhs,
-        "S4096::rem_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs % *rhs,
-        "U4096::rem_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs % *rhs,
-        "S4096::bitor_single",  &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs | *rhs,
-        "U4096::bitor_single",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs | *rhs,
-        "S4096::bitand_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs & *rhs,
-        "U4096::bitand_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs & *rhs,
-        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | lhs ^ *rhs,
-        "U4096::bitxor_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| lhs ^ *rhs,
+        "S4096::add_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs + *rhs),
+        "U4096::add_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs + *rhs),
+        "S4096::sub_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs - *rhs),
+        "U4096::sub_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs - *rhs),
+        "S4096::mul_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs * *rhs),
+        "U4096::mul_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs * *rhs),
+        "S4096::div_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs / *rhs),
+        "U4096::div_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs / *rhs),
+        "S4096::rem_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs % *rhs),
+        "U4096::rem_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs % *rhs),
+        "S4096::bitor_single",  &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs | *rhs),
+        "U4096::bitor_single",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs | *rhs),
+        "S4096::bitand_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs & *rhs),
+        "U4096::bitand_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs & *rhs),
+        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs ^ *rhs),
+        "U4096::bitxor_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs ^ *rhs),
     ] };
 }
 
 #[allow(clippy::unnecessary_cast)]
 fn ops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
-    type Signed = <Single as NumFn>::Signed;
-    type Unsigned = <Single as NumFn>::Unsigned;
-
     let s4096 = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
     let u4096 = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val += *rhs },
-        "U4096::add_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val += *rhs },
-        "S4096::sub_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val -= *rhs },
-        "U4096::sub_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val -= *rhs },
-        "S4096::mul_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val *= *rhs },
-        "U4096::mul_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val *= *rhs },
-        "S4096::div_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val /= *rhs },
-        "U4096::div_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val /= *rhs },
-        "S4096::rem_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val %= *rhs },
-        "U4096::rem_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val %= *rhs },
-        "S4096::bitor_single_mut",  &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val |= *rhs },
-        "U4096::bitor_single_mut",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val |= *rhs },
-        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val &= *rhs },
-        "U4096::bitand_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val &= *rhs },
-        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val ^= *rhs },
-        "U4096::bitxor_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val ^= *rhs },
+        "S4096::add_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val += *rhs; std::hint::black_box(&val); },
+        "U4096::add_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val += *rhs; std::hint::black_box(&val); },
+        "S4096::sub_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val -= *rhs; std::hint::black_box(&val); },
+        "U4096::sub_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val -= *rhs; std::hint::black_box(&val); },
+        "S4096::mul_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val *= *rhs; std::hint::black_box(&val); },
+        "U4096::mul_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val *= *rhs; std::hint::black_box(&val); },
+        "S4096::div_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val /= *rhs; std::hint::black_box(&val); },
+        "U4096::div_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val /= *rhs; std::hint::black_box(&val); },
+        "S4096::rem_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val %= *rhs; std::hint::black_box(&val); },
+        "U4096::rem_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val %= *rhs; std::hint::black_box(&val); },
+        "S4096::bitor_single_mut",  &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val |= *rhs; std::hint::black_box(&val); },
+        "U4096::bitor_single_mut",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val |= *rhs; std::hint::black_box(&val); },
+        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val &= *rhs; std::hint::black_box(&val); },
+        "U4096::bitand_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val &= *rhs; std::hint::black_box(&val); },
+        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val ^= *rhs; std::hint::black_box(&val); },
+        "U4096::bitxor_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val ^= *rhs; std::hint::black_box(&val); },
     ] };
 }
 
@@ -788,21 +785,21 @@ fn uops(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "not",     &args, |[lhs,   _]: &[U4096; 2]| uops::not   (&lhs.0),
-        "pos",     &args, |[lhs,   _]: &[U4096; 2]| uops::pos   (&lhs.0),
-        "neg",     &args, |[lhs,   _]: &[U4096; 2]| uops::neg   (&lhs.0),
-        "inc",     &args, |[lhs,   _]: &[U4096; 2]| uops::inc   (&lhs.0),
-        "dec",     &args, |[lhs,   _]: &[U4096; 2]| uops::dec   (&lhs.0),
-        "add",     &args, |[lhs, rhs]: &[U4096; 2]| uops::add   (&lhs.0, &rhs.0),
-        "sub",     &args, |[lhs, rhs]: &[U4096; 2]| uops::sub   (&lhs.0, &rhs.0),
-        "bitor",   &args, |[lhs, rhs]: &[U4096; 2]| uops::bitor (&lhs.0, &rhs.0),
-        "bitand",  &args, |[lhs, rhs]: &[U4096; 2]| uops::bitand(&lhs.0, &rhs.0),
-        "bitxor",  &args, |[lhs, rhs]: &[U4096; 2]| uops::bitxor(&lhs.0, &rhs.0),
+        "not",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::not   (&lhs.0)),
+        "pos",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::pos   (&lhs.0)),
+        "neg",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::neg   (&lhs.0)),
+        "inc",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::inc   (&lhs.0)),
+        "dec",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::dec   (&lhs.0)),
+        "add",     &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::add   (&lhs.0, &rhs.0)),
+        "sub",     &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::sub   (&lhs.0, &rhs.0)),
+        "bitor",   &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::bitor (&lhs.0, &rhs.0)),
+        "bitand",  &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::bitand(&lhs.0, &rhs.0)),
+        "bitxor",  &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::bitxor(&lhs.0, &rhs.0)),
     ] };
 
     exec! { group => [
-        "shl", &args, |[val, _]: &[U4096; 2]| uops::shl(&val.0, 7, 0),
-        "shr", &args, |[val, _]: &[U4096; 2]| uops::shr(&val.0, 7, 0),
+        "shl", &args, |[val, _]: &[U4096; 2]| std::hint::black_box(uops::shl(&val.0, 7, 0)),
+        "shr", &args, |[val, _]: &[U4096; 2]| std::hint::black_box(uops::shr(&val.0, 7, 0)),
     ] };
 }
 
@@ -812,85 +809,77 @@ fn uops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "not_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::not_mut   (&mut val.0); },
-        "pos_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::pos_mut   (&mut val.0); },
-        "neg_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::neg_mut   (&mut val.0); },
-        "inc_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::inc_mut   (&mut val.0); },
-        "dec_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; uops::dec_mut   (&mut val.0); },
-        "add_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::add_mut   (&mut val.0, &rhs.0); },
-        "sub_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::sub_mut   (&mut val.0, &rhs.0); },
-        "bitor_mut",   &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitor_mut (&mut val.0, &rhs.0); },
-        "bitand_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitand_mut(&mut val.0, &rhs.0); },
-        "bitxor_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; uops::bitxor_mut(&mut val.0, &rhs.0); },
+        "not_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::not_mut   (&mut val.0)); },
+        "pos_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::pos_mut   (&mut val.0)); },
+        "neg_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::neg_mut   (&mut val.0)); },
+        "inc_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::inc_mut   (&mut val.0)); },
+        "dec_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::dec_mut   (&mut val.0)); },
+        "add_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::add_mut   (&mut val.0, &rhs.0)); },
+        "sub_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::sub_mut   (&mut val.0, &rhs.0)); },
+        "bitor_mut",   &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::bitor_mut (&mut val.0, &rhs.0)); },
+        "bitand_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::bitand_mut(&mut val.0, &rhs.0)); },
+        "bitxor_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::bitxor_mut(&mut val.0, &rhs.0)); },
     ] };
 
     exec! { group => [
-        "shl_mut", &args, |[val, _]: &[U4096; 2]| { let mut val = *val; uops::shl_mut(&mut val.0, 7, 0); },
-        "shr_mut", &args, |[val, _]: &[U4096; 2]| { let mut val = *val; uops::shr_mut(&mut val.0, 7, 0); },
+        "shl_mut", &args, |[val, _]: &[U4096; 2]| { let mut val = *val; std::hint::black_box(uops::shl_mut(&mut val.0, 7, 0)); },
+        "shr_mut", &args, |[val, _]: &[U4096; 2]| { let mut val = *val; std::hint::black_box(uops::shr_mut(&mut val.0, 7, 0)); },
     ] };
 }
 
 fn uops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
-    type Unsigned = <Single as NumFn>::Unsigned;
-
     let args = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| uops::add_single   (&lhs.0, *rhs),
-        "sub_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| uops::sub_single   (&lhs.0, *rhs),
-        "bitor_single",   &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitor_single (&lhs.0, *rhs),
-        "bitand_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitand_single(&lhs.0, *rhs),
-        "bitxor_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| uops::bitxor_single(&lhs.0, *rhs),
+        "add_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::add_single   (&lhs.0, *rhs)),
+        "sub_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::sub_single   (&lhs.0, *rhs)),
+        "bitor_single",   &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::bitor_single (&lhs.0, *rhs)),
+        "bitand_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::bitand_single(&lhs.0, *rhs)),
+        "bitxor_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::bitxor_single(&lhs.0, *rhs)),
     ] };
 }
 
 fn uops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
-    type Unsigned = <Single as NumFn>::Unsigned;
-
     let args = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::add_single_mut   (&mut val.0, *rhs); },
-        "sub_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::sub_single_mut   (&mut val.0, *rhs); },
-        "bitor_single_mut",   &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitor_single_mut (&mut val.0, *rhs); },
-        "bitand_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitand_single_mut(&mut val.0, *rhs); },
-        "bitxor_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; uops::bitxor_single_mut(&mut val.0, *rhs); },
+        "add_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::add_single_mut   (&mut val.0, *rhs)); },
+        "sub_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::sub_single_mut   (&mut val.0, *rhs)); },
+        "bitor_single_mut",   &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::bitor_single_mut (&mut val.0, *rhs)); },
+        "bitand_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::bitand_single_mut(&mut val.0, *rhs)); },
+        "bitxor_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::bitxor_single_mut(&mut val.0, *rhs)); },
     ] };
 }
 
 fn uops_signed(group: &mut BenchmarkGroup<'_, WallTime>) {
-    type Signed = <Single as NumFn>::Signed;
-
     let args = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_signed",     &args, |(lhs, rhs): &(S4096, Signed)| uops::add_signed   (&lhs.0, *rhs),
-        "sub_signed",     &args, |(lhs, rhs): &(S4096, Signed)| uops::sub_signed   (&lhs.0, *rhs),
-        "bitor_signed",   &args, |(lhs, rhs): &(S4096, Signed)| uops::bitor_signed (&lhs.0, *rhs),
-        "bitand_signed",  &args, |(lhs, rhs): &(S4096, Signed)| uops::bitand_signed(&lhs.0, *rhs),
-        "bitxor_signed",  &args, |(lhs, rhs): &(S4096, Signed)| uops::bitxor_signed(&lhs.0, *rhs),
+        "add_signed",     &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::add_signed   (&lhs.0, *rhs)),
+        "sub_signed",     &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::sub_signed   (&lhs.0, *rhs)),
+        "bitor_signed",   &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::bitor_signed (&lhs.0, *rhs)),
+        "bitand_signed",  &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::bitand_signed(&lhs.0, *rhs)),
+        "bitxor_signed",  &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::bitxor_signed(&lhs.0, *rhs)),
     ] };
 }
 
 fn uops_signed_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
-    type Signed = <Single as NumFn>::Signed;
-
     let args = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::add_signed_mut   (&mut val.0, *rhs); },
-        "sub_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::sub_signed_mut   (&mut val.0, *rhs); },
-        "bitor_signed_mut",   &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitor_signed_mut (&mut val.0, *rhs); },
-        "bitand_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitand_signed_mut(&mut val.0, *rhs); },
-        "bitxor_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; uops::bitxor_signed_mut(&mut val.0, *rhs); },
+        "add_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::add_signed_mut   (&mut val.0, *rhs)); },
+        "sub_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::sub_signed_mut   (&mut val.0, *rhs)); },
+        "bitor_signed_mut",   &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::bitor_signed_mut (&mut val.0, *rhs)); },
+        "bitand_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::bitand_signed_mut(&mut val.0, *rhs)); },
+        "bitxor_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::bitxor_signed_mut(&mut val.0, *rhs)); },
     ] };
 }
 
