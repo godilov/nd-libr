@@ -1598,7 +1598,6 @@ pub mod uops {
 
     /// Returns `lhs + rhs`.
     #[inline]
-    #[ndasm::emit(const L: usize = 64)]
     pub fn add<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         Expr::add(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
     }
@@ -1611,7 +1610,6 @@ pub mod uops {
 
     /// Returns `lhs + rhs` with overflow.
     #[inline]
-    #[ndasm::emit(const L: usize = 64)]
     pub fn add_overflow<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
         overflow!(Expr::add(lhs.iter().copied(), rhs.iter().copied()))
     }
@@ -2245,7 +2243,6 @@ pub mod algo {
 
     /// Returns `lhs * rhs`.
     #[inline]
-    #[ndasm::emit(const L: usize = 64)]
     pub fn mul<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         let mut res = [0; L];
 

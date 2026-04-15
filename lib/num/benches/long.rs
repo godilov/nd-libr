@@ -1,6 +1,6 @@
 //! # NdNumbers Long Benchmarks
 
-use std::{str::FromStr, time::Duration};
+use std::{hint::black_box, str::FromStr, time::Duration};
 
 use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
@@ -9,19 +9,18 @@ use ndext::{convert::NdFrom, iter::IteratorExt};
 use ndnum::{
     NumFn,
     arch::{Aligned, word::Single},
-    long::{
-        ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter,
-        alias::{S4096, U4096},
-        uops,
-    },
+    long::{ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops},
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
-type Signed = <Single as NumFn>::Signed;
-type Unsigned = <Single as NumFn>::Unsigned;
+type Isize = <Single as NumFn>::Signed;
+type Usize = <Single as NumFn>::Unsigned;
 
-const BITS: usize = std::mem::size_of::<U4096>() * 8;
-const BYTES: usize = std::mem::size_of::<U4096>();
+type Slong = ndnum::long::Signed<64>;
+type Ulong = ndnum::long::Unsigned<64>;
+
+const BITS: usize = std::mem::size_of::<Ulong>() * 8;
+const BYTES: usize = std::mem::size_of::<Ulong>();
 const PRIMES: [u64; 256] = [
     4291027133, 4288645421, 4286658479, 4286277323, 4284652657, 4283538983, 4282629761, 4279952009, 4274667043,
     4273974833, 4273382713, 4273199423, 4271705111, 4269969103, 4267926137, 4264085099, 4260878903, 4250977573,
@@ -98,12 +97,12 @@ macro_rules! from_arr_impl {
 
         $group.throughput(Throughput::Bytes(len as u64));
 
-        $group.bench_with_input(BenchmarkId::new("S4096::from_arr", 8 * len), &bytes, |b, bytes| {
-            b.iter(|| Aligned(S4096::nd_from(bytes)))
+        $group.bench_with_input(BenchmarkId::new("Slong::from_arr", 8 * len), &bytes, |b, bytes| {
+            b.iter(|| black_box(Aligned(Slong::nd_from(bytes))))
         });
 
-        $group.bench_with_input(BenchmarkId::new("U4096::from_arr", 8 * len), &bytes, |b, bytes| {
-            b.iter(|| Aligned(U4096::nd_from(bytes)))
+        $group.bench_with_input(BenchmarkId::new("Ulong::from_arr", 8 * len), &bytes, |b, bytes| {
+            b.iter(|| black_box(Aligned(Ulong::nd_from(bytes))))
         });
     };
 }
@@ -186,8 +185,8 @@ fn long_uops(c: &mut Criterion) {
 fn default(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
-    group.bench_function("S4096::default", |b| b.iter(|| Aligned(S4096::default())));
-    group.bench_function("U4096::default", |b| b.iter(|| Aligned(U4096::default())));
+    group.bench_function("Slong::default", |b| b.iter(|| Aligned(Slong::default())));
+    group.bench_function("Ulong::default", |b| b.iter(|| Aligned(Ulong::default())));
 }
 
 fn from_primitive_const(group: &mut BenchmarkGroup<'_, WallTime>) {
@@ -196,12 +195,12 @@ fn from_primitive_const(group: &mut BenchmarkGroup<'_, WallTime>) {
 
     group.throughput(Throughput::Bits(128));
 
-    group.bench_function("S4096::from_primitive_const", |b| {
-        b.iter(|| const { Aligned(S4096::from_i128(I128)) })
+    group.bench_function("Slong::from_primitive_const", |b| {
+        b.iter(|| black_box(const { Aligned(Slong::from_i128(I128)) }))
     });
 
-    group.bench_function("U4096::from_primitive_const", |b| {
-        b.iter(|| const { Aligned(U4096::from_u128(U128)) })
+    group.bench_function("Ulong::from_primitive_const", |b| {
+        b.iter(|| black_box(const { Aligned(Ulong::from_u128(U128)) }))
     });
 }
 
@@ -211,12 +210,12 @@ fn from_bytes_const(group: &mut BenchmarkGroup<'_, WallTime>) {
 
     group.throughput(Throughput::Bits(128));
 
-    group.bench_function("S4096::from_bytes_const", |b| {
-        b.iter(|| const { Aligned(S4096::from_bytes(&I128)) })
+    group.bench_function("Slong::from_bytes_const", |b| {
+        b.iter(|| black_box(const { Aligned(Slong::from_bytes(&I128)) }))
     });
 
-    group.bench_function("U4096::from_bytes_const", |b| {
-        b.iter(|| const { Aligned(U4096::from_bytes(&U128)) })
+    group.bench_function("Ulong::from_bytes_const", |b| {
+        b.iter(|| black_box(const { Aligned(Ulong::from_bytes(&U128)) }))
     });
 }
 
@@ -224,16 +223,16 @@ fn from_primitive(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     group.throughput(Throughput::Bits(128));
 
     exec! { group => [
-        BenchmarkId::new("S4096::from_primitive", i128::BITS), &rng.random::<i128>(), |&val: &i128| Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive", u128::BITS), &rng.random::<u128>(), |&val: &u128| Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",  i64::BITS), &rng.random::<i64>(),  |&val:  &i64| Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",  u64::BITS), &rng.random::<u64>(),  |&val:  &u64| Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",  i32::BITS), &rng.random::<i32>(),  |&val:  &i32| Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",  u32::BITS), &rng.random::<u32>(),  |&val:  &u32| Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",  i16::BITS), &rng.random::<i16>(),  |&val:  &i16| Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",  u16::BITS), &rng.random::<u16>(),  |&val:  &u16| Aligned(U4096::from(val)),
-        BenchmarkId::new("S4096::from_primitive",   i8::BITS), &rng.random::<i8>(),   |&val:   &i8| Aligned(S4096::from(val)),
-        BenchmarkId::new("U4096::from_primitive",   u8::BITS), &rng.random::<u8>(),   |&val:   &u8| Aligned(U4096::from(val)),
+        BenchmarkId::new("Slong::from_primitive", i128::BITS), &rng.random::<i128>(), |&val: &i128| black_box(Aligned(Slong::from(val))),
+        BenchmarkId::new("Ulong::from_primitive", u128::BITS), &rng.random::<u128>(), |&val: &u128| black_box(Aligned(Ulong::from(val))),
+        BenchmarkId::new("Slong::from_primitive",  i64::BITS), &rng.random::<i64>(),  |&val:  &i64| black_box(Aligned(Slong::from(val))),
+        BenchmarkId::new("Ulong::from_primitive",  u64::BITS), &rng.random::<u64>(),  |&val:  &u64| black_box(Aligned(Ulong::from(val))),
+        BenchmarkId::new("Slong::from_primitive",  i32::BITS), &rng.random::<i32>(),  |&val:  &i32| black_box(Aligned(Slong::from(val))),
+        BenchmarkId::new("Ulong::from_primitive",  u32::BITS), &rng.random::<u32>(),  |&val:  &u32| black_box(Aligned(Ulong::from(val))),
+        BenchmarkId::new("Slong::from_primitive",  i16::BITS), &rng.random::<i16>(),  |&val:  &i16| black_box(Aligned(Slong::from(val))),
+        BenchmarkId::new("Ulong::from_primitive",  u16::BITS), &rng.random::<u16>(),  |&val:  &u16| black_box(Aligned(Ulong::from(val))),
+        BenchmarkId::new("Slong::from_primitive",   i8::BITS), &rng.random::<i8>(),   |&val:   &i8| black_box(Aligned(Slong::from(val))),
+        BenchmarkId::new("Ulong::from_primitive",   u8::BITS), &rng.random::<u8>(),   |&val:   &u8| black_box(Aligned(Ulong::from(val))),
     ] };
 }
 
@@ -244,12 +243,12 @@ fn from_bytes(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
 
         group.throughput(Throughput::Bytes(len as u64));
 
-        group.bench_with_input(BenchmarkId::new("S4096::from_bytes", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| Aligned(S4096::from_bytes(bytes)))
+        group.bench_with_input(BenchmarkId::new("Slong::from_bytes", 8 * len), &bytes[..len], |b, bytes| {
+            b.iter(|| black_box(Aligned(Slong::from_bytes(bytes))))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096::from_bytes", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| Aligned(U4096::from_bytes(bytes)))
+        group.bench_with_input(BenchmarkId::new("Ulong::from_bytes", 8 * len), &bytes[..len], |b, bytes| {
+            b.iter(|| black_box(Aligned(Ulong::from_bytes(bytes))))
         });
     }
 }
@@ -267,12 +266,12 @@ fn from_slice(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
 
         group.throughput(Throughput::Bytes(len as u64));
 
-        group.bench_with_input(BenchmarkId::new("S4096::from_slice", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| Aligned(S4096::nd_from(bytes)))
+        group.bench_with_input(BenchmarkId::new("Slong::from_slice", 8 * len), &bytes[..len], |b, bytes| {
+            b.iter(|| black_box(Aligned(Slong::nd_from(bytes))))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096::from_slice", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| Aligned(U4096::nd_from(bytes)))
+        group.bench_with_input(BenchmarkId::new("Ulong::from_slice", 8 * len), &bytes[..len], |b, bytes| {
+            b.iter(|| black_box(Aligned(Ulong::nd_from(bytes))))
         });
     }
 }
@@ -285,15 +284,15 @@ fn from_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::from_iter", 8 * len),
+            BenchmarkId::new("Slong::from_iter", 8 * len),
             &bytes[..len].iter().copied(),
-            |b, iter| b.iter(|| iter.clone().collect::<Aligned<S4096>>()),
+            |b, iter| b.iter(|| black_box(iter.clone().collect::<Aligned<Slong>>())),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::from_iter", 8 * len),
+            BenchmarkId::new("Ulong::from_iter", 8 * len),
             &bytes[..len].iter().copied(),
-            |b, iter| b.iter(|| iter.clone().collect::<Aligned<U4096>>()),
+            |b, iter| b.iter(|| black_box(iter.clone().collect::<Aligned<Ulong>>())),
         );
     }
 }
@@ -309,15 +308,15 @@ fn from_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::from_digits", 8 * len),
+            BenchmarkId::new("Slong::from_digits", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| Aligned(S4096::from_digits(digits, ExpImpl { exp }))),
+            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Slong::from_digits(digits, ExpImpl { exp })))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::from_digits", 8 * len),
+            BenchmarkId::new("Ulong::from_digits", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| Aligned(U4096::from_digits(digits, ExpImpl { exp }))),
+            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Ulong::from_digits(digits, ExpImpl { exp })))),
         );
     }
 }
@@ -333,15 +332,15 @@ fn from_digits_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) 
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::from_digits_iter", 8 * len),
+            BenchmarkId::new("Slong::from_digits_iter", 8 * len),
             &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| Aligned(S4096::from_digits_iter(iter.clone(), ExpImpl { exp }))),
+            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Slong::from_digits_iter(iter.clone(), ExpImpl { exp })))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::from_digits_iter", 8 * len),
+            BenchmarkId::new("Ulong::from_digits_iter", 8 * len),
             &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| Aligned(U4096::from_digits_iter(iter.clone(), ExpImpl { exp }))),
+            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Ulong::from_digits_iter(iter.clone(), ExpImpl { exp })))),
         );
     }
 }
@@ -356,15 +355,15 @@ fn from_digits_radix(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng)
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::from_digits_radix", 8 * len),
+            BenchmarkId::new("Slong::from_digits_radix", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| Aligned(S4096::from_digits(digits, RadixImpl { radix }))),
+            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Slong::from_digits(digits, RadixImpl { radix })))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::from_digits_radix", 8 * len),
+            BenchmarkId::new("Ulong::from_digits_radix", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| Aligned(U4096::from_digits(digits, RadixImpl { radix }))),
+            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Ulong::from_digits(digits, RadixImpl { radix })))),
         );
     }
 }
@@ -379,15 +378,15 @@ fn from_digits_radix_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::from_digits_radix_iter", 8 * len),
+            BenchmarkId::new("Slong::from_digits_radix_iter", 8 * len),
             &(&digits[..len].iter().copied(), radix),
-            |b, &(iter, radix)| b.iter(|| S4096::from_digits_iter(iter.clone(), RadixImpl { radix })),
+            |b, &(iter, radix)| b.iter(|| black_box(Slong::from_digits_iter(iter.clone(), RadixImpl { radix }))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::from_digits_radix_iter", 8 * len),
+            BenchmarkId::new("Ulong::from_digits_radix_iter", 8 * len),
             &(&digits[..len].iter().copied(), radix),
-            |b, &(iter, radix)| b.iter(|| U4096::from_digits_iter(iter.clone(), RadixImpl { radix })),
+            |b, &(iter, radix)| b.iter(|| black_box(Ulong::from_digits_iter(iter.clone(), RadixImpl { radix }))),
         );
     }
 }
@@ -397,21 +396,21 @@ fn to_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
-        let signed = S4096::nd_from(&bytes[..]);
-        let unsigned = U4096::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..]);
+        let unsigned = Ulong::nd_from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::to_digits", radix),
+            BenchmarkId::new("Slong::to_digits", radix),
             &(&signed, exp),
-            |b, &(long, exp)| b.iter(|| long.to_digits(ExpImpl { exp })),
+            |b, &(long, exp)| b.iter_with_large_drop(|| black_box(long.to_digits(ExpImpl { exp }))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::to_digits", radix),
+            BenchmarkId::new("Ulong::to_digits", radix),
             &(&unsigned, exp),
-            |b, &(long, exp)| b.iter(|| long.to_digits(ExpImpl { exp })),
+            |b, &(long, exp)| b.iter_with_large_drop(|| black_box(long.to_digits(ExpImpl { exp }))),
         );
     }
 }
@@ -421,21 +420,21 @@ fn to_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdR
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
-        let signed = S4096::nd_from(&bytes[..]);
-        let unsigned = U4096::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..]);
+        let unsigned = Ulong::nd_from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::to_digits::count", radix),
+            BenchmarkId::new("Slong::to_digits::count", radix),
             &(&signed, exp),
-            |b, &(long, exp)| b.iter(|| long.to_digits_iter(ExpImpl { exp }).map(|it| it.count())),
+            |b, &(long, exp)| b.iter(|| black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.count()))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::to_digits::count", radix),
+            BenchmarkId::new("Ulong::to_digits::count", radix),
             &(&unsigned, exp),
-            |b, &(long, exp)| b.iter(|| long.to_digits_iter(ExpImpl { exp }).map(|it| it.count())),
+            |b, &(long, exp)| b.iter(|| black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.count()))),
         );
     }
 }
@@ -445,21 +444,29 @@ fn to_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
-        let signed = S4096::nd_from(&bytes[..]);
-        let unsigned = U4096::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..]);
+        let unsigned = Ulong::nd_from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::to_digits::collect", radix),
+            BenchmarkId::new("Slong::to_digits::collect", radix),
             &(&signed, exp),
-            |b, &(long, exp)| b.iter(|| long.to_digits_iter(ExpImpl { exp }).map(|it| it.collect::<Vec<u8>>())),
+            |b, &(long, exp)| {
+                b.iter_with_large_drop(|| {
+                    black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.collect::<Vec<u8>>()))
+                })
+            },
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::to_digits::collect", radix),
+            BenchmarkId::new("Ulong::to_digits::collect", radix),
             &(&unsigned, exp),
-            |b, &(long, exp)| b.iter(|| long.to_digits_iter(ExpImpl { exp }).map(|it| it.collect::<Vec<u8>>())),
+            |b, &(long, exp)| {
+                b.iter_with_large_drop(|| {
+                    black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.collect::<Vec<u8>>()))
+                })
+            },
         );
     }
 }
@@ -468,21 +475,21 @@ fn into_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::nd_from(&bytes[..]);
-        let unsigned = U4096::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..]);
+        let unsigned = Ulong::nd_from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::into_digits", radix),
+            BenchmarkId::new("Slong::into_digits", radix),
             &(&signed, radix),
-            |b, &(long, radix)| b.iter(|| long.into_digits(RadixImpl { radix })),
+            |b, &(long, radix)| b.iter_with_large_drop(|| black_box(long.into_digits(RadixImpl { radix }))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::into_digits", radix),
+            BenchmarkId::new("Ulong::into_digits", radix),
             &(&unsigned, radix),
-            |b, &(long, radix)| b.iter(|| long.into_digits(RadixImpl { radix })),
+            |b, &(long, radix)| b.iter_with_large_drop(|| black_box(long.into_digits(RadixImpl { radix }))),
         );
     }
 }
@@ -491,21 +498,21 @@ fn into_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::nd_from(&bytes[..]);
-        let unsigned = U4096::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..]);
+        let unsigned = Ulong::nd_from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::into_digits::count", radix),
+            BenchmarkId::new("Slong::into_digits::count", radix),
             &(&signed, radix),
-            |b, &(long, radix)| b.iter(|| long.into_digits_iter(RadixImpl { radix }).map(|it| it.count())),
+            |b, &(long, radix)| b.iter(|| black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.count()))),
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::into_digits::count", radix),
+            BenchmarkId::new("Ulong::into_digits::count", radix),
             &(&unsigned, radix),
-            |b, &(long, radix)| b.iter(|| long.into_digits_iter(RadixImpl { radix }).map(|it| it.count())),
+            |b, &(long, radix)| b.iter(|| black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.count()))),
         );
     }
 }
@@ -514,24 +521,28 @@ fn into_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut 
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::nd_from(&bytes[..]);
-        let unsigned = U4096::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..]);
+        let unsigned = Ulong::nd_from(&bytes[..]);
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("S4096::into_digits::collect", radix),
+            BenchmarkId::new("Slong::into_digits::collect", radix),
             &(&signed, radix),
             |b, &(long, radix)| {
-                b.iter_with_large_drop(|| long.into_digits_iter(RadixImpl { radix }).map(|it| it.collect::<Vec<u8>>()))
+                b.iter_with_large_drop(|| {
+                    black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.collect::<Vec<u8>>()))
+                })
             },
         );
 
         group.bench_with_input(
-            BenchmarkId::new("U4096::into_digits::collect", radix),
+            BenchmarkId::new("Ulong::into_digits::collect", radix),
             &(&unsigned, radix),
             |b, &(long, radix)| {
-                b.iter_with_large_drop(|| long.into_digits_iter(RadixImpl { radix }).map(|it| it.collect::<Vec<u8>>()))
+                b.iter_with_large_drop(|| {
+                    black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.collect::<Vec<u8>>()))
+                })
             },
         );
     }
@@ -542,8 +553,8 @@ fn from_str(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let len = BYTES >> shift;
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::nd_from(&bytes[..len]);
-        let unsigned = U4096::nd_from(&bytes[..len]);
+        let signed = Slong::nd_from(&bytes[..len]);
+        let unsigned = Ulong::nd_from(&bytes[..len]);
 
         let dec_signed = format!("{:#}", &signed);
         let bin_signed = format!("{:#b}", &signed);
@@ -556,43 +567,43 @@ fn from_str(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let hex_unsigned = format!("{:#x}", &unsigned);
 
         group.throughput(Throughput::Bytes(dec_signed.len() as u64));
-        group.bench_with_input(BenchmarkId::new("S4096::from_str::dec", 8 * len), &dec_signed, |b, str| {
-            b.iter(|| S4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Slong::from_str::dec", 8 * len), &dec_signed, |b, str| {
+            b.iter(|| black_box(Slong::from_str(str)))
         });
 
         group.throughput(Throughput::Bytes(dec_unsigned.len() as u64));
-        group.bench_with_input(BenchmarkId::new("U4096::from_str::dec", 8 * len), &dec_unsigned, |b, str| {
-            b.iter(|| U4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Ulong::from_str::dec", 8 * len), &dec_unsigned, |b, str| {
+            b.iter(|| black_box(Ulong::from_str(str)))
         });
 
         group.throughput(Throughput::Bytes(bin_signed.len() as u64));
-        group.bench_with_input(BenchmarkId::new("S4096::from_str::bin", 8 * len), &bin_signed, |b, str| {
-            b.iter(|| S4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Slong::from_str::bin", 8 * len), &bin_signed, |b, str| {
+            b.iter(|| black_box(Slong::from_str(str)))
         });
 
         group.throughput(Throughput::Bytes(bin_unsigned.len() as u64));
-        group.bench_with_input(BenchmarkId::new("U4096::from_str::bin", 8 * len), &bin_unsigned, |b, str| {
-            b.iter(|| U4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Ulong::from_str::bin", 8 * len), &bin_unsigned, |b, str| {
+            b.iter(|| black_box(Ulong::from_str(str)))
         });
 
         group.throughput(Throughput::Bytes(oct_signed.len() as u64));
-        group.bench_with_input(BenchmarkId::new("S4096::from_str::oct", 8 * len), &oct_signed, |b, str| {
-            b.iter(|| S4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Slong::from_str::oct", 8 * len), &oct_signed, |b, str| {
+            b.iter(|| black_box(Slong::from_str(str)))
         });
 
         group.throughput(Throughput::Bytes(oct_unsigned.len() as u64));
-        group.bench_with_input(BenchmarkId::new("U4096::from_str::oct", 8 * len), &oct_unsigned, |b, str| {
-            b.iter(|| U4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Ulong::from_str::oct", 8 * len), &oct_unsigned, |b, str| {
+            b.iter(|| black_box(Ulong::from_str(str)))
         });
 
         group.throughput(Throughput::Bytes(hex_signed.len() as u64));
-        group.bench_with_input(BenchmarkId::new("S4096::from_str::hex", 8 * len), &hex_signed, |b, str| {
-            b.iter(|| S4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Slong::from_str::hex", 8 * len), &hex_signed, |b, str| {
+            b.iter(|| black_box(Slong::from_str(str)))
         });
 
         group.throughput(Throughput::Bytes(hex_unsigned.len() as u64));
-        group.bench_with_input(BenchmarkId::new("U4096::from_str::hex", 8 * len), &hex_unsigned, |b, str| {
-            b.iter(|| U4096::from_str(str))
+        group.bench_with_input(BenchmarkId::new("Ulong::from_str::hex", 8 * len), &hex_unsigned, |b, str| {
+            b.iter(|| black_box(Ulong::from_str(str)))
         });
     }
 }
@@ -602,284 +613,284 @@ fn to_str(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let len = BYTES >> shift;
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = S4096::nd_from(&bytes[..len]);
-        let unsigned = U4096::nd_from(&bytes[..len]);
+        let signed = Slong::nd_from(&bytes[..len]);
+        let unsigned = Ulong::nd_from(&bytes[..len]);
 
         group.throughput(Throughput::Bytes(len as u64));
 
-        group.bench_with_input(BenchmarkId::new("S4096::to_str::dec", 8 * len), &signed, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#}", long))
+        group.bench_with_input(BenchmarkId::new("Slong::to_str::dec", 8 * len), &signed, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#}", long)))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096::to_str::dec", 8 * len), &unsigned, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#}", long))
+        group.bench_with_input(BenchmarkId::new("Ulong::to_str::dec", 8 * len), &unsigned, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#}", long)))
         });
 
-        group.bench_with_input(BenchmarkId::new("S4096::to_str::bin", 8 * len), &signed, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#b}", long))
+        group.bench_with_input(BenchmarkId::new("Slong::to_str::bin", 8 * len), &signed, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#b}", long)))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096::to_str::bin", 8 * len), &unsigned, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#b}", long))
+        group.bench_with_input(BenchmarkId::new("Ulong::to_str::bin", 8 * len), &unsigned, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#b}", long)))
         });
 
-        group.bench_with_input(BenchmarkId::new("S4096::to_str::oct", 8 * len), &signed, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#o}", long))
+        group.bench_with_input(BenchmarkId::new("Slong::to_str::oct", 8 * len), &signed, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#o}", long)))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096::to_str::oct", 8 * len), &unsigned, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#o}", long))
+        group.bench_with_input(BenchmarkId::new("Ulong::to_str::oct", 8 * len), &unsigned, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#o}", long)))
         });
 
-        group.bench_with_input(BenchmarkId::new("S4096::to_str::hex", 8 * len), &signed, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#x}", long))
+        group.bench_with_input(BenchmarkId::new("Slong::to_str::hex", 8 * len), &signed, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#x}", long)))
         });
 
-        group.bench_with_input(BenchmarkId::new("U4096::to_str::hex", 8 * len), &unsigned, |b, long| {
-            b.iter_with_large_drop(|| format!("{:#x}", long))
+        group.bench_with_input(BenchmarkId::new("Ulong::to_str::hex", 8 * len), &unsigned, |b, long| {
+            b.iter_with_large_drop(|| black_box(format!("{:#x}", long)))
         });
     }
 }
 
 fn ops(group: &mut BenchmarkGroup<'_, WallTime>) {
     let s4096 = Aligned([
-        composite!(S4096, i64, 0, 2),
-        composite!(S4096, i64, 1, 2),
-        composite!(S4096, i64, 1, 4),
+        composite!(Slong, i64, 0, 2),
+        composite!(Slong, i64, 1, 2),
+        composite!(Slong, i64, 1, 4),
     ]);
 
     let u4096 = Aligned([
-        composite!(U4096, u64, 0, 2),
-        composite!(U4096, u64, 1, 2),
-        composite!(U4096, u64, 1, 4),
+        composite!(Ulong, u64, 0, 2),
+        composite!(Ulong, u64, 1, 2),
+        composite!(Ulong, u64, 1, 4),
     ]);
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs + rhs),
-        "U4096::add",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs + rhs),
-        "S4096::sub",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs - rhs),
-        "U4096::sub",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs - rhs),
-        "S4096::mul",     &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs * rhs),
-        "U4096::mul",     &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs * rhs),
-        "S4096::div",     &s4096, |[lhs, _, rhs]: &[S4096; 3]| std::hint::black_box(lhs / rhs),
-        "U4096::div",     &u4096, |[lhs, _, rhs]: &[U4096; 3]| std::hint::black_box(lhs / rhs),
-        "S4096::rem",     &s4096, |[lhs, _, rhs]: &[S4096; 3]| std::hint::black_box(lhs % rhs),
-        "U4096::rem",     &u4096, |[lhs, _, rhs]: &[U4096; 3]| std::hint::black_box(lhs % rhs),
-        "S4096::bitor",   &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs | rhs),
-        "U4096::bitor",   &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs | rhs),
-        "S4096::bitand",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs & rhs),
-        "U4096::bitand",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs & rhs),
-        "S4096::bitxor",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| std::hint::black_box(lhs ^ rhs),
-        "U4096::bitxor",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| std::hint::black_box(lhs ^ rhs),
+        "Slong::add",     &s4096, |[lhs, rhs, _]: &[Slong; 3]| black_box(lhs + rhs),
+        "Ulong::add",     &u4096, |[lhs, rhs, _]: &[Ulong; 3]| black_box(lhs + rhs),
+        "Slong::sub",     &s4096, |[lhs, rhs, _]: &[Slong; 3]| black_box(lhs - rhs),
+        "Ulong::sub",     &u4096, |[lhs, rhs, _]: &[Ulong; 3]| black_box(lhs - rhs),
+        "Slong::mul",     &s4096, |[lhs, rhs, _]: &[Slong; 3]| black_box(lhs * rhs),
+        "Ulong::mul",     &u4096, |[lhs, rhs, _]: &[Ulong; 3]| black_box(lhs * rhs),
+        "Slong::div",     &s4096, |[lhs, _, rhs]: &[Slong; 3]| black_box(lhs / rhs),
+        "Ulong::div",     &u4096, |[lhs, _, rhs]: &[Ulong; 3]| black_box(lhs / rhs),
+        "Slong::rem",     &s4096, |[lhs, _, rhs]: &[Slong; 3]| black_box(lhs % rhs),
+        "Ulong::rem",     &u4096, |[lhs, _, rhs]: &[Ulong; 3]| black_box(lhs % rhs),
+        "Slong::bitor",   &s4096, |[lhs, rhs, _]: &[Slong; 3]| black_box(lhs | rhs),
+        "Ulong::bitor",   &u4096, |[lhs, rhs, _]: &[Ulong; 3]| black_box(lhs | rhs),
+        "Slong::bitand",  &s4096, |[lhs, rhs, _]: &[Slong; 3]| black_box(lhs & rhs),
+        "Ulong::bitand",  &u4096, |[lhs, rhs, _]: &[Ulong; 3]| black_box(lhs & rhs),
+        "Slong::bitxor",  &s4096, |[lhs, rhs, _]: &[Slong; 3]| black_box(lhs ^ rhs),
+        "Ulong::bitxor",  &u4096, |[lhs, rhs, _]: &[Ulong; 3]| black_box(lhs ^ rhs),
     ] };
 
     exec! { group => [
-        "S4096::shl", &s4096, |[val, _, _]: &[S4096; 3]| std::hint::black_box(val << 7),
-        "U4096::shl", &u4096, |[val, _, _]: &[U4096; 3]| std::hint::black_box(val << 7),
-        "S4096::shr", &s4096, |[val, _, _]: &[S4096; 3]| std::hint::black_box(val >> 7),
-        "U4096::shr", &u4096, |[val, _, _]: &[U4096; 3]| std::hint::black_box(val >> 7),
+        "Slong::shl", &s4096, |[val, _, _]: &[Slong; 3]| black_box(val << 7),
+        "Ulong::shl", &u4096, |[val, _, _]: &[Ulong; 3]| black_box(val << 7),
+        "Slong::shr", &s4096, |[val, _, _]: &[Slong; 3]| black_box(val >> 7),
+        "Ulong::shr", &u4096, |[val, _, _]: &[Ulong; 3]| black_box(val >> 7),
     ] };
 }
 
 fn ops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     let s4096 = Aligned([
-        composite!(S4096, i64, 0, 2),
-        composite!(S4096, i64, 1, 2),
-        composite!(S4096, i64, 1, 4),
+        composite!(Slong, i64, 0, 2),
+        composite!(Slong, i64, 1, 2),
+        composite!(Slong, i64, 1, 4),
     ]);
 
     let u4096 = Aligned([
-        composite!(U4096, u64, 0, 2),
-        composite!(U4096, u64, 1, 2),
-        composite!(U4096, u64, 1, 4),
+        composite!(Ulong, u64, 0, 2),
+        composite!(Ulong, u64, 1, 2),
+        composite!(Ulong, u64, 1, 4),
     ]);
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val += rhs; std::hint::black_box(&val); },
-        "U4096::add_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val += rhs; std::hint::black_box(&val); },
-        "S4096::sub_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val -= rhs; std::hint::black_box(&val); },
-        "U4096::sub_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val -= rhs; std::hint::black_box(&val); },
-        "S4096::mul_mut",    &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val *= rhs; std::hint::black_box(&val); },
-        "U4096::mul_mut",    &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val *= rhs; std::hint::black_box(&val); },
-        "S4096::div_mut",    &s4096, |[lhs, _, rhs]: &[S4096; 3]| { let mut val = *lhs; val /= rhs; std::hint::black_box(&val); },
-        "U4096::div_mut",    &u4096, |[lhs, _, rhs]: &[U4096; 3]| { let mut val = *lhs; val /= rhs; std::hint::black_box(&val); },
-        "S4096::rem_mut",    &s4096, |[lhs, _, rhs]: &[S4096; 3]| { let mut val = *lhs; val %= rhs; std::hint::black_box(&val); },
-        "U4096::rem_mut",    &u4096, |[lhs, _, rhs]: &[U4096; 3]| { let mut val = *lhs; val %= rhs; std::hint::black_box(&val); },
-        "S4096::bitor_mut",  &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val |= rhs; std::hint::black_box(&val); },
-        "U4096::bitor_mut",  &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val |= rhs; std::hint::black_box(&val); },
-        "S4096::bitand_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val &= rhs; std::hint::black_box(&val); },
-        "U4096::bitand_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val &= rhs; std::hint::black_box(&val); },
-        "S4096::bitxor_mut", &s4096, |[lhs, rhs, _]: &[S4096; 3]| { let mut val = *lhs; val ^= rhs; std::hint::black_box(&val); },
-        "U4096::bitxor_mut", &u4096, |[lhs, rhs, _]: &[U4096; 3]| { let mut val = *lhs; val ^= rhs; std::hint::black_box(&val); },
+        "Slong::add_mut",    &s4096, |[lhs, rhs, _]: &[Slong; 3]| { let mut val = *lhs; val += rhs; black_box(&val); },
+        "Ulong::add_mut",    &u4096, |[lhs, rhs, _]: &[Ulong; 3]| { let mut val = *lhs; val += rhs; black_box(&val); },
+        "Slong::sub_mut",    &s4096, |[lhs, rhs, _]: &[Slong; 3]| { let mut val = *lhs; val -= rhs; black_box(&val); },
+        "Ulong::sub_mut",    &u4096, |[lhs, rhs, _]: &[Ulong; 3]| { let mut val = *lhs; val -= rhs; black_box(&val); },
+        "Slong::mul_mut",    &s4096, |[lhs, rhs, _]: &[Slong; 3]| { let mut val = *lhs; val *= rhs; black_box(&val); },
+        "Ulong::mul_mut",    &u4096, |[lhs, rhs, _]: &[Ulong; 3]| { let mut val = *lhs; val *= rhs; black_box(&val); },
+        "Slong::div_mut",    &s4096, |[lhs, _, rhs]: &[Slong; 3]| { let mut val = *lhs; val /= rhs; black_box(&val); },
+        "Ulong::div_mut",    &u4096, |[lhs, _, rhs]: &[Ulong; 3]| { let mut val = *lhs; val /= rhs; black_box(&val); },
+        "Slong::rem_mut",    &s4096, |[lhs, _, rhs]: &[Slong; 3]| { let mut val = *lhs; val %= rhs; black_box(&val); },
+        "Ulong::rem_mut",    &u4096, |[lhs, _, rhs]: &[Ulong; 3]| { let mut val = *lhs; val %= rhs; black_box(&val); },
+        "Slong::bitor_mut",  &s4096, |[lhs, rhs, _]: &[Slong; 3]| { let mut val = *lhs; val |= rhs; black_box(&val); },
+        "Ulong::bitor_mut",  &u4096, |[lhs, rhs, _]: &[Ulong; 3]| { let mut val = *lhs; val |= rhs; black_box(&val); },
+        "Slong::bitand_mut", &s4096, |[lhs, rhs, _]: &[Slong; 3]| { let mut val = *lhs; val &= rhs; black_box(&val); },
+        "Ulong::bitand_mut", &u4096, |[lhs, rhs, _]: &[Ulong; 3]| { let mut val = *lhs; val &= rhs; black_box(&val); },
+        "Slong::bitxor_mut", &s4096, |[lhs, rhs, _]: &[Slong; 3]| { let mut val = *lhs; val ^= rhs; black_box(&val); },
+        "Ulong::bitxor_mut", &u4096, |[lhs, rhs, _]: &[Ulong; 3]| { let mut val = *lhs; val ^= rhs; black_box(&val); },
     ] };
 
     exec! { group => [
-        "S4096::shl_mut", &s4096, |[val, _, _]: &[S4096; 3]| { let mut val = *val; val <<= 7; std::hint::black_box(&val); },
-        "U4096::shl_mut", &u4096, |[val, _, _]: &[U4096; 3]| { let mut val = *val; val <<= 7; std::hint::black_box(&val); },
-        "S4096::shr_mut", &s4096, |[val, _, _]: &[S4096; 3]| { let mut val = *val; val >>= 7; std::hint::black_box(&val); },
-        "U4096::shr_mut", &u4096, |[val, _, _]: &[U4096; 3]| { let mut val = *val; val >>= 7; std::hint::black_box(&val); },
+        "Slong::shl_mut", &s4096, |[val, _, _]: &[Slong; 3]| { let mut val = *val; val <<= 7; black_box(&val); },
+        "Ulong::shl_mut", &u4096, |[val, _, _]: &[Ulong; 3]| { let mut val = *val; val <<= 7; black_box(&val); },
+        "Slong::shr_mut", &s4096, |[val, _, _]: &[Slong; 3]| { let mut val = *val; val >>= 7; black_box(&val); },
+        "Ulong::shr_mut", &u4096, |[val, _, _]: &[Ulong; 3]| { let mut val = *val; val >>= 7; black_box(&val); },
     ] };
 }
 
 #[allow(clippy::unnecessary_cast)]
 fn ops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let s4096 = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
-    let u4096 = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
+    let s4096 = Aligned((composite!(Slong, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Isize));
+    let u4096 = Aligned((composite!(Ulong, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Usize));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs + *rhs),
-        "U4096::add_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs + *rhs),
-        "S4096::sub_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs - *rhs),
-        "U4096::sub_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs - *rhs),
-        "S4096::mul_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs * *rhs),
-        "U4096::mul_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs * *rhs),
-        "S4096::div_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs / *rhs),
-        "U4096::div_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs / *rhs),
-        "S4096::rem_single",    &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs % *rhs),
-        "U4096::rem_single",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs % *rhs),
-        "S4096::bitor_single",  &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs | *rhs),
-        "U4096::bitor_single",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs | *rhs),
-        "S4096::bitand_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs & *rhs),
-        "U4096::bitand_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs & *rhs),
-        "S4096::bitxor_single", &s4096, |(lhs, rhs): &(S4096, Signed)  | std::hint::black_box(lhs ^ *rhs),
-        "U4096::bitxor_single", &u4096, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(lhs ^ *rhs),
+        "Slong::add_single",    &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs + *rhs),
+        "Ulong::add_single",    &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs + *rhs),
+        "Slong::sub_single",    &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs - *rhs),
+        "Ulong::sub_single",    &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs - *rhs),
+        "Slong::mul_single",    &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs * *rhs),
+        "Ulong::mul_single",    &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs * *rhs),
+        "Slong::div_single",    &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs / *rhs),
+        "Ulong::div_single",    &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs / *rhs),
+        "Slong::rem_single",    &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs % *rhs),
+        "Ulong::rem_single",    &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs % *rhs),
+        "Slong::bitor_single",  &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs | *rhs),
+        "Ulong::bitor_single",  &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs | *rhs),
+        "Slong::bitand_single", &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs & *rhs),
+        "Ulong::bitand_single", &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs & *rhs),
+        "Slong::bitxor_single", &s4096, |(lhs, rhs): &(Slong, Isize)| black_box(lhs ^ *rhs),
+        "Ulong::bitxor_single", &u4096, |(lhs, rhs): &(Ulong, Usize)| black_box(lhs ^ *rhs),
     ] };
 }
 
 #[allow(clippy::unnecessary_cast)]
 fn ops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let s4096 = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
-    let u4096 = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
+    let s4096 = Aligned((composite!(Slong, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Isize));
+    let u4096 = Aligned((composite!(Ulong, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Usize));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "S4096::add_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val += *rhs; std::hint::black_box(&val); },
-        "U4096::add_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val += *rhs; std::hint::black_box(&val); },
-        "S4096::sub_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val -= *rhs; std::hint::black_box(&val); },
-        "U4096::sub_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val -= *rhs; std::hint::black_box(&val); },
-        "S4096::mul_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val *= *rhs; std::hint::black_box(&val); },
-        "U4096::mul_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val *= *rhs; std::hint::black_box(&val); },
-        "S4096::div_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val /= *rhs; std::hint::black_box(&val); },
-        "U4096::div_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val /= *rhs; std::hint::black_box(&val); },
-        "S4096::rem_single_mut",    &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val %= *rhs; std::hint::black_box(&val); },
-        "U4096::rem_single_mut",    &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val %= *rhs; std::hint::black_box(&val); },
-        "S4096::bitor_single_mut",  &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val |= *rhs; std::hint::black_box(&val); },
-        "U4096::bitor_single_mut",  &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val |= *rhs; std::hint::black_box(&val); },
-        "S4096::bitand_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val &= *rhs; std::hint::black_box(&val); },
-        "U4096::bitand_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val &= *rhs; std::hint::black_box(&val); },
-        "S4096::bitxor_single_mut", &s4096, |(lhs, rhs): &(S4096, Signed)  | { let mut val = *lhs; val ^= *rhs; std::hint::black_box(&val); },
-        "U4096::bitxor_single_mut", &u4096, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; val ^= *rhs; std::hint::black_box(&val); },
+        "Slong::add_single_mut",    &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val += *rhs; black_box(&val); },
+        "Ulong::add_single_mut",    &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val += *rhs; black_box(&val); },
+        "Slong::sub_single_mut",    &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val -= *rhs; black_box(&val); },
+        "Ulong::sub_single_mut",    &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val -= *rhs; black_box(&val); },
+        "Slong::mul_single_mut",    &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val *= *rhs; black_box(&val); },
+        "Ulong::mul_single_mut",    &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val *= *rhs; black_box(&val); },
+        "Slong::div_single_mut",    &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val /= *rhs; black_box(&val); },
+        "Ulong::div_single_mut",    &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val /= *rhs; black_box(&val); },
+        "Slong::rem_single_mut",    &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val %= *rhs; black_box(&val); },
+        "Ulong::rem_single_mut",    &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val %= *rhs; black_box(&val); },
+        "Slong::bitor_single_mut",  &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val |= *rhs; black_box(&val); },
+        "Ulong::bitor_single_mut",  &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val |= *rhs; black_box(&val); },
+        "Slong::bitand_single_mut", &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val &= *rhs; black_box(&val); },
+        "Ulong::bitand_single_mut", &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val &= *rhs; black_box(&val); },
+        "Slong::bitxor_single_mut", &s4096, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; val ^= *rhs; black_box(&val); },
+        "Ulong::bitxor_single_mut", &u4096, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; val ^= *rhs; black_box(&val); },
     ] };
 }
 
 fn uops(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let args = Aligned([composite!(U4096, u64, 0, 2), composite!(U4096, u64, 1, 2)]);
+    let args = Aligned([composite!(Ulong, u64, 0, 2), composite!(Ulong, u64, 1, 2)]);
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "not",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::not   (&lhs.0)),
-        "pos",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::pos   (&lhs.0)),
-        "neg",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::neg   (&lhs.0)),
-        "inc",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::inc   (&lhs.0)),
-        "dec",     &args, |[lhs,   _]: &[U4096; 2]| std::hint::black_box(uops::dec   (&lhs.0)),
-        "add",     &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::add   (&lhs.0, &rhs.0)),
-        "sub",     &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::sub   (&lhs.0, &rhs.0)),
-        "bitor",   &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::bitor (&lhs.0, &rhs.0)),
-        "bitand",  &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::bitand(&lhs.0, &rhs.0)),
-        "bitxor",  &args, |[lhs, rhs]: &[U4096; 2]| std::hint::black_box(uops::bitxor(&lhs.0, &rhs.0)),
+        "not",     &args, |[lhs,   _]: &[Ulong; 2]| black_box(uops::not   (&lhs.0)),
+        "pos",     &args, |[lhs,   _]: &[Ulong; 2]| black_box(uops::pos   (&lhs.0)),
+        "neg",     &args, |[lhs,   _]: &[Ulong; 2]| black_box(uops::neg   (&lhs.0)),
+        "inc",     &args, |[lhs,   _]: &[Ulong; 2]| black_box(uops::inc   (&lhs.0)),
+        "dec",     &args, |[lhs,   _]: &[Ulong; 2]| black_box(uops::dec   (&lhs.0)),
+        "add",     &args, |[lhs, rhs]: &[Ulong; 2]| black_box(uops::add   (&lhs.0, &rhs.0)),
+        "sub",     &args, |[lhs, rhs]: &[Ulong; 2]| black_box(uops::sub   (&lhs.0, &rhs.0)),
+        "bitor",   &args, |[lhs, rhs]: &[Ulong; 2]| black_box(uops::bitor (&lhs.0, &rhs.0)),
+        "bitand",  &args, |[lhs, rhs]: &[Ulong; 2]| black_box(uops::bitand(&lhs.0, &rhs.0)),
+        "bitxor",  &args, |[lhs, rhs]: &[Ulong; 2]| black_box(uops::bitxor(&lhs.0, &rhs.0)),
     ] };
 
     exec! { group => [
-        "shl", &args, |[val, _]: &[U4096; 2]| std::hint::black_box(uops::shl(&val.0, 7, 0)),
-        "shr", &args, |[val, _]: &[U4096; 2]| std::hint::black_box(uops::shr(&val.0, 7, 0)),
+        "shl", &args, |[val, _]: &[Ulong; 2]| black_box(uops::shl(&val.0, 7, 0)),
+        "shr", &args, |[val, _]: &[Ulong; 2]| black_box(uops::shr(&val.0, 7, 0)),
     ] };
 }
 
 fn uops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let args = Aligned([composite!(U4096, u64, 0, 2), composite!(U4096, u64, 1, 2)]);
+    let args = Aligned([composite!(Ulong, u64, 0, 2), composite!(Ulong, u64, 1, 2)]);
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "not_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::not_mut   (&mut val.0)); },
-        "pos_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::pos_mut   (&mut val.0)); },
-        "neg_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::neg_mut   (&mut val.0)); },
-        "inc_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::inc_mut   (&mut val.0)); },
-        "dec_mut",     &args, |[lhs,   _]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::dec_mut   (&mut val.0)); },
-        "add_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::add_mut   (&mut val.0, &rhs.0)); },
-        "sub_mut",     &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::sub_mut   (&mut val.0, &rhs.0)); },
-        "bitor_mut",   &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::bitor_mut (&mut val.0, &rhs.0)); },
-        "bitand_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::bitand_mut(&mut val.0, &rhs.0)); },
-        "bitxor_mut",  &args, |[lhs, rhs]: &[U4096; 2]| { let mut val = *lhs; std::hint::black_box(uops::bitxor_mut(&mut val.0, &rhs.0)); },
+        "not_mut",     &args, |[lhs,   _]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::not_mut   (&mut val.0)); },
+        "pos_mut",     &args, |[lhs,   _]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::pos_mut   (&mut val.0)); },
+        "neg_mut",     &args, |[lhs,   _]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::neg_mut   (&mut val.0)); },
+        "inc_mut",     &args, |[lhs,   _]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::inc_mut   (&mut val.0)); },
+        "dec_mut",     &args, |[lhs,   _]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::dec_mut   (&mut val.0)); },
+        "add_mut",     &args, |[lhs, rhs]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::add_mut   (&mut val.0, &rhs.0)); },
+        "sub_mut",     &args, |[lhs, rhs]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::sub_mut   (&mut val.0, &rhs.0)); },
+        "bitor_mut",   &args, |[lhs, rhs]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::bitor_mut (&mut val.0, &rhs.0)); },
+        "bitand_mut",  &args, |[lhs, rhs]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::bitand_mut(&mut val.0, &rhs.0)); },
+        "bitxor_mut",  &args, |[lhs, rhs]: &[Ulong; 2]| { let mut val = *lhs; black_box(uops::bitxor_mut(&mut val.0, &rhs.0)); },
     ] };
 
     exec! { group => [
-        "shl_mut", &args, |[val, _]: &[U4096; 2]| { let mut val = *val; std::hint::black_box(uops::shl_mut(&mut val.0, 7, 0)); },
-        "shr_mut", &args, |[val, _]: &[U4096; 2]| { let mut val = *val; std::hint::black_box(uops::shr_mut(&mut val.0, 7, 0)); },
+        "shl_mut", &args, |[val, _]: &[Ulong; 2]| { let mut val = *val; black_box(uops::shl_mut(&mut val.0, 7, 0)); },
+        "shr_mut", &args, |[val, _]: &[Ulong; 2]| { let mut val = *val; black_box(uops::shr_mut(&mut val.0, 7, 0)); },
     ] };
 }
 
 fn uops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let args = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
+    let args = Aligned((composite!(Ulong, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Usize));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::add_single   (&lhs.0, *rhs)),
-        "sub_single",     &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::sub_single   (&lhs.0, *rhs)),
-        "bitor_single",   &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::bitor_single (&lhs.0, *rhs)),
-        "bitand_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::bitand_single(&lhs.0, *rhs)),
-        "bitxor_single",  &args, |(lhs, rhs): &(U4096, Unsigned)| std::hint::black_box(uops::bitxor_single(&lhs.0, *rhs)),
+        "add_single",     &args, |(lhs, rhs): &(Ulong, Usize)| black_box(uops::add_single   (&lhs.0, *rhs)),
+        "sub_single",     &args, |(lhs, rhs): &(Ulong, Usize)| black_box(uops::sub_single   (&lhs.0, *rhs)),
+        "bitor_single",   &args, |(lhs, rhs): &(Ulong, Usize)| black_box(uops::bitor_single (&lhs.0, *rhs)),
+        "bitand_single",  &args, |(lhs, rhs): &(Ulong, Usize)| black_box(uops::bitand_single(&lhs.0, *rhs)),
+        "bitxor_single",  &args, |(lhs, rhs): &(Ulong, Usize)| black_box(uops::bitxor_single(&lhs.0, *rhs)),
     ] };
 }
 
 fn uops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let args = Aligned((composite!(U4096, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Unsigned));
+    let args = Aligned((composite!(Ulong, u64, 0, 2), (PRIMES[1] * PRIMES[3]) as Usize));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::add_single_mut   (&mut val.0, *rhs)); },
-        "sub_single_mut",     &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::sub_single_mut   (&mut val.0, *rhs)); },
-        "bitor_single_mut",   &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::bitor_single_mut (&mut val.0, *rhs)); },
-        "bitand_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::bitand_single_mut(&mut val.0, *rhs)); },
-        "bitxor_single_mut",  &args, |(lhs, rhs): &(U4096, Unsigned)| { let mut val = *lhs; std::hint::black_box(uops::bitxor_single_mut(&mut val.0, *rhs)); },
+        "add_single_mut",     &args, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; black_box(uops::add_single_mut   (&mut val.0, *rhs)); },
+        "sub_single_mut",     &args, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; black_box(uops::sub_single_mut   (&mut val.0, *rhs)); },
+        "bitor_single_mut",   &args, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; black_box(uops::bitor_single_mut (&mut val.0, *rhs)); },
+        "bitand_single_mut",  &args, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; black_box(uops::bitand_single_mut(&mut val.0, *rhs)); },
+        "bitxor_single_mut",  &args, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; black_box(uops::bitxor_single_mut(&mut val.0, *rhs)); },
     ] };
 }
 
 fn uops_signed(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let args = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
+    let args = Aligned((composite!(Slong, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Isize));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_signed",     &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::add_signed   (&lhs.0, *rhs)),
-        "sub_signed",     &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::sub_signed   (&lhs.0, *rhs)),
-        "bitor_signed",   &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::bitor_signed (&lhs.0, *rhs)),
-        "bitand_signed",  &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::bitand_signed(&lhs.0, *rhs)),
-        "bitxor_signed",  &args, |(lhs, rhs): &(S4096, Signed)| std::hint::black_box(uops::bitxor_signed(&lhs.0, *rhs)),
+        "add_signed",     &args, |(lhs, rhs): &(Slong, Isize)| black_box(uops::add_signed   (&lhs.0, *rhs)),
+        "sub_signed",     &args, |(lhs, rhs): &(Slong, Isize)| black_box(uops::sub_signed   (&lhs.0, *rhs)),
+        "bitor_signed",   &args, |(lhs, rhs): &(Slong, Isize)| black_box(uops::bitor_signed (&lhs.0, *rhs)),
+        "bitand_signed",  &args, |(lhs, rhs): &(Slong, Isize)| black_box(uops::bitand_signed(&lhs.0, *rhs)),
+        "bitxor_signed",  &args, |(lhs, rhs): &(Slong, Isize)| black_box(uops::bitxor_signed(&lhs.0, *rhs)),
     ] };
 }
 
 fn uops_signed_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
-    let args = Aligned((composite!(S4096, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Signed));
+    let args = Aligned((composite!(Slong, i64, 0, 2), (PRIMES[1] * PRIMES[3]) as Isize));
 
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::add_signed_mut   (&mut val.0, *rhs)); },
-        "sub_signed_mut",     &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::sub_signed_mut   (&mut val.0, *rhs)); },
-        "bitor_signed_mut",   &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::bitor_signed_mut (&mut val.0, *rhs)); },
-        "bitand_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::bitand_signed_mut(&mut val.0, *rhs)); },
-        "bitxor_signed_mut",  &args, |(lhs, rhs): &(S4096, Signed)| { let mut val = *lhs; std::hint::black_box(uops::bitxor_signed_mut(&mut val.0, *rhs)); },
+        "add_signed_mut",     &args, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; black_box(uops::add_signed_mut   (&mut val.0, *rhs)); },
+        "sub_signed_mut",     &args, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; black_box(uops::sub_signed_mut   (&mut val.0, *rhs)); },
+        "bitor_signed_mut",   &args, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; black_box(uops::bitor_signed_mut (&mut val.0, *rhs)); },
+        "bitand_signed_mut",  &args, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; black_box(uops::bitand_signed_mut(&mut val.0, *rhs)); },
+        "bitxor_signed_mut",  &args, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; black_box(uops::bitxor_signed_mut(&mut val.0, *rhs)); },
     ] };
 }
 
