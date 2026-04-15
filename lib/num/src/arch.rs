@@ -388,6 +388,81 @@ pub mod word {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
+/// Aligned to 32-bytes type.
+///
+/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+#[rustfmt::skip]
+#[ndfwd::std(self.0 with T)]
+#[ndfwd::cmp(self.0 with T)]
+#[ndfwd::fmt(self.0 with T)]
+#[ndfwd::def(self.0 with T: BytesLen)]
+#[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: crate::NumFn)]
+#[ndfwd::def(self.0 with T: crate::NumPow)]
+#[ndfwd::def(self.0 with T: crate::NumGcd)]
+#[ndfwd::def(self.0 with T: crate::NumGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Num)]
+#[ndfwd::def(self.0 with T: crate::NumRand)]
+#[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[repr(align(32))]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Aligned32<T>(pub T);
+
+/// Aligned to 64-bytes type.
+///
+/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+#[rustfmt::skip]
+#[ndfwd::std(self.0 with T)]
+#[ndfwd::cmp(self.0 with T)]
+#[ndfwd::fmt(self.0 with T)]
+#[ndfwd::def(self.0 with T: BytesLen)]
+#[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: crate::NumFn)]
+#[ndfwd::def(self.0 with T: crate::NumPow)]
+#[ndfwd::def(self.0 with T: crate::NumGcd)]
+#[ndfwd::def(self.0 with T: crate::NumGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Num)]
+#[ndfwd::def(self.0 with T: crate::NumRand)]
+#[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[repr(align(64))]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Aligned64<T>(pub T);
+
+/// Aligned to 128-bytes type.
+///
+/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+#[rustfmt::skip]
+#[ndfwd::std(self.0 with T)]
+#[ndfwd::cmp(self.0 with T)]
+#[ndfwd::fmt(self.0 with T)]
+#[ndfwd::def(self.0 with T: BytesLen)]
+#[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: crate::NumFn)]
+#[ndfwd::def(self.0 with T: crate::NumPow)]
+#[ndfwd::def(self.0 with T: crate::NumGcd)]
+#[ndfwd::def(self.0 with T: crate::NumGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Num)]
+#[ndfwd::def(self.0 with T: crate::NumRand)]
+#[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[repr(align(128))]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Aligned128<T>(pub T);
+
 /// Offset for reading/writing binary mask.
 ///
 /// - `Offset::Left(val)` specifies `val`-bits offset from `0`.
@@ -478,7 +553,28 @@ pub trait BytesFn: Sized + Default + BytesLen {
 impl<T> From<T> for Aligned<T> {
     #[inline]
     fn from(value: T) -> Self {
-        Aligned(value)
+        Self(value)
+    }
+}
+
+impl<T> From<T> for Aligned32<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> From<T> for Aligned64<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> From<T> for Aligned128<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
     }
 }
 
@@ -491,6 +587,48 @@ impl<T> Deref for Aligned<T> {
 }
 
 impl<T> DerefMut for Aligned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T> Deref for Aligned32<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Aligned32<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T> Deref for Aligned64<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Aligned64<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T> Deref for Aligned128<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Aligned128<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
