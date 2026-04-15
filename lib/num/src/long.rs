@@ -1148,20 +1148,34 @@ pub mod uops {
     ///
     /// Yields `lhs * mul + rhs + acc`.
     pub struct ExprIter<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> {
-        lhs: Lhs,
-        rhs: Rhs,
-        mul: Single,
-        acc: Single,
+        /// Lhs iterator.
+        pub lhs: Lhs,
+
+        /// Rhs iterator.
+        pub rhs: Rhs,
+
+        /// Multiplier.
+        pub mul: Single,
+
+        /// Accumulator.
+        pub acc: Single,
     }
 
     /// Expression iterator mutable for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
     pub struct ExprIterMut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> {
-        lhs: Lhs,
-        rhs: Rhs,
-        mul: Single,
-        acc: Single,
+        /// Lhs iterator.
+        pub lhs: Lhs,
+
+        /// Rhs iterator.
+        pub rhs: Rhs,
+
+        /// Multiplier.
+        pub mul: Single,
+
+        /// Accumulator.
+        pub acc: Single,
     }
 
     /// Expression iterator interface.
@@ -1563,12 +1577,16 @@ pub mod uops {
     }
 
     /// Returns `lhs + rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
     #[inline]
     pub fn add_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
         Expr::add_signed(lhs.iter().copied(), rhs).collect_arr()
     }
 
     /// Returns `lhs - rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
     #[inline]
     pub fn sub_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
         Expr::sub_signed(lhs.iter().copied(), rhs).collect_arr()
@@ -1607,6 +1625,8 @@ pub mod uops {
     }
 
     /// Returns `lhs + rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
     #[inline]
     pub fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
         for _ in Expr::add_signed_mut(lhs.iter_mut(), rhs) {}
@@ -1615,6 +1635,8 @@ pub mod uops {
     }
 
     /// Returns `lhs - rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
     #[inline]
     pub fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
         for _ in Expr::sub_signed_mut(lhs.iter_mut(), rhs) {}
@@ -2061,6 +2083,73 @@ pub mod uops {
         use std::iter::repeat;
 
         eq_ct!(words.iter(), std::hint::black_box(repeat(0)))
+    }
+}
+
+pub mod algo {
+    //! # Algorithms
+    //!
+    //! **Long numbers/bytes algorithms**
+
+    use super::*;
+
+    /// Returns `lhs * rhs`.
+    #[inline]
+    #[ndasm::emit(const L: usize = 64)]
+    pub fn mul<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        let mut res = [0; L];
+
+        for (idx, val) in rhs.iter().copied().enumerate() {
+            let iter = ExprIterMut {
+                lhs: res[idx..].iter_mut(),
+                rhs: ExprIter {
+                    lhs: lhs.iter().copied(),
+                    rhs: std::iter::repeat(0),
+                    mul: val,
+                    acc: 0,
+                },
+                mul: val,
+                acc: 0,
+            };
+
+            for _ in iter {}
+        }
+
+        res
+    }
+
+    /// Returns `lhs * rhs`.
+    #[inline]
+    pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+        Expr::mul(lhs.iter().copied(), rhs).collect_arr()
+    }
+
+    /// Returns `lhs * rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn mul_signed<const L: usize>(_: &[Single; L], _: Single) -> [Single; L] {
+        todo!()
+    }
+
+    /// Returns `(lhs / rhs, lhs % rhs)`.
+    #[inline]
+    pub fn div<const L: usize>(_: &[Single; L], _: &[Single; L]) -> ([Single; L], [Single; L]) {
+        todo!()
+    }
+
+    /// Returns `(lhs / rhs, lhs % rhs)`.
+    #[inline]
+    pub fn div_single<const L: usize>(_: &[Single; L], _: Single) -> ([Single; L], [Single; L]) {
+        todo!()
+    }
+
+    /// Returns `(lhs / rhs, lhs % rhs)`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn div_signed<const L: usize>(_: &[Single; L], _: Single) -> ([Single; L], [Single; L]) {
+        todo!()
     }
 }
 
