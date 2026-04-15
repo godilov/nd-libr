@@ -2204,7 +2204,7 @@ pub mod uops {
         neg as SignCt | pos as SignCt
     }
 
-    /// Checks if `words > 0` in const-time.
+    /// Checks `words > 0` in const-time.
     #[inline(never)]
     #[cfg(feature = "const-time")]
     pub fn pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
@@ -2214,7 +2214,7 @@ pub mod uops {
         !zero & !neg
     }
 
-    /// Checks if `words < 0` in const-time.
+    /// Checks `words < 0` in const-time.
     #[inline(never)]
     #[cfg(feature = "const-time")]
     pub fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
@@ -2223,13 +2223,11 @@ pub mod uops {
         <MaskCt as Zero>::ZERO.wrapping_sub(neg)
     }
 
-    /// Checks if `words == 0` in const-time.
+    /// Checks `words == 0` in const-time.
     #[inline(never)]
     #[cfg(feature = "const-time")]
     pub fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        use std::iter::repeat;
-
-        eq_ct!(words.iter(), std::hint::black_box(repeat(0)))
+        eq_ct!(words.iter(), std::hint::black_box(std::iter::repeat(0)))
     }
 }
 
@@ -2246,16 +2244,9 @@ pub mod algo {
         let mut res = [0; L];
 
         for (idx, val) in rhs.iter().copied().enumerate() {
-            Expr::add_mut(
-                res[idx..].iter_mut(),
-                ExprIter {
-                    lhs: lhs.iter().copied(),
-                    rhs: std::iter::repeat(0),
-                    mul: val,
-                    acc: 0,
-                },
-            )
-            .for_each(|_| ());
+            let iter = Expr::mul(lhs.iter().copied(), val);
+
+            Expr::add_mut(res[idx..].iter_mut(), iter).for_each(|_| ());
         }
 
         res
@@ -2263,7 +2254,7 @@ pub mod algo {
 
     /// Returns `lhs * rhs`.
     #[inline]
-    pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
+    pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
         Expr::mul(lhs.iter().copied(), rhs).collect_arr()
     }
 
@@ -2271,8 +2262,47 @@ pub mod algo {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn mul_signed<const L: usize>(_: &[Single; L], _: Single) -> [Single; L] {
-        todo!()
+    pub fn mul_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
+        let rhs = rhs as Single;
+
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        let mut res = [0; L];
+
+        for (idx, val) in (0..L).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
+            let iter = Expr::mul(lhs.iter().copied(), val);
+
+            Expr::add_mut(res[idx..].iter_mut(), iter).for_each(|_| ());
+        }
+
+        res
+    }
+
+    /// Applies `lhs *= rhs`.
+    #[inline]
+    pub fn mul_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
+        *lhs = mul(lhs, rhs);
+        lhs
+    }
+
+    /// Applies `lhs *= rhs`.
+    #[inline]
+    pub fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+        Expr::mul_mut(lhs.iter_mut(), rhs).for_each(|_| ());
+
+        lhs
+    }
+
+    /// Applies `lhs *= rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
+        *lhs = mul_signed(lhs, rhs);
+        lhs
     }
 
     /// Returns `(lhs / rhs, lhs % rhs)`.
@@ -2283,7 +2313,7 @@ pub mod algo {
 
     /// Returns `(lhs / rhs, lhs % rhs)`.
     #[inline]
-    pub fn div_single<const L: usize>(_: &[Single; L], _: Single) -> ([Single; L], [Single; L]) {
+    pub fn div_single<const L: usize>(_: &[Single; L], _: <Single as NumFn>::Unsigned) -> ([Single; L], [Single; L]) {
         todo!()
     }
 
@@ -2291,7 +2321,47 @@ pub mod algo {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn div_signed<const L: usize>(_: &[Single; L], _: Single) -> ([Single; L], [Single; L]) {
+    pub fn div_signed<const L: usize>(_: &[Single; L], _: <Single as NumFn>::Signed) -> ([Single; L], [Single; L]) {
+        todo!()
+    }
+
+    /// Applies `lhs /= rhs`.
+    #[inline]
+    pub fn div_mut<'words, const L: usize>(_: &'words mut [Single; L], _: &[Single; L]) -> &'words mut [Single; L] {
+        todo!()
+    }
+
+    /// Applies `lhs /= rhs`.
+    #[inline]
+    pub fn div_single_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+        todo!()
+    }
+
+    /// Applies `lhs /= rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn div_signed_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Signed) -> &mut [Single; L] {
+        todo!()
+    }
+
+    /// Applies `lhs %= rhs`.
+    #[inline]
+    pub fn rem_mut<'words, const L: usize>(_: &'words mut [Single; L], _: &[Single; L]) -> &'words mut [Single; L] {
+        todo!()
+    }
+
+    /// Applies `lhs %= rhs`.
+    #[inline]
+    pub fn rem_single_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+        todo!()
+    }
+
+    /// Applies `lhs %= rhs`.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn rem_signed_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Signed) -> &mut [Single; L] {
         todo!()
     }
 }
