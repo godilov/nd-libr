@@ -1260,6 +1260,29 @@ pub mod uops {
     }
 
     impl Expr {
+        /// Calculates `neg(long)` with carry propagation.
+        pub fn neg<Words: Iterator<Item = Single>>(words: Words) -> impl ExprIterator {
+            ExprIter {
+                lhs: words.map(|word| !word),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 1,
+            }
+        }
+
+        /// Calculates `neg(&mut long)` with carry propagation.
+        pub fn neg_mut<'words, Words: Iterator<Item = &'words mut Single>>(words: Words) -> impl ExprIteratorMut {
+            ExprIterMut {
+                lhs: words.map(|word| {
+                    *word = !*word;
+                    word
+                }),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 1,
+            }
+        }
+
         /// Calculates `add(long, long)` with carry propagation.
         #[inline]
         pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
@@ -1517,30 +1540,27 @@ pub mod uops {
     /// Returns `-words`.
     #[inline]
     pub fn neg<const L: usize>(words: &[Single; L]) -> [Single; L] {
-        ExprIter {
-            lhs: words.iter().map(|&word| !word),
-            rhs: std::iter::repeat(0),
-            mul: 1,
-            acc: 1,
-        }
-        .collect_arr()
+        Expr::neg(words.iter().copied()).collect_arr()
+    }
+
+    /// Returns `-words` with overflow.
+    #[inline]
+    pub fn neg_overflow<const L: usize>(words: &[Single; L]) -> ([Single; L], Option<Single>) {
+        overflow!(Expr::neg(words.iter().copied()))
     }
 
     /// Applies `words = -words`.
     #[inline]
     pub fn neg_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
-        ExprIterMut {
-            lhs: words.iter_mut().map(|word| {
-                *word = !*word;
-                word
-            }),
-            rhs: std::iter::repeat(0),
-            mul: 1,
-            acc: 1,
-        }
-        .for_each(|_| ());
+        Expr::neg_mut(words.iter_mut()).for_each(|_| ());
 
         words
+    }
+
+    /// Applies `words = -words` with overflow.
+    #[inline]
+    pub fn neg_overflow_mut<const L: usize>(words: &mut [Single; L]) -> Option<Single> {
+        overflow_mut!(Expr::neg_mut(words.iter_mut()))
     }
 
     /// Returns `words + 1`.
