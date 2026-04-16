@@ -2040,6 +2040,9 @@ pub mod uops {
         lhs
     }
 
+    /// Returns `words << shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
     #[inline]
     fn shl_fn<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> ([Single; L], bool) {
         use std::iter::repeat_n;
@@ -2066,6 +2069,9 @@ pub mod uops {
         (res, shift < BITS * L)
     }
 
+    /// Returns `words >> shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
     #[inline]
     fn shr_fn<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> ([Single; L], bool) {
         use std::iter::repeat_n;
@@ -2094,11 +2100,17 @@ pub mod uops {
         (res, shift < BITS * L)
     }
 
+    /// Returns `words << shift`.
+    ///
+    /// Words are sign-extended instead of zero-extended.
     #[inline]
     fn shl_signed_fn<const L: usize>(words: &[Single; L], shift: usize) -> ([Single; L], bool) {
         shl_fn(words, shift, 0)
     }
 
+    /// Returns `words >> shift`.
+    ///
+    /// Words are sign-extended instead of zero-extended.
     #[inline]
     fn shr_signed_fn<const L: usize>(words: &[Single; L], shift: usize) -> ([Single; L], bool) {
         let ext = match sign(words, Sign::POS, Sign::NEG) {
@@ -2110,6 +2122,9 @@ pub mod uops {
         shr_fn(words, shift, ext)
     }
 
+    /// Applies `words <<= shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
     #[inline]
     fn shl_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> bool {
         use std::iter::repeat_n;
@@ -2137,6 +2152,9 @@ pub mod uops {
         shift < BITS * L
     }
 
+    /// Applies `words >>= shift`.
+    ///
+    /// Argument `default` is used for filling bits outside of shift.
     #[inline]
     fn shr_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> bool {
         use std::iter::repeat_n;
@@ -2166,11 +2184,17 @@ pub mod uops {
         shift < BITS * L
     }
 
+    /// Applies `words <<= shift`.
+    ///
+    /// Words are sign-extended instead of zero-extended.
     #[inline]
     fn shl_signed_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize) -> bool {
         shl_mut_fn(words, shift, 0)
     }
 
+    /// Applies `words >>= shift`.
+    ///
+    /// Words are sign-extended instead of zero-extended.
     #[inline]
     fn shr_signed_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize) -> bool {
         let ext = match sign(words, Sign::POS, Sign::NEG) {
