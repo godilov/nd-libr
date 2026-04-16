@@ -1160,9 +1160,6 @@ pub mod uops {
         }};
     }
 
-    pub(super) use overflow;
-    pub(super) use overflow_mut;
-
     /// Entry point for uops expressions.
     pub struct Expr;
 
@@ -2284,7 +2281,12 @@ pub mod algo {
         lhs: &[Single; L],
         rhs: <Single as NumFn>::Unsigned,
     ) -> ([Single; L], Option<Single>) {
-        overflow!(Expr::mul(lhs.iter().copied(), rhs))
+        let mut iter = Expr::mul(lhs.iter().copied(), rhs);
+
+        let res = iter.collect_arr();
+        let acc = iter.acc();
+
+        (res, (acc > 0).then_some(acc))
     }
 
     /// Returns `lhs * rhs`.
