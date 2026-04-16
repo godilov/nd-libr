@@ -2040,6 +2040,148 @@ pub mod uops {
         lhs
     }
 
+    #[inline]
+    fn shl_fn<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> ([Single; L], bool) {
+        use std::iter::repeat_n;
+
+        let offset = (shift / BITS).min(L);
+        let shl = shift % BITS;
+        let shr = BITS - shl;
+
+        let mut acc = default;
+        let mut res = repeat_n(default, offset)
+            .chain(words[..L - offset].iter().copied())
+            .collect_arr();
+
+        for ptr in res[offset..].iter_mut() {
+            let val = *ptr;
+
+            let val_h = ptr.unbounded_shl(shl as u32);
+            let val_l = acc.unbounded_shr(shr as u32);
+
+            acc = val;
+            *ptr = val_h | val_l;
+        }
+
+        (res, shift < BITS * L)
+    }
+
+    #[inline]
+    fn shr_fn<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> ([Single; L], bool) {
+        use std::iter::repeat_n;
+
+        let offset = (shift / BITS).min(L);
+        let shl = shift % BITS;
+        let shr = BITS - shl;
+
+        let mut acc = default;
+        let mut res = words[offset..]
+            .iter()
+            .copied()
+            .chain(repeat_n(default, L - offset))
+            .collect_arr();
+
+        for ptr in res[..L - offset].iter_mut().rev() {
+            let val = *ptr;
+
+            let val_h = acc.unbounded_shl(shl as u32);
+            let val_l = ptr.unbounded_shr(shr as u32);
+
+            acc = val;
+            *ptr = val_h | val_l;
+        }
+
+        (res, shift < BITS * L)
+    }
+
+    #[inline]
+    fn shl_signed_fn<const L: usize>(words: &[Single; L], shift: usize) -> ([Single; L], bool) {
+        shl_fn(words, shift, 0)
+    }
+
+    #[inline]
+    fn shr_signed_fn<const L: usize>(words: &[Single; L], shift: usize) -> ([Single; L], bool) {
+        let ext = match sign(words, Sign::POS, Sign::NEG) {
+            Sign::ZERO => 0,
+            Sign::NEG => MAX,
+            Sign::POS => 0,
+        };
+
+        shr_fn(words, shift, ext)
+    }
+
+    #[inline]
+    fn shl_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> bool {
+        use std::iter::repeat_n;
+
+        let offset = (shift / BITS).min(L);
+        let shl = shift % BITS;
+        let shr = BITS - shl;
+
+        let mut acc = default;
+
+        *words = repeat_n(default, offset)
+            .chain(words[..L - offset].iter().copied())
+            .collect_arr();
+
+        for ptr in words[offset..].iter_mut() {
+            let val = *ptr;
+
+            let val_h = ptr.unbounded_shl(shl as u32);
+            let val_l = acc.unbounded_shr(shr as u32);
+
+            acc = val;
+            *ptr = val_h | val_l;
+        }
+
+        shift < BITS * L
+    }
+
+    #[inline]
+    fn shr_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> bool {
+        use std::iter::repeat_n;
+
+        let offset = (shift / BITS).min(L);
+        let shl = shift % BITS;
+        let shr = BITS - shl;
+
+        let mut acc = default;
+
+        *words = words[offset..]
+            .iter()
+            .copied()
+            .chain(repeat_n(default, L - offset))
+            .collect_arr();
+
+        for ptr in words[..L - offset].iter_mut().rev() {
+            let val = *ptr;
+
+            let val_h = acc.unbounded_shl(shl as u32);
+            let val_l = ptr.unbounded_shr(shr as u32);
+
+            acc = val;
+            *ptr = val_h | val_l;
+        }
+
+        shift < BITS * L
+    }
+
+    #[inline]
+    fn shl_signed_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize) -> bool {
+        shl_mut_fn(words, shift, 0)
+    }
+
+    #[inline]
+    fn shr_signed_mut_fn<const L: usize>(words: &mut [Single; L], shift: usize) -> bool {
+        let ext = match sign(words, Sign::POS, Sign::NEG) {
+            Sign::ZERO => 0,
+            Sign::NEG => MAX,
+            Sign::POS => 0,
+        };
+
+        shr_mut_fn(words, shift, ext)
+    }
+
     /// Returns `words << shift`.
     ///
     /// Argument `default` is used for filling bits outside of shift.
