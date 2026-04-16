@@ -226,17 +226,17 @@ macro_rules! nd_ops_primitive_impl {
             * Signed::<L>(mul_long(&lhs.0, &Signed::<L>::from(rhs).0)),
             / Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).0).signed(lhs.sign() * Sign::from(rhs)),
             % Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).1).signed(lhs.sign()),
-            | Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop | rop)),
-            & Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop & rop)),
-            ^ Signed::<L>(bit_long(&lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop ^ rop)),
+            | Signed::<L>(uops::bitor(&lhs.0, &Signed::<L>::from(rhs).0)),
+            & Signed::<L>(uops::bitand(&lhs.0, &Signed::<L>::from(rhs).0)),
+            ^ Signed::<L>(uops::bitxor(&lhs.0, &Signed::<L>::from(rhs).0)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
             + Signed::<L>(add_long(&Signed::<L>::from(lhs).0, &rhs.0)),
             * Signed::<L>(mul_long(&Signed::<L>::from(lhs).0, &rhs.0)),
-            | Signed::<L>(bit_long(&Signed::<L>::from(lhs).0, &rhs.0, |lop, rop| lop | rop)),
-            & Signed::<L>(bit_long(&Signed::<L>::from(lhs).0, &rhs.0, |lop, rop| lop & rop)),
-            ^ Signed::<L>(bit_long(&Signed::<L>::from(lhs).0, &rhs.0, |lop, rop| lop ^ rop)),
+            | Signed::<L>(uops::bitor(&Signed::<L>::from(lhs).0, &rhs.0)),
+            & Signed::<L>(uops::bitand(&Signed::<L>::from(lhs).0, &rhs.0)),
+            ^ Signed::<L>(uops::bitxor(&Signed::<L>::from(lhs).0, &rhs.0)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
@@ -245,9 +245,9 @@ macro_rules! nd_ops_primitive_impl {
             *= mul_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
             /= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).1).signed(lhs.sign()); },
-            |= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop | rop),
-            &= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop & rop),
-            ^= bit_long_mut(&mut lhs.0, &Signed::<L>::from(rhs).0, |lop, rop| lop ^ rop),
+            |= uops::bitor_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
+            &= uops::bitand_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
+            ^= uops::bitxor_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -257,17 +257,17 @@ macro_rules! nd_ops_primitive_impl {
             * Unsigned::<L>(mul_long(&lhs.0, &Unsigned::<L>::from(rhs).0)),
             / Unsigned::<L>(div_long(&lhs.0, &Unsigned::<L>::from(rhs).0).0),
             % Unsigned::<L>(div_long(&lhs.0, &Unsigned::<L>::from(rhs).0).1),
-            | Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop | rop)),
-            & Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop & rop)),
-            ^ Unsigned::<L>(bit_long(&lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop ^ rop)),
+            | Unsigned::<L>(uops::bitor(&lhs.0, &Unsigned::<L>::from(rhs).0)),
+            & Unsigned::<L>(uops::bitand(&lhs.0, &Unsigned::<L>::from(rhs).0)),
+            ^ Unsigned::<L>(uops::bitxor(&lhs.0, &Unsigned::<L>::from(rhs).0)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
             + Unsigned::<L>(add_long(&Unsigned::<L>::from(lhs).0, &rhs.0)),
             * Unsigned::<L>(mul_long(&Unsigned::<L>::from(lhs).0, &rhs.0)),
-            | Unsigned::<L>(bit_long(&Unsigned::<L>::from(lhs).0, &rhs.0, |lop, rop| lop | rop)),
-            & Unsigned::<L>(bit_long(&Unsigned::<L>::from(lhs).0, &rhs.0, |lop, rop| lop & rop)),
-            ^ Unsigned::<L>(bit_long(&Unsigned::<L>::from(lhs).0, &rhs.0, |lop, rop| lop ^ rop)),
+            | Unsigned::<L>(uops::bitor(&Unsigned::<L>::from(lhs).0, &rhs.0)),
+            & Unsigned::<L>(uops::bitand(&Unsigned::<L>::from(lhs).0, &rhs.0)),
+            ^ Unsigned::<L>(uops::bitxor(&Unsigned::<L>::from(lhs).0, &rhs.0)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -276,28 +276,28 @@ macro_rules! nd_ops_primitive_impl {
             *= mul_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             /= div_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             %= rem_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            |= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop | rop),
-            &= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop & rop),
-            ^= bit_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0, |lop, rop| lop ^ rop),
+            |= uops::bitor_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
+            &= uops::bitand_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
+            ^= uops::bitxor_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop | rop)),
-            & Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop & rop)),
-            ^ Bytes::<L>(bit_long(&lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop ^ rop)),
+            | Bytes::<L>(uops::bitor(&lhs.0, &Bytes::<L>::from(rhs).0)),
+            & Bytes::<L>(uops::bitand(&lhs.0, &Bytes::<L>::from(rhs).0)),
+            ^ Bytes::<L>(uops::bitxor(&lhs.0, &Bytes::<L>::from(rhs).0)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(bit_long(&Bytes::<L>::from(lhs).0, &rhs.0, |lop, rop| lop | rop)),
-            & Bytes::<L>(bit_long(&Bytes::<L>::from(lhs).0, &rhs.0, |lop, rop| lop & rop)),
-            ^ Bytes::<L>(bit_long(&Bytes::<L>::from(lhs).0, &rhs.0, |lop, rop| lop ^ rop)),
+            | Bytes::<L>(uops::bitor(&Bytes::<L>::from(lhs).0, &rhs.0)),
+            & Bytes::<L>(uops::bitand(&Bytes::<L>::from(lhs).0, &rhs.0)),
+            ^ Bytes::<L>(uops::bitxor(&Bytes::<L>::from(lhs).0, &rhs.0)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive), [
-            |= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop | rop),
-            &= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop & rop),
-            ^= bit_long_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0, |lop, rop| lop ^ rop),
+            |= uops::bitor_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0),
+            &= uops::bitand_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0),
+            ^= uops::bitxor_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0),
         ] }
     };
 }
@@ -319,17 +319,17 @@ macro_rules! nd_ops_primitive_native_impl {
             * Signed::<L>(mul_signed(&lhs.0, (rhs.unsigned_abs() as Single, Sign::from(rhs)))),
             / Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
             % Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()),
-            | Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop)),
-            & Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop)),
-            ^ Signed::<L>(bit_single(&lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop)),
+            | Signed::<L>(uops::bitor_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
+            & Signed::<L>(uops::bitand_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
+            ^ Signed::<L>(uops::bitxor_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
             + Signed::<L>(add_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
             * Signed::<L>(mul_signed(&rhs.0, (lhs.unsigned_abs() as Single, Sign::from(lhs)))),
-            | Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop)),
-            & Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop)),
-            ^ Signed::<L>(bit_single(&rhs.0, lhs as Single, if lhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop)),
+            | Signed::<L>(uops::bitor_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
+            & Signed::<L>(uops::bitand_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
+            ^ Signed::<L>(uops::bitxor_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
@@ -338,9 +338,9 @@ macro_rules! nd_ops_primitive_native_impl {
             *= mul_signed_mut(&mut lhs.0, (rhs.unsigned_abs() as Single, Sign::from(rhs))),
             /= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()); },
-            |= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop | rop),
-            &= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop & rop),
-            ^= bit_single_mut(&mut lhs.0, rhs as Single, if rhs >= 0 { 0 } else { MAX }, |lop, rop| lop ^ rop),
+            |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
+            &= uops::bitand_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
+            ^= uops::bitxor_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -350,17 +350,17 @@ macro_rules! nd_ops_primitive_native_impl {
             * Unsigned::<L>(mul_single(&lhs.0, rhs as Single)),
             / Unsigned::<L>(div_single(&lhs.0, rhs as Single).0),
             % Unsigned::<L>(div_single(&lhs.0, rhs as Single).1),
-            | Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop | rop)),
-            & Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop & rop)),
-            ^ Unsigned::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop)),
+            | Unsigned::<L>(uops::bitor_single(&lhs.0, rhs as Single)),
+            & Unsigned::<L>(uops::bitand_single(&lhs.0, rhs as Single)),
+            ^ Unsigned::<L>(uops::bitxor_single(&lhs.0, rhs as Single)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
             + Unsigned::<L>(add_single(&rhs.0, lhs as Single)),
             * Unsigned::<L>(mul_single(&rhs.0, lhs as Single)),
-            | Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
-            & Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
-            ^ Unsigned::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)),
+            | Unsigned::<L>(uops::bitor_single(&rhs.0, lhs as Single)),
+            & Unsigned::<L>(uops::bitand_single(&rhs.0, lhs as Single)),
+            ^ Unsigned::<L>(uops::bitxor_single(&rhs.0, lhs as Single)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -369,28 +369,28 @@ macro_rules! nd_ops_primitive_native_impl {
             *= mul_single_mut(&mut lhs.0, rhs as Single),
             /= div_single_mut(&mut lhs.0, rhs as Single),
             %= rem_single_mut(&mut lhs.0, rhs as Single),
-            |= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop | rop),
-            &= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop & rop),
-            ^= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop),
+            |= uops::bitor_single_mut(&mut lhs.0, rhs as Single),
+            &= uops::bitand_single_mut(&mut lhs.0, rhs as Single),
+            ^= uops::bitxor_single_mut(&mut lhs.0, rhs as Single),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop | rop)),
-            & Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop & rop)),
-            ^ Bytes::<L>(bit_single(&lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop)),
+            | Bytes::<L>(uops::bitor_single(&lhs.0, rhs as Single)),
+            & Bytes::<L>(uops::bitand_single(&lhs.0, rhs as Single)),
+            ^ Bytes::<L>(uops::bitxor_single(&lhs.0, rhs as Single)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop | rop)),
-            & Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop & rop)),
-            ^ Bytes::<L>(bit_single(&rhs.0, lhs as Single, 0, |lop, rop| lop ^ rop)),
+            | Bytes::<L>(uops::bitor_single(&rhs.0, lhs as Single)),
+            & Bytes::<L>(uops::bitand_single(&rhs.0, lhs as Single)),
+            ^ Bytes::<L>(uops::bitxor_single(&rhs.0, lhs as Single)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive), [
-            |= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop | rop),
-            &= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop & rop),
-            ^= bit_single_mut(&mut lhs.0, rhs as Single, 0, |lop, rop| lop ^ rop),
+            |= uops::bitor_single_mut(&mut lhs.0, rhs as Single),
+            &= uops::bitand_single_mut(&mut lhs.0, rhs as Single),
+            ^= uops::bitxor_single_mut(&mut lhs.0, rhs as Single),
         ] }
     };
 }
@@ -3323,9 +3323,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     * Signed::<L>(mul_long(&lhs.0, &rhs.0)),
     / Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
     % Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
-    | Signed::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop | rop)),
-    & Signed::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop & rop)),
-    ^ Signed::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)),
+    | Signed::<L>(uops::bitor(&lhs.0, &rhs.0)),
+    & Signed::<L>(uops::bitand(&lhs.0, &rhs.0)),
+    ^ Signed::<L>(uops::bitxor(&lhs.0, &rhs.0)),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for [Signed<L>, usize], [
@@ -3339,9 +3339,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     * Unsigned::<L>(mul_long(&lhs.0, &rhs.0)),
     / Unsigned::<L>(div_long(&lhs.0, &rhs.0).0),
     % Unsigned::<L>(div_long(&lhs.0, &rhs.0).1),
-    | Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop | rop)),
-    & Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop & rop)),
-    ^ Unsigned::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)),
+    | Unsigned::<L>(uops::bitor(&lhs.0, &rhs.0)),
+    & Unsigned::<L>(uops::bitand(&lhs.0, &rhs.0)),
+    ^ Unsigned::<L>(uops::bitxor(&lhs.0, &rhs.0)),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
@@ -3350,9 +3350,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigne
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
-    | Bytes::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop | rop)),
-    & Bytes::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop & rop)),
-    ^ Bytes::<L>(bit_long(&lhs.0, &rhs.0, |lop, rop| lop ^ rop)),
+    | Bytes::<L>(uops::bitor(&lhs.0, &rhs.0)),
+    & Bytes::<L>(uops::bitand(&lhs.0, &rhs.0)),
+    ^ Bytes::<L>(uops::bitxor(&lhs.0, &rhs.0)),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for [Bytes<L>, usize], [
@@ -3366,9 +3366,9 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     *= mul_long_mut(&mut lhs.0, &rhs.0),
     /= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
     %= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
-    |= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop | rop),
-    &= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop & rop),
-    ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop),
+    |= uops::bitor_mut(&mut lhs.0, &rhs.0),
+    &= uops::bitand_mut(&mut lhs.0, &rhs.0),
+    ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for [Signed<L>, usize], [
@@ -3382,9 +3382,9 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     *= mul_long_mut(&mut lhs.0, &rhs.0),
     /= div_long_mut(&mut lhs.0, &rhs.0),
     %= rem_long_mut(&mut lhs.0, &rhs.0),
-    |= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop | rop),
-    &= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop & rop),
-    ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop),
+    |= uops::bitor_mut(&mut lhs.0, &rhs.0),
+    &= uops::bitand_mut(&mut lhs.0, &rhs.0),
+    ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for [Unsigned<L>, usize], [
@@ -3393,9 +3393,9 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for [U
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
-    |= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop | rop),
-    &= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop & rop),
-    ^= bit_long_mut(&mut lhs.0, &rhs.0, |lop, rop| lop ^ rop),
+    |= uops::bitor_mut(&mut lhs.0, &rhs.0),
+    &= uops::bitand_mut(&mut lhs.0, &rhs.0),
+    ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for [Bytes<L>, usize], [
@@ -4907,13 +4907,6 @@ fn div_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L
     div_long_impl!(*lhs, rhs.iter().copied())
 }
 
-fn bit_long<const L: usize, F>(lhs: &[Single; L], rhs: &[Single; L], f: F) -> [Single; L]
-where
-    F: Fn(Single, Single) -> Single,
-{
-    lhs.iter().copied().zip(rhs.iter().copied()).map(|(a, b)| f(a, b)).collect_arr()
-}
-
 fn add_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> [Single; L] {
     add_single_impl!(lhs.iter().copied(), rhs).collect_arr()
 }
@@ -4930,16 +4923,6 @@ fn div_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> ([Single; L], [
     let (div, rem) = div_single_impl!(*lhs, rhs);
 
     (div, from_arr(&rem.to_le_bytes(), 0))
-}
-
-fn bit_single<const L: usize, F>(lhs: &[Single; L], rhs: Single, default: Single, f: F) -> [Single; L]
-where
-    F: Fn(Single, Single) -> Single,
-{
-    let mut arr = lhs.iter().copied().map(|a| f(a, default)).collect_arr();
-
-    arr[0] = f(lhs[0], rhs);
-    arr
 }
 
 fn add_signed<const L: usize>(lhs: &[Single; L], (rhs, sign): (Single, Sign)) -> [Single; L] {
@@ -4990,15 +4973,6 @@ fn rem_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
     *lhs = rem;
 }
 
-fn bit_long_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: &[Single; L], f: F)
-where
-    F: Fn(Single, Single) -> Single,
-{
-    lhs.iter_mut()
-        .zip(rhs.iter().copied())
-        .for_each(|(ptr, val)| *ptr = f(*ptr, val));
-}
-
 fn add_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     add_single_mut_impl!(lhs.iter_mut(), rhs);
 }
@@ -5019,17 +4993,6 @@ fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
     let (_, rem) = div_single_impl!(*lhs, rhs);
 
     *lhs = from_arr(&rem.to_le_bytes(), 0);
-}
-
-fn bit_single_mut<const L: usize, F>(lhs: &mut [Single; L], rhs: Single, default: Single, f: F)
-where
-    F: Fn(Single, Single) -> Single,
-{
-    let val = lhs[0];
-
-    lhs.iter_mut().for_each(|ptr| *ptr = f(*ptr, default));
-
-    lhs[0] = f(val, rhs);
 }
 
 fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], (rhs, sign): (Single, Sign)) {

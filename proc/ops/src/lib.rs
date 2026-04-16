@@ -1690,7 +1690,7 @@ impl ToTokens for OpsImpl<OpsNdKindAssign> {
                     impl #gen_impl #path<#lhs_ty, #rhs_ty> for #impl_ty #gen_where {
                         #[inline]
                         fn #ident(#lhs_pat, #rhs_pat) {
-                            #expr
+                            #expr;
                         }
                     }
                 }
