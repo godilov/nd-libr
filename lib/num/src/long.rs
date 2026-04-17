@@ -2356,34 +2356,112 @@ pub mod algo {
 
     /// Returns `(lhs / rhs, lhs % rhs)`.
     #[inline]
-    pub fn div<const L: usize>(_: &[Single; L], _: &[Single; L]) -> ([Single; L], [Single; L]) {
-        todo!()
+    pub fn div<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], [Single; L]) {
+        let mut div = [0; L];
+        let mut rem = [0; L];
+
+        for (ptr, val) in div.iter_mut().zip(lhs.iter().copied()).rev() {
+            cycle!(rem, val);
+
+            let digit = search!(@max 0, RADIX, |m: Double| {
+                let iter = &mut Expr::mul(rhs.iter().copied(), m as Single);
+
+                let cmp = iter.zip(rem.iter().copied()).fold(Ordering::Equal, |acc, (lhs, rhs)| match lhs.cmp(&rhs) {
+                    Ordering::Less => Ordering::Less,
+                    Ordering::Equal => acc,
+                    Ordering::Greater => Ordering::Greater,
+                });
+
+                match iter.acc() {
+                    0 => cmp,
+                    _ => Ordering::Greater,
+                }
+            });
+
+            *ptr = digit.saturating_sub(1) as Single;
+
+            Expr::sub_mut(rem.iter_mut(), Expr::mul(rhs.iter().copied(), *ptr)).for_each(|_| ());
+        }
+
+        (div, rem)
     }
 
     /// Returns `(lhs / rhs, lhs % rhs)`.
     #[inline]
-    pub fn div_single<const L: usize>(_: &[Single; L], _: <Single as NumFn>::Unsigned) -> ([Single; L], [Single; L]) {
-        todo!()
+    pub fn div_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> ([Single; L], Single) {
+        let mut div = [0; L];
+        let mut rem = 0 as Double;
+
+        for (ptr, val) in div.iter_mut().zip(lhs.iter().copied()).rev() {
+            rem <<= BITS;
+            rem |= val as Double;
+
+            let digit = search!(@max 0, RADIX, |m: Double| (m * rhs as Double).cmp(&rem));
+            let digit = digit.saturating_sub(1) as Single;
+
+            *ptr = digit;
+            rem -= digit as Double * rhs as Double;
+        }
+
+        (div, rem as Single)
     }
 
     /// Returns `(lhs / rhs, lhs % rhs)`.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn div_signed<const L: usize>(_: &[Single; L], _: <Single as NumFn>::Signed) -> ([Single; L], [Single; L]) {
+    pub fn div_signed<const L: usize>(_: &[Single; L], _: <Single as NumFn>::Signed) -> ([Single; L], Single) {
         todo!()
     }
 
     /// Applies `lhs /= rhs`.
     #[inline]
-    pub fn div_mut<'words, const L: usize>(_: &'words mut [Single; L], _: &[Single; L]) -> &'words mut [Single; L] {
-        todo!()
+    pub fn div_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
+        let mut rem = [0; L];
+
+        for val in lhs.iter_mut().rev() {
+            cycle!(rem, *val);
+
+            let digit = search!(@max 0, RADIX, |m: Double| {
+                let iter = &mut Expr::mul(rhs.iter().copied(), m as Single);
+
+                let cmp = iter.zip(rem.iter().copied()).fold(Ordering::Equal, |acc, (lhs, rhs)| match lhs.cmp(&rhs) {
+                    Ordering::Less => Ordering::Less,
+                    Ordering::Equal => acc,
+                    Ordering::Greater => Ordering::Greater,
+                });
+
+                match iter.acc() {
+                    0 => cmp,
+                    _ => Ordering::Greater,
+                }
+            });
+
+            *val = digit.saturating_sub(1) as Single;
+
+            Expr::sub_mut(rem.iter_mut(), Expr::mul(rhs.iter().copied(), *val)).for_each(|_| ());
+        }
+
+        lhs
     }
 
     /// Applies `lhs /= rhs`.
     #[inline]
-    pub fn div_single_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
-        todo!()
+    pub fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+        let mut rem = 0 as Double;
+
+        for val in lhs.iter_mut().rev() {
+            rem <<= BITS;
+            rem |= *val as Double;
+
+            let digit = search!(@max 0, RADIX, |m: Double| (m * rhs as Double).cmp(&rem));
+            let digit = digit.saturating_sub(1) as Single;
+
+            *val = digit;
+            rem -= digit as Double * rhs as Double;
+        }
+
+        lhs
     }
 
     /// Applies `lhs /= rhs`.
@@ -2396,14 +2474,17 @@ pub mod algo {
 
     /// Applies `lhs %= rhs`.
     #[inline]
-    pub fn rem_mut<'words, const L: usize>(_: &'words mut [Single; L], _: &[Single; L]) -> &'words mut [Single; L] {
-        todo!()
+    pub fn rem_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
+        *lhs = div(lhs, rhs).1;
+        lhs
     }
 
     /// Applies `lhs %= rhs`.
     #[inline]
-    pub fn rem_single_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
-        todo!()
+    pub fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+        lhs[0] = div_single(lhs, rhs).1;
+        lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
+        lhs
     }
 
     /// Applies `lhs %= rhs`.
