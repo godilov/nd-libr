@@ -47,6 +47,7 @@ trait Num: Sized {
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
+#[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: Greeter)]
 #[ndfwd::def(self.0 with T: Builder)]
 #[ndfwd::def(self.0 with T: Num)]
@@ -133,8 +134,6 @@ mod fwd {
         ndassert::check! { (val in ndassert::range!(i64, 60)) [
             Any(Box::new(val)).as_ref() == &val,
             Any(Box::new(val)).as_mut() == &val,
-
-            Any(vec![val]) == Any::<Vec<i64>>::from_iter([val]),
         ] }
     }
 
@@ -165,6 +164,16 @@ mod fwd {
             format!("{:#o}", Any(val)) == format!("{:#o}", val),
             format!("{:#x}", Any(val)) == format!("{:#x}", val),
             format!("{:#X}", Any(val)) == format!("{:#X}", val),
+        ] }
+    }
+
+    #[test]
+    fn iter() {
+        ndassert::check! { (len in 0usize..255usize) [
+            (0..len).collect::<Any<Vec<usize>>>() == Any((0..len).collect::<Vec<usize>>()),
+            (0..len).collect::<Any<Vec<usize>>>().into_iter().zip(0..len).all(|(lhs, rhs)| lhs == rhs),
+            (&    (0..len).collect::<Any<Vec<usize>>>()).into_iter().zip(0..len).all(|(lhs, rhs)| *lhs == rhs),
+            (&mut (0..len).collect::<Any<Vec<usize>>>()).into_iter().zip(0..len).all(|(lhs, rhs)| *lhs == rhs),
         ] }
     }
 

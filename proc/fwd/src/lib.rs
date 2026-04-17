@@ -17,9 +17,7 @@ mod kw {
 
 /// Zero-boilerplate standard traits forwarding for **struct**, **enum** and **union**.
 ///
-/// Forwards [`AsRef`], [`AsMut`], [`FromIterator`] to specified expression.
-///
-/// Requires [`From`] for [`FromIterator`].
+/// Forwards [`AsRef`], [`AsMut`] to specified expression.
 ///
 /// # Syntax
 ///
@@ -33,13 +31,6 @@ mod kw {
 /// ```rust
 /// #[ndfwd::std(self.0 with i64)]
 /// struct Num(i64);
-///
-/// // Required for FromIterator
-/// impl From<i64> for Num {
-///     fn from(value: i64) -> Num {
-///         Num(value)
-///     }
-/// }
 /// ```
 ///
 /// For more info, see [crate-level](crate) documentation.
@@ -66,11 +57,6 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where #ty: std::convert::AsMut<AsMutRet> },
     };
 
-    let from_iter = match predicates.clone() {
-        Some(val) => quote! { where Self: From<#ty>, #(#val,)* #ty: std::iter::FromIterator<Elem> },
-        None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
-    };
-
     quote! {
         #item
 
@@ -85,13 +71,6 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             #[inline]
             fn as_mut(&mut self) -> &mut AsMutRet {
                 #expr.as_mut()
-            }
-        }
-
-        impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
-            #[inline]
-            fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
-                <#ty>::from_iter(iter).into()
             }
         }
     }
@@ -308,6 +287,107 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #octal
         #lhex
         #uhex
+    }
+    .into()
+}
+
+/// Zero-boilerplate iterators traits forwarding for **struct**, **enum** and **union**.
+///
+/// Forwards [`FromIterator`] and [`IntoIterator`] (by value, by immutable reference, by mutable reference) to specified expression.
+///
+/// Requires [`From`] for [`FromIterator`].
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::iter(<expr> with <type>)]
+/// struct Any(<type>);
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// #[ndfwd::iter(self.0 with [u64; 3])]
+/// struct Vec3([u64; 3]);
+///
+/// // Required for FromIterator
+/// impl From<[u64; 3]> for Vec3 {
+///     fn from(value: [u64; 3]) -> Vec3 {
+///         Self(value)
+///     }
+/// }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro_attribute]
+pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+    let item = parse_macro_input!(item as ForwardDataItem);
+    let fwd = parse_macro_input!(attr as Forward);
+
+    let (ident, generics) = item.forward_args();
+    let (expr, ty) = fwd.forward_args();
+
+    let gen_params = &generics.params;
+    let (_, gen_type, gen_where) = generics.split_for_impl();
+
+    let predicates = gen_where.map(|val| val.predicates.iter());
+
+    let from_iter = match predicates.clone() {
+        Some(val) => quote! { where Self: From<#ty>, #(#val,)* #ty: std::iter::FromIterator<Elem> },
+        None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
+    };
+
+    let into_iter = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* #ty: std::iter::IntoIterator },
+        None => quote! { where #ty: std::iter::IntoIterator },
+    };
+
+    let into_iter_ref = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* &'reference #ty: std::iter::IntoIterator },
+        None => quote! { where &'reference #ty: std::iter::IntoIterator },
+    };
+
+    let into_iter_mut = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* &'reference mut #ty: std::iter::IntoIterator },
+        None => quote! { where &'reference mut #ty: std::iter::IntoIterator },
+    };
+
+    quote! {
+        #item
+
+        impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
+            #[inline]
+            fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
+                <#ty>::from_iter(iter).into()
+            }
+        }
+
+        impl<#gen_params> std::iter::IntoIterator for #ident #gen_type #into_iter {
+            type Item = <#ty as std::iter::IntoIterator>::Item;
+            type IntoIter = <#ty as std::iter::IntoIterator>::IntoIter;
+
+            fn into_iter(self) -> Self::IntoIter {
+                #expr.into_iter()
+            }
+        }
+
+        impl<'reference, #gen_params> std::iter::IntoIterator for &'reference #ident #gen_type #into_iter_ref {
+            type Item = <&'reference #ty as std::iter::IntoIterator>::Item;
+            type IntoIter = <&'reference #ty as std::iter::IntoIterator>::IntoIter;
+
+            fn into_iter(self) -> Self::IntoIter {
+                #expr.into_iter()
+            }
+        }
+
+        impl<'reference, #gen_params> std::iter::IntoIterator for &'reference mut #ident #gen_type #into_iter_mut {
+            type Item = <&'reference mut #ty as std::iter::IntoIterator>::Item;
+            type IntoIter = <&'reference mut #ty as std::iter::IntoIterator>::IntoIter;
+
+            fn into_iter(self) -> Self::IntoIter {
+                #expr.into_iter()
+            }
+        }
     }
     .into()
 }
