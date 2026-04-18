@@ -519,7 +519,6 @@ pub mod word {
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -552,7 +551,6 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -578,7 +576,6 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -604,7 +601,6 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -726,8 +722,6 @@ mod tests {
         ndassert::check! { (val in ndassert::range!(i64, 60)) [
             Aligned(Box::new(val)).as_ref() == &val,
             Aligned(Box::new(val)).as_mut() == &val,
-
-            Aligned(vec![val]) == Aligned::<Vec<i64>>::from_iter([val]),
         ] }
     }
 
