@@ -332,10 +332,10 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
     let predicates = gen_where.map(|val| val.predicates.iter());
 
-    let from_iter = match predicates.clone() {
-        Some(val) => quote! { where Self: From<#ty>, #(#val,)* #ty: std::iter::FromIterator<Elem> },
-        None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
-    };
+    // let from_iter = match predicates.clone() {
+    //     Some(val) => quote! { where Self: From<#ty>, #(#val,)* #ty: std::iter::FromIterator<Elem> },
+    //     None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
+    // };
 
     let into_iter = match predicates.clone() {
         Some(val) => quote! { where #(#val,)* #ty: std::iter::IntoIterator },
@@ -355,12 +355,12 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     quote! {
         #item
 
-        impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
-            #[inline]
-            fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
-                <#ty>::from_iter(iter).into()
-            }
-        }
+        // impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
+        //     #[inline]
+        //     fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
+        //         <#ty>::from_iter(iter).into()
+        //     }
+        // }
 
         impl<#gen_params> std::iter::IntoIterator for #ident #gen_type #into_iter {
             type Item = <#ty as std::iter::IntoIterator>::Item;
