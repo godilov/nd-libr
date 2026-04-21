@@ -2555,6 +2555,22 @@ mod _impl {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
+/// Signed long represented with `[Word; L]` by immutable reference, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SignedRef<const L: usize, T: AsRef<[Single; L]>>(pub T);
+
+/// Signed long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SignedMut<const L: usize, T: AsMut<[Single; L]>>(pub T);
+
 /// Unsigned long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
@@ -2563,6 +2579,22 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
+/// Unsigned long represented with `[Word; L]` by immutable reference, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnsignedRef<const L: usize, T: AsRef<[Single; L]>>(pub T);
+
+/// Unsigned long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnsignedMut<const L: usize, T: AsMut<[Single; L]>>(pub T);
+
 /// Bytes long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
@@ -2570,6 +2602,22 @@ pub struct Unsigned<const L: usize>(pub [Single; L]);
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
+
+/// Bytes long represented with `[Word; L]` by immutable reference, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BytesRef<const L: usize, T: AsRef<[Single; L]>>(pub T);
+
+/// Bytes long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
+///
+/// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BytesMut<const L: usize, T: AsMut<[Single; L]>>(pub T);
 
 /// Signed long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]

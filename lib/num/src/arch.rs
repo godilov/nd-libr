@@ -519,7 +519,7 @@ pub mod word {
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
+// #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -552,7 +552,7 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
+// #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -578,7 +578,7 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
+// #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -604,7 +604,7 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
-#[ndfwd::iter(self.0 with T)]
+// #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -631,6 +631,7 @@ pub struct Aligned128<T>(pub T);
 pub enum Offset {
     /// Offset in left direction of usize bits.
     Left(usize),
+
     /// Offset in right direction of usize bits.
     Right(usize),
 }
