@@ -347,10 +347,10 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where &'reference #ty: std::iter::IntoIterator },
     };
 
-    // let into_iter_mut = match predicates.clone() {
-    //     Some(val) => quote! { where #(#val,)* &'reference mut #ty: std::iter::IntoIterator },
-    //     None => quote! { where &'reference mut #ty: std::iter::IntoIterator },
-    // };
+    let into_iter_mut = match predicates.clone() {
+        Some(val) => quote! { where #(#val,)* &'reference mut #ty: std::iter::IntoIterator },
+        None => quote! { where &'reference mut #ty: std::iter::IntoIterator },
+    };
 
     quote! {
         #item
@@ -382,15 +382,15 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             }
         }
 
-        // impl<'reference, #gen_params> std::iter::IntoIterator for &'reference mut #ident #gen_type #into_iter_mut {
-        //     type Item = <&'reference mut #ty as std::iter::IntoIterator>::Item;
-        //     type IntoIter = <&'reference mut #ty as std::iter::IntoIterator>::IntoIter;
-        //
-        //     #[inline]
-        //     fn into_iter(self) -> Self::IntoIter {
-        //         #expr.into_iter()
-        //     }
-        // }
+        impl<'reference, #gen_params> std::iter::IntoIterator for &'reference mut #ident #gen_type #into_iter_mut {
+            type Item = <&'reference mut #ty as std::iter::IntoIterator>::Item;
+            type IntoIter = <&'reference mut #ty as std::iter::IntoIterator>::IntoIter;
+
+            #[inline]
+            fn into_iter(self) -> Self::IntoIter {
+                #expr.into_iter()
+            }
+        }
     }
     .into()
 }
