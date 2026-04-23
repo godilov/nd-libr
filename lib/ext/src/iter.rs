@@ -51,7 +51,7 @@ pub trait IteratorExt: Iterator {
     #[inline]
     fn collect_with<Dst>(&mut self, mut dst: Dst) -> Dst
     where
-        for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
+        for<'reference> &'reference mut Dst: IntoIterator<Item = &'reference mut Self::Item>,
     {
         dst.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
         dst
@@ -77,7 +77,7 @@ pub trait IteratorExt: Iterator {
     #[inline]
     fn collect_with_mut<'dst, Dst>(&mut self, dst: &'dst mut Dst) -> &'dst mut Dst
     where
-        for<'value> &'value mut Dst: IntoIterator<Item = &'value mut Self::Item>,
+        for<'reference> &'reference mut Dst: IntoIterator<Item = &'reference mut Self::Item>,
     {
         dst.into_iter().zip(self).for_each(|(dst, src)| *dst = src);
         dst
