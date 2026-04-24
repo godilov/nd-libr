@@ -498,9 +498,15 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// #[ndfwd::def(<expr> with <type>: <trait> <conditions>?)]
 /// struct Any(<type>);
 ///
-/// <trait> := <path>
+/// <trait> := <path> | <path>!
 /// <conditions> := where [<predicate>,*]
 /// ```
+///
+/// Trait in `<trait>` allows optional `!` for specifying source implementation.
+///
+/// - Without `!` - forwarded to type implementation.
+/// - With `!` (when trait fn has no default implementation) - forwarded to type implementation.
+/// - With `!` (when trait fn has default implementation) - forwarded to default implementation.
 ///
 /// # Examples
 ///
