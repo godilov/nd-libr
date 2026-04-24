@@ -11,6 +11,18 @@ pub mod arch;
 pub mod long;
 pub mod prime;
 
+macro_rules! dir_ct {
+    ($expr:expr) => {
+        MaskCt::ZERO.wrapping_sub($expr)
+    };
+}
+
+macro_rules! inv_ct {
+    ($expr:expr) => {
+        !MaskCt::ZERO.wrapping_sub($expr)
+    };
+}
+
 macro_rules! num_impl {
     (@signed [$($primitive:ty > $unsigned:ty),+] $(,)?) => {
         $(num_impl!(@impl $primitive, $primitive, $unsigned);)+
@@ -174,25 +186,55 @@ macro_rules! num_ct_impl {
         $(num_ct_impl!(@unsigned $unsigned);)+
     };
     (@signed $signed:ty > $unsigned:ty $(,)?) => {
+        impl OneCt for $signed {
+            #[inline(never)]
+            fn one_ct(&self) -> MaskCt {
+                let val = *self as $unsigned;
+                let val = val ^ 1;
+
+                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
+                let any = any as MaskCt;
+
+                inv_ct!(any)
+            }
+        }
+
         impl ZeroCt for $signed {
             #[inline(never)]
             fn zero_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
-                let diff = (val | val.wrapping_neg()) >> (Self::BITS - 1);
+                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
+                let any = any as MaskCt;
 
-                diff.wrapping_sub(1) as MaskCt
+                inv_ct!(any)
             }
         }
 
-        impl OneCt for $signed {
+        impl PosCt for $signed {
             #[inline(never)]
-            fn one_ct(&self) -> MaskCt {
+            fn pos_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
-                let diff = ((val ^ 1) | (val ^ 1).wrapping_neg()) >> (Self::BITS - 1);
+                let neg = val >> (Self::BITS - 1);
+                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
 
-                diff.wrapping_sub(1) as MaskCt
+                let neg = neg as MaskCt;
+                let any = any as MaskCt;
+
+                inv_ct!(neg) & dir_ct!(any)
+            }
+        }
+
+        impl NegCt for $signed {
+            #[inline(never)]
+            fn neg_ct(&self) -> MaskCt {
+                let val = *self as $unsigned;
+
+                let neg = val >> (Self::BITS - 1);
+                let neg = neg as MaskCt;
+
+                dir_ct!(neg)
             }
         }
 
@@ -202,10 +244,11 @@ macro_rules! num_ct_impl {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
 
-                let diff = lhs ^ rhs;
-                let diff = (diff | diff.wrapping_neg()) >> (Self::BITS - 1);
+                let any = lhs ^ rhs;
+                let any = (any | any.wrapping_neg()) >> (Self::BITS - 1);
+                let any = any as MaskCt;
 
-                diff.wrapping_sub(1) as MaskCt
+                inv_ct!(any)
             }
         }
 
@@ -215,15 +258,15 @@ macro_rules! num_ct_impl {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
 
-                let lt = (lhs.wrapping_sub(rhs) >> (Self::BITS - 1)) as u8;
+                let lt = (lhs.wrapping_sub(rhs) >> (Self::BITS - 1)) as MaskCt;
 
-                let lhs_neg = (lhs >> (Self::BITS - 1)) as u8;
-                let rhs_neg = (rhs >> (Self::BITS - 1)) as u8;
+                let lhs_neg = (lhs >> (Self::BITS - 1)) as MaskCt;
+                let rhs_neg = (rhs >> (Self::BITS - 1)) as MaskCt;
 
                 let xor = lhs_neg ^ rhs_neg;
                 let res = xor & lhs_neg | !xor & lt;
 
-                MaskCt::ZERO.wrapping_sub(res)
+                dir_ct!(res)
             }
         }
 
@@ -233,40 +276,61 @@ macro_rules! num_ct_impl {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
 
-                let gt = (rhs.wrapping_sub(lhs) >> (Self::BITS - 1)) as u8;
+                let gt = (rhs.wrapping_sub(lhs) >> (Self::BITS - 1)) as MaskCt;
 
-                let lhs_neg = (lhs >> (Self::BITS - 1)) as u8;
-                let rhs_neg = (rhs >> (Self::BITS - 1)) as u8;
+                let lhs_neg = (lhs >> (Self::BITS - 1)) as MaskCt;
+                let rhs_neg = (rhs >> (Self::BITS - 1)) as MaskCt;
 
                 let xor = lhs_neg ^ rhs_neg;
                 let res = xor & rhs_neg | !xor & gt;
 
-                MaskCt::ZERO.wrapping_sub(res)
+                dir_ct!(res)
             }
         }
 
         num_ct_impl!(@select $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
-        impl ZeroCt for $unsigned {
-            #[inline(never)]
-            fn zero_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-
-                let diff = (val | val.wrapping_neg()) >> (Self::BITS - 1);
-
-                diff.wrapping_sub(1) as MaskCt
-            }
-        }
-
         impl OneCt for $unsigned {
             #[inline(never)]
             fn one_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
-                let diff = ((val ^ 1) | (val ^ 1).wrapping_neg()) >> (Self::BITS - 1);
+                let any = ((val ^ 1) | (val ^ 1).wrapping_neg()) >> (Self::BITS - 1);
+                let any = any as MaskCt;
 
-                diff.wrapping_sub(1) as MaskCt
+                inv_ct!(any)
+            }
+        }
+
+        impl ZeroCt for $unsigned {
+            #[inline(never)]
+            fn zero_ct(&self) -> MaskCt {
+                let val = *self as $unsigned;
+
+                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
+                let any = any as MaskCt;
+
+                inv_ct!(any)
+            }
+        }
+
+        impl PosCt for $unsigned {
+            #[inline(never)]
+            fn pos_ct(&self) -> MaskCt {
+                let val = *self as $unsigned;
+
+                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
+                let any = any as MaskCt;
+
+                dir_ct!(any)
+            }
+        }
+
+        impl NegCt for $unsigned {
+            #[inline(never)]
+            fn neg_ct(&self) -> MaskCt {
+                MaskCt::ZERO
             }
         }
 
@@ -276,46 +340,47 @@ macro_rules! num_ct_impl {
                 let lhs = *self as $unsigned;
                 let rhs = *other as $unsigned;
 
-                let diff = lhs ^ rhs;
-                let diff = (diff | diff.wrapping_neg()) >> (Self::BITS - 1);
+                let any = lhs ^ rhs;
+                let any = (any | any.wrapping_neg()) >> (Self::BITS - 1);
+                let any = any as MaskCt;
 
-                diff.wrapping_sub(1) as MaskCt
+                inv_ct!(any)
             }
         }
 
         impl LtCt for $unsigned {
             #[inline(never)]
             fn lt_ct(&self, other: &Self) -> MaskCt {
-                let lhs = self;
-                let rhs = other;
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
 
-                let lt = (lhs.wrapping_sub(*rhs) >> (Self::BITS - 1)) as MaskCt;
+                let lt = (lhs.wrapping_sub(rhs) >> (Self::BITS - 1)) as MaskCt;
 
-                let lhs_bit = (lhs >> (Self::BITS - 1)) as u8;
-                let rhs_bit = (rhs >> (Self::BITS - 1)) as u8;
+                let lhs_bit = (lhs >> (Self::BITS - 1)) as MaskCt;
+                let rhs_bit = (rhs >> (Self::BITS - 1)) as MaskCt;
 
                 let xor = lhs_bit ^ rhs_bit;
                 let res = xor & rhs_bit | !xor & lt;
 
-                MaskCt::ZERO.wrapping_sub(res)
+                dir_ct!(res)
             }
         }
 
         impl GtCt for $unsigned {
             #[inline(never)]
             fn gt_ct(&self, other: &Self) -> MaskCt {
-                let lhs = self;
-                let rhs = other;
+                let lhs = *self as $unsigned;
+                let rhs = *other as $unsigned;
 
-                let gt = (rhs.wrapping_sub(*lhs) >> (Self::BITS - 1)) as MaskCt;
+                let gt = (rhs.wrapping_sub(lhs) >> (Self::BITS - 1)) as MaskCt;
 
-                let lhs_bit = (lhs >> (Self::BITS - 1)) as u8;
-                let rhs_bit = (rhs >> (Self::BITS - 1)) as u8;
+                let lhs_bit = (lhs >> (Self::BITS - 1)) as MaskCt;
+                let rhs_bit = (rhs >> (Self::BITS - 1)) as MaskCt;
 
                 let xor = lhs_bit ^ rhs_bit;
                 let res = xor & lhs_bit | !xor & gt;
 
-                MaskCt::ZERO.wrapping_sub(res)
+                dir_ct!(res)
             }
         }
 
@@ -325,8 +390,8 @@ macro_rules! num_ct_impl {
         impl SelectCt for $primitive {
             #[inline(never)]
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-                let lhs_mask = Self::from_ne_bytes([mask; (Self::BITS / 8) as usize]);
-                let rhs_mask = Self::from_ne_bytes([!mask; (Self::BITS / 8) as usize]);
+                let lhs_mask = Self::from_ne_bytes([mask; (Self::BYTES) as usize]);
+                let rhs_mask = Self::from_ne_bytes([!mask; (Self::BYTES) as usize]);
 
                 lhs & lhs_mask | rhs & rhs_mask
             }
@@ -949,6 +1014,19 @@ pub trait MaxFn {
     fn max() -> Self;
 }
 
+/// Const-time equality with one comparison.
+#[cfg(feature = "const-time")]
+#[ndfwd::decl]
+pub trait OneCt {
+    /// Const-time equality with one function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `value != 0`.
+    /// - `MaskCt::MAX` => `value == 0`.
+    fn one_ct(&self) -> MaskCt;
+}
+
 /// Const-time equality with zero comparison.
 #[cfg(feature = "const-time")]
 #[ndfwd::decl]
@@ -962,17 +1040,30 @@ pub trait ZeroCt {
     fn zero_ct(&self) -> MaskCt;
 }
 
-/// Const-time equality with one comparison.
+/// Const-time greater-then-zero comparison.
 #[cfg(feature = "const-time")]
 #[ndfwd::decl]
-pub trait OneCt {
-    /// Const-time equality with one function.
+pub trait PosCt {
+    /// Const-time greater-then-zero function.
     ///
     /// # Returns
     ///
-    /// - `MaskCt::MIN` => `value != 0`.
-    /// - `MaskCt::MAX` => `value == 0`.
-    fn one_ct(&self) -> MaskCt;
+    /// - `MaskCt::MIN` => `lhs > 0`.
+    /// - `MaskCt::MAX` => `lhs <= 0`.
+    fn pos_ct(&self) -> MaskCt;
+}
+
+/// Const-time less-then-zero comparison.
+#[cfg(feature = "const-time")]
+#[ndfwd::decl]
+pub trait NegCt {
+    /// Const-time less-then-zero function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `lhs >= 0`.
+    /// - `MaskCt::MAX` => `lhs < 0`.
+    fn neg_ct(&self) -> MaskCt;
 }
 
 /// Const-time equality comparison.
@@ -2099,12 +2190,17 @@ mod tests {
     #[cfg(feature = "const-time")]
     #[test]
     fn cmp_ct() {
+        #![allow(clippy::absurd_extreme_comparisons)]
+        #![allow(unused_comparisons)]
+
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(i64, 56, 1).chain([0, 1]),
         ) [
-            (lhs.zero_ct(), MaskCt::MAX * (lhs == 0) as MaskCt),
             (lhs.one_ct(), MaskCt::MAX * (lhs == 1) as MaskCt),
+            (lhs.zero_ct(), MaskCt::MAX * (lhs == 0) as MaskCt),
+            (lhs.pos_ct(), MaskCt::MAX * (lhs > 0) as MaskCt),
+            (lhs.neg_ct(), MaskCt::MAX * (lhs < 0) as MaskCt),
             (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
@@ -2119,8 +2215,10 @@ mod tests {
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
         ) [
-            (lhs.zero_ct(), MaskCt::MAX * (lhs == 0) as MaskCt),
             (lhs.one_ct(), MaskCt::MAX * (lhs == 1) as MaskCt),
+            (lhs.zero_ct(), MaskCt::MAX * (lhs == 0) as MaskCt),
+            (lhs.pos_ct(), MaskCt::MAX * (lhs > 0) as MaskCt),
+            (lhs.neg_ct(), MaskCt::MAX * (lhs < 0) as MaskCt),
             (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),

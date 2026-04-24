@@ -77,8 +77,9 @@ macro_rules! from_primitive {
     ($long:ident, $primitive:ty $(,)?) => {
         impl<const L: usize> From<$primitive> for $long<L> {
             #[inline]
-            #[allow(unused_comparisons)]
             fn from(value: $primitive) -> Self {
+                #![allow(unused_comparisons)]
+
                 let bytes = value.to_le_bytes();
                 let res = from_arr(&bytes, if value >= 0 { 0 } else { MAX });
 
@@ -99,8 +100,9 @@ macro_rules! from_primitive_const {
         ///
         /// **Must** be used **ONLY** in const context.
         #[inline]
-        #[allow(unused_comparisons)]
         pub const fn $fn(value: $primitive) -> Self {
+            #![allow(unused_comparisons)]
+
             let default = if value >= 0 { 0 } else { MAX };
 
             let mut val = value as u128;
@@ -5033,8 +5035,9 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::unnecessary_cast)]
     fn from_primitive() {
+        #![allow(clippy::unnecessary_cast)]
+
         ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
             (S64::from     (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
             (S64::from_i8  (val as   i8), S64 { 0: (val as   i8 as i64).to_le_bytes() }),
@@ -5081,8 +5084,9 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::unnecessary_cast)]
     fn from_bytes() {
+        #![allow(clippy::unnecessary_cast)]
+
         ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
             (S64::from_bytes(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
             (U64::from_bytes(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
@@ -5105,8 +5109,9 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::unnecessary_cast)]
     fn from_arr() {
+        #![allow(clippy::unnecessary_cast)]
+
         ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
             (S64::nd_from(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
             (U64::nd_from(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
@@ -5147,8 +5152,9 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::unnecessary_cast)]
     fn from_slice() {
+        #![allow(clippy::unnecessary_cast)]
+
         ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
             (S64::nd_from(&val.to_le_bytes()[..8]), S64 { 0: (val as u64 as u64).to_le_bytes() }),
             (U64::nd_from(&val.to_le_bytes()[..8]), U64 { 0: (val as u64 as u64).to_le_bytes() }),
@@ -5197,8 +5203,9 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::unnecessary_cast)]
     fn from_iter() {
+        #![allow(clippy::unnecessary_cast)]
+
         ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
             (val.to_le_bytes().iter().copied().take(8).collect::<S64>(), S64 { 0: (val as u64 as u64).to_le_bytes() }),
             (val.to_le_bytes().iter().copied().take(8).collect::<U64>(), U64 { 0: (val as u64 as u64).to_le_bytes() }),
