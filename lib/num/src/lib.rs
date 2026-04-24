@@ -288,6 +288,13 @@ macro_rules! num_ct_impl {
             }
         }
 
+        impl AbsCt for $signed {
+            #[inline]
+            fn abs_ct(&self) -> Self {
+                SelectCt::select_ct(self, &self.wrapping_abs(), self.pos_ct())
+            }
+        }
+
         num_ct_impl!(@select $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
@@ -1179,6 +1186,13 @@ pub trait MinCt: Copy {
 pub trait MaxCt: Copy {
     /// Const-time maximum function.
     fn max_ct(&self, other: &Self) -> Self;
+}
+
+/// Const-time absolute value.
+#[cfg(feature = "const-time")]
+pub trait AbsCt: Copy {
+    /// Const-time absolute function.
+    fn abs_ct(&self) -> Self;
 }
 
 /// Const-time select value.
@@ -2236,6 +2250,7 @@ mod tests {
             (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
+            (lhs.abs_ct(), lhs.abs()),
         ] }
 
         ndassert::check! { @eq (
