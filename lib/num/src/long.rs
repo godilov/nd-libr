@@ -23,7 +23,7 @@ use crate::{
     long::radix::*,
 };
 #[cfg(feature = "const-time")]
-use crate::{EqCt, GtCt, LtCt, MaskCt, SelectCt, SignCt};
+use crate::{EqCt, GtCt, LtCt, MaskCt, SelectCt, SignCt, ZeroCt};
 
 macro_rules! signed {
     ($bits:expr) => {
@@ -46,24 +46,25 @@ macro_rules! bytes {
 #[cfg(feature = "const-time")]
 macro_rules! eq_ct {
     ($lhs:expr, $rhs:expr) => {{
-        let diff = $lhs.rev().zip($rhs.rev()).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
+        let diff = $lhs.zip($rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
 
-        std::hint::black_box(diff.eq_ct(&0)) as MaskCt
+        std::hint::black_box(diff).zero_ct() as MaskCt
     }};
 }
 
 #[cfg(feature = "const-time")]
 macro_rules! cmp_ct {
     ($lhs:expr, $rhs:expr) => {{
-        let (lt, gt) = $lhs.rev().zip($rhs.rev()).map(|(a, b)| ((a < b) as i8, (a > b) as i8)).fold(
-            (0i8, 0i8),
-            |(lt_, gt_), (lt, gt)| {
-                let ltr = lt_ | (lt & (gt_ == 0) as i8);
-                let gtr = gt_ | (gt & (lt_ == 0) as i8);
+        let (lt, gt) =
+            $lhs.zip($rhs)
+                .map(|(a, b)| ((a < b) as i8, (a > b) as i8))
+                .fold((0i8, 0i8), |(lt_, gt_), (lt, gt)| {
+                    let eq = !lt & !gt;
+                    let lt = lt_ & eq | lt;
+                    let gt = gt_ & eq | gt;
 
-                (ltr, gtr)
-            },
-        );
+                    (lt, gt)
+                });
 
         std::hint::black_box(gt - lt) as SignCt
     }};
