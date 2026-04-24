@@ -2181,7 +2181,7 @@ pub mod uops {
     #[inline(never)]
     #[cfg(feature = "const-time")]
     pub fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        eq_ct!(words.iter(), std::hint::black_box(std::iter::repeat(0)))
+        std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).zero_ct() as MaskCt
     }
 }
 
