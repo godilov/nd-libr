@@ -579,9 +579,9 @@ pub enum Sign {
 #[cfg(feature = "const-time")]
 pub type MaskCt = u8;
 
-/// Sign for Const-time operations.
+/// Relation for Const-time operations.
 #[cfg(feature = "const-time")]
-pub type SignCt = i8;
+pub type RelCt = i8;
 
 /// Numbers functions.
 ///
@@ -1133,6 +1133,21 @@ pub trait GeCt {
     fn ge_ct(&self, other: &Self) -> MaskCt;
 }
 
+/// Const-time sign.
+///
+/// Auto-implemented for all types with [`ZeroCt`], [`PosCt`], [`NegCt`].
+#[cfg(feature = "const-time")]
+pub trait SignCt {
+    /// Const-time sign function.
+    ///
+    /// # Returns
+    ///
+    /// - `-1` => `lhs < 0`
+    /// - `0` => `lhs == 0`.
+    /// - `1` => `lhs > 0`
+    fn sign_ct(&self) -> RelCt;
+}
+
 /// Const-time comparison.
 ///
 /// Auto-implemented for all types with [`EqCt`], [`LtCt`], [`GtCt`].
@@ -1145,7 +1160,7 @@ pub trait CmpCt {
     /// - `-1` => `lhs < rhs`
     /// - `0` => `lhs == rhs`.
     /// - `1` => `lhs > rhs`
-    fn cmp_ct(&self, other: &Self) -> SignCt;
+    fn cmp_ct(&self, other: &Self) -> RelCt;
 }
 
 /// Const-time minimum value.
@@ -1805,11 +1820,22 @@ impl<Any: LtCt> GeCt for Any {
 }
 
 #[cfg(feature = "const-time")]
+impl<Any: ZeroCt + PosCt + NegCt> SignCt for Any {
+    #[inline(never)]
+    fn sign_ct(&self) -> RelCt {
+        let pos = self.pos_ct() as RelCt;
+        let neg = self.neg_ct() as RelCt;
+
+        pos & 1 | neg
+    }
+}
+
+#[cfg(feature = "const-time")]
 impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {
     #[inline(never)]
-    fn cmp_ct(&self, other: &Self) -> SignCt {
-        let lt = self.lt_ct(other) as SignCt;
-        let gt = self.gt_ct(other) as SignCt;
+    fn cmp_ct(&self, other: &Self) -> RelCt {
+        let lt = self.lt_ct(other) as RelCt;
+        let gt = self.gt_ct(other) as RelCt;
 
         lt | gt & 1
     }
@@ -2206,7 +2232,8 @@ mod tests {
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
+            (lhs.sign_ct(), lhs.cmp(&0) as RelCt),
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
         ] }
@@ -2224,7 +2251,8 @@ mod tests {
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as SignCt),
+            (lhs.sign_ct(), lhs.cmp(&0) as RelCt),
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
         ] }

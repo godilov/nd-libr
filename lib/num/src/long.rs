@@ -23,7 +23,7 @@ use crate::{
     long::radix::*,
 };
 #[cfg(feature = "const-time")]
-use crate::{EqCt, GtCt, LtCt, MaskCt, SelectCt, SignCt, ZeroCt};
+use crate::{EqCt, GtCt, LtCt, MaskCt, RelCt, SelectCt, ZeroCt};
 
 macro_rules! signed {
     ($bits:expr) => {
@@ -66,7 +66,7 @@ macro_rules! cmp_ct {
                     (lt, gt)
                 });
 
-        std::hint::black_box(gt - lt) as SignCt
+        std::hint::black_box(gt - lt) as RelCt
     }};
 }
 
@@ -2152,12 +2152,12 @@ pub mod uops {
     /// Returns `words` two's complement sign in const-time.
     #[inline(never)]
     #[cfg(feature = "const-time")]
-    pub fn sign_ct<const L: usize>(words: &[Single; L]) -> SignCt {
+    pub fn sign_ct<const L: usize>(words: &[Single; L]) -> RelCt {
         let zero = zero_ct(words);
         let neg = neg_ct(words);
         let pos = !zero & !neg & 1;
 
-        neg as SignCt | pos as SignCt
+        neg as RelCt | pos as RelCt
     }
 
     /// Checks `words > 0` in const-time.
@@ -5544,7 +5544,7 @@ mod tests {
             (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (S64::from(lhs).cmp_ct(&S64::from(rhs)), lhs.cmp(&rhs) as SignCt),
+            (S64::from(lhs).cmp_ct(&S64::from(rhs)), lhs.cmp(&rhs) as RelCt),
             (S64::from(lhs).min_ct(&S64::from(rhs)), S64::from(lhs.min(rhs))),
             (S64::from(lhs).max_ct(&S64::from(rhs)), S64::from(lhs.max(rhs))),
         ] }
@@ -5558,7 +5558,7 @@ mod tests {
             (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (U64::from(lhs).cmp_ct(&U64::from(rhs)), lhs.cmp(&rhs) as SignCt),
+            (U64::from(lhs).cmp_ct(&U64::from(rhs)), lhs.cmp(&rhs) as RelCt),
             (U64::from(lhs).min_ct(&U64::from(rhs)), U64::from(lhs.min(rhs))),
             (U64::from(lhs).max_ct(&U64::from(rhs)), U64::from(lhs.max(rhs))),
         ] }
