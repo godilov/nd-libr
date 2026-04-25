@@ -4994,7 +4994,7 @@ mod tests {
     use super::*;
     use crate::long::alias::{S32, S64, U32, U64};
     #[cfg(feature = "const-time")]
-    use crate::{CmpCt, GeCt, LeCt, MaxCt, MinCt};
+    use crate::{AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt};
 
     fn sdiv_default(_: i64, _: i64) -> i64 {
         0
@@ -5539,28 +5539,28 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
         ) [
-            (S64::from(lhs).eq_ct(&S64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (S64::from(lhs).lt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (S64::from(lhs).cmp_ct(&S64::from(rhs)), lhs.cmp(&rhs) as RelCt),
-            (S64::from(lhs).min_ct(&S64::from(rhs)), S64::from(lhs.min(rhs))),
-            (S64::from(lhs).max_ct(&S64::from(rhs)), S64::from(lhs.max(rhs))),
+            (AutoCt(S64::from(lhs)).eq_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (AutoCt(S64::from(lhs)).lt_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (AutoCt(S64::from(lhs)).gt_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (AutoCt(S64::from(lhs)).le_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (AutoCt(S64::from(lhs)).ge_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (AutoCt(S64::from(lhs)).cmp_ct(&AutoCt(S64::from(rhs))), lhs.cmp(&rhs) as RelCt),
+            (AutoCt(S64::from(lhs)).min_ct(&AutoCt(S64::from(rhs))), AutoCt(S64::from(lhs.min(rhs)))),
+            (AutoCt(S64::from(lhs)).max_ct(&AutoCt(S64::from(rhs))), AutoCt(S64::from(lhs.max(rhs)))),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0),
             rhs in ndassert::range!(u64, 56, 1),
         ) [
-            (U64::from(lhs).eq_ct(&U64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (U64::from(lhs).lt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (U64::from(lhs).cmp_ct(&U64::from(rhs)), lhs.cmp(&rhs) as RelCt),
-            (U64::from(lhs).min_ct(&U64::from(rhs)), U64::from(lhs.min(rhs))),
-            (U64::from(lhs).max_ct(&U64::from(rhs)), U64::from(lhs.max(rhs))),
+            (AutoCt(U64::from(lhs)).eq_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (AutoCt(U64::from(lhs)).lt_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (AutoCt(U64::from(lhs)).gt_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (AutoCt(U64::from(lhs)).le_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (AutoCt(U64::from(lhs)).ge_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (AutoCt(U64::from(lhs)).cmp_ct(&AutoCt(U64::from(rhs))), lhs.cmp(&rhs) as RelCt),
+            (AutoCt(U64::from(lhs)).min_ct(&AutoCt(U64::from(rhs))), AutoCt(U64::from(lhs.min(rhs)))),
+            (AutoCt(U64::from(lhs)).max_ct(&AutoCt(U64::from(rhs))), AutoCt(U64::from(lhs.max(rhs)))),
         ] }
     }
 

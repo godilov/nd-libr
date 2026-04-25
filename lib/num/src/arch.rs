@@ -1,9 +1,6 @@
 #![doc = include_str!("../docs/arch.md")]
 
-use std::{
-    fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex},
-    ops::{Deref, DerefMut},
-};
+use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
 use ndext::ops::*;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
@@ -113,20 +110,6 @@ macro_rules! aligned_impl {
             #[inline]
             fn from(value: T) -> Self {
                 Self(value)
-            }
-        }
-
-        impl<T> Deref for $aligned<T> {
-            type Target = T;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-
-        impl<T> DerefMut for $aligned<T> {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.0
             }
         }
 
@@ -538,9 +521,20 @@ pub mod word {
 #[cfg_attr(target_arch = "riscv64", repr(align(64)))]
 #[cfg_attr(target_arch = "wasm32",  repr(align(64)))]
 #[cfg_attr(target_arch = "wasm64",  repr(align(64)))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::NegCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
@@ -563,9 +557,20 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::NegCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[repr(align(32))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -589,9 +594,20 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::NegCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[repr(align(64))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -615,9 +631,20 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::NegCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[repr(align(128))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -955,29 +982,43 @@ mod tests {
     #[cfg(feature = "const-time")]
     #[test]
     fn cmp_ct() {
+        #![allow(clippy::absurd_extreme_comparisons)]
+        #![allow(unused_comparisons)]
+
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0),
-            rhs in ndassert::range!(i64, 56, 1),
+            lhs in ndassert::range!(i64, 56, 0).map(AutoCt),
+            rhs in ndassert::range!(i64, 56, 1).map(AutoCt),
         ) [
+            (Aligned(lhs).one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (Aligned(lhs).zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (Aligned(lhs).pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
+            (Aligned(lhs).neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
             (Aligned(lhs).eq_ct(&Aligned(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (Aligned(lhs).lt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (Aligned(lhs).gt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (Aligned(lhs).le_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (Aligned(lhs).ge_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (Aligned(lhs).sign_ct(), lhs.0.cmp(&0) as RelCt),
             (Aligned(lhs).cmp_ct(&Aligned(rhs)), lhs.cmp(&rhs) as RelCt),
             (Aligned(lhs).min_ct(&Aligned(rhs)), Aligned(lhs.min(rhs))),
             (Aligned(lhs).max_ct(&Aligned(rhs)), Aligned(lhs.max(rhs))),
+            (Aligned(lhs).abs_ct(), Aligned(AutoCt(lhs.0.wrapping_abs()))),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0),
-            rhs in ndassert::range!(u64, 56, 1),
+            lhs in ndassert::range!(u64, 56, 0).map(AutoCt),
+            rhs in ndassert::range!(u64, 56, 1).map(AutoCt),
         ) [
+            (Aligned(lhs).one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (Aligned(lhs).zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (Aligned(lhs).pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
+            (Aligned(lhs).neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
             (Aligned(lhs).eq_ct(&Aligned(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (Aligned(lhs).lt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (Aligned(lhs).gt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (Aligned(lhs).le_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (Aligned(lhs).ge_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (Aligned(lhs).sign_ct(), lhs.0.cmp(&0) as RelCt),
             (Aligned(lhs).cmp_ct(&Aligned(rhs)), lhs.cmp(&rhs) as RelCt),
             (Aligned(lhs).min_ct(&Aligned(rhs)), Aligned(lhs.min(rhs))),
             (Aligned(lhs).max_ct(&Aligned(rhs)), Aligned(lhs.max(rhs))),

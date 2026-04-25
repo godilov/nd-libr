@@ -378,7 +378,7 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             #[inline]
             fn into_iter(self) -> Self::IntoIter {
-                #expr.into_iter()
+                (&#expr).into_iter()
             }
         }
 
@@ -388,7 +388,7 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             #[inline]
             fn into_iter(self) -> Self::IntoIter {
-                #expr.into_iter()
+                (&mut #expr).into_iter()
             }
         }
     }

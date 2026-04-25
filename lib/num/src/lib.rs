@@ -11,12 +11,14 @@ pub mod arch;
 pub mod long;
 pub mod prime;
 
+#[cfg(feature = "const-time")]
 macro_rules! dir_ct {
     ($expr:expr) => {
         MaskCt::ZERO.wrapping_sub($expr)
     };
 }
 
+#[cfg(feature = "const-time")]
 macro_rules! inv_ct {
     ($expr:expr) => {
         !MaskCt::ZERO.wrapping_sub($expr)
@@ -568,6 +570,34 @@ pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(p
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
 
+/// Number with auto-implementation of const-time traits.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::iter(self.0 with N)]
+#[ndfwd::def(self.0 with N: NumFn)]
+#[ndfwd::def(self.0 with N: NumPow!)]
+#[ndfwd::def(self.0 with N: NumGcd!)]
+#[ndfwd::def(self.0 with N: NumGcdChecked!)]
+#[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: OneCt)]
+#[ndfwd::def(self.0 with N: ZeroCt)]
+#[ndfwd::def(self.0 with N: PosCt)]
+#[ndfwd::def(self.0 with N: NegCt)]
+#[ndfwd::def(self.0 with N: EqCt)]
+#[ndfwd::def(self.0 with N: LtCt)]
+#[ndfwd::def(self.0 with N: GtCt)]
+#[ndfwd::def(self.0 with N: AbsCt)]
+#[ndfwd::def(self.0 with N: SelectCt)]
+#[derive(Debug, Default, Clone, Copy)]
+#[cfg(feature = "const-time")]
+pub struct AutoCt<N>(pub N);
+
 /// Number sign.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -1022,8 +1052,8 @@ pub trait MaxFn {
 }
 
 /// Const-time equality with one comparison.
-#[cfg(feature = "const-time")]
 #[ndfwd::decl]
+#[cfg(feature = "const-time")]
 pub trait OneCt {
     /// Const-time equality with one function.
     ///
@@ -1035,8 +1065,8 @@ pub trait OneCt {
 }
 
 /// Const-time equality with zero comparison.
-#[cfg(feature = "const-time")]
 #[ndfwd::decl]
+#[cfg(feature = "const-time")]
 pub trait ZeroCt {
     /// Const-time equality with zero function.
     ///
@@ -1048,8 +1078,8 @@ pub trait ZeroCt {
 }
 
 /// Const-time greater-then-zero comparison.
-#[cfg(feature = "const-time")]
 #[ndfwd::decl]
+#[cfg(feature = "const-time")]
 pub trait PosCt {
     /// Const-time greater-then-zero function.
     ///
@@ -1061,8 +1091,8 @@ pub trait PosCt {
 }
 
 /// Const-time less-then-zero comparison.
-#[cfg(feature = "const-time")]
 #[ndfwd::decl]
+#[cfg(feature = "const-time")]
 pub trait NegCt {
     /// Const-time less-then-zero function.
     ///
@@ -1074,8 +1104,8 @@ pub trait NegCt {
 }
 
 /// Const-time equality comparison.
-#[cfg(feature = "const-time")]
 #[ndfwd::decl]
+#[cfg(feature = "const-time")]
 pub trait EqCt {
     /// Const-time equality function.
     ///
@@ -1087,8 +1117,8 @@ pub trait EqCt {
 }
 
 /// Const-time less-then comparison.
-#[cfg(feature = "const-time")]
 #[ndfwd::decl]
+#[cfg(feature = "const-time")]
 pub trait LtCt {
     /// Const-time less-then function.
     ///
@@ -1100,8 +1130,8 @@ pub trait LtCt {
 }
 
 /// Const-time greater-then comparison.
-#[cfg(feature = "const-time")]
 #[ndfwd::decl]
+#[cfg(feature = "const-time")]
 pub trait GtCt {
     /// Const-time greater-then function.
     ///
@@ -1115,6 +1145,7 @@ pub trait GtCt {
 /// Const-time less-or-equal-then comparison.
 ///
 /// Auto-implemented for all types with [`GtCt`].
+#[ndfwd::decl]
 #[cfg(feature = "const-time")]
 pub trait LeCt {
     /// Const-time less-or-equal-then function.
@@ -1129,6 +1160,7 @@ pub trait LeCt {
 /// Const-time greater-or-equal-then comparison.
 ///
 /// Auto-implemented for all types with [`LtCt`].
+#[ndfwd::decl]
 #[cfg(feature = "const-time")]
 pub trait GeCt {
     /// Const-time greater-or-equal-then function.
@@ -1143,6 +1175,7 @@ pub trait GeCt {
 /// Const-time sign.
 ///
 /// Auto-implemented for all types with [`ZeroCt`], [`PosCt`], [`NegCt`].
+#[ndfwd::decl]
 #[cfg(feature = "const-time")]
 pub trait SignCt {
     /// Const-time sign function.
@@ -1158,6 +1191,7 @@ pub trait SignCt {
 /// Const-time comparison.
 ///
 /// Auto-implemented for all types with [`EqCt`], [`LtCt`], [`GtCt`].
+#[ndfwd::decl]
 #[cfg(feature = "const-time")]
 pub trait CmpCt {
     /// Const-time comparison function.
@@ -1173,25 +1207,31 @@ pub trait CmpCt {
 /// Const-time minimum value.
 ///
 /// Auto-implemented for all types with [`LtCt`], [`SelectCt`].
+#[ndfwd::decl]
 #[cfg(feature = "const-time")]
 pub trait MinCt: Copy {
     /// Const-time minimum function.
+    #[ndfwd::as_into]
     fn min_ct(&self, other: &Self) -> Self;
 }
 
 /// Const-time maximum value.
 ///
 /// Auto-implemented for all types with [`GtCt`], [`SelectCt`].
+#[ndfwd::decl]
 #[cfg(feature = "const-time")]
 pub trait MaxCt: Copy {
     /// Const-time maximum function.
+    #[ndfwd::as_into]
     fn max_ct(&self, other: &Self) -> Self;
 }
 
 /// Const-time absolute value.
+#[ndfwd::decl]
 #[cfg(feature = "const-time")]
 pub trait AbsCt: Copy {
     /// Const-time absolute function.
+    #[ndfwd::as_into]
     fn abs_ct(&self) -> Self;
 }
 
@@ -1276,6 +1316,14 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
     #[inline]
     fn from(value: N) -> Self {
         Self(value, PhantomData).normalized()
+    }
+}
+
+#[cfg(feature = "const-time")]
+impl<N> From<N> for AutoCt<N> {
+    #[inline]
+    fn from(value: N) -> Self {
+        Self(value)
     }
 }
 
@@ -1367,6 +1415,17 @@ ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0)
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
+    ! where                     [N: NdNot                   <N, Type = N>],
+    - where                     [N: NdNeg                   <N, Type = N>],
+    - @checked where            [N: NdNegChecked            <N, Type = N>],
+    - @strict where             [N: NdNegStrict             <N, Type = N>],
+    - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
+    - @saturating where         [N: NdNegSaturating         <N, Type = N>],
+    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
+] }
+
+#[cfg(feature = "const-time")]
+ndops::fwd! { @ndun <N> (value: &AutoCt<N>) -> AutoCt<N>, (N) (&value.0) [
     ! where                     [N: NdNot                   <N, Type = N>],
     - where                     [N: NdNeg                   <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
@@ -1515,6 +1574,55 @@ ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Unbounded<Lhs>, rhs: Rhs) -> Unbounded
     >> @overflowing where       [Lhs: NdShrOverflowing      <Lhs, Rhs, Type = T>],
 ] }
 
+#[cfg(feature = "const-time")]
+ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &AutoCt<Lhs>, rhs: &AutoCt<Rhs>) -> AutoCt<T>, (Lhs) (&lhs.0) (&rhs.0) [
+    + where                     [Lhs: NdAdd                 <Lhs, Rhs, Type = T>],
+    - where                     [Lhs: NdSub                 <Lhs, Rhs, Type = T>],
+    * where                     [Lhs: NdMul                 <Lhs, Rhs, Type = T>],
+    / where                     [Lhs: NdDiv                 <Lhs, Rhs, Type = T>],
+    % where                     [Lhs: NdRem                 <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
+    + @checked where            [Lhs: NdAddChecked          <Lhs, Rhs, Type = T>],
+    - @checked where            [Lhs: NdSubChecked          <Lhs, Rhs, Type = T>],
+    * @checked where            [Lhs: NdMulChecked          <Lhs, Rhs, Type = T>],
+    / @checked where            [Lhs: NdDivChecked          <Lhs, Rhs, Type = T>],
+    % @checked where            [Lhs: NdRemChecked          <Lhs, Rhs, Type = T>],
+    + @strict where             [Lhs: NdAddStrict           <Lhs, Rhs, Type = T>],
+    - @strict where             [Lhs: NdSubStrict           <Lhs, Rhs, Type = T>],
+    * @strict where             [Lhs: NdMulStrict           <Lhs, Rhs, Type = T>],
+    / @strict where             [Lhs: NdDivStrict           <Lhs, Rhs, Type = T>],
+    % @strict where             [Lhs: NdRemStrict           <Lhs, Rhs, Type = T>],
+    + @wrapping where           [Lhs: NdAddWrapping         <Lhs, Rhs, Type = T>],
+    - @wrapping where           [Lhs: NdSubWrapping         <Lhs, Rhs, Type = T>],
+    * @wrapping where           [Lhs: NdMulWrapping         <Lhs, Rhs, Type = T>],
+    / @wrapping where           [Lhs: NdDivWrapping         <Lhs, Rhs, Type = T>],
+    % @wrapping where           [Lhs: NdRemWrapping         <Lhs, Rhs, Type = T>],
+    + @saturating where         [Lhs: NdAddSaturating       <Lhs, Rhs, Type = T>],
+    - @saturating where         [Lhs: NdSubSaturating       <Lhs, Rhs, Type = T>],
+    * @saturating where         [Lhs: NdMulSaturating       <Lhs, Rhs, Type = T>],
+    / @saturating where         [Lhs: NdDivSaturating       <Lhs, Rhs, Type = T>],
+    % @saturating where         [Lhs: NdRemSaturating       <Lhs, Rhs, Type = T>],
+    + @overflowing where        [Lhs: NdAddOverflowing      <Lhs, Rhs, Type = T>],
+    - @overflowing where        [Lhs: NdSubOverflowing      <Lhs, Rhs, Type = T>],
+    * @overflowing where        [Lhs: NdMulOverflowing      <Lhs, Rhs, Type = T>],
+    / @overflowing where        [Lhs: NdDivOverflowing      <Lhs, Rhs, Type = T>],
+    % @overflowing where        [Lhs: NdRemOverflowing      <Lhs, Rhs, Type = T>],
+] }
+
+#[cfg(feature = "const-time")]
+ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &AutoCt<Lhs>, rhs: Rhs) -> AutoCt<T>, (Lhs) (&lhs.0) (rhs) [
+    << where                    [Lhs: NdShl                 <Lhs, Rhs, Type = T>],
+    >> where                    [Lhs: NdShr                 <Lhs, Rhs, Type = T>],
+    << @checked where           [Lhs: NdShlChecked          <Lhs, Rhs, Type = T>],
+    >> @checked where           [Lhs: NdShrChecked          <Lhs, Rhs, Type = T>],
+    << @overflowing where       [Lhs: NdShlOverflowing      <Lhs, Rhs, Type = T>],
+    >> @overflowing where       [Lhs: NdShrOverflowing      <Lhs, Rhs, Type = T>],
+    << @unbounded where         [Lhs: NdShlUnbounded        <Lhs, Rhs, Type = T>],
+    >> @unbounded where         [Lhs: NdShrUnbounded        <Lhs, Rhs, Type = T>],
+] }
+
 ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Strict<Lhs>, rhs: &Strict<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
     += with @strict where       [Lhs: NdAddAssignStrict     <Lhs, Rhs>],
     -= with @strict where       [Lhs: NdSubAssignStrict     <Lhs, Rhs>],
@@ -1594,6 +1702,40 @@ ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut Unbounded<Lhs>, rhs: Rhs), (Lhs) (&mu
     >>= with @unbounded where   [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
 ] }
 
+#[cfg(feature = "const-time")]
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: &AutoCt<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += where                    [Lhs: NdAddAssign           <Lhs, Rhs>],
+    -= where                    [Lhs: NdSubAssign           <Lhs, Rhs>],
+    *= where                    [Lhs: NdMulAssign           <Lhs, Rhs>],
+    /= where                    [Lhs: NdDivAssign           <Lhs, Rhs>],
+    %= where                    [Lhs: NdRemAssign           <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+    += @strict where            [Lhs: NdAddAssignStrict     <Lhs, Rhs>],
+    -= @strict where            [Lhs: NdSubAssignStrict     <Lhs, Rhs>],
+    *= @strict where            [Lhs: NdMulAssignStrict     <Lhs, Rhs>],
+    /= @strict where            [Lhs: NdDivAssignStrict     <Lhs, Rhs>],
+    %= @strict where            [Lhs: NdRemAssignStrict     <Lhs, Rhs>],
+    += @wrapping where          [Lhs: NdAddAssignWrapping   <Lhs, Rhs>],
+    -= @wrapping where          [Lhs: NdSubAssignWrapping   <Lhs, Rhs>],
+    *= @wrapping where          [Lhs: NdMulAssignWrapping   <Lhs, Rhs>],
+    /= @wrapping where          [Lhs: NdDivAssignWrapping   <Lhs, Rhs>],
+    %= @wrapping where          [Lhs: NdRemAssignWrapping   <Lhs, Rhs>],
+    += @saturating where        [Lhs: NdAddAssignSaturating <Lhs, Rhs>],
+    -= @saturating where        [Lhs: NdSubAssignSaturating <Lhs, Rhs>],
+    *= @saturating where        [Lhs: NdMulAssignSaturating <Lhs, Rhs>],
+    /= @saturating where        [Lhs: NdDivAssignSaturating <Lhs, Rhs>],
+    %= @saturating where        [Lhs: NdRemAssignSaturating <Lhs, Rhs>],
+] }
+
+#[cfg(feature = "const-time")]
+#[cfg(feature = "const-time")]
+ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= where                   [Lhs: NdShlAssign           <Lhs, Rhs>],
+    >>= where                   [Lhs: NdShrAssign           <Lhs, Rhs>],
+] }
+
 ndops::fwd! { @stdun <N> (*value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
     ! where                     [N: NdNot                   <N, Type = N>],
     - with @strict where        [N: NdNegStrict             <N, Type = N>],
@@ -1610,6 +1752,12 @@ ndops::fwd! { @stdun <N> (*value: &Saturating<N>) -> Saturating<N>, (N) (&value.
 ] }
 
 ndops::fwd! { @stdun <N> (*value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
+    - where                     [N: NdNeg                   <N, Type = N>],
+    ! where                     [N: NdNot                   <N, Type = N>],
+] }
+
+#[cfg(feature = "const-time")]
+ndops::fwd! { @stdun <N> (*value: &AutoCt<N>) -> AutoCt<N>, (N) (&value.0) [
     - where                     [N: NdNeg                   <N, Type = N>],
     ! where                     [N: NdNot                   <N, Type = N>],
 ] }
@@ -1678,6 +1826,24 @@ ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Unbounded<Lhs>, rhs: Rhs) -> Unbound
     >> with @unbounded where    [Lhs: NdShrUnbounded        <Lhs, Rhs, Type = T>],
 ] }
 
+#[cfg(feature = "const-time")]
+ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &AutoCt<Lhs>, *rhs: &AutoCt<Rhs>) -> AutoCt<T>, (Lhs) (&lhs.0) (&rhs.0) [
+    + where                     [Lhs: NdAdd                 <Lhs, Rhs, Type = T>],
+    - where                     [Lhs: NdSub                 <Lhs, Rhs, Type = T>],
+    * where                     [Lhs: NdMul                 <Lhs, Rhs, Type = T>],
+    / where                     [Lhs: NdDiv                 <Lhs, Rhs, Type = T>],
+    % where                     [Lhs: NdRem                 <Lhs, Rhs, Type = T>],
+    | where                     [Lhs: NdBitOr               <Lhs, Rhs, Type = T>],
+    & where                     [Lhs: NdBitAnd              <Lhs, Rhs, Type = T>],
+    ^ where                     [Lhs: NdBitXor              <Lhs, Rhs, Type = T>],
+] }
+
+#[cfg(feature = "const-time")]
+ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &AutoCt<Lhs>, rhs: Rhs) -> AutoCt<T>, (Lhs) (&lhs.0) (rhs) [
+    << where                    [Lhs: NdShl                 <Lhs, Rhs, Type = T>],
+    >> where                    [Lhs: NdShr                 <Lhs, Rhs, Type = T>],
+] }
+
 ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Strict<Lhs>, *rhs: &Strict<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
     += with @strict where       [Lhs: NdAddAssignStrict     <Lhs, Rhs>],
     -= with @strict where       [Lhs: NdSubAssignStrict     <Lhs, Rhs>],
@@ -1740,6 +1906,24 @@ ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Unbounded<Lhs>, *rhs: &Unbounded<Rhs
 ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut Unbounded<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
     <<= with @unbounded where   [Lhs: NdShlAssignUnbounded  <Lhs, Rhs>],
     >>= with @unbounded where   [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
+] }
+
+#[cfg(feature = "const-time")]
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, *rhs: &AutoCt<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+    += where                    [Lhs: NdAddAssign           <Lhs, Rhs>],
+    -= where                    [Lhs: NdSubAssign           <Lhs, Rhs>],
+    *= where                    [Lhs: NdMulAssign           <Lhs, Rhs>],
+    /= where                    [Lhs: NdDivAssign           <Lhs, Rhs>],
+    %= where                    [Lhs: NdRemAssign           <Lhs, Rhs>],
+    |= where                    [Lhs: NdBitOrAssign         <Lhs, Rhs>],
+    &= where                    [Lhs: NdBitAndAssign        <Lhs, Rhs>],
+    ^= where                    [Lhs: NdBitXorAssign        <Lhs, Rhs>],
+] }
+
+#[cfg(feature = "const-time")]
+ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
+    <<= where                   [Lhs: NdShlAssign           <Lhs, Rhs>],
+    >>= where                   [Lhs: NdShrAssign           <Lhs, Rhs>],
 ] }
 
 impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> BytesLen for Width<N, BITS> {
@@ -1818,7 +2002,7 @@ impl<Any: Max> MaxFn for Any {
 }
 
 #[cfg(feature = "const-time")]
-impl<Any: GtCt> LeCt for Any {
+impl<N: GtCt> LeCt for AutoCt<N> {
     #[inline(never)]
     fn le_ct(&self, other: &Self) -> MaskCt {
         !self.gt_ct(other)
@@ -1826,7 +2010,7 @@ impl<Any: GtCt> LeCt for Any {
 }
 
 #[cfg(feature = "const-time")]
-impl<Any: LtCt> GeCt for Any {
+impl<N: LtCt> GeCt for AutoCt<N> {
     #[inline(never)]
     fn ge_ct(&self, other: &Self) -> MaskCt {
         !self.lt_ct(other)
@@ -1834,7 +2018,7 @@ impl<Any: LtCt> GeCt for Any {
 }
 
 #[cfg(feature = "const-time")]
-impl<Any: ZeroCt + PosCt + NegCt> SignCt for Any {
+impl<N: ZeroCt + PosCt + NegCt> SignCt for AutoCt<N> {
     #[inline(never)]
     fn sign_ct(&self) -> RelCt {
         let pos = self.pos_ct() as RelCt;
@@ -1845,7 +2029,7 @@ impl<Any: ZeroCt + PosCt + NegCt> SignCt for Any {
 }
 
 #[cfg(feature = "const-time")]
-impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {
+impl<N: EqCt + LtCt + GtCt> CmpCt for AutoCt<N> {
     #[inline(never)]
     fn cmp_ct(&self, other: &Self) -> RelCt {
         let lt = self.lt_ct(other) as RelCt;
@@ -1856,7 +2040,7 @@ impl<Any: EqCt + LtCt + GtCt> CmpCt for Any {
 }
 
 #[cfg(feature = "const-time")]
-impl<Any: LtCt + SelectCt> MinCt for Any {
+impl<N: LtCt + SelectCt> MinCt for AutoCt<N> {
     #[inline]
     fn min_ct(&self, other: &Self) -> Self {
         SelectCt::select_ct(self, other, self.lt_ct(other))
@@ -1864,7 +2048,7 @@ impl<Any: LtCt + SelectCt> MinCt for Any {
 }
 
 #[cfg(feature = "const-time")]
-impl<Any: GtCt + SelectCt> MaxCt for Any {
+impl<N: GtCt + SelectCt> MaxCt for AutoCt<N> {
     #[inline]
     fn max_ct(&self, other: &Self) -> Self {
         SelectCt::select_ct(self, other, self.gt_ct(other))
@@ -2234,39 +2418,39 @@ mod tests {
         #![allow(unused_comparisons)]
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([0, 1]),
-            rhs in ndassert::range!(i64, 56, 1).chain([0, 1]),
+            lhs in ndassert::range!(i64, 56, 0).chain([0, 1, i64::MIN, i64::MAX]).map(AutoCt),
+            rhs in ndassert::range!(i64, 56, 1).chain([0, 1, i64::MIN, i64::MAX]).map(AutoCt),
         ) [
-            (lhs.one_ct(), MaskCt::MAX * (lhs == 1) as MaskCt),
-            (lhs.zero_ct(), MaskCt::MAX * (lhs == 0) as MaskCt),
-            (lhs.pos_ct(), MaskCt::MAX * (lhs > 0) as MaskCt),
-            (lhs.neg_ct(), MaskCt::MAX * (lhs < 0) as MaskCt),
+            (lhs.one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (lhs.zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (lhs.pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
+            (lhs.neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
             (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.sign_ct(), lhs.cmp(&0) as RelCt),
+            (lhs.sign_ct(), lhs.0.cmp(&0) as RelCt),
             (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
-            (lhs.abs_ct(), lhs.abs()),
+            (lhs.abs_ct(), AutoCt(lhs.0.wrapping_abs())),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0, 1, u64::MIN, u64::MAX]).map(AutoCt),
+            rhs in ndassert::range!(u64, 56, 1).chain([0, 1, u64::MIN, u64::MAX]).map(AutoCt),
         ) [
-            (lhs.one_ct(), MaskCt::MAX * (lhs == 1) as MaskCt),
-            (lhs.zero_ct(), MaskCt::MAX * (lhs == 0) as MaskCt),
-            (lhs.pos_ct(), MaskCt::MAX * (lhs > 0) as MaskCt),
-            (lhs.neg_ct(), MaskCt::MAX * (lhs < 0) as MaskCt),
+            (lhs.one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (lhs.zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (lhs.pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
+            (lhs.neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
             (lhs.eq_ct(&rhs), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs), MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs), MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.sign_ct(), lhs.cmp(&0) as RelCt),
+            (lhs.sign_ct(), lhs.0.cmp(&0) as RelCt),
             (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
