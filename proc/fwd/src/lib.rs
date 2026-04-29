@@ -424,13 +424,6 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where Self: #(#supertraits)+*, },
     };
 
-    let idents = interface.items.iter().filter_map(|item| match item {
-        TraitItem::Type(val) => Some(&val.ident),
-        TraitItem::Const(val) => Some(&val.ident),
-        TraitItem::Fn(val) => Some(&val.sig.ident),
-        _ => None,
-    });
-
     let forwards = interface
         .items
         .iter()
@@ -447,15 +440,8 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let streams_all = forwards.iter().map(|(_, _, stream)| stream);
-    let streams = forwards.iter().filter(|(_, flag, _)| !flag).map(|(_, _, stream)| stream);
-    let cases = forwards.iter().map(|(ident, _, stream)| {
-        quote! {
-            (#ident $ty:ty) => {
-                #stream
-            };
-        }
-    });
+    let all = forwards.iter().map(|(_, _, stream)| stream);
+    let defaults = forwards.iter().filter(|(_, flag, _)| !flag).map(|(_, _, stream)| stream);
 
     quote! {
         #interface
@@ -465,21 +451,15 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         macro_rules! #macros {
             (@ $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
                 impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
-                    #(#streams_all)*
+                    #(#all)*
                 }
             };
 
             (@ ! $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
                 impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
-                    #(#streams)*
+                    #(#defaults)*
                 }
             };
-
-            (* $ty:ty) => {
-                #(#macros!(#idents $ty);)*
-            };
-
-            #(#cases)*
         }
 
         #[allow(unused_imports)]

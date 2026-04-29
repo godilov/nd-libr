@@ -513,6 +513,21 @@ pub mod word {
 #[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::NegCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[cfg_attr(target_arch = "x86",     repr(align(64)))]
 #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
 #[cfg_attr(target_arch = "arm",     repr(align(64)))]
@@ -521,28 +536,12 @@ pub mod word {
 #[cfg_attr(target_arch = "riscv64", repr(align(64)))]
 #[cfg_attr(target_arch = "wasm32",  repr(align(64)))]
 #[cfg_attr(target_arch = "wasm64",  repr(align(64)))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::NegCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::EqCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LtCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GtCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::LeCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::GeCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SignCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned<T>(pub T);
 
 /// Aligned to 32-bytes type.
 ///
 /// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
-#[repr(align(32))]
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -572,13 +571,13 @@ pub struct Aligned<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[repr(align(32))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned32<T>(pub T);
 
 /// Aligned to 64-bytes type.
 ///
 /// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
-#[repr(align(64))]
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -608,13 +607,13 @@ pub struct Aligned32<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[repr(align(64))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned64<T>(pub T);
 
 /// Aligned to 128-bytes type.
 ///
 /// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
-#[repr(align(128))]
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -644,6 +643,7 @@ pub struct Aligned64<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[repr(align(128))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned128<T>(pub T);
 
