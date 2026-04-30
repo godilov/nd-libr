@@ -2409,14 +2409,6 @@ pub mod algo {
         (div, rem as Single)
     }
 
-    /// Returns `(lhs / rhs, lhs % rhs)`.
-    ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn div_signed<const L: usize>(_: &[Single; L], _: <Single as NumFn>::Signed) -> ([Single; L], Single) {
-        todo!()
-    }
-
     /// Applies `lhs /= rhs`.
     #[inline]
     pub fn div_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
@@ -2467,14 +2459,6 @@ pub mod algo {
         lhs
     }
 
-    /// Applies `lhs /= rhs`.
-    ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn div_signed_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Signed) -> &mut [Single; L] {
-        todo!()
-    }
-
     /// Applies `lhs %= rhs`.
     #[inline]
     pub fn rem_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
@@ -2488,14 +2472,6 @@ pub mod algo {
         lhs[0] = div_single(lhs, rhs).1;
         lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
         lhs
-    }
-
-    /// Applies `lhs %= rhs`.
-    ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn rem_signed_mut<const L: usize>(_: &mut [Single; L], _: <Single as NumFn>::Signed) -> &mut [Single; L] {
-        todo!()
     }
 }
 
@@ -2564,15 +2540,20 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignedRef<const L: usize, T: AsRef<[Single; L]>>(pub T);
+pub struct SignedRef<'reference, const L: usize>(pub &'reference [Single; L]);
 
 /// Signed long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
 /// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignedMut<const L: usize, T: AsMut<[Single; L]>>(pub T);
+#[derive(Debug, PartialEq, Eq)]
+pub struct SignedMut<'reference, const L: usize>(pub &'reference mut [Single; L]);
+
+/// Signed long dynamic number. (**WIP**)
+#[cfg(feature = "dyn")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedDyn(Vec<Single>, Sign);
 
 /// Unsigned long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
@@ -2588,15 +2569,20 @@ pub struct Unsigned<const L: usize>(pub [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UnsignedRef<const L: usize, T: AsRef<[Single; L]>>(pub T);
+pub struct UnsignedRef<'reference, const L: usize>(pub &'reference [Single; L]);
 
 /// Unsigned long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
 /// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UnsignedMut<const L: usize, T: AsMut<[Single; L]>>(pub T);
+#[derive(Debug, PartialEq, Eq)]
+pub struct UnsignedMut<'reference, const L: usize>(pub &'reference mut [Single; L]);
+
+/// Unsigned long dynamic number. (**WIP**)
+#[cfg(feature = "dyn")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnsignedDyn(Vec<Single>);
 
 /// Bytes long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
@@ -2621,16 +2607,6 @@ pub struct BytesRef<const L: usize, T: AsRef<[Single; L]>>(pub T);
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BytesMut<const L: usize, T: AsMut<[Single; L]>>(pub T);
-
-/// Signed long dynamic number. (**WIP**)
-#[cfg(feature = "dyn")]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignedDyn(Vec<Single>, Sign);
-
-/// Unsigned long dynamic number. (**WIP**)
-#[cfg(feature = "dyn")]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnsignedDyn(Vec<Single>);
 
 /// Bytes long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
