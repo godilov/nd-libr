@@ -2598,15 +2598,15 @@ pub struct Bytes<const L: usize>(pub [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BytesRef<const L: usize, T: AsRef<[Single; L]>>(pub T);
+pub struct BytesRef<'reference, const L: usize>(pub &'reference [Single; L]);
 
 /// Bytes long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
 ///
 /// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BytesMut<const L: usize, T: AsMut<[Single; L]>>(pub T);
+#[derive(Debug, PartialEq, Eq)]
+pub struct BytesMut<'reference, const L: usize>(pub &'reference mut [Single; L]);
 
 /// Bytes long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
