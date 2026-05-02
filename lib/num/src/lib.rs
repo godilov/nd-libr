@@ -293,7 +293,10 @@ macro_rules! num_ct_impl {
         impl AbsCt for $signed {
             #[inline]
             fn abs_ct(&self) -> Self {
-                SelectCt::select_ct(self, &self.wrapping_abs(), self.pos_ct())
+                let pos = *self;
+                let neg = (!self).wrapping_add(1);
+
+                SelectCt::select_ct(&pos, &neg, self.pos_ct())
             }
         }
 

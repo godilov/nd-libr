@@ -7,14 +7,14 @@ use criterion::{
 };
 use ndext::{convert::NdFrom, iter::IteratorExt};
 use ndnum::{
-    NumFn,
+    Num,
     arch::{Aligned, word::Single},
     long::{ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops},
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
-type Isize = <Single as NumFn>::Signed;
-type Usize = <Single as NumFn>::Unsigned;
+type Isize = <Single as Num>::Signed;
+type Usize = <Single as Num>::Unsigned;
 
 type Slong = ndnum::long::Signed<64>;
 type Ulong = ndnum::long::Unsigned<64>;
