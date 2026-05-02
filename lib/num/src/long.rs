@@ -258,8 +258,8 @@ macro_rules! nd_ops_primitive_impl {
             + Unsigned::<L>(uops::add(&lhs.0, &Unsigned::<L>::from(rhs).0)),
             - Unsigned::<L>(uops::sub(&lhs.0, &Unsigned::<L>::from(rhs).0)),
             * Unsigned::<L>(algo::mul(&lhs.0, &Unsigned::<L>::from(rhs).0)),
-            / Unsigned::<L>(div_long(&lhs.0, &Unsigned::<L>::from(rhs).0).0),
-            % Unsigned::<L>(div_long(&lhs.0, &Unsigned::<L>::from(rhs).0).1),
+            / Unsigned::<L>(algo::div(&lhs.0, &Unsigned::<L>::from(rhs).0).0),
+            % Unsigned::<L>(algo::div(&lhs.0, &Unsigned::<L>::from(rhs).0).1),
             | Unsigned::<L>(uops::bitor(&lhs.0, &Unsigned::<L>::from(rhs).0)),
             & Unsigned::<L>(uops::bitand(&lhs.0, &Unsigned::<L>::from(rhs).0)),
             ^ Unsigned::<L>(uops::bitxor(&lhs.0, &Unsigned::<L>::from(rhs).0)),
@@ -277,8 +277,8 @@ macro_rules! nd_ops_primitive_impl {
             += uops::add_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             -= uops::sub_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             *= algo::mul_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            /= div_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            %= rem_long_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
+            /= algo::div_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
+            %= algo::rem_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             |= uops::bitor_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             &= uops::bitand_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             ^= uops::bitxor_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
@@ -317,33 +317,33 @@ macro_rules! nd_ops_primitive_native_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, &rhs: &$primitive) -> Signed<L> for [Signed<L>, $primitive], [
-            + Signed::<L>(uops::add_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
-            - Signed::<L>(uops::sub_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
-            * Signed::<L>(algo::mul_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
+            + Signed::<L>(uops::add_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            - Signed::<L>(uops::sub_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            * Signed::<L>(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
             / Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
             % Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()),
-            | Signed::<L>(uops::bitor_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
-            & Signed::<L>(uops::bitand_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
-            ^ Signed::<L>(uops::bitxor_signed(&lhs.0, rhs as <Single as NumFn>::Signed)),
+            | Signed::<L>(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            & Signed::<L>(uops::bitand_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            ^ Signed::<L>(uops::bitxor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
-            + Signed::<L>(uops::add_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
-            * Signed::<L>(algo::mul_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
-            | Signed::<L>(uops::bitor_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
-            & Signed::<L>(uops::bitand_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
-            ^ Signed::<L>(uops::bitxor_signed(&rhs.0, lhs as <Single as NumFn>::Signed)),
+            + Signed::<L>(uops::add_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            * Signed::<L>(algo::mul_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            | Signed::<L>(uops::bitor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            & Signed::<L>(uops::bitand_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            ^ Signed::<L>(uops::bitxor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
-            += uops::add_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
-            -= uops::sub_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
-            *= algo::mul_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
+            += uops::add_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
+            -= uops::sub_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
+            *= algo::mul_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
             /= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()); },
-            |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
-            &= uops::bitand_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
-            ^= uops::bitxor_signed_mut(&mut lhs.0, rhs as <Single as NumFn>::Signed),
+            |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
+            &= uops::bitand_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
+            ^= uops::bitxor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -351,8 +351,8 @@ macro_rules! nd_ops_primitive_native_impl {
             + Unsigned::<L>(uops::add_single(&lhs.0, rhs as Single)),
             - Unsigned::<L>(uops::sub_single(&lhs.0, rhs as Single)),
             * Unsigned::<L>(algo::mul_single(&lhs.0, rhs as Single)),
-            / Unsigned::<L>(div_single(&lhs.0, rhs as Single).0),
-            % Unsigned::<L>(div_single(&lhs.0, rhs as Single).1),
+            / Unsigned::<L>(algo::div_single(&lhs.0, rhs as Single).0),
+            % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).1),
             | Unsigned::<L>(uops::bitor_single(&lhs.0, rhs as Single)),
             & Unsigned::<L>(uops::bitand_single(&lhs.0, rhs as Single)),
             ^ Unsigned::<L>(uops::bitxor_single(&lhs.0, rhs as Single)),
@@ -370,8 +370,8 @@ macro_rules! nd_ops_primitive_native_impl {
             += uops::add_single_mut(&mut lhs.0, rhs as Single),
             -= uops::sub_single_mut(&mut lhs.0, rhs as Single),
             *= algo::mul_single_mut(&mut lhs.0, rhs as Single),
-            /= div_single_mut(&mut lhs.0, rhs as Single),
-            %= rem_single_mut(&mut lhs.0, rhs as Single),
+            /= algo::div_single_mut(&mut lhs.0, rhs as Single),
+            %= algo::rem_single_mut(&mut lhs.0, rhs as Single),
             |= uops::bitor_single_mut(&mut lhs.0, rhs as Single),
             &= uops::bitand_single_mut(&mut lhs.0, rhs as Single),
             ^= uops::bitxor_single_mut(&mut lhs.0, rhs as Single),
@@ -1201,10 +1201,7 @@ pub mod uops {
 
         /// Calculates `add(long, single)` with carry propagation.
         #[inline]
-        pub fn add_single<Lhs: Iterator<Item = Single>>(
-            lhs: Lhs,
-            rhs: <Single as NumFn>::Unsigned,
-        ) -> impl ExprIterator {
+        pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Unsigned) -> impl ExprIterator {
             ExprIter {
                 lhs,
                 rhs: std::iter::repeat(0),
@@ -1217,7 +1214,7 @@ pub mod uops {
         #[inline]
         pub fn add_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: <Single as NumFn>::Unsigned,
+            rhs: <Single as Num>::Unsigned,
         ) -> impl ExprIteratorMut {
             ExprIterMut {
                 lhs,
@@ -1231,7 +1228,7 @@ pub mod uops {
         ///
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
-        pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
+        pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Signed) -> impl ExprIterator {
             let rhs = rhs as Single;
 
             let ext = match rhs >> (BITS - 1) {
@@ -1253,7 +1250,7 @@ pub mod uops {
         #[inline]
         pub fn add_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: <Single as NumFn>::Signed,
+            rhs: <Single as Num>::Signed,
         ) -> impl ExprIteratorMut {
             let rhs = rhs as Single;
 
@@ -1300,10 +1297,7 @@ pub mod uops {
 
         /// Calculates `sub(long, single)` with carry propagation.
         #[inline]
-        pub fn sub_single<Lhs: Iterator<Item = Single>>(
-            lhs: Lhs,
-            rhs: <Single as NumFn>::Unsigned,
-        ) -> impl ExprIterator {
+        pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Unsigned) -> impl ExprIterator {
             let rhs = rhs as Single;
             let neg = rhs.wrapping_neg();
 
@@ -1324,7 +1318,7 @@ pub mod uops {
         #[inline]
         pub fn sub_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: <Single as NumFn>::Unsigned,
+            rhs: <Single as Num>::Unsigned,
         ) -> impl ExprIteratorMut {
             let rhs = rhs as Single;
             let neg = rhs.wrapping_neg();
@@ -1346,7 +1340,7 @@ pub mod uops {
         ///
         /// Rhs is sign-extended instead of zero-extended.
         #[inline]
-        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as NumFn>::Signed) -> impl ExprIterator {
+        pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Signed) -> impl ExprIterator {
             let rhs = rhs as Single;
             let neg = rhs.wrapping_neg();
 
@@ -1369,7 +1363,7 @@ pub mod uops {
         #[inline]
         pub fn sub_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
             lhs: Lhs,
-            rhs: <Single as NumFn>::Signed,
+            rhs: <Single as Num>::Signed,
         ) -> impl ExprIteratorMut {
             let rhs = rhs as Single;
             let neg = rhs.wrapping_neg();
@@ -1539,13 +1533,13 @@ pub mod uops {
 
     /// Returns `lhs + rhs`.
     #[inline]
-    pub fn add_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
+    pub fn add_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         Expr::add_single(lhs.iter().copied(), rhs).collect_arr()
     }
 
     /// Returns `lhs - rhs`.
     #[inline]
-    pub fn sub_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
+    pub fn sub_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         Expr::sub_single(lhs.iter().copied(), rhs).collect_arr()
     }
 
@@ -1553,7 +1547,7 @@ pub mod uops {
     #[inline]
     pub fn add_single_overflow<const L: usize>(
         lhs: &[Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> ([Single; L], Option<Single>) {
         overflow!(Expr::add_single(lhs.iter().copied(), rhs))
     }
@@ -1562,7 +1556,7 @@ pub mod uops {
     #[inline]
     pub fn sub_single_overflow<const L: usize>(
         lhs: &[Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> ([Single; L], Option<Single>) {
         overflow!(Expr::sub_single(lhs.iter().copied(), rhs))
     }
@@ -1571,7 +1565,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn add_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
+    pub fn add_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         Expr::add_signed(lhs.iter().copied(), rhs).collect_arr()
     }
 
@@ -1579,7 +1573,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn sub_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
+    pub fn sub_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         Expr::sub_signed(lhs.iter().copied(), rhs).collect_arr()
     }
 
@@ -1589,7 +1583,7 @@ pub mod uops {
     #[inline]
     pub fn add_signed_overflow<const L: usize>(
         lhs: &[Single; L],
-        rhs: <Single as NumFn>::Signed,
+        rhs: <Single as Num>::Signed,
     ) -> ([Single; L], Option<Single>) {
         overflow!(Expr::add_signed(lhs.iter().copied(), rhs))
     }
@@ -1600,7 +1594,7 @@ pub mod uops {
     #[inline]
     pub fn sub_signed_overflow<const L: usize>(
         lhs: &[Single; L],
-        rhs: <Single as NumFn>::Signed,
+        rhs: <Single as Num>::Signed,
     ) -> ([Single; L], Option<Single>) {
         overflow!(Expr::sub_signed(lhs.iter().copied(), rhs))
     }
@@ -1635,7 +1629,7 @@ pub mod uops {
 
     /// Applies `lhs + rhs`.
     #[inline]
-    pub fn add_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+    pub fn add_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         Expr::add_single_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
@@ -1643,7 +1637,7 @@ pub mod uops {
 
     /// Applies `lhs - rhs`.
     #[inline]
-    pub fn sub_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+    pub fn sub_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         Expr::sub_single_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
@@ -1653,7 +1647,7 @@ pub mod uops {
     #[inline]
     pub fn add_single_overflow_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> Option<Single> {
         overflow_mut!(Expr::add_single_mut(lhs.iter_mut(), rhs))
     }
@@ -1662,7 +1656,7 @@ pub mod uops {
     #[inline]
     pub fn sub_single_overflow_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> Option<Single> {
         overflow_mut!(Expr::sub_single_mut(lhs.iter_mut(), rhs))
     }
@@ -1671,7 +1665,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
+    pub fn add_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
         Expr::add_signed_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
@@ -1681,7 +1675,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
+    pub fn sub_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
         Expr::sub_signed_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
@@ -1693,7 +1687,7 @@ pub mod uops {
     #[inline]
     pub fn add_signed_overflow_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Signed,
+        rhs: <Single as Num>::Signed,
     ) -> Option<Single> {
         overflow_mut!(Expr::add_signed_mut(lhs.iter_mut(), rhs))
     }
@@ -1704,7 +1698,7 @@ pub mod uops {
     #[inline]
     pub fn sub_signed_overflow_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Signed,
+        rhs: <Single as Num>::Signed,
     ) -> Option<Single> {
         overflow_mut!(Expr::sub_signed_mut(lhs.iter_mut(), rhs))
     }
@@ -1741,7 +1735,7 @@ pub mod uops {
 
     /// Returns `lhs | rhs`.
     #[inline]
-    pub fn bitor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
+    pub fn bitor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         lhs.iter()
             .copied()
             .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
@@ -1751,7 +1745,7 @@ pub mod uops {
 
     /// Returns `lhs & rhs`.
     #[inline]
-    pub fn bitand_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
+    pub fn bitand_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         lhs.iter()
             .copied()
             .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
@@ -1761,7 +1755,7 @@ pub mod uops {
 
     /// Returns `lhs ^ rhs`.
     #[inline]
-    pub fn bitxor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
+    pub fn bitxor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         lhs.iter()
             .copied()
             .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
@@ -1773,7 +1767,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
+    pub fn bitor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1792,7 +1786,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitand_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
+    pub fn bitand_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1811,7 +1805,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitxor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
+    pub fn bitxor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1858,10 +1852,7 @@ pub mod uops {
 
     /// Applies `lhs |= rhs`.
     #[inline]
-    pub fn bitor_single_mut<const L: usize>(
-        lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Unsigned,
-    ) -> &mut [Single; L] {
+    pub fn bitor_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         lhs.iter_mut()
             .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
             .for_each(|(ptr, val)| *ptr |= val);
@@ -1873,7 +1864,7 @@ pub mod uops {
     #[inline]
     pub fn bitand_single_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> &mut [Single; L] {
         lhs.iter_mut()
             .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
@@ -1886,7 +1877,7 @@ pub mod uops {
     #[inline]
     pub fn bitxor_single_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> &mut [Single; L] {
         lhs.iter_mut()
             .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
@@ -1899,7 +1890,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
+    pub fn bitor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1918,10 +1909,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitand_signed_mut<const L: usize>(
-        lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Signed,
-    ) -> &mut [Single; L] {
+    pub fn bitand_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1940,10 +1928,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitxor_signed_mut<const L: usize>(
-        lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Signed,
-    ) -> &mut [Single; L] {
+    pub fn bitxor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -2227,7 +2212,7 @@ pub mod algo {
 
     /// Returns `lhs * rhs`.
     #[inline]
-    pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> [Single; L] {
+    pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         Expr::mul(lhs.iter().copied(), rhs).collect_arr()
     }
 
@@ -2235,7 +2220,7 @@ pub mod algo {
     #[inline]
     pub fn mul_single_overflow<const L: usize>(
         lhs: &[Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> ([Single; L], Option<Single>) {
         let mut iter = Expr::mul(lhs.iter().copied(), rhs);
 
@@ -2249,7 +2234,7 @@ pub mod algo {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn mul_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Signed) -> [Single; L] {
+    pub fn mul_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -2274,7 +2259,7 @@ pub mod algo {
     #[inline]
     pub fn mul_signed_overflow<const L: usize>(
         lhs: &[Single; L],
-        rhs: <Single as NumFn>::Signed,
+        rhs: <Single as Num>::Signed,
     ) -> ([Single; L], Option<Single>) {
         let rhs = rhs as Single;
 
@@ -2316,7 +2301,7 @@ pub mod algo {
 
     /// Applies `lhs *= rhs`.
     #[inline]
-    pub fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+    pub fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         Expr::mul_mut(lhs.iter_mut(), rhs).for_each(|_| ());
 
         lhs
@@ -2326,7 +2311,7 @@ pub mod algo {
     #[inline]
     pub fn mul_single_overflow_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Unsigned,
+        rhs: <Single as Num>::Unsigned,
     ) -> Option<Single> {
         let acc = Expr::mul_mut(lhs.iter_mut(), rhs).last().unwrap_or(0);
 
@@ -2337,7 +2322,7 @@ pub mod algo {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Signed) -> &mut [Single; L] {
+    pub fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
         *lhs = mul_signed(lhs, rhs);
         lhs
     }
@@ -2348,7 +2333,7 @@ pub mod algo {
     #[inline]
     pub fn mul_signed_overflow_mut<const L: usize>(
         lhs: &mut [Single; L],
-        rhs: <Single as NumFn>::Signed,
+        rhs: <Single as Num>::Signed,
     ) -> Option<Single> {
         let (res, overflow) = mul_signed_overflow(lhs, rhs);
 
@@ -2391,7 +2376,7 @@ pub mod algo {
 
     /// Returns `(lhs / rhs, lhs % rhs)`.
     #[inline]
-    pub fn div_single<const L: usize>(lhs: &[Single; L], rhs: <Single as NumFn>::Unsigned) -> ([Single; L], Single) {
+    pub fn div_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> ([Single; L], Single) {
         let mut div = [0; L];
         let mut rem = 0 as Double;
 
@@ -2442,7 +2427,7 @@ pub mod algo {
 
     /// Applies `lhs /= rhs`.
     #[inline]
-    pub fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+    pub fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         let mut rem = 0 as Double;
 
         for val in lhs.iter_mut().rev() {
@@ -2468,7 +2453,7 @@ pub mod algo {
 
     /// Applies `lhs %= rhs`.
     #[inline]
-    pub fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as NumFn>::Unsigned) -> &mut [Single; L] {
+    pub fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         lhs[0] = div_single(lhs, rhs).1;
         lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
         lhs
@@ -3360,8 +3345,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     + Unsigned::<L>(uops::add(&lhs.0, &rhs.0)),
     - Unsigned::<L>(uops::sub(&lhs.0, &rhs.0)),
     * Unsigned::<L>(algo::mul(&lhs.0, &rhs.0)),
-    / Unsigned::<L>(div_long(&lhs.0, &rhs.0).0),
-    % Unsigned::<L>(div_long(&lhs.0, &rhs.0).1),
+    / Unsigned::<L>(algo::div(&lhs.0, &rhs.0).0),
+    % Unsigned::<L>(algo::div(&lhs.0, &rhs.0).1),
     | Unsigned::<L>(uops::bitor(&lhs.0, &rhs.0)),
     & Unsigned::<L>(uops::bitand(&lhs.0, &rhs.0)),
     ^ Unsigned::<L>(uops::bitxor(&lhs.0, &rhs.0)),
@@ -3403,8 +3388,8 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     += uops::add_mut(&mut lhs.0, &rhs.0),
     -= uops::sub_mut(&mut lhs.0, &rhs.0),
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
-    /= div_long_mut(&mut lhs.0, &rhs.0),
-    %= rem_long_mut(&mut lhs.0, &rhs.0),
+    /= algo::div_mut(&mut lhs.0, &rhs.0),
+    %= algo::rem_mut(&mut lhs.0, &rhs.0),
     |= uops::bitor_mut(&mut lhs.0, &rhs.0),
     &= uops::bitand_mut(&mut lhs.0, &rhs.0),
     ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
@@ -4252,9 +4237,6 @@ impl<const L: usize> BytesFn for Bytes<L> {
 }
 
 impl<const L: usize> NumFn for Signed<L> {
-    type Signed = Signed<L>;
-    type Unsigned = Unsigned<L>;
-
     #[inline]
     fn is_odd(&self) -> bool {
         self.0[0] & 1 == 1
@@ -4285,9 +4267,6 @@ impl<const L: usize> NumFn for Signed<L> {
 }
 
 impl<const L: usize> NumFn for Unsigned<L> {
-    type Signed = Signed<L>;
-    type Unsigned = Unsigned<L>;
-
     #[inline]
     fn is_odd(&self) -> bool {
         self.0[0] & 1 == 1
@@ -4317,8 +4296,15 @@ impl<const L: usize> NumFn for Unsigned<L> {
     }
 }
 
-impl<const L: usize> Num for Signed<L> {}
-impl<const L: usize> Num for Unsigned<L> {}
+impl<const L: usize> Num for Signed<L> {
+    type Signed = Signed<L>;
+    type Unsigned = Unsigned<L>;
+}
+
+impl<const L: usize> Num for Unsigned<L> {
+    type Signed = Signed<L>;
+    type Unsigned = Unsigned<L>;
+}
 
 impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
@@ -4899,26 +4885,6 @@ fn div_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> ([Single; L], [
     (div, from_arr(&rem.to_le_bytes(), 0))
 }
 
-fn div_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
-    div_long_impl!(lhs, rhs.iter().copied());
-}
-
-fn rem_long_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
-    let (_, rem) = div_long_impl!(*lhs, rhs.iter().copied());
-
-    *lhs = rem;
-}
-
-fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
-    div_single_impl!(lhs, rhs);
-}
-
-fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) {
-    let (_, rem) = div_single_impl!(*lhs, rhs);
-
-    *lhs = from_arr(&rem.to_le_bytes(), 0);
-}
-
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), FromStrError> {
     if s.is_empty() {
         return Err(FromStrError::InvalidLength);
@@ -5007,7 +4973,7 @@ mod tests {
     }
 
     fn urem_native_default(lhs: u64, _: u8) -> u64 {
-        lhs & Double::MAX as u64
+        lhs & Single::MAX as u64
     }
 
     #[test]
@@ -5488,7 +5454,6 @@ mod tests {
     }
 
     #[test]
-    #[rustfmt::skip]
     fn cmp() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
@@ -5509,7 +5474,6 @@ mod tests {
 
     #[cfg(feature = "const-time")]
     #[test]
-    #[rustfmt::skip]
     fn cmp_ct() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
@@ -5588,7 +5552,6 @@ mod tests {
     }
 
     #[test]
-    #[rustfmt::skip]
     fn ops_mut() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).chain([0]),
@@ -5679,7 +5642,6 @@ mod tests {
     }
 
     #[test]
-    #[rustfmt::skip]
     fn ops_primitive_mut() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).chain([0]),
@@ -5754,7 +5716,6 @@ mod tests {
     }
 
     #[test]
-    #[rustfmt::skip]
     fn ops_primitive_native_mut() {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56).chain([0]),
@@ -5828,11 +5789,11 @@ mod tests {
             rhs in i8::MIN..i8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            (uops::add_signed(&bytes, rhs as <Single as NumFn>::Signed), lhs.wrapping_add(rhs as i64).to_le_bytes()),
-            (uops::sub_signed(&bytes, rhs as <Single as NumFn>::Signed), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
-            (uops::bitor_signed(&bytes, rhs as <Single as NumFn>::Signed), (lhs | rhs as i64).to_le_bytes()),
-            (uops::bitand_signed(&bytes, rhs as <Single as NumFn>::Signed), (lhs & rhs as i64).to_le_bytes()),
-            (uops::bitxor_signed(&bytes, rhs as <Single as NumFn>::Signed), (lhs ^ rhs as i64).to_le_bytes()),
+            (uops::add_signed(&bytes, rhs as <Single as Num>::Signed), lhs.wrapping_add(rhs as i64).to_le_bytes()),
+            (uops::sub_signed(&bytes, rhs as <Single as Num>::Signed), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
+            (uops::bitor_signed(&bytes, rhs as <Single as Num>::Signed), (lhs | rhs as i64).to_le_bytes()),
+            (uops::bitand_signed(&bytes, rhs as <Single as Num>::Signed), (lhs & rhs as i64).to_le_bytes()),
+            (uops::bitxor_signed(&bytes, rhs as <Single as Num>::Signed), (lhs ^ rhs as i64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -5892,11 +5853,11 @@ mod tests {
             rhs in i8::MIN..i8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            ({ let mut bytes = bytes; uops::add_signed_mut(&mut bytes, rhs as <Single as NumFn>::Signed); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::sub_signed_mut(&mut bytes, rhs as <Single as NumFn>::Signed); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitor_signed_mut(&mut bytes, rhs as <Single as NumFn>::Signed); bytes }, (lhs | rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitand_signed_mut(&mut bytes, rhs as <Single as NumFn>::Signed); bytes }, (lhs & rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitxor_signed_mut(&mut bytes, rhs as <Single as NumFn>::Signed); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::add_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::sub_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitor_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs | rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitand_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs & rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitxor_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (

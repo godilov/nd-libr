@@ -98,9 +98,6 @@ macro_rules! num_impl {
         }
 
         impl NumFn for $primitive {
-            type Signed = $signed;
-            type Unsigned = $unsigned;
-
             #[inline]
             fn is_odd(&self) -> bool {
                 self & 1 == 1
@@ -136,7 +133,10 @@ macro_rules! num_impl {
 
         impl NumGcdChecked for $primitive {}
 
-        impl Num for $primitive {}
+        impl Num for $primitive {
+            type Signed = $signed;
+            type Unsigned = $unsigned;
+        }
 
         impl NumRand for $primitive {}
 
@@ -530,7 +530,7 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-pub struct Ranged<N: Num, R: Range<N>>(pub N, pub PhantomData<R>);
+pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 
 /// Number with specified binary width.
 ///
@@ -550,7 +550,7 @@ pub struct Ranged<N: Num, R: Range<N>>(pub N, pub PhantomData<R>);
 #[ndfwd::def(self.0 with N: NumRand)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(pub N);
+pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(N);
 
 /// Number with specified modulus.
 ///
@@ -568,7 +568,7 @@ pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(p
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(pub N, pub PhantomData<M>);
+pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 
 /// Number with auto-implementation of const-time traits.
 ///
@@ -627,24 +627,6 @@ pub type RelCt = i8;
 pub trait NumFn:
     Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
 {
-    /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
-    #[allow(unused)]
-    const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
-
-    /// Checks `size_of::<Self>() == size_of::<Self::Unsigned>`.
-    #[allow(unused)]
-    const CHECK_UNSIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Unsigned>());
-
-    /// Checks `size_of::<Self::Signed>() == size_of::<Self::Unsigned>`.
-    #[allow(unused)]
-    const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
-
-    /// Signed counterpart of the same size.
-    type Signed;
-
-    /// Unsigned counterpart of the same size.
-    type Unsigned;
-
     /// Checks number is odd.
     fn is_odd(&self) -> bool;
 
@@ -953,7 +935,25 @@ pub trait NumRand: NumFn + BytesFn {
 
 /// Number with static allocation.
 #[ndfwd::decl]
-pub trait Num: NumFn + Zero + One + Copy {}
+pub trait Num: NumFn + Zero + One + Copy {
+    /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
+    #[allow(unused)]
+    const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
+
+    /// Checks `size_of::<Self>() == size_of::<Self::Unsigned>`.
+    #[allow(unused)]
+    const CHECK_UNSIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Unsigned>());
+
+    /// Checks `size_of::<Self::Signed>() == size_of::<Self::Unsigned>`.
+    #[allow(unused)]
+    const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
+
+    /// Signed counterpart of the same size.
+    type Signed;
+
+    /// Unsigned counterpart of the same size.
+    type Unsigned;
+}
 
 /// Number with dynamic allocation.
 #[ndfwd::decl]
