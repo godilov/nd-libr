@@ -227,8 +227,8 @@ macro_rules! nd_ops_primitive_impl {
             + Signed::<L>(uops::add(&lhs.0, &Signed::<L>::from(rhs).0)),
             - Signed::<L>(uops::sub(&lhs.0, &Signed::<L>::from(rhs).0)),
             * Signed::<L>(algo::mul(&lhs.0, &Signed::<L>::from(rhs).0)),
-            / Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).1).signed(lhs.sign()),
+            / Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).0).signed(lhs.sign() * Sign::from(rhs)),
+            % Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).1).signed(lhs.sign()),
             | Signed::<L>(uops::bitor(&lhs.0, &Signed::<L>::from(rhs).0)),
             & Signed::<L>(uops::bitand(&lhs.0, &Signed::<L>::from(rhs).0)),
             ^ Signed::<L>(uops::bitxor(&lhs.0, &Signed::<L>::from(rhs).0)),
@@ -246,8 +246,8 @@ macro_rules! nd_ops_primitive_impl {
             += uops::add_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
             -= uops::sub_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
             *= algo::mul_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
-            /= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).0).signed(lhs.sign() * Sign::from(rhs)); },
-            %= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).1).signed(lhs.sign()); },
+            /= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).0).signed(lhs.sign() * Sign::from(rhs)); },
+            %= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.checked_abs().unwrap_or(<$primitive>::MIN)).0).1).signed(lhs.sign()); },
             |= uops::bitor_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
             &= uops::bitand_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
             ^= uops::bitxor_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
@@ -320,8 +320,8 @@ macro_rules! nd_ops_primitive_native_impl {
             + Signed::<L>(uops::add_signed(&lhs.0, rhs as <Single as Num>::Signed)),
             - Signed::<L>(uops::sub_signed(&lhs.0, rhs as <Single as Num>::Signed)),
             * Signed::<L>(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
-            / Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()),
+            / Signed::<L>(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
+            % Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()),
             | Signed::<L>(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
             & Signed::<L>(uops::bitand_signed(&lhs.0, rhs as <Single as Num>::Signed)),
             ^ Signed::<L>(uops::bitxor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
@@ -339,8 +339,8 @@ macro_rules! nd_ops_primitive_native_impl {
             += uops::add_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
             -= uops::sub_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
             *= algo::mul_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
-            /= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
-            %= { *lhs = Signed::<L>(div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1).signed(lhs.sign()); },
+            /= { *lhs = Signed::<L>(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
+            %= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()); },
             |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
             &= uops::bitand_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
             ^= uops::bitxor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
@@ -352,7 +352,7 @@ macro_rules! nd_ops_primitive_native_impl {
             - Unsigned::<L>(uops::sub_single(&lhs.0, rhs as Single)),
             * Unsigned::<L>(algo::mul_single(&lhs.0, rhs as Single)),
             / Unsigned::<L>(algo::div_single(&lhs.0, rhs as Single).0),
-            % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).1),
+            % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).1 as $primitive),
             | Unsigned::<L>(uops::bitor_single(&lhs.0, rhs as Single)),
             & Unsigned::<L>(uops::bitand_single(&lhs.0, rhs as Single)),
             ^ Unsigned::<L>(uops::bitxor_single(&lhs.0, rhs as Single)),
@@ -516,97 +516,6 @@ macro_rules! write_bitop_impl {
                 *elem $op mask.unbounded_shr(shr as u32) $($($mod)*)?;
             }
         }
-    }};
-}
-
-macro_rules! mul_single_impl {
-    ($lhs:expr, $rhs:expr) => {
-        $lhs.scan(0, |acc, a| {
-            let val = a as Double * $rhs as Double + *acc;
-
-            *acc = val / RADIX;
-
-            Some(val as Single)
-        })
-    };
-    ($lhs:expr, $rhs:expr, $acc:expr) => {{
-        $lhs.scan(0, |_, a| {
-            let val = a as Double * $rhs as Double + $acc;
-
-            $acc = val / RADIX;
-
-            Some(val as Single)
-        })
-    }};
-}
-
-macro_rules! sub_long_mut_impl {
-    ($lhs:expr, $rhs:expr) => {
-        $lhs.zip($rhs).fold(0, |acc, (ptr, val)| {
-            let v = RADIX + *ptr as Double - val as Double - acc;
-
-            *ptr = v as Single;
-
-            (v < RADIX) as Double
-        });
-    };
-}
-
-macro_rules! div_long_impl {
-    ($lhs:expr, $rhs:expr) => {{
-        #[allow(unused_mut)]
-        let mut div = $lhs;
-        let mut rem = [0; L];
-
-        for val in div.iter_mut().rev() {
-            cycle!(rem, *val);
-
-            let digit = search!(@max 0, RADIX, |m: Double| {
-                let mut acc = 0;
-
-                let mul = mul_single_impl!($rhs, m, acc).collect_arr() as [Single; L];
-
-                if acc > 0 {
-                    return Ordering::Greater;
-                }
-
-                mul.iter().rev().cmp(rem.iter().rev())
-            });
-
-            let digit = digit.saturating_sub(1) as Single;
-
-            *val = digit;
-
-            if digit > 0 {
-                let rem_iter = rem.iter_mut();
-                let mul_iter = mul_single_impl!($rhs, digit);
-
-                sub_long_mut_impl!(rem_iter, mul_iter);
-            }
-        }
-
-        (div, rem)
-    }};
-}
-
-macro_rules! div_single_impl {
-    ($lhs:expr, $rhs:expr) => {{
-        #[allow(unused_mut)]
-        let mut div = $lhs;
-        let mut rem = 0 as Double;
-
-        for val in div.iter_mut().rev() {
-            rem <<= BITS;
-            rem |= *val as Double;
-
-            let digit = search!(@max 0, RADIX, |m: Double| { (m * $rhs as Double).cmp(&rem) });
-            let digit = digit.saturating_sub(1) as Single;
-
-            *val = digit;
-            rem -= digit as Double * $rhs as Double;
-        }
-
-        (div, rem)
     }};
 }
 
@@ -3329,8 +3238,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     + Signed::<L>(uops::add(&lhs.0, &rhs.0)),
     - Signed::<L>(uops::sub(&lhs.0, &rhs.0)),
     * Signed::<L>(algo::mul(&lhs.0, &rhs.0)),
-    / Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
-    % Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
+    / Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
+    % Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
     | Signed::<L>(uops::bitor(&lhs.0, &rhs.0)),
     & Signed::<L>(uops::bitand(&lhs.0, &rhs.0)),
     ^ Signed::<L>(uops::bitxor(&lhs.0, &rhs.0)),
@@ -3372,8 +3281,8 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     += uops::add_mut(&mut lhs.0, &rhs.0),
     -= uops::sub_mut(&mut lhs.0, &rhs.0),
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
-    /= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
-    %= { *lhs = Signed::<L>(div_long(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
+    /= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
+    %= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
     |= uops::bitor_mut(&mut lhs.0, &rhs.0),
     &= uops::bitand_mut(&mut lhs.0, &rhs.0),
     ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
@@ -3570,6 +3479,16 @@ impl<const L: usize> Signed<L> {
             Sign::ZERO => Signed::<L>(self.0),
             Sign::NEG => Signed::<L>(uops::neg(&self.0)),
             Sign::POS => Signed::<L>(self.0),
+        }
+    }
+
+    /// Absolute unsigned value.
+    #[inline]
+    pub fn abs_unsigned(&self) -> Unsigned<L> {
+        match self.sign() {
+            Sign::ZERO => Unsigned::<L>(self.0),
+            Sign::NEG => Unsigned::<L>(uops::neg(&self.0)),
+            Sign::POS => Unsigned::<L>(self.0),
         }
     }
 
@@ -4875,16 +4794,6 @@ where
     write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
-fn div_long<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], [Single; L]) {
-    div_long_impl!(*lhs, rhs.iter().copied())
-}
-
-fn div_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> ([Single; L], [Single; L]) {
-    let (div, rem) = div_single_impl!(*lhs, rhs);
-
-    (div, from_arr(&rem.to_le_bytes(), 0))
-}
-
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), FromStrError> {
     if s.is_empty() {
         return Err(FromStrError::InvalidLength);
@@ -4937,44 +4846,6 @@ mod tests {
     use crate::long::alias::{S32, S64, U32, U64};
     #[cfg(feature = "const-time")]
     use crate::{AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt};
-
-    fn sdiv_default(_: i64, _: i64) -> i64 {
-        0
-    }
-
-    fn srem_default(lhs: i64, _: i64) -> i64 {
-        lhs
-    }
-
-    fn udiv_default(_: u64, _: u64) -> u64 {
-        u64::MAX
-    }
-
-    fn urem_default(lhs: u64, _: u64) -> u64 {
-        lhs
-    }
-
-    fn sdiv_native_default(_: i64, rhs: i8) -> i64 {
-        i64::MIN * (rhs < 0) as i64
-    }
-
-    fn srem_native_default(lhs: i64, _: i8) -> i64 {
-        let abs = lhs.checked_abs().unwrap_or(i64::MIN);
-
-        if lhs < 0 {
-            return -(abs & Double::MAX as i64);
-        }
-
-        abs & Double::MAX as i64
-    }
-
-    fn udiv_native_default(_: u64, _: u8) -> u64 {
-        u64::MAX
-    }
-
-    fn urem_native_default(lhs: u64, _: u8) -> u64 {
-        lhs & Single::MAX as u64
-    }
 
     #[test]
     fn from_primitive() {
@@ -5507,28 +5378,32 @@ mod tests {
     #[test]
     fn ops() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([0]),
-            rhs in ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
         ) [
             (S64::from(lhs) + S64::from(rhs), S64::from(lhs.wrapping_add(rhs))),
             (S64::from(lhs) - S64::from(rhs), S64::from(lhs.wrapping_sub(rhs))),
             (S64::from(lhs) * S64::from(rhs), S64::from(lhs.wrapping_mul(rhs))),
-            (S64::from(lhs) / S64::from(rhs), S64::from(lhs.checked_div(rhs).unwrap_or(sdiv_default(lhs, rhs)))),
-            (S64::from(lhs) % S64::from(rhs), S64::from(lhs.checked_rem(rhs).unwrap_or(srem_default(lhs, rhs)))),
+
+            ((rhs != 0).then_some(S64::from(lhs) / S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(S64::from(lhs) % S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+
             (S64::from(lhs) | S64::from(rhs), S64::from(lhs | rhs)),
             (S64::from(lhs) & S64::from(rhs), S64::from(lhs & rhs)),
             (S64::from(lhs) ^ S64::from(rhs), S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
         ) [
             (U64::from(lhs) + U64::from(rhs), U64::from(lhs.wrapping_add(rhs))),
             (U64::from(lhs) - U64::from(rhs), U64::from(lhs.wrapping_sub(rhs))),
             (U64::from(lhs) * U64::from(rhs), U64::from(lhs.wrapping_mul(rhs))),
-            (U64::from(lhs) / U64::from(rhs), U64::from(lhs.checked_div(rhs).unwrap_or(udiv_default(lhs, rhs)))),
-            (U64::from(lhs) % U64::from(rhs), U64::from(lhs.checked_rem(rhs).unwrap_or(urem_default(lhs, rhs)))),
+
+            ((rhs != 0).then_some(U64::from(lhs) / U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(U64::from(lhs) % U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+
             (U64::from(lhs) | U64::from(rhs), U64::from(lhs | rhs)),
             (U64::from(lhs) & U64::from(rhs), U64::from(lhs & rhs)),
             (U64::from(lhs) ^ U64::from(rhs), U64::from(lhs ^ rhs)),
@@ -5554,28 +5429,32 @@ mod tests {
     #[test]
     fn ops_mut() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([0]),
-            rhs in ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
         ) [
-            ({let mut val = S64::from(lhs); val += S64::from(rhs); val }, S64::from(lhs.wrapping_add(rhs))),
-            ({let mut val = S64::from(lhs); val -= S64::from(rhs); val }, S64::from(lhs.wrapping_sub(rhs))),
-            ({let mut val = S64::from(lhs); val *= S64::from(rhs); val }, S64::from(lhs.wrapping_mul(rhs))),
-            ({let mut val = S64::from(lhs); val /= S64::from(rhs); val }, S64::from(lhs.checked_div(rhs).unwrap_or(sdiv_default(lhs, rhs)))),
-            ({let mut val = S64::from(lhs); val %= S64::from(rhs); val }, S64::from(lhs.checked_rem(rhs).unwrap_or(srem_default(lhs, rhs)))),
-            ({let mut val = S64::from(lhs); val |= S64::from(rhs); val }, S64::from(lhs | rhs)),
-            ({let mut val = S64::from(lhs); val &= S64::from(rhs); val }, S64::from(lhs & rhs)),
-            ({let mut val = S64::from(lhs); val ^= S64::from(rhs); val }, S64::from(lhs ^ rhs)),
+            ({ let mut val = S64::from(lhs); val += S64::from(rhs); val }, S64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = S64::from(lhs); val -= S64::from(rhs); val }, S64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = S64::from(lhs); val *= S64::from(rhs); val }, S64::from(lhs.wrapping_mul(rhs))),
+
+            ({ let mut val = S64::from(lhs); val /= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = S64::from(lhs); val %= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+
+            ({ let mut val = S64::from(lhs); val |= S64::from(rhs); val }, S64::from(lhs | rhs)),
+            ({ let mut val = S64::from(lhs); val &= S64::from(rhs); val }, S64::from(lhs & rhs)),
+            ({ let mut val = S64::from(lhs); val ^= S64::from(rhs); val }, S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
         ) [
             ({ let mut val = U64::from(lhs); val += U64::from(rhs); val }, U64::from(lhs.wrapping_add(rhs))),
             ({ let mut val = U64::from(lhs); val -= U64::from(rhs); val }, U64::from(lhs.wrapping_sub(rhs))),
             ({ let mut val = U64::from(lhs); val *= U64::from(rhs); val }, U64::from(lhs.wrapping_mul(rhs))),
-            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); val }, U64::from(lhs.checked_div(rhs).unwrap_or(udiv_default(lhs, rhs)))),
-            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); val }, U64::from(lhs.checked_rem(rhs).unwrap_or(urem_default(lhs, rhs)))),
+
+            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+
             ({ let mut val = U64::from(lhs); val |= U64::from(rhs); val }, U64::from(lhs | rhs)),
             ({ let mut val = U64::from(lhs); val &= U64::from(rhs); val }, U64::from(lhs & rhs)),
             ({ let mut val = U64::from(lhs); val ^= U64::from(rhs); val }, U64::from(lhs ^ rhs)),
@@ -5601,14 +5480,16 @@ mod tests {
     #[test]
     fn ops_primitive() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([0]),
-            rhs in ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
         ) [
             (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs))),
             (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs))),
             (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs))),
-            (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs).unwrap_or(sdiv_default(lhs, rhs)))),
-            (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs).unwrap_or(srem_default(lhs, rhs)))),
+
+            ((rhs != 0).then_some(S64::from(lhs) / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(S64::from(lhs) % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+
             (S64::from(lhs) | rhs, S64::from(lhs | rhs)),
             (S64::from(lhs) & rhs, S64::from(lhs & rhs)),
             (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs)),
@@ -5621,14 +5502,16 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
         ) [
             (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs))),
             (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs))),
             (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs))),
-            (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs).unwrap_or(udiv_default(lhs, rhs)))),
-            (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs).unwrap_or(urem_default(lhs, rhs)))),
+
+            ((rhs != 0).then_some(U64::from(lhs) / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(U64::from(lhs) % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+
             (U64::from(lhs) | rhs, U64::from(lhs | rhs)),
             (U64::from(lhs) & rhs, U64::from(lhs & rhs)),
             (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs)),
@@ -5644,28 +5527,32 @@ mod tests {
     #[test]
     fn ops_primitive_mut() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([0]),
-            rhs in ndassert::range!(i64, 56, 1).chain([0]),
+            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
         ) [
             ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs))),
             ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs))),
             ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs))),
-            ({ let mut val = S64::from(lhs); val /= rhs; val }, S64::from(lhs.checked_div(rhs).unwrap_or(sdiv_default(lhs, rhs)))),
-            ({ let mut val = S64::from(lhs); val %= rhs; val }, S64::from(lhs.checked_rem(rhs).unwrap_or(srem_default(lhs, rhs)))),
+
+            ({ let mut val = S64::from(lhs); val /= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = S64::from(lhs); val %= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+
             ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs)),
             ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs)),
             ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0]),
+            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
+            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
         ) [
             ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs))),
             ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs))),
             ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs))),
-            ({ let mut val = U64::from(lhs); val /= rhs; val }, U64::from(lhs.checked_div(rhs).unwrap_or(udiv_default(lhs, rhs)))),
-            ({ let mut val = U64::from(lhs); val %= rhs; val }, U64::from(lhs.checked_rem(rhs).unwrap_or(urem_default(lhs, rhs)))),
+
+            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+
             ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs)),
             ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs)),
             ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs)),
@@ -5675,14 +5562,16 @@ mod tests {
     #[test]
     fn ops_primitive_native() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56).chain([0]),
+            lhs in ndassert::range!(i64, 56).chain([-1, 0, 1]),
             rhs in i8::MIN..i8::MAX,
         ) [
             (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs as i64))),
             (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
             (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
-            (S64::from(lhs) / rhs, S64::from(lhs.checked_div(rhs as i64).unwrap_or(sdiv_native_default(lhs, rhs)))),
-            (S64::from(lhs) % rhs, S64::from(lhs.checked_rem(rhs as i64).unwrap_or(srem_native_default(lhs, rhs)))),
+
+            ((rhs != 0).then_some(S64::from(lhs) / S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
+            ((rhs != 0).then_some(S64::from(lhs) % S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
+
             (S64::from(lhs) | rhs, S64::from(lhs | rhs as i64)),
             (S64::from(lhs) & rhs, S64::from(lhs & rhs as i64)),
             (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs as i64)),
@@ -5695,14 +5584,16 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56).chain([0]),
+            lhs in ndassert::range!(u64, 56).chain([0, 1]),
             rhs in u8::MIN..u8::MAX,
         ) [
             (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs as u64))),
             (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
             (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
-            (U64::from(lhs) / rhs, U64::from(lhs.checked_div(rhs as u64).unwrap_or(udiv_native_default(lhs, rhs)))),
-            (U64::from(lhs) % rhs, U64::from(lhs.checked_rem(rhs as u64).unwrap_or(urem_native_default(lhs, rhs)))),
+
+            ((rhs != 0).then_some(U64::from(lhs) / U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
+            ((rhs != 0).then_some(U64::from(lhs) % U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
+
             (U64::from(lhs) | rhs, U64::from(lhs | rhs as u64)),
             (U64::from(lhs) & rhs, U64::from(lhs & rhs as u64)),
             (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs as u64)),
@@ -5718,28 +5609,32 @@ mod tests {
     #[test]
     fn ops_primitive_native_mut() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56).chain([0]),
+            lhs in ndassert::range!(i64, 56).chain([-1, 0, 1]),
             rhs in i8::MIN..i8::MAX,
         ) [
             ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs as i64))),
             ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs as i64))),
             ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs as i64))),
-            ({ let mut val = S64::from(lhs); val /= rhs; val }, S64::from(lhs.checked_div(rhs as i64).unwrap_or(sdiv_native_default(lhs, rhs)))),
-            ({ let mut val = S64::from(lhs); val %= rhs; val }, S64::from(lhs.checked_rem(rhs as i64).unwrap_or(srem_native_default(lhs, rhs)))),
+
+            ({ let mut val = S64::from(lhs); val /= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
+            ({ let mut val = S64::from(lhs); val %= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
+
             ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs as i64)),
             ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs as i64)),
             ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs as i64)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56).chain([0]),
+            lhs in ndassert::range!(u64, 56).chain([0, 1]),
             rhs in u8::MIN..u8::MAX,
         ) [
             ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs as u64))),
             ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs as u64))),
             ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs as u64))),
-            ({ let mut val = U64::from(lhs); val /= rhs; val }, U64::from(lhs.checked_div(rhs as u64).unwrap_or(udiv_native_default(lhs, rhs)))),
-            ({ let mut val = U64::from(lhs); val %= rhs; val }, U64::from(lhs.checked_rem(rhs as u64).unwrap_or(urem_native_default(lhs, rhs)))),
+
+            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
+            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
+
             ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs as u64)),
             ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs as u64)),
             ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs as u64)),
