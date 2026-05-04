@@ -5,7 +5,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 use ndext::ops::*;
 use zerocopy::IntoBytes;
 
-use crate::arch::{BytesFn, BytesLen, Offset, word::Single};
+use crate::arch::{AsBytesMut, AsBytesRef, BytesFn, BytesLen, Offset, word::Single};
 
 pub mod arch;
 pub mod long;
@@ -41,16 +41,6 @@ macro_rules! num_impl {
         }
 
         impl BytesFn for $primitive {
-            #[inline]
-            fn as_bytes_ref(&self) -> &[u8] {
-                self.as_bytes()
-            }
-
-            #[inline]
-            fn as_bytes_mut(&mut self) -> &mut [u8] {
-                self.as_mut_bytes()
-            }
-
             #[inline]
             fn read(&self, offset: Offset) -> Single {
                 let offset = match offset {
@@ -97,6 +87,20 @@ macro_rules! num_impl {
             }
         }
 
+        impl AsBytesRef for $primitive {
+            #[inline]
+            fn as_bytes_ref(&self) -> &[u8] {
+                self.as_bytes()
+            }
+        }
+
+        impl AsBytesMut for $primitive {
+            #[inline]
+            fn as_bytes_mut(&mut self) -> &mut [u8] {
+                self.as_mut_bytes()
+            }
+        }
+
         impl NumFn for $primitive {
             #[inline]
             fn is_odd(&self) -> bool {
@@ -127,18 +131,18 @@ macro_rules! num_impl {
             }
         }
 
-        impl NumPow for $primitive {}
-
-        impl NumGcd for $primitive {}
-
-        impl NumGcdChecked for $primitive {}
-
         impl Num for $primitive {
             type Signed = $signed;
             type Unsigned = $unsigned;
         }
 
-        impl NumRand for $primitive {}
+        impl NdRand for $primitive {}
+
+        impl NdPow for $primitive {}
+
+        impl NdGcd for $primitive {}
+
+        impl NdGcdChecked for $primitive {}
 
         impl Zero for $primitive {
             const ZERO: Self = 0;
@@ -454,12 +458,16 @@ macro_rules! sign_from {
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumPow!)]
-#[ndfwd::def(self.0 with N: NumGcd!)]
-#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
-#[ndfwd::def(self.0 with N: NumRand!)]
+#[ndfwd::def(self.0 with N: NumSigned)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Strict<N>(pub N);
 
@@ -474,12 +482,16 @@ pub struct Strict<N>(pub N);
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumPow!)]
-#[ndfwd::def(self.0 with N: NumGcd!)]
-#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
-#[ndfwd::def(self.0 with N: NumRand!)]
+#[ndfwd::def(self.0 with N: NumSigned)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Wrapping<N>(pub N);
 
@@ -494,12 +506,16 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumPow!)]
-#[ndfwd::def(self.0 with N: NumGcd!)]
-#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
-#[ndfwd::def(self.0 with N: NumRand!)]
+#[ndfwd::def(self.0 with N: NumSigned)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Saturating<N>(pub N);
 
@@ -514,12 +530,16 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: NumPow!)]
-#[ndfwd::def(self.0 with N: NumGcd!)]
-#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num!)]
-#[ndfwd::def(self.0 with N: NumRand!)]
+#[ndfwd::def(self.0 with N: NumSigned)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Unbounded<N>(pub N);
 
@@ -545,13 +565,15 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumPow!)]
-#[ndfwd::def(self.0 with N: NumGcd!)]
-#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumRand)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NdRand)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(N);
 
@@ -565,11 +587,11 @@ pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(N
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumPow!)]
-#[ndfwd::def(self.0 with N: NumGcd!)]
-#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 
@@ -583,11 +605,12 @@ pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
-#[ndfwd::def(self.0 with N: NumPow!)]
-#[ndfwd::def(self.0 with N: NumGcd!)]
-#[ndfwd::def(self.0 with N: NumGcdChecked!)]
 #[ndfwd::def(self.0 with N: Num)]
+#[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
 #[ndfwd::def(self.0 with N: OneCt)]
 #[ndfwd::def(self.0 with N: ZeroCt)]
 #[ndfwd::def(self.0 with N: PosCt)]
@@ -673,11 +696,92 @@ pub trait NumFn:
     }
 }
 
-/// Numbers with power functions.
+/// Number with static allocation.
+#[ndfwd::decl]
+pub trait Num: NumFn + Zero + One + Copy {
+    /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
+    #[allow(unused)]
+    const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
+
+    /// Checks `size_of::<Self>() == size_of::<Self::Unsigned>`.
+    #[allow(unused)]
+    const CHECK_UNSIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Unsigned>());
+
+    /// Checks `size_of::<Self::Signed>() == size_of::<Self::Unsigned>`.
+    #[allow(unused)]
+    const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
+
+    /// Signed counterpart of the same size.
+    type Signed;
+
+    /// Unsigned counterpart of the same size.
+    type Unsigned;
+}
+
+/// Number with dynamic allocation.
+#[ndfwd::decl]
+pub trait NumDyn: NumFn {}
+
+/// Number with sign.
+#[ndfwd::decl]
+pub trait NumSigned: NumFn + From<i8> {}
+
+/// Number without sign.
+#[ndfwd::decl]
+pub trait NumUnsigned: NumFn + From<u8> {
+    /// Order of number.
+    ///
+    /// Represents position of the most significant bit.
+    fn order(&self) -> usize;
+
+    /// Logarithm (base 2) of number.
+    #[ndfwd::as_into]
+    fn log(&self) -> Self;
+
+    /// Square root of number.
+    #[ndfwd::as_into]
+    fn sqrt(&self) -> Self;
+}
+
+/// Random generation functions.
+#[ndfwd::decl]
+pub trait NdRand: NumFn + BytesFn {
+    /// Creates random number.
+    ///
+    /// Order represents position of the most significant bit.
+    #[cfg(feature = "rand")]
+    #[ndfwd::as_into]
+    fn nd_rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
+        if order == 0 {
+            return Self::default();
+        }
+
+        let order = order.min(Self::BYTES);
+        let len = order.div_ceil(u8::BITS as usize);
+        let idx = order.div_ceil(u8::BITS as usize) - 1;
+
+        let shift = order % u8::BITS as usize;
+        let mask = u8::MAX.unbounded_shr(u8::BITS - shift as u32);
+        let bit = 1u8 << shift;
+
+        let mut res = Self::default();
+
+        let bytes = &mut res.as_bytes_mut()[..len];
+
+        rng.fill_bytes(bytes);
+
+        bytes[idx] &= mask;
+        bytes[idx] |= bit;
+
+        res
+    }
+}
+
+/// Power functions.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumPow: NumFn {
+pub trait NdPow: NumFn {
     /// Calculates `self ^ exp`.
     ///
     /// # Panics
@@ -737,11 +841,11 @@ pub trait NumPow: NumFn {
     }
 }
 
-/// Numbers with GCD/GCDE/LCM functions with default semantics.
+/// GCD/GCDE/LCM functions with default semantics.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumGcd: NumFn {
+pub trait NdGcd: NumFn {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Panics
@@ -751,7 +855,7 @@ pub trait NumGcd: NumFn {
     /// See [`NumGcdChecked`] for checked semantics.
     #[inline]
     #[ndfwd::as_into]
-    fn gcd(mut lhs: Self, mut rhs: Self) -> Self {
+    fn nd_gcd(mut lhs: Self, mut rhs: Self) -> Self {
         let zero = Self::zero();
 
         while rhs != zero {
@@ -773,7 +877,7 @@ pub trait NumGcd: NumFn {
     /// See [`NumGcdChecked`] for checked semantics.
     #[inline]
     #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
-    fn gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
+    fn nd_gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
         let zero = Self::zero();
         let one = Self::one();
 
@@ -813,19 +917,19 @@ pub trait NumGcd: NumFn {
     /// See [`NumGcdChecked`] for checked semantics.
     #[inline]
     #[ndfwd::as_into]
-    fn lcm(lhs: Self, rhs: Self) -> Self {
-        let val = Self::gcd(lhs.clone(), rhs.clone());
+    fn nd_lcm(lhs: Self, rhs: Self) -> Self {
+        let val = Self::nd_gcd(lhs.clone(), rhs.clone());
         let val = Self::nd_div(&lhs, &val);
 
         Self::nd_mul(&val, &rhs)
     }
 }
 
-/// Numbers with GCD/GCDE/LCM functions with checked semantics.
+/// GCD/GCDE/LCM functions with checked semantics.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumGcdChecked: NumFn + NdOpsChecked<All = Self> {
+pub trait NdGcdChecked: NumFn + NdOpsChecked<All = Self> {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Returns
@@ -834,7 +938,7 @@ pub trait NumGcdChecked: NumFn + NdOpsChecked<All = Self> {
     /// - `None` when non-checked could panic.
     #[inline]
     #[ndfwd::as_map(Self::from)]
-    fn gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
+    fn nd_gcd_checked(mut lhs: Self, mut rhs: Self) -> Option<Self> {
         let zero = Self::zero();
 
         while rhs != zero {
@@ -855,7 +959,7 @@ pub trait NumGcdChecked: NumFn + NdOpsChecked<All = Self> {
     /// - `None` when non-checked could panic.
     #[inline]
     #[ndfwd::as_map(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
-    fn gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)> {
+    fn nd_gcde_checked(lhs: Self, rhs: Self) -> Option<(Self, Self, Self)> {
         let zero = Self::zero();
         let one = Self::one();
 
@@ -894,93 +998,12 @@ pub trait NumGcdChecked: NumFn + NdOpsChecked<All = Self> {
     /// - `None` when non-checked could panic.
     #[inline]
     #[ndfwd::as_map(Self::from)]
-    fn lcm_checked(lhs: Self, rhs: Self) -> Option<Self> {
-        let val = Self::gcd_checked(lhs.clone(), rhs.clone())?;
+    fn nd_lcm_checked(lhs: Self, rhs: Self) -> Option<Self> {
+        let val = Self::nd_gcd_checked(lhs.clone(), rhs.clone())?;
         let val = Self::nd_div_checked(&lhs, &val)?;
 
         Self::nd_mul_checked(&val, &rhs)
     }
-}
-
-/// Numbers with random generation functions.
-#[ndfwd::decl]
-pub trait NumRand: NumFn + BytesFn {
-    /// Creates random number.
-    ///
-    /// Order represents position of the most significant bit.
-    #[cfg(feature = "rand")]
-    #[ndfwd::as_into]
-    fn rand_num<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
-        if order == 0 {
-            return Self::default();
-        }
-
-        let order = order.min(Self::BYTES);
-        let len = order.div_ceil(u8::BITS as usize);
-        let idx = order.div_ceil(u8::BITS as usize) - 1;
-
-        let shift = order % u8::BITS as usize;
-        let mask = u8::MAX.unbounded_shr(u8::BITS - shift as u32);
-        let bit = 1u8 << shift;
-
-        let mut res = Self::default();
-
-        let bytes = &mut res.as_bytes_mut()[..len];
-
-        rng.fill_bytes(bytes);
-
-        bytes[idx] &= mask;
-        bytes[idx] |= bit;
-
-        res
-    }
-}
-
-/// Number with static allocation.
-#[ndfwd::decl]
-pub trait Num: NumFn + Zero + One + Copy {
-    /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
-    #[allow(unused)]
-    const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
-
-    /// Checks `size_of::<Self>() == size_of::<Self::Unsigned>`.
-    #[allow(unused)]
-    const CHECK_UNSIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Unsigned>());
-
-    /// Checks `size_of::<Self::Signed>() == size_of::<Self::Unsigned>`.
-    #[allow(unused)]
-    const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
-
-    /// Signed counterpart of the same size.
-    type Signed;
-
-    /// Unsigned counterpart of the same size.
-    type Unsigned;
-}
-
-/// Number with dynamic allocation.
-#[ndfwd::decl]
-pub trait NumDyn: NumFn {}
-
-/// Number with sign.
-#[ndfwd::decl]
-pub trait NumSigned: NumFn + From<i8> {}
-
-/// Number without sign.
-#[ndfwd::decl]
-pub trait NumUnsigned: NumFn + From<u8> {
-    /// Order of number.
-    ///
-    /// Represents position of the most significant bit.
-    fn order(&self) -> usize;
-
-    /// Logarithm (base 2) of number.
-    #[ndfwd::as_into]
-    fn log(&self) -> Self;
-
-    /// Square root of number.
-    #[ndfwd::as_into]
-    fn sqrt(&self) -> Self;
 }
 
 /// Range for [`Ranged`] numbers.
@@ -2065,25 +2088,25 @@ mod tests {
     #[test]
     fn gcd() {
         ndassert::check! { @eq (val in ndassert::range!(u64, 48).map(|val| val + 1)) [
-            (u64::gcd(val, 0), val),
-            (u64::gcd(0, val), val),
-            (u64::gcd(val, 1), 1),
-            (u64::gcd(1, val), 1),
-            (u64::gcd(val, val), val),
+            (u64::nd_gcd(val, 0), val),
+            (u64::nd_gcd(0, val), val),
+            (u64::nd_gcd(val, 1), 1),
+            (u64::nd_gcd(1, val), 1),
+            (u64::nd_gcd(val, val), val),
         ] }
 
         ndassert::check! { @eq (
             lhs in 1..=1 << 8,
             rhs in 1..=1 << 8,
         ) [
-            (u64::gcd(lhs, rhs), u64::gcd(rhs, lhs)),
-            (lhs % u64::gcd(lhs, rhs), 0),
-            (rhs % u64::gcd(lhs, rhs), 0),
-            (u64::gcd(lhs, rhs) * u64::lcm(lhs, rhs), lhs * rhs),
+            (u64::nd_gcd(lhs, rhs), u64::nd_gcd(rhs, lhs)),
+            (lhs % u64::nd_gcd(lhs, rhs), 0),
+            (rhs % u64::nd_gcd(lhs, rhs), 0),
+            (u64::nd_gcd(lhs, rhs) * u64::nd_lcm(lhs, rhs), lhs * rhs),
             {
-                let res = u64::gcd(lhs, rhs);
+                let res = u64::nd_gcd(lhs, rhs);
 
-                (u64::gcd(lhs / res, rhs / res), 1)
+                (u64::nd_gcd(lhs / res, rhs / res), 1)
             },
         ] }
 
@@ -2092,35 +2115,35 @@ mod tests {
             rhs in 1..=1 << 6,
               k in 1..=1 << 6,
         ) [
-            (u64::gcd(k * lhs, k * rhs), k * u64::gcd(lhs, rhs)),
+            (u64::nd_gcd(k * lhs, k * rhs), k * u64::nd_gcd(lhs, rhs)),
         ] }
     }
 
     #[test]
     fn gcde() {
         ndassert::check! { @eq (val in ndassert::range!(i64, 48).map(|val| val + 1)) [
-            (i64::gcde(val, 0), (val, 1, 0)),
-            (i64::gcde(0, val), (val, 0, 1)),
-            (i64::gcde(val, 1), (1, 0, 1)),
-            (i64::gcde(1, val), (1, 1, 0)),
-            (i64::gcde(val, val), (val, 0, 1)),
+            (i64::nd_gcde(val, 0), (val, 1, 0)),
+            (i64::nd_gcde(0, val), (val, 0, 1)),
+            (i64::nd_gcde(val, 1), (1, 0, 1)),
+            (i64::nd_gcde(1, val), (1, 1, 0)),
+            (i64::nd_gcde(val, val), (val, 0, 1)),
         ] }
 
         ndassert::check! { @eq (
             lhs in 1..=1 << 8,
             rhs in 1..=1 << 8,
         ) [
-            (i64::gcde(lhs, rhs).0, i64::gcde(rhs, lhs).0),
-            (lhs % i64::gcde(lhs, rhs).0, 0),
-            (rhs % i64::gcde(lhs, rhs).0, 0),
-            (i64::gcde(lhs, rhs).0 * i64::lcm(lhs, rhs), lhs * rhs),
+            (i64::nd_gcde(lhs, rhs).0, i64::nd_gcde(rhs, lhs).0),
+            (lhs % i64::nd_gcde(lhs, rhs).0, 0),
+            (rhs % i64::nd_gcde(lhs, rhs).0, 0),
+            (i64::nd_gcde(lhs, rhs).0 * i64::nd_lcm(lhs, rhs), lhs * rhs),
             {
-                let res = i64::gcde(lhs, rhs).0;
+                let res = i64::nd_gcde(lhs, rhs).0;
 
-                (i64::gcde(lhs / res, rhs / res).0, 1)
+                (i64::nd_gcde(lhs / res, rhs / res).0, 1)
             },
             {
-                let res = i64::gcde(lhs, rhs);
+                let res = i64::nd_gcde(lhs, rhs);
 
                 (lhs * res.1 + rhs * res.2, res.0)
             }
@@ -2131,32 +2154,32 @@ mod tests {
             rhs in 1..=1 << 6,
               k in 1..=1 << 6,
         ) [
-            (i64::gcde(k * lhs, k * rhs).0, k * i64::gcde(lhs, rhs).0),
+            (i64::nd_gcde(k * lhs, k * rhs).0, k * i64::nd_gcde(lhs, rhs).0),
         ] }
     }
 
     #[test]
     fn lcm() {
         ndassert::check! { @eq (val in ndassert::range!(u64, 48).map(|val| val + 1)) [
-            (u64::lcm(val, 0), 0),
-            (u64::lcm(0, val), 0),
-            (u64::lcm(val, 1), val),
-            (u64::lcm(1, val), val),
-            (u64::lcm(val, val), val),
+            (u64::nd_lcm(val, 0), 0),
+            (u64::nd_lcm(0, val), 0),
+            (u64::nd_lcm(val, 1), val),
+            (u64::nd_lcm(1, val), val),
+            (u64::nd_lcm(val, val), val),
         ] }
 
         ndassert::check! { @eq (
             lhs in 1..=1 << 8,
             rhs in 1..=1 << 8,
         ) [
-            (u64::lcm(lhs, rhs), u64::lcm(rhs, lhs)),
-            (u64::lcm(lhs, rhs) % lhs, 0),
-            (u64::lcm(lhs, rhs) % rhs, 0),
-            (u64::lcm(lhs, rhs) * u64::gcd(lhs, rhs), lhs * rhs),
+            (u64::nd_lcm(lhs, rhs), u64::nd_lcm(rhs, lhs)),
+            (u64::nd_lcm(lhs, rhs) % lhs, 0),
+            (u64::nd_lcm(lhs, rhs) % rhs, 0),
+            (u64::nd_lcm(lhs, rhs) * u64::nd_gcd(lhs, rhs), lhs * rhs),
             {
-                let res = u64::lcm(lhs, rhs);
+                let res = u64::nd_lcm(lhs, rhs);
 
-                (u64::gcd(res / lhs, res / rhs), 1)
+                (u64::nd_gcd(res / lhs, res / rhs), 1)
             },
         ] }
 
@@ -2165,7 +2188,7 @@ mod tests {
             rhs in 1..=1 << 6,
               k in 1..=1 << 6,
         ) [
-            (u64::lcm(k * lhs, k * rhs), k * u64::lcm(lhs, rhs)),
+            (u64::nd_lcm(k * lhs, k * rhs), k * u64::nd_lcm(lhs, rhs)),
         ] }
     }
 

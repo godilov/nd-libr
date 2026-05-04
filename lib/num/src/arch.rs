@@ -505,14 +505,18 @@ pub mod word {
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: AsBytesRef)]
+#[ndfwd::def(self.0 with T: AsBytesMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef)]
+#[ndfwd::def(self.0 with T: AsWordsMut)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
-#[ndfwd::def(self.0 with T: crate::NumPow)]
-#[ndfwd::def(self.0 with T: crate::NumGcd)]
-#[ndfwd::def(self.0 with T: crate::NumGcdChecked)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NdPow)]
+#[ndfwd::def(self.0 with T: crate::NdGcd)]
+#[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
@@ -548,14 +552,18 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: AsBytesRef)]
+#[ndfwd::def(self.0 with T: AsBytesMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef)]
+#[ndfwd::def(self.0 with T: AsWordsMut)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
-#[ndfwd::def(self.0 with T: crate::NumPow)]
-#[ndfwd::def(self.0 with T: crate::NumGcd)]
-#[ndfwd::def(self.0 with T: crate::NumGcdChecked)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NdPow)]
+#[ndfwd::def(self.0 with T: crate::NdGcd)]
+#[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
@@ -584,14 +592,18 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: AsBytesRef)]
+#[ndfwd::def(self.0 with T: AsBytesMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef)]
+#[ndfwd::def(self.0 with T: AsWordsMut)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
-#[ndfwd::def(self.0 with T: crate::NumPow)]
-#[ndfwd::def(self.0 with T: crate::NumGcd)]
-#[ndfwd::def(self.0 with T: crate::NumGcdChecked)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NdPow)]
+#[ndfwd::def(self.0 with T: crate::NdGcd)]
+#[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
@@ -620,14 +632,18 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: AsBytesRef)]
+#[ndfwd::def(self.0 with T: AsBytesMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef)]
+#[ndfwd::def(self.0 with T: AsWordsMut)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
-#[ndfwd::def(self.0 with T: crate::NumPow)]
-#[ndfwd::def(self.0 with T: crate::NumGcd)]
-#[ndfwd::def(self.0 with T: crate::NumGcdChecked)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumRand)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NdPow)]
+#[ndfwd::def(self.0 with T: crate::NdGcd)]
+#[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::OneCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::ZeroCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosCt))]
@@ -676,13 +692,7 @@ pub trait BytesLen {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait BytesFn: Sized + Default + BytesLen {
-    /// As ref-slice of bytes.
-    fn as_bytes_ref(&self) -> &[u8];
-
-    /// As mut-slice of bytes.
-    fn as_bytes_mut(&mut self) -> &mut [u8];
-
+pub trait BytesFn: Sized + Default + BytesLen + AsBytesRef + AsBytesMut {
     /// Reads 64-bits of underlying value at specified Offset in bits.
     fn read(&self, offset: Offset) -> Single;
 
@@ -733,6 +743,34 @@ pub trait BytesFn: Sized + Default + BytesLen {
 
         res
     }
+}
+
+/// As ref-slice of bytes.
+#[ndfwd::decl]
+pub trait AsBytesRef {
+    /// As ref-slice of bytes.
+    fn as_bytes_ref(&self) -> &[u8];
+}
+
+/// As mut-slice of bytes.
+#[ndfwd::decl]
+pub trait AsBytesMut {
+    /// As mut-slice of bytes.
+    fn as_bytes_mut(&mut self) -> &mut [u8];
+}
+
+/// As ref-slice of words.
+#[ndfwd::decl]
+pub trait AsWordsRef {
+    /// As ref-slice of words.
+    fn as_words_ref<W: Word>(&self) -> &[W];
+}
+
+/// As mut-slice of words.
+#[ndfwd::decl]
+pub trait AsWordsMut {
+    /// As mut-slice of words.
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W];
 }
 
 aligned_impl!(Aligned);
