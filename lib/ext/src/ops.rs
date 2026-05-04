@@ -204,6 +204,80 @@ pub trait NdNegOverflowing<Value = Self> {
     fn nd_neg_overflowing(value: &Value) -> (Self::Type, bool);
 }
 
+/// `Nd-kind` absolute value.
+///
+/// # Related
+///
+/// - [`NdAbsChecked`] - checked alternative.
+/// - [`NdAbsStrict`] - strict alternative.
+/// - [`NdAbsWrapping`] - wrapping alternative.
+/// - [`NdAbsSaturating`] - saturating alternative.
+/// - [`NdAbsOverflowing`] - overflowing alternative.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAbs<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_abs(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` absolute value with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAbsChecked<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_abs_checked(value: &Value) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` absolute value with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAbsStrict<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_abs_strict(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` absolute value with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAbsWrapping<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_abs_wrapping(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` absolute value with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAbsSaturating<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_abs_saturating(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` absolute value with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAbsOverflowing<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_abs_overflowing(value: &Value) -> (Self::Type, bool);
+}
+
 /// `Nd-kind` extension for [`std::ops::Add`].
 ///
 /// # Related
