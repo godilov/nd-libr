@@ -1144,6 +1144,12 @@ impl<Ext: Parse, ShiftExt: Parse> Parse for OpsAssign<Ext, ShiftExt> {
     }
 }
 
+impl<Ext: Parse, ShiftExt: Parse> Parse for OpsAssignExtra<Ext, ShiftExt> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        input.parse().map(Self::Std)
+    }
+}
+
 impl<Ext: Parse> Parse for OpsAssignMode<Ext> {
     fn parse(input: ParseStream) -> Result<Self> {
         if !input.peek(Token![@]) {
@@ -1258,6 +1264,12 @@ impl<Ext: Parse, ShiftExt: Parse> Parse for OpsBinary<Ext, ShiftExt> {
     }
 }
 
+impl<Ext: Parse, ShiftExt: Parse> Parse for OpsBinaryExtra<Ext, ShiftExt> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        input.parse().map(Self::Std)
+    }
+}
+
 impl<Ext: Parse> Parse for OpsBinaryMode<Ext> {
     fn parse(input: ParseStream) -> Result<Self> {
         if !input.peek(Token![@]) {
@@ -1360,6 +1372,21 @@ impl<Ext: Parse> Parse for OpsUnary<Ext> {
             Ok(Self::Neg(input.parse()?, input.parse()?))
         } else {
             Err(lookahead.error())
+        }
+    }
+}
+
+impl<Ext: Parse> Parse for OpsUnaryExtra<Ext> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::abs) {
+            Ok(Self::Abs(input.parse()?))
+        } else {
+            input.parse().map(Self::Std).map_err(|mut err| {
+                err.extend(lookahead.error());
+                err
+            })
         }
     }
 }
