@@ -538,7 +538,7 @@ enum OpsUnary<Ext: Parse> {
 
 enum OpsUnaryExtra<Ext: Parse> {
     Std(OpsUnary<Ext>),
-    Abs(kw::abs),
+    Abs(kw::abs, Ext),
 }
 
 enum OpsUnaryMode<Ext: Parse> {
@@ -562,17 +562,17 @@ type OpsStdAssign = OpsAssign<OpsNoop, OpsNoop>;
 type OpsStdBinary = OpsBinary<OpsNoop, OpsNoop>;
 type OpsStdUnary = OpsUnary<OpsNoop>;
 
-type OpsNdAssign = OpsAssign<OpsAssignMode<OpsNoop>, OpsAssignShiftMode<OpsNoop>>;
-type OpsNdBinary = OpsBinary<OpsBinaryMode<OpsNoop>, OpsBinaryShiftMode<OpsNoop>>;
-type OpsNdUnary = OpsUnary<OpsUnaryMode<OpsNoop>>;
+type OpsNdAssign = OpsAssignExtra<OpsAssignMode<OpsNoop>, OpsAssignShiftMode<OpsNoop>>;
+type OpsNdBinary = OpsBinaryExtra<OpsBinaryMode<OpsNoop>, OpsBinaryShiftMode<OpsNoop>>;
+type OpsNdUnary = OpsUnaryExtra<OpsUnaryMode<OpsNoop>>;
 
 type OpsStdAssignFwd = OpsAssign<OpsAssignModeWith, OpsAssignShiftModeWith>;
 type OpsStdBinaryFwd = OpsBinary<OpsBinaryModeWith, OpsBinaryShiftModeWith>;
 type OpsStdUnaryFwd = OpsUnary<OpsUnaryModeWith>;
 
-type OpsNdAssignFwd = OpsAssign<OpsAssignMode<OpsAssignModeWith>, OpsAssignShiftMode<OpsAssignShiftModeWith>>;
-type OpsNdBinaryFwd = OpsBinary<OpsBinaryMode<OpsBinaryModeWith>, OpsBinaryShiftMode<OpsBinaryShiftModeWith>>;
-type OpsNdUnaryFwd = OpsUnary<OpsUnaryMode<OpsUnaryModeWith>>;
+type OpsNdAssignFwd = OpsAssignExtra<OpsAssignMode<OpsAssignModeWith>, OpsAssignShiftMode<OpsAssignShiftModeWith>>;
+type OpsNdBinaryFwd = OpsBinaryExtra<OpsBinaryMode<OpsBinaryModeWith>, OpsBinaryShiftMode<OpsBinaryShiftModeWith>>;
+type OpsNdUnaryFwd = OpsUnaryExtra<OpsUnaryMode<OpsUnaryModeWith>>;
 
 trait OpsKind {
     type Definition: Parse;
@@ -1146,7 +1146,7 @@ impl<Ext: Parse, ShiftExt: Parse> Parse for OpsAssign<Ext, ShiftExt> {
 
 impl<Ext: Parse, ShiftExt: Parse> Parse for OpsAssignExtra<Ext, ShiftExt> {
     fn parse(input: ParseStream) -> Result<Self> {
-        input.parse().map(Self::Std)
+        Ok(Self::Std(input.parse()?))
     }
 }
 
@@ -1266,7 +1266,7 @@ impl<Ext: Parse, ShiftExt: Parse> Parse for OpsBinary<Ext, ShiftExt> {
 
 impl<Ext: Parse, ShiftExt: Parse> Parse for OpsBinaryExtra<Ext, ShiftExt> {
     fn parse(input: ParseStream) -> Result<Self> {
-        input.parse().map(Self::Std)
+        Ok(Self::Std(input.parse()?))
     }
 }
 
@@ -1381,7 +1381,7 @@ impl<Ext: Parse> Parse for OpsUnaryExtra<Ext> {
         let lookahead = input.lookahead1();
 
         if lookahead.peek(kw::abs) {
-            Ok(Self::Abs(input.parse()?))
+            Ok(Self::Abs(input.parse()?, input.parse()?))
         } else {
             input.parse().map(Self::Std).map_err(|mut err| {
                 err.extend(lookahead.error());
@@ -2082,16 +2082,18 @@ impl From<OpsStdUnaryFwd> for OpsStdUnary {
 impl From<OpsNdAssignFwd> for OpsNdAssign {
     fn from(value: OpsNdAssignFwd) -> Self {
         match value {
-            OpsAssign::Add(token, mode) => Self::Add(token, mode.into()),
-            OpsAssign::Sub(token, mode) => Self::Sub(token, mode.into()),
-            OpsAssign::Mul(token, mode) => Self::Mul(token, mode.into()),
-            OpsAssign::Div(token, mode) => Self::Div(token, mode.into()),
-            OpsAssign::Rem(token, mode) => Self::Rem(token, mode.into()),
-            OpsAssign::BitOr(token) => Self::BitOr(token),
-            OpsAssign::BitAnd(token) => Self::BitAnd(token),
-            OpsAssign::BitXor(token) => Self::BitXor(token),
-            OpsAssign::Shl(token, mode) => Self::Shl(token, mode.into()),
-            OpsAssign::Shr(token, mode) => Self::Shr(token, mode.into()),
+            OpsAssignExtra::Std(value) => Self::Std(match value {
+                OpsAssign::Add(token, mode) => OpsAssign::Add(token, mode.into()),
+                OpsAssign::Sub(token, mode) => OpsAssign::Sub(token, mode.into()),
+                OpsAssign::Mul(token, mode) => OpsAssign::Mul(token, mode.into()),
+                OpsAssign::Div(token, mode) => OpsAssign::Div(token, mode.into()),
+                OpsAssign::Rem(token, mode) => OpsAssign::Rem(token, mode.into()),
+                OpsAssign::BitOr(token) => OpsAssign::BitOr(token),
+                OpsAssign::BitAnd(token) => OpsAssign::BitAnd(token),
+                OpsAssign::BitXor(token) => OpsAssign::BitXor(token),
+                OpsAssign::Shl(token, mode) => OpsAssign::Shl(token, mode.into()),
+                OpsAssign::Shr(token, mode) => OpsAssign::Shr(token, mode.into()),
+            }),
         }
     }
 }
@@ -2099,16 +2101,18 @@ impl From<OpsNdAssignFwd> for OpsNdAssign {
 impl From<OpsNdBinaryFwd> for OpsNdBinary {
     fn from(value: OpsNdBinaryFwd) -> Self {
         match value {
-            OpsBinary::Add(token, mode) => Self::Add(token, mode.into()),
-            OpsBinary::Sub(token, mode) => Self::Sub(token, mode.into()),
-            OpsBinary::Mul(token, mode) => Self::Mul(token, mode.into()),
-            OpsBinary::Div(token, mode) => Self::Div(token, mode.into()),
-            OpsBinary::Rem(token, mode) => Self::Rem(token, mode.into()),
-            OpsBinary::BitOr(token) => Self::BitOr(token),
-            OpsBinary::BitAnd(token) => Self::BitAnd(token),
-            OpsBinary::BitXor(token) => Self::BitXor(token),
-            OpsBinary::Shl(token, mode) => Self::Shl(token, mode.into()),
-            OpsBinary::Shr(token, mode) => Self::Shr(token, mode.into()),
+            OpsBinaryExtra::Std(value) => Self::Std(match value {
+                OpsBinary::Add(token, mode) => OpsBinary::Add(token, mode.into()),
+                OpsBinary::Sub(token, mode) => OpsBinary::Sub(token, mode.into()),
+                OpsBinary::Mul(token, mode) => OpsBinary::Mul(token, mode.into()),
+                OpsBinary::Div(token, mode) => OpsBinary::Div(token, mode.into()),
+                OpsBinary::Rem(token, mode) => OpsBinary::Rem(token, mode.into()),
+                OpsBinary::BitOr(token) => OpsBinary::BitOr(token),
+                OpsBinary::BitAnd(token) => OpsBinary::BitAnd(token),
+                OpsBinary::BitXor(token) => OpsBinary::BitXor(token),
+                OpsBinary::Shl(token, mode) => OpsBinary::Shl(token, mode.into()),
+                OpsBinary::Shr(token, mode) => OpsBinary::Shr(token, mode.into()),
+            }),
         }
     }
 }
@@ -2116,8 +2120,11 @@ impl From<OpsNdBinaryFwd> for OpsNdBinary {
 impl From<OpsNdUnaryFwd> for OpsNdUnary {
     fn from(value: OpsNdUnaryFwd) -> Self {
         match value {
-            OpsUnary::Not(token) => Self::Not(token),
-            OpsUnary::Neg(token, mode) => Self::Neg(token, mode.into()),
+            OpsUnaryExtra::Std(value) => Self::Std(match value {
+                OpsUnary::Not(token) => OpsUnary::Not(token),
+                OpsUnary::Neg(token, mode) => OpsUnary::Neg(token, mode.into()),
+            }),
+            OpsUnaryExtra::Abs(token, mode) => Self::Abs(token, mode.into()),
         }
     }
 }
@@ -2317,48 +2324,50 @@ impl OpsStdUnary {
 impl OpsNdAssign {
     fn ident(&self) -> Ident {
         match self {
-            OpsAssign::Add(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { nd_add_assign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { nd_add_assign_strict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_add_assign_wrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { nd_add_assign_saturating },
-            },
-            OpsAssign::Sub(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { nd_sub_assign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { nd_sub_assign_strict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_sub_assign_wrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { nd_sub_assign_saturating },
-            },
-            OpsAssign::Mul(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { nd_mul_assign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { nd_mul_assign_strict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_mul_assign_wrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { nd_mul_assign_saturating },
-            },
-            OpsAssign::Div(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { nd_div_assign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { nd_div_assign_strict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_div_assign_wrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { nd_div_assign_saturating },
-            },
-            OpsAssign::Rem(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { nd_rem_assign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { nd_rem_assign_strict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_rem_assign_wrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { nd_rem_assign_saturating },
-            },
-            OpsAssign::BitOr(_) => parse_quote! { nd_bitor_assign },
-            OpsAssign::BitAnd(_) => parse_quote! { nd_bitand_assign },
-            OpsAssign::BitXor(_) => parse_quote! { nd_bitxor_assign },
-            OpsAssign::Shl(_, mode) => match mode {
-                OpsAssignShiftMode::Default(_) => parse_quote! { nd_shl_assign },
-                OpsAssignShiftMode::Strict(_, _) => parse_quote! { nd_shl_assign_strict },
-                OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { nd_shl_assign_unbounded },
-            },
-            OpsAssign::Shr(_, mode) => match mode {
-                OpsAssignShiftMode::Default(_) => parse_quote! { nd_shr_assign },
-                OpsAssignShiftMode::Strict(_, _) => parse_quote! { nd_shr_assign_strict },
-                OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { nd_shr_assign_unbounded },
+            OpsAssignExtra::Std(value) => match value {
+                OpsAssign::Add(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { nd_add_assign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { nd_add_assign_strict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_add_assign_wrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { nd_add_assign_saturating },
+                },
+                OpsAssign::Sub(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { nd_sub_assign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { nd_sub_assign_strict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_sub_assign_wrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { nd_sub_assign_saturating },
+                },
+                OpsAssign::Mul(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { nd_mul_assign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { nd_mul_assign_strict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_mul_assign_wrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { nd_mul_assign_saturating },
+                },
+                OpsAssign::Div(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { nd_div_assign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { nd_div_assign_strict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_div_assign_wrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { nd_div_assign_saturating },
+                },
+                OpsAssign::Rem(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { nd_rem_assign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { nd_rem_assign_strict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { nd_rem_assign_wrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { nd_rem_assign_saturating },
+                },
+                OpsAssign::BitOr(_) => parse_quote! { nd_bitor_assign },
+                OpsAssign::BitAnd(_) => parse_quote! { nd_bitand_assign },
+                OpsAssign::BitXor(_) => parse_quote! { nd_bitxor_assign },
+                OpsAssign::Shl(_, mode) => match mode {
+                    OpsAssignShiftMode::Default(_) => parse_quote! { nd_shl_assign },
+                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { nd_shl_assign_strict },
+                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { nd_shl_assign_unbounded },
+                },
+                OpsAssign::Shr(_, mode) => match mode {
+                    OpsAssignShiftMode::Default(_) => parse_quote! { nd_shr_assign },
+                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { nd_shr_assign_strict },
+                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { nd_shr_assign_unbounded },
+                },
             },
         }
     }
@@ -2367,48 +2376,50 @@ impl OpsNdAssign {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
-            OpsAssign::Add(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdAddAssign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAddAssignStrict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAddAssignWrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAddAssignSaturating },
-            },
-            OpsAssign::Sub(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdSubAssign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdSubAssignStrict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdSubAssignWrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdSubAssignSaturating },
-            },
-            OpsAssign::Mul(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdMulAssign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdMulAssignStrict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdMulAssignWrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdMulAssignSaturating },
-            },
-            OpsAssign::Div(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdDivAssign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdDivAssignStrict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdDivAssignWrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdDivAssignSaturating },
-            },
-            OpsAssign::Rem(_, mode) => match mode {
-                OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdRemAssign },
-                OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdRemAssignStrict },
-                OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdRemAssignWrapping },
-                OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdRemAssignSaturating },
-            },
-            OpsAssign::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
-            OpsAssign::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
-            OpsAssign::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
-            OpsAssign::Shl(_, mode) => match mode {
-                OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShlAssign },
-                OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShlAssignStrict },
-                OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShlAssignUnbounded },
-            },
-            OpsAssign::Shr(_, mode) => match mode {
-                OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShrAssign },
-                OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShrAssignStrict },
-                OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShrAssignUnbounded },
+            OpsAssignExtra::Std(value) => match value {
+                OpsAssign::Add(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdAddAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAddAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAddAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAddAssignSaturating },
+                },
+                OpsAssign::Sub(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdSubAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdSubAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdSubAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdSubAssignSaturating },
+                },
+                OpsAssign::Mul(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdMulAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdMulAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdMulAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdMulAssignSaturating },
+                },
+                OpsAssign::Div(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdDivAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdDivAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdDivAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdDivAssignSaturating },
+                },
+                OpsAssign::Rem(_, mode) => match mode {
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdRemAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdRemAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdRemAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdRemAssignSaturating },
+                },
+                OpsAssign::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
+                OpsAssign::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
+                OpsAssign::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
+                OpsAssign::Shl(_, mode) => match mode {
+                    OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShlAssign },
+                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShlAssignStrict },
+                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShlAssignUnbounded },
+                },
+                OpsAssign::Shr(_, mode) => match mode {
+                    OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShrAssign },
+                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShrAssignStrict },
+                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShrAssignUnbounded },
+                },
             },
         }
     }
@@ -2417,62 +2428,64 @@ impl OpsNdAssign {
 impl OpsNdBinary {
     fn ident(&self) -> Ident {
         match self {
-            OpsBinary::Add(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { nd_add },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { nd_add_checked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { nd_add_strict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_add_wrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_add_saturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_add_overflowing },
-            },
-            OpsBinary::Sub(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { nd_sub },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { nd_sub_checked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { nd_sub_strict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_sub_wrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_sub_saturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_sub_overflowing },
-            },
-            OpsBinary::Mul(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { nd_mul },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { nd_mul_checked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { nd_mul_strict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_mul_wrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_mul_saturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_mul_overflowing },
-            },
-            OpsBinary::Div(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { nd_div },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { nd_div_checked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { nd_div_strict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_div_wrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_div_saturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_div_overflowing },
-            },
-            OpsBinary::Rem(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { nd_rem },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { nd_rem_checked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { nd_rem_strict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_rem_wrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_rem_saturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_rem_overflowing },
-            },
-            OpsBinary::BitOr(_) => parse_quote! { nd_bitor },
-            OpsBinary::BitAnd(_) => parse_quote! { nd_bitand },
-            OpsBinary::BitXor(_) => parse_quote! { nd_bitxor },
-            OpsBinary::Shl(_, mode) => match mode {
-                OpsBinaryShiftMode::Default(_) => parse_quote! { nd_shl },
-                OpsBinaryShiftMode::Checked(_, _) => parse_quote! { nd_shl_checked },
-                OpsBinaryShiftMode::Strict(_, _) => parse_quote! { nd_shl_strict },
-                OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { nd_shl_unbounded },
-                OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { nd_shl_overflowing },
-            },
-            OpsBinary::Shr(_, mode) => match mode {
-                OpsBinaryShiftMode::Default(_) => parse_quote! { nd_shr },
-                OpsBinaryShiftMode::Checked(_, _) => parse_quote! { nd_shr_checked },
-                OpsBinaryShiftMode::Strict(_, _) => parse_quote! { nd_shr_strict },
-                OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { nd_shr_unbounded },
-                OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { nd_shr_overflowing },
+            OpsBinaryExtra::Std(value) => match value {
+                OpsBinary::Add(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { nd_add },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { nd_add_checked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { nd_add_strict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_add_wrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_add_saturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_add_overflowing },
+                },
+                OpsBinary::Sub(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { nd_sub },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { nd_sub_checked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { nd_sub_strict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_sub_wrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_sub_saturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_sub_overflowing },
+                },
+                OpsBinary::Mul(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { nd_mul },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { nd_mul_checked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { nd_mul_strict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_mul_wrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_mul_saturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_mul_overflowing },
+                },
+                OpsBinary::Div(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { nd_div },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { nd_div_checked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { nd_div_strict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_div_wrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_div_saturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_div_overflowing },
+                },
+                OpsBinary::Rem(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { nd_rem },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { nd_rem_checked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { nd_rem_strict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { nd_rem_wrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { nd_rem_saturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { nd_rem_overflowing },
+                },
+                OpsBinary::BitOr(_) => parse_quote! { nd_bitor },
+                OpsBinary::BitAnd(_) => parse_quote! { nd_bitand },
+                OpsBinary::BitXor(_) => parse_quote! { nd_bitxor },
+                OpsBinary::Shl(_, mode) => match mode {
+                    OpsBinaryShiftMode::Default(_) => parse_quote! { nd_shl },
+                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { nd_shl_checked },
+                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { nd_shl_strict },
+                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { nd_shl_unbounded },
+                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { nd_shl_overflowing },
+                },
+                OpsBinary::Shr(_, mode) => match mode {
+                    OpsBinaryShiftMode::Default(_) => parse_quote! { nd_shr },
+                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { nd_shr_checked },
+                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { nd_shr_strict },
+                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { nd_shr_unbounded },
+                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { nd_shr_overflowing },
+                },
             },
         }
     }
@@ -2481,105 +2494,111 @@ impl OpsNdBinary {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
-            OpsBinary::Add(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdAdd },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdAddChecked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAddStrict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAddWrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAddSaturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdAddOverflowing },
-            },
-            OpsBinary::Sub(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdSub },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdSubChecked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdSubStrict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdSubWrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdSubSaturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdSubOverflowing },
-            },
-            OpsBinary::Mul(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdMul },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdMulChecked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdMulStrict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdMulWrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdMulSaturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdMulOverflowing },
-            },
-            OpsBinary::Div(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdDiv },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdDivChecked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdDivStrict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdDivWrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdDivSaturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdDivOverflowing },
-            },
-            OpsBinary::Rem(_, mode) => match mode {
-                OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdRem },
-                OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdRemChecked },
-                OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdRemStrict },
-                OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdRemWrapping },
-                OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdRemSaturating },
-                OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdRemOverflowing },
-            },
-            OpsBinary::BitOr(_) => parse_quote! { #prefix::ops::NdBitOr },
-            OpsBinary::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAnd },
-            OpsBinary::BitXor(_) => parse_quote! { #prefix::ops::NdBitXor },
-            OpsBinary::Shl(_, mode) => match mode {
-                OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShl },
-                OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::ops::NdShlChecked },
-                OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShlStrict },
-                OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShlUnbounded },
-                OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdShlOverflowing },
-            },
-            OpsBinary::Shr(_, mode) => match mode {
-                OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShr },
-                OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::ops::NdShrChecked },
-                OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShrStrict },
-                OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShrUnbounded },
-                OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdShrOverflowing },
+            OpsBinaryExtra::Std(value) => match value {
+                OpsBinary::Add(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdAdd },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdAddChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAddStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAddWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAddSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdAddOverflowing },
+                },
+                OpsBinary::Sub(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdSub },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdSubChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdSubStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdSubWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdSubSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdSubOverflowing },
+                },
+                OpsBinary::Mul(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdMul },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdMulChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdMulStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdMulWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdMulSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdMulOverflowing },
+                },
+                OpsBinary::Div(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdDiv },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdDivChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdDivStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdDivWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdDivSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdDivOverflowing },
+                },
+                OpsBinary::Rem(_, mode) => match mode {
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdRem },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdRemChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdRemStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdRemWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdRemSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdRemOverflowing },
+                },
+                OpsBinary::BitOr(_) => parse_quote! { #prefix::ops::NdBitOr },
+                OpsBinary::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAnd },
+                OpsBinary::BitXor(_) => parse_quote! { #prefix::ops::NdBitXor },
+                OpsBinary::Shl(_, mode) => match mode {
+                    OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShl },
+                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::ops::NdShlChecked },
+                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShlStrict },
+                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShlUnbounded },
+                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdShlOverflowing },
+                },
+                OpsBinary::Shr(_, mode) => match mode {
+                    OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShr },
+                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::ops::NdShrChecked },
+                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShrStrict },
+                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShrUnbounded },
+                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdShrOverflowing },
+                },
             },
         }
     }
 
     fn ty(&self, ty: &Type) -> Type {
         match self {
-            OpsBinary::Add(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Sub(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Mul(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Div(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Rem(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Shl(_, OpsBinaryShiftMode::Checked(_, _))
-            | OpsBinary::Shr(_, OpsBinaryShiftMode::Checked(_, _)) => parse_quote! { Option<#ty> },
-            OpsBinary::Add(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Sub(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Mul(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Div(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Rem(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Shl(_, OpsBinaryShiftMode::Overflowing(_, _))
-            | OpsBinary::Shr(_, OpsBinaryShiftMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
-            _ => ty.clone(),
+            OpsBinaryExtra::Std(value) => match value {
+                OpsBinary::Add(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Sub(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Mul(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Div(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Rem(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Shl(_, OpsBinaryShiftMode::Checked(_, _))
+                | OpsBinary::Shr(_, OpsBinaryShiftMode::Checked(_, _)) => parse_quote! { Option<#ty> },
+                OpsBinary::Add(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Sub(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Mul(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Div(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Rem(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Shl(_, OpsBinaryShiftMode::Overflowing(_, _))
+                | OpsBinary::Shr(_, OpsBinaryShiftMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
+                _ => ty.clone(),
+            },
         }
     }
 
     fn expr(&self, expr: Expr) -> Expr {
         match self {
-            OpsBinary::Add(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Sub(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Mul(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Div(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Rem(_, OpsBinaryMode::Checked(_, _))
-            | OpsBinary::Shl(_, OpsBinaryShiftMode::Checked(_, _))
-            | OpsBinary::Shr(_, OpsBinaryShiftMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
-            OpsBinary::Add(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Sub(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Mul(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Div(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Rem(_, OpsBinaryMode::Overflowing(_, _))
-            | OpsBinary::Shl(_, OpsBinaryShiftMode::Overflowing(_, _))
-            | OpsBinary::Shr(_, OpsBinaryShiftMode::Overflowing(_, _)) => {
-                parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+            OpsBinaryExtra::Std(value) => match value {
+                OpsBinary::Add(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Sub(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Mul(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Div(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Rem(_, OpsBinaryMode::Checked(_, _))
+                | OpsBinary::Shl(_, OpsBinaryShiftMode::Checked(_, _))
+                | OpsBinary::Shr(_, OpsBinaryShiftMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+                OpsBinary::Add(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Sub(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Mul(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Div(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Rem(_, OpsBinaryMode::Overflowing(_, _))
+                | OpsBinary::Shl(_, OpsBinaryShiftMode::Overflowing(_, _))
+                | OpsBinary::Shr(_, OpsBinaryShiftMode::Overflowing(_, _)) => {
+                    parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+                },
+                _ => expr,
             },
-            _ => expr,
         }
     }
 }
@@ -2587,14 +2606,24 @@ impl OpsNdBinary {
 impl OpsNdUnary {
     fn ident(&self) -> Ident {
         match self {
-            OpsUnary::Not(_) => parse_quote! { nd_not },
-            OpsUnary::Neg(_, mode) => match mode {
-                OpsUnaryMode::Default(_) => parse_quote! { nd_neg },
-                OpsUnaryMode::Checked(_, _) => parse_quote! { nd_neg_checked },
-                OpsUnaryMode::Strict(_, _) => parse_quote! { nd_neg_strict },
-                OpsUnaryMode::Wrapping(_, _) => parse_quote! { nd_neg_wrapping },
-                OpsUnaryMode::Saturating(_, _) => parse_quote! { nd_neg_saturating },
-                OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_neg_overflowing },
+            OpsUnaryExtra::Std(value) => match value {
+                OpsUnary::Not(_) => parse_quote! { nd_not },
+                OpsUnary::Neg(_, mode) => match mode {
+                    OpsUnaryMode::Default(_) => parse_quote! { nd_neg },
+                    OpsUnaryMode::Checked(_, _) => parse_quote! { nd_neg_checked },
+                    OpsUnaryMode::Strict(_, _) => parse_quote! { nd_neg_strict },
+                    OpsUnaryMode::Wrapping(_, _) => parse_quote! { nd_neg_wrapping },
+                    OpsUnaryMode::Saturating(_, _) => parse_quote! { nd_neg_saturating },
+                    OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_neg_overflowing },
+                },
+            },
+            OpsUnaryExtra::Abs(_, mode) => match mode {
+                OpsUnaryMode::Default(_) => parse_quote! { nd_abs },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { nd_abs_checked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { nd_abs_strict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { nd_abs_wrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { nd_abs_saturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_abs_overflowing },
             },
         }
     }
@@ -2603,30 +2632,52 @@ impl OpsNdUnary {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
-            OpsUnary::Not(_) => parse_quote! { #prefix::ops::NdNot },
-            OpsUnary::Neg(_, mode) => match mode {
-                OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdNeg },
-                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdNegChecked },
-                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdNegStrict },
-                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdNegWrapping },
-                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdNegSaturating },
-                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
+            OpsUnaryExtra::Std(value) => match value {
+                OpsUnary::Not(_) => parse_quote! { #prefix::ops::NdNot },
+                OpsUnary::Neg(_, mode) => match mode {
+                    OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdNeg },
+                    OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdNegChecked },
+                    OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdNegStrict },
+                    OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdNegWrapping },
+                    OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdNegSaturating },
+                    OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
+                },
+            },
+            OpsUnaryExtra::Abs(_, mode) => match mode {
+                OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdAbs },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdAbsChecked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAbsStrict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAbsWrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAbsSaturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdAbsOverflowing },
             },
         }
     }
 
     fn ty(&self, ty: &Type) -> Type {
         match self {
-            OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
-            OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
+            OpsUnaryExtra::Std(value) => match value {
+                OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
+                OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
+                _ => ty.clone(),
+            },
+            OpsUnaryExtra::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
+            OpsUnaryExtra::Abs(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
             _ => ty.clone(),
         }
     }
 
     fn expr(&self, expr: Expr) -> Expr {
         match self {
-            OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
-            OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => {
+            OpsUnaryExtra::Std(value) => match value {
+                OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+                OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => {
+                    parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+                },
+                _ => expr,
+            },
+            OpsUnaryExtra::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+            OpsUnaryExtra::Abs(_, OpsUnaryMode::Overflowing(_, _)) => {
                 parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
             },
             _ => expr,
@@ -2636,7 +2687,7 @@ impl OpsNdUnary {
 
 impl OpsStdAssignFwd {
     fn to_impl(&self) -> OpsNdAssign {
-        match self {
+        OpsNdAssign::Std(match self {
             OpsAssign::Add(token, mode) => OpsAssign::Add(*token, mode.into()),
             OpsAssign::Sub(token, mode) => OpsAssign::Sub(*token, mode.into()),
             OpsAssign::Mul(token, mode) => OpsAssign::Mul(*token, mode.into()),
@@ -2647,13 +2698,13 @@ impl OpsStdAssignFwd {
             OpsAssign::BitXor(token) => OpsAssign::BitXor(*token),
             OpsAssign::Shl(token, mode) => OpsAssign::Shl(*token, mode.into()),
             OpsAssign::Shr(token, mode) => OpsAssign::Shr(*token, mode.into()),
-        }
+        })
     }
 }
 
 impl OpsStdBinaryFwd {
     fn to_impl(&self) -> OpsNdBinary {
-        match self {
+        OpsNdBinary::Std(match self {
             OpsBinary::Add(token, mode) => OpsBinary::Add(*token, mode.into()),
             OpsBinary::Sub(token, mode) => OpsBinary::Sub(*token, mode.into()),
             OpsBinary::Mul(token, mode) => OpsBinary::Mul(*token, mode.into()),
@@ -2664,16 +2715,16 @@ impl OpsStdBinaryFwd {
             OpsBinary::BitXor(token) => OpsBinary::BitXor(*token),
             OpsBinary::Shl(token, mode) => OpsBinary::Shl(*token, mode.into()),
             OpsBinary::Shr(token, mode) => OpsBinary::Shr(*token, mode.into()),
-        }
+        })
     }
 }
 
 impl OpsStdUnaryFwd {
     fn to_impl(&self) -> OpsNdUnary {
-        match self {
+        OpsNdUnary::Std(match self {
             OpsUnary::Not(token) => OpsUnary::Not(*token),
             OpsUnary::Neg(token, mode) => OpsUnary::Neg(*token, mode.into()),
-        }
+        })
     }
 }
 
@@ -2696,18 +2747,20 @@ impl OpsNdAssignFwd {
             }
         }
 
-        match self {
-            OpsAssign::Add(token, mode) => OpsAssign::Add(*token, get_mode(mode)),
-            OpsAssign::Sub(token, mode) => OpsAssign::Sub(*token, get_mode(mode)),
-            OpsAssign::Mul(token, mode) => OpsAssign::Mul(*token, get_mode(mode)),
-            OpsAssign::Div(token, mode) => OpsAssign::Div(*token, get_mode(mode)),
-            OpsAssign::Rem(token, mode) => OpsAssign::Rem(*token, get_mode(mode)),
-            OpsAssign::BitOr(token) => OpsAssign::BitOr(*token),
-            OpsAssign::BitAnd(token) => OpsAssign::BitAnd(*token),
-            OpsAssign::BitXor(token) => OpsAssign::BitXor(*token),
-            OpsAssign::Shl(token, mode) => OpsAssign::Shl(*token, get_shift_mode(mode)),
-            OpsAssign::Shr(token, mode) => OpsAssign::Shr(*token, get_shift_mode(mode)),
-        }
+        OpsNdAssign::Std(match self {
+            OpsAssignExtra::Std(value) => match value {
+                OpsAssign::Add(token, mode) => OpsAssign::Add(*token, get_mode(mode)),
+                OpsAssign::Sub(token, mode) => OpsAssign::Sub(*token, get_mode(mode)),
+                OpsAssign::Mul(token, mode) => OpsAssign::Mul(*token, get_mode(mode)),
+                OpsAssign::Div(token, mode) => OpsAssign::Div(*token, get_mode(mode)),
+                OpsAssign::Rem(token, mode) => OpsAssign::Rem(*token, get_mode(mode)),
+                OpsAssign::BitOr(token) => OpsAssign::BitOr(*token),
+                OpsAssign::BitAnd(token) => OpsAssign::BitAnd(*token),
+                OpsAssign::BitXor(token) => OpsAssign::BitXor(*token),
+                OpsAssign::Shl(token, mode) => OpsAssign::Shl(*token, get_shift_mode(mode)),
+                OpsAssign::Shr(token, mode) => OpsAssign::Shr(*token, get_shift_mode(mode)),
+            },
+        })
     }
 }
 
@@ -2734,26 +2787,41 @@ impl OpsNdBinaryFwd {
             }
         }
 
-        match self {
-            OpsBinary::Add(token, mode) => OpsBinary::Add(*token, get_mode(mode)),
-            OpsBinary::Sub(token, mode) => OpsBinary::Sub(*token, get_mode(mode)),
-            OpsBinary::Mul(token, mode) => OpsBinary::Mul(*token, get_mode(mode)),
-            OpsBinary::Div(token, mode) => OpsBinary::Div(*token, get_mode(mode)),
-            OpsBinary::Rem(token, mode) => OpsBinary::Rem(*token, get_mode(mode)),
-            OpsBinary::BitOr(token) => OpsBinary::BitOr(*token),
-            OpsBinary::BitAnd(token) => OpsBinary::BitAnd(*token),
-            OpsBinary::BitXor(token) => OpsBinary::BitXor(*token),
-            OpsBinary::Shl(token, mode) => OpsBinary::Shl(*token, get_shift_mode(mode)),
-            OpsBinary::Shr(token, mode) => OpsBinary::Shr(*token, get_shift_mode(mode)),
-        }
+        OpsNdBinary::Std(match self {
+            OpsBinaryExtra::Std(value) => match value {
+                OpsBinary::Add(token, mode) => OpsBinary::Add(*token, get_mode(mode)),
+                OpsBinary::Sub(token, mode) => OpsBinary::Sub(*token, get_mode(mode)),
+                OpsBinary::Mul(token, mode) => OpsBinary::Mul(*token, get_mode(mode)),
+                OpsBinary::Div(token, mode) => OpsBinary::Div(*token, get_mode(mode)),
+                OpsBinary::Rem(token, mode) => OpsBinary::Rem(*token, get_mode(mode)),
+                OpsBinary::BitOr(token) => OpsBinary::BitOr(*token),
+                OpsBinary::BitAnd(token) => OpsBinary::BitAnd(*token),
+                OpsBinary::BitXor(token) => OpsBinary::BitXor(*token),
+                OpsBinary::Shl(token, mode) => OpsBinary::Shl(*token, get_shift_mode(mode)),
+                OpsBinary::Shr(token, mode) => OpsBinary::Shr(*token, get_shift_mode(mode)),
+            },
+        })
     }
 }
 
 impl OpsNdUnaryFwd {
     fn to_impl(&self) -> OpsNdUnary {
         match self {
-            OpsUnary::Not(token) => OpsUnary::Not(*token),
-            OpsUnary::Neg(token, mode) => OpsUnary::Neg(
+            OpsUnaryExtra::Std(value) => OpsNdUnary::Std(match value {
+                OpsUnary::Not(token) => OpsUnary::Not(*token),
+                OpsUnary::Neg(token, mode) => OpsUnary::Neg(
+                    *token,
+                    match mode {
+                        OpsUnaryMode::Default(mode) => mode.into(),
+                        OpsUnaryMode::Checked(token, kw) => OpsUnaryMode::Checked(*token, *kw),
+                        OpsUnaryMode::Strict(token, kw) => OpsUnaryMode::Strict(*token, *kw),
+                        OpsUnaryMode::Wrapping(token, kw) => OpsUnaryMode::Wrapping(*token, *kw),
+                        OpsUnaryMode::Saturating(token, kw) => OpsUnaryMode::Saturating(*token, *kw),
+                        OpsUnaryMode::Overflowing(token, kw) => OpsUnaryMode::Overflowing(*token, *kw),
+                    },
+                ),
+            }),
+            OpsUnaryExtra::Abs(token, mode) => OpsNdUnary::Abs(
                 *token,
                 match mode {
                     OpsUnaryMode::Default(mode) => mode.into(),
