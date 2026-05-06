@@ -22,6 +22,8 @@ mod kw {
     syn::custom_keyword!(ndbin);
     syn::custom_keyword!(ndun);
 
+    syn::custom_keyword!(abs);
+
     syn::custom_keyword!(checked);
     syn::custom_keyword!(strict);
     syn::custom_keyword!(wrapping);
@@ -448,6 +450,10 @@ enum OpsAssign<Ext: Parse, ShiftExt: Parse> {
     Shr(Token![>>=], ShiftExt),
 }
 
+enum OpsAssignExtra<Ext: Parse, ShiftExt: Parse> {
+    Std(OpsAssign<Ext, ShiftExt>),
+}
+
 enum OpsAssignMode<Ext: Parse> {
     Default(Ext),
     Strict(Token![@], kw::strict),
@@ -489,6 +495,10 @@ enum OpsBinary<Ext: Parse, ShiftExt: Parse> {
     Shr(Token![>>], ShiftExt),
 }
 
+enum OpsBinaryExtra<Ext: Parse, ShiftExt: Parse> {
+    Std(OpsBinary<Ext, ShiftExt>),
+}
+
 enum OpsBinaryMode<Ext: Parse> {
     Default(Ext),
     Checked(Token![@], kw::checked),
@@ -524,6 +534,11 @@ enum OpsBinaryShiftModeWith {
 enum OpsUnary<Ext: Parse> {
     Not(Token![!]),
     Neg(Token![-], Ext),
+}
+
+enum OpsUnaryExtra<Ext: Parse> {
+    Std(OpsUnary<Ext>),
+    Abs(kw::abs),
 }
 
 enum OpsUnaryMode<Ext: Parse> {
