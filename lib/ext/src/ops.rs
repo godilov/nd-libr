@@ -21,52 +21,13 @@ macro_rules! nd_ops_impl {
             - @wrapping value.wrapping_neg(),
             - @saturating value.saturating_neg(),
             - @overflowing value.overflowing_neg(),
+            abs value.abs(),
+            abs @checked value.checked_abs(),
+            abs @strict value.strict_abs(),
+            abs @wrapping value.wrapping_abs(),
+            abs @saturating value.saturating_abs(),
+            abs @overflowing value.overflowing_abs(),
         ] }
-
-        impl NdAbs<Self> for $primitive {
-            type Type = Self;
-
-            #[inline]
-            fn nd_abs(value: &Self) -> Self::Type {
-                value.abs()
-            }
-        }
-
-        impl NdAbsChecked<Self> for $primitive {
-            type Type = Self;
-
-            #[inline]
-            fn nd_abs_checked(value: &Self) -> Option<Self::Type> {
-                value.checked_abs()
-            }
-        }
-
-        impl NdAbsStrict<Self> for $primitive {
-            type Type = Self;
-
-            #[inline]
-            fn nd_abs_strict(value: &Self) -> Self::Type {
-                value.strict_abs()
-            }
-        }
-
-        impl NdAbsWrapping<Self> for $primitive {
-            type Type = Self;
-
-            #[inline]
-            fn nd_abs_wrapping(value: &Self) -> Self::Type {
-                value.wrapping_abs()
-            }
-        }
-
-        impl NdAbsOverflowing<Self> for $primitive {
-            type Type = Self;
-
-            #[inline]
-            fn nd_abs_overflowing(value: &Self) -> (Self::Type, bool) {
-                value.overflowing_abs()
-            }
-        }
 
         nd_ops_impl!(@impl $primitive);
     };
