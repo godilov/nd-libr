@@ -646,6 +646,62 @@ pub type MaskCt = u8;
 #[cfg(feature = "const-time")]
 pub type RelCt = i8;
 
+/// Creates random number.
+///
+/// Convenience wrapper over [`NdRand`].
+#[inline]
+pub fn rand<N: NdRand, Rng: rand::Rng>(order: usize, rng: &mut Rng) -> N {
+    N::nd_rand(order, rng)
+}
+
+/// Calculates Greatest Common Divisor of two numbers with default semantics.
+///
+/// Convenience wrapper over [`NdGcd`].
+#[inline]
+pub fn gcd<N: NdGcd>(lhs: N, rhs: N) -> N {
+    N::nd_gcd(lhs, rhs)
+}
+
+/// Calculates Greatest Common Divisor Extended of two numbers with default semantics.
+///
+/// Convenience wrapper over [`NdGcd`].
+#[inline]
+pub fn gcde<N: NdGcd>(lhs: N, rhs: N) -> (N, N, N) {
+    N::nd_gcde(lhs, rhs)
+}
+
+/// Calculates Least Common Multiple of two numbers with default semantics.
+///
+/// Convenience wrapper over [`NdGcd`].
+#[inline]
+pub fn lcm<N: NdGcd>(lhs: N, rhs: N) -> N {
+    N::nd_lcm(lhs, rhs)
+}
+
+/// Calculates Greatest Common Divisor of two numbers with checked semantics.
+///
+/// Convenience wrapper over [`NdGcdChecked`].
+#[inline]
+pub fn gcd_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<N> {
+    N::nd_gcd_checked(lhs, rhs)
+}
+
+/// Calculates Greatest Common Divisor Extended of two numbers with checked semantics.
+///
+/// Convenience wrapper over [`NdGcdChecked`].
+#[inline]
+pub fn gcde_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<(N, N, N)> {
+    N::nd_gcde_checked(lhs, rhs)
+}
+
+/// Calculates Least Common Multiple of two numbers with checked semantics.
+///
+/// Convenience wrapper over [`NdGcdChecked`].
+#[inline]
+pub fn lcm_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<N> {
+    N::nd_lcm_checked(lhs, rhs)
+}
+
 /// Numbers functions.
 ///
 /// For more info, see [crate-level](crate) documentation.
