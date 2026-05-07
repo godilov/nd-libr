@@ -690,9 +690,9 @@ pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
-#[ndfwd::def(self.0 with N: NdPow!)]
-#[ndfwd::def(self.0 with N: NdGcd!)]
-#[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: NdPow)]
+#[ndfwd::def(self.0 with N: NdGcd)]
+#[ndfwd::def(self.0 with N: NdGcdChecked)]
 #[ndfwd::def(self.0 with N: OneCt)]
 #[ndfwd::def(self.0 with N: ZeroCt)]
 #[ndfwd::def(self.0 with N: PosCt)]
@@ -702,6 +702,7 @@ pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 #[ndfwd::def(self.0 with N: GtCt)]
 #[ndfwd::def(self.0 with N: AbsCt)]
 #[ndfwd::def(self.0 with N: SelectCt)]
+#[ndfwd::def(self.0 with N: PowCt)]
 #[derive(Debug, Default, Clone, Copy)]
 #[cfg(feature = "const-time")]
 pub struct AutoCt<N>(pub N);
@@ -2712,8 +2713,8 @@ mod tests {
     #[test]
     fn modular() {}
 
-    #[cfg(feature = "const-time")]
     #[test]
+    #[cfg(feature = "const-time")]
     fn cmp_ct() {
         #![allow(clippy::absurd_extreme_comparisons)]
         #![allow(unused_comparisons)]
@@ -2758,8 +2759,8 @@ mod tests {
         ] }
     }
 
-    #[cfg(feature = "const-time")]
     #[test]
+    #[cfg(feature = "const-time")]
     fn pow_ct() {
         const EXP: u64 = ndassert::prime!(8);
         const MOD: u64 = ndassert::prime!(32);
