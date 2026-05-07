@@ -2104,6 +2104,8 @@ impl<N: GtCt + SelectCt> MaxCt for AutoCt<N> {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Neg;
+
     use super::*;
 
     #[test]
@@ -2247,6 +2249,19 @@ mod tests {
 
     #[test]
     fn strict() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([i64::MIN, 0, i64::MAX])) [
+            (!Strict(val), Strict(!val)),
+
+            (Strict::nd_neg_checked(&Strict(val)), val.checked_neg().map(Strict)),
+            (Strict::nd_abs_checked(&Strict(val)), val.checked_abs().map(Strict)),
+
+            (Strict::nd_neg_overflowing(&Strict(val)), { let (val, flag) = val.overflowing_neg(); (Strict(val), flag) }),
+            (Strict::nd_abs_overflowing(&Strict(val)), { let (val, flag) = val.overflowing_abs(); (Strict(val), flag) }),
+
+            ndassert::catch!(Strict::nd_neg(&Strict(val)), Strict(val.strict_neg())),
+            ndassert::catch!(Strict::nd_abs(&Strict(val)), Strict(val.strict_abs())),
+        ] }
+
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
@@ -2299,6 +2314,19 @@ mod tests {
 
     #[test]
     fn wrapping() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([i64::MIN, 0, i64::MAX])) [
+            (!Wrapping(val), Wrapping(!val)),
+
+            (Wrapping::nd_neg_checked(&Wrapping(val)), val.checked_neg().map(Wrapping)),
+            (Wrapping::nd_abs_checked(&Wrapping(val)), val.checked_abs().map(Wrapping)),
+
+            (Wrapping::nd_neg_overflowing(&Wrapping(val)), { let (val, flag) = val.overflowing_neg(); (Wrapping(val), flag) }),
+            (Wrapping::nd_abs_overflowing(&Wrapping(val)), { let (val, flag) = val.overflowing_abs(); (Wrapping(val), flag) }),
+
+            (Wrapping::nd_neg(&Wrapping(val)), Wrapping(val.wrapping_neg())),
+            (Wrapping::nd_abs(&Wrapping(val)), Wrapping(val.wrapping_abs())),
+        ] }
+
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
@@ -2349,6 +2377,19 @@ mod tests {
 
     #[test]
     fn saturating() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([i64::MIN, 0, i64::MAX])) [
+            (!Saturating(val), Saturating(!val)),
+
+            (Saturating::nd_neg_checked(&Saturating(val)), val.checked_neg().map(Saturating)),
+            (Saturating::nd_abs_checked(&Saturating(val)), val.checked_abs().map(Saturating)),
+
+            (Saturating::nd_neg_overflowing(&Saturating(val)), { let (val, flag) = val.overflowing_neg(); (Saturating(val), flag) }),
+            (Saturating::nd_abs_overflowing(&Saturating(val)), { let (val, flag) = val.overflowing_abs(); (Saturating(val), flag) }),
+
+            (Saturating::nd_neg(&Saturating(val)), Saturating(val.saturating_neg())),
+            (Saturating::nd_abs(&Saturating(val)), Saturating(val.saturating_abs())),
+        ] }
+
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
@@ -2399,6 +2440,19 @@ mod tests {
 
     #[test]
     fn unbounded() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([i64::MIN, 0, i64::MAX])) [
+            (!Unbounded(val), Unbounded(!val)),
+
+            (Unbounded::nd_neg_checked(&Unbounded(val)), val.checked_neg().map(Unbounded)),
+            (Unbounded::nd_abs_checked(&Unbounded(val)), val.checked_abs().map(Unbounded)),
+
+            (Unbounded::nd_neg_overflowing(&Unbounded(val)), { let (val, flag) = val.overflowing_neg(); (Unbounded(val), flag) }),
+            (Unbounded::nd_abs_overflowing(&Unbounded(val)), { let (val, flag) = val.overflowing_abs(); (Unbounded(val), flag) }),
+
+            ndassert::catch!(Unbounded::nd_neg(&Unbounded(val)), Unbounded(val.neg())),
+            ndassert::catch!(Unbounded::nd_abs(&Unbounded(val)), Unbounded(val.abs())),
+        ] }
+
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
