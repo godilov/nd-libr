@@ -304,7 +304,7 @@ macro_rules! num_ct_impl {
             }
         }
 
-        num_ct_impl!(@select $signed);
+        num_ct_impl!(@all $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
         impl OneCt for $unsigned {
@@ -400,9 +400,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        num_ct_impl!(@select $unsigned);
+        num_ct_impl!(@all $unsigned);
     };
-    (@select $primitive:ty $(,)?) => {
+    (@all $primitive:ty $(,)?) => {
         impl SelectCt for $primitive {
             #[inline(never)]
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
@@ -412,6 +412,8 @@ macro_rules! num_ct_impl {
                 lhs & lhs_mask | rhs & rhs_mask
             }
         }
+
+        impl PowCt for $primitive {}
     };
 }
 
@@ -468,6 +470,22 @@ macro_rules! sign_from {
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Strict<N>(pub N);
 
@@ -492,6 +510,22 @@ pub struct Strict<N>(pub N);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Wrapping<N>(pub N);
 
@@ -516,6 +550,22 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Saturating<N>(pub N);
 
@@ -540,6 +590,22 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Unbounded<N>(pub N);
 
@@ -574,6 +640,22 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: OneCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: ZeroCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: EqCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GtCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: LeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: GeCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SignCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(N);
 
@@ -857,9 +939,9 @@ pub trait NdPow: NumFn {
                 Self::nd_mul_assign(&mut res, &acc);
             }
 
-            let val = acc.clone();
+            let tmp = acc.clone();
 
-            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_mul_assign(&mut acc, &tmp);
             Self::nd_shr_assign(&mut exp, 1);
         }
 
@@ -886,9 +968,9 @@ pub trait NdPow: NumFn {
                 Self::nd_rem_assign(&mut res, rem);
             }
 
-            let val = acc.clone();
+            let tmp = acc.clone();
 
-            Self::nd_mul_assign(&mut acc, &val);
+            Self::nd_mul_assign(&mut acc, &tmp);
             Self::nd_rem_assign(&mut acc, rem);
             Self::nd_shr_assign(&mut exp, 1);
         }
@@ -1330,6 +1412,73 @@ pub trait SelectCt: Copy {
     /// `mask` is repeated to match `size_of::<Self>()`.
     #[ndfwd::as_into]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self;
+}
+
+/// Const-time power functions.
+#[cfg(feature = "const-time")]
+#[ndfwd::decl]
+pub trait PowCt: Num {
+    /// Calculates `self ^ exp` in const-time.
+    ///
+    /// For true const-time, use with [`Wrapping`].
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[inline]
+    #[ndfwd::as_into]
+    fn pow_ct(self, mut exp: Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one;
+
+        while exp != zero {
+            let val = Self::nd_mul(&res, &acc);
+
+            res = [res, val][exp.is_odd() as usize];
+
+            let tmp = acc;
+
+            Self::nd_mul_assign(&mut acc, &tmp);
+            Self::nd_shr_assign(&mut exp, 1);
+        }
+
+        res
+    }
+
+    /// Calculates `self ^ exp % rem` in const-time.
+    ///
+    /// For true const-time, use with [`Wrapping`].
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
+    #[inline]
+    #[ndfwd::as_into]
+    fn powrem_ct(self, mut exp: Self, rem: &Self) -> Self {
+        let zero = Self::zero();
+        let one = Self::one();
+
+        let mut acc = self;
+        let mut res = one;
+
+        while exp != zero {
+            let val = Self::nd_mul(&res, &acc);
+            let val = Self::nd_rem(&val, rem);
+
+            res = [res, val][exp.is_odd() as usize];
+
+            let tmp = acc;
+
+            Self::nd_mul_assign(&mut acc, &tmp);
+            Self::nd_rem_assign(&mut acc, rem);
+            Self::nd_shr_assign(&mut exp, 1);
+        }
+
+        res
+    }
 }
 
 num_impl!(@signed [i8 > u8, i16 > u16, i32 > u32, i64 > u64, i128 > u128, isize > usize]);
@@ -2274,6 +2423,7 @@ mod tests {
     #[test]
     fn pow() {
         const EXP: u64 = ndassert::prime!(8);
+        const MOD: u64 = ndassert::prime!(32);
 
         for value in ndassert::range!(u32, 24).map(|x| x as u64) {
             let mut acc = Wrapping(1u64);
@@ -2284,12 +2434,6 @@ mod tests {
                 acc *= Wrapping(value);
             }
         }
-    }
-
-    #[test]
-    fn powrem() {
-        const EXP: u64 = ndassert::prime!(8);
-        const MOD: u64 = ndassert::prime!(32);
 
         for value in ndassert::range!(u32, 24).map(|x| x as u64) {
             let mut acc = Wrapping(1u64);
@@ -2612,5 +2756,33 @@ mod tests {
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
         ] }
+    }
+
+    #[cfg(feature = "const-time")]
+    #[test]
+    fn pow_ct() {
+        const EXP: u64 = ndassert::prime!(8);
+        const MOD: u64 = ndassert::prime!(32);
+
+        for value in ndassert::range!(u32, 24).map(|x| x as u64) {
+            let mut acc = Wrapping(1u64);
+
+            for exp in 0..EXP {
+                assert_eq!(acc, Wrapping(value).pow_ct(Wrapping(exp)));
+
+                acc *= Wrapping(value);
+            }
+        }
+
+        for value in ndassert::range!(u32, 24).map(|x| x as u64) {
+            let mut acc = Wrapping(1u64);
+
+            for exp in 0..EXP {
+                assert_eq!(acc, Wrapping(value).powrem_ct(Wrapping(exp), &Wrapping(MOD)));
+
+                acc *= Wrapping(value);
+                acc %= Wrapping(MOD);
+            }
+        }
     }
 }

@@ -161,10 +161,10 @@ pub trait Primality: NumUnsigned + NdRand + NdPow {
             while pow < x && one < exp && exp < x {
                 any |= true;
 
-                let val = exp.clone();
+                let tmp = exp.clone();
 
                 Self::nd_shl_assign(&mut pow, 1);
-                Self::nd_mul_assign(&mut exp, &val);
+                Self::nd_mul_assign(&mut exp, &tmp);
                 Self::nd_rem_assign(&mut exp, self);
             }
 

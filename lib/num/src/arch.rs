@@ -534,6 +534,7 @@ pub mod word {
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[cfg_attr(target_arch = "x86",     repr(align(64)))]
 #[cfg_attr(target_arch = "x86_64",  repr(align(64)))]
 #[cfg_attr(target_arch = "arm",     repr(align(64)))]
@@ -583,6 +584,7 @@ pub struct Aligned<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[repr(align(32))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned32<T>(pub T);
@@ -625,6 +627,7 @@ pub struct Aligned32<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[repr(align(64))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned64<T>(pub T);
@@ -667,6 +670,7 @@ pub struct Aligned64<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[repr(align(128))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned128<T>(pub T);
