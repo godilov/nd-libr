@@ -1424,6 +1424,9 @@ ndops::fwd! { @ndun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
     - with @strict where        [N: NdNegStrict             <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
+    abs with @strict where      [N: NdAbsStrict             <N, Type = N>],
+    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
+    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
@@ -1431,6 +1434,9 @@ ndops::fwd! { @ndun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
     - with @wrapping where      [N: NdNegWrapping           <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
+    abs with @wrapping where    [N: NdAbsWrapping           <N, Type = N>],
+    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
+    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
@@ -1438,6 +1444,9 @@ ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0)
     - with @saturating where    [N: NdNegSaturating         <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
+    abs with @saturating where  [N: NdAbsSaturating         <N, Type = N>],
+    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
+    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
@@ -1448,6 +1457,12 @@ ndops::fwd! { @ndun <N> (value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
     - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
     - @saturating where         [N: NdNegSaturating         <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
+    abs where                   [N: NdAbs                   <N, Type = N>],
+    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
+    abs @strict where           [N: NdAbsStrict             <N, Type = N>],
+    abs @wrapping where         [N: NdAbsWrapping           <N, Type = N>],
+    abs @saturating where       [N: NdAbsSaturating         <N, Type = N>],
+    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
 ] }
 
 #[cfg(feature = "const-time")]
@@ -1459,6 +1474,12 @@ ndops::fwd! { @ndun <N> (value: &AutoCt<N>) -> AutoCt<N>, (N) (&value.0) [
     - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
     - @saturating where         [N: NdNegSaturating         <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
+    abs where                   [N: NdAbs                   <N, Type = N>],
+    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
+    abs @strict where           [N: NdAbsStrict             <N, Type = N>],
+    abs @wrapping where         [N: NdAbsWrapping           <N, Type = N>],
+    abs @saturating where       [N: NdAbsSaturating         <N, Type = N>],
+    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Strict<Lhs>, rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [
