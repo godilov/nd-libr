@@ -2244,31 +2244,31 @@ impl From<&OpsUnaryModeWith> for OpsUnaryMode<OpsNoop> {
 impl OpsStdAssign {
     fn ident(&self) -> Ident {
         match self {
-            OpsAssign::Add(_, _) => parse_quote! { add_assign },
-            OpsAssign::Sub(_, _) => parse_quote! { sub_assign },
-            OpsAssign::Mul(_, _) => parse_quote! { mul_assign },
-            OpsAssign::Div(_, _) => parse_quote! { div_assign },
-            OpsAssign::Rem(_, _) => parse_quote! { rem_assign },
-            OpsAssign::BitOr(_) => parse_quote! { bitor_assign },
-            OpsAssign::BitAnd(_) => parse_quote! { bitand_assign },
-            OpsAssign::BitXor(_) => parse_quote! { bitxor_assign },
-            OpsAssign::Shl(_, _) => parse_quote! { shl_assign },
-            OpsAssign::Shr(_, _) => parse_quote! { shr_assign },
+            Self::Add(_, _) => parse_quote! { add_assign },
+            Self::Sub(_, _) => parse_quote! { sub_assign },
+            Self::Mul(_, _) => parse_quote! { mul_assign },
+            Self::Div(_, _) => parse_quote! { div_assign },
+            Self::Rem(_, _) => parse_quote! { rem_assign },
+            Self::BitOr(_) => parse_quote! { bitor_assign },
+            Self::BitAnd(_) => parse_quote! { bitand_assign },
+            Self::BitXor(_) => parse_quote! { bitxor_assign },
+            Self::Shl(_, _) => parse_quote! { shl_assign },
+            Self::Shr(_, _) => parse_quote! { shr_assign },
         }
     }
 
     fn path(&self) -> Path {
         match self {
-            OpsAssign::Add(_, _) => parse_quote! { std::ops::AddAssign },
-            OpsAssign::Sub(_, _) => parse_quote! { std::ops::SubAssign },
-            OpsAssign::Mul(_, _) => parse_quote! { std::ops::MulAssign },
-            OpsAssign::Div(_, _) => parse_quote! { std::ops::DivAssign },
-            OpsAssign::Rem(_, _) => parse_quote! { std::ops::RemAssign },
-            OpsAssign::BitOr(_) => parse_quote! { std::ops::BitOrAssign },
-            OpsAssign::BitAnd(_) => parse_quote! { std::ops::BitAndAssign },
-            OpsAssign::BitXor(_) => parse_quote! { std::ops::BitXorAssign },
-            OpsAssign::Shl(_, _) => parse_quote! { std::ops::ShlAssign },
-            OpsAssign::Shr(_, _) => parse_quote! { std::ops::ShrAssign },
+            Self::Add(_, _) => parse_quote! { std::ops::AddAssign },
+            Self::Sub(_, _) => parse_quote! { std::ops::SubAssign },
+            Self::Mul(_, _) => parse_quote! { std::ops::MulAssign },
+            Self::Div(_, _) => parse_quote! { std::ops::DivAssign },
+            Self::Rem(_, _) => parse_quote! { std::ops::RemAssign },
+            Self::BitOr(_) => parse_quote! { std::ops::BitOrAssign },
+            Self::BitAnd(_) => parse_quote! { std::ops::BitAndAssign },
+            Self::BitXor(_) => parse_quote! { std::ops::BitXorAssign },
+            Self::Shl(_, _) => parse_quote! { std::ops::ShlAssign },
+            Self::Shr(_, _) => parse_quote! { std::ops::ShrAssign },
         }
     }
 }
@@ -2276,31 +2276,31 @@ impl OpsStdAssign {
 impl OpsStdBinary {
     fn ident(&self) -> Ident {
         match self {
-            OpsBinary::Add(_, _) => parse_quote! { add },
-            OpsBinary::Sub(_, _) => parse_quote! { sub },
-            OpsBinary::Mul(_, _) => parse_quote! { mul },
-            OpsBinary::Div(_, _) => parse_quote! { div },
-            OpsBinary::Rem(_, _) => parse_quote! { rem },
-            OpsBinary::BitOr(_) => parse_quote! { bitor },
-            OpsBinary::BitAnd(_) => parse_quote! { bitand },
-            OpsBinary::BitXor(_) => parse_quote! { bitxor },
-            OpsBinary::Shl(_, _) => parse_quote! { shl },
-            OpsBinary::Shr(_, _) => parse_quote! { shr },
+            Self::Add(_, _) => parse_quote! { add },
+            Self::Sub(_, _) => parse_quote! { sub },
+            Self::Mul(_, _) => parse_quote! { mul },
+            Self::Div(_, _) => parse_quote! { div },
+            Self::Rem(_, _) => parse_quote! { rem },
+            Self::BitOr(_) => parse_quote! { bitor },
+            Self::BitAnd(_) => parse_quote! { bitand },
+            Self::BitXor(_) => parse_quote! { bitxor },
+            Self::Shl(_, _) => parse_quote! { shl },
+            Self::Shr(_, _) => parse_quote! { shr },
         }
     }
 
     fn path(&self) -> Path {
         match self {
-            OpsBinary::Add(_, _) => parse_quote! { std::ops::Add },
-            OpsBinary::Sub(_, _) => parse_quote! { std::ops::Sub },
-            OpsBinary::Mul(_, _) => parse_quote! { std::ops::Mul },
-            OpsBinary::Div(_, _) => parse_quote! { std::ops::Div },
-            OpsBinary::Rem(_, _) => parse_quote! { std::ops::Rem },
-            OpsBinary::BitOr(_) => parse_quote! { std::ops::BitOr },
-            OpsBinary::BitAnd(_) => parse_quote! { std::ops::BitAnd },
-            OpsBinary::BitXor(_) => parse_quote! { std::ops::BitXor },
-            OpsBinary::Shl(_, _) => parse_quote! { std::ops::Shl },
-            OpsBinary::Shr(_, _) => parse_quote! { std::ops::Shr },
+            Self::Add(_, _) => parse_quote! { std::ops::Add },
+            Self::Sub(_, _) => parse_quote! { std::ops::Sub },
+            Self::Mul(_, _) => parse_quote! { std::ops::Mul },
+            Self::Div(_, _) => parse_quote! { std::ops::Div },
+            Self::Rem(_, _) => parse_quote! { std::ops::Rem },
+            Self::BitOr(_) => parse_quote! { std::ops::BitOr },
+            Self::BitAnd(_) => parse_quote! { std::ops::BitAnd },
+            Self::BitXor(_) => parse_quote! { std::ops::BitXor },
+            Self::Shl(_, _) => parse_quote! { std::ops::Shl },
+            Self::Shr(_, _) => parse_quote! { std::ops::Shr },
         }
     }
 }
@@ -2308,15 +2308,15 @@ impl OpsStdBinary {
 impl OpsStdUnary {
     fn ident(&self) -> Ident {
         match self {
-            OpsUnary::Not(_) => parse_quote! { not },
-            OpsUnary::Neg(_, _) => parse_quote! { neg },
+            Self::Not(_) => parse_quote! { not },
+            Self::Neg(_, _) => parse_quote! { neg },
         }
     }
 
     fn path(&self) -> Path {
         match self {
-            OpsUnary::Not(_) => parse_quote! { std::ops::Not },
-            OpsUnary::Neg(_, _) => parse_quote! { std::ops::Neg },
+            Self::Not(_) => parse_quote! { std::ops::Not },
+            Self::Neg(_, _) => parse_quote! { std::ops::Neg },
         }
     }
 }
@@ -2324,7 +2324,7 @@ impl OpsStdUnary {
 impl OpsNdAssign {
     fn ident(&self) -> Ident {
         match self {
-            OpsAssignExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsAssign::Add(_, mode) => match mode {
                     OpsAssignMode::Default(_) => parse_quote! { nd_add_assign },
                     OpsAssignMode::Strict(_, _) => parse_quote! { nd_add_assign_strict },
@@ -2376,7 +2376,7 @@ impl OpsNdAssign {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
-            OpsAssignExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsAssign::Add(_, mode) => match mode {
                     OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdAddAssign },
                     OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAddAssignStrict },
@@ -2428,7 +2428,7 @@ impl OpsNdAssign {
 impl OpsNdBinary {
     fn ident(&self) -> Ident {
         match self {
-            OpsBinaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsBinary::Add(_, mode) => match mode {
                     OpsBinaryMode::Default(_) => parse_quote! { nd_add },
                     OpsBinaryMode::Checked(_, _) => parse_quote! { nd_add_checked },
@@ -2494,7 +2494,7 @@ impl OpsNdBinary {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
-            OpsBinaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsBinary::Add(_, mode) => match mode {
                     OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdAdd },
                     OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdAddChecked },
@@ -2558,7 +2558,7 @@ impl OpsNdBinary {
 
     fn ty(&self, ty: &Type) -> Type {
         match self {
-            OpsBinaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsBinary::Add(_, OpsBinaryMode::Checked(_, _))
                 | OpsBinary::Sub(_, OpsBinaryMode::Checked(_, _))
                 | OpsBinary::Mul(_, OpsBinaryMode::Checked(_, _))
@@ -2580,7 +2580,7 @@ impl OpsNdBinary {
 
     fn expr(&self, expr: Expr) -> Expr {
         match self {
-            OpsBinaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsBinary::Add(_, OpsBinaryMode::Checked(_, _))
                 | OpsBinary::Sub(_, OpsBinaryMode::Checked(_, _))
                 | OpsBinary::Mul(_, OpsBinaryMode::Checked(_, _))
@@ -2606,7 +2606,7 @@ impl OpsNdBinary {
 impl OpsNdUnary {
     fn ident(&self) -> Ident {
         match self {
-            OpsUnaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsUnary::Not(_) => parse_quote! { nd_not },
                 OpsUnary::Neg(_, mode) => match mode {
                     OpsUnaryMode::Default(_) => parse_quote! { nd_neg },
@@ -2617,7 +2617,7 @@ impl OpsNdUnary {
                     OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_neg_overflowing },
                 },
             },
-            OpsUnaryExtra::Abs(_, mode) => match mode {
+            Self::Abs(_, mode) => match mode {
                 OpsUnaryMode::Default(_) => parse_quote! { nd_abs },
                 OpsUnaryMode::Checked(_, _) => parse_quote! { nd_abs_checked },
                 OpsUnaryMode::Strict(_, _) => parse_quote! { nd_abs_strict },
@@ -2632,7 +2632,7 @@ impl OpsNdUnary {
         let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
 
         match self {
-            OpsUnaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsUnary::Not(_) => parse_quote! { #prefix::ops::NdNot },
                 OpsUnary::Neg(_, mode) => match mode {
                     OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdNeg },
@@ -2643,7 +2643,7 @@ impl OpsNdUnary {
                     OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
                 },
             },
-            OpsUnaryExtra::Abs(_, mode) => match mode {
+            Self::Abs(_, mode) => match mode {
                 OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdAbs },
                 OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdAbsChecked },
                 OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAbsStrict },
@@ -2656,28 +2656,28 @@ impl OpsNdUnary {
 
     fn ty(&self, ty: &Type) -> Type {
         match self {
-            OpsUnaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
                 OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
                 _ => ty.clone(),
             },
-            OpsUnaryExtra::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
-            OpsUnaryExtra::Abs(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
+            Self::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
+            Self::Abs(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
             _ => ty.clone(),
         }
     }
 
     fn expr(&self, expr: Expr) -> Expr {
         match self {
-            OpsUnaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
                 OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => {
                     parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
                 },
                 _ => expr,
             },
-            OpsUnaryExtra::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
-            OpsUnaryExtra::Abs(_, OpsUnaryMode::Overflowing(_, _)) => {
+            Self::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+            Self::Abs(_, OpsUnaryMode::Overflowing(_, _)) => {
                 parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
             },
             _ => expr,
@@ -2688,16 +2688,16 @@ impl OpsNdUnary {
 impl OpsStdAssignFwd {
     fn to_impl(&self) -> OpsNdAssign {
         OpsNdAssign::Std(match self {
-            OpsAssign::Add(token, mode) => OpsAssign::Add(*token, mode.into()),
-            OpsAssign::Sub(token, mode) => OpsAssign::Sub(*token, mode.into()),
-            OpsAssign::Mul(token, mode) => OpsAssign::Mul(*token, mode.into()),
-            OpsAssign::Div(token, mode) => OpsAssign::Div(*token, mode.into()),
-            OpsAssign::Rem(token, mode) => OpsAssign::Rem(*token, mode.into()),
-            OpsAssign::BitOr(token) => OpsAssign::BitOr(*token),
-            OpsAssign::BitAnd(token) => OpsAssign::BitAnd(*token),
-            OpsAssign::BitXor(token) => OpsAssign::BitXor(*token),
-            OpsAssign::Shl(token, mode) => OpsAssign::Shl(*token, mode.into()),
-            OpsAssign::Shr(token, mode) => OpsAssign::Shr(*token, mode.into()),
+            Self::Add(token, mode) => OpsAssign::Add(*token, mode.into()),
+            Self::Sub(token, mode) => OpsAssign::Sub(*token, mode.into()),
+            Self::Mul(token, mode) => OpsAssign::Mul(*token, mode.into()),
+            Self::Div(token, mode) => OpsAssign::Div(*token, mode.into()),
+            Self::Rem(token, mode) => OpsAssign::Rem(*token, mode.into()),
+            Self::BitOr(token) => OpsAssign::BitOr(*token),
+            Self::BitAnd(token) => OpsAssign::BitAnd(*token),
+            Self::BitXor(token) => OpsAssign::BitXor(*token),
+            Self::Shl(token, mode) => OpsAssign::Shl(*token, mode.into()),
+            Self::Shr(token, mode) => OpsAssign::Shr(*token, mode.into()),
         })
     }
 }
@@ -2705,16 +2705,16 @@ impl OpsStdAssignFwd {
 impl OpsStdBinaryFwd {
     fn to_impl(&self) -> OpsNdBinary {
         OpsNdBinary::Std(match self {
-            OpsBinary::Add(token, mode) => OpsBinary::Add(*token, mode.into()),
-            OpsBinary::Sub(token, mode) => OpsBinary::Sub(*token, mode.into()),
-            OpsBinary::Mul(token, mode) => OpsBinary::Mul(*token, mode.into()),
-            OpsBinary::Div(token, mode) => OpsBinary::Div(*token, mode.into()),
-            OpsBinary::Rem(token, mode) => OpsBinary::Rem(*token, mode.into()),
-            OpsBinary::BitOr(token) => OpsBinary::BitOr(*token),
-            OpsBinary::BitAnd(token) => OpsBinary::BitAnd(*token),
-            OpsBinary::BitXor(token) => OpsBinary::BitXor(*token),
-            OpsBinary::Shl(token, mode) => OpsBinary::Shl(*token, mode.into()),
-            OpsBinary::Shr(token, mode) => OpsBinary::Shr(*token, mode.into()),
+            Self::Add(token, mode) => OpsBinary::Add(*token, mode.into()),
+            Self::Sub(token, mode) => OpsBinary::Sub(*token, mode.into()),
+            Self::Mul(token, mode) => OpsBinary::Mul(*token, mode.into()),
+            Self::Div(token, mode) => OpsBinary::Div(*token, mode.into()),
+            Self::Rem(token, mode) => OpsBinary::Rem(*token, mode.into()),
+            Self::BitOr(token) => OpsBinary::BitOr(*token),
+            Self::BitAnd(token) => OpsBinary::BitAnd(*token),
+            Self::BitXor(token) => OpsBinary::BitXor(*token),
+            Self::Shl(token, mode) => OpsBinary::Shl(*token, mode.into()),
+            Self::Shr(token, mode) => OpsBinary::Shr(*token, mode.into()),
         })
     }
 }
@@ -2722,8 +2722,8 @@ impl OpsStdBinaryFwd {
 impl OpsStdUnaryFwd {
     fn to_impl(&self) -> OpsNdUnary {
         OpsNdUnary::Std(match self {
-            OpsUnary::Not(token) => OpsUnary::Not(*token),
-            OpsUnary::Neg(token, mode) => OpsUnary::Neg(*token, mode.into()),
+            Self::Not(token) => OpsUnary::Not(*token),
+            Self::Neg(token, mode) => OpsUnary::Neg(*token, mode.into()),
         })
     }
 }
@@ -2748,7 +2748,7 @@ impl OpsNdAssignFwd {
         }
 
         OpsNdAssign::Std(match self {
-            OpsAssignExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsAssign::Add(token, mode) => OpsAssign::Add(*token, get_mode(mode)),
                 OpsAssign::Sub(token, mode) => OpsAssign::Sub(*token, get_mode(mode)),
                 OpsAssign::Mul(token, mode) => OpsAssign::Mul(*token, get_mode(mode)),
@@ -2788,7 +2788,7 @@ impl OpsNdBinaryFwd {
         }
 
         OpsNdBinary::Std(match self {
-            OpsBinaryExtra::Std(value) => match value {
+            Self::Std(value) => match value {
                 OpsBinary::Add(token, mode) => OpsBinary::Add(*token, get_mode(mode)),
                 OpsBinary::Sub(token, mode) => OpsBinary::Sub(*token, get_mode(mode)),
                 OpsBinary::Mul(token, mode) => OpsBinary::Mul(*token, get_mode(mode)),
@@ -2807,7 +2807,7 @@ impl OpsNdBinaryFwd {
 impl OpsNdUnaryFwd {
     fn to_impl(&self) -> OpsNdUnary {
         match self {
-            OpsUnaryExtra::Std(value) => OpsNdUnary::Std(match value {
+            Self::Std(value) => OpsNdUnary::Std(match value {
                 OpsUnary::Not(token) => OpsUnary::Not(*token),
                 OpsUnary::Neg(token, mode) => OpsUnary::Neg(
                     *token,
@@ -2821,7 +2821,7 @@ impl OpsNdUnaryFwd {
                     },
                 ),
             }),
-            OpsUnaryExtra::Abs(token, mode) => OpsNdUnary::Abs(
+            Self::Abs(token, mode) => OpsNdUnary::Abs(
                 *token,
                 match mode {
                     OpsUnaryMode::Default(mode) => mode.into(),
