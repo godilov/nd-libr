@@ -1270,7 +1270,18 @@ impl<Ext: Parse, ShiftExt: Parse> Parse for OpsBinary<Ext, ShiftExt> {
 
 impl<Ext: Parse, ShiftExt: Parse> Parse for OpsBinaryExtra<Ext, ShiftExt> {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self::Std(input.parse()?))
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::addx) {
+            Ok(Self::Addx(input.parse()?))
+        } else if lookahead.peek(kw::mulx) {
+            Ok(Self::Mulx(input.parse()?))
+        } else {
+            input.parse().map(Self::Std).map_err(|mut err| {
+                err.extend(lookahead.error());
+                err
+            })
+        }
     }
 }
 

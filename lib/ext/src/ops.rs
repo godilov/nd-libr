@@ -125,6 +125,18 @@ macro_rules! nd_ops_impl {
     };
 }
 
+macro_rules! nd_opsx_impl {
+    ([$($single:ty > $double:ty),+ $(,)?]) => {
+        $(nd_opsx_impl!($single > $double);)+
+    };
+    ($single:ty > $double:ty $(,)?) => {
+        ndops::def! { @ndbin crate (&lhs: &$single, &rhs: &$single) -> $double, [
+            addx lhs as $double + rhs as $double,
+            mulx lhs as $double * rhs as $double,
+        ] }
+    };
+}
+
 /// `Nd-kind` extension for [`std::ops::Not`].
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
@@ -1482,3 +1494,6 @@ impl<Any, Lhs, Rhs> NdOpsAssignUnbounded<Lhs, Rhs> for Any where
 
 nd_ops_impl!(@signed [i8, i16, i32, i64, i128, isize]);
 nd_ops_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
+
+nd_opsx_impl!([i8 > i16, i16 > i32, i32 > i64, i64 > i128]);
+nd_opsx_impl!([u8 > u16, u16 > u32, u32 > u64, u64 > u128]);
