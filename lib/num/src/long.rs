@@ -1384,7 +1384,7 @@ pub mod uops {
 
     /// Returns `|words|`.
     #[inline]
-    pub fn abs<const L: usize>(words: [Single; L]) -> [Single; L] {
+    pub fn abs<const L: usize>(words: &[Single; L]) -> [Single; L] {
         let (xor, acc) = match words[L - 1] >> (BITS - 1) {
             0 => (0, 0),
             _ => (MAX, 1),
@@ -1401,7 +1401,7 @@ pub mod uops {
 
     /// Returns `|words|` with overflow.
     #[inline]
-    pub fn abs_overflow<const L: usize>(words: [Single; L]) -> ([Single; L], Option<Single>) {
+    pub fn abs_overflow<const L: usize>(words: &[Single; L]) -> ([Single; L], Option<Single>) {
         let (xor, acc) = match words[L - 1] >> (BITS - 1) {
             0 => (0, 0),
             _ => (MAX, 1),
@@ -3144,17 +3144,50 @@ impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
 impl<const L: usize> Ord for Signed<L> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        let x = self.sign();
-        let y = other.sign();
+        let lhs_bit = self.0[L - 1] >> (BITS - 1);
+        let rhs_bit = other.0[L - 1] >> (BITS - 1);
 
-        match x.cmp(&y) {
-            Ordering::Less => Ordering::Less,
-            Ordering::Equal => match x {
-                Sign::ZERO => Ordering::Equal,
-                Sign::NEG => self.abs().unsigned().cmp(&other.abs().unsigned()).reverse(),
-                Sign::POS => self.abs().unsigned().cmp(&other.abs().unsigned()),
-            },
-            Ordering::Greater => Ordering::Greater,
+        let (lhs_xor, lhs_acc) = match lhs_bit {
+            1 => (MAX, 1),
+            _ => (0, 0),
+        };
+
+        let (rhs_xor, rhs_acc) = match rhs_bit {
+            1 => (MAX, 1),
+            _ => (0, 0),
+        };
+
+        let (lt, gt) = match (lhs_bit, rhs_bit) {
+            (0, 0) => (-1, 1),
+            (0, 1) => (1, 1),
+            (1, 0) => (-1, -1),
+            _ => (1, -1),
+        };
+
+        let lhs = uops::ExprIter {
+            lhs: self.0.iter().copied().map(|val| val ^ lhs_xor),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc: lhs_acc,
+        };
+
+        let rhs = uops::ExprIter {
+            lhs: other.0.iter().copied().map(|val| val ^ rhs_xor),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc: rhs_acc,
+        };
+
+        let cmp = lhs.zip(rhs).fold(0i8, |acc, (x, y)| match x.cmp(&y) {
+            Ordering::Less => lt,
+            Ordering::Equal => acc,
+            Ordering::Greater => gt,
+        });
+
+        match cmp {
+            -1 => Ordering::Less,
+            1 => Ordering::Greater,
+            _ => Ordering::Equal,
         }
     }
 }
@@ -3183,10 +3216,7 @@ impl<const L: usize> PartialOrd for Unsigned<L> {
 impl<const L: usize> Display for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match self
-            .signed(Sign::POS)
-            .into_digits_iter(RadixImpl { radix: Dec::RADIX as Single })
-        {
+        let iter = match self.abs().into_digits_iter(RadixImpl { radix: Dec::RADIX as Single }) {
             Ok(val) => val,
             Err(_) => unreachable!(),
         };
@@ -3579,21 +3609,13 @@ impl<const L: usize> Signed<L> {
     /// Absolute value.
     #[inline]
     pub fn abs(&self) -> Signed<L> {
-        match self.sign() {
-            Sign::ZERO => Signed::<L>(self.0),
-            Sign::NEG => Signed::<L>(uops::neg(&self.0)),
-            Sign::POS => Signed::<L>(self.0),
-        }
+        Signed::<L>(uops::abs(&self.0))
     }
 
     /// Absolute unsigned value.
     #[inline]
     pub fn abs_unsigned(&self) -> Unsigned<L> {
-        match self.sign() {
-            Sign::ZERO => Unsigned::<L>(self.0),
-            Sign::NEG => Unsigned::<L>(uops::neg(&self.0)),
-            Sign::POS => Unsigned::<L>(self.0),
-        }
+        Unsigned::<L>(uops::abs(&self.0))
     }
 
     /// Creates new signed with specified sign from raw `self.0`.
