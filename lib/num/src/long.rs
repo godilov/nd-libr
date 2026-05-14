@@ -1075,6 +1075,16 @@ pub mod uops {
     }
 
     impl Expr {
+        /// Calculates `pos(long)` with carry propagation.
+        pub fn pos<Words: Iterator<Item = Single>>(words: Words) -> impl ExprIterator {
+            ExprIter {
+                lhs: words,
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 0,
+            }
+        }
+
         /// Calculates `neg(long)` with carry propagation.
         pub fn neg<Words: Iterator<Item = Single>>(words: Words) -> impl ExprIterator {
             ExprIter {
@@ -1370,6 +1380,80 @@ pub mod uops {
     #[inline]
     pub fn neg_overflow_mut<const L: usize>(words: &mut [Single; L]) -> Option<Single> {
         overflow_mut!(Expr::neg_mut(words.iter_mut()))
+    }
+
+    /// Returns `|words|`.
+    #[inline]
+    pub fn abs<const L: usize>(words: [Single; L]) -> [Single; L] {
+        let (xor, acc) = match words[L - 1] >> (BITS - 1) {
+            0 => (0, 0),
+            _ => (MAX, 1),
+        };
+
+        ExprIter {
+            lhs: words.iter().copied().map(|val| val ^ xor),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc,
+        }
+        .collect_arr()
+    }
+
+    /// Returns `|words|` with overflow.
+    #[inline]
+    pub fn abs_overflow<const L: usize>(words: [Single; L]) -> ([Single; L], Option<Single>) {
+        let (xor, acc) = match words[L - 1] >> (BITS - 1) {
+            0 => (0, 0),
+            _ => (MAX, 1),
+        };
+
+        overflow!(ExprIter {
+            lhs: words.iter().copied().map(|val| val ^ xor),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc,
+        })
+    }
+
+    /// Applies `words = |words|`.
+    #[inline]
+    pub fn abs_mut<const L: usize>(words: &mut [Single; L]) -> &mut [Single; L] {
+        let (xor, acc) = match words[L - 1] >> (BITS - 1) {
+            0 => (0, 0),
+            _ => (MAX, 1),
+        };
+
+        ExprIterMut {
+            lhs: words.iter_mut().map(|val| {
+                *val ^= xor;
+                val
+            }),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc,
+        }
+        .for_each(|_| ());
+
+        words
+    }
+
+    /// Applies `words = |words|` with overflow.
+    #[inline]
+    pub fn abs_overflow_mut<const L: usize>(words: &mut [Single; L]) -> Option<Single> {
+        let (xor, acc) = match words[L - 1] >> (BITS - 1) {
+            0 => (0, 0),
+            _ => (MAX, 1),
+        };
+
+        overflow_mut!(ExprIterMut {
+            lhs: words.iter_mut().map(|val| {
+                *val ^= xor;
+                val
+            }),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc,
+        })
     }
 
     /// Returns `words + 1`.
