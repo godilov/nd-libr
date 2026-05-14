@@ -288,6 +288,7 @@ pub trait NdAbsOverflowing<Value = Self> {
 ///
 /// # Related
 ///
+/// - [`NdAddx`] - extended alternative.
 /// - [`NdAddChecked`] - checked alternative.
 /// - [`NdAddStrict`] - strict alternative.
 /// - [`NdAddWrapping`] - wrapping alternative.
@@ -301,6 +302,17 @@ pub trait NdAdd<Lhs = Self, Rhs = Self> {
 
     /// Operation required function.
     fn nd_add(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` add extended.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddx<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_addx(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 /// `Nd-kind` extension for [`std::ops::Sub`].
@@ -326,6 +338,7 @@ pub trait NdSub<Lhs = Self, Rhs = Self> {
 ///
 /// # Related
 ///
+/// - [`NdMulx`] - extended alternative.
 /// - [`NdMulChecked`] - checked alternative.
 /// - [`NdMulStrict`] - strict alternative.
 /// - [`NdMulWrapping`] - wrapping alternative.
@@ -339,6 +352,17 @@ pub trait NdMul<Lhs = Self, Rhs = Self> {
 
     /// Operation required function.
     fn nd_mul(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` mul extended.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulx<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation required function.
+    fn nd_mulx(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
 /// `Nd-kind` extension for [`std::ops::Div`].

@@ -23,6 +23,8 @@ mod kw {
     syn::custom_keyword!(ndun);
 
     syn::custom_keyword!(abs);
+    syn::custom_keyword!(addx);
+    syn::custom_keyword!(mulx);
 
     syn::custom_keyword!(checked);
     syn::custom_keyword!(strict);
@@ -497,6 +499,8 @@ enum OpsBinary<Ext: Parse, ShiftExt: Parse> {
 
 enum OpsBinaryExtra<Ext: Parse, ShiftExt: Parse> {
     Std(OpsBinary<Ext, ShiftExt>),
+    Addx(kw::addx),
+    Mulx(kw::mulx),
 }
 
 enum OpsBinaryMode<Ext: Parse> {
@@ -2113,6 +2117,8 @@ impl From<OpsNdBinaryFwd> for OpsNdBinary {
                 OpsBinary::Shl(token, mode) => OpsBinary::Shl(token, mode.into()),
                 OpsBinary::Shr(token, mode) => OpsBinary::Shr(token, mode.into()),
             }),
+            OpsBinaryExtra::Addx(token) => Self::Addx(token),
+            OpsBinaryExtra::Mulx(token) => Self::Mulx(token),
         }
     }
 }
@@ -2487,6 +2493,8 @@ impl OpsNdBinary {
                     OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { nd_shr_overflowing },
                 },
             },
+            Self::Addx(_) => parse_quote! { nd_addx },
+            Self::Mulx(_) => parse_quote! { nd_mulx },
         }
     }
 
@@ -2553,6 +2561,8 @@ impl OpsNdBinary {
                     OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdShrOverflowing },
                 },
             },
+            Self::Addx(_) => parse_quote! { #prefix::ops::NdAddx },
+            Self::Mulx(_) => parse_quote! { #prefix::ops::NdMulx },
         }
     }
 
@@ -2575,6 +2585,7 @@ impl OpsNdBinary {
                 | OpsBinary::Shr(_, OpsBinaryShiftMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
                 _ => ty.clone(),
             },
+            _ => ty.clone(),
         }
     }
 
@@ -2599,6 +2610,7 @@ impl OpsNdBinary {
                 },
                 _ => expr,
             },
+            _ => expr,
         }
     }
 }
@@ -2787,8 +2799,8 @@ impl OpsNdBinaryFwd {
             }
         }
 
-        OpsNdBinary::Std(match self {
-            Self::Std(value) => match value {
+        match self {
+            Self::Std(value) => OpsNdBinary::Std(match value {
                 OpsBinary::Add(token, mode) => OpsBinary::Add(*token, get_mode(mode)),
                 OpsBinary::Sub(token, mode) => OpsBinary::Sub(*token, get_mode(mode)),
                 OpsBinary::Mul(token, mode) => OpsBinary::Mul(*token, get_mode(mode)),
@@ -2799,8 +2811,10 @@ impl OpsNdBinaryFwd {
                 OpsBinary::BitXor(token) => OpsBinary::BitXor(*token),
                 OpsBinary::Shl(token, mode) => OpsBinary::Shl(*token, get_shift_mode(mode)),
                 OpsBinary::Shr(token, mode) => OpsBinary::Shr(*token, get_shift_mode(mode)),
-            },
-        })
+            }),
+            Self::Addx(token) => OpsNdBinary::Addx(*token),
+            Self::Mulx(token) => OpsNdBinary::Mulx(*token),
+        }
     }
 }
 
