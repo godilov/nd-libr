@@ -28,16 +28,15 @@ It allows avoiding HRTB and expensive clonning/copying in generic context.
 
 **Panic per Mode**:
 
-| Mode                    | Panic                                        |
-| ----------------------- | -------------------------------------------- |
-| `Default` (**debug**)   | **Must**                                     |
-| `Default` (**release**) | **Must not**                                 |
-| `Checked`               | **Must not**, returns `None`                 |
-| `Strict`                | **Must**                                     |
-| `Wrapping`              | **Must not**, returns **wrapped value**      |
-| `Saturating`            | **Must not**, returns **saturated value**    |
-| `Overflowing`           | **Must not**, returns **flag** and **value** |
-| `Unbounded`             | **Must not**, returns **unbounded value**    |
+| Mode          | Panic                                        |
+| ------------- | -------------------------------------------- |
+| `Default`     | **May**                                      |
+| `Checked`     | **Must not**, returns `None`                 |
+| `Strict`      | **Must**                                     |
+| `Wrapping`    | **Must not**, returns **wrapped value**      |
+| `Saturating`  | **Must not**, returns **saturated value**    |
+| `Overflowing` | **Must not**, returns **flag** and **value** |
+| `Unbounded`   | **Must not**, returns **unbounded value**    |
 
 ## Related
 
