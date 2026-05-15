@@ -1520,6 +1520,12 @@ pub mod uops {
         Expr::sub(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
     }
 
+    /// Returns `lhs + rhs` extended.
+    #[inline]
+    pub fn addx<const L: usize, const N: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; N] {
+        Expr::add(lhs.iter().copied(), rhs.iter().copied()).collect_arr()
+    }
+
     /// Returns `lhs + rhs` with overflow.
     #[inline]
     pub fn add_overflow<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
@@ -1542,6 +1548,12 @@ pub mod uops {
     #[inline]
     pub fn sub_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         Expr::sub_single(lhs.iter().copied(), rhs).collect_arr()
+    }
+
+    /// Returns `lhs + rhs` extended.
+    #[inline]
+    pub fn addx_single<const L: usize, const N: usize>(lhs: &[Single; L], rhs: Single) -> [Single; N] {
+        Expr::add_single(lhs.iter().copied(), rhs).collect_arr()
     }
 
     /// Returns `lhs + rhs` with overflow.
@@ -1576,6 +1588,14 @@ pub mod uops {
     #[inline]
     pub fn sub_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         Expr::sub_signed(lhs.iter().copied(), rhs).collect_arr()
+    }
+
+    /// Returns `lhs + rhs` extended.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn addx_signed<const L: usize, const N: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; N] {
+        Expr::add_signed(lhs.iter().copied(), rhs).collect_arr()
     }
 
     /// Returns `lhs + rhs` with overflow.
@@ -2186,9 +2206,19 @@ pub mod algo {
         let mut res = [0; L];
 
         for (idx, val) in rhs.iter().copied().enumerate() {
-            let iter = Expr::mul(lhs.iter().copied(), val);
+            Expr::add_mut(res[idx..].iter_mut(), Expr::mul(lhs.iter().copied(), val)).for_each(|_| ());
+        }
 
-            Expr::add_mut(res[idx..].iter_mut(), iter).for_each(|_| ());
+        res
+    }
+
+    /// Returns `lhs * rhs` extended.
+    #[inline]
+    pub fn mulx<const L: usize, const N: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; N] {
+        let mut res = [0; N];
+
+        for (idx, val) in rhs.iter().copied().take(N).enumerate() {
+            Expr::add_mut(res[idx..].iter_mut(), Expr::mul(lhs.iter().copied(), val)).for_each(|_| ());
         }
 
         res
@@ -2197,14 +2227,17 @@ pub mod algo {
     /// Returns `lhs * rhs` with overflow.
     #[inline]
     pub fn mul_overflow<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
-        let mut any = false;
-        let mut acc = 0 as Single;
         let mut res = [0; L];
+        let mut acc = 0 as Single;
+        let mut any = false;
 
         for (idx, val) in rhs.iter().copied().enumerate() {
-            let iter = Expr::mul(lhs.iter().copied(), val);
+            acc = acc.wrapping_add(
+                Expr::add_mut(res[idx..].iter_mut(), Expr::mul(lhs.iter().copied(), val))
+                    .last()
+                    .unwrap_or(0),
+            );
 
-            acc = acc.wrapping_add(Expr::add_mut(res[idx..].iter_mut(), iter).last().unwrap_or(0));
             any |= acc > 0;
         }
 
@@ -2214,6 +2247,15 @@ pub mod algo {
     /// Returns `lhs * rhs`.
     #[inline]
     pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
+        Expr::mul(lhs.iter().copied(), rhs).collect_arr()
+    }
+
+    /// Returns `lhs * rhs` extended.
+    #[inline]
+    pub fn mulx_single<const L: usize, const N: usize>(
+        lhs: &[Single; L],
+        rhs: <Single as Num>::Unsigned,
+    ) -> [Single; N] {
         Expr::mul(lhs.iter().copied(), rhs).collect_arr()
     }
 
@@ -2246,9 +2288,28 @@ pub mod algo {
         let mut res = [0; L];
 
         for (idx, val) in (0..L).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
-            let iter = Expr::mul(lhs.iter().copied(), val);
+            Expr::add_mut(res[idx..].iter_mut(), Expr::mul(lhs.iter().copied(), val)).for_each(|_| ());
+        }
 
-            Expr::add_mut(res[idx..].iter_mut(), iter).for_each(|_| ());
+        res
+    }
+
+    /// Returns `lhs * rhs` extended.
+    ///
+    /// Rhs is sign-extended instead of zero-extended.
+    #[inline]
+    pub fn mulx_signed<const L: usize, const N: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; N] {
+        let rhs = rhs as Single;
+
+        let ext = match rhs >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        };
+
+        let mut res = [0; N];
+
+        for (idx, val) in (0..L.min(N)).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
+            Expr::add_mut(res[idx..].iter_mut(), Expr::mul(lhs.iter().copied(), val)).for_each(|_| ());
         }
 
         res
