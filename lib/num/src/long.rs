@@ -1948,18 +1948,6 @@ pub mod algo {
         res
     }
 
-    /// Returns `lhs * rhs` extended.
-    #[inline]
-    pub fn mulx<const L: usize, const N: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; N] {
-        let mut res = [0; N];
-
-        for (idx, val) in rhs.iter().copied().take(N).enumerate() {
-            uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).for_each(|_| ());
-        }
-
-        res
-    }
-
     /// Returns `lhs * rhs` with overflow.
     #[inline]
     pub fn mul_overflowing<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
@@ -1983,15 +1971,6 @@ pub mod algo {
     /// Returns `lhs * rhs`.
     #[inline]
     pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
-        uops::mul(lhs.iter().copied(), rhs).collect_arr()
-    }
-
-    /// Returns `lhs * rhs` extended.
-    #[inline]
-    pub fn mulx_single<const L: usize, const N: usize>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> [Single; N] {
         uops::mul(lhs.iter().copied(), rhs).collect_arr()
     }
 
@@ -2019,27 +1998,6 @@ pub mod algo {
         let mut res = [0; L];
 
         for (idx, val) in (0..L).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
-            uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).for_each(|_| ());
-        }
-
-        res
-    }
-
-    /// Returns `lhs * rhs` extended.
-    ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn mulx_signed<const L: usize, const N: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; N] {
-        let rhs = rhs as Single;
-
-        let ext = match rhs >> (BITS - 1) {
-            0 => 0,
-            _ => MAX,
-        };
-
-        let mut res = [0; N];
-
-        for (idx, val) in (0..L.min(N)).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
             uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).for_each(|_| ());
         }
 
