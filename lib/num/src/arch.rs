@@ -104,6 +104,82 @@ macro_rules! word_impl {
     };
 }
 
+macro_rules! bytes_impl {
+    ([$($primitive:ty),+] $(,)?) => {
+        $(bytes_impl!($primitive);)+
+    };
+    ($primitive:ty $(,)?) => {
+        impl BytesLen for $primitive {
+            const BITS: usize = Self::BITS as usize;
+            const BYTES: usize = Self::BITS as usize / 8;
+        }
+
+        impl BytesFn for $primitive {
+            #[inline]
+            fn read(&self, offset: Offset) -> Single {
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
+                };
+
+                self.unbounded_shr(offset) as Single
+            }
+
+            #[inline]
+            fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
+                };
+
+                *self |= (mask as Self).unbounded_shl(offset);
+                self
+            }
+
+            #[inline]
+            fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
+                use std::ops::Not;
+
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
+                };
+
+                *self &= (mask.not() as Self).unbounded_shl(offset).not();
+                self
+            }
+
+            #[inline]
+            fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
+                let offset = match offset {
+                    Offset::Left(val) => val as u32,
+                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
+                };
+
+                *self ^= (mask as Self).unbounded_shl(offset);
+                self
+            }
+        }
+
+        impl AsBytesRef for $primitive {
+            #[inline]
+            fn as_bytes_ref(&self) -> &[u8] {
+                self.as_bytes()
+            }
+        }
+
+        impl AsBytesMut for $primitive {
+            #[inline]
+            fn as_bytes_mut(&mut self) -> &mut [u8] {
+                self.as_mut_bytes()
+            }
+        }
+
+        impl AsBytesIterator for $primitive {}
+        impl AsWordsIterator for $primitive {}
+    };
+}
+
 macro_rules! aligned_impl {
     ($aligned:ident) => {
         impl<T> From<T> for $aligned<T> {
@@ -359,6 +435,7 @@ pub mod word {
         + PartialEq + Eq
         + PartialOrd + Ord
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
+        + AsBytesRef + AsBytesMut
         + FromBytes + IntoBytes + Immutable
     {
         /// Bits per Word-like primitive.
@@ -453,6 +530,13 @@ pub mod word {
         Iter::Item: Word,
     {
     }
+}
+
+/// Infinite iterator of words.
+pub struct AsWordsIter<'bytes, W: Word> {
+    idx: usize,
+    bytes: &'bytes [u8],
+    default: W,
 }
 
 /// Aligned to approximate architecture cacheline size type.
@@ -785,10 +869,90 @@ pub trait AsWordsMut {
     fn as_words_mut<W: Word>(&mut self) -> &mut [W];
 }
 
+/// As bytes iterator.
+#[ndfwd::decl]
+pub trait AsBytesIterator {
+    /// Iterates over self in bytes.
+    #[inline]
+    fn iter_bytes(&self) -> impl Iterator<Item = u8>
+    where
+        Self: AsBytesRef,
+    {
+        self.iter_bytes_default(0)
+    }
+
+    /// Iterates over self in bytes.
+    ///
+    /// Allows default argument for byte-extension.
+    #[inline]
+    fn iter_bytes_default(&self, default: u8) -> impl Iterator<Item = u8>
+    where
+        Self: AsBytesRef,
+    {
+        AsWordsIter {
+            idx: 0,
+            bytes: self.as_bytes_ref(),
+            default,
+        }
+    }
+}
+
+/// As words iterator.
+#[ndfwd::decl]
+pub trait AsWordsIterator {
+    /// Iterates over self in words.
+    #[inline]
+    fn iter_words<W: Word>(&self) -> impl Iterator<Item = W>
+    where
+        Self: AsBytesRef,
+    {
+        self.iter_words_default(W::ZERO)
+    }
+
+    /// Iterates over self in words.
+    ///
+    /// Allows default argument for word-extension.
+    #[inline]
+    fn iter_words_default<W: Word>(&self, default: W) -> impl Iterator<Item = W>
+    where
+        Self: AsBytesRef,
+    {
+        AsWordsIter {
+            idx: 0,
+            bytes: self.as_bytes_ref(),
+            default,
+        }
+    }
+}
+
 aligned_impl!(Aligned);
 aligned_impl!(Aligned32);
 aligned_impl!(Aligned64);
 aligned_impl!(Aligned128);
+
+bytes_impl!([i8, i16, i32, i64, i128, isize]);
+bytes_impl!([u8, u16, u32, u64, u128, usize]);
+
+impl<'bytes, W: Word> Iterator for AsWordsIter<'bytes, W> {
+    type Item = W;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let idx = self.idx;
+        let len = self.bytes.len();
+
+        let l = idx.min(len);
+        let r = (idx + W::BYTES).min(len);
+
+        let mut res = self.default;
+
+        AsBytesMut::as_bytes_mut(&mut res)[0..(r - l)].copy_from_slice(&self.bytes[l..r]);
+
+        self.idx += W::BYTES;
+
+        Some(res)
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -3,7 +3,6 @@
 use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
-use zerocopy::IntoBytes;
 
 use crate::arch::{AsBytesMut, AsBytesRef, BytesFn, BytesLen, Offset, word::Single};
 
@@ -35,72 +34,6 @@ macro_rules! num_impl {
         $(num_impl!(@unsigned $primitive);)+
     };
     (@impl $primitive:ty, $signed:ty, $unsigned:ty $(,)?) => {
-        impl BytesLen for $primitive {
-            const BITS: usize = Self::BITS as usize;
-            const BYTES: usize = Self::BITS as usize / 8;
-        }
-
-        impl BytesFn for $primitive {
-            #[inline]
-            fn read(&self, offset: Offset) -> Single {
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                self.unbounded_shr(offset) as Single
-            }
-
-            #[inline]
-            fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                *self |= (mask as Self).unbounded_shl(offset);
-                self
-            }
-
-            #[inline]
-            fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
-                use std::ops::Not;
-
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                *self &= (mask.not() as Self).unbounded_shl(offset).not();
-                self
-            }
-
-            #[inline]
-            fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                *self ^= (mask as Self).unbounded_shl(offset);
-                self
-            }
-        }
-
-        impl AsBytesRef for $primitive {
-            #[inline]
-            fn as_bytes_ref(&self) -> &[u8] {
-                self.as_bytes()
-            }
-        }
-
-        impl AsBytesMut for $primitive {
-            #[inline]
-            fn as_bytes_mut(&mut self) -> &mut [u8] {
-                self.as_mut_bytes()
-            }
-        }
-
         impl NumFn for $primitive {
             #[inline]
             fn is_odd(&self) -> bool {
