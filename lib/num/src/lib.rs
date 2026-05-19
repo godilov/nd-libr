@@ -237,7 +237,7 @@ macro_rules! num_ct_impl {
             }
         }
 
-        num_ct_impl!(@all $signed);
+        num_ct_impl!(@impl $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
         impl OneCt for $unsigned {
@@ -333,9 +333,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        num_ct_impl!(@all $unsigned);
+        num_ct_impl!(@impl $unsigned);
     };
-    (@all $primitive:ty $(,)?) => {
+    (@impl $primitive:ty $(,)?) => {
         impl SelectCt for $primitive {
             #[inline(never)]
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
