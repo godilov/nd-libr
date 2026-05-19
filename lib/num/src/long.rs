@@ -20,7 +20,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 use crate::{
     BytesFn, Max, Min, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
-    long::{radix::*, uops::ExprIterator},
+    long::radix::*,
 };
 #[cfg(feature = "const-time")]
 use crate::{EqCt, GtCt, LtCt, MaskCt, RelCt, SelectCt, ZeroCt};
@@ -244,8 +244,8 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
-            += uops::add_mut(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).for_each(|_| ()),
-            -= uops::sub_mut(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).for_each(|_| ()),
+            += uops::add_mut(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(),
+            -= uops::sub_mut(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(),
             *= algo::mul_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
             /= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.wrapping_abs()).0).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.wrapping_abs()).0).1).signed(lhs.sign()); },
@@ -277,8 +277,8 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
-            += uops::add_mut(lhs.0.iter_mut(), rhs.iter_words()).for_each(|_| ()),
-            -= uops::sub_mut(lhs.0.iter_mut(), rhs.iter_words()).for_each(|_| ()),
+            += uops::add_mut(lhs.0.iter_mut(), rhs.iter_words()).wrapping(),
+            -= uops::sub_mut(lhs.0.iter_mut(), rhs.iter_words()).wrapping(),
             *= algo::mul_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             /= algo::div_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
             %= algo::rem_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
@@ -324,7 +324,7 @@ macro_rules! nd_ops_primitive_native_impl {
             + Signed::<L>(uops::add_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping()),
             - Signed::<L>(uops::sub_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping()),
             * Signed::<L>(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
-            / Signed::<L>(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
+            / Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
             % Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()),
 
             | Signed::<L>(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
@@ -341,10 +341,10 @@ macro_rules! nd_ops_primitive_native_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
-            += uops::add_signed_mut(lhs.0.iter_mut(), rhs as <Single as Num>::Signed).for_each(|_| ()),
-            -= uops::sub_signed_mut(lhs.0.iter_mut(), rhs as <Single as Num>::Signed).for_each(|_| ()),
+            += uops::add_signed_mut(lhs.0.iter_mut(), rhs as <Single as Num>::Signed).wrapping(),
+            -= uops::sub_signed_mut(lhs.0.iter_mut(), rhs as <Single as Num>::Signed).wrapping(),
             *= algo::mul_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
-            /= { *lhs = Signed::<L>(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
+            /= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()); },
 
             |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
@@ -357,7 +357,7 @@ macro_rules! nd_ops_primitive_native_impl {
             + Unsigned::<L>(uops::add_single(lhs.0.iter().copied(), rhs as Single).wrapping()),
             - Unsigned::<L>(uops::sub_single(lhs.0.iter().copied(), rhs as Single).wrapping()),
             * Unsigned::<L>(algo::mul_single(&lhs.0, rhs as Single)),
-            / Unsigned::<L>(algo::div_single(&lhs.0, rhs as Single).0),
+            / Unsigned::from(algo::div_single(&lhs.0, rhs as Single).0),
             % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).1 as $primitive),
 
             | Unsigned::<L>(uops::bitor_single(&lhs.0, rhs as Single)),
@@ -374,8 +374,8 @@ macro_rules! nd_ops_primitive_native_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
-            += uops::add_single_mut(lhs.0.iter_mut(), rhs as Single).for_each(|_| ()),
-            -= uops::sub_single_mut(lhs.0.iter_mut(), rhs as Single).for_each(|_| ()),
+            += uops::add_single_mut(lhs.0.iter_mut(), rhs as Single).wrapping(),
+            -= uops::sub_single_mut(lhs.0.iter_mut(), rhs as Single).wrapping(),
             *= algo::mul_single_mut(&mut lhs.0, rhs as Single),
             /= algo::div_single_mut(&mut lhs.0, rhs as Single),
             %= algo::rem_single_mut(&mut lhs.0, rhs as Single),
@@ -990,43 +990,6 @@ pub mod uops {
         pub acc: Single,
     }
 
-    /// Expression iterator interface.
-    pub trait ExprIterator: Iterator<Item = Single> {
-        /// Consumes iterator as default.
-        fn default<const L: usize, Long: From<[Single; L]>>(self) -> Long;
-
-        /// Consumes iterator as checked.
-        fn checked<const L: usize, Long: From<[Single; L]>>(self) -> Option<Long>;
-
-        /// Consumes iterator as strict.
-        fn strict<const L: usize, Long: From<[Single; L]>>(self) -> Long;
-
-        /// Consumes iterator as wrapping.
-        fn wrapping<const L: usize, Long: From<[Single; L]>>(self) -> Long;
-
-        /// Consumes iterator as overflowing.
-        fn overflowing<const L: usize, Long: From<[Single; L]>>(self) -> (Long, Option<Single>);
-
-        // TODO: REMOVE
-        /// .
-        fn acc(&self) -> Single;
-    }
-
-    /// Expression iterator mutable interface.
-    pub trait ExprIteratorMut: Iterator<Item = Single> {
-        /// Consumes iterator as default.
-        fn default<const L: usize>(self);
-
-        /// Consumes iterator as checked.
-        fn checked<const L: usize>(self) -> Option<()>;
-
-        /// Consumes iterator as strict.
-        fn strict<const L: usize>(self);
-
-        /// Consumes iterator as wrapping.
-        fn wrapping<const L: usize>(self);
-    }
-
     impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> Iterator for ExprIter<Lhs, Rhs> {
         type Item = Single;
 
@@ -1068,9 +1031,10 @@ pub mod uops {
         }
     }
 
-    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> ExprIterator for ExprIter<Lhs, Rhs> {
+    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> ExprIter<Lhs, Rhs> {
+        /// Consumes iterator as default.
         #[inline]
-        fn default<const L: usize, Long: From<[Single; L]>>(mut self) -> Long {
+        pub fn default<const L: usize, Long: From<[Single; L]>>(mut self) -> Long {
             let res = Long::from(self.collect_arr());
 
             debug_assert_eq!(self.acc, 0);
@@ -1078,8 +1042,9 @@ pub mod uops {
             res
         }
 
+        /// Consumes iterator as checked.
         #[inline]
-        fn checked<const L: usize, Long: From<[Single; L]>>(mut self) -> Option<Long> {
+        pub fn checked<const L: usize, Long: From<[Single; L]>>(mut self) -> Option<Long> {
             let res = Long::from(self.collect_arr());
 
             match self.acc {
@@ -1088,8 +1053,9 @@ pub mod uops {
             }
         }
 
+        /// Consumes iterator as strict.
         #[inline]
-        fn strict<const L: usize, Long: From<[Single; L]>>(mut self) -> Long {
+        pub fn strict<const L: usize, Long: From<[Single; L]>>(mut self) -> Long {
             let res = Long::from(self.collect_arr());
 
             assert_eq!(self.acc, 0);
@@ -1097,50 +1063,52 @@ pub mod uops {
             res
         }
 
+        /// Consumes iterator as wrapping.
         #[inline]
-        fn wrapping<const L: usize, Long: From<[Single; L]>>(mut self) -> Long {
+        pub fn wrapping<const L: usize, Long: From<[Single; L]>>(mut self) -> Long {
             Long::from(self.collect_arr())
         }
 
+        /// Consumes iterator as overflowing.
         #[inline]
-        fn overflowing<const L: usize, Long: From<[Single; L]>>(mut self) -> (Long, Option<Single>) {
+        pub fn overflowing<const L: usize, Long: From<[Single; L]>>(mut self) -> (Long, Option<Single>) {
             (Long::from(self.collect_arr()), (self.acc > 0).then_some(self.acc))
-        }
-
-        fn acc(&self) -> Single {
-            self.acc
         }
     }
 
-    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> ExprIteratorMut
-        for ExprIterMut<'elem, Lhs, Rhs>
-    {
+    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> ExprIterMut<'elem, Lhs, Rhs> {
+        /// Consumes iterator as default.
         #[inline]
-        fn default<const L: usize>(self) {
+        pub fn default(self) {
             debug_assert_eq!(self.last().unwrap_or(0), 0);
         }
 
+        /// Consumes iterator as checked.
         #[inline]
-        fn checked<const L: usize>(self) -> Option<()> {
+        pub fn checked(self) -> Option<()> {
             match self.last().unwrap_or(0) {
                 0 => Some(()),
                 _ => None,
             }
         }
 
+        /// Consumes iterator as strict.
         #[inline]
-        fn strict<const L: usize>(self) {
+        pub fn strict(self) {
             assert_eq!(self.last().unwrap_or(0), 0);
         }
 
+        /// Consumes iterator as wrapping.
         #[inline]
-        fn wrapping<const L: usize>(self) {
+        pub fn wrapping(self) {
             self.for_each(|_| ());
         }
     }
 
     /// Iterator for `!words`.
-    pub fn not<Words: Iterator<Item = Single>>(words: Words) -> impl ExprIterator {
+    pub fn not<Words: Iterator<Item = Single>>(
+        words: Words,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         ExprIter {
             lhs: words.map(|word| !word),
             rhs: std::iter::repeat(0),
@@ -1150,7 +1118,9 @@ pub mod uops {
     }
 
     /// Iterator mutable for `!words`.
-    pub fn not_mut<'words, Words: Iterator<Item = &'words mut Single>>(words: Words) -> impl ExprIteratorMut {
+    pub fn not_mut<'elem, Words: Iterator<Item = &'elem mut Single>>(
+        words: Words,
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         ExprIterMut {
             lhs: words.map(|word| {
                 *word = !*word;
@@ -1164,7 +1134,9 @@ pub mod uops {
 
     /// Iterator for `+words`.
     #[inline]
-    pub fn pos<Words: Iterator<Item = Single>>(words: Words) -> impl ExprIterator {
+    pub fn pos<Words: Iterator<Item = Single>>(
+        words: Words,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         ExprIter {
             lhs: words,
             rhs: std::iter::repeat(0),
@@ -1175,7 +1147,9 @@ pub mod uops {
 
     /// Iterator mutable for `+words`.
     #[inline]
-    pub fn pos_mut<'words, Words: Iterator<Item = &'words mut Single>>(words: Words) -> impl ExprIteratorMut {
+    pub fn pos_mut<'elem, Words: Iterator<Item = &'elem mut Single>>(
+        words: Words,
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         ExprIterMut {
             lhs: words,
             rhs: std::iter::repeat(0),
@@ -1186,7 +1160,9 @@ pub mod uops {
 
     /// Iterator for `-words`.
     #[inline]
-    pub fn neg<Words: Iterator<Item = Single>>(words: Words) -> impl ExprIterator {
+    pub fn neg<Words: Iterator<Item = Single>>(
+        words: Words,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         ExprIter {
             lhs: words.map(|word| !word),
             rhs: std::iter::repeat(0),
@@ -1197,7 +1173,9 @@ pub mod uops {
 
     /// Iterator mutable for `-words`.
     #[inline]
-    pub fn neg_mut<'words, Words: Iterator<Item = &'words mut Single>>(words: Words) -> impl ExprIteratorMut {
+    pub fn neg_mut<'elem, Words: Iterator<Item = &'elem mut Single>>(
+        words: Words,
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         ExprIterMut {
             lhs: words.map(|word| {
                 *word = !*word;
@@ -1211,7 +1189,9 @@ pub mod uops {
 
     /// Iterator for `|words|`.
     #[inline]
-    pub fn abs<const L: usize>(words: &[Single; L]) -> impl ExprIterator {
+    pub fn abs<const L: usize>(
+        words: &[Single; L],
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         let (xor, acc) = match words[L - 1] >> (BITS - 1) {
             0 => (0, 0),
             _ => (MAX, 1),
@@ -1227,7 +1207,9 @@ pub mod uops {
 
     /// Iterator mutable for `|words|`.
     #[inline]
-    pub fn abs_mut<const L: usize>(words: &mut [Single; L]) -> impl ExprIteratorMut {
+    pub fn abs_mut<'words, const L: usize>(
+        words: &'words mut [Single; L],
+    ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
         let (xor, acc) = match words[L - 1] >> (BITS - 1) {
             0 => (0, 0),
             _ => (MAX, 1),
@@ -1246,7 +1228,10 @@ pub mod uops {
 
     /// Iterator for `lhs + rhs`
     #[inline]
-    pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> impl ExprIterator {
+    pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: Rhs,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         ExprIter { lhs, rhs, mul: 1, acc: 0 }
     }
 
@@ -1255,13 +1240,16 @@ pub mod uops {
     pub fn add_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
-    ) -> impl ExprIteratorMut {
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         ExprIterMut { lhs, rhs, mul: 1, acc: 0 }
     }
 
     /// Iterator for `lhs + rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn add_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Unsigned) -> impl ExprIterator {
+    pub fn add_single<Lhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: <Single as Num>::Unsigned,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         ExprIter {
             lhs,
             rhs: std::iter::repeat(0),
@@ -1275,7 +1263,7 @@ pub mod uops {
     pub fn add_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Unsigned,
-    ) -> impl ExprIteratorMut {
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         ExprIterMut {
             lhs,
             rhs: std::iter::repeat(0),
@@ -1288,7 +1276,10 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn add_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Signed) -> impl ExprIterator {
+    pub fn add_signed<Lhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: <Single as Num>::Signed,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1311,7 +1302,7 @@ pub mod uops {
     pub fn add_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Signed,
-    ) -> impl ExprIteratorMut {
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1329,7 +1320,10 @@ pub mod uops {
 
     /// Iterator for `lhs - rhs`.
     #[inline]
-    pub fn sub<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> impl ExprIterator {
+    pub fn sub<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: Rhs,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         ExprIter {
             lhs,
             rhs: rhs.map(|word| !word),
@@ -1343,7 +1337,7 @@ pub mod uops {
     pub fn sub_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
-    ) -> impl ExprIteratorMut {
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         ExprIterMut {
             lhs,
             rhs: rhs.map(|word| !word),
@@ -1354,7 +1348,10 @@ pub mod uops {
 
     /// Iterator for `lhs - rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn sub_single<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Unsigned) -> impl ExprIterator {
+    pub fn sub_single<Lhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: <Single as Num>::Unsigned,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         let rhs = rhs as Single;
         let neg = rhs.wrapping_neg();
 
@@ -1376,7 +1373,7 @@ pub mod uops {
     pub fn sub_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Unsigned,
-    ) -> impl ExprIteratorMut {
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         let rhs = rhs as Single;
         let neg = rhs.wrapping_neg();
 
@@ -1397,7 +1394,10 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn sub_signed<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: <Single as Num>::Signed) -> impl ExprIterator {
+    pub fn sub_signed<Lhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: <Single as Num>::Signed,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         let rhs = rhs as Single;
         let neg = rhs.wrapping_neg();
 
@@ -1421,7 +1421,7 @@ pub mod uops {
     pub fn sub_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Signed,
-    ) -> impl ExprIteratorMut {
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         let rhs = rhs as Single;
         let neg = rhs.wrapping_neg();
 
@@ -1440,7 +1440,10 @@ pub mod uops {
 
     /// Iterator for `lhs * rhs`.
     #[inline]
-    pub fn mul<Lhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Single) -> impl ExprIterator {
+    pub fn mul<Lhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: Single,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
         ExprIter {
             lhs,
             rhs: std::iter::repeat(0),
@@ -1451,7 +1454,10 @@ pub mod uops {
 
     /// Iterator mutable for `lhs * rhs`.
     #[inline]
-    pub fn mul_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(lhs: Lhs, rhs: Single) -> impl ExprIteratorMut {
+    pub fn mul_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
+        lhs: Lhs,
+        rhs: Single,
+    ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
         ExprIterMut {
             lhs,
             rhs: std::iter::repeat(0),
@@ -1936,13 +1942,22 @@ pub mod algo {
 
     use super::*;
 
+    /// Multiplication result.
+    pub struct Mul<const L: usize> {
+        /// Multiplication words.
+        pub words: [Single; L],
+
+        /// Multiplication overflow.
+        pub overflow: Option<Single>,
+    }
+
     /// Returns `lhs * rhs`.
     #[inline]
     pub fn mul<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         let mut res = [0; L];
 
         for (idx, val) in rhs.iter().copied().enumerate() {
-            uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).for_each(|_| ());
+            uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).wrapping();
         }
 
         res
@@ -1998,7 +2013,7 @@ pub mod algo {
         let mut res = [0; L];
 
         for (idx, val) in (0..L).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
-            uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).for_each(|_| ());
+            uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).wrapping();
         }
 
         res
@@ -2053,7 +2068,7 @@ pub mod algo {
     /// Applies `lhs *= rhs`.
     #[inline]
     pub fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
-        uops::mul_mut(lhs.iter_mut(), rhs).for_each(|_| ());
+        uops::mul_mut(lhs.iter_mut(), rhs).wrapping();
 
         lhs
     }
@@ -2111,7 +2126,7 @@ pub mod algo {
                     Ordering::Greater => Ordering::Greater,
                 });
 
-                match iter.acc() {
+                match iter.acc {
                     0 => cmp,
                     _ => Ordering::Greater,
                 }
@@ -2119,7 +2134,7 @@ pub mod algo {
 
             *ptr = digit.saturating_sub(1) as Single;
 
-            uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *ptr)).for_each(|_| ());
+            uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *ptr)).wrapping();
         }
 
         (div, rem)
@@ -2162,7 +2177,7 @@ pub mod algo {
                     Ordering::Greater => Ordering::Greater,
                 });
 
-                match iter.acc() {
+                match iter.acc {
                     0 => cmp,
                     _ => Ordering::Greater,
                 }
@@ -2170,7 +2185,7 @@ pub mod algo {
 
             *val = digit.saturating_sub(1) as Single;
 
-            uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *val)).for_each(|_| ());
+            uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *val)).wrapping();
         }
 
         lhs
@@ -3196,8 +3211,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> f
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
-    += uops::add_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).for_each(|_| ()),
-    -= uops::sub_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).for_each(|_| ()),
+    += uops::add_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
+    -= uops::sub_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
     /= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
     %= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
@@ -3216,8 +3231,8 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for [Sig
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>), [
-    += uops::add_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).for_each(|_| ()),
-    -= uops::sub_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).for_each(|_| ()),
+    += uops::add_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
+    -= uops::sub_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
     /= algo::div_mut(&mut lhs.0, &rhs.0),
     %= algo::rem_mut(&mut lhs.0, &rhs.0),
@@ -4397,7 +4412,7 @@ fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L],
     let mut res = from_digits_impl!(s.bytes().rev().filter_map(get_digit_from_byte), s.len(), exp);
 
     if sign == Sign::NEG {
-        uops::neg_mut(res.iter_mut()).for_each(|_| ());
+        uops::neg_mut(res.iter_mut()).wrapping();
     }
 
     Ok(res)
@@ -4443,7 +4458,7 @@ fn from_str_radix<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Sin
     let mut res = from_digits_radix_impl!(s.bytes().filter_map(get_digit_from_byte), radix);
 
     if sign == Sign::NEG {
-        uops::neg_mut(res.iter_mut()).for_each(|_| ());
+        uops::neg_mut(res.iter_mut()).wrapping();
     }
 
     Ok(res)
@@ -5612,9 +5627,9 @@ mod tests {
             val in ndassert::range!(u64, 48),
             bytes as val.to_le_bytes(),
         ) [
-            ({ let mut bytes = bytes; uops::not_mut(bytes.iter_mut()).for_each(|_| ()); bytes }, (!val).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::pos_mut(bytes.iter_mut()).for_each(|_| ()); bytes }, val.to_le_bytes()),
-            ({ let mut bytes = bytes; uops::neg_mut(bytes.iter_mut()).for_each(|_| ()); bytes }, val.wrapping_neg().to_le_bytes()),
+            ({ let mut bytes = bytes; uops::not_mut(bytes.iter_mut()).wrapping(); bytes }, (!val).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::pos_mut(bytes.iter_mut()).wrapping(); bytes }, val.to_le_bytes()),
+            ({ let mut bytes = bytes; uops::neg_mut(bytes.iter_mut()).wrapping(); bytes }, val.wrapping_neg().to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -5623,8 +5638,8 @@ mod tests {
             lhs_bytes as lhs.to_le_bytes(),
             rhs_bytes as rhs.to_le_bytes(),
         ) [
-            ({ let mut bytes = lhs_bytes; uops::add_mut(bytes.iter_mut(), rhs_bytes.iter().copied()).for_each(|_| ()); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::sub_mut(bytes.iter_mut(), rhs_bytes.iter().copied()).for_each(|_| ()); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::add_mut(bytes.iter_mut(), rhs_bytes.iter().copied()).wrapping(); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::sub_mut(bytes.iter_mut(), rhs_bytes.iter().copied()).wrapping(); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
             ({ let mut bytes = lhs_bytes; uops::bitor_mut(&mut bytes, &rhs_bytes); bytes }, (lhs | rhs).to_le_bytes()),
             ({ let mut bytes = lhs_bytes; uops::bitand_mut(&mut bytes, &rhs_bytes); bytes }, (lhs & rhs).to_le_bytes()),
             ({ let mut bytes = lhs_bytes; uops::bitxor_mut(&mut bytes, &rhs_bytes); bytes }, (lhs ^ rhs).to_le_bytes()),
@@ -5635,8 +5650,8 @@ mod tests {
             rhs in u8::MIN..u8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            ({ let mut bytes = bytes; uops::add_single_mut(bytes.iter_mut(), rhs).for_each(|_| ()); bytes }, lhs.wrapping_add(rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::sub_single_mut(bytes.iter_mut(), rhs).for_each(|_| ()); bytes }, lhs.wrapping_sub(rhs as u64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::add_single_mut(bytes.iter_mut(), rhs).wrapping(); bytes }, lhs.wrapping_add(rhs as u64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::sub_single_mut(bytes.iter_mut(), rhs).wrapping(); bytes }, lhs.wrapping_sub(rhs as u64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitor_single_mut(&mut bytes, rhs); bytes }, (lhs | rhs as u64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitand_single_mut(&mut bytes, rhs); bytes }, (lhs & rhs as u64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitxor_single_mut(&mut bytes, rhs); bytes }, (lhs ^ rhs as u64).to_le_bytes()),
@@ -5647,8 +5662,8 @@ mod tests {
             rhs in i8::MIN..i8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            ({ let mut bytes = bytes; uops::add_signed_mut(bytes.iter_mut(), rhs as <Single as Num>::Signed).for_each(|_| ()); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::sub_signed_mut(bytes.iter_mut(), rhs as <Single as Num>::Signed).for_each(|_| ()); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::add_signed_mut(bytes.iter_mut(), rhs as <Single as Num>::Signed).wrapping(); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::sub_signed_mut(bytes.iter_mut(), rhs as <Single as Num>::Signed).wrapping(); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitor_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs | rhs as i64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitand_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs & rhs as i64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitxor_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
