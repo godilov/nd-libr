@@ -533,6 +533,7 @@ pub mod word {
 }
 
 /// Infinite iterator of words.
+#[derive(Clone)]
 pub struct AsWordsIter<'bytes, W: Word> {
     idx: usize,
     bytes: &'bytes [u8],
@@ -874,7 +875,7 @@ pub trait AsWordsMut {
 pub trait AsBytesIterator {
     /// Iterates over self in bytes.
     #[inline]
-    fn iter_bytes(&self) -> impl Iterator<Item = u8>
+    fn iter_bytes(&self) -> impl Iterator<Item = u8> + Clone
     where
         Self: AsBytesRef,
     {
@@ -885,7 +886,7 @@ pub trait AsBytesIterator {
     ///
     /// Allows default argument for byte-extension.
     #[inline]
-    fn iter_bytes_default(&self, default: u8) -> impl Iterator<Item = u8>
+    fn iter_bytes_default(&self, default: u8) -> impl Iterator<Item = u8> + Clone
     where
         Self: AsBytesRef,
     {
@@ -902,7 +903,7 @@ pub trait AsBytesIterator {
 pub trait AsWordsIterator {
     /// Iterates over self in words.
     #[inline]
-    fn iter_words<W: Word>(&self) -> impl Iterator<Item = W>
+    fn iter_words<W: Word>(&self) -> impl Iterator<Item = W> + Clone
     where
         Self: AsBytesRef,
     {
@@ -913,7 +914,7 @@ pub trait AsWordsIterator {
     ///
     /// Allows default argument for word-extension.
     #[inline]
-    fn iter_words_default<W: Word>(&self, default: W) -> impl Iterator<Item = W>
+    fn iter_words_default<W: Word>(&self, default: W) -> impl Iterator<Item = W> + Clone
     where
         Self: AsBytesRef,
     {

@@ -224,87 +224,99 @@ macro_rules! nd_ops_primitive_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, &rhs: &$primitive) -> Signed<L> for [Signed<L>, $primitive], [
-            + Signed::<L>(uops::add(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping()),
-            - Signed::<L>(uops::sub(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping()),
-            * Signed::<L>(algo::mul(&lhs.0, &Signed::<L>::from(rhs).0)),
-            / Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.wrapping_abs()).0).0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.wrapping_abs()).0).1).signed(lhs.sign()),
+            + Signed(uops::add(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping()),
+            - Signed(uops::sub(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping()),
 
-            | Signed::<L>(uops::bitor(&lhs.0, &Signed::<L>::from(rhs).0)),
-            & Signed::<L>(uops::bitand(&lhs.0, &Signed::<L>::from(rhs).0)),
-            ^ Signed::<L>(uops::bitxor(&lhs.0, &Signed::<L>::from(rhs).0)),
+            * Signed(algo::mul(&lhs.0, &Signed::from(rhs).0)),
+
+            / Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).0).signed(lhs.sign() * Sign::from(rhs)),
+            % Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).1).signed(lhs.sign()),
+
+            | Signed(uops::bitor(&lhs.0, &Signed::from(rhs).0)),
+            & Signed(uops::bitand(&lhs.0, &Signed::from(rhs).0)),
+            ^ Signed(uops::bitxor(&lhs.0, &Signed::from(rhs).0)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
-            + Signed::<L>(uops::add(lhs.iter_words_default(if lhs < 0 { MAX } else { 0 }), rhs.0.iter().copied()).wrapping()),
-            * Signed::<L>(algo::mul(&Signed::<L>::from(lhs).0, &rhs.0)),
-            | Signed::<L>(uops::bitor(&Signed::<L>::from(lhs).0, &rhs.0)),
-            & Signed::<L>(uops::bitand(&Signed::<L>::from(lhs).0, &rhs.0)),
-            ^ Signed::<L>(uops::bitxor(&Signed::<L>::from(lhs).0, &rhs.0)),
+            + Signed(uops::add(lhs.iter_words_default(if lhs < 0 { MAX } else { 0 }), rhs.0.iter().copied()).wrapping()),
+
+            * Signed(algo::mul(&Signed::from(lhs).0, &rhs.0)),
+
+            | Signed(uops::bitor(&Signed::from(lhs).0, &rhs.0)),
+            & Signed(uops::bitand(&Signed::from(lhs).0, &rhs.0)),
+            ^ Signed(uops::bitxor(&Signed::from(lhs).0, &rhs.0)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
             += uops::add_mut(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(),
             -= uops::sub_mut(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(),
-            *= algo::mul_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
-            /= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.wrapping_abs()).0).0).signed(lhs.sign() * Sign::from(rhs)); },
-            %= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &Signed::<L>::from(rhs.wrapping_abs()).0).1).signed(lhs.sign()); },
 
-            |= uops::bitor_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
-            &= uops::bitand_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
-            ^= uops::bitxor_mut(&mut lhs.0, &Signed::<L>::from(rhs).0),
+            *= algo::mul_mut(&mut lhs.0, &Signed::from(rhs).0),
+
+            /= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).0).signed(lhs.sign() * Sign::from(rhs)); },
+            %= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).1).signed(lhs.sign()); },
+
+            |= uops::bitor_mut(&mut lhs.0, &Signed::from(rhs).0),
+            &= uops::bitand_mut(&mut lhs.0, &Signed::from(rhs).0),
+            ^= uops::bitxor_mut(&mut lhs.0, &Signed::from(rhs).0),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, &rhs: &$primitive) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + Unsigned::<L>(uops::add(lhs.0.iter().copied(), rhs.iter_words()).wrapping()),
-            - Unsigned::<L>(uops::sub(lhs.0.iter().copied(), rhs.iter_words()).wrapping()),
-            * Unsigned::<L>(algo::mul(&lhs.0, &Unsigned::<L>::from(rhs).0)),
-            / Unsigned::<L>(algo::div(&lhs.0, &Unsigned::<L>::from(rhs).0).0),
-            % Unsigned::<L>(algo::div(&lhs.0, &Unsigned::<L>::from(rhs).0).1),
+            + Unsigned(uops::add(lhs.0.iter().copied(), rhs.iter_words()).wrapping()),
+            - Unsigned(uops::sub(lhs.0.iter().copied(), rhs.iter_words()).wrapping()),
 
-            | Unsigned::<L>(uops::bitor(&lhs.0, &Unsigned::<L>::from(rhs).0)),
-            & Unsigned::<L>(uops::bitand(&lhs.0, &Unsigned::<L>::from(rhs).0)),
-            ^ Unsigned::<L>(uops::bitxor(&lhs.0, &Unsigned::<L>::from(rhs).0)),
+            * Unsigned(algo::mul(&lhs.0, &Unsigned::from(rhs).0)),
+
+            / Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).0),
+            % Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).1),
+
+            | Unsigned(uops::bitor(&lhs.0, &Unsigned::from(rhs).0)),
+            & Unsigned(uops::bitand(&lhs.0, &Unsigned::from(rhs).0)),
+            ^ Unsigned(uops::bitxor(&lhs.0, &Unsigned::from(rhs).0)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + Unsigned::<L>(uops::add(lhs.iter_words(), rhs.0.iter().copied()).wrapping()),
-            * Unsigned::<L>(algo::mul(&Unsigned::<L>::from(lhs).0, &rhs.0)),
-            | Unsigned::<L>(uops::bitor(&Unsigned::<L>::from(lhs).0, &rhs.0)),
-            & Unsigned::<L>(uops::bitand(&Unsigned::<L>::from(lhs).0, &rhs.0)),
-            ^ Unsigned::<L>(uops::bitxor(&Unsigned::<L>::from(lhs).0, &rhs.0)),
+            + Unsigned(uops::add(lhs.iter_words(), rhs.0.iter().copied()).wrapping()),
+
+            * Unsigned(algo::mul(&Unsigned::from(lhs).0, &rhs.0)),
+
+            | Unsigned(uops::bitor(&Unsigned::from(lhs).0, &rhs.0)),
+            & Unsigned(uops::bitand(&Unsigned::from(lhs).0, &rhs.0)),
+            ^ Unsigned(uops::bitxor(&Unsigned::from(lhs).0, &rhs.0)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
             += uops::add_mut(lhs.0.iter_mut(), rhs.iter_words()).wrapping(),
             -= uops::sub_mut(lhs.0.iter_mut(), rhs.iter_words()).wrapping(),
-            *= algo::mul_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            /= algo::div_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            %= algo::rem_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
 
-            |= uops::bitor_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            &= uops::bitand_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
-            ^= uops::bitxor_mut(&mut lhs.0, &Unsigned::<L>::from(rhs).0),
+            *= algo::mul_mut(&mut lhs.0, &Unsigned::from(rhs).0),
+
+            /= algo::div_mut(&mut lhs.0, &Unsigned::from(rhs).0),
+            %= algo::rem_mut(&mut lhs.0, &Unsigned::from(rhs).0),
+
+            |= uops::bitor_mut(&mut lhs.0, &Unsigned::from(rhs).0),
+            &= uops::bitand_mut(&mut lhs.0, &Unsigned::from(rhs).0),
+            ^= uops::bitxor_mut(&mut lhs.0, &Unsigned::from(rhs).0),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(uops::bitor(&lhs.0, &Bytes::<L>::from(rhs).0)),
-            & Bytes::<L>(uops::bitand(&lhs.0, &Bytes::<L>::from(rhs).0)),
-            ^ Bytes::<L>(uops::bitxor(&lhs.0, &Bytes::<L>::from(rhs).0)),
+            | Bytes(uops::bitor(&lhs.0, &Bytes::from(rhs).0)),
+            & Bytes(uops::bitand(&lhs.0, &Bytes::from(rhs).0)),
+            ^ Bytes(uops::bitxor(&lhs.0, &Bytes::from(rhs).0)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(uops::bitor(&Bytes::<L>::from(lhs).0, &rhs.0)),
-            & Bytes::<L>(uops::bitand(&Bytes::<L>::from(lhs).0, &rhs.0)),
-            ^ Bytes::<L>(uops::bitxor(&Bytes::<L>::from(lhs).0, &rhs.0)),
+            | Bytes(uops::bitor(&Bytes::from(lhs).0, &rhs.0)),
+            & Bytes(uops::bitand(&Bytes::from(lhs).0, &rhs.0)),
+            ^ Bytes(uops::bitxor(&Bytes::from(lhs).0, &rhs.0)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive), [
-            |= uops::bitor_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0),
-            &= uops::bitand_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0),
-            ^= uops::bitxor_mut(&mut lhs.0, &Bytes::<L>::from(rhs).0),
+            |= uops::bitor_mut(&mut lhs.0, &Bytes::from(rhs).0),
+            &= uops::bitand_mut(&mut lhs.0, &Bytes::from(rhs).0),
+            ^= uops::bitxor_mut(&mut lhs.0, &Bytes::from(rhs).0),
         ] }
     };
 }
@@ -321,29 +333,35 @@ macro_rules! nd_ops_primitive_native_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, &rhs: &$primitive) -> Signed<L> for [Signed<L>, $primitive], [
-            + Signed::<L>(uops::add_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping()),
-            - Signed::<L>(uops::sub_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping()),
-            * Signed::<L>(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            + Signed(uops::add_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping()),
+            - Signed(uops::sub_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping()),
+
+            * Signed(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+
             / Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
             % Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()),
 
-            | Signed::<L>(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
-            & Signed::<L>(uops::bitand_signed(&lhs.0, rhs as <Single as Num>::Signed)),
-            ^ Signed::<L>(uops::bitxor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            | Signed(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            & Signed(uops::bitand_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            ^ Signed(uops::bitxor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
-            + Signed::<L>(uops::add_signed(rhs.0.iter().copied(), lhs as <Single as Num>::Signed).wrapping()),
-            * Signed::<L>(algo::mul_signed(&rhs.0, lhs as <Single as Num>::Signed)),
-            | Signed::<L>(uops::bitor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
-            & Signed::<L>(uops::bitand_signed(&rhs.0, lhs as <Single as Num>::Signed)),
-            ^ Signed::<L>(uops::bitxor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            + Signed(uops::add_signed(rhs.0.iter().copied(), lhs as <Single as Num>::Signed).wrapping()),
+
+            * Signed(algo::mul_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+
+            | Signed(uops::bitor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            & Signed(uops::bitand_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            ^ Signed(uops::bitxor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
             += uops::add_signed_mut(lhs.0.iter_mut(), rhs as <Single as Num>::Signed).wrapping(),
             -= uops::sub_signed_mut(lhs.0.iter_mut(), rhs as <Single as Num>::Signed).wrapping(),
+
             *= algo::mul_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
+
             /= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
             %= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()); },
 
@@ -354,23 +372,27 @@ macro_rules! nd_ops_primitive_native_impl {
     };
     (@unsigned $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, &rhs: &$primitive) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + Unsigned::<L>(uops::add_single(lhs.0.iter().copied(), rhs as Single).wrapping()),
-            - Unsigned::<L>(uops::sub_single(lhs.0.iter().copied(), rhs as Single).wrapping()),
-            * Unsigned::<L>(algo::mul_single(&lhs.0, rhs as Single)),
+            + Unsigned(uops::add_single(lhs.0.iter().copied(), rhs as Single).wrapping()),
+            - Unsigned(uops::sub_single(lhs.0.iter().copied(), rhs as Single).wrapping()),
+
+            * Unsigned(algo::mul_single(&lhs.0, rhs as Single)),
+
             / Unsigned::from(algo::div_single(&lhs.0, rhs as Single).0),
             % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).1 as $primitive),
 
-            | Unsigned::<L>(uops::bitor_single(&lhs.0, rhs as Single)),
-            & Unsigned::<L>(uops::bitand_single(&lhs.0, rhs as Single)),
-            ^ Unsigned::<L>(uops::bitxor_single(&lhs.0, rhs as Single)),
+            | Unsigned(uops::bitor_single(&lhs.0, rhs as Single)),
+            & Unsigned(uops::bitand_single(&lhs.0, rhs as Single)),
+            ^ Unsigned(uops::bitxor_single(&lhs.0, rhs as Single)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + Unsigned::<L>(uops::add_single(rhs.0.iter().copied(), lhs as Single).wrapping()),
-            * Unsigned::<L>(algo::mul_single(&rhs.0, lhs as Single)),
-            | Unsigned::<L>(uops::bitor_single(&rhs.0, lhs as Single)),
-            & Unsigned::<L>(uops::bitand_single(&rhs.0, lhs as Single)),
-            ^ Unsigned::<L>(uops::bitxor_single(&rhs.0, lhs as Single)),
+            + Unsigned(uops::add_single(rhs.0.iter().copied(), lhs as Single).wrapping()),
+
+            * Unsigned(algo::mul_single(&rhs.0, lhs as Single)),
+
+            | Unsigned(uops::bitor_single(&rhs.0, lhs as Single)),
+            & Unsigned(uops::bitand_single(&rhs.0, lhs as Single)),
+            ^ Unsigned(uops::bitxor_single(&rhs.0, lhs as Single)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -387,15 +409,15 @@ macro_rules! nd_ops_primitive_native_impl {
     };
     (@bytes $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(uops::bitor_single(&lhs.0, rhs as Single)),
-            & Bytes::<L>(uops::bitand_single(&lhs.0, rhs as Single)),
-            ^ Bytes::<L>(uops::bitxor_single(&lhs.0, rhs as Single)),
+            | Bytes(uops::bitor_single(&lhs.0, rhs as Single)),
+            & Bytes(uops::bitand_single(&lhs.0, rhs as Single)),
+            ^ Bytes(uops::bitxor_single(&lhs.0, rhs as Single)),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes::<L>(uops::bitor_single(&rhs.0, lhs as Single)),
-            & Bytes::<L>(uops::bitand_single(&rhs.0, lhs as Single)),
-            ^ Bytes::<L>(uops::bitxor_single(&rhs.0, lhs as Single)),
+            | Bytes(uops::bitor_single(&rhs.0, lhs as Single)),
+            & Bytes(uops::bitand_single(&rhs.0, lhs as Single)),
+            ^ Bytes(uops::bitxor_single(&rhs.0, lhs as Single)),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive), [
@@ -1102,6 +1124,15 @@ pub mod uops {
         #[inline]
         pub fn wrapping(self) {
             self.for_each(|_| ());
+        }
+
+        /// Consumes iterator as overflowing.
+        #[inline]
+        pub fn overflowing(self) -> ((), Option<Single>) {
+            match self.last().unwrap_or(0) {
+                0 => ((), None),
+                val => ((), Some(val)),
+            }
         }
     }
 
@@ -1943,15 +1974,97 @@ pub mod algo {
     use super::*;
 
     /// Multiplication result.
-    pub struct Mul<const L: usize> {
-        /// Multiplication words.
-        pub words: [Single; L],
+    pub struct Mul<Words> {
+        pub words: Words,
 
-        /// Multiplication overflow.
         pub overflow: Option<Single>,
     }
 
-    /// Returns `lhs * rhs`.
+    impl<Words> From<(Words, Option<Single>)> for Mul<Words> {
+        fn from((words, overflow): (Words, Option<Single>)) -> Self {
+            Mul { words, overflow }
+        }
+    }
+
+    impl<const L: usize> Mul<[Single; L]> {
+        /// Consumes as default.
+        #[inline]
+        pub fn default<Long: From<[Single; L]>>(self) -> Long {
+            let res = self.overflowing();
+
+            debug_assert_eq!(res.1, None);
+
+            res.0
+        }
+
+        /// Consumes as checked.
+        #[inline]
+        pub fn checked<Long: From<[Single; L]>>(self) -> Option<Long> {
+            let res = self.overflowing();
+
+            match res.1 {
+                Some(_) => None,
+                None => Some(res.0),
+            }
+        }
+
+        /// Consumes as strict.
+        #[inline]
+        pub fn strict<Long: From<[Single; L]>>(self) -> Long {
+            let res = self.overflowing();
+
+            assert_eq!(res.1, None);
+
+            res.0
+        }
+
+        /// Consumes as wrapping.
+        #[inline]
+        pub fn wrapping<Long: From<[Single; L]>>(self) -> Long {
+            Long::from(self.words)
+        }
+
+        /// Consumes as overflowing.
+        #[inline]
+        pub fn overflowing<Long: From<[Single; L]>>(self) -> (Long, Option<Single>) {
+            (Long::from(self.words), self.overflow)
+        }
+    }
+
+    impl Mul<()> {
+        /// Consumes as default.
+        #[inline]
+        pub fn default(self) {
+            debug_assert_eq!(self.overflow, None);
+        }
+
+        /// Consumes as checked.
+        #[inline]
+        pub fn checked(self) -> Option<()> {
+            match self.overflow {
+                Some(_) => None,
+                None => Some(()),
+            }
+        }
+
+        /// Consumes as strict.
+        #[inline]
+        pub fn strict(self) {
+            assert_eq!(self.overflow, None);
+        }
+
+        /// Consumes as wrapping.
+        #[inline]
+        pub fn wrapping(self) {}
+
+        /// Consumes as wrapping.
+        #[inline]
+        pub fn overflowing(self) -> ((), Option<Single>) {
+            ((), self.overflow)
+        }
+    }
+
+    /// Calculates `lhs * rhs`.
     #[inline]
     pub fn mul<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         let mut res = [0; L];
@@ -1963,42 +2076,66 @@ pub mod algo {
         res
     }
 
-    /// Returns `lhs * rhs` with overflow.
+    /// Calculates `lhs * rhs`.
     #[inline]
-    pub fn mul_overflowing<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], Option<Single>) {
+    pub fn mul_checked<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> Mul<[Single; L]> {
         let mut res = [0; L];
         let mut acc = 0 as Single;
         let mut any = false;
 
         for (idx, val) in rhs.iter().copied().enumerate() {
-            acc = acc.wrapping_add(
-                uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val))
-                    .last()
-                    .unwrap_or(0),
-            );
+            let val = uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val))
+                .last()
+                .unwrap_or(0);
 
+            acc = acc.wrapping_add(val);
             any |= acc > 0;
         }
 
-        (res, any.then_some(acc))
+        Mul::from((res, any.then_some(acc)))
     }
 
-    /// Returns `lhs * rhs`.
+    /// Calculates `lhs *= rhs`.
+    #[inline]
+    pub fn mul_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
+        *lhs = mul(lhs, rhs);
+    }
+
+    /// Calculates `lhs *= rhs`.
+    #[inline]
+    pub fn mul_checked_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) -> Mul<()> {
+        let res = mul_checked(lhs, rhs);
+
+        *lhs = res.words;
+
+        Mul::from(((), res.overflow))
+    }
+
+    /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
-        uops::mul(lhs.iter().copied(), rhs).collect_arr()
+        uops::mul(lhs.iter().copied(), rhs).wrapping()
     }
 
-    /// Returns `lhs * rhs` with overflow.
+    /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn mul_single_overflowing<const L: usize>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> ([Single; L], Option<Single>) {
-        uops::mul(lhs.iter().copied(), rhs).overflowing()
+    pub fn mul_single_checked<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> Mul<[Single; L]> {
+        Mul::from(uops::mul(lhs.iter().copied(), rhs).overflowing())
     }
 
-    /// Returns `lhs * rhs`.
+    /// Calculates `lhs *= rhs`, where `rhs` is single CPU-word.
+    #[inline]
+    pub fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) {
+        uops::mul_mut(lhs.iter_mut(), rhs).wrapping()
+    }
+
+    /// Calculates `lhs *= rhs`, where `rhs` is single CPU-word.
+    #[inline]
+    pub fn mul_single_checked_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> Mul<()> {
+        Mul::from(uops::mul_mut(lhs.iter_mut(), rhs).overflowing())
+    }
+
+    /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -2010,23 +2147,22 @@ pub mod algo {
             _ => MAX,
         };
 
+        let rhs = (0..L).map(|idx| if idx == 0 { rhs } else { ext });
+
         let mut res = [0; L];
 
-        for (idx, val) in (0..L).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
+        for (idx, val) in rhs.enumerate() {
             uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).wrapping();
         }
 
         res
     }
 
-    /// Returns `lhs * rhs` with overflow.
+    /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn mul_signed_overflowing<const L: usize>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Signed,
-    ) -> ([Single; L], Option<Single>) {
+    pub fn mul_signed_checked<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> Mul<[Single; L]> {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -2034,81 +2170,45 @@ pub mod algo {
             _ => MAX,
         };
 
-        let mut any = false;
-        let mut acc = 0 as Single;
+        let rhs = (0..L).map(|idx| if idx == 0 { rhs } else { ext });
+
         let mut res = [0; L];
+        let mut acc = 0 as Single;
+        let mut any = false;
 
-        for (idx, val) in (0..L).map(|idx| if idx == 0 { rhs } else { ext }).enumerate() {
-            let iter = uops::mul(lhs.iter().copied(), val);
+        for (idx, val) in rhs.enumerate() {
+            let val = uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val))
+                .last()
+                .unwrap_or(0);
 
-            acc = acc.wrapping_add(uops::add_mut(res[idx..].iter_mut(), iter).last().unwrap_or(0));
+            acc = acc.wrapping_add(val);
             any |= acc > 0;
         }
 
-        (res, any.then_some(acc))
+        Mul::from((res, any.then_some(acc)))
     }
 
-    /// Applies `lhs *= rhs`.
-    #[inline]
-    pub fn mul_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
-        *lhs = mul(lhs, rhs);
-        lhs
-    }
-
-    /// Applies `lhs *= rhs` with overflow.
-    #[inline]
-    pub fn mul_overflowing_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) -> Option<Single> {
-        let (res, overflow) = mul_overflowing(lhs, rhs);
-
-        *lhs = res;
-
-        overflow
-    }
-
-    /// Applies `lhs *= rhs`.
-    #[inline]
-    pub fn mul_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
-        uops::mul_mut(lhs.iter_mut(), rhs).wrapping();
-
-        lhs
-    }
-
-    /// Applies `lhs *= rhs` with overflow.
-    #[inline]
-    pub fn mul_single_overflowing_mut<const L: usize>(
-        lhs: &mut [Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> Option<Single> {
-        let acc = uops::mul_mut(lhs.iter_mut(), rhs).last().unwrap_or(0);
-
-        (acc > 0).then_some(acc)
-    }
-
-    /// Applies `lhs *= rhs`.
+    /// Calculates `lhs *= rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
+    pub fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) {
         *lhs = mul_signed(lhs, rhs);
-        lhs
     }
 
-    /// Applies `lhs *= rhs` with overflow.
+    /// Calculates `lhs *= rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn mul_signed_overflowing_mut<const L: usize>(
-        lhs: &mut [Single; L],
-        rhs: <Single as Num>::Signed,
-    ) -> Option<Single> {
-        let (res, overflow) = mul_signed_overflowing(lhs, rhs);
+    pub fn mul_signed_checked_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> Mul<()> {
+        let res = mul_signed_checked(lhs, rhs);
 
-        *lhs = res;
+        *lhs = res.words;
 
-        overflow
+        Mul::from(((), res.overflow))
     }
 
-    /// Returns `(lhs / rhs, lhs % rhs)`.
+    /// Calculates `(lhs / rhs, lhs % rhs)`.
     #[inline]
     pub fn div<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], [Single; L]) {
         let mut div = [0; L];
@@ -2140,7 +2240,7 @@ pub mod algo {
         (div, rem)
     }
 
-    /// Returns `(lhs / rhs, lhs % rhs)`.
+    /// Calculates `(lhs / rhs, lhs % rhs)`, where `rhs` is single CPU-word.
     #[inline]
     pub fn div_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> ([Single; L], Single) {
         let mut div = [0; L];
@@ -2160,7 +2260,7 @@ pub mod algo {
         (div, rem as Single)
     }
 
-    /// Applies `lhs /= rhs`.
+    /// Calculates `lhs /= rhs`.
     #[inline]
     pub fn div_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
         let mut rem = [0; L];
@@ -2191,7 +2291,7 @@ pub mod algo {
         lhs
     }
 
-    /// Applies `lhs /= rhs`.
+    /// Calculates `lhs /= rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         let mut rem = 0 as Double;
@@ -2210,14 +2310,14 @@ pub mod algo {
         lhs
     }
 
-    /// Applies `lhs %= rhs`.
+    /// Calculates `lhs %= rhs`.
     #[inline]
     pub fn rem_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
         *lhs = div(lhs, rhs).1;
         lhs
     }
 
-    /// Applies `lhs %= rhs`.
+    /// Calculates `lhs %= rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         lhs[0] = div_single(lhs, rhs).1;
@@ -3130,92 +3230,100 @@ impl<const L: usize> UpperHex for Bytes<L> {
 }
 
 ndops::def! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
-    ! Signed::<L>(uops::not(value.0.iter().copied()).wrapping()),
-    - Signed::<L>(uops::neg(value.0.iter().copied()).wrapping()),
+    ! Signed(uops::not(value.0.iter().copied()).wrapping()),
+    - Signed(uops::neg(value.0.iter().copied()).wrapping()),
 
-    - @wrapping Signed::<L>(uops::neg(value.0.iter().copied()).wrapping()),
+    - @wrapping Signed(uops::neg(value.0.iter().copied()).wrapping()),
 ] }
 
 ndops::def! { @ndun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
-    ! Unsigned::<L>(uops::not(value.0.iter().copied()).wrapping()),
+    ! Unsigned(uops::not(value.0.iter().copied()).wrapping()),
 ] }
 
 ndops::def! { @ndun <const L: usize> (value: &Bytes<L>) -> Bytes<L>, [
-    ! Bytes::<L>(uops::not(value.0.iter().copied()).wrapping()),
+    ! Bytes(uops::not(value.0.iter().copied()).wrapping()),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Signed<L>, [
-    + Signed::<L>(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    - Signed::<L>(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    * Signed::<L>(algo::mul(&lhs.0, &rhs.0)),
-    / Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
-    % Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
+    + Signed(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
+    - Signed(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
 
-    | Signed::<L>(uops::bitor(&lhs.0, &rhs.0)),
-    & Signed::<L>(uops::bitand(&lhs.0, &rhs.0)),
-    ^ Signed::<L>(uops::bitxor(&lhs.0, &rhs.0)),
+    * Signed(algo::mul(&lhs.0, &rhs.0)),
 
-    + @wrapping Signed::<L>(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    - @wrapping Signed::<L>(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    * @wrapping Signed::<L>(algo::mul(&lhs.0, &rhs.0)),
-    / @wrapping Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
-    % @wrapping Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
+    / Signed(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
+    % Signed(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
+
+    | Signed(uops::bitor(&lhs.0, &rhs.0)),
+    & Signed(uops::bitand(&lhs.0, &rhs.0)),
+    ^ Signed(uops::bitxor(&lhs.0, &rhs.0)),
+
+    + @wrapping Signed(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
+    - @wrapping Signed(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
+
+    * @wrapping Signed(algo::mul(&lhs.0, &rhs.0)),
+
+    / @wrapping Signed(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
+    % @wrapping Signed(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for [Signed<L>, usize], [
-    << Signed::<L>(uops::shl_signed(&lhs.0, rhs).0),
-    >> Signed::<L>(uops::shr_signed(&lhs.0, rhs).0),
+    << Signed(uops::shl_signed(&lhs.0, rhs).0),
+    >> Signed(uops::shr_signed(&lhs.0, rhs).0),
 
-    << @unbounded Signed::<L>(uops::shl_signed(&lhs.0, rhs).0),
-    >> @unbounded Signed::<L>(uops::shr_signed(&lhs.0, rhs).0),
+    << @unbounded Signed(uops::shl_signed(&lhs.0, rhs).0),
+    >> @unbounded Signed(uops::shr_signed(&lhs.0, rhs).0),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
-    + Unsigned::<L>(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    - Unsigned::<L>(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    * Unsigned::<L>(algo::mul(&lhs.0, &rhs.0)),
-    / Unsigned::<L>(algo::div(&lhs.0, &rhs.0).0),
-    % Unsigned::<L>(algo::div(&lhs.0, &rhs.0).1),
+    + Unsigned(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
+    - Unsigned(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
 
-    | Unsigned::<L>(uops::bitor(&lhs.0, &rhs.0)),
-    & Unsigned::<L>(uops::bitand(&lhs.0, &rhs.0)),
-    ^ Unsigned::<L>(uops::bitxor(&lhs.0, &rhs.0)),
+    * Unsigned(algo::mul(&lhs.0, &rhs.0)),
 
-    + @wrapping Unsigned::<L>(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    - @wrapping Unsigned::<L>(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
-    * @wrapping Unsigned::<L>(algo::mul(&lhs.0, &rhs.0)),
-    / @wrapping Unsigned::<L>(algo::div(&lhs.0, &rhs.0).0),
-    % @wrapping Unsigned::<L>(algo::div(&lhs.0, &rhs.0).1),
+    / Unsigned(algo::div(&lhs.0, &rhs.0).0),
+    % Unsigned(algo::div(&lhs.0, &rhs.0).1),
+
+    | Unsigned(uops::bitor(&lhs.0, &rhs.0)),
+    & Unsigned(uops::bitand(&lhs.0, &rhs.0)),
+    ^ Unsigned(uops::bitxor(&lhs.0, &rhs.0)),
+
+    + @wrapping Unsigned(uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
+    - @wrapping Unsigned(uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping()),
+
+    * @wrapping Unsigned(algo::mul(&lhs.0, &rhs.0)),
+
+    / @wrapping Unsigned(algo::div(&lhs.0, &rhs.0).0),
+    % @wrapping Unsigned(algo::div(&lhs.0, &rhs.0).1),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
-    << Unsigned::<L>(uops::shl(&lhs.0, rhs, 0).0),
-    >> Unsigned::<L>(uops::shr(&lhs.0, rhs, 0).0),
+    << Unsigned(uops::shl(&lhs.0, rhs, 0).0),
+    >> Unsigned(uops::shr(&lhs.0, rhs, 0).0),
 
-    << @unbounded Unsigned::<L>(uops::shl(&lhs.0, rhs, 0).0),
-    >> @unbounded Unsigned::<L>(uops::shr(&lhs.0, rhs, 0).0),
+    << @unbounded Unsigned(uops::shl(&lhs.0, rhs, 0).0),
+    >> @unbounded Unsigned(uops::shr(&lhs.0, rhs, 0).0),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
-    | Bytes::<L>(uops::bitor(&lhs.0, &rhs.0)),
-    & Bytes::<L>(uops::bitand(&lhs.0, &rhs.0)),
-    ^ Bytes::<L>(uops::bitxor(&lhs.0, &rhs.0)),
+    | Bytes(uops::bitor(&lhs.0, &rhs.0)),
+    & Bytes(uops::bitand(&lhs.0, &rhs.0)),
+    ^ Bytes(uops::bitxor(&lhs.0, &rhs.0)),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for [Bytes<L>, usize], [
-    << Bytes::<L>(uops::shl(&lhs.0, rhs, 0).0),
-    >> Bytes::<L>(uops::shr(&lhs.0, rhs, 0).0),
+    << Bytes(uops::shl(&lhs.0, rhs, 0).0),
+    >> Bytes(uops::shr(&lhs.0, rhs, 0).0),
 
-    << @unbounded Bytes::<L>(uops::shl(&lhs.0, rhs, 0).0),
-    >> @unbounded Bytes::<L>(uops::shr(&lhs.0, rhs, 0).0),
+    << @unbounded Bytes(uops::shl(&lhs.0, rhs, 0).0),
+    >> @unbounded Bytes(uops::shr(&lhs.0, rhs, 0).0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     += uops::add_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
     -= uops::sub_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
-    /= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
-    %= { *lhs = Signed::<L>(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
+    /= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
+    %= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
 
     |= uops::bitor_mut(&mut lhs.0, &rhs.0),
     &= uops::bitand_mut(&mut lhs.0, &rhs.0),
