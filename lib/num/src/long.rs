@@ -1254,6 +1254,51 @@ pub mod uops {
         }
     }
 
+    /// Iterator for sign.
+    ///
+    /// Bit specifies desired Most Significant Bit.
+    #[inline]
+    pub fn signed<const L: usize>(
+        words: &[Single; L],
+        bit: bool,
+    ) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
+        let (xor, acc) = match words[L - 1] >> (BITS - 1) == bit as Single {
+            false => (MAX, 1),
+            true => (0, 0),
+        };
+
+        ExprIter {
+            lhs: words.iter().copied().map(move |val| val ^ xor),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc,
+        }
+    }
+
+    /// Iterator mutable for sign.
+    ///
+    /// Bit specifies desired Most Significant Bit.
+    #[inline]
+    pub fn signed_mut<'words, const L: usize>(
+        words: &'words mut [Single; L],
+        bit: bool,
+    ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
+        let (xor, acc) = match words[L - 1] >> (BITS - 1) == bit as Single {
+            false => (MAX, 1),
+            true => (0, 0),
+        };
+
+        ExprIterMut {
+            lhs: words.iter_mut().map(move |val| {
+                *val ^= xor;
+                val
+            }),
+            rhs: std::iter::repeat(0),
+            mul: 1,
+            acc,
+        }
+    }
+
     /// Iterator for `lhs + rhs`
     #[inline]
     pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
@@ -2085,8 +2130,8 @@ pub mod algo {
         #[inline]
         pub fn checked(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Option<Self> {
             match rhs.eq(&[0; L]) {
-                true => None,
                 false => Some(Self { lhs, rhs }),
+                true => None,
             }
         }
 
@@ -2106,8 +2151,47 @@ pub mod algo {
 
         /// Constructs as wrapping.
         #[inline]
-        pub fn overflowing(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> (Self, Option<Single>) {
-            (Self { lhs, rhs }, None)
+        pub fn overflowing(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> (Self, bool) {
+            (Self { lhs, rhs }, false)
+        }
+    }
+
+    impl<'words, const L: usize> Div<&'words [Single; L], Single> {
+        /// Constructs as default.
+        #[inline]
+        pub fn default(lhs: &'words [Single; L], rhs: Single) -> Self {
+            debug_assert_ne!(rhs, 0);
+
+            Self { lhs, rhs }
+        }
+
+        /// Constructs as checked.
+        #[inline]
+        pub fn checked(lhs: &'words [Single; L], rhs: Single) -> Option<Self> {
+            match rhs.eq(&0) {
+                false => Some(Self { lhs, rhs }),
+                true => None,
+            }
+        }
+
+        /// Constructs as strict.
+        #[inline]
+        pub fn strict(lhs: &'words [Single; L], rhs: Single) -> Self {
+            assert_ne!(rhs, 0);
+
+            Self { lhs, rhs }
+        }
+
+        /// Constructs as wrapping.
+        #[inline]
+        pub fn wrapping(lhs: &'words [Single; L], rhs: Single) -> Self {
+            Self { lhs, rhs }
+        }
+
+        /// Constructs as wrapping.
+        #[inline]
+        pub fn overflowing(lhs: &'words [Single; L], rhs: Single) -> (Self, bool) {
+            (Self { lhs, rhs }, false)
         }
     }
 
@@ -3360,7 +3444,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> f
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     += uops::add_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
     -= uops::sub_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
+
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
+
     /= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
     %= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
 
@@ -3380,7 +3466,9 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for [Sig
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>), [
     += uops::add_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
     -= uops::sub_mut(lhs.0.iter_mut(), rhs.0.iter().copied()).wrapping(),
+
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
+
     /= algo::div_mut(&mut lhs.0, &rhs.0),
     %= algo::rem_mut(&mut lhs.0, &rhs.0),
 
@@ -3542,29 +3630,31 @@ impl<const L: usize> Signed<L> {
     /// Absolute value.
     #[inline]
     pub fn abs(&self) -> Signed<L> {
-        Signed::<L>(uops::abs(&self.0).wrapping())
+        Signed(uops::abs(&self.0).wrapping())
     }
 
     /// Absolute unsigned value.
     #[inline]
     pub fn abs_unsigned(&self) -> Unsigned<L> {
-        Unsigned::<L>(uops::abs(&self.0).wrapping())
+        Unsigned(uops::abs(&self.0).wrapping())
     }
 
     /// Creates new signed with specified sign from raw `self.0`.
     #[inline]
     pub fn signed(&self, sign: Sign) -> Self {
-        match self.sign() * sign {
-            Sign::ZERO => Self::default(),
-            Sign::NEG => Self(uops::neg(self.0.iter().copied()).wrapping()),
-            Sign::POS => Self(uops::pos(self.0.iter().copied()).wrapping()),
-        }
+        let bit = match self.sign() * sign {
+            Sign::ZERO => false,
+            Sign::NEG => true,
+            Sign::POS => false,
+        };
+
+        Self(uops::signed(&self.0, bit).wrapping())
     }
 
     /// Creates new unsigned from raw `self.0`.
     #[inline]
     pub fn unsigned(self) -> Unsigned<L> {
-        Unsigned::<L>(self.0)
+        Unsigned(self.0)
     }
 }
 
@@ -3600,11 +3690,13 @@ impl<const L: usize> Unsigned<L> {
     /// Creates new signed with specified sign from raw `self.0`.
     #[inline]
     pub fn signed(&self, sign: Sign) -> Signed<L> {
-        match self.sign() * sign {
-            Sign::ZERO => Signed::<L>::default(),
-            Sign::NEG => Signed::<L>(uops::neg(self.0.iter().copied()).wrapping()),
-            Sign::POS => Signed::<L>(uops::pos(self.0.iter().copied()).wrapping()),
-        }
+        let bit = match sign {
+            Sign::ZERO => false,
+            Sign::NEG => true,
+            Sign::POS => false,
+        };
+
+        Signed(uops::signed(&self.0, bit).wrapping())
     }
 
     /// Creates new unsigned from raw `self.0`.
