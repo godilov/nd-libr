@@ -1093,8 +1093,8 @@ pub mod uops {
 
         /// Consumes iterator as overflowing.
         #[inline]
-        pub fn overflowing<const L: usize, Long: From<[Single; L]>>(mut self) -> (Long, Option<Single>) {
-            (Long::from(self.collect_arr()), (self.acc > 0).then_some(self.acc))
+        pub fn overflowing<const L: usize, Long: From<[Single; L]>>(mut self) -> (Long, bool) {
+            (Long::from(self.collect_arr()), self.acc > 0)
         }
     }
 
@@ -1128,11 +1128,8 @@ pub mod uops {
 
         /// Consumes iterator as overflowing.
         #[inline]
-        pub fn overflowing(self) -> ((), Option<Single>) {
-            match self.last().unwrap_or(0) {
-                0 => ((), None),
-                val => ((), Some(val)),
-            }
+        pub fn overflowing(self) -> ((), bool) {
+            ((), self.last().unwrap_or(0) > 0)
         }
     }
 
@@ -1975,13 +1972,24 @@ pub mod algo {
 
     /// Multiplication result.
     pub struct Mul<Words> {
+        /// Result words.
         pub words: Words,
 
-        pub overflow: Option<Single>,
+        /// Result overflow.
+        pub overflow: bool,
     }
 
-    impl<Words> From<(Words, Option<Single>)> for Mul<Words> {
-        fn from((words, overflow): (Words, Option<Single>)) -> Self {
+    /// Division arguments.
+    pub struct Div<Lhs, Rhs> {
+        /// Lhs in `lhs / rhs`, `lhs % rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs / rhs`, `lhs % rhs`.
+        pub rhs: Rhs,
+    }
+
+    impl<Words> From<(Words, bool)> for Mul<Words> {
+        fn from((words, overflow): (Words, bool)) -> Self {
             Mul { words, overflow }
         }
     }
@@ -1992,7 +2000,7 @@ pub mod algo {
         pub fn default<Long: From<[Single; L]>>(self) -> Long {
             let res = self.overflowing();
 
-            debug_assert_eq!(res.1, None);
+            debug_assert!(!res.1);
 
             res.0
         }
@@ -2003,8 +2011,8 @@ pub mod algo {
             let res = self.overflowing();
 
             match res.1 {
-                Some(_) => None,
-                None => Some(res.0),
+                false => Some(res.0),
+                true => None,
             }
         }
 
@@ -2013,7 +2021,7 @@ pub mod algo {
         pub fn strict<Long: From<[Single; L]>>(self) -> Long {
             let res = self.overflowing();
 
-            assert_eq!(res.1, None);
+            assert!(!res.1);
 
             res.0
         }
@@ -2026,7 +2034,7 @@ pub mod algo {
 
         /// Consumes as overflowing.
         #[inline]
-        pub fn overflowing<Long: From<[Single; L]>>(self) -> (Long, Option<Single>) {
+        pub fn overflowing<Long: From<[Single; L]>>(self) -> (Long, bool) {
             (Long::from(self.words), self.overflow)
         }
     }
@@ -2035,22 +2043,22 @@ pub mod algo {
         /// Consumes as default.
         #[inline]
         pub fn default(self) {
-            debug_assert_eq!(self.overflow, None);
+            debug_assert!(!self.overflow);
         }
 
         /// Consumes as checked.
         #[inline]
         pub fn checked(self) -> Option<()> {
             match self.overflow {
-                Some(_) => None,
-                None => Some(()),
+                false => Some(()),
+                true => None,
             }
         }
 
         /// Consumes as strict.
         #[inline]
         pub fn strict(self) {
-            assert_eq!(self.overflow, None);
+            assert!(!self.overflow);
         }
 
         /// Consumes as wrapping.
@@ -2059,8 +2067,47 @@ pub mod algo {
 
         /// Consumes as wrapping.
         #[inline]
-        pub fn overflowing(self) -> ((), Option<Single>) {
+        pub fn overflowing(self) -> ((), bool) {
             ((), self.overflow)
+        }
+    }
+
+    impl<'words, const L: usize> Div<&'words [Single; L], &'words [Single; L]> {
+        /// Constructs as default.
+        #[inline]
+        pub fn default(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Self {
+            debug_assert_ne!(rhs, &[0; L]);
+
+            Self { lhs, rhs }
+        }
+
+        /// Constructs as checked.
+        #[inline]
+        pub fn checked(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Option<Self> {
+            match rhs.eq(&[0; L]) {
+                true => None,
+                false => Some(Self { lhs, rhs }),
+            }
+        }
+
+        /// Constructs as strict.
+        #[inline]
+        pub fn strict(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Self {
+            assert_ne!(rhs, &[0; L]);
+
+            Self { lhs, rhs }
+        }
+
+        /// Constructs as wrapping.
+        #[inline]
+        pub fn wrapping(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Self {
+            Self { lhs, rhs }
+        }
+
+        /// Constructs as wrapping.
+        #[inline]
+        pub fn overflowing(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> (Self, Option<Single>) {
+            (Self { lhs, rhs }, None)
         }
     }
 
@@ -2080,19 +2127,15 @@ pub mod algo {
     #[inline]
     pub fn mul_checked<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> Mul<[Single; L]> {
         let mut res = [0; L];
-        let mut acc = 0 as Single;
-        let mut any = false;
+        let mut any = 0;
 
         for (idx, val) in rhs.iter().copied().enumerate() {
-            let val = uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val))
+            any |= uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val))
                 .last()
                 .unwrap_or(0);
-
-            acc = acc.wrapping_add(val);
-            any |= acc > 0;
         }
 
-        Mul::from((res, any.then_some(acc)))
+        Mul::from((res, any > 0))
     }
 
     /// Calculates `lhs *= rhs`.
@@ -2173,19 +2216,15 @@ pub mod algo {
         let rhs = (0..L).map(|idx| if idx == 0 { rhs } else { ext });
 
         let mut res = [0; L];
-        let mut acc = 0 as Single;
-        let mut any = false;
+        let mut any = 0;
 
         for (idx, val) in rhs.enumerate() {
-            let val = uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val))
+            any |= uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val))
                 .last()
                 .unwrap_or(0);
-
-            acc = acc.wrapping_add(val);
-            any |= acc > 0;
         }
 
-        Mul::from((res, any.then_some(acc)))
+        Mul::from((res, any > 0))
     }
 
     /// Calculates `lhs *= rhs`, where `rhs` is single CPU-word.
