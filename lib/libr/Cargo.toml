@@ -20,8 +20,6 @@ ndext    = { workspace = true, optional = true }
 ndmem    = { workspace = true, optional = true }
 ndnum    = { workspace = true, optional = true }
 
-rand = { workspace = true }
-
 [dev-dependencies]
 
 [lints]
