@@ -38,10 +38,9 @@ harness = false
 
 [features]
 default    = []
-all        = ["std", "dyn", "simd", "rand", "rayon", "const-time"]
+all        = ["std", "dyn", "rand", "rayon", "const-time"]
 std        = []
 dyn        = ["std"]
-simd       = []
 rand       = ["dep:rand"]
 rayon      = ["dep:rayon"]
 const-time = []

@@ -18,7 +18,7 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    BytesFn, Max, Min, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
+    BytesFn, Max, Min, NdRand, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
     long::radix::*,
 };
@@ -3246,6 +3246,9 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
         from_str_impl!(@radix s, Hex).map(Self)
     }
 }
+
+impl<const L: usize> NdRand for Signed<L> {}
+impl<const L: usize> NdRand for Unsigned<L> {}
 
 impl<const L: usize> FromStr for Signed<L> {
     type Err = FromStrError;
