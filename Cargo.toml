@@ -57,5 +57,6 @@ ndevm    = { path = "lib/evm" }
 ndprimes = { path = "cli/primes" }
 
 [profile.release]
-panic = "abort"
-lto   = true
+codegen-units = 1
+panic         = "abort"
+lto           = true

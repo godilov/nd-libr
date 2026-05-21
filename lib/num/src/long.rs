@@ -1553,7 +1553,7 @@ pub mod uops {
         }
     }
 
-    /// Returns `lhs | rhs`.
+    /// Calculates `lhs | rhs`.
     #[inline]
     pub fn bitor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         lhs.iter()
@@ -1563,7 +1563,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs & rhs`.
+    /// Calculates `lhs & rhs`.
     #[inline]
     pub fn bitand<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         lhs.iter()
@@ -1573,7 +1573,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs ^ rhs`.
+    /// Calculates `lhs ^ rhs`.
     #[inline]
     pub fn bitxor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
         lhs.iter()
@@ -1583,7 +1583,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs | rhs`.
+    /// Calculates `lhs | rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn bitor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         lhs.iter()
@@ -1593,7 +1593,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs & rhs`.
+    /// Calculates `lhs & rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn bitand_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         lhs.iter()
@@ -1603,7 +1603,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs ^ rhs`.
+    /// Calculates `lhs ^ rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn bitxor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
         lhs.iter()
@@ -1613,7 +1613,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs | rhs`.
+    /// Calculates `lhs | rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1632,7 +1632,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs & rhs`.
+    /// Calculates `lhs & rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1651,7 +1651,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Returns `lhs ^ rhs`.
+    /// Calculates `lhs ^ rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1670,7 +1670,7 @@ pub mod uops {
             .collect_arr()
     }
 
-    /// Applies `lhs |= rhs`.
+    /// Calculates `lhs |= rhs`.
     #[inline]
     pub fn bitor_mut<'words, const L: usize>(
         lhs: &'words mut [Single; L],
@@ -1680,7 +1680,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs &= rhs`.
+    /// Calculates `lhs &= rhs`.
     #[inline]
     pub fn bitand_mut<'words, const L: usize>(
         lhs: &'words mut [Single; L],
@@ -1690,7 +1690,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs ^= rhs`.
+    /// Calculates `lhs ^= rhs`.
     #[inline]
     pub fn bitxor_mut<'words, const L: usize>(
         lhs: &'words mut [Single; L],
@@ -1700,7 +1700,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs |= rhs`.
+    /// Calculates `lhs |= rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn bitor_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
         lhs.iter_mut()
@@ -1710,7 +1710,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs &= rhs`.
+    /// Calculates `lhs &= rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn bitand_single_mut<const L: usize>(
         lhs: &mut [Single; L],
@@ -1723,7 +1723,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs ^= rhs`.
+    /// Calculates `lhs ^= rhs`, where `rhs` is single CPU-word.
     #[inline]
     pub fn bitxor_single_mut<const L: usize>(
         lhs: &mut [Single; L],
@@ -1736,7 +1736,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs |= rhs`.
+    /// Calculates `lhs |= rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1755,7 +1755,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs &= rhs`.
+    /// Calculates `lhs &= rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1774,7 +1774,7 @@ pub mod uops {
         lhs
     }
 
-    /// Applies `lhs ^= rhs`.
+    /// Calculates `lhs ^= rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
@@ -1793,7 +1793,7 @@ pub mod uops {
         lhs
     }
 
-    /// Returns `words << shift`.
+    /// Calculates `words << shift`.
     ///
     /// Argument `default` is used for filling bits outside of shift.
     #[inline]
@@ -1822,7 +1822,7 @@ pub mod uops {
         (res, shift < BITS * L)
     }
 
-    /// Returns `words >> shift`.
+    /// Calculates `words >> shift`.
     ///
     /// Argument `default` is used for filling bits outside of shift.
     #[inline]
@@ -1849,7 +1849,7 @@ pub mod uops {
         (res, shift < BITS * L)
     }
 
-    /// Returns `words << shift`.
+    /// Calculates `words << shift`.
     ///
     /// Words are sign-extended instead of zero-extended.
     #[inline]
@@ -1857,7 +1857,7 @@ pub mod uops {
         shl(words, shift, 0)
     }
 
-    /// Returns `words >> shift`.
+    /// Calculates `words >> shift`.
     ///
     /// Words are sign-extended instead of zero-extended.
     #[inline]
@@ -1871,7 +1871,7 @@ pub mod uops {
         shr(words, shift, ext)
     }
 
-    /// Applies `words <<= shift`.
+    /// Calculates `words <<= shift`.
     ///
     /// Argument `default` is used for filling bits outside of shift.
     #[inline]
@@ -1901,7 +1901,7 @@ pub mod uops {
         shift < BITS * L
     }
 
-    /// Applies `words >>= shift`.
+    /// Calculates `words >>= shift`.
     ///
     /// Argument `default` is used for filling bits outside of shift.
     #[inline]
@@ -1929,7 +1929,7 @@ pub mod uops {
         shift < BITS * L
     }
 
-    /// Applies `words <<= shift`.
+    /// Calculates `words <<= shift`.
     ///
     /// Words are sign-extended instead of zero-extended.
     #[inline]
@@ -1937,7 +1937,7 @@ pub mod uops {
         shl_mut(words, shift, 0)
     }
 
-    /// Applies `words >>= shift`.
+    /// Calculates `words >>= shift`.
     ///
     /// Words are sign-extended instead of zero-extended.
     #[inline]
