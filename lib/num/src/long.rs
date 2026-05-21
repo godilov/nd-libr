@@ -229,8 +229,8 @@ macro_rules! nd_ops_primitive_impl {
 
             * Signed(algo::mul(&lhs.0, &Signed::from(rhs).0)),
 
-            / Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).1).signed(lhs.sign()),
+            / Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().0).signed(lhs.sign() * Sign::from(rhs)),
+            % Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().1).signed(lhs.sign()),
 
             | Signed(uops::bitor(&lhs.0, &Signed::from(rhs).0)),
             & Signed(uops::bitand(&lhs.0, &Signed::from(rhs).0)),
@@ -253,8 +253,8 @@ macro_rules! nd_ops_primitive_impl {
 
             *= algo::mul_mut(&mut lhs.0, &Signed::from(rhs).0),
 
-            /= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).0).signed(lhs.sign() * Sign::from(rhs)); },
-            %= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).1).signed(lhs.sign()); },
+            /= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().0).signed(lhs.sign() * Sign::from(rhs)); },
+            %= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().1).signed(lhs.sign()); },
 
             |= uops::bitor_mut(&mut lhs.0, &Signed::from(rhs).0),
             &= uops::bitand_mut(&mut lhs.0, &Signed::from(rhs).0),
@@ -268,8 +268,8 @@ macro_rules! nd_ops_primitive_impl {
 
             * Unsigned(algo::mul(&lhs.0, &Unsigned::from(rhs).0)),
 
-            / Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).0),
-            % Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).1),
+            / Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping().0),
+            % Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping().1),
 
             | Unsigned(uops::bitor(&lhs.0, &Unsigned::from(rhs).0)),
             & Unsigned(uops::bitand(&lhs.0, &Unsigned::from(rhs).0)),
@@ -292,8 +292,8 @@ macro_rules! nd_ops_primitive_impl {
 
             *= algo::mul_mut(&mut lhs.0, &Unsigned::from(rhs).0),
 
-            /= algo::div_mut(&mut lhs.0, &Unsigned::from(rhs).0),
-            %= algo::rem_mut(&mut lhs.0, &Unsigned::from(rhs).0),
+            /= algo::div_mut(&mut lhs.0, &Unsigned::from(rhs).0).wrapping(),
+            %= algo::rem_mut(&mut lhs.0, &Unsigned::from(rhs).0).wrapping(),
 
             |= uops::bitor_mut(&mut lhs.0, &Unsigned::from(rhs).0),
             &= uops::bitand_mut(&mut lhs.0, &Unsigned::from(rhs).0),
@@ -338,8 +338,8 @@ macro_rules! nd_ops_primitive_native_impl {
 
             * Signed(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
 
-            / Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()),
+            / Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping().0).signed(lhs.sign() * Sign::from(rhs)),
+            % Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping().1 as $primitive).signed(lhs.sign()),
 
             | Signed(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
             & Signed(uops::bitand_signed(&lhs.0, rhs as <Single as Num>::Signed)),
@@ -362,8 +362,8 @@ macro_rules! nd_ops_primitive_native_impl {
 
             *= algo::mul_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
 
-            /= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).0).signed(lhs.sign() * Sign::from(rhs)); },
-            %= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).1 as $primitive).signed(lhs.sign()); },
+            /= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping().0).signed(lhs.sign() * Sign::from(rhs)); },
+            %= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping().1 as $primitive).signed(lhs.sign()); },
 
             |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
             &= uops::bitand_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
@@ -377,8 +377,8 @@ macro_rules! nd_ops_primitive_native_impl {
 
             * Unsigned(algo::mul_single(&lhs.0, rhs as Single)),
 
-            / Unsigned::from(algo::div_single(&lhs.0, rhs as Single).0),
-            % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).1 as $primitive),
+            / Unsigned::from(algo::div_single(&lhs.0, rhs as Single).wrapping().0),
+            % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).wrapping().1 as $primitive),
 
             | Unsigned(uops::bitor_single(&lhs.0, rhs as Single)),
             & Unsigned(uops::bitand_single(&lhs.0, rhs as Single)),
@@ -399,8 +399,8 @@ macro_rules! nd_ops_primitive_native_impl {
             += uops::add_single_mut(lhs.0.iter_mut(), rhs as Single).wrapping(),
             -= uops::sub_single_mut(lhs.0.iter_mut(), rhs as Single).wrapping(),
             *= algo::mul_single_mut(&mut lhs.0, rhs as Single),
-            /= algo::div_single_mut(&mut lhs.0, rhs as Single),
-            %= algo::rem_single_mut(&mut lhs.0, rhs as Single),
+            /= algo::div_single_mut(&mut lhs.0, rhs as Single).wrapping(),
+            %= algo::rem_single_mut(&mut lhs.0, rhs as Single).wrapping(),
 
             |= uops::bitor_single_mut(&mut lhs.0, rhs as Single),
             &= uops::bitand_single_mut(&mut lhs.0, rhs as Single),
@@ -1301,6 +1301,7 @@ pub mod uops {
 
     /// Iterator for `lhs + rhs`
     #[inline]
+    #[must_use]
     pub fn add<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
@@ -1310,6 +1311,7 @@ pub mod uops {
 
     /// Iterator mutable for `lhs + rhs`
     #[inline]
+    #[must_use]
     pub fn add_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
@@ -1319,6 +1321,7 @@ pub mod uops {
 
     /// Iterator for `lhs + rhs`, where `rhs` is single CPU-word.
     #[inline]
+    #[must_use]
     pub fn add_single<Lhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Unsigned,
@@ -1333,6 +1336,7 @@ pub mod uops {
 
     /// Iterator mutable for `lhs + rhs`, where `rhs` is single CPU-word.
     #[inline]
+    #[must_use]
     pub fn add_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Unsigned,
@@ -1349,6 +1353,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
+    #[must_use]
     pub fn add_signed<Lhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Signed,
@@ -1372,6 +1377,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
+    #[must_use]
     pub fn add_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Signed,
@@ -1393,6 +1399,7 @@ pub mod uops {
 
     /// Iterator for `lhs - rhs`.
     #[inline]
+    #[must_use]
     pub fn sub<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
@@ -1407,6 +1414,7 @@ pub mod uops {
 
     /// Iterator mutable for `lhs - rhs`.
     #[inline]
+    #[must_use]
     pub fn sub_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
@@ -1421,6 +1429,7 @@ pub mod uops {
 
     /// Iterator for `lhs - rhs`, where `rhs` is single CPU-word.
     #[inline]
+    #[must_use]
     pub fn sub_single<Lhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Unsigned,
@@ -1443,6 +1452,7 @@ pub mod uops {
 
     /// Iterator mutable for `lhs - rhs`, where `rhs` is single CPU-word.
     #[inline]
+    #[must_use]
     pub fn sub_single_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Unsigned,
@@ -1467,6 +1477,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
+    #[must_use]
     pub fn sub_signed<Lhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Signed,
@@ -1491,6 +1502,7 @@ pub mod uops {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
+    #[must_use]
     pub fn sub_signed_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: <Single as Num>::Signed,
@@ -1513,6 +1525,7 @@ pub mod uops {
 
     /// Iterator for `lhs * rhs`.
     #[inline]
+    #[must_use]
     pub fn mul<Lhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Single,
@@ -1527,6 +1540,7 @@ pub mod uops {
 
     /// Iterator mutable for `lhs * rhs`.
     #[inline]
+    #[must_use]
     pub fn mul_mut<'elem, Lhs: Iterator<Item = &'elem mut Single>>(
         lhs: Lhs,
         rhs: Single,
@@ -2024,12 +2038,30 @@ pub mod algo {
         pub overflow: bool,
     }
 
-    /// Division arguments.
+    /// Division expression.
     pub struct Div<Lhs, Rhs> {
         /// Lhs in `lhs / rhs`, `lhs % rhs`.
         pub lhs: Lhs,
 
         /// Rhs in `lhs / rhs`, `lhs % rhs`.
+        pub rhs: Rhs,
+    }
+
+    /// Division mutable expression.
+    pub struct DivMut<Lhs, Rhs> {
+        /// Lhs in `lhs /= rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs /= rhs`.
+        pub rhs: Rhs,
+    }
+
+    /// Remainder mutable expression.
+    pub struct RemMut<Lhs, Rhs> {
+        /// Lhs in `lhs %= rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs %= rhs`.
         pub rhs: Rhs,
     }
 
@@ -2117,81 +2149,276 @@ pub mod algo {
         }
     }
 
-    impl<'words, const L: usize> Div<&'words [Single; L], &'words [Single; L]> {
-        /// Constructs as default.
+    impl<const L: usize> Div<&[Single; L], &[Single; L]> {
+        /// Calculates as default.
         #[inline]
-        pub fn default(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Self {
-            debug_assert_ne!(rhs, &[0; L]);
+        pub fn default(self) -> ([Single; L], [Single; L]) {
+            debug_assert_ne!(self.rhs, &[0; L]);
 
-            Self { lhs, rhs }
+            self.wrapping()
         }
 
-        /// Constructs as checked.
+        /// Calculates as checked.
         #[inline]
-        pub fn checked(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Option<Self> {
-            match rhs.eq(&[0; L]) {
-                false => Some(Self { lhs, rhs }),
+        pub fn checked(self) -> Option<([Single; L], [Single; L])> {
+            match self.rhs.eq(&[0; L]) {
+                false => Some(self.wrapping()),
                 true => None,
             }
         }
 
-        /// Constructs as strict.
+        /// Calculates as strict.
         #[inline]
-        pub fn strict(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Self {
-            assert_ne!(rhs, &[0; L]);
+        pub fn strict(self) -> ([Single; L], [Single; L]) {
+            assert_ne!(self.rhs, &[0; L]);
 
-            Self { lhs, rhs }
+            self.wrapping()
         }
 
-        /// Constructs as wrapping.
+        /// Calculates as wrapping.
         #[inline]
-        pub fn wrapping(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> Self {
-            Self { lhs, rhs }
+        pub fn wrapping(self) -> ([Single; L], [Single; L]) {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            let mut div = [0; L];
+            let mut rem = [0; L];
+
+            for (ptr, val) in div.iter_mut().zip(lhs.iter().copied()).rev() {
+                cycle!(rem, val);
+
+                let digit = search!(@max 0, RADIX, |m: Double| {
+                    let iter = &mut uops::mul(rhs.iter().copied(), m as Single);
+
+                    let cmp = iter.zip(rem.iter().copied()).fold(Ordering::Equal, |acc, (lhs, rhs)| match lhs.cmp(&rhs) {
+                        Ordering::Less => Ordering::Less,
+                        Ordering::Equal => acc,
+                        Ordering::Greater => Ordering::Greater,
+                    });
+
+                    match iter.acc {
+                        0 => cmp,
+                        _ => Ordering::Greater,
+                    }
+                });
+
+                *ptr = digit.saturating_sub(1) as Single;
+
+                uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *ptr)).wrapping();
+            }
+
+            (div, rem)
         }
 
-        /// Constructs as wrapping.
+        /// Calculates as wrapping.
         #[inline]
-        pub fn overflowing(lhs: &'words [Single; L], rhs: &'words [Single; L]) -> (Self, bool) {
-            (Self { lhs, rhs }, false)
+        pub fn overflowing(self) -> (([Single; L], [Single; L]), bool) {
+            (self.wrapping(), false)
         }
     }
 
-    impl<'words, const L: usize> Div<&'words [Single; L], Single> {
-        /// Constructs as default.
+    impl<const L: usize> Div<&[Single; L], Single> {
+        /// Calculates as default.
         #[inline]
-        pub fn default(lhs: &'words [Single; L], rhs: Single) -> Self {
-            debug_assert_ne!(rhs, 0);
+        pub fn default(self) -> ([Single; L], Single) {
+            debug_assert_ne!(self.rhs, 0);
 
-            Self { lhs, rhs }
+            self.wrapping()
         }
 
-        /// Constructs as checked.
+        /// Calculates as checked.
         #[inline]
-        pub fn checked(lhs: &'words [Single; L], rhs: Single) -> Option<Self> {
-            match rhs.eq(&0) {
-                false => Some(Self { lhs, rhs }),
+        pub fn checked(self) -> Option<([Single; L], Single)> {
+            match self.rhs.eq(&0) {
+                false => Some(self.wrapping()),
                 true => None,
             }
         }
 
-        /// Constructs as strict.
+        /// Calculates as strict.
         #[inline]
-        pub fn strict(lhs: &'words [Single; L], rhs: Single) -> Self {
-            assert_ne!(rhs, 0);
+        pub fn strict(self) -> ([Single; L], Single) {
+            assert_ne!(self.rhs, 0);
 
-            Self { lhs, rhs }
+            self.wrapping()
         }
 
-        /// Constructs as wrapping.
+        /// Calculates as wrapping.
         #[inline]
-        pub fn wrapping(lhs: &'words [Single; L], rhs: Single) -> Self {
-            Self { lhs, rhs }
+        pub fn wrapping(self) -> ([Single; L], Single) {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            let mut div = [0; L];
+            let mut rem = 0 as Double;
+
+            for (ptr, val) in div.iter_mut().zip(lhs.iter().copied()).rev() {
+                rem <<= BITS;
+                rem |= val as Double;
+
+                let digit = search!(@max 0, RADIX, |m: Double| (m * rhs as Double).cmp(&rem));
+                let digit = digit.saturating_sub(1) as Single;
+
+                *ptr = digit;
+                rem -= digit as Double * rhs as Double;
+            }
+
+            (div, rem as Single)
         }
 
-        /// Constructs as wrapping.
+        /// Calculates as wrapping.
         #[inline]
-        pub fn overflowing(lhs: &'words [Single; L], rhs: Single) -> (Self, bool) {
-            (Self { lhs, rhs }, false)
+        pub fn overflowing(self) -> (([Single; L], Single), bool) {
+            (self.wrapping(), false)
+        }
+    }
+
+    impl<const L: usize> DivMut<&mut [Single; L], &[Single; L]> {
+        /// Calculates as default.
+        #[inline]
+        pub fn default(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default().0;
+        }
+
+        /// Calculates as checked.
+        #[inline]
+        pub fn checked(self) -> Option<()> {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked()?.0;
+
+            Some(())
+        }
+
+        /// Calculates as strict.
+        #[inline]
+        pub fn strict(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict().0;
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn wrapping(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping().0;
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn overflowing(self) -> ((), bool) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing().0.0;
+
+            ((), false)
+        }
+    }
+
+    impl<const L: usize> DivMut<&mut [Single; L], Single> {
+        /// Calculates as default.
+        #[inline]
+        pub fn default(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default().0;
+        }
+
+        /// Calculates as checked.
+        #[inline]
+        pub fn checked(self) -> Option<()> {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked()?.0;
+
+            Some(())
+        }
+
+        /// Calculates as strict.
+        #[inline]
+        pub fn strict(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict().0;
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn wrapping(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping().0;
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn overflowing(self) -> ((), bool) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing().0.0;
+
+            ((), false)
+        }
+    }
+
+    impl<const L: usize> RemMut<&mut [Single; L], &[Single; L]> {
+        /// Calculates as default.
+        #[inline]
+        pub fn default(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default().1;
+        }
+
+        /// Calculates as checked.
+        #[inline]
+        pub fn checked(self) -> Option<()> {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked()?.1;
+
+            Some(())
+        }
+
+        /// Calculates as strict.
+        #[inline]
+        pub fn strict(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict().1;
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn wrapping(self) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping().1;
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn overflowing(self) -> ((), bool) {
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing().0.1;
+
+            ((), false)
+        }
+    }
+
+    impl<const L: usize> RemMut<&mut [Single; L], Single> {
+        /// Calculates as default.
+        #[inline]
+        pub fn default(self) {
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.default().1;
+            self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
+        }
+
+        /// Calculates as checked.
+        #[inline]
+        pub fn checked(self) -> Option<()> {
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.checked()?.1;
+            self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
+
+            Some(())
+        }
+
+        /// Calculates as strict.
+        #[inline]
+        pub fn strict(self) {
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.strict().1;
+            self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn wrapping(self) {
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping().1;
+            self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
+        }
+
+        /// Calculates as wrapping.
+        #[inline]
+        pub fn overflowing(self) -> ((), bool) {
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing().0.1;
+            self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
+
+            ((), false)
         }
     }
 
@@ -2230,6 +2457,7 @@ pub mod algo {
 
     /// Calculates `lhs *= rhs`.
     #[inline]
+    #[must_use]
     pub fn mul_checked_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) -> Mul<()> {
         let res = mul_checked(lhs, rhs);
 
@@ -2246,6 +2474,7 @@ pub mod algo {
 
     /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
     #[inline]
+    #[must_use]
     pub fn mul_single_checked<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> Mul<[Single; L]> {
         Mul::from(uops::mul(lhs.iter().copied(), rhs).overflowing())
     }
@@ -2258,6 +2487,7 @@ pub mod algo {
 
     /// Calculates `lhs *= rhs`, where `rhs` is single CPU-word.
     #[inline]
+    #[must_use]
     pub fn mul_single_checked_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> Mul<()> {
         Mul::from(uops::mul_mut(lhs.iter_mut(), rhs).overflowing())
     }
@@ -2289,6 +2519,7 @@ pub mod algo {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
+    #[must_use]
     pub fn mul_signed_checked<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> Mul<[Single; L]> {
         let rhs = rhs as Single;
 
@@ -2323,6 +2554,7 @@ pub mod algo {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
+    #[must_use]
     pub fn mul_signed_checked_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> Mul<()> {
         let res = mul_signed_checked(lhs, rhs);
 
@@ -2333,119 +2565,53 @@ pub mod algo {
 
     /// Calculates `(lhs / rhs, lhs % rhs)`.
     #[inline]
-    pub fn div<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> ([Single; L], [Single; L]) {
-        let mut div = [0; L];
-        let mut rem = [0; L];
-
-        for (ptr, val) in div.iter_mut().zip(lhs.iter().copied()).rev() {
-            cycle!(rem, val);
-
-            let digit = search!(@max 0, RADIX, |m: Double| {
-                let iter = &mut uops::mul(rhs.iter().copied(), m as Single);
-
-                let cmp = iter.zip(rem.iter().copied()).fold(Ordering::Equal, |acc, (lhs, rhs)| match lhs.cmp(&rhs) {
-                    Ordering::Less => Ordering::Less,
-                    Ordering::Equal => acc,
-                    Ordering::Greater => Ordering::Greater,
-                });
-
-                match iter.acc {
-                    0 => cmp,
-                    _ => Ordering::Greater,
-                }
-            });
-
-            *ptr = digit.saturating_sub(1) as Single;
-
-            uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *ptr)).wrapping();
-        }
-
-        (div, rem)
+    #[must_use]
+    pub fn div<'words, const L: usize>(
+        lhs: &'words [Single; L],
+        rhs: &'words [Single; L],
+    ) -> Div<&'words [Single; L], &'words [Single; L]> {
+        Div { lhs, rhs }
     }
 
     /// Calculates `(lhs / rhs, lhs % rhs)`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn div_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> ([Single; L], Single) {
-        let mut div = [0; L];
-        let mut rem = 0 as Double;
-
-        for (ptr, val) in div.iter_mut().zip(lhs.iter().copied()).rev() {
-            rem <<= BITS;
-            rem |= val as Double;
-
-            let digit = search!(@max 0, RADIX, |m: Double| (m * rhs as Double).cmp(&rem));
-            let digit = digit.saturating_sub(1) as Single;
-
-            *ptr = digit;
-            rem -= digit as Double * rhs as Double;
-        }
-
-        (div, rem as Single)
+    #[must_use]
+    pub fn div_single<const L: usize>(lhs: &[Single; L], rhs: Single) -> Div<&[Single; L], Single> {
+        Div { lhs, rhs }
     }
 
     /// Calculates `lhs /= rhs`.
     #[inline]
-    pub fn div_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
-        let mut rem = [0; L];
-
-        for val in lhs.iter_mut().rev() {
-            cycle!(rem, *val);
-
-            let digit = search!(@max 0, RADIX, |m: Double| {
-                let iter = &mut uops::mul(rhs.iter().copied(), m as Single);
-
-                let cmp = iter.zip(rem.iter().copied()).fold(Ordering::Equal, |acc, (lhs, rhs)| match lhs.cmp(&rhs) {
-                    Ordering::Less => Ordering::Less,
-                    Ordering::Equal => acc,
-                    Ordering::Greater => Ordering::Greater,
-                });
-
-                match iter.acc {
-                    0 => cmp,
-                    _ => Ordering::Greater,
-                }
-            });
-
-            *val = digit.saturating_sub(1) as Single;
-
-            uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *val)).wrapping();
-        }
-
-        lhs
+    #[must_use]
+    pub fn div_mut<'words, const L: usize>(
+        lhs: &'words mut [Single; L],
+        rhs: &'words [Single; L],
+    ) -> DivMut<&'words mut [Single; L], &'words [Single; L]> {
+        DivMut { lhs, rhs }
     }
 
     /// Calculates `lhs /= rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
-        let mut rem = 0 as Double;
-
-        for val in lhs.iter_mut().rev() {
-            rem <<= BITS;
-            rem |= *val as Double;
-
-            let digit = search!(@max 0, RADIX, |m: Double| (m * rhs as Double).cmp(&rem));
-            let digit = digit.saturating_sub(1) as Single;
-
-            *val = digit;
-            rem -= digit as Double * rhs as Double;
-        }
-
-        lhs
+    #[must_use]
+    pub fn div_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> DivMut<&mut [Single; L], Single> {
+        DivMut { lhs, rhs }
     }
 
     /// Calculates `lhs %= rhs`.
     #[inline]
-    pub fn rem_mut<'words, const L: usize>(lhs: &'words mut [Single; L], rhs: &[Single; L]) -> &'words mut [Single; L] {
-        *lhs = div(lhs, rhs).1;
-        lhs
+    #[must_use]
+    pub fn rem_mut<'words, const L: usize>(
+        lhs: &'words mut [Single; L],
+        rhs: &'words [Single; L],
+    ) -> RemMut<&'words mut [Single; L], &'words [Single; L]> {
+        RemMut { lhs, rhs }
     }
 
     /// Calculates `lhs %= rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
-        lhs[0] = div_single(lhs, rhs).1;
-        lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
-        lhs
+    #[must_use]
+    pub fn rem_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: Single) -> RemMut<&mut [Single; L], Single> {
+        RemMut { lhs, rhs }
     }
 }
 
@@ -3373,8 +3539,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
 
     * Signed(algo::mul(&lhs.0, &rhs.0)),
 
-    / Signed(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
-    % Signed(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
+    / Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().0).signed(lhs.sign() * rhs.sign()),
+    % Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().1).signed(lhs.sign()),
 
     | Signed(uops::bitor(&lhs.0, &rhs.0)),
     & Signed(uops::bitand(&lhs.0, &rhs.0)),
@@ -3385,8 +3551,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
 
     * @wrapping Signed(algo::mul(&lhs.0, &rhs.0)),
 
-    / @wrapping Signed(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()),
-    % @wrapping Signed(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()),
+    / @wrapping Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().0).signed(lhs.sign() * rhs.sign()),
+    % @wrapping Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().1).signed(lhs.sign()),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for [Signed<L>, usize], [
@@ -3403,8 +3569,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
 
     * Unsigned(algo::mul(&lhs.0, &rhs.0)),
 
-    / Unsigned(algo::div(&lhs.0, &rhs.0).0),
-    % Unsigned(algo::div(&lhs.0, &rhs.0).1),
+    / Unsigned(algo::div(&lhs.0, &rhs.0).wrapping().0),
+    % Unsigned(algo::div(&lhs.0, &rhs.0).wrapping().1),
 
     | Unsigned(uops::bitor(&lhs.0, &rhs.0)),
     & Unsigned(uops::bitand(&lhs.0, &rhs.0)),
@@ -3415,8 +3581,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
 
     * @wrapping Unsigned(algo::mul(&lhs.0, &rhs.0)),
 
-    / @wrapping Unsigned(algo::div(&lhs.0, &rhs.0).0),
-    % @wrapping Unsigned(algo::div(&lhs.0, &rhs.0).1),
+    / @wrapping Unsigned(algo::div(&lhs.0, &rhs.0).wrapping().0),
+    % @wrapping Unsigned(algo::div(&lhs.0, &rhs.0).wrapping().1),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
@@ -3447,8 +3613,8 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
 
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
 
-    /= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).0).signed(lhs.sign() * rhs.sign()); },
-    %= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).1).signed(lhs.sign()); },
+    /= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().0).signed(lhs.sign() * rhs.sign()); },
+    %= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().1).signed(lhs.sign()); },
 
     |= uops::bitor_mut(&mut lhs.0, &rhs.0),
     &= uops::bitand_mut(&mut lhs.0, &rhs.0),
@@ -3469,8 +3635,8 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
 
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
 
-    /= algo::div_mut(&mut lhs.0, &rhs.0),
-    %= algo::rem_mut(&mut lhs.0, &rhs.0),
+    /= algo::div_mut(&mut lhs.0, &rhs.0).wrapping(),
+    %= algo::rem_mut(&mut lhs.0, &rhs.0).wrapping(),
 
     |= uops::bitor_mut(&mut lhs.0, &rhs.0),
     &= uops::bitand_mut(&mut lhs.0, &rhs.0),
@@ -5691,8 +5857,8 @@ mod tests {
             ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs))),
             ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs))),
 
-            ({ let mut val = S64::from(lhs); val /= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = S64::from(lhs); val %= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+            ({ let mut val = S64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = S64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
 
             ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs)),
             ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs)),
@@ -5707,8 +5873,8 @@ mod tests {
             ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs))),
             ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs))),
 
-            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+            ({ let mut val = U64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = U64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
 
             ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs)),
             ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs)),
@@ -5726,8 +5892,8 @@ mod tests {
             (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
             (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
 
-            ((rhs != 0).then_some(S64::from(lhs) / S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
-            ((rhs != 0).then_some(S64::from(lhs) % S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
+            ((rhs != 0).then_some(S64::from(lhs) / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
+            ((rhs != 0).then_some(S64::from(lhs) % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
 
             (S64::from(lhs) | rhs, S64::from(lhs | rhs as i64)),
             (S64::from(lhs) & rhs, S64::from(lhs & rhs as i64)),
@@ -5748,8 +5914,8 @@ mod tests {
             (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
             (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
 
-            ((rhs != 0).then_some(U64::from(lhs) / U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
-            ((rhs != 0).then_some(U64::from(lhs) % U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
+            ((rhs != 0).then_some(U64::from(lhs) / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
+            ((rhs != 0).then_some(U64::from(lhs) % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
 
             (U64::from(lhs) | rhs, U64::from(lhs | rhs as u64)),
             (U64::from(lhs) & rhs, U64::from(lhs & rhs as u64)),
@@ -5773,8 +5939,8 @@ mod tests {
             ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs as i64))),
             ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs as i64))),
 
-            ({ let mut val = S64::from(lhs); val /= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
-            ({ let mut val = S64::from(lhs); val %= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
+            ({ let mut val = S64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
+            ({ let mut val = S64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
 
             ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs as i64)),
             ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs as i64)),
@@ -5789,8 +5955,8 @@ mod tests {
             ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs as u64))),
             ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs as u64))),
 
-            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
-            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
+            ({ let mut val = U64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
+            ({ let mut val = U64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
 
             ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs as u64)),
             ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs as u64)),
