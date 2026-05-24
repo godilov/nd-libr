@@ -3247,9 +3247,6 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
     }
 }
 
-impl<const L: usize> NdRand for Signed<L> {}
-impl<const L: usize> NdRand for Unsigned<L> {}
-
 impl<const L: usize> FromStr for Signed<L> {
     type Err = FromStrError;
 
@@ -3276,6 +3273,9 @@ impl<const L: usize> FromStr for Bytes<L> {
         from_str_impl!(@bytes s).map(Self)
     }
 }
+
+impl<const L: usize> NdRand for Signed<L> {}
+impl<const L: usize> NdRand for Unsigned<L> {}
 
 impl<const L: usize, W: Word> AsRef<[W]> for Signed<L> {
     #[inline]
