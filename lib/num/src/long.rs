@@ -18,7 +18,7 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    BytesFn, Max, Min, NdRand, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
+    BytesFn, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
     long::radix::*,
 };
@@ -3274,9 +3274,6 @@ impl<const L: usize> FromStr for Bytes<L> {
     }
 }
 
-impl<const L: usize> NdRand for Signed<L> {}
-impl<const L: usize> NdRand for Unsigned<L> {}
-
 impl<const L: usize, W: Word> AsRef<[W]> for Signed<L> {
     #[inline]
     fn as_ref(&self) -> &[W] {
@@ -4578,6 +4575,15 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
         todo!()
     }
 }
+
+impl<const L: usize> NdRand for Signed<L> {}
+impl<const L: usize> NdRand for Unsigned<L> {}
+
+impl<const L: usize> NdPow for Signed<L> {}
+impl<const L: usize> NdPow for Unsigned<L> {}
+
+impl<const L: usize> NdGcd for Signed<L> {}
+impl<const L: usize> NdGcd for Unsigned<L> {}
 
 impl<const L: usize> Zero for Signed<L> {
     const ZERO: Self = Self([0; L]);
