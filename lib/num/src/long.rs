@@ -120,62 +120,6 @@ macro_rules! from_primitive_const {
     };
 }
 
-macro_rules! from_digits_impl {
-    ($digits:expr, $len:expr, $exp:expr) => {{
-        let bits = $exp as usize;
-        let mask = (1 << BITS) - 1;
-
-        let mut acc = 0;
-        let mut shl = 0;
-        let mut idx = 0;
-        let mut res = [0; L];
-
-        for digit in $digits {
-            acc |= digit.as_double() << shl;
-            shl += bits;
-            res[idx] = (acc & mask) as Single;
-
-            if shl >= BITS {
-                if idx + 1 == L {
-                    break;
-                }
-
-                acc >>= BITS;
-                shl -= BITS;
-                idx += 1;
-                res[idx] = (acc & mask) as Single;
-            }
-        }
-
-        res
-    }};
-}
-
-macro_rules! from_digits_radix_impl {
-    ($digits:expr, $radix:expr) => {{
-        let mut idx = 0;
-        let mut res = [0; L];
-
-        for digit in $digits {
-            let mut acc = digit.as_double();
-
-            for ptr in res.iter_mut().take(idx + 1) {
-                acc += *ptr as Double * $radix.as_double();
-
-                *ptr = acc as Single;
-
-                acc >>= BITS;
-            }
-
-            if idx < L && res[idx] > 0 {
-                idx += 1;
-            }
-        }
-
-        res
-    }};
-}
-
 macro_rules! from_str_impl {
     (@radix $str:expr, $radix:ty) => {{
         let (s, sign) = get_sign_from_str($str)?;
@@ -185,29 +129,26 @@ macro_rules! from_str_impl {
             return Err(FromStrError::InvalidRadix { radix: radix as usize });
         }
 
-        if radix.is_pow2() {
-            from_str(s, radix.order() as u8, sign)
-        } else {
-            from_str_radix(s, radix, sign)
+        match radix.is_pow2() {
+            false => from_str_radix(s, radix, sign),
+            true => from_str(s, radix.order() as u8, sign),
         }
     }};
     (@long $str:expr) => {{
         let (s, sign) = get_sign_from_str($str)?;
         let (s, radix) = get_radix_from_str(s, 10)?;
 
-        if radix.is_pow2() {
-            from_str(s, radix.order() as u8, sign)
-        } else {
-            from_str_radix(s, radix, sign)
+        match radix.is_pow2() {
+            false => from_str_radix(s, radix, sign),
+            true => from_str(s, radix.order() as u8, sign),
         }
     }};
     (@bytes $str:expr) => {{
         let (s, radix) = get_radix_from_str($str, 16)?;
 
-        if radix.is_pow2() {
-            from_str(s, radix.order() as u8, Sign::POS)
-        } else {
-            Err(FromStrError::InvalidRadix { radix: radix as usize })
+        match radix.is_pow2() {
+            false => Err(FromStrError::InvalidRadix { radix: radix as usize }),
+            true => from_str(s, radix.order() as u8, Sign::POS),
         }
     }};
 }
@@ -557,6 +498,23 @@ macro_rules! cycle {
 
         $arr[0] = $val;
     }};
+}
+
+#[allow(unused)]
+fn search<N: Num, F: Fn(N) -> bool>(l: N, r: N, f: F) -> N {
+    let mut idx = N::ZERO;
+    let mut len = N::nd_sub(&r, &l);
+
+    while len > N::ONE {
+        let x = N::nd_shr(&len, 1);
+
+        let diff = [N::ZERO, x][f(N::nd_add(&idx, &x)) as usize];
+
+        N::nd_add_assign(&mut idx, &diff);
+        N::nd_sub_assign(&mut len, &x);
+    }
+
+    idx
 }
 
 macro_rules! search {
@@ -4789,6 +4747,64 @@ fn into_digits_validate<W: Word>(radix: W) -> Result<(), IntoDigitsError> {
     Ok(())
 }
 
+fn from_digits_impl<const L: usize, W: Word, Words>(iter: Words, exp: usize) -> [Single; L]
+where
+    Words: WordsIterator<Item = W>,
+{
+    let bits = exp;
+    let mask = (1 << BITS) - 1;
+
+    let mut acc = 0;
+    let mut shl = 0;
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for digit in iter {
+        acc |= digit.as_double() << shl;
+        shl += bits;
+        res[idx] = (acc & mask) as Single;
+
+        if shl >= BITS {
+            if idx + 1 == L {
+                break;
+            }
+
+            acc >>= BITS;
+            shl -= BITS;
+            idx += 1;
+            res[idx] = (acc & mask) as Single;
+        }
+    }
+
+    res
+}
+
+fn from_digits_radix_impl<const L: usize, W: Word, Words>(iter: Words, radix: W) -> [Single; L]
+where
+    Words: WordsIterator<Item = W>,
+{
+    let mut idx = 0;
+    let mut res = [0; L];
+
+    for digit in iter {
+        let mut acc = digit.as_double();
+
+        for ptr in res.iter_mut().take(idx + 1) {
+            acc += *ptr as Double * radix.as_double();
+
+            *ptr = acc as Single;
+
+            acc >>= BITS;
+        }
+
+        if idx < L && res[idx] > 0 {
+            idx += 1;
+        }
+    }
+
+    res
+}
+
 fn from_digits<const L: usize, W: Word>(digits: &[W], exp: W) -> Result<[Single; L], FromDigitsError> {
     let exp = exp.as_usize();
 
@@ -4798,7 +4814,7 @@ fn from_digits<const L: usize, W: Word>(digits: &[W], exp: W) -> Result<[Single;
 
     from_digits_validate(digits.iter().copied(), W::from_single(1 << exp))?;
 
-    let res = from_digits_impl!(digits, digits.len(), exp);
+    let res = from_digits_impl(digits.iter().copied(), exp);
 
     Ok(res)
 }
@@ -4815,7 +4831,7 @@ where
 
     from_digits_validate(digits.clone(), W::from_single(1 << exp))?;
 
-    let res = from_digits_impl!(digits, digits.len(), exp);
+    let res = from_digits_impl(digits, exp);
 
     Ok(res)
 }
@@ -4823,7 +4839,7 @@ where
 fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
     from_str_validate(s, 1 << exp)?;
 
-    let mut res = from_digits_impl!(s.bytes().rev().filter_map(get_digit_from_byte), s.len(), exp);
+    let mut res = from_digits_impl(s.bytes().rev().filter_map(get_digit_from_byte), exp as usize);
 
     if sign == Sign::NEG {
         uops::neg_mut(res.iter_mut()).wrapping();
@@ -4839,7 +4855,7 @@ fn from_digits_radix<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<
 
     from_digits_validate(digits.iter().copied(), radix)?;
 
-    let res = from_digits_radix_impl!(digits.iter().rev(), radix);
+    let res = from_digits_radix_impl(digits.iter().copied().rev(), radix);
 
     Ok(res)
 }
@@ -4857,7 +4873,7 @@ where
 
     from_digits_validate(digits.clone(), radix)?;
 
-    let res = from_digits_radix_impl!(digits.rev(), radix);
+    let res = from_digits_radix_impl(digits.rev(), radix);
 
     Ok(res)
 }
@@ -4869,7 +4885,7 @@ fn from_str_radix<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Sin
 
     from_str_validate(s, radix)?;
 
-    let mut res = from_digits_radix_impl!(s.bytes().filter_map(get_digit_from_byte), radix);
+    let mut res = from_digits_radix_impl(s.bytes().filter_map(get_digit_from_byte), radix);
 
     if sign == Sign::NEG {
         uops::neg_mut(res.iter_mut()).wrapping();
