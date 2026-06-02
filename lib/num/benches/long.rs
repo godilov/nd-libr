@@ -806,9 +806,9 @@ fn uops(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add",     &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::add   (lhs.0.iter().copied(), rhs.0.iter().copied()).for_each(black_box(|_| ()))),
         "sub",     &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::sub   (lhs.0.iter().copied(), rhs.0.iter().copied()).for_each(black_box(|_| ()))),
 
-        "bitor",   &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::bitor (&lhs.0, &rhs.0)),
-        "bitand",  &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::bitand(&lhs.0, &rhs.0)),
-        "bitxor",  &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::bitxor(&lhs.0, &rhs.0)),
+        "bitor",   &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::bitor::<64, [u64; 64]> (&lhs.0, &rhs.0)),
+        "bitand",  &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::bitand::<64, [u64; 64]>(&lhs.0, &rhs.0)),
+        "bitxor",  &args, |Aligned([lhs, rhs]): &Aligned<[Ulong; 2]>| black_box(uops::bitxor::<64, [u64; 64]>(&lhs.0, &rhs.0)),
     ] };
 
     exec! { group => [
@@ -855,9 +855,9 @@ fn uops_single(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add_single",     &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::add_single   (lhs.0.iter().copied(), *rhs).for_each(black_box(|_| ()))),
         "sub_single",     &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::sub_single   (lhs.0.iter().copied(), *rhs).for_each(black_box(|_| ()))),
 
-        "bitor_single",   &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::bitor_single (&lhs.0, *rhs)),
-        "bitand_single",  &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::bitand_single(&lhs.0, *rhs)),
-        "bitxor_single",  &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::bitxor_single(&lhs.0, *rhs)),
+        "bitor_single",   &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::bitor_single::<64, [u64; 64]> (&lhs.0, *rhs)),
+        "bitand_single",  &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::bitand_single::<64, [u64; 64]>(&lhs.0, *rhs)),
+        "bitxor_single",  &args, |Aligned((lhs, rhs)): &Aligned<(Ulong, Usize)>| black_box(uops::bitxor_single::<64, [u64; 64]>(&lhs.0, *rhs)),
     ] };
 }
 
@@ -889,9 +889,9 @@ fn uops_signed(group: &mut BenchmarkGroup<'_, WallTime>) {
         "add_signed",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::add_signed   (lhs.0.iter().copied(), *rhs).for_each(black_box(|_| ()))),
         "sub_signed",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::sub_signed   (lhs.0.iter().copied(), *rhs).for_each(black_box(|_| ()))),
 
-        "bitor_signed",   &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitor_signed (&lhs.0, *rhs)),
-        "bitand_signed",  &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitand_signed(&lhs.0, *rhs)),
-        "bitxor_signed",  &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitxor_signed(&lhs.0, *rhs)),
+        "bitor_signed",   &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitor_signed::<64, [u64; 64]> (&lhs.0, *rhs)),
+        "bitand_signed",  &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitand_signed::<64, [u64; 64]>(&lhs.0, *rhs)),
+        "bitxor_signed",  &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitxor_signed::<64, [u64; 64]>(&lhs.0, *rhs)),
     ] };
 }
 
