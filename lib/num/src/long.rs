@@ -506,12 +506,11 @@ fn search<N: Num, F: Fn(N) -> bool>(l: N, r: N, f: F) -> N {
     let mut len = N::nd_sub(&r, &l);
 
     while len > N::ONE {
-        let x = N::nd_shr(&len, 1);
-
-        let diff = [N::ZERO, x][f(N::nd_add(&idx, &x)) as usize];
+        let half = N::nd_shr(&len, 1);
+        let diff = [N::ZERO, half][f(N::nd_add(&idx, &half)) as usize];
 
         N::nd_add_assign(&mut idx, &diff);
-        N::nd_sub_assign(&mut len, &x);
+        N::nd_sub_assign(&mut len, &half);
     }
 
     idx
