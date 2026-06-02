@@ -3515,7 +3515,11 @@ ndops::def! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
     ! uops::not(value.0.iter().copied()).wrapping::<L, Signed<L>>(),
     - uops::neg(value.0.iter().copied()).wrapping::<L, Signed<L>>(),
 
+    - @checked uops::neg(value.0.iter().copied()).checked::<L, Signed<L>>(),
+    - @strict uops::neg(value.0.iter().copied()).strict::<L, Signed<L>>(),
     - @wrapping uops::neg(value.0.iter().copied()).wrapping::<L, Signed<L>>(),
+    - @saturating uops::neg(value.0.iter().copied()).checked::<L, Signed<L>>().unwrap_or(Signed::<L>::MAX),
+    - @overflowing uops::neg(value.0.iter().copied()).overflowing::<L, Signed<L>>(),
 ] }
 
 ndops::def! { @ndun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
@@ -3547,6 +3551,14 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     / @checked algo::div(&lhs.abs().0, &rhs.abs().0).checked().map(|(res, _)| Signed(res).signed(lhs.sign() * rhs.sign())),
     % @checked algo::div(&lhs.abs().0, &rhs.abs().0).checked().map(|(_, res)| Signed(res).signed(lhs.sign())),
 
+    + @strict uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).strict::<L, Signed<L>>(),
+    - @strict uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).strict::<L, Signed<L>>(),
+
+    * @strict algo::mul_checked(&lhs.0, &rhs.0).strict::<Signed<L>>(),
+
+    / @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict::<Signed<L>>().0.signed(lhs.sign() * rhs.sign()),
+    % @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict::<Signed<L>>().1.signed(lhs.sign()),
+
     + @wrapping uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping::<L, Signed<L>>(),
     - @wrapping uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping::<L, Signed<L>>(),
 
@@ -3554,6 +3566,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
 
     / @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping::<Signed<L>>().0.signed(lhs.sign() * rhs.sign()),
     % @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping::<Signed<L>>().1.signed(lhs.sign()),
+
+    + @overflowing uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing::<L, Signed<L>>(),
+    - @overflowing uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing::<L, Signed<L>>(),
+
+    * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing::<Signed<L>>(),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for [Signed<L>, usize], [
@@ -3585,6 +3602,14 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     / @checked algo::div(&lhs.0, &rhs.0).checked().map(|(res, _)| Unsigned(res)),
     % @checked algo::div(&lhs.0, &rhs.0).checked().map(|(_, res)| Unsigned(res)),
 
+    + @strict uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).strict::<L, Unsigned<L>>(),
+    - @strict uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).strict::<L, Unsigned<L>>(),
+
+    * @strict algo::mul_checked(&lhs.0, &rhs.0).strict::<Unsigned<L>>(),
+
+    / @strict algo::div(&lhs.0, &rhs.0).strict::<Unsigned<L>>().0,
+    % @strict algo::div(&lhs.0, &rhs.0).strict::<Unsigned<L>>().1,
+
     + @wrapping uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping::<L, Unsigned<L>>(),
     - @wrapping uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping::<L, Unsigned<L>>(),
 
@@ -3592,6 +3617,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
 
     / @wrapping algo::div(&lhs.0, &rhs.0).wrapping::<Unsigned<L>>().0,
     % @wrapping algo::div(&lhs.0, &rhs.0).wrapping::<Unsigned<L>>().1,
+
+    + @overflowing uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing::<L, Unsigned<L>>(),
+    - @overflowing uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing::<L, Unsigned<L>>(),
+
+    * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing::<Unsigned<L>>(),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
