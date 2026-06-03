@@ -170,8 +170,8 @@ macro_rules! nd_ops_primitive_impl {
 
             * Signed(algo::mul(&lhs.0, &Signed::from(rhs).0)),
 
-            / Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().1).signed(lhs.sign()),
+            / algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).0,
+            % algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).1,
 
             | Signed(uops::bitor(&lhs.0, &Signed::from(rhs).0)),
             & Signed(uops::bitand(&lhs.0, &Signed::from(rhs).0)),
@@ -194,8 +194,8 @@ macro_rules! nd_ops_primitive_impl {
 
             *= algo::mul_mut(&mut lhs.0, &Signed::from(rhs).0),
 
-            /= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().0).signed(lhs.sign() * Sign::from(rhs)); },
-            %= { *lhs = Signed(algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping().1).signed(lhs.sign()); },
+            /= { *lhs = algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).0; },
+            %= { *lhs = algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).1; },
 
             |= uops::bitor_mut(&mut lhs.0, &Signed::from(rhs).0),
             &= uops::bitand_mut(&mut lhs.0, &Signed::from(rhs).0),
@@ -209,8 +209,8 @@ macro_rules! nd_ops_primitive_impl {
 
             * Unsigned(algo::mul(&lhs.0, &Unsigned::from(rhs).0)),
 
-            / Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping().0),
-            % Unsigned(algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping().1),
+            / algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).0,
+            % algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).1,
 
             | Unsigned(uops::bitor(&lhs.0, &Unsigned::from(rhs).0)),
             & Unsigned(uops::bitand(&lhs.0, &Unsigned::from(rhs).0)),
@@ -279,8 +279,8 @@ macro_rules! nd_ops_primitive_native_impl {
 
             * Signed(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
 
-            / Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping::<[Single; L]>().0).signed(lhs.sign() * Sign::from(rhs)),
-            % Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping::<[Single; L]>().1 as $primitive).signed(lhs.sign()),
+            / algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).0,
+            % algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).1,
 
             | Signed(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
             & Signed(uops::bitand_signed(&lhs.0, rhs as <Single as Num>::Signed)),
@@ -303,8 +303,8 @@ macro_rules! nd_ops_primitive_native_impl {
 
             *= algo::mul_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
 
-            /= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping::<[Single; L]>().0).signed(lhs.sign() * Sign::from(rhs)); },
-            %= { *lhs = Signed::from(algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping::<[Single; L]>().1 as $primitive).signed(lhs.sign()); },
+            /= { *lhs = algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).0; },
+            %= { *lhs = algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).1; },
 
             |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
             &= uops::bitand_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
@@ -318,8 +318,8 @@ macro_rules! nd_ops_primitive_native_impl {
 
             * Unsigned(algo::mul_single(&lhs.0, rhs as Single)),
 
-            / Unsigned::from(algo::div_single(&lhs.0, rhs as Single).wrapping::<[Single; L]>().0),
-            % Unsigned::from(algo::div_single(&lhs.0, rhs as Single).wrapping::<[Single; L]>().1 as $primitive),
+            / algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).0,
+            % algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).1,
 
             | Unsigned(uops::bitor_single(&lhs.0, rhs as Single)),
             & Unsigned(uops::bitand_single(&lhs.0, rhs as Single)),
@@ -2067,8 +2067,8 @@ pub mod algo {
     impl<const L: usize> Mul<[Single; L]> {
         /// Consumes as default.
         #[inline]
-        pub fn default<Long: From<[Single; L]>>(self) -> Long {
-            let res = self.overflowing();
+        pub fn default<Long, F: Fn([Single; L]) -> Long>(self, func: F) -> Long {
+            let res = self.overflowing(func);
 
             debug_assert!(!res.1);
 
@@ -2077,8 +2077,8 @@ pub mod algo {
 
         /// Consumes as checked.
         #[inline]
-        pub fn checked<Long: From<[Single; L]>>(self) -> Option<Long> {
-            let res = self.overflowing();
+        pub fn checked<Long, F: Fn([Single; L]) -> Long>(self, func: F) -> Option<Long> {
+            let res = self.overflowing(func);
 
             match res.1 {
                 false => Some(res.0),
@@ -2088,8 +2088,8 @@ pub mod algo {
 
         /// Consumes as strict.
         #[inline]
-        pub fn strict<Long: From<[Single; L]>>(self) -> Long {
-            let res = self.overflowing();
+        pub fn strict<Long, F: Fn([Single; L]) -> Long>(self, func: F) -> Long {
+            let res = self.overflowing(func);
 
             assert!(!res.1);
 
@@ -2098,14 +2098,14 @@ pub mod algo {
 
         /// Consumes as wrapping.
         #[inline]
-        pub fn wrapping<Long: From<[Single; L]>>(self) -> Long {
-            Long::from(self.words)
+        pub fn wrapping<Long, F: Fn([Single; L]) -> Long>(self, func: F) -> Long {
+            func(self.words)
         }
 
         /// Consumes as overflowing.
         #[inline]
-        pub fn overflowing<Long: From<[Single; L]>>(self) -> (Long, bool) {
-            (Long::from(self.words), self.overflow)
+        pub fn overflowing<Long, F: Fn([Single; L]) -> Long>(self, func: F) -> (Long, bool) {
+            (func(self.words), self.overflow)
         }
     }
 
@@ -2145,32 +2145,65 @@ pub mod algo {
     impl<const L: usize> Div<&[Single; L], &[Single; L]> {
         /// Calculates as default.
         #[inline]
-        pub fn default<Long: From<[Single; L]>>(self) -> (Long, Long) {
+        pub fn default<Long, DivF: Fn([Single; L]) -> Long, RemF: Fn([Single; L]) -> Long>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> (Long, Long) {
             debug_assert_ne!(self.rhs, &[0; L]);
 
-            self.wrapping()
+            self.wrapping(div_func, rem_func)
         }
 
         /// Calculates as checked.
         #[inline]
-        pub fn checked<Long: From<[Single; L]>>(self) -> Option<(Long, Long)> {
+        pub fn checked<Long, DivF: Fn([Single; L]) -> Long, RemF: Fn([Single; L]) -> Long>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> Option<(Long, Long)> {
             match self.rhs.eq(&[0; L]) {
-                false => Some(self.wrapping()),
+                false => Some(self.wrapping(div_func, rem_func)),
                 true => None,
             }
         }
 
         /// Calculates as strict.
         #[inline]
-        pub fn strict<Long: From<[Single; L]>>(self) -> (Long, Long) {
+        pub fn strict<Long, DivF: Fn([Single; L]) -> Long, RemF: Fn([Single; L]) -> Long>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> (Long, Long) {
             assert_ne!(self.rhs, &[0; L]);
 
-            self.wrapping()
+            self.wrapping(div_func, rem_func)
         }
 
         /// Calculates as wrapping.
         #[inline]
-        pub fn wrapping<Long: From<[Single; L]>>(self) -> (Long, Long) {
+        pub fn wrapping<Long, DivF: Fn([Single; L]) -> Long, RemF: Fn([Single; L]) -> Long>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> (Long, Long) {
+            let (div, rem) = self.calculate();
+
+            (div_func(div), rem_func(rem))
+        }
+
+        /// Calculates as overflowing.
+        #[inline]
+        pub fn overflowing<Long, DivF: Fn([Single; L]) -> Long, RemF: Fn([Single; L]) -> Long>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> ((Long, Long), bool) {
+            (self.wrapping(div_func, rem_func), false)
+        }
+
+        #[inline]
+        fn calculate(self) -> ([Single; L], [Single; L]) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
@@ -2200,45 +2233,72 @@ pub mod algo {
                 uops::sub_mut(rem.iter_mut(), uops::mul(rhs.iter().copied(), *ptr)).wrapping();
             }
 
-            (Long::from(div), Long::from(rem))
-        }
-
-        /// Calculates as wrapping.
-        #[inline]
-        pub fn overflowing<Long: From<[Single; L]>>(self) -> ((Long, Long), bool) {
-            (self.wrapping(), false)
+            (div, rem)
         }
     }
 
     impl<const L: usize> Div<&[Single; L], Single> {
         /// Calculates as default.
         #[inline]
-        pub fn default<Long: From<[Single; L]>>(self) -> (Long, Single) {
+        pub fn default<Long, T, DivF: Fn([Single; L]) -> Long, RemF: Fn(Single) -> T>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> (Long, T) {
             debug_assert_ne!(self.rhs, 0);
 
-            self.wrapping()
+            self.wrapping(div_func, rem_func)
         }
 
         /// Calculates as checked.
         #[inline]
-        pub fn checked<Long: From<[Single; L]>>(self) -> Option<(Long, Single)> {
+        pub fn checked<Long, T, DivF: Fn([Single; L]) -> Long, RemF: Fn(Single) -> T>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> Option<(Long, T)> {
             match self.rhs.eq(&0) {
-                false => Some(self.wrapping()),
+                false => Some(self.wrapping(div_func, rem_func)),
                 true => None,
             }
         }
 
         /// Calculates as strict.
         #[inline]
-        pub fn strict<Long: From<[Single; L]>>(self) -> (Long, Single) {
+        pub fn strict<Long, T, DivF: Fn([Single; L]) -> Long, RemF: Fn(Single) -> T>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> (Long, T) {
             assert_ne!(self.rhs, 0);
 
-            self.wrapping()
+            self.wrapping(div_func, rem_func)
         }
 
         /// Calculates as wrapping.
         #[inline]
-        pub fn wrapping<Long: From<[Single; L]>>(self) -> (Long, Single) {
+        pub fn wrapping<Long, T, DivF: Fn([Single; L]) -> Long, RemF: Fn(Single) -> T>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> (Long, T) {
+            let (div, rem) = self.calculate();
+
+            (div_func(div), rem_func(rem))
+        }
+
+        /// Calculates as overflowing.
+        #[inline]
+        pub fn overflowing<Long, T, DivF: Fn([Single; L]) -> Long, RemF: Fn(Single) -> T>(
+            self,
+            div_func: DivF,
+            rem_func: RemF,
+        ) -> ((Long, T), bool) {
+            (self.wrapping(div_func, rem_func), false)
+        }
+
+        #[inline]
+        fn calculate(self) -> ([Single; L], Single) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
@@ -2256,13 +2316,7 @@ pub mod algo {
                 rem -= digit as Double * rhs as Double;
             }
 
-            (Long::from(div), rem as Single)
-        }
-
-        /// Calculates as wrapping.
-        #[inline]
-        pub fn overflowing<Long: From<[Single; L]>>(self) -> ((Long, Single), bool) {
-            (self.wrapping(), false)
+            (div, rem as Single)
         }
     }
 
@@ -2270,13 +2324,13 @@ pub mod algo {
         /// Calculates as default.
         #[inline]
         pub fn default(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default().0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default(|res| res, |res| res).0;
         }
 
         /// Calculates as checked.
         #[inline]
         pub fn checked(self) -> Option<()> {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked()?.0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked(|res| res, |res| res)?.0;
 
             Some(())
         }
@@ -2284,19 +2338,19 @@ pub mod algo {
         /// Calculates as strict.
         #[inline]
         pub fn strict(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict().0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict(|res| res, |res| res).0;
         }
 
         /// Calculates as wrapping.
         #[inline]
         pub fn wrapping(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping().0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping(|res| res, |res| res).0;
         }
 
-        /// Calculates as wrapping.
+        /// Calculates as overflowing.
         #[inline]
         pub fn overflowing(self) -> ((), bool) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing().0.0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing(|res| res, |res| res).0.0;
 
             ((), false)
         }
@@ -2306,13 +2360,13 @@ pub mod algo {
         /// Calculates as default.
         #[inline]
         pub fn default(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default().0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default(|res| res, |res| res).0;
         }
 
         /// Calculates as checked.
         #[inline]
         pub fn checked(self) -> Option<()> {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked()?.0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked(|res| res, |res| res)?.0;
 
             Some(())
         }
@@ -2320,19 +2374,19 @@ pub mod algo {
         /// Calculates as strict.
         #[inline]
         pub fn strict(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict().0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict(|res| res, |res| res).0;
         }
 
         /// Calculates as wrapping.
         #[inline]
         pub fn wrapping(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping().0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping(|res| res, |res| res).0;
         }
 
-        /// Calculates as wrapping.
+        /// Calculates as overflowing.
         #[inline]
         pub fn overflowing(self) -> ((), bool) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing().0.0;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing(|res| res, |res| res).0.0;
 
             ((), false)
         }
@@ -2342,13 +2396,13 @@ pub mod algo {
         /// Calculates as default.
         #[inline]
         pub fn default(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default().1;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.default(|res| res, |res| res).1;
         }
 
         /// Calculates as checked.
         #[inline]
         pub fn checked(self) -> Option<()> {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked()?.1;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.checked(|res| res, |res| res)?.1;
 
             Some(())
         }
@@ -2356,19 +2410,19 @@ pub mod algo {
         /// Calculates as strict.
         #[inline]
         pub fn strict(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict().1;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.strict(|res| res, |res| res).1;
         }
 
         /// Calculates as wrapping.
         #[inline]
         pub fn wrapping(self) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping().1;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping(|res| res, |res| res).1;
         }
 
-        /// Calculates as wrapping.
+        /// Calculates as overflowing.
         #[inline]
         pub fn overflowing(self) -> ((), bool) {
-            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing().0.1;
+            *self.lhs = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing(|res| res, |res| res).0.1;
 
             ((), false)
         }
@@ -2378,14 +2432,14 @@ pub mod algo {
         /// Calculates as default.
         #[inline]
         pub fn default(self) {
-            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.default::<[Single; L]>().1;
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.default(|res| res, |res| res).1;
             self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
         }
 
         /// Calculates as checked.
         #[inline]
         pub fn checked(self) -> Option<()> {
-            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.checked::<[Single; L]>()?.1;
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.checked(|res| res, |res| res)?.1;
             self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
 
             Some(())
@@ -2394,21 +2448,21 @@ pub mod algo {
         /// Calculates as strict.
         #[inline]
         pub fn strict(self) {
-            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.strict::<[Single; L]>().1;
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.strict(|res| res, |res| res).1;
             self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
         }
 
         /// Calculates as wrapping.
         #[inline]
         pub fn wrapping(self) {
-            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping::<[Single; L]>().1;
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.wrapping(|res| res, |res| res).1;
             self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
         }
 
-        /// Calculates as wrapping.
+        /// Calculates as overflowing.
         #[inline]
         pub fn overflowing(self) -> ((), bool) {
-            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing::<[Single; L]>().0.1;
+            self.lhs[0] = Div { lhs: &*self.lhs, rhs: self.rhs }.overflowing(|res| res, |res| res).0.1;
             self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
 
             ((), false)
@@ -3536,8 +3590,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
 
     * algo::mul::<L, Signed<L>>(&lhs.0, &rhs.0),
 
-    / algo::div(&lhs.abs().0, &rhs.abs().0).wrapping::<Signed<L>>().0.signed(lhs.sign() * rhs.sign()),
-    % algo::div(&lhs.abs().0, &rhs.abs().0).wrapping::<Signed<L>>().1.signed(lhs.sign()),
+    / algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
+    % algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
 
     | uops::bitor::<L, Signed<L>>(&lhs.0, &rhs.0),
     & uops::bitand::<L, Signed<L>>(&lhs.0, &rhs.0),
@@ -3546,31 +3600,31 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     + @checked uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Signed),
     - @checked uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Signed),
 
-    * @checked algo::mul_checked(&lhs.0, &rhs.0).checked(),
+    * @checked algo::mul_checked(&lhs.0, &rhs.0).checked(Signed),
 
-    / @checked algo::div(&lhs.abs().0, &rhs.abs().0).checked().map(|(res, _)| Signed(res).signed(lhs.sign() * rhs.sign())),
-    % @checked algo::div(&lhs.abs().0, &rhs.abs().0).checked().map(|(_, res)| Signed(res).signed(lhs.sign())),
+    / @checked algo::div(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).map(|(res, _)| res),
+    % @checked algo::div(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).map(|(_, res)| res),
 
     + @strict uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).strict(Signed),
     - @strict uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).strict(Signed),
 
-    * @strict algo::mul_checked(&lhs.0, &rhs.0).strict::<Signed<L>>(),
+    * @strict algo::mul_checked(&lhs.0, &rhs.0).strict(Signed),
 
-    / @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict::<Signed<L>>().0.signed(lhs.sign() * rhs.sign()),
-    % @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict::<Signed<L>>().1.signed(lhs.sign()),
+    / @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
+    % @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
 
     + @wrapping uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Signed),
     - @wrapping uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Signed),
 
     * @wrapping algo::mul::<L, Signed<L>>(&lhs.0, &rhs.0),
 
-    / @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping::<Signed<L>>().0.signed(lhs.sign() * rhs.sign()),
-    % @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping::<Signed<L>>().1.signed(lhs.sign()),
+    / @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
+    % @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
 
     + @overflowing uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing(Signed),
     - @overflowing uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing(Signed),
 
-    * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing::<Signed<L>>(),
+    * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing(Signed),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for [Signed<L>, usize], [
@@ -3587,8 +3641,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
 
     * algo::mul::<L, Unsigned<L>>(&lhs.0, &rhs.0),
 
-    / algo::div(&lhs.0, &rhs.0).wrapping::<Unsigned<L>>().0,
-    % algo::div(&lhs.0, &rhs.0).wrapping::<Unsigned<L>>().1,
+    / algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).0,
+    % algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).1,
 
     | uops::bitor::<L, Unsigned<L>>(&lhs.0, &rhs.0),
     & uops::bitand::<L, Unsigned<L>>(&lhs.0, &rhs.0),
@@ -3597,31 +3651,31 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     + @checked uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Unsigned),
     - @checked uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Unsigned),
 
-    * @checked algo::mul_checked(&lhs.0, &rhs.0).checked(),
+    * @checked algo::mul_checked(&lhs.0, &rhs.0).checked(Unsigned),
 
-    / @checked algo::div(&lhs.0, &rhs.0).checked().map(|(res, _)| Unsigned(res)),
-    % @checked algo::div(&lhs.0, &rhs.0).checked().map(|(_, res)| Unsigned(res)),
+    / @checked algo::div(&lhs.0, &rhs.0).checked(Unsigned, Unsigned).map(|(res, _)| res),
+    % @checked algo::div(&lhs.0, &rhs.0).checked(Unsigned, Unsigned).map(|(_, res)| res),
 
     + @strict uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).strict(Unsigned),
     - @strict uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).strict(Unsigned),
 
-    * @strict algo::mul_checked(&lhs.0, &rhs.0).strict::<Unsigned<L>>(),
+    * @strict algo::mul_checked(&lhs.0, &rhs.0).strict(Unsigned),
 
-    / @strict algo::div(&lhs.0, &rhs.0).strict::<Unsigned<L>>().0,
-    % @strict algo::div(&lhs.0, &rhs.0).strict::<Unsigned<L>>().1,
+    / @strict algo::div(&lhs.0, &rhs.0).strict(Unsigned, Unsigned).0,
+    % @strict algo::div(&lhs.0, &rhs.0).strict(Unsigned, Unsigned).1,
 
     + @wrapping uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Unsigned),
     - @wrapping uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Unsigned),
 
     * @wrapping algo::mul::<L, Unsigned<L>>(&lhs.0, &rhs.0),
 
-    / @wrapping algo::div(&lhs.0, &rhs.0).wrapping::<Unsigned<L>>().0,
-    % @wrapping algo::div(&lhs.0, &rhs.0).wrapping::<Unsigned<L>>().1,
+    / @wrapping algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).0,
+    % @wrapping algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).1,
 
     + @overflowing uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing(Unsigned),
     - @overflowing uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).overflowing(Unsigned),
 
-    * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing::<Unsigned<L>>(),
+    * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing(Unsigned),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
@@ -3652,8 +3706,8 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
 
     *= algo::mul_mut(&mut lhs.0, &rhs.0),
 
-    /= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().0).signed(lhs.sign() * rhs.sign()); },
-    %= { *lhs = Signed(algo::div(&lhs.abs().0, &rhs.abs().0).wrapping().1).signed(lhs.sign()); },
+    /= { *lhs = algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0; },
+    %= { *lhs = algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1; },
 
     |= uops::bitor_mut(&mut lhs.0, &rhs.0),
     &= uops::bitand_mut(&mut lhs.0, &rhs.0),
@@ -3841,7 +3895,7 @@ impl<const L: usize> Signed<L> {
     /// Absolute unsigned value.
     #[inline]
     pub fn abs_unsigned(&self) -> Unsigned<L> {
-        Unsigned(uops::abs(&self.0).wrapping(|res| res))
+        uops::abs(&self.0).wrapping(Unsigned)
     }
 
     /// Creates new signed with specified sign from raw `self.0`.
@@ -3853,7 +3907,7 @@ impl<const L: usize> Signed<L> {
             Sign::POS => false,
         };
 
-        Self(uops::signed(&self.0, bit).wrapping(|res| res))
+        uops::signed(&self.0, bit).wrapping(Self)
     }
 
     /// Creates new unsigned from raw `self.0`.
@@ -3901,7 +3955,7 @@ impl<const L: usize> Unsigned<L> {
             Sign::POS => false,
         };
 
-        Signed(uops::signed(&self.0, bit).wrapping(|res| res))
+        uops::signed(&self.0, bit).wrapping(Signed)
     }
 
     /// Creates new unsigned from raw `self.0`.
