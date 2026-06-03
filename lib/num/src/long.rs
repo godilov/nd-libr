@@ -3603,7 +3603,7 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing(Signed),
 ] }
 
-ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for [Signed<L>, usize], [
+ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for Signed<L>, [
     << Signed(uops::shl_signed(&lhs.0, rhs).0),
     >> Signed(uops::shr_signed(&lhs.0, rhs).0),
 
@@ -3654,7 +3654,7 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     * @overflowing algo::mul_checked(&lhs.0, &rhs.0).overflowing(Unsigned),
 ] }
 
-ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for [Unsigned<L>, usize], [
+ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for Unsigned<L>, [
     << Unsigned(uops::shl(&lhs.0, rhs, 0).0),
     >> Unsigned(uops::shr(&lhs.0, rhs, 0).0),
 
@@ -3668,7 +3668,7 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<
     ^ uops::bitxor(&lhs.0, &rhs.0),
 ] }
 
-ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for [Bytes<L>, usize], [
+ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for Bytes<L>, [
     << Bytes(uops::shl(&lhs.0, rhs, 0).0),
     >> Bytes(uops::shr(&lhs.0, rhs, 0).0),
 
@@ -3690,7 +3690,7 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
 ] }
 
-ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for [Signed<L>, usize], [
+ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for Signed<L>, [
     <<= uops::shl_signed_mut(&mut lhs.0, rhs),
     >>= uops::shr_signed_mut(&mut lhs.0, rhs),
 
@@ -3712,7 +3712,7 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
 ] }
 
-ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for [Unsigned<L>, usize], [
+ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Unsigned<L>, [
     <<= uops::shl_mut(&mut lhs.0, rhs, 0),
     >>= uops::shr_mut(&mut lhs.0, rhs, 0),
 
@@ -3726,7 +3726,7 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
     ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
 ] }
 
-ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for [Bytes<L>, usize], [
+ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for Bytes<L>, [
     <<= uops::shl_mut(&mut lhs.0, rhs, 0),
     >>= uops::shr_mut(&mut lhs.0, rhs, 0),
 
