@@ -168,7 +168,7 @@ macro_rules! nd_ops_primitive_impl {
             + uops::add(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(Signed),
             - uops::sub(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(Signed),
 
-            * Signed(algo::mul(&lhs.0, &Signed::from(rhs).0)),
+            * algo::mul(&lhs.0, &Signed::from(rhs).0, Signed),
 
             / algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).0,
             % algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).1,
@@ -181,7 +181,7 @@ macro_rules! nd_ops_primitive_impl {
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
             + uops::add(lhs.iter_words_default(if lhs < 0 { MAX } else { 0 }), rhs.0.iter().copied()).wrapping(Signed),
 
-            * Signed(algo::mul(&Signed::from(lhs).0, &rhs.0)),
+            * algo::mul(&Signed::from(lhs).0, &rhs.0, Signed),
 
             | Signed(uops::bitor(&Signed::from(lhs).0, &rhs.0)),
             & Signed(uops::bitand(&Signed::from(lhs).0, &rhs.0)),
@@ -207,7 +207,7 @@ macro_rules! nd_ops_primitive_impl {
             + uops::add(lhs.0.iter().copied(), rhs.iter_words()).wrapping(Unsigned),
             - uops::sub(lhs.0.iter().copied(), rhs.iter_words()).wrapping(Unsigned),
 
-            * Unsigned(algo::mul(&lhs.0, &Unsigned::from(rhs).0)),
+            * algo::mul(&lhs.0, &Unsigned::from(rhs).0, Unsigned),
 
             / algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).0,
             % algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).1,
@@ -220,7 +220,7 @@ macro_rules! nd_ops_primitive_impl {
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
             + uops::add(lhs.iter_words(), rhs.0.iter().copied()).wrapping(Unsigned),
 
-            * Unsigned(algo::mul(&Unsigned::from(lhs).0, &rhs.0)),
+            * algo::mul(&Unsigned::from(lhs).0, &rhs.0, Unsigned),
 
             | Unsigned(uops::bitor(&Unsigned::from(lhs).0, &rhs.0)),
             & Unsigned(uops::bitand(&Unsigned::from(lhs).0, &rhs.0)),
@@ -277,7 +277,7 @@ macro_rules! nd_ops_primitive_native_impl {
             + uops::add_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping(Signed),
             - uops::sub_signed(lhs.0.iter().copied(), rhs as <Single as Num>::Signed).wrapping(Signed),
 
-            * Signed(algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            * algo::mul_signed(&lhs.0, rhs as <Single as Num>::Signed, Signed),
 
             / algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).0,
             % algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).1,
@@ -290,7 +290,7 @@ macro_rules! nd_ops_primitive_native_impl {
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
             + uops::add_signed(rhs.0.iter().copied(), lhs as <Single as Num>::Signed).wrapping(Signed),
 
-            * Signed(algo::mul_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            * algo::mul_signed(&rhs.0, lhs as <Single as Num>::Signed, Signed),
 
             | Signed(uops::bitor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
             & Signed(uops::bitand_signed(&rhs.0, lhs as <Single as Num>::Signed)),
@@ -316,7 +316,7 @@ macro_rules! nd_ops_primitive_native_impl {
             + uops::add_single(lhs.0.iter().copied(), rhs as Single).wrapping(Unsigned),
             - uops::sub_single(lhs.0.iter().copied(), rhs as Single).wrapping(Unsigned),
 
-            * Unsigned(algo::mul_single(&lhs.0, rhs as Single)),
+            * algo::mul_single(&lhs.0, rhs as Single, Unsigned),
 
             / algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).0,
             % algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).1,
@@ -329,7 +329,7 @@ macro_rules! nd_ops_primitive_native_impl {
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
             + uops::add_single(rhs.0.iter().copied(), lhs as Single).wrapping(Unsigned),
 
-            * Unsigned(algo::mul_single(&rhs.0, lhs as Single)),
+            * algo::mul_single(&rhs.0, lhs as Single, Unsigned),
 
             | Unsigned(uops::bitor_single(&rhs.0, lhs as Single)),
             & Unsigned(uops::bitand_single(&rhs.0, lhs as Single)),
@@ -1512,93 +1512,69 @@ pub mod uops {
 
     /// Calculates `lhs | rhs`.
     #[inline]
-    pub fn bitor<const L: usize, Long: From<[Single; L]>>(lhs: &[Single; L], rhs: &[Single; L]) -> Long {
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip(rhs.iter().copied())
-                .map(|(lhs, rhs)| lhs | rhs)
-                .collect_arr(),
-        )
+    pub fn bitor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .map(|(lhs, rhs)| lhs | rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs & rhs`.
     #[inline]
-    pub fn bitand<const L: usize, Long: From<[Single; L]>>(lhs: &[Single; L], rhs: &[Single; L]) -> Long {
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip(rhs.iter().copied())
-                .map(|(lhs, rhs)| lhs & rhs)
-                .collect_arr(),
-        )
+    pub fn bitand<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .map(|(lhs, rhs)| lhs & rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs ^ rhs`.
     #[inline]
-    pub fn bitxor<const L: usize, Long: From<[Single; L]>>(lhs: &[Single; L], rhs: &[Single; L]) -> Long {
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip(rhs.iter().copied())
-                .map(|(lhs, rhs)| lhs ^ rhs)
-                .collect_arr(),
-        )
+    pub fn bitxor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .map(|(lhs, rhs)| lhs ^ rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs | rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn bitor_single<const L: usize, Long: From<[Single; L]>>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> Long {
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-                .map(|(lhs, rhs)| lhs | rhs)
-                .collect_arr(),
-        )
+    pub fn bitor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .map(|(lhs, rhs)| lhs | rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs & rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn bitand_single<const L: usize, Long: From<[Single; L]>>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> Long {
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-                .map(|(lhs, rhs)| lhs & rhs)
-                .collect_arr(),
-        )
+    pub fn bitand_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .map(|(lhs, rhs)| lhs & rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs ^ rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn bitxor_single<const L: usize, Long: From<[Single; L]>>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> Long {
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-                .map(|(lhs, rhs)| lhs ^ rhs)
-                .collect_arr(),
-        )
+    pub fn bitxor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
+        lhs.iter()
+            .copied()
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
+            .map(|(lhs, rhs)| lhs ^ rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs | rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitor_signed<const L: usize, Long: From<[Single; L]>>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Signed,
-    ) -> Long {
+    pub fn bitor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1606,23 +1582,18 @@ pub mod uops {
             _ => MAX,
         };
 
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-                .map(|(lhs, rhs)| lhs | rhs)
-                .collect_arr(),
-        )
+        lhs.iter()
+            .copied()
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
+            .map(|(lhs, rhs)| lhs | rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs & rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitand_signed<const L: usize, Long: From<[Single; L]>>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Signed,
-    ) -> Long {
+    pub fn bitand_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1630,23 +1601,18 @@ pub mod uops {
             _ => MAX,
         };
 
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-                .map(|(lhs, rhs)| lhs & rhs)
-                .collect_arr(),
-        )
+        lhs.iter()
+            .copied()
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
+            .map(|(lhs, rhs)| lhs & rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs ^ rhs`, where `rhs` is single CPU-word.
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn bitxor_signed<const L: usize, Long: From<[Single; L]>>(
-        lhs: &[Single; L],
-        rhs: <Single as Num>::Signed,
-    ) -> Long {
+    pub fn bitxor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -1654,13 +1620,11 @@ pub mod uops {
             _ => MAX,
         };
 
-        Long::from(
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-                .map(|(lhs, rhs)| lhs ^ rhs)
-                .collect_arr(),
-        )
+        lhs.iter()
+            .copied()
+            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
+            .map(|(lhs, rhs)| lhs ^ rhs)
+            .collect_arr()
     }
 
     /// Calculates `lhs |= rhs`.
@@ -2471,14 +2435,18 @@ pub mod algo {
 
     /// Calculates `lhs * rhs`.
     #[inline]
-    pub fn mul<const L: usize, Long: From<[Single; L]>>(lhs: &[Single; L], rhs: &[Single; L]) -> Long {
+    pub fn mul<const L: usize, Long, F: Fn([Single; L]) -> Long>(
+        lhs: &[Single; L],
+        rhs: &[Single; L],
+        func: F,
+    ) -> Long {
         let mut res = [0; L];
 
         for (idx, val) in rhs.iter().copied().enumerate() {
             uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).wrapping();
         }
 
-        Long::from(res)
+        func(res)
     }
 
     /// Calculates `lhs * rhs`.
@@ -2499,7 +2467,7 @@ pub mod algo {
     /// Calculates `lhs *= rhs`.
     #[inline]
     pub fn mul_mut<const L: usize>(lhs: &mut [Single; L], rhs: &[Single; L]) {
-        *lhs = mul(lhs, rhs);
+        *lhs = mul(lhs, rhs, |res| res);
     }
 
     /// Calculates `lhs *= rhs`.
@@ -2515,8 +2483,12 @@ pub mod algo {
 
     /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
     #[inline]
-    pub fn mul_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
-        uops::mul(lhs.iter().copied(), rhs).wrapping(|res| res)
+    pub fn mul_single<const L: usize, Long, F: Fn([Single; L]) -> Long>(
+        lhs: &[Single; L],
+        rhs: <Single as Num>::Unsigned,
+        func: F,
+    ) -> Long {
+        uops::mul(lhs.iter().copied(), rhs).wrapping(func)
     }
 
     /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
@@ -2543,7 +2515,11 @@ pub mod algo {
     ///
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
-    pub fn mul_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
+    pub fn mul_signed<const L: usize, Long, F: Fn([Single; L]) -> Long>(
+        lhs: &[Single; L],
+        rhs: <Single as Num>::Signed,
+        func: F,
+    ) -> Long {
         let rhs = rhs as Single;
 
         let ext = match rhs >> (BITS - 1) {
@@ -2559,7 +2535,7 @@ pub mod algo {
             uops::add_mut(res[idx..].iter_mut(), uops::mul(lhs.iter().copied(), val)).wrapping();
         }
 
-        res
+        func(res)
     }
 
     /// Calculates `lhs * rhs`, where `rhs` is single CPU-word.
@@ -2594,7 +2570,7 @@ pub mod algo {
     /// Rhs is sign-extended instead of zero-extended.
     #[inline]
     pub fn mul_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) {
-        *lhs = mul_signed(lhs, rhs);
+        *lhs = mul_signed(lhs, rhs, |res| res);
     }
 
     /// Calculates `lhs *= rhs`, where `rhs` is single CPU-word.
@@ -3588,14 +3564,14 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     + uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Signed),
     - uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Signed),
 
-    * algo::mul::<L, Signed<L>>(&lhs.0, &rhs.0),
+    * algo::mul(&lhs.0, &rhs.0, Signed),
 
     / algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
     % algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
 
-    | uops::bitor::<L, Signed<L>>(&lhs.0, &rhs.0),
-    & uops::bitand::<L, Signed<L>>(&lhs.0, &rhs.0),
-    ^ uops::bitxor::<L, Signed<L>>(&lhs.0, &rhs.0),
+    | uops::bitor(&lhs.0, &rhs.0),
+    & uops::bitand(&lhs.0, &rhs.0),
+    ^ uops::bitxor(&lhs.0, &rhs.0),
 
     + @checked uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Signed),
     - @checked uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Signed),
@@ -3616,7 +3592,7 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     + @wrapping uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Signed),
     - @wrapping uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Signed),
 
-    * @wrapping algo::mul::<L, Signed<L>>(&lhs.0, &rhs.0),
+    * @wrapping algo::mul(&lhs.0, &rhs.0, Signed),
 
     / @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
     % @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
@@ -3639,14 +3615,14 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     + uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Unsigned),
     - uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Unsigned),
 
-    * algo::mul::<L, Unsigned<L>>(&lhs.0, &rhs.0),
+    * algo::mul(&lhs.0, &rhs.0, Unsigned),
 
     / algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).0,
     % algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).1,
 
-    | uops::bitor::<L, Unsigned<L>>(&lhs.0, &rhs.0),
-    & uops::bitand::<L, Unsigned<L>>(&lhs.0, &rhs.0),
-    ^ uops::bitxor::<L, Unsigned<L>>(&lhs.0, &rhs.0),
+    | uops::bitor(&lhs.0, &rhs.0),
+    & uops::bitand(&lhs.0, &rhs.0),
+    ^ uops::bitxor(&lhs.0, &rhs.0),
 
     + @checked uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Unsigned),
     - @checked uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).checked(Unsigned),
@@ -3667,7 +3643,7 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     + @wrapping uops::add(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Unsigned),
     - @wrapping uops::sub(lhs.0.iter().copied(), rhs.0.iter().copied()).wrapping(Unsigned),
 
-    * @wrapping algo::mul::<L, Unsigned<L>>(&lhs.0, &rhs.0),
+    * @wrapping algo::mul(&lhs.0, &rhs.0, Unsigned),
 
     / @wrapping algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).0,
     % @wrapping algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).1,
@@ -3687,9 +3663,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigne
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
-    | uops::bitor::<L, Bytes<L>>(&lhs.0, &rhs.0),
-    & uops::bitand::<L, Bytes<L>>(&lhs.0, &rhs.0),
-    ^ uops::bitxor::<L, Bytes<L>>(&lhs.0, &rhs.0),
+    | uops::bitor(&lhs.0, &rhs.0),
+    & uops::bitand(&lhs.0, &rhs.0),
+    ^ uops::bitxor(&lhs.0, &rhs.0),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for [Bytes<L>, usize], [
@@ -6143,9 +6119,9 @@ mod tests {
         ) [
             (uops::add(lhs_bytes.iter().copied(), rhs_bytes.iter().copied()).collect_arr(), lhs.wrapping_add(rhs).to_le_bytes()),
             (uops::sub(lhs_bytes.iter().copied(), rhs_bytes.iter().copied()).collect_arr(), lhs.wrapping_sub(rhs).to_le_bytes()),
-            (uops::bitor::<8, [u8; 8]>(&lhs_bytes, &rhs_bytes), (lhs | rhs).to_le_bytes()),
-            (uops::bitand::<8, [u8; 8]>(&lhs_bytes, &rhs_bytes), (lhs & rhs).to_le_bytes()),
-            (uops::bitxor::<8, [u8; 8]>(&lhs_bytes, &rhs_bytes), (lhs ^ rhs).to_le_bytes()),
+            (uops::bitor(&lhs_bytes, &rhs_bytes), (lhs | rhs).to_le_bytes()),
+            (uops::bitand(&lhs_bytes, &rhs_bytes), (lhs & rhs).to_le_bytes()),
+            (uops::bitxor(&lhs_bytes, &rhs_bytes), (lhs ^ rhs).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6155,9 +6131,9 @@ mod tests {
         ) [
             (uops::add_single(bytes.iter().copied(), rhs).collect_arr(), lhs.wrapping_add(rhs as u64).to_le_bytes()),
             (uops::sub_single(bytes.iter().copied(), rhs).collect_arr(), lhs.wrapping_sub(rhs as u64).to_le_bytes()),
-            (uops::bitor_single::<8, [u8; 8]>(&bytes, rhs), (lhs | rhs as u64).to_le_bytes()),
-            (uops::bitand_single::<8, [u8; 8]>(&bytes, rhs), (lhs & rhs as u64).to_le_bytes()),
-            (uops::bitxor_single::<8, [u8; 8]>(&bytes, rhs), (lhs ^ rhs as u64).to_le_bytes()),
+            (uops::bitor_single(&bytes, rhs), (lhs | rhs as u64).to_le_bytes()),
+            (uops::bitand_single(&bytes, rhs), (lhs & rhs as u64).to_le_bytes()),
+            (uops::bitxor_single(&bytes, rhs), (lhs ^ rhs as u64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6167,9 +6143,9 @@ mod tests {
         ) [
             (uops::add_signed(bytes.iter().copied(), rhs as <Single as Num>::Signed).collect_arr(), lhs.wrapping_add(rhs as i64).to_le_bytes()),
             (uops::sub_signed(bytes.iter().copied(), rhs as <Single as Num>::Signed).collect_arr(), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
-            (uops::bitor_signed::<8, [u8; 8]>(&bytes, rhs as <Single as Num>::Signed), (lhs | rhs as i64).to_le_bytes()),
-            (uops::bitand_signed::<8, [u8; 8]>(&bytes, rhs as <Single as Num>::Signed), (lhs & rhs as i64).to_le_bytes()),
-            (uops::bitxor_signed::<8, [u8; 8]>(&bytes, rhs as <Single as Num>::Signed), (lhs ^ rhs as i64).to_le_bytes()),
+            (uops::bitor_signed(&bytes, rhs as <Single as Num>::Signed), (lhs | rhs as i64).to_le_bytes()),
+            (uops::bitand_signed(&bytes, rhs as <Single as Num>::Signed), (lhs & rhs as i64).to_le_bytes()),
+            (uops::bitxor_signed(&bytes, rhs as <Single as Num>::Signed), (lhs ^ rhs as i64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
