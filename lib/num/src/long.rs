@@ -1663,7 +1663,7 @@ pub mod uops {
 
             ExprIter {
                 lhs,
-                rhs: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
+                rhs: (0..).map(move |idx| [rhs, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
             }
@@ -1686,7 +1686,7 @@ pub mod uops {
 
             ExprIterMut {
                 lhs,
-                rhs: (0..).map(move |idx| if idx == 0 { rhs } else { ext }),
+                rhs: (0..).map(move |idx| [rhs, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
             }
@@ -1767,7 +1767,7 @@ pub mod uops {
 
             ExprIter {
                 lhs,
-                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
             }
@@ -1792,7 +1792,7 @@ pub mod uops {
 
             ExprIterMut {
                 lhs,
-                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
             }
@@ -1815,7 +1815,7 @@ pub mod uops {
 
             ExprIter {
                 lhs,
-                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
             }
@@ -1840,7 +1840,7 @@ pub mod uops {
 
             ExprIterMut {
                 lhs,
-                rhs: (0..).map(move |idx| if idx == 0 { neg } else { ext }),
+                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
             }
@@ -2895,7 +2895,7 @@ pub mod algo {
                 _ => MAX,
             };
 
-            let rhs = (0..L).map(|idx| if idx == 0 { rhs } else { ext });
+            let rhs = (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]);
 
             let mut res = [0; L];
 
@@ -2918,7 +2918,7 @@ pub mod algo {
                 _ => MAX,
             };
 
-            let rhs = (0..L).map(|idx| if idx == 0 { rhs } else { ext });
+            let rhs = (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]);
 
             let mut res = [0; L];
             let mut any = 0;
