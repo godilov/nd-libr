@@ -1925,16 +1925,12 @@ pub mod uops {
         /// Shr expression for signed numbers.
         #[inline]
         pub fn signed(self) -> Self {
-            let default = match sign(self.words, Sign::POS, Sign::NEG) {
-                Sign::ZERO => 0,
-                Sign::NEG => MAX,
-                Sign::POS => 0,
-            };
+            let bit = self.words[L - 1] >> (BITS - 1);
 
             Self {
                 words: self.words,
                 shift: self.shift,
-                default,
+                default: [0, MAX][(bit > 0) as usize],
             }
         }
 
@@ -1950,16 +1946,12 @@ pub mod uops {
         /// Shr expression for signed numbers.
         #[inline]
         pub fn signed(self) -> Self {
-            let default = match sign(self.words, Sign::POS, Sign::NEG) {
-                Sign::ZERO => 0,
-                Sign::NEG => MAX,
-                Sign::POS => 0,
-            };
+            let bit = self.words[L - 1] >> (BITS - 1);
 
             Self {
                 words: self.words,
                 shift: self.shift,
-                default,
+                default: [0, MAX][(bit > 0) as usize],
             }
         }
 
