@@ -9,7 +9,10 @@ use ndext::{convert::NdFrom, iter::IteratorExt};
 use ndnum::{
     Num,
     arch::{Aligned, word::Single},
-    long::{ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops},
+    long::{
+        ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops,
+        uops::ExprShift,
+    },
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
@@ -813,8 +816,8 @@ fn uops(group: &mut BenchmarkGroup<'_, WallTime>) {
     ] };
 
     exec! { group => [
-        "shl", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| black_box(uops::shl(&val.0, 7, 0)),
-        "shr", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| black_box(uops::shr(&val.0, 7, 0)),
+        "shl", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| black_box(uops::shl(&val.0, 7).eval()),
+        "shr", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| black_box(uops::shr(&val.0, 7).eval()),
     ] };
 }
 
@@ -841,8 +844,8 @@ fn uops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     ] };
 
     exec! { group => [
-        "shl_mut", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| { let mut val = *val; black_box(uops::shl_mut(&mut val.0, 7, 0)); },
-        "shr_mut", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| { let mut val = *val; black_box(uops::shr_mut(&mut val.0, 7, 0)); },
+        "shl_mut", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| { let mut val = *val; black_box(uops::shl(&mut val.0, 7).eval()); },
+        "shr_mut", &args, |Aligned([val, _]): &Aligned<[Ulong; 2]>| { let mut val = *val; black_box(uops::shr(&mut val.0, 7).eval()); },
     ] };
 }
 

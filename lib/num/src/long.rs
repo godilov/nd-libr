@@ -20,7 +20,10 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 use crate::{
     BytesFn, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
-    long::{radix::*, uops::Expr},
+    long::{
+        radix::*,
+        uops::{Expr, ExprShift},
+    },
 };
 #[cfg(feature = "const-time")]
 use crate::{EqCt, GtCt, LtCt, MaskCt, RelCt, SelectCt, ZeroCt};
@@ -1079,9 +1082,33 @@ pub mod uops {
         pub func: F,
     }
 
-    /// Expression with modes.
+    /// Shl expression.
+    pub struct Shl<Words> {
+        /// Lhs in `lhs << rhs`, `lhs <<= rhs`
+        pub words: Words,
+
+        /// Rhs in `lhs << rhs`, `lhs <<= rhs`
+        pub shift: usize,
+
+        /// Default value.
+        pub default: Single,
+    }
+
+    /// Shr expression.
+    pub struct Shr<Words> {
+        /// Lhs in `lhs >> rhs`, `lhs >>= rhs`
+        pub words: Words,
+
+        /// Rhs in `lhs >> rhs`, `lhs >>= rhs`
+        pub shift: usize,
+
+        /// Default value.
+        pub default: Single,
+    }
+
+    /// Expression for operations with modes.
     pub trait Expr<Words>: Sized {
-        /// Calculates expression as default.
+        /// Evaluates expression as default.
         #[inline]
         fn default<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
             let (res, overflow) = self.eval_ext();
@@ -1091,7 +1118,7 @@ pub mod uops {
             func(res)
         }
 
-        /// Calculates expression as checked.
+        /// Evaluates expression as checked.
         #[inline]
         fn checked<Long, F: Fn(Words) -> Long>(self, func: F) -> Option<Long> {
             let (res, overflow) = self.eval_ext();
@@ -1102,7 +1129,7 @@ pub mod uops {
             }
         }
 
-        /// Calculates expression as strict.
+        /// Evaluates expression as strict.
         #[inline]
         fn strict<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
             let (res, overflow) = self.eval_ext();
@@ -1112,13 +1139,13 @@ pub mod uops {
             func(res)
         }
 
-        /// Calculates expression as wrapping.
+        /// Evaluates expression as wrapping.
         #[inline]
         fn wrapping<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
             func(self.eval())
         }
 
-        /// Calculates expression as overflowing.
+        /// Evaluates expression as overflowing.
         #[inline]
         fn overflowing<Long, F: Fn(Words) -> Long>(self, func: F) -> (Long, bool) {
             let (res, overflow) = self.eval_ext();
@@ -1128,6 +1155,63 @@ pub mod uops {
 
         /// Evaluates expression.
         fn eval(self) -> Words;
+
+        /// Evaluates expression with overflow.
+        fn eval_ext(self) -> (Words, bool);
+    }
+
+    /// Expression for shift operations with modes.
+    pub trait ExprShift<Words>: Sized {
+        /// Evaluates expression as default.
+        #[inline]
+        fn default<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
+            let (res, overflow) = self.eval_ext();
+
+            debug_assert!(!overflow);
+
+            func(res)
+        }
+
+        /// Evaluates expression as checked.
+        #[inline]
+        fn checked<Long, F: Fn(Words) -> Long>(self, func: F) -> Option<Long> {
+            let (res, overflow) = self.eval_ext();
+
+            match overflow {
+                false => Some(func(res)),
+                true => None,
+            }
+        }
+
+        /// Evaluates expression as strict.
+        #[inline]
+        fn strict<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
+            let (res, overflow) = self.eval_ext();
+
+            assert!(!overflow);
+
+            func(res)
+        }
+
+        /// Evaluates expression as unbounded.
+        #[inline]
+        fn unbounded<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
+            func(self.eval())
+        }
+
+        /// Evaluates expression as overflowing.
+        #[inline]
+        fn overflowing<Long, F: Fn(Words) -> Long>(self, func: F) -> (Long, bool) {
+            let (res, overflow) = self.eval_ext();
+
+            (func(res), overflow)
+        }
+
+        /// Evaluates expression.
+        #[inline]
+        fn eval(self) -> Words {
+            self.eval_ext().0
+        }
 
         /// Evaluates expression with overflow.
         fn eval_ext(self) -> (Words, bool);
@@ -1897,6 +1981,86 @@ pub mod uops {
         }
     }
 
+    impl<const L: usize> Shl<&[Single; L]> {
+        /// Shl expression for signed numbers.
+        #[inline]
+        pub fn signed(self) -> Self {
+            self
+        }
+
+        /// Shl expression with default value.
+        #[inline]
+        pub fn default(mut self, default: Single) -> Self {
+            self.default = default;
+            self
+        }
+    }
+
+    impl<const L: usize> Shl<&mut [Single; L]> {
+        /// Shl expression for signed numbers.
+        #[inline]
+        pub fn signed(self) -> Self {
+            self
+        }
+
+        /// Shl expression with default value.
+        #[inline]
+        pub fn default(mut self, default: Single) -> Self {
+            self.default = default;
+            self
+        }
+    }
+
+    impl<const L: usize> Shr<&[Single; L]> {
+        /// Shr expression for signed numbers.
+        #[inline]
+        pub fn signed(self) -> Self {
+            let default = match sign(self.words, Sign::POS, Sign::NEG) {
+                Sign::ZERO => 0,
+                Sign::NEG => MAX,
+                Sign::POS => 0,
+            };
+
+            Self {
+                words: self.words,
+                shift: self.shift,
+                default,
+            }
+        }
+
+        /// Shr expression with default value.
+        #[inline]
+        pub fn default(mut self, default: Single) -> Self {
+            self.default = default;
+            self
+        }
+    }
+
+    impl<const L: usize> Shr<&mut [Single; L]> {
+        /// Shr expression for signed numbers.
+        #[inline]
+        pub fn signed(self) -> Self {
+            let default = match sign(self.words, Sign::POS, Sign::NEG) {
+                Sign::ZERO => 0,
+                Sign::NEG => MAX,
+                Sign::POS => 0,
+            };
+
+            Self {
+                words: self.words,
+                shift: self.shift,
+                default,
+            }
+        }
+
+        /// Shr expression with default value.
+        #[inline]
+        pub fn default(mut self, default: Single) -> Self {
+            self.default = default;
+            self
+        }
+    }
+
     impl<const L: usize> Expr<[Single; L]> for Not<&[Single; L]> {
         #[inline]
         fn eval(self) -> [Single; L] {
@@ -2261,6 +2425,132 @@ pub mod uops {
         }
     }
 
+    impl<const L: usize> ExprShift<[Single; L]> for Shl<&[Single; L]> {
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            use std::iter::repeat_n;
+
+            let words = self.words;
+            let shift = self.shift;
+            let default = self.default;
+
+            let offset = (shift / BITS).min(L);
+            let shl = shift % BITS;
+            let shr = BITS - shl;
+
+            let mut acc = default;
+            let mut res = repeat_n(default, offset)
+                .chain(words[..L - offset].iter().copied())
+                .collect_arr();
+
+            for ptr in res[offset..].iter_mut() {
+                let val = *ptr;
+
+                let val_h = ptr.unbounded_shl(shl as u32);
+                let val_l = acc.unbounded_shr(shr as u32);
+
+                acc = val;
+                *ptr = val_h | val_l;
+            }
+
+            (res, shift < BITS * L)
+        }
+    }
+
+    impl<const L: usize> ExprShift<()> for Shl<&mut [Single; L]> {
+        #[inline]
+        fn eval_ext(self) -> ((), bool) {
+            use std::iter::repeat_n;
+
+            let words = self.words;
+            let shift = self.shift;
+            let default = self.default;
+
+            let offset = (shift / BITS).min(L);
+            let shl = shift % BITS;
+            let shr = BITS - shl;
+
+            let mut acc = default;
+
+            *words = repeat_n(default, offset)
+                .chain(words[..L - offset].iter().copied())
+                .collect_arr();
+
+            for ptr in words[offset..].iter_mut() {
+                let val = *ptr;
+
+                let val_h = ptr.unbounded_shl(shl as u32);
+                let val_l = acc.unbounded_shr(shr as u32);
+
+                acc = val;
+                *ptr = val_h | val_l;
+            }
+
+            ((), shift < BITS * L)
+        }
+    }
+
+    impl<const L: usize> ExprShift<[Single; L]> for Shr<&[Single; L]> {
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            use std::iter::repeat_n;
+
+            let words = self.words;
+            let shift = self.shift;
+            let default = self.default;
+
+            let offset = (shift / BITS).min(L);
+            let shr = shift % BITS;
+            let shl = BITS - shr;
+
+            let mut acc = default;
+            let mut res = words[offset..].iter().copied().chain(repeat_n(default, offset)).collect_arr();
+
+            for ptr in res[..L - offset].iter_mut().rev() {
+                let val = *ptr;
+
+                let val_h = acc.unbounded_shl(shl as u32);
+                let val_l = ptr.unbounded_shr(shr as u32);
+
+                acc = val;
+                *ptr = val_h | val_l;
+            }
+
+            (res, shift < BITS * L)
+        }
+    }
+
+    impl<const L: usize> ExprShift<()> for Shr<&mut [Single; L]> {
+        #[inline]
+        fn eval_ext(self) -> ((), bool) {
+            use std::iter::repeat_n;
+
+            let words = self.words;
+            let shift = self.shift;
+            let default = self.default;
+
+            let offset = (shift / BITS).min(L);
+            let shr = shift % BITS;
+            let shl = BITS - shr;
+
+            let mut acc = default;
+
+            *words = words[offset..].iter().copied().chain(repeat_n(default, offset)).collect_arr();
+
+            for ptr in words[..L - offset].iter_mut().rev() {
+                let val = *ptr;
+
+                let val_h = acc.unbounded_shl(shl as u32);
+                let val_l = ptr.unbounded_shr(shr as u32);
+
+                acc = val;
+                *ptr = val_h | val_l;
+            }
+
+            ((), shift < BITS * L)
+        }
+    }
+
     /// Not iterator expression.
     ///
     /// Evaluated via [Expr] methods.
@@ -2409,162 +2699,20 @@ pub mod uops {
         }
     }
 
-    /// Calculates `words << shift`.
+    /// Shl expression.
     ///
-    /// Argument `default` is used for filling bits outside of shift.
+    /// Evaluated via [ExprShift] methods.
     #[inline]
-    pub fn shl<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> ([Single; L], bool) {
-        use std::iter::repeat_n;
-
-        let offset = (shift / BITS).min(L);
-        let shl = shift % BITS;
-        let shr = BITS - shl;
-
-        let mut acc = default;
-        let mut res = repeat_n(default, offset)
-            .chain(words[..L - offset].iter().copied())
-            .collect_arr();
-
-        for ptr in res[offset..].iter_mut() {
-            let val = *ptr;
-
-            let val_h = ptr.unbounded_shl(shl as u32);
-            let val_l = acc.unbounded_shr(shr as u32);
-
-            acc = val;
-            *ptr = val_h | val_l;
-        }
-
-        (res, shift < BITS * L)
+    pub fn shl<Words>(words: Words, shift: usize) -> Shl<Words> {
+        Shl { words, shift, default: 0 }
     }
 
-    /// Calculates `words >> shift`.
+    /// Shr expression.
     ///
-    /// Argument `default` is used for filling bits outside of shift.
+    /// Evaluated via [ExprShift] methods.
     #[inline]
-    pub fn shr<const L: usize>(words: &[Single; L], shift: usize, default: Single) -> ([Single; L], bool) {
-        use std::iter::repeat_n;
-
-        let offset = (shift / BITS).min(L);
-        let shr = shift % BITS;
-        let shl = BITS - shr;
-
-        let mut acc = default;
-        let mut res = words[offset..].iter().copied().chain(repeat_n(default, offset)).collect_arr();
-
-        for ptr in res[..L - offset].iter_mut().rev() {
-            let val = *ptr;
-
-            let val_h = acc.unbounded_shl(shl as u32);
-            let val_l = ptr.unbounded_shr(shr as u32);
-
-            acc = val;
-            *ptr = val_h | val_l;
-        }
-
-        (res, shift < BITS * L)
-    }
-
-    /// Calculates `words << shift`.
-    ///
-    /// Words are sign-extended instead of zero-extended.
-    #[inline]
-    pub fn shl_signed<const L: usize>(words: &[Single; L], shift: usize) -> ([Single; L], bool) {
-        shl(words, shift, 0)
-    }
-
-    /// Calculates `words >> shift`.
-    ///
-    /// Words are sign-extended instead of zero-extended.
-    #[inline]
-    pub fn shr_signed<const L: usize>(words: &[Single; L], shift: usize) -> ([Single; L], bool) {
-        let ext = match sign(words, Sign::POS, Sign::NEG) {
-            Sign::ZERO => 0,
-            Sign::NEG => MAX,
-            Sign::POS => 0,
-        };
-
-        shr(words, shift, ext)
-    }
-
-    /// Calculates `words <<= shift`.
-    ///
-    /// Argument `default` is used for filling bits outside of shift.
-    #[inline]
-    pub fn shl_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> bool {
-        use std::iter::repeat_n;
-
-        let offset = (shift / BITS).min(L);
-        let shl = shift % BITS;
-        let shr = BITS - shl;
-
-        let mut acc = default;
-
-        *words = repeat_n(default, offset)
-            .chain(words[..L - offset].iter().copied())
-            .collect_arr();
-
-        for ptr in words[offset..].iter_mut() {
-            let val = *ptr;
-
-            let val_h = ptr.unbounded_shl(shl as u32);
-            let val_l = acc.unbounded_shr(shr as u32);
-
-            acc = val;
-            *ptr = val_h | val_l;
-        }
-
-        shift < BITS * L
-    }
-
-    /// Calculates `words >>= shift`.
-    ///
-    /// Argument `default` is used for filling bits outside of shift.
-    #[inline]
-    pub fn shr_mut<const L: usize>(words: &mut [Single; L], shift: usize, default: Single) -> bool {
-        use std::iter::repeat_n;
-
-        let offset = (shift / BITS).min(L);
-        let shr = shift % BITS;
-        let shl = BITS - shr;
-
-        let mut acc = default;
-
-        *words = words[offset..].iter().copied().chain(repeat_n(default, offset)).collect_arr();
-
-        for ptr in words[..L - offset].iter_mut().rev() {
-            let val = *ptr;
-
-            let val_h = acc.unbounded_shl(shl as u32);
-            let val_l = ptr.unbounded_shr(shr as u32);
-
-            acc = val;
-            *ptr = val_h | val_l;
-        }
-
-        shift < BITS * L
-    }
-
-    /// Calculates `words <<= shift`.
-    ///
-    /// Words are sign-extended instead of zero-extended.
-    #[inline]
-    pub fn shl_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> bool {
-        shl_mut(words, shift, 0)
-    }
-
-    /// Calculates `words >>= shift`.
-    ///
-    /// Words are sign-extended instead of zero-extended.
-    #[inline]
-    pub fn shr_signed_mut<const L: usize>(words: &mut [Single; L], shift: usize) -> bool {
-        let ext = match sign(words, Sign::POS, Sign::NEG) {
-            Sign::ZERO => 0,
-            Sign::NEG => MAX,
-            Sign::POS => 0,
-        };
-
-        shr_mut(words, shift, ext)
+    pub fn shr<Words>(words: Words, shift: usize) -> Shr<Words> {
+        Shr { words, shift, default: 0 }
     }
 
     /// Reads `[offset; offset + Single::BITS]`.
@@ -2634,7 +2782,7 @@ pub mod uops {
     #[inline(never)]
     #[cfg(feature = "const-time")]
     pub fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).zero_ct() as MaskCt
+        std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).zero_ct()
     }
 }
 
@@ -4194,11 +4342,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for Signed<L>, [
-    << Signed(uops::shl_signed(&lhs.0, rhs).0),
-    >> Signed(uops::shr_signed(&lhs.0, rhs).0),
+    << uops::shl(&lhs.0, rhs).signed().unbounded(Signed),
+    >> uops::shr(&lhs.0, rhs).signed().unbounded(Signed),
 
-    << @unbounded Signed(uops::shl_signed(&lhs.0, rhs).0),
-    >> @unbounded Signed(uops::shr_signed(&lhs.0, rhs).0),
+    << @unbounded uops::shl(&lhs.0, rhs).signed().unbounded(Signed),
+    >> @unbounded uops::shr(&lhs.0, rhs).signed().unbounded(Signed),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
@@ -4240,11 +4388,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for Unsigned<L>, [
-    << Unsigned(uops::shl(&lhs.0, rhs, 0).0),
-    >> Unsigned(uops::shr(&lhs.0, rhs, 0).0),
+    << uops::shl(&lhs.0, rhs).unbounded(Unsigned),
+    >> uops::shr(&lhs.0, rhs).unbounded(Unsigned),
 
-    << @unbounded Unsigned(uops::shl(&lhs.0, rhs, 0).0),
-    >> @unbounded Unsigned(uops::shr(&lhs.0, rhs, 0).0),
+    << @unbounded uops::shl(&lhs.0, rhs).unbounded(Unsigned),
+    >> @unbounded uops::shr(&lhs.0, rhs).unbounded(Unsigned),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
@@ -4254,11 +4402,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for Bytes<L>, [
-    << Bytes(uops::shl(&lhs.0, rhs, 0).0),
-    >> Bytes(uops::shr(&lhs.0, rhs, 0).0),
+    << uops::shl(&lhs.0, rhs).unbounded(Bytes),
+    >> uops::shr(&lhs.0, rhs).unbounded(Bytes),
 
-    << @unbounded Bytes(uops::shl(&lhs.0, rhs, 0).0),
-    >> @unbounded Bytes(uops::shr(&lhs.0, rhs, 0).0),
+    << @unbounded uops::shl(&lhs.0, rhs).unbounded(Bytes),
+    >> @unbounded uops::shr(&lhs.0, rhs).unbounded(Bytes),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
@@ -4275,11 +4423,11 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for Signed<L>, [
-    <<= uops::shl_signed_mut(&mut lhs.0, rhs),
-    >>= uops::shr_signed_mut(&mut lhs.0, rhs),
+    <<= uops::shl(&mut lhs.0, rhs).signed().unbounded(|_| ()),
+    >>= uops::shr(&mut lhs.0, rhs).signed().unbounded(|_| ()),
 
-    <<= @unbounded uops::shl_signed_mut(&mut lhs.0, rhs),
-    >>= @unbounded uops::shr_signed_mut(&mut lhs.0, rhs),
+    <<= @unbounded uops::shl(&mut lhs.0, rhs).signed().unbounded(|_| ()),
+    >>= @unbounded uops::shr(&mut lhs.0, rhs).signed().unbounded(|_| ()),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>), [
@@ -4296,11 +4444,11 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Unsigned<L>, [
-    <<= uops::shl_mut(&mut lhs.0, rhs, 0),
-    >>= uops::shr_mut(&mut lhs.0, rhs, 0),
+    <<= uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
+    >>= uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
 
-    <<= @unbounded uops::shl_mut(&mut lhs.0, rhs, 0),
-    >>= @unbounded uops::shr_mut(&mut lhs.0, rhs, 0),
+    <<= @unbounded uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
+    >>= @unbounded uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
@@ -4310,11 +4458,11 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for Bytes<L>, [
-    <<= uops::shl_mut(&mut lhs.0, rhs, 0),
-    >>= uops::shr_mut(&mut lhs.0, rhs, 0),
+    <<= uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
+    >>= uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
 
-    <<= @unbounded uops::shl_mut(&mut lhs.0, rhs, 0),
-    >>= @unbounded uops::shr_mut(&mut lhs.0, rhs, 0),
+    <<= @unbounded uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
+    >>= @unbounded uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
 ] }
 
 ndops::def! { @stdun <const L: usize> (*value: &Signed<L>) -> Signed<L>, [
@@ -6738,10 +6886,10 @@ mod tests {
             shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
             shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
         ) [
-            (uops::shl(&bytes, shift, 0).0, val.unbounded_shl(shift as u32).to_le_bytes()),
-            (uops::shr(&bytes, shift, 0).0, val.unbounded_shr(shift as u32).to_le_bytes()),
-            (uops::shl(&bytes, shift, MAX).0, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
-            (uops::shr(&bytes, shift, MAX).0, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
+            (uops::shl(&bytes, shift).eval(), val.unbounded_shl(shift as u32).to_le_bytes()),
+            (uops::shr(&bytes, shift).eval(), val.unbounded_shr(shift as u32).to_le_bytes()),
+            (uops::shl(&bytes, shift).default(MAX).eval(), (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+            (uops::shr(&bytes, shift).default(MAX).eval(), (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
         ] }
     }
 
@@ -6800,10 +6948,10 @@ mod tests {
             shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
             shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
         ) [
-            ({ let mut bytes = bytes; uops::shl_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shl(shift as u32).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::shr_mut(&mut bytes, shift, 0); bytes }, val.unbounded_shr(shift as u32).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::shl_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::shr_mut(&mut bytes, shift, MAX); bytes }, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shl(&mut bytes, shift).eval(); bytes }, val.unbounded_shl(shift as u32).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shr(&mut bytes, shift).eval(); bytes }, val.unbounded_shr(shift as u32).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shl(&mut bytes, shift).default(MAX).eval(); bytes }, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::shr(&mut bytes, shift).default(MAX).eval(); bytes }, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
         ] }
     }
 }
