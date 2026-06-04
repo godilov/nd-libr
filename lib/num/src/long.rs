@@ -2237,6 +2237,30 @@ pub mod uops {
         }
     }
 
+    impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], Single> {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
+        }
+    }
+
+    impl<const L: usize> Expr<()> for Mul<&mut [Single; L], Single> {
+        #[inline]
+        fn eval(self) {
+            self.iter_mut().eval()
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
+        }
+    }
+
     /// Not iterator expression.
     ///
     /// Evaluated via [Expr] methods.
@@ -2352,6 +2376,7 @@ pub mod uops {
     /// BitOr expression.
     ///
     /// Evaluated via `Bit::eval()` and `Bit::eval_mut()`.
+    #[inline]
     pub fn bitor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
         Bit {
             lhs,
@@ -2363,6 +2388,7 @@ pub mod uops {
     /// BitAnd expression.
     ///
     /// Evaluated via `Bit::eval()` and `Bit::eval_mut()`.
+    #[inline]
     pub fn bitand<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
         Bit {
             lhs,
@@ -2374,6 +2400,7 @@ pub mod uops {
     /// BitXor expression.
     ///
     /// Evaluated via `Bit::eval()` and `Bit::eval_mut()`.
+    #[inline]
     pub fn bitxor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
         Bit {
             lhs,
@@ -2697,7 +2724,7 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter().eval()
+            uops::mul(lhs, rhs).eval()
         }
 
         #[inline]
@@ -2705,7 +2732,7 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter().eval_ext()
+            uops::mul(lhs, rhs).eval_ext()
         }
     }
 
