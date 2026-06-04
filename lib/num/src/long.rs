@@ -951,7 +951,7 @@ pub mod uops {
     /// Expression iterator mutable for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
-    pub struct ExprIterMut<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> {
+    pub struct ExprIterMut<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> {
         /// Lhs iterator.
         pub lhs: Lhs,
 
@@ -963,6 +963,24 @@ pub mod uops {
 
         /// Accumulator.
         pub acc: Single,
+    }
+
+    /// Not iterator expression.
+    pub struct NotIter<Words> {
+        /// Words of expression.
+        pub words: Words,
+    }
+
+    /// Pos iterator expression.
+    pub struct PosIter<Words> {
+        /// Words of expression.
+        pub words: Words,
+    }
+
+    /// Neg iterator expression.
+    pub struct NegIter<Words> {
+        /// Words of expression.
+        pub words: Words,
     }
 
     /// Not value expression.
@@ -1004,15 +1022,6 @@ pub mod uops {
         pub sign: bool,
     }
 
-    /// Add expression.
-    pub struct Add<Lhs, Rhs> {
-        /// Lhs in `lhs + rhs`, `lhs += rhs`.
-        pub lhs: Lhs,
-
-        /// Rhs in `lhs + rhs`, `lhs += rhs`.
-        pub rhs: Rhs,
-    }
-
     /// Add iterators expression.
     pub struct AddIter<Lhs, Rhs> {
         /// Lhs in `lhs + rhs`, `lhs += rhs`.
@@ -1022,8 +1031,8 @@ pub mod uops {
         pub rhs: Rhs,
     }
 
-    /// Sub expression.
-    pub struct Sub<Lhs, Rhs> {
+    /// Sub iterators expression.
+    pub struct SubIter<Lhs, Rhs> {
         /// Lhs in `lhs - rhs`, `lhs -= rhs`.
         pub lhs: Lhs,
 
@@ -1031,8 +1040,17 @@ pub mod uops {
         pub rhs: Rhs,
     }
 
-    /// Sub iterators expression.
-    pub struct SubIter<Lhs, Rhs> {
+    /// Add expression.
+    pub struct Add<Lhs, Rhs> {
+        /// Lhs in `lhs + rhs`, `lhs += rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs + rhs`, `lhs += rhs`.
+        pub rhs: Rhs,
+    }
+
+    /// Sub expression.
+    pub struct Sub<Lhs, Rhs> {
         /// Lhs in `lhs - rhs`, `lhs -= rhs`.
         pub lhs: Lhs,
 
@@ -1121,8 +1139,8 @@ pub mod uops {
         }
     }
 
-    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> Iterator
-        for ExprIterMut<'elem, Lhs, Rhs>
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Iterator
+        for ExprIterMut<'words, Lhs, Rhs>
     {
         type Item = Single;
 
@@ -1160,8 +1178,8 @@ pub mod uops {
         }
     }
 
-    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> Expr<()>
-        for ExprIterMut<'elem, Lhs, Rhs>
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()>
+        for ExprIterMut<'words, Lhs, Rhs>
     {
         #[inline]
         fn calculate(self) {
@@ -1174,16 +1192,103 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Not<&[Single; L]> {
+    impl<Words: Iterator<Item = Single>> NotIter<Words> {
         /// Iterator for [Not] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             ExprIter {
-                lhs: self.words.iter().copied().map(|word| !word),
+                lhs: self.words.map(|word| !word),
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc: 0,
             }
+        }
+    }
+
+    impl<'words, Words: Iterator<Item = &'words mut Single>> NotIter<Words> {
+        /// Iterator for [Not] expression.
+        #[inline]
+        pub fn iter_mut(
+            self,
+        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
+            ExprIterMut {
+                lhs: self.words.map(|word| {
+                    *word = !*word;
+                    word
+                }),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 0,
+            }
+        }
+    }
+
+    impl<Words: Iterator<Item = Single>> PosIter<Words> {
+        /// Iterator for [Pos] expression.
+        #[inline]
+        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
+            ExprIter {
+                lhs: self.words,
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 0,
+            }
+        }
+    }
+
+    impl<'words, Words: Iterator<Item = &'words mut Single>> PosIter<Words> {
+        /// Iterator for [Pos] expression.
+        #[inline]
+        pub fn iter_mut(
+            self,
+        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
+            ExprIterMut {
+                lhs: self.words,
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 0,
+            }
+        }
+    }
+
+    impl<Words: Iterator<Item = Single>> NegIter<Words> {
+        /// Iterator for [Neg] expression.
+        #[inline]
+        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
+            ExprIter {
+                lhs: self.words.map(|word| !word),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 1,
+            }
+        }
+    }
+
+    impl<'words, Words: Iterator<Item = &'words mut Single>> NegIter<Words> {
+        /// Iterator for [Neg] expression.
+        #[inline]
+        pub fn iter_mut(
+            self,
+        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
+            ExprIterMut {
+                lhs: self.words.map(|word| {
+                    *word = !*word;
+                    word
+                }),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 1,
+            }
+        }
+    }
+
+    impl<const L: usize> Not<&[Single; L]> {
+        /// Iterator for [Not] expression.
+        #[inline]
+        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
+            let words = self.words.iter().copied();
+
+            NotIter { words }.iter()
         }
     }
 
@@ -1193,15 +1298,9 @@ pub mod uops {
         pub fn iter_mut(
             self,
         ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            ExprIterMut {
-                lhs: self.words.iter_mut().map(|word| {
-                    *word = !*word;
-                    word
-                }),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-            }
+            let words = self.words.iter_mut();
+
+            NotIter { words }.iter_mut()
         }
     }
 
@@ -1209,12 +1308,9 @@ pub mod uops {
         /// Iterator for [Pos] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            ExprIter {
-                lhs: self.words.iter().copied(),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-            }
+            let words = self.words.iter().copied();
+
+            PosIter { words }.iter()
         }
     }
 
@@ -1224,12 +1320,9 @@ pub mod uops {
         pub fn iter_mut(
             self,
         ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            ExprIterMut {
-                lhs: self.words.iter_mut(),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-            }
+            let words = self.words.iter_mut();
+
+            PosIter { words }.iter_mut()
         }
     }
 
@@ -1237,12 +1330,9 @@ pub mod uops {
         /// Iterator for [Neg] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            ExprIter {
-                lhs: self.words.iter().copied().map(|word| !word),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 1,
-            }
+            let words = self.words.iter().copied();
+
+            NegIter { words }.iter()
         }
     }
 
@@ -1252,15 +1342,9 @@ pub mod uops {
         pub fn iter_mut(
             self,
         ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            ExprIterMut {
-                lhs: self.words.iter_mut().map(|word| {
-                    *word = !*word;
-                    word
-                }),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 1,
-            }
+            let words = self.words.iter_mut();
+
+            NegIter { words }.iter_mut()
         }
     }
 
@@ -1387,6 +1471,30 @@ pub mod uops {
         }
     }
 
+    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> AddIter<Lhs, Rhs> {
+        /// Iterator for [AddIter] expression.
+        #[inline]
+        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            ExprIter { lhs, rhs, mul: 1, acc: 0 }
+        }
+    }
+
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> AddIter<Lhs, Rhs> {
+        /// Iterator for [AddIter] expression.
+        #[inline]
+        pub fn iter_mut(
+            self,
+        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            ExprIterMut { lhs, rhs, mul: 1, acc: 0 }
+        }
+    }
+
     impl<const L: usize> Add<&[Single; L], &[Single; L]> {
         /// Iterator for [Add] expression.
         #[inline]
@@ -1394,7 +1502,7 @@ pub mod uops {
             let lhs = self.lhs.iter().copied();
             let rhs = self.rhs.iter().copied();
 
-            ExprIter { lhs, rhs, mul: 1, acc: 0 }
+            AddIter { lhs, rhs }.iter()
         }
     }
 
@@ -1407,31 +1515,7 @@ pub mod uops {
             let lhs = self.lhs.iter_mut();
             let rhs = self.rhs.iter().copied();
 
-            ExprIterMut { lhs, rhs, mul: 1, acc: 0 }
-        }
-    }
-
-    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> AddIter<Lhs, Rhs> {
-        /// Iterator for [AddIter] expression.
-        #[inline]
-        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            ExprIter { lhs, rhs, mul: 1, acc: 0 }
-        }
-    }
-
-    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> AddIter<Lhs, Rhs> {
-        /// Iterator for [AddIter] expression.
-        #[inline]
-        pub fn iter_mut(
-            self,
-        ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            ExprIterMut { lhs, rhs, mul: 1, acc: 0 }
+            AddIter { lhs, rhs }.iter_mut()
         }
     }
 
@@ -1513,40 +1597,6 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Sub<&[Single; L], &[Single; L]> {
-        /// Iterator for [Sub] expression.
-        #[inline]
-        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            let lhs = self.lhs.iter().copied();
-            let rhs = self.rhs.iter().copied();
-
-            ExprIter {
-                lhs,
-                rhs: rhs.map(|word| !word),
-                mul: 1,
-                acc: 1,
-            }
-        }
-    }
-
-    impl<'words, const L: usize> Sub<&'words mut [Single; L], &[Single; L]> {
-        /// Iterator for [Sub] expression.
-        #[inline]
-        pub fn iter_mut(
-            self,
-        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            let lhs = self.lhs.iter_mut();
-            let rhs = self.rhs.iter().copied();
-
-            ExprIterMut {
-                lhs,
-                rhs: rhs.map(|word| !word),
-                mul: 1,
-                acc: 1,
-            }
-        }
-    }
-
     impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
         /// Iterator for [SubIter] expression.
         #[inline]
@@ -1563,12 +1613,12 @@ pub mod uops {
         }
     }
 
-    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
         /// Iterator for [SubIter] expression.
         #[inline]
         pub fn iter_mut(
             self,
-        ) -> ExprIterMut<'elem, impl Iterator<Item = &'elem mut Single>, impl Iterator<Item = Single>> {
+        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
@@ -1578,6 +1628,30 @@ pub mod uops {
                 mul: 1,
                 acc: 1,
             }
+        }
+    }
+
+    impl<const L: usize> Sub<&[Single; L], &[Single; L]> {
+        /// Iterator for [Sub] expression.
+        #[inline]
+        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
+            let lhs = self.lhs.iter().copied();
+            let rhs = self.rhs.iter().copied();
+
+            SubIter { lhs, rhs }.iter()
+        }
+    }
+
+    impl<'words, const L: usize> Sub<&'words mut [Single; L], &[Single; L]> {
+        /// Iterator for [Sub] expression.
+        #[inline]
+        pub fn iter_mut(
+            self,
+        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
+            let lhs = self.lhs.iter_mut();
+            let rhs = self.rhs.iter().copied();
+
+            SubIter { lhs, rhs }.iter_mut()
         }
     }
 
@@ -1893,7 +1967,7 @@ pub mod uops {
         }
     }
 
-    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for AddIter<Lhs, Rhs> {
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for AddIter<Lhs, Rhs> {
         #[inline]
         fn calculate(self) {
             self.iter_mut().calculate()
@@ -1991,7 +2065,7 @@ pub mod uops {
         }
     }
 
-    impl<'elem, Lhs: Iterator<Item = &'elem mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for SubIter<Lhs, Rhs> {
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for SubIter<Lhs, Rhs> {
         #[inline]
         fn calculate(self) {
             self.iter_mut().calculate()
@@ -2051,6 +2125,30 @@ pub mod uops {
         }
     }
 
+    /// Not iterator expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn not_iter<Words>(words: Words) -> NotIter<Words> {
+        NotIter { words }
+    }
+
+    /// Pos iterator expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn pos_iter<Words>(words: Words) -> PosIter<Words> {
+        PosIter { words }
+    }
+
+    /// Neg iterator expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn neg_iter<Words>(words: Words) -> NegIter<Words> {
+        NegIter { words }
+    }
+
     /// Not expression.
     ///
     /// Evaluated via [Expr] methods.
@@ -2091,20 +2189,12 @@ pub mod uops {
         Negx { words }
     }
 
-    /// Apply sign expression.
+    /// Sign (forced) expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
     pub fn sgx<Words>(words: Words, sign: bool) -> Sgx<Words> {
         Sgx { words, sign }
-    }
-
-    /// Add expression.
-    ///
-    /// Evaluated via [Expr] methods.
-    #[inline]
-    pub fn add<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Add<Lhs, Rhs> {
-        Add { lhs, rhs }
     }
 
     /// Add iterators expression.
@@ -2115,20 +2205,28 @@ pub mod uops {
         AddIter { lhs, rhs }
     }
 
-    /// Sub expression.
-    ///
-    /// Evaluated via [Expr] methods.
-    #[inline]
-    pub fn sub<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Sub<Lhs, Rhs> {
-        Sub { lhs, rhs }
-    }
-
     /// Sub iterators expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
     pub fn sub_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> SubIter<Lhs, Rhs> {
         SubIter { lhs, rhs }
+    }
+
+    /// Add expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn add<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Add<Lhs, Rhs> {
+        Add { lhs, rhs }
+    }
+
+    /// Sub expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn sub<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Sub<Lhs, Rhs> {
+        Sub { lhs, rhs }
     }
 
     /// Mul expression.
