@@ -11,7 +11,7 @@ use ndnum::{
     arch::{Aligned, word::Single},
     long::{
         ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops,
-        uops::ExprShift,
+        uops::Expr,
     },
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};

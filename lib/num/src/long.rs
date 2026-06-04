@@ -20,10 +20,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 use crate::{
     BytesFn, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
-    long::{
-        radix::*,
-        uops::{Expr, ExprShift},
-    },
+    long::{radix::*, uops::Expr},
 };
 #[cfg(feature = "const-time")]
 use crate::{EqCt, GtCt, LtCt, MaskCt, RelCt, SelectCt, ZeroCt};
@@ -168,10 +165,10 @@ macro_rules! nd_ops_primitive_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, &rhs: &$primitive) -> Signed<L> for [Signed<L>, $primitive], [
-            + uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(Signed),
-            - uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(Signed),
+            + uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).with(Signed),
+            - uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).with(Signed),
 
-            * algo::mul(&lhs.0, &Signed::from(rhs).0).wrapping(Signed),
+            * algo::mul(&lhs.0, &Signed::from(rhs).0).with(Signed),
 
             / algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).0,
             % algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).1,
@@ -182,9 +179,9 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
-            + uops::add_iter(lhs.iter_words_default(if lhs < 0 { MAX } else { 0 }), rhs.0.iter().copied()).wrapping(Signed),
+            + uops::add_iter(lhs.iter_words_default(if lhs < 0 { MAX } else { 0 }), rhs.0.iter().copied()).with(Signed),
 
-            * algo::mul(&Signed::from(lhs).0, &rhs.0).wrapping(Signed),
+            * algo::mul(&Signed::from(lhs).0, &rhs.0).with(Signed),
 
             | uops::bitor(&Signed::from(lhs).0, &rhs.0).eval(),
             & uops::bitand(&Signed::from(lhs).0, &rhs.0).eval(),
@@ -192,10 +189,10 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
-            += uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(|_| ()),
-            -= uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).wrapping(|_| ()),
+            += uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).eval(),
+            -= uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_default(if rhs < 0 { MAX } else { 0 })).eval(),
 
-            *= algo::mul(&mut lhs.0, &Signed::from(rhs).0).wrapping(|_| ()),
+            *= algo::mul(&mut lhs.0, &Signed::from(rhs).0).eval(),
 
             /= { *lhs = algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).0; },
             %= { *lhs = algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).1; },
@@ -207,10 +204,10 @@ macro_rules! nd_ops_primitive_impl {
     };
     (@unsigned $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, &rhs: &$primitive) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).wrapping(Unsigned),
-            - uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).wrapping(Unsigned),
+            + uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).with(Unsigned),
+            - uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).with(Unsigned),
 
-            * algo::mul(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned),
+            * algo::mul(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
 
             / algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).0,
             % algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).1,
@@ -221,9 +218,9 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).wrapping(Unsigned),
+            + uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).with(Unsigned),
 
-            * algo::mul(&Unsigned::from(lhs).0, &rhs.0).wrapping(Unsigned),
+            * algo::mul(&Unsigned::from(lhs).0, &rhs.0).with(Unsigned),
 
             | uops::bitor(&Unsigned::from(lhs).0, &rhs.0).eval(),
             & uops::bitand(&Unsigned::from(lhs).0, &rhs.0).eval(),
@@ -231,10 +228,10 @@ macro_rules! nd_ops_primitive_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
-            += uops::add_iter(lhs.0.iter_mut(), rhs.iter_words()).wrapping(|_| ()),
-            -= uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words()).wrapping(|_| ()),
+            += uops::add_iter(lhs.0.iter_mut(), rhs.iter_words()).eval(),
+            -= uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words()).eval(),
 
-            *= algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).wrapping(|_| ()),
+            *= algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).eval(),
 
             /= algo::div_mut(&mut lhs.0, &Unsigned::from(rhs).0).wrapping(),
             %= algo::rem_mut(&mut lhs.0, &Unsigned::from(rhs).0).wrapping(),
@@ -277,9 +274,9 @@ macro_rules! nd_ops_primitive_native_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, &rhs: &$primitive) -> Signed<L> for [Signed<L>, $primitive], [
-            + uops::add(&lhs.0, rhs as <Single as Num>::Signed).wrapping(Signed),
-            - uops::sub(&lhs.0, rhs as <Single as Num>::Signed).wrapping(Signed),
-            * algo::mul(&lhs.0, rhs as <Single as Num>::Signed).wrapping(Signed),
+            + uops::add(&lhs.0, rhs as <Single as Num>::Signed).with(Signed),
+            - uops::sub(&lhs.0, rhs as <Single as Num>::Signed).with(Signed),
+            * algo::mul(&lhs.0, rhs as <Single as Num>::Signed).with(Signed),
 
             / algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).0,
             % algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).1,
@@ -290,8 +287,8 @@ macro_rules! nd_ops_primitive_native_impl {
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
-            + uops::add(&rhs.0, lhs as <Single as Num>::Signed).wrapping(Signed),
-            * algo::mul(&rhs.0, lhs as <Single as Num>::Signed).wrapping(Signed),
+            + uops::add(&rhs.0, lhs as <Single as Num>::Signed).with(Signed),
+            * algo::mul(&rhs.0, lhs as <Single as Num>::Signed).with(Signed),
 
             | uops::bitor(&rhs.0, lhs as <Single as Num>::Signed).eval(),
             & uops::bitand(&rhs.0, lhs as <Single as Num>::Signed).eval(),
@@ -299,9 +296,9 @@ macro_rules! nd_ops_primitive_native_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
-            += uops::add(&mut lhs.0, rhs as <Single as Num>::Signed).wrapping(|_| ()),
-            -= uops::sub(&mut lhs.0, rhs as <Single as Num>::Signed).wrapping(|_| ()),
-            *= algo::mul(&mut lhs.0, rhs as <Single as Num>::Signed).wrapping(|_| ()),
+            += uops::add(&mut lhs.0, rhs as <Single as Num>::Signed).eval(),
+            -= uops::sub(&mut lhs.0, rhs as <Single as Num>::Signed).eval(),
+            *= algo::mul(&mut lhs.0, rhs as <Single as Num>::Signed).eval(),
 
             /= { *lhs = algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).0; },
             %= { *lhs = algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).1; },
@@ -313,9 +310,9 @@ macro_rules! nd_ops_primitive_native_impl {
     };
     (@unsigned $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, &rhs: &$primitive) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + uops::add(&lhs.0, rhs as Single).wrapping(Unsigned),
-            - uops::sub(&lhs.0, rhs as Single).wrapping(Unsigned),
-            * algo::mul(&lhs.0, rhs as Single).wrapping(Unsigned),
+            + uops::add(&lhs.0, rhs as Single).with(Unsigned),
+            - uops::sub(&lhs.0, rhs as Single).with(Unsigned),
+            * algo::mul(&lhs.0, rhs as Single).with(Unsigned),
 
             / algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).0,
             % algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).1,
@@ -326,8 +323,8 @@ macro_rules! nd_ops_primitive_native_impl {
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
-            + uops::add(&rhs.0, lhs as Single).wrapping(Unsigned),
-            * algo::mul(&rhs.0, lhs as Single).wrapping(Unsigned),
+            + uops::add(&rhs.0, lhs as Single).with(Unsigned),
+            * algo::mul(&rhs.0, lhs as Single).with(Unsigned),
 
             | uops::bitor(&rhs.0, lhs as Single).eval(),
             & uops::bitand(&rhs.0, lhs as Single).eval(),
@@ -335,9 +332,9 @@ macro_rules! nd_ops_primitive_native_impl {
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
-            += uops::add(&mut lhs.0, rhs as Single).wrapping(|_| ()),
-            -= uops::sub(&mut lhs.0, rhs as Single).wrapping(|_| ()),
-            *= algo::mul(&mut lhs.0, rhs as Single).wrapping(|_| ()),
+            += uops::add(&mut lhs.0, rhs as Single).eval(),
+            -= uops::sub(&mut lhs.0, rhs as Single).eval(),
+            *= algo::mul(&mut lhs.0, rhs as Single).eval(),
 
             /= algo::div_single_mut(&mut lhs.0, rhs as Single).wrapping(),
             %= algo::rem_single_mut(&mut lhs.0, rhs as Single).wrapping(),
@@ -1106,7 +1103,7 @@ pub mod uops {
         pub default: Single,
     }
 
-    /// Expression for operations with modes.
+    /// Expression.
     pub trait Expr<Words>: Sized {
         /// Evaluates expression as default.
         #[inline]
@@ -1139,79 +1136,22 @@ pub mod uops {
             func(res)
         }
 
-        /// Evaluates expression as wrapping.
-        #[inline]
-        fn wrapping<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
-            func(self.eval())
-        }
-
         /// Evaluates expression as overflowing.
         #[inline]
         fn overflowing<Long, F: Fn(Words) -> Long>(self, func: F) -> (Long, bool) {
             let (res, overflow) = self.eval_ext();
 
             (func(res), overflow)
+        }
+
+        /// Evaluates expression with func.
+        #[inline]
+        fn with<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
+            func(self.eval())
         }
 
         /// Evaluates expression.
         fn eval(self) -> Words;
-
-        /// Evaluates expression with overflow.
-        fn eval_ext(self) -> (Words, bool);
-    }
-
-    /// Expression for shift operations with modes.
-    pub trait ExprShift<Words>: Sized {
-        /// Evaluates expression as default.
-        #[inline]
-        fn default<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
-            let (res, overflow) = self.eval_ext();
-
-            debug_assert!(!overflow);
-
-            func(res)
-        }
-
-        /// Evaluates expression as checked.
-        #[inline]
-        fn checked<Long, F: Fn(Words) -> Long>(self, func: F) -> Option<Long> {
-            let (res, overflow) = self.eval_ext();
-
-            match overflow {
-                false => Some(func(res)),
-                true => None,
-            }
-        }
-
-        /// Evaluates expression as strict.
-        #[inline]
-        fn strict<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
-            let (res, overflow) = self.eval_ext();
-
-            assert!(!overflow);
-
-            func(res)
-        }
-
-        /// Evaluates expression as unbounded.
-        #[inline]
-        fn unbounded<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
-            func(self.eval())
-        }
-
-        /// Evaluates expression as overflowing.
-        #[inline]
-        fn overflowing<Long, F: Fn(Words) -> Long>(self, func: F) -> (Long, bool) {
-            let (res, overflow) = self.eval_ext();
-
-            (func(res), overflow)
-        }
-
-        /// Evaluates expression.
-        #[inline]
-        fn eval(self) -> Words {
-            self.eval_ext().0
-        }
 
         /// Evaluates expression with overflow.
         fn eval_ext(self) -> (Words, bool);
@@ -1255,36 +1195,6 @@ pub mod uops {
             *lhs = val as Single;
 
             Some(self.acc)
-        }
-    }
-
-    impl<const L: usize, Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> Expr<[Single; L]>
-        for ExprIter<Lhs, Rhs>
-    {
-        #[inline]
-        fn eval(mut self) -> [Single; L] {
-            self.collect_arr()
-        }
-
-        #[inline]
-        fn eval_ext(mut self) -> ([Single; L], bool) {
-            let res = self.collect_arr();
-
-            (res, self.acc > 0)
-        }
-    }
-
-    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()>
-        for ExprIterMut<'words, Lhs, Rhs>
-    {
-        #[inline]
-        fn eval(self) {
-            self.for_each(|_| ());
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ((), bool) {
-            ((), self.last().unwrap_or_default() > 0)
         }
     }
 
@@ -2061,6 +1971,36 @@ pub mod uops {
         }
     }
 
+    impl<const L: usize, Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> Expr<[Single; L]>
+        for ExprIter<Lhs, Rhs>
+    {
+        #[inline]
+        fn eval(mut self) -> [Single; L] {
+            self.collect_arr()
+        }
+
+        #[inline]
+        fn eval_ext(mut self) -> ([Single; L], bool) {
+            let res = self.collect_arr();
+
+            (res, self.acc > 0)
+        }
+    }
+
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()>
+        for ExprIterMut<'words, Lhs, Rhs>
+    {
+        #[inline]
+        fn eval(self) {
+            self.for_each(|_| ());
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ((), bool) {
+            ((), self.last().unwrap_or_default() > 0)
+        }
+    }
+
     impl<const L: usize> Expr<[Single; L]> for Not<&[Single; L]> {
         #[inline]
         fn eval(self) -> [Single; L] {
@@ -2425,7 +2365,12 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> ExprShift<[Single; L]> for Shl<&[Single; L]> {
+    impl<const L: usize> Expr<[Single; L]> for Shl<&[Single; L]> {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.eval_ext().0
+        }
+
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
             use std::iter::repeat_n;
@@ -2457,7 +2402,12 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> ExprShift<()> for Shl<&mut [Single; L]> {
+    impl<const L: usize> Expr<()> for Shl<&mut [Single; L]> {
+        #[inline]
+        fn eval(self) {
+            self.eval_ext().0
+        }
+
         #[inline]
         fn eval_ext(self) -> ((), bool) {
             use std::iter::repeat_n;
@@ -2490,7 +2440,12 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> ExprShift<[Single; L]> for Shr<&[Single; L]> {
+    impl<const L: usize> Expr<[Single; L]> for Shr<&[Single; L]> {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.eval_ext().0
+        }
+
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
             use std::iter::repeat_n;
@@ -2520,7 +2475,12 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> ExprShift<()> for Shr<&mut [Single; L]> {
+    impl<const L: usize> Expr<()> for Shr<&mut [Single; L]> {
+        #[inline]
+        fn eval(self) {
+            self.eval_ext().0
+        }
+
         #[inline]
         fn eval_ext(self) -> ((), bool) {
             use std::iter::repeat_n;
@@ -2701,7 +2661,7 @@ pub mod uops {
 
     /// Shl expression.
     ///
-    /// Evaluated via [ExprShift] methods.
+    /// Evaluated via [Expr] methods.
     #[inline]
     pub fn shl<Words>(words: Words, shift: usize) -> Shl<Words> {
         Shl { words, shift, default: 0 }
@@ -2709,7 +2669,7 @@ pub mod uops {
 
     /// Shr expression.
     ///
-    /// Evaluated via [ExprShift] methods.
+    /// Evaluated via [Expr] methods.
     #[inline]
     pub fn shr<Words>(words: Words, shift: usize) -> Shr<Words> {
         Shr { words, shift, default: 0 }
@@ -2962,7 +2922,7 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter_mut().eval()
+            uops::mul(lhs, rhs).eval()
         }
 
         #[inline]
@@ -2970,7 +2930,7 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter_mut().eval_ext()
+            uops::mul(lhs, rhs).eval_ext()
         }
     }
 
@@ -3084,7 +3044,7 @@ pub mod algo {
 
                 *ptr = digit.saturating_sub(1) as Single;
 
-                uops::sub_iter(rem.iter_mut(), uops::mul(rhs, *ptr).iter()).iter_mut().eval();
+                uops::sub_iter(rem.iter_mut(), uops::mul(rhs, *ptr).iter()).eval();
             }
 
             (div, rem)
@@ -4285,28 +4245,28 @@ impl<const L: usize> UpperHex for Bytes<L> {
 }
 
 ndops::def! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
-    ! uops::not(&value.0).wrapping(Signed),
-    - uops::neg(&value.0).wrapping(Signed),
+    ! uops::not(&value.0).with(Signed),
+    - uops::neg(&value.0).with(Signed),
 
     - @checked uops::neg(&value.0).checked(Signed),
     - @strict uops::neg(&value.0).strict(Signed),
-    - @wrapping uops::neg(&value.0).wrapping(Signed),
+    - @wrapping uops::neg(&value.0).with(Signed),
     - @saturating uops::neg(&value.0).checked(Signed).unwrap_or(Signed::MAX),
     - @overflowing uops::neg(&value.0).overflowing(Signed),
 ] }
 
 ndops::def! { @ndun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
-    ! uops::not(&value.0).wrapping(Unsigned),
+    ! uops::not(&value.0).with(Unsigned),
 ] }
 
 ndops::def! { @ndun <const L: usize> (value: &Bytes<L>) -> Bytes<L>, [
-    ! uops::not(&value.0).wrapping(Bytes),
+    ! uops::not(&value.0).with(Bytes),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Signed<L>, [
-    + uops::add(&lhs.0, &rhs.0).wrapping(Signed),
-    - uops::sub(&lhs.0, &rhs.0).wrapping(Signed),
-    * algo::mul(&lhs.0, &rhs.0).wrapping(Signed),
+    + uops::add(&lhs.0, &rhs.0).with(Signed),
+    - uops::sub(&lhs.0, &rhs.0).with(Signed),
+    * algo::mul(&lhs.0, &rhs.0).with(Signed),
 
     / algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
     % algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
@@ -4329,9 +4289,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     / @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
     % @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
 
-    + @wrapping uops::add(&lhs.0, &rhs.0).wrapping(Signed),
-    - @wrapping uops::sub(&lhs.0, &rhs.0).wrapping(Signed),
-    * @wrapping algo::mul(&lhs.0, &rhs.0).wrapping(Signed),
+    + @wrapping uops::add(&lhs.0, &rhs.0).with(Signed),
+    - @wrapping uops::sub(&lhs.0, &rhs.0).with(Signed),
+    * @wrapping algo::mul(&lhs.0, &rhs.0).with(Signed),
 
     / @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
     % @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
@@ -4342,17 +4302,17 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L> for Signed<L>, [
-    << uops::shl(&lhs.0, rhs).signed().unbounded(Signed),
-    >> uops::shr(&lhs.0, rhs).signed().unbounded(Signed),
+    << uops::shl(&lhs.0, rhs).signed().with(Signed),
+    >> uops::shr(&lhs.0, rhs).signed().with(Signed),
 
-    << @unbounded uops::shl(&lhs.0, rhs).signed().unbounded(Signed),
-    >> @unbounded uops::shr(&lhs.0, rhs).signed().unbounded(Signed),
+    << @unbounded uops::shl(&lhs.0, rhs).signed().with(Signed),
+    >> @unbounded uops::shr(&lhs.0, rhs).signed().with(Signed),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
-    + uops::add(&lhs.0, &rhs.0).wrapping(Unsigned),
-    - uops::sub(&lhs.0, &rhs.0).wrapping(Unsigned),
-    * algo::mul(&lhs.0, &rhs.0).wrapping(Unsigned),
+    + uops::add(&lhs.0, &rhs.0).with(Unsigned),
+    - uops::sub(&lhs.0, &rhs.0).with(Unsigned),
+    * algo::mul(&lhs.0, &rhs.0).with(Unsigned),
 
     / algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).0,
     % algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).1,
@@ -4375,9 +4335,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     / @strict algo::div(&lhs.0, &rhs.0).strict(Unsigned, Unsigned).0,
     % @strict algo::div(&lhs.0, &rhs.0).strict(Unsigned, Unsigned).1,
 
-    + @wrapping uops::add(&lhs.0, &rhs.0).wrapping(Unsigned),
-    - @wrapping uops::sub(&lhs.0, &rhs.0).wrapping(Unsigned),
-    * @wrapping algo::mul(&lhs.0, &rhs.0).wrapping(Unsigned),
+    + @wrapping uops::add(&lhs.0, &rhs.0).with(Unsigned),
+    - @wrapping uops::sub(&lhs.0, &rhs.0).with(Unsigned),
+    * @wrapping algo::mul(&lhs.0, &rhs.0).with(Unsigned),
 
     / @wrapping algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).0,
     % @wrapping algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).1,
@@ -4388,11 +4348,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigned<L> for Unsigned<L>, [
-    << uops::shl(&lhs.0, rhs).unbounded(Unsigned),
-    >> uops::shr(&lhs.0, rhs).unbounded(Unsigned),
+    << uops::shl(&lhs.0, rhs).with(Unsigned),
+    >> uops::shr(&lhs.0, rhs).with(Unsigned),
 
-    << @unbounded uops::shl(&lhs.0, rhs).unbounded(Unsigned),
-    >> @unbounded uops::shr(&lhs.0, rhs).unbounded(Unsigned),
+    << @unbounded uops::shl(&lhs.0, rhs).with(Unsigned),
+    >> @unbounded uops::shr(&lhs.0, rhs).with(Unsigned),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
@@ -4402,17 +4362,17 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for Bytes<L>, [
-    << uops::shl(&lhs.0, rhs).unbounded(Bytes),
-    >> uops::shr(&lhs.0, rhs).unbounded(Bytes),
+    << uops::shl(&lhs.0, rhs).with(Bytes),
+    >> uops::shr(&lhs.0, rhs).with(Bytes),
 
-    << @unbounded uops::shl(&lhs.0, rhs).unbounded(Bytes),
-    >> @unbounded uops::shr(&lhs.0, rhs).unbounded(Bytes),
+    << @unbounded uops::shl(&lhs.0, rhs).with(Bytes),
+    >> @unbounded uops::shr(&lhs.0, rhs).with(Bytes),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
-    += uops::add(&mut lhs.0, &rhs.0).wrapping(|_| ()),
-    -= uops::sub(&mut lhs.0, &rhs.0).wrapping(|_| ()),
-    *= algo::mul(&mut lhs.0, &rhs.0).wrapping(|_| ()),
+    += uops::add(&mut lhs.0, &rhs.0).eval(),
+    -= uops::sub(&mut lhs.0, &rhs.0).eval(),
+    *= algo::mul(&mut lhs.0, &rhs.0).eval(),
 
     /= { *lhs = algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0; },
     %= { *lhs = algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1; },
@@ -4423,17 +4383,17 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for Signed<L>, [
-    <<= uops::shl(&mut lhs.0, rhs).signed().unbounded(|_| ()),
-    >>= uops::shr(&mut lhs.0, rhs).signed().unbounded(|_| ()),
+    <<= uops::shl(&mut lhs.0, rhs).signed().eval(),
+    >>= uops::shr(&mut lhs.0, rhs).signed().eval(),
 
-    <<= @unbounded uops::shl(&mut lhs.0, rhs).signed().unbounded(|_| ()),
-    >>= @unbounded uops::shr(&mut lhs.0, rhs).signed().unbounded(|_| ()),
+    <<= @unbounded uops::shl(&mut lhs.0, rhs).signed().eval(),
+    >>= @unbounded uops::shr(&mut lhs.0, rhs).signed().eval(),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>), [
-    += uops::add(&mut lhs.0, &rhs.0).wrapping(|_| ()),
-    -= uops::sub(&mut lhs.0, &rhs.0).wrapping(|_| ()),
-    *= algo::mul(&mut lhs.0, &rhs.0).wrapping(|_| ()),
+    += uops::add(&mut lhs.0, &rhs.0).eval(),
+    -= uops::sub(&mut lhs.0, &rhs.0).eval(),
+    *= algo::mul(&mut lhs.0, &rhs.0).eval(),
 
     /= algo::div_mut(&mut lhs.0, &rhs.0).wrapping(),
     %= algo::rem_mut(&mut lhs.0, &rhs.0).wrapping(),
@@ -4444,11 +4404,11 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Unsigned<L>, [
-    <<= uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
-    >>= uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
+    <<= uops::shl(&mut lhs.0, rhs).eval(),
+    >>= uops::shr(&mut lhs.0, rhs).eval(),
 
-    <<= @unbounded uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
-    >>= @unbounded uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
+    <<= @unbounded uops::shl(&mut lhs.0, rhs).eval(),
+    >>= @unbounded uops::shr(&mut lhs.0, rhs).eval(),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
@@ -4458,11 +4418,11 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for Bytes<L>, [
-    <<= uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
-    >>= uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
+    <<= uops::shl(&mut lhs.0, rhs).eval(),
+    >>= uops::shr(&mut lhs.0, rhs).eval(),
 
-    <<= @unbounded uops::shl(&mut lhs.0, rhs).unbounded(|_| ()),
-    >>= @unbounded uops::shr(&mut lhs.0, rhs).unbounded(|_| ()),
+    <<= @unbounded uops::shl(&mut lhs.0, rhs).eval(),
+    >>= @unbounded uops::shr(&mut lhs.0, rhs).eval(),
 ] }
 
 ndops::def! { @stdun <const L: usize> (*value: &Signed<L>) -> Signed<L>, [
@@ -4596,13 +4556,13 @@ impl<const L: usize> Signed<L> {
     /// Absolute value.
     #[inline]
     pub fn abs(&self) -> Signed<L> {
-        Signed(uops::posx(&self.0).wrapping(|res| res))
+        Signed(uops::posx(&self.0).with(|res| res))
     }
 
     /// Absolute unsigned value.
     #[inline]
     pub fn abs_unsigned(&self) -> Unsigned<L> {
-        uops::posx(&self.0).wrapping(Unsigned)
+        uops::posx(&self.0).with(Unsigned)
     }
 
     /// Creates new signed with specified sign from raw `self.0`.
@@ -4614,7 +4574,7 @@ impl<const L: usize> Signed<L> {
             Sign::POS => false,
         };
 
-        uops::sgx(&self.0, bit).wrapping(Self)
+        uops::sgx(&self.0, bit).with(Self)
     }
 
     /// Creates new unsigned from raw `self.0`.
@@ -4662,7 +4622,7 @@ impl<const L: usize> Unsigned<L> {
             Sign::POS => false,
         };
 
-        uops::sgx(&self.0, bit).wrapping(Signed)
+        uops::sgx(&self.0, bit).with(Signed)
     }
 
     /// Creates new unsigned from raw `self.0`.
@@ -6837,9 +6797,9 @@ mod tests {
             val in ndassert::range!(u64, 48),
             bytes as val.to_le_bytes(),
         ) [
-            (uops::not(&bytes).iter().collect_arr(), (!val).to_le_bytes()),
-            (uops::pos(&bytes).iter().collect_arr(), val.to_le_bytes()),
-            (uops::neg(&bytes).iter().collect_arr(), val.wrapping_neg().to_le_bytes()),
+            (uops::not(&bytes).eval(), (!val).to_le_bytes()),
+            (uops::pos(&bytes).eval(), val.to_le_bytes()),
+            (uops::neg(&bytes).eval(), val.wrapping_neg().to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6848,8 +6808,8 @@ mod tests {
             lhs_bytes as lhs.to_le_bytes(),
             rhs_bytes as rhs.to_le_bytes(),
         ) [
-            (uops::add(&lhs_bytes, &rhs_bytes).iter().collect_arr(), lhs.wrapping_add(rhs).to_le_bytes()),
-            (uops::sub(&lhs_bytes, &rhs_bytes).iter().collect_arr(), lhs.wrapping_sub(rhs).to_le_bytes()),
+            (uops::add(&lhs_bytes, &rhs_bytes).eval(), lhs.wrapping_add(rhs).to_le_bytes()),
+            (uops::sub(&lhs_bytes, &rhs_bytes).eval(), lhs.wrapping_sub(rhs).to_le_bytes()),
             (uops::bitor(&lhs_bytes, &rhs_bytes).eval(), (lhs | rhs).to_le_bytes()),
             (uops::bitand(&lhs_bytes, &rhs_bytes).eval(), (lhs & rhs).to_le_bytes()),
             (uops::bitxor(&lhs_bytes, &rhs_bytes).eval(), (lhs ^ rhs).to_le_bytes()),
@@ -6860,8 +6820,8 @@ mod tests {
             rhs in u8::MIN..u8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            (uops::add(&bytes, rhs).iter().collect_arr(), lhs.wrapping_add(rhs as u64).to_le_bytes()),
-            (uops::sub(&bytes, rhs).iter().collect_arr(), lhs.wrapping_sub(rhs as u64).to_le_bytes()),
+            (uops::add(&bytes, rhs).eval(), lhs.wrapping_add(rhs as u64).to_le_bytes()),
+            (uops::sub(&bytes, rhs).eval(), lhs.wrapping_sub(rhs as u64).to_le_bytes()),
             (uops::bitor(&bytes, rhs).eval(), (lhs | rhs as u64).to_le_bytes()),
             (uops::bitand(&bytes, rhs).eval(), (lhs & rhs as u64).to_le_bytes()),
             (uops::bitxor(&bytes, rhs).eval(), (lhs ^ rhs as u64).to_le_bytes()),
@@ -6872,8 +6832,8 @@ mod tests {
             rhs in i8::MIN..i8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            (uops::add(&bytes, rhs as <Single as Num>::Signed).iter().collect_arr(), lhs.wrapping_add(rhs as i64).to_le_bytes()),
-            (uops::sub(&bytes, rhs as <Single as Num>::Signed).iter().collect_arr(), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
+            (uops::add(&bytes, rhs as <Single as Num>::Signed).eval(), lhs.wrapping_add(rhs as i64).to_le_bytes()),
+            (uops::sub(&bytes, rhs as <Single as Num>::Signed).eval(), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
             (uops::bitor(&bytes, rhs as <Single as Num>::Signed).eval(), (lhs | rhs as i64).to_le_bytes()),
             (uops::bitand(&bytes, rhs as <Single as Num>::Signed).eval(), (lhs & rhs as i64).to_le_bytes()),
             (uops::bitxor(&bytes, rhs as <Single as Num>::Signed).eval(), (lhs ^ rhs as i64).to_le_bytes()),
@@ -6899,9 +6859,9 @@ mod tests {
             val in ndassert::range!(u64, 48),
             bytes as val.to_le_bytes(),
         ) [
-            ({ let mut bytes = bytes; uops::not(&mut bytes).wrapping(|_| ()); bytes }, (!val).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::pos(&mut bytes).wrapping(|_| ()); bytes }, val.to_le_bytes()),
-            ({ let mut bytes = bytes; uops::neg(&mut bytes).wrapping(|_| ()); bytes }, val.wrapping_neg().to_le_bytes()),
+            ({ let mut bytes = bytes; uops::not(&mut bytes).eval(); bytes }, (!val).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::pos(&mut bytes).eval(); bytes }, val.to_le_bytes()),
+            ({ let mut bytes = bytes; uops::neg(&mut bytes).eval(); bytes }, val.wrapping_neg().to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6910,8 +6870,8 @@ mod tests {
             lhs_bytes as lhs.to_le_bytes(),
             rhs_bytes as rhs.to_le_bytes(),
         ) [
-            ({ let mut bytes = lhs_bytes; uops::add(&mut bytes, &rhs_bytes).wrapping(|_| ()); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::sub(&mut bytes, &rhs_bytes).wrapping(|_| ()); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::add(&mut bytes, &rhs_bytes).eval(); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::sub(&mut bytes, &rhs_bytes).eval(); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
             ({ let mut bytes = lhs_bytes; uops::bitor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs | rhs).to_le_bytes()),
             ({ let mut bytes = lhs_bytes; uops::bitand(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs & rhs).to_le_bytes()),
             ({ let mut bytes = lhs_bytes; uops::bitxor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs ^ rhs).to_le_bytes()),
@@ -6922,8 +6882,8 @@ mod tests {
             rhs in u8::MIN..u8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            ({ let mut bytes = bytes; uops::add(&mut bytes, rhs).wrapping(|_| ()); bytes }, lhs.wrapping_add(rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs).wrapping(|_| ()); bytes }, lhs.wrapping_sub(rhs as u64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::add(&mut bytes, rhs).eval(); bytes }, lhs.wrapping_add(rhs as u64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs).eval(); bytes }, lhs.wrapping_sub(rhs as u64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs).eval_mut(); bytes }, (lhs | rhs as u64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs).eval_mut(); bytes }, (lhs & rhs as u64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs).eval_mut(); bytes }, (lhs ^ rhs as u64).to_le_bytes()),
@@ -6934,8 +6894,8 @@ mod tests {
             rhs in i8::MIN..i8::MAX,
             bytes as lhs.to_le_bytes(),
         ) [
-            ({ let mut bytes = bytes; uops::add(&mut bytes, rhs as <Single as Num>::Signed).wrapping(|_| ()); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs as <Single as Num>::Signed).wrapping(|_| ()); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::add(&mut bytes, rhs as <Single as Num>::Signed).eval(); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs as <Single as Num>::Signed).eval(); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs as <Single as Num>::Signed).eval_mut(); bytes }, (lhs | rhs as i64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs as <Single as Num>::Signed).eval_mut(); bytes }, (lhs & rhs as i64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs as <Single as Num>::Signed).eval_mut(); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
