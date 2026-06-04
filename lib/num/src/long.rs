@@ -173,9 +173,9 @@ macro_rules! nd_ops_primitive_impl {
             / algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).0,
             % algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).1,
 
-            | Signed(uops::bitor(&lhs.0, &Signed::from(rhs).0)),
-            & Signed(uops::bitand(&lhs.0, &Signed::from(rhs).0)),
-            ^ Signed(uops::bitxor(&lhs.0, &Signed::from(rhs).0)),
+            | uops::bitor(&lhs.0, &Signed::from(rhs).0).eval(),
+            & uops::bitand(&lhs.0, &Signed::from(rhs).0).eval(),
+            ^ uops::bitxor(&lhs.0, &Signed::from(rhs).0).eval(),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
@@ -183,9 +183,9 @@ macro_rules! nd_ops_primitive_impl {
 
             * algo::mul(&Signed::from(lhs).0, &rhs.0).wrapping(Signed),
 
-            | Signed(uops::bitor(&Signed::from(lhs).0, &rhs.0)),
-            & Signed(uops::bitand(&Signed::from(lhs).0, &rhs.0)),
-            ^ Signed(uops::bitxor(&Signed::from(lhs).0, &rhs.0)),
+            | uops::bitor(&Signed::from(lhs).0, &rhs.0).eval(),
+            & uops::bitand(&Signed::from(lhs).0, &rhs.0).eval(),
+            ^ uops::bitxor(&Signed::from(lhs).0, &rhs.0).eval(),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
@@ -197,9 +197,9 @@ macro_rules! nd_ops_primitive_impl {
             /= { *lhs = algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).0; },
             %= { *lhs = algo::div(&lhs.abs().0, &Signed::from(rhs.wrapping_abs()).0).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed(res).signed(lhs.sign())).1; },
 
-            |= uops::bitor_mut(&mut lhs.0, &Signed::from(rhs).0),
-            &= uops::bitand_mut(&mut lhs.0, &Signed::from(rhs).0),
-            ^= uops::bitxor_mut(&mut lhs.0, &Signed::from(rhs).0),
+            |= uops::bitor(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
+            &= uops::bitand(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
+            ^= uops::bitxor(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -212,9 +212,9 @@ macro_rules! nd_ops_primitive_impl {
             / algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).0,
             % algo::div(&lhs.0, &Unsigned::from(rhs).0).wrapping(Unsigned, Unsigned).1,
 
-            | Unsigned(uops::bitor(&lhs.0, &Unsigned::from(rhs).0)),
-            & Unsigned(uops::bitand(&lhs.0, &Unsigned::from(rhs).0)),
-            ^ Unsigned(uops::bitxor(&lhs.0, &Unsigned::from(rhs).0)),
+            | uops::bitor(&lhs.0, &Unsigned::from(rhs).0).eval(),
+            & uops::bitand(&lhs.0, &Unsigned::from(rhs).0).eval(),
+            ^ uops::bitxor(&lhs.0, &Unsigned::from(rhs).0).eval(),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
@@ -222,9 +222,9 @@ macro_rules! nd_ops_primitive_impl {
 
             * algo::mul(&Unsigned::from(lhs).0, &rhs.0).wrapping(Unsigned),
 
-            | Unsigned(uops::bitor(&Unsigned::from(lhs).0, &rhs.0)),
-            & Unsigned(uops::bitand(&Unsigned::from(lhs).0, &rhs.0)),
-            ^ Unsigned(uops::bitxor(&Unsigned::from(lhs).0, &rhs.0)),
+            | uops::bitor(&Unsigned::from(lhs).0, &rhs.0).eval(),
+            & uops::bitand(&Unsigned::from(lhs).0, &rhs.0).eval(),
+            ^ uops::bitxor(&Unsigned::from(lhs).0, &rhs.0).eval(),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -236,28 +236,28 @@ macro_rules! nd_ops_primitive_impl {
             /= algo::div_mut(&mut lhs.0, &Unsigned::from(rhs).0).wrapping(),
             %= algo::rem_mut(&mut lhs.0, &Unsigned::from(rhs).0).wrapping(),
 
-            |= uops::bitor_mut(&mut lhs.0, &Unsigned::from(rhs).0),
-            &= uops::bitand_mut(&mut lhs.0, &Unsigned::from(rhs).0),
-            ^= uops::bitxor_mut(&mut lhs.0, &Unsigned::from(rhs).0),
+            |= uops::bitor(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
+            &= uops::bitand(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
+            ^= uops::bitxor(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes(uops::bitor(&lhs.0, &Bytes::from(rhs).0)),
-            & Bytes(uops::bitand(&lhs.0, &Bytes::from(rhs).0)),
-            ^ Bytes(uops::bitxor(&lhs.0, &Bytes::from(rhs).0)),
+            | uops::bitor(&lhs.0, &Bytes::from(rhs).0).eval(),
+            & uops::bitand(&lhs.0, &Bytes::from(rhs).0).eval(),
+            ^ uops::bitxor(&lhs.0, &Bytes::from(rhs).0).eval(),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes(uops::bitor(&Bytes::from(lhs).0, &rhs.0)),
-            & Bytes(uops::bitand(&Bytes::from(lhs).0, &rhs.0)),
-            ^ Bytes(uops::bitxor(&Bytes::from(lhs).0, &rhs.0)),
+            | uops::bitor(&Bytes::from(lhs).0, &rhs.0).eval(),
+            & uops::bitand(&Bytes::from(lhs).0, &rhs.0).eval(),
+            ^ uops::bitxor(&Bytes::from(lhs).0, &rhs.0).eval(),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive), [
-            |= uops::bitor_mut(&mut lhs.0, &Bytes::from(rhs).0),
-            &= uops::bitand_mut(&mut lhs.0, &Bytes::from(rhs).0),
-            ^= uops::bitxor_mut(&mut lhs.0, &Bytes::from(rhs).0),
+            |= uops::bitor(&mut lhs.0, &Bytes::from(rhs).0).eval_mut(),
+            &= uops::bitand(&mut lhs.0, &Bytes::from(rhs).0).eval_mut(),
+            ^= uops::bitxor(&mut lhs.0, &Bytes::from(rhs).0).eval_mut(),
         ] }
     };
 }
@@ -281,18 +281,18 @@ macro_rules! nd_ops_primitive_native_impl {
             / algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).0,
             % algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).1,
 
-            | Signed(uops::bitor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
-            & Signed(uops::bitand_signed(&lhs.0, rhs as <Single as Num>::Signed)),
-            ^ Signed(uops::bitxor_signed(&lhs.0, rhs as <Single as Num>::Signed)),
+            | uops::bitor(&lhs.0, rhs as <Single as Num>::Signed).eval(),
+            & uops::bitand(&lhs.0, rhs as <Single as Num>::Signed).eval(),
+            ^ uops::bitxor(&lhs.0, rhs as <Single as Num>::Signed).eval(),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
             + uops::add(&rhs.0, lhs as <Single as Num>::Signed).wrapping(Signed),
             * algo::mul(&rhs.0, lhs as <Single as Num>::Signed).wrapping(Signed),
 
-            | Signed(uops::bitor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
-            & Signed(uops::bitand_signed(&rhs.0, lhs as <Single as Num>::Signed)),
-            ^ Signed(uops::bitxor_signed(&rhs.0, lhs as <Single as Num>::Signed)),
+            | uops::bitor(&rhs.0, lhs as <Single as Num>::Signed).eval(),
+            & uops::bitand(&rhs.0, lhs as <Single as Num>::Signed).eval(),
+            ^ uops::bitxor(&rhs.0, lhs as <Single as Num>::Signed).eval(),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
@@ -303,9 +303,9 @@ macro_rules! nd_ops_primitive_native_impl {
             /= { *lhs = algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).0; },
             %= { *lhs = algo::div_single(&lhs.abs().0, rhs.unsigned_abs() as Single).wrapping(|res| Signed(res).signed(lhs.sign() * Sign::from(rhs)), |res| Signed::<L>::from(res as $primitive).signed(lhs.sign())).1; },
 
-            |= uops::bitor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
-            &= uops::bitand_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
-            ^= uops::bitxor_signed_mut(&mut lhs.0, rhs as <Single as Num>::Signed),
+            |= uops::bitor(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
+            &= uops::bitand(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
+            ^= uops::bitxor(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -317,18 +317,18 @@ macro_rules! nd_ops_primitive_native_impl {
             / algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).0,
             % algo::div_single(&lhs.0, rhs as Single).wrapping(Unsigned, Unsigned::<L>::from).1,
 
-            | Unsigned(uops::bitor_single(&lhs.0, rhs as Single)),
-            & Unsigned(uops::bitand_single(&lhs.0, rhs as Single)),
-            ^ Unsigned(uops::bitxor_single(&lhs.0, rhs as Single)),
+            | uops::bitor(&lhs.0, rhs as Single).eval(),
+            & uops::bitand(&lhs.0, rhs as Single).eval(),
+            ^ uops::bitxor(&lhs.0, rhs as Single).eval(),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
             + uops::add(&rhs.0, lhs as Single).wrapping(Unsigned),
             * algo::mul(&rhs.0, lhs as Single).wrapping(Unsigned),
 
-            | Unsigned(uops::bitor_single(&rhs.0, lhs as Single)),
-            & Unsigned(uops::bitand_single(&rhs.0, lhs as Single)),
-            ^ Unsigned(uops::bitxor_single(&rhs.0, lhs as Single)),
+            | uops::bitor(&rhs.0, lhs as Single).eval(),
+            & uops::bitand(&rhs.0, lhs as Single).eval(),
+            ^ uops::bitxor(&rhs.0, lhs as Single).eval(),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -339,28 +339,28 @@ macro_rules! nd_ops_primitive_native_impl {
             /= algo::div_single_mut(&mut lhs.0, rhs as Single).wrapping(),
             %= algo::rem_single_mut(&mut lhs.0, rhs as Single).wrapping(),
 
-            |= uops::bitor_single_mut(&mut lhs.0, rhs as Single),
-            &= uops::bitand_single_mut(&mut lhs.0, rhs as Single),
-            ^= uops::bitxor_single_mut(&mut lhs.0, rhs as Single),
+            |= uops::bitor(&mut lhs.0, rhs as Single).eval_mut(),
+            &= uops::bitand(&mut lhs.0, rhs as Single).eval_mut(),
+            ^= uops::bitxor(&mut lhs.0, rhs as Single).eval_mut(),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, &rhs: &$primitive) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes(uops::bitor_single(&lhs.0, rhs as Single)),
-            & Bytes(uops::bitand_single(&lhs.0, rhs as Single)),
-            ^ Bytes(uops::bitxor_single(&lhs.0, rhs as Single)),
+            | uops::bitor(&lhs.0, rhs as Single).eval(),
+            & uops::bitand(&lhs.0, rhs as Single).eval(),
+            ^ uops::bitxor(&lhs.0, rhs as Single).eval(),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Bytes<L>) -> Bytes<L> for [Bytes<L>, $primitive], [
-            | Bytes(uops::bitor_single(&rhs.0, lhs as Single)),
-            & Bytes(uops::bitand_single(&rhs.0, lhs as Single)),
-            ^ Bytes(uops::bitxor_single(&rhs.0, lhs as Single)),
+            | uops::bitor(&rhs.0, lhs as Single).eval(),
+            & uops::bitand(&rhs.0, lhs as Single).eval(),
+            ^ uops::bitxor(&rhs.0, lhs as Single).eval(),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, &rhs: &$primitive), [
-            |= uops::bitor_single_mut(&mut lhs.0, rhs as Single),
-            &= uops::bitand_single_mut(&mut lhs.0, rhs as Single),
-            ^= uops::bitxor_single_mut(&mut lhs.0, rhs as Single),
+            |= uops::bitor(&mut lhs.0, rhs as Single).eval_mut(),
+            &= uops::bitand(&mut lhs.0, rhs as Single).eval_mut(),
+            ^= uops::bitxor(&mut lhs.0, rhs as Single).eval_mut(),
         ] }
     };
 }
@@ -1067,12 +1067,24 @@ pub mod uops {
         pub rhs: Rhs,
     }
 
+    /// Bit-wise expression.
+    pub struct Bit<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
+        /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        pub rhs: Rhs,
+
+        /// Bit-wise operation.
+        pub func: F,
+    }
+
     /// Expression with modes.
     pub trait Expr<Words>: Sized {
         /// Calculates expression as default.
         #[inline]
         fn default<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
-            let (res, overflow) = self.calculate_ext();
+            let (res, overflow) = self.eval_ext();
 
             debug_assert!(!overflow);
 
@@ -1082,7 +1094,7 @@ pub mod uops {
         /// Calculates expression as checked.
         #[inline]
         fn checked<Long, F: Fn(Words) -> Long>(self, func: F) -> Option<Long> {
-            let (res, overflow) = self.calculate_ext();
+            let (res, overflow) = self.eval_ext();
 
             match overflow {
                 false => Some(func(res)),
@@ -1093,7 +1105,7 @@ pub mod uops {
         /// Calculates expression as strict.
         #[inline]
         fn strict<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
-            let (res, overflow) = self.calculate_ext();
+            let (res, overflow) = self.eval_ext();
 
             assert!(!overflow);
 
@@ -1103,22 +1115,22 @@ pub mod uops {
         /// Calculates expression as wrapping.
         #[inline]
         fn wrapping<Long, F: Fn(Words) -> Long>(self, func: F) -> Long {
-            func(self.calculate())
+            func(self.eval())
         }
 
         /// Calculates expression as overflowing.
         #[inline]
         fn overflowing<Long, F: Fn(Words) -> Long>(self, func: F) -> (Long, bool) {
-            let (res, overflow) = self.calculate_ext();
+            let (res, overflow) = self.eval_ext();
 
             (func(res), overflow)
         }
 
-        /// Calculates expression.
-        fn calculate(self) -> Words;
+        /// Evaluates expression.
+        fn eval(self) -> Words;
 
-        /// Calculates expression with overflow.
-        fn calculate_ext(self) -> (Words, bool);
+        /// Evaluates expression with overflow.
+        fn eval_ext(self) -> (Words, bool);
     }
 
     impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> Iterator for ExprIter<Lhs, Rhs> {
@@ -1166,12 +1178,12 @@ pub mod uops {
         for ExprIter<Lhs, Rhs>
     {
         #[inline]
-        fn calculate(mut self) -> [Single; L] {
+        fn eval(mut self) -> [Single; L] {
             self.collect_arr()
         }
 
         #[inline]
-        fn calculate_ext(mut self) -> ([Single; L], bool) {
+        fn eval_ext(mut self) -> ([Single; L], bool) {
             let res = self.collect_arr();
 
             (res, self.acc > 0)
@@ -1182,12 +1194,12 @@ pub mod uops {
         for ExprIterMut<'words, Lhs, Rhs>
     {
         #[inline]
-        fn calculate(self) {
+        fn eval(self) {
             self.for_each(|_| ());
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
+        fn eval_ext(self) -> ((), bool) {
             ((), self.last().unwrap_or_default() > 0)
         }
     }
@@ -1785,171 +1797,271 @@ pub mod uops {
         }
     }
 
+    impl<const L: usize, F: Fn(Single, Single) -> Single> Bit<&[Single; L], &[Single; L], F> {
+        /// Evaluates [Bit] expression.
+        #[inline]
+        pub fn eval(self) -> [Single; L] {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.iter()
+                .copied()
+                .zip(rhs.iter().copied())
+                .map(|(lhs, rhs)| func(lhs, rhs))
+                .collect_arr()
+        }
+    }
+
+    impl<const L: usize, F: Fn(Single, Single) -> Single> Bit<&mut [Single; L], &[Single; L], F> {
+        /// Evaluates [Bit] expression.
+        #[inline]
+        pub fn eval_mut(self) {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.iter_mut()
+                .zip(rhs.iter().copied())
+                .for_each(|(ptr, val)| *ptr = func(*ptr, val));
+        }
+    }
+
+    impl<const L: usize, F: Fn(Single, Single) -> Single> Bit<&[Single; L], <Single as Num>::Unsigned, F> {
+        /// Evaluates [Bit] expression.
+        #[inline]
+        pub fn eval(self) -> [Single; L] {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.iter()
+                .copied()
+                .zip((0..).map(|idx| [rhs, 0][(idx > 0) as usize]))
+                .map(|(lhs, rhs)| func(lhs, rhs))
+                .collect_arr()
+        }
+    }
+
+    impl<const L: usize, F: Fn(Single, Single) -> Single> Bit<&mut [Single; L], <Single as Num>::Unsigned, F> {
+        /// Evaluates [Bit] expression.
+        #[inline]
+        pub fn eval_mut(self) {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.iter_mut()
+                .zip((0..).map(|idx| [rhs, 0][(idx > 0) as usize]))
+                .for_each(|(ptr, val)| *ptr = func(*ptr, val));
+        }
+    }
+
+    impl<const L: usize, F: Fn(Single, Single) -> Single> Bit<&[Single; L], <Single as Num>::Signed, F> {
+        /// Evaluates [Bit] expression.
+        #[inline]
+        pub fn eval(self) -> [Single; L] {
+            let lhs = self.lhs;
+            let rhs = self.rhs as Single;
+            let func = self.func;
+
+            let ext = match rhs >> (BITS - 1) {
+                0 => 0,
+                _ => MAX,
+            };
+
+            lhs.iter()
+                .copied()
+                .zip((0..).map(|idx| [rhs, ext][(idx > 0) as usize]))
+                .map(|(lhs, rhs)| func(lhs, rhs))
+                .collect_arr()
+        }
+    }
+
+    impl<const L: usize, F: Fn(Single, Single) -> Single> Bit<&mut [Single; L], <Single as Num>::Signed, F> {
+        /// Evaluates [Bit] expression.
+        #[inline]
+        pub fn eval_mut(self) {
+            let lhs = self.lhs;
+            let rhs = self.rhs as Single;
+            let func = self.func;
+
+            let ext = match rhs >> (BITS - 1) {
+                0 => 0,
+                _ => MAX,
+            };
+
+            lhs.iter_mut()
+                .zip((0..).map(|idx| [rhs, ext][(idx > 0) as usize]))
+                .for_each(|(ptr, val)| *ptr = func(*ptr, val));
+        }
+    }
+
     impl<const L: usize> Expr<[Single; L]> for Not<&[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Not<&mut [Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Pos<&[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Pos<&mut [Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Neg<&[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Neg<&mut [Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Posx<&[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Posx<&mut [Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Negx<&[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Negx<&mut [Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Sgx<&[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Sgx<&mut [Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Add<&[Single; L], &[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Add<&mut [Single; L], &[Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
@@ -1957,97 +2069,97 @@ pub mod uops {
         for AddIter<Lhs, Rhs>
     {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for AddIter<Lhs, Rhs> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Add<&[Single; L], <Single as Num>::Unsigned> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Add<&mut [Single; L], <Single as Num>::Unsigned> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Add<&[Single; L], <Single as Num>::Signed> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Add<&mut [Single; L], <Single as Num>::Signed> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Sub<&[Single; L], &[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Sub<&mut [Single; L], &[Single; L]> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
@@ -2055,73 +2167,73 @@ pub mod uops {
         for SubIter<Lhs, Rhs>
     {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for SubIter<Lhs, Rhs> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Sub<&[Single; L], <Single as Num>::Unsigned> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Sub<&mut [Single; L], <Single as Num>::Unsigned> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Sub<&[Single; L], <Single as Num>::Signed> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
-            self.iter().calculate()
+        fn eval(self) -> [Single; L] {
+            self.iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
-            self.iter().calculate_ext()
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Sub<&mut [Single; L], <Single as Num>::Signed> {
         #[inline]
-        fn calculate(self) {
-            self.iter_mut().calculate()
+        fn eval(self) {
+            self.iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
-            self.iter_mut().calculate_ext()
+        fn eval_ext(self) -> ((), bool) {
+            self.iter_mut().eval_ext()
         }
     }
 
@@ -2237,244 +2349,37 @@ pub mod uops {
         Mul { lhs, rhs }
     }
 
-    /// Calculates `lhs | rhs`.
-    #[inline]
-    pub fn bitor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
-        lhs.iter()
-            .copied()
-            .zip(rhs.iter().copied())
-            .map(|(lhs, rhs)| lhs | rhs)
-            .collect_arr()
-    }
-
-    /// Calculates `lhs & rhs`.
-    #[inline]
-    pub fn bitand<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
-        lhs.iter()
-            .copied()
-            .zip(rhs.iter().copied())
-            .map(|(lhs, rhs)| lhs & rhs)
-            .collect_arr()
-    }
-
-    /// Calculates `lhs ^ rhs`.
-    #[inline]
-    pub fn bitxor<const L: usize>(lhs: &[Single; L], rhs: &[Single; L]) -> [Single; L] {
-        lhs.iter()
-            .copied()
-            .zip(rhs.iter().copied())
-            .map(|(lhs, rhs)| lhs ^ rhs)
-            .collect_arr()
-    }
-
-    /// Calculates `lhs | rhs`, where `rhs` is single CPU-word.
-    #[inline]
-    pub fn bitor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
-        lhs.iter()
-            .copied()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-            .map(|(lhs, rhs)| lhs | rhs)
-            .collect_arr()
-    }
-
-    /// Calculates `lhs & rhs`, where `rhs` is single CPU-word.
-    #[inline]
-    pub fn bitand_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
-        lhs.iter()
-            .copied()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-            .map(|(lhs, rhs)| lhs & rhs)
-            .collect_arr()
-    }
-
-    /// Calculates `lhs ^ rhs`, where `rhs` is single CPU-word.
-    #[inline]
-    pub fn bitxor_single<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Unsigned) -> [Single; L] {
-        lhs.iter()
-            .copied()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-            .map(|(lhs, rhs)| lhs ^ rhs)
-            .collect_arr()
-    }
-
-    /// Calculates `lhs | rhs`, where `rhs` is single CPU-word.
+    /// BitOr expression.
     ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn bitor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
-        let rhs = rhs as Single;
-
-        let ext = match rhs >> (BITS - 1) {
-            0 => 0,
-            _ => MAX,
-        };
-
-        lhs.iter()
-            .copied()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-            .map(|(lhs, rhs)| lhs | rhs)
-            .collect_arr()
+    /// Evaluated via `Bit::eval()` and `Bit::eval_mut()`.
+    pub fn bitor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
+        Bit {
+            lhs,
+            rhs,
+            func: |lhs: Single, rhs: Single| lhs | rhs,
+        }
     }
 
-    /// Calculates `lhs & rhs`, where `rhs` is single CPU-word.
+    /// BitAnd expression.
     ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn bitand_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
-        let rhs = rhs as Single;
-
-        let ext = match rhs >> (BITS - 1) {
-            0 => 0,
-            _ => MAX,
-        };
-
-        lhs.iter()
-            .copied()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-            .map(|(lhs, rhs)| lhs & rhs)
-            .collect_arr()
+    /// Evaluated via `Bit::eval()` and `Bit::eval_mut()`.
+    pub fn bitand<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
+        Bit {
+            lhs,
+            rhs,
+            func: |lhs: Single, rhs: Single| lhs & rhs,
+        }
     }
 
-    /// Calculates `lhs ^ rhs`, where `rhs` is single CPU-word.
+    /// BitXor expression.
     ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn bitxor_signed<const L: usize>(lhs: &[Single; L], rhs: <Single as Num>::Signed) -> [Single; L] {
-        let rhs = rhs as Single;
-
-        let ext = match rhs >> (BITS - 1) {
-            0 => 0,
-            _ => MAX,
-        };
-
-        lhs.iter()
-            .copied()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-            .map(|(lhs, rhs)| lhs ^ rhs)
-            .collect_arr()
-    }
-
-    /// Calculates `lhs |= rhs`.
-    #[inline]
-    pub fn bitor_mut<'words, const L: usize>(
-        lhs: &'words mut [Single; L],
-        rhs: &[Single; L],
-    ) -> &'words mut [Single; L] {
-        lhs.iter_mut().zip(rhs.iter().copied()).for_each(|(ptr, val)| *ptr |= val);
-        lhs
-    }
-
-    /// Calculates `lhs &= rhs`.
-    #[inline]
-    pub fn bitand_mut<'words, const L: usize>(
-        lhs: &'words mut [Single; L],
-        rhs: &[Single; L],
-    ) -> &'words mut [Single; L] {
-        lhs.iter_mut().zip(rhs.iter().copied()).for_each(|(ptr, val)| *ptr &= val);
-        lhs
-    }
-
-    /// Calculates `lhs ^= rhs`.
-    #[inline]
-    pub fn bitxor_mut<'words, const L: usize>(
-        lhs: &'words mut [Single; L],
-        rhs: &[Single; L],
-    ) -> &'words mut [Single; L] {
-        lhs.iter_mut().zip(rhs.iter().copied()).for_each(|(ptr, val)| *ptr ^= val);
-        lhs
-    }
-
-    /// Calculates `lhs |= rhs`, where `rhs` is single CPU-word.
-    #[inline]
-    pub fn bitor_single_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Unsigned) -> &mut [Single; L] {
-        lhs.iter_mut()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-            .for_each(|(ptr, val)| *ptr |= val);
-
-        lhs
-    }
-
-    /// Calculates `lhs &= rhs`, where `rhs` is single CPU-word.
-    #[inline]
-    pub fn bitand_single_mut<const L: usize>(
-        lhs: &mut [Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> &mut [Single; L] {
-        lhs.iter_mut()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-            .for_each(|(ptr, val)| *ptr &= val);
-
-        lhs
-    }
-
-    /// Calculates `lhs ^= rhs`, where `rhs` is single CPU-word.
-    #[inline]
-    pub fn bitxor_single_mut<const L: usize>(
-        lhs: &mut [Single; L],
-        rhs: <Single as Num>::Unsigned,
-    ) -> &mut [Single; L] {
-        lhs.iter_mut()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { 0 }))
-            .for_each(|(ptr, val)| *ptr ^= val);
-
-        lhs
-    }
-
-    /// Calculates `lhs |= rhs`, where `rhs` is single CPU-word.
-    ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn bitor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
-        let rhs = rhs as Single;
-
-        let ext = match rhs >> (BITS - 1) {
-            0 => 0,
-            _ => MAX,
-        };
-
-        lhs.iter_mut()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-            .for_each(|(ptr, val)| *ptr |= val);
-
-        lhs
-    }
-
-    /// Calculates `lhs &= rhs`, where `rhs` is single CPU-word.
-    ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn bitand_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
-        let rhs = rhs as Single;
-
-        let ext = match rhs >> (BITS - 1) {
-            0 => 0,
-            _ => MAX,
-        };
-
-        lhs.iter_mut()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-            .for_each(|(ptr, val)| *ptr &= val);
-
-        lhs
-    }
-
-    /// Calculates `lhs ^= rhs`, where `rhs` is single CPU-word.
-    ///
-    /// Rhs is sign-extended instead of zero-extended.
-    #[inline]
-    pub fn bitxor_signed_mut<const L: usize>(lhs: &mut [Single; L], rhs: <Single as Num>::Signed) -> &mut [Single; L] {
-        let rhs = rhs as Single;
-
-        let ext = match rhs >> (BITS - 1) {
-            0 => 0,
-            _ => MAX,
-        };
-
-        lhs.iter_mut()
-            .zip((0..).map(|idx| if idx == 0 { rhs } else { ext }))
-            .for_each(|(ptr, val)| *ptr ^= val);
-
-        lhs
+    /// Evaluated via `Bit::eval()` and `Bit::eval_mut()`.
+    pub fn bitxor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
+        Bit {
+            lhs,
+            rhs,
+            func: |lhs: Single, rhs: Single| lhs ^ rhs,
+        }
     }
 
     /// Calculates `words << shift`.
@@ -2752,7 +2657,7 @@ pub mod algo {
 
     impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], &[Single; L]> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
+        fn eval(self) -> [Single; L] {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
@@ -2761,14 +2666,14 @@ pub mod algo {
             for (idx, val) in rhs.iter().copied().enumerate() {
                 uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
                     .iter_mut()
-                    .calculate();
+                    .eval();
             }
 
             res
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
+        fn eval_ext(self) -> ([Single; L], bool) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
@@ -2788,25 +2693,25 @@ pub mod algo {
 
     impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], <Single as Num>::Unsigned> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
+        fn eval(self) -> [Single; L] {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter().calculate()
+            uops::mul(lhs, rhs).iter().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
+        fn eval_ext(self) -> ([Single; L], bool) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter().calculate_ext()
+            uops::mul(lhs, rhs).iter().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], <Single as Num>::Signed> {
         #[inline]
-        fn calculate(self) -> [Single; L] {
+        fn eval(self) -> [Single; L] {
             let lhs = self.lhs;
             let rhs = self.rhs as Single;
 
@@ -2822,14 +2727,14 @@ pub mod algo {
             for (idx, val) in rhs.enumerate() {
                 uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
                     .iter_mut()
-                    .calculate();
+                    .eval();
             }
 
             res
         }
 
         #[inline]
-        fn calculate_ext(self) -> ([Single; L], bool) {
+        fn eval_ext(self) -> ([Single; L], bool) {
             let lhs = self.lhs;
             let rhs = self.rhs as Single;
 
@@ -2856,19 +2761,19 @@ pub mod algo {
 
     impl<const L: usize> Expr<()> for Mul<&mut [Single; L], &[Single; L]> {
         #[inline]
-        fn calculate(self) {
+        fn eval(self) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            *lhs = Mul { lhs: &*lhs, rhs }.calculate();
+            *lhs = Mul { lhs: &*lhs, rhs }.eval();
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
+        fn eval_ext(self) -> ((), bool) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            let (res, overflow) = Mul { lhs: &*lhs, rhs }.calculate_ext();
+            let (res, overflow) = Mul { lhs: &*lhs, rhs }.eval_ext();
 
             *lhs = res;
 
@@ -2878,37 +2783,37 @@ pub mod algo {
 
     impl<const L: usize> Expr<()> for Mul<&mut [Single; L], <Single as Num>::Unsigned> {
         #[inline]
-        fn calculate(self) {
+        fn eval(self) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter_mut().calculate()
+            uops::mul(lhs, rhs).iter_mut().eval()
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
+        fn eval_ext(self) -> ((), bool) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            uops::mul(lhs, rhs).iter_mut().calculate_ext()
+            uops::mul(lhs, rhs).iter_mut().eval_ext()
         }
     }
 
     impl<const L: usize> Expr<()> for Mul<&mut [Single; L], <Single as Num>::Signed> {
         #[inline]
-        fn calculate(self) {
+        fn eval(self) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            *lhs = Mul { lhs: &*lhs, rhs }.calculate();
+            *lhs = Mul { lhs: &*lhs, rhs }.eval();
         }
 
         #[inline]
-        fn calculate_ext(self) -> ((), bool) {
+        fn eval_ext(self) -> ((), bool) {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            let (res, overflow) = Mul { lhs: &*lhs, rhs }.calculate_ext();
+            let (res, overflow) = Mul { lhs: &*lhs, rhs }.eval_ext();
 
             *lhs = res;
 
@@ -3004,9 +2909,7 @@ pub mod algo {
 
                 *ptr = digit.saturating_sub(1) as Single;
 
-                uops::sub_iter(rem.iter_mut(), uops::mul(rhs, *ptr).iter())
-                    .iter_mut()
-                    .calculate();
+                uops::sub_iter(rem.iter_mut(), uops::mul(rhs, *ptr).iter()).iter_mut().eval();
             }
 
             (div, rem)
@@ -4233,9 +4136,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     / algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0,
     % algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1,
 
-    | uops::bitor(&lhs.0, &rhs.0),
-    & uops::bitand(&lhs.0, &rhs.0),
-    ^ uops::bitxor(&lhs.0, &rhs.0),
+    | uops::bitor(&lhs.0, &rhs.0).eval(),
+    & uops::bitand(&lhs.0, &rhs.0).eval(),
+    ^ uops::bitxor(&lhs.0, &rhs.0).eval(),
 
     + @checked uops::add(&lhs.0, &rhs.0).checked(Signed),
     - @checked uops::sub(&lhs.0, &rhs.0).checked(Signed),
@@ -4279,9 +4182,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     / algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).0,
     % algo::div(&lhs.0, &rhs.0).wrapping(Unsigned, Unsigned).1,
 
-    | uops::bitor(&lhs.0, &rhs.0),
-    & uops::bitand(&lhs.0, &rhs.0),
-    ^ uops::bitxor(&lhs.0, &rhs.0),
+    | uops::bitor(&lhs.0, &rhs.0).eval(),
+    & uops::bitand(&lhs.0, &rhs.0).eval(),
+    ^ uops::bitxor(&lhs.0, &rhs.0).eval(),
 
     + @checked uops::add(&lhs.0, &rhs.0).checked(Unsigned),
     - @checked uops::sub(&lhs.0, &rhs.0).checked(Unsigned),
@@ -4318,9 +4221,9 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigne
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
-    | uops::bitor(&lhs.0, &rhs.0),
-    & uops::bitand(&lhs.0, &rhs.0),
-    ^ uops::bitxor(&lhs.0, &rhs.0),
+    | uops::bitor(&lhs.0, &rhs.0).eval(),
+    & uops::bitand(&lhs.0, &rhs.0).eval(),
+    ^ uops::bitxor(&lhs.0, &rhs.0).eval(),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> for Bytes<L>, [
@@ -4339,9 +4242,9 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     /= { *lhs = algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).0; },
     %= { *lhs = algo::div(&lhs.abs().0, &rhs.abs().0).wrapping(|res| Signed(res).signed(lhs.sign() * rhs.sign()), |res| Signed(res).signed(lhs.sign())).1; },
 
-    |= uops::bitor_mut(&mut lhs.0, &rhs.0),
-    &= uops::bitand_mut(&mut lhs.0, &rhs.0),
-    ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
+    |= uops::bitor(&mut lhs.0, &rhs.0).eval_mut(),
+    &= uops::bitand(&mut lhs.0, &rhs.0).eval_mut(),
+    ^= uops::bitxor(&mut lhs.0, &rhs.0).eval_mut(),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for Signed<L>, [
@@ -4360,9 +4263,9 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     /= algo::div_mut(&mut lhs.0, &rhs.0).wrapping(),
     %= algo::rem_mut(&mut lhs.0, &rhs.0).wrapping(),
 
-    |= uops::bitor_mut(&mut lhs.0, &rhs.0),
-    &= uops::bitand_mut(&mut lhs.0, &rhs.0),
-    ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
+    |= uops::bitor(&mut lhs.0, &rhs.0).eval_mut(),
+    &= uops::bitand(&mut lhs.0, &rhs.0).eval_mut(),
+    ^= uops::bitxor(&mut lhs.0, &rhs.0).eval_mut(),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Unsigned<L>, [
@@ -4374,9 +4277,9 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Un
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: &Bytes<L>), [
-    |= uops::bitor_mut(&mut lhs.0, &rhs.0),
-    &= uops::bitand_mut(&mut lhs.0, &rhs.0),
-    ^= uops::bitxor_mut(&mut lhs.0, &rhs.0),
+    |= uops::bitor(&mut lhs.0, &rhs.0).eval_mut(),
+    &= uops::bitand(&mut lhs.0, &rhs.0).eval_mut(),
+    ^= uops::bitxor(&mut lhs.0, &rhs.0).eval_mut(),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for Bytes<L>, [
@@ -5606,7 +5509,7 @@ fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L],
     let mut res = from_digits_impl(s.bytes().rev().filter_map(get_digit_from_byte), exp as usize);
 
     if sign == Sign::NEG {
-        uops::neg(&mut res).calculate();
+        uops::neg(&mut res).eval();
     }
 
     Ok(res)
@@ -5652,7 +5555,7 @@ fn from_str_radix<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Sin
     let mut res = from_digits_radix_impl(s.bytes().filter_map(get_digit_from_byte), radix);
 
     if sign == Sign::NEG {
-        uops::neg(&mut res).calculate();
+        uops::neg(&mut res).eval();
     }
 
     Ok(res)
@@ -6772,9 +6675,9 @@ mod tests {
         ) [
             (uops::add(&lhs_bytes, &rhs_bytes).iter().collect_arr(), lhs.wrapping_add(rhs).to_le_bytes()),
             (uops::sub(&lhs_bytes, &rhs_bytes).iter().collect_arr(), lhs.wrapping_sub(rhs).to_le_bytes()),
-            (uops::bitor(&lhs_bytes, &rhs_bytes), (lhs | rhs).to_le_bytes()),
-            (uops::bitand(&lhs_bytes, &rhs_bytes), (lhs & rhs).to_le_bytes()),
-            (uops::bitxor(&lhs_bytes, &rhs_bytes), (lhs ^ rhs).to_le_bytes()),
+            (uops::bitor(&lhs_bytes, &rhs_bytes).eval(), (lhs | rhs).to_le_bytes()),
+            (uops::bitand(&lhs_bytes, &rhs_bytes).eval(), (lhs & rhs).to_le_bytes()),
+            (uops::bitxor(&lhs_bytes, &rhs_bytes).eval(), (lhs ^ rhs).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6784,9 +6687,9 @@ mod tests {
         ) [
             (uops::add(&bytes, rhs).iter().collect_arr(), lhs.wrapping_add(rhs as u64).to_le_bytes()),
             (uops::sub(&bytes, rhs).iter().collect_arr(), lhs.wrapping_sub(rhs as u64).to_le_bytes()),
-            (uops::bitor_single(&bytes, rhs), (lhs | rhs as u64).to_le_bytes()),
-            (uops::bitand_single(&bytes, rhs), (lhs & rhs as u64).to_le_bytes()),
-            (uops::bitxor_single(&bytes, rhs), (lhs ^ rhs as u64).to_le_bytes()),
+            (uops::bitor(&bytes, rhs).eval(), (lhs | rhs as u64).to_le_bytes()),
+            (uops::bitand(&bytes, rhs).eval(), (lhs & rhs as u64).to_le_bytes()),
+            (uops::bitxor(&bytes, rhs).eval(), (lhs ^ rhs as u64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6796,9 +6699,9 @@ mod tests {
         ) [
             (uops::add(&bytes, rhs as <Single as Num>::Signed).iter().collect_arr(), lhs.wrapping_add(rhs as i64).to_le_bytes()),
             (uops::sub(&bytes, rhs as <Single as Num>::Signed).iter().collect_arr(), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
-            (uops::bitor_signed(&bytes, rhs as <Single as Num>::Signed), (lhs | rhs as i64).to_le_bytes()),
-            (uops::bitand_signed(&bytes, rhs as <Single as Num>::Signed), (lhs & rhs as i64).to_le_bytes()),
-            (uops::bitxor_signed(&bytes, rhs as <Single as Num>::Signed), (lhs ^ rhs as i64).to_le_bytes()),
+            (uops::bitor(&bytes, rhs as <Single as Num>::Signed).eval(), (lhs | rhs as i64).to_le_bytes()),
+            (uops::bitand(&bytes, rhs as <Single as Num>::Signed).eval(), (lhs & rhs as i64).to_le_bytes()),
+            (uops::bitxor(&bytes, rhs as <Single as Num>::Signed).eval(), (lhs ^ rhs as i64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6834,9 +6737,9 @@ mod tests {
         ) [
             ({ let mut bytes = lhs_bytes; uops::add(&mut bytes, &rhs_bytes).wrapping(|_| ()); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
             ({ let mut bytes = lhs_bytes; uops::sub(&mut bytes, &rhs_bytes).wrapping(|_| ()); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::bitor_mut(&mut bytes, &rhs_bytes); bytes }, (lhs | rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::bitand_mut(&mut bytes, &rhs_bytes); bytes }, (lhs & rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::bitxor_mut(&mut bytes, &rhs_bytes); bytes }, (lhs ^ rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::bitor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs | rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::bitand(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs & rhs).to_le_bytes()),
+            ({ let mut bytes = lhs_bytes; uops::bitxor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs ^ rhs).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6846,9 +6749,9 @@ mod tests {
         ) [
             ({ let mut bytes = bytes; uops::add(&mut bytes, rhs).wrapping(|_| ()); bytes }, lhs.wrapping_add(rhs as u64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs).wrapping(|_| ()); bytes }, lhs.wrapping_sub(rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitor_single_mut(&mut bytes, rhs); bytes }, (lhs | rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitand_single_mut(&mut bytes, rhs); bytes }, (lhs & rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitxor_single_mut(&mut bytes, rhs); bytes }, (lhs ^ rhs as u64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs).eval_mut(); bytes }, (lhs | rhs as u64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs).eval_mut(); bytes }, (lhs & rhs as u64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs).eval_mut(); bytes }, (lhs ^ rhs as u64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6858,9 +6761,9 @@ mod tests {
         ) [
             ({ let mut bytes = bytes; uops::add(&mut bytes, rhs as <Single as Num>::Signed).wrapping(|_| ()); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
             ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs as <Single as Num>::Signed).wrapping(|_| ()); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitor_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs | rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitand_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs & rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitxor_signed_mut(&mut bytes, rhs as <Single as Num>::Signed); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs as <Single as Num>::Signed).eval_mut(); bytes }, (lhs | rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs as <Single as Num>::Signed).eval_mut(); bytes }, (lhs & rhs as i64).to_le_bytes()),
+            ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs as <Single as Num>::Signed).eval_mut(); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
