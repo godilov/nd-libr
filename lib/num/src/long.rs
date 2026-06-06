@@ -2616,7 +2616,7 @@ pub mod uops {
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
-    pub fn sgx<Words>(words: Words, sign: bool) -> Sgx<Words> {
+    pub fn sgnx<Words>(words: Words, sign: bool) -> Sgx<Words> {
         Sgx { words, sign }
     }
 
@@ -2738,7 +2738,7 @@ pub mod uops {
         words[L - 1] >> (BITS - 1) == 1
     }
 
-    /// Returns `words` two's complement sign.
+    /// Reads sign.
     #[inline]
     pub fn sign<const L: usize>(words: &[Single; L], pos: Sign, neg: Sign) -> Sign {
         if words == &[0; L] {
@@ -4617,7 +4617,7 @@ impl<const L: usize> Signed<L> {
             Sign::POS => false,
         };
 
-        uops::sgx(&self.0, bit).with(Self)
+        uops::sgnx(&self.0, bit).with(Self)
     }
 
     /// Creates new unsigned from raw `self.0`.
@@ -4665,7 +4665,7 @@ impl<const L: usize> Unsigned<L> {
             Sign::POS => false,
         };
 
-        uops::sgx(&self.0, bit).with(Signed)
+        uops::sgnx(&self.0, bit).with(Signed)
     }
 
     /// Creates new unsigned from raw `self.0`.
@@ -6838,11 +6838,19 @@ mod tests {
     fn uops() {
         ndassert::check! { @eq (
             val in ndassert::range!(u64, 48),
+            pos as (val as i64),
+            neg as (val as i64).wrapping_neg(),
             bytes as val.to_le_bytes(),
         ) [
             (uops::not(&bytes).eval(), (!val).to_le_bytes()),
-            (uops::pos(&bytes).eval(), val.to_le_bytes()),
-            (uops::neg(&bytes).eval(), val.wrapping_neg().to_le_bytes()),
+            (uops::pos(&bytes).eval(), pos.to_le_bytes()),
+            (uops::neg(&bytes).eval(), neg.to_le_bytes()),
+
+            (uops::posx(&bytes).eval(), [pos, neg][(neg > 0) as usize].to_le_bytes()),
+            (uops::negx(&bytes).eval(), [pos, neg][(pos > 0) as usize].to_le_bytes()),
+
+            (uops::sgnx(&bytes, false).eval(), [pos, neg][(neg > 0) as usize].to_le_bytes()),
+            (uops::sgnx(&bytes,  true).eval(), [pos, neg][(pos > 0) as usize].to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
@@ -6900,11 +6908,19 @@ mod tests {
     fn uops_mut() {
         ndassert::check! { @eq (
             val in ndassert::range!(u64, 48),
+            pos as (val as i64),
+            neg as (val as i64).wrapping_neg(),
             bytes as val.to_le_bytes(),
         ) [
             ({ let mut bytes = bytes; uops::not(&mut bytes).eval(); bytes }, (!val).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::pos(&mut bytes).eval(); bytes }, val.to_le_bytes()),
-            ({ let mut bytes = bytes; uops::neg(&mut bytes).eval(); bytes }, val.wrapping_neg().to_le_bytes()),
+            ({ let mut bytes = bytes; uops::pos(&mut bytes).eval(); bytes }, pos.to_le_bytes()),
+            ({ let mut bytes = bytes; uops::neg(&mut bytes).eval(); bytes }, neg.to_le_bytes()),
+
+            ({ let mut bytes = bytes; uops::posx(&mut bytes).eval(); bytes }, [pos, neg][(neg > 0) as usize].to_le_bytes()),
+            ({ let mut bytes = bytes; uops::negx(&mut bytes).eval(); bytes }, [pos, neg][(pos > 0) as usize].to_le_bytes()),
+
+            ({ let mut bytes = bytes; uops::sgnx(&mut bytes, false).eval(); bytes }, [pos, neg][(neg > 0) as usize].to_le_bytes()),
+            ({ let mut bytes = bytes; uops::sgnx(&mut bytes,  true).eval(); bytes }, [pos, neg][(pos > 0) as usize].to_le_bytes()),
         ] }
 
         ndassert::check! { @eq (
