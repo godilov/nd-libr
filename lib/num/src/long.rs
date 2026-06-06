@@ -497,16 +497,18 @@ macro_rules! cycle {
 }
 
 #[allow(unused)]
-fn search<N: Num, F: Fn(N) -> bool>(l: N, r: N, f: F) -> N {
+fn search<N: Num, F: Fn(N) -> bool>(l: N, r: N, func: F) -> N {
     let mut idx = N::ZERO;
     let mut len = N::nd_sub(&r, &l);
 
     while len > N::ZERO {
         let half = N::nd_shr(&len, 1);
-        let diff = [N::ZERO, N::nd_sub(&len, &half)][f(N::nd_add(&idx, &half)) as usize];
+        let index = N::nd_add(&idx, &half);
+        let step = N::nd_sub(&len, &half);
 
-        N::nd_add_assign(&mut idx, &diff);
+        let diff = [N::ZERO, step][func(index) as usize];
 
+        idx = N::nd_add(&idx, &diff);
         len = half;
     }
 
@@ -1373,9 +1375,9 @@ pub mod uops {
         /// Iterator for [Posx] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            let (xor, acc) = match self.words[L - 1] >> (BITS - 1) {
-                0 => (0, 0),
-                _ => (MAX, 1),
+            let (xor, acc) = match sgn(self.words) {
+                false => (0, 0),
+                true => (MAX, 1),
             };
 
             ExprIter {
@@ -1393,9 +1395,9 @@ pub mod uops {
         pub fn iter_mut(
             self,
         ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            let (xor, acc) = match self.words[L - 1] >> (BITS - 1) {
-                0 => (0, 0),
-                _ => (MAX, 1),
+            let (xor, acc) = match sgn(self.words) {
+                false => (0, 0),
+                true => (MAX, 1),
             };
 
             ExprIterMut {
@@ -1414,9 +1416,9 @@ pub mod uops {
         /// Iterator for [Negx] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            let (xor, acc) = match self.words[L - 1] >> (BITS - 1) {
-                0 => (MAX, 1),
-                _ => (0, 0),
+            let (xor, acc) = match sgn(self.words) {
+                false => (MAX, 1),
+                true => (0, 0),
             };
 
             ExprIter {
@@ -1434,9 +1436,9 @@ pub mod uops {
         pub fn iter_mut(
             self,
         ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            let (xor, acc) = match self.words[L - 1] >> (BITS - 1) {
-                0 => (MAX, 1),
-                _ => (0, 0),
+            let (xor, acc) = match sgn(self.words) {
+                false => (MAX, 1),
+                true => (0, 0),
             };
 
             ExprIterMut {
@@ -1455,7 +1457,7 @@ pub mod uops {
         /// Iterator for [Sgx] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            let (xor, acc) = match self.words[L - 1] >> (BITS - 1) == self.sign as Single {
+            let (xor, acc) = match sgn(self.words) == self.sign {
                 false => (MAX, 1),
                 true => (0, 0),
             };
@@ -1475,7 +1477,7 @@ pub mod uops {
         pub fn iter_mut(
             self,
         ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            let (xor, acc) = match self.words[L - 1] >> (BITS - 1) == self.sign as Single {
+            let (xor, acc) = match sgn(self.words) == self.sign {
                 false => (MAX, 1),
                 true => (0, 0),
             };
@@ -1581,9 +1583,9 @@ pub mod uops {
             let lhs = self.lhs.iter().copied();
             let rhs = self.rhs as Single;
 
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
+            let ext = match sgn(&[rhs]) {
+                false => 0,
+                true => MAX,
             };
 
             ExprIter {
@@ -1604,9 +1606,9 @@ pub mod uops {
             let lhs = self.lhs.iter_mut();
             let rhs = self.rhs as Single;
 
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
+            let ext = match sgn(&[rhs]) {
+                false => 0,
+                true => MAX,
             };
 
             ExprIterMut {
@@ -1733,8 +1735,8 @@ pub mod uops {
 
             let neg = rhs.wrapping_neg();
 
-            let ext = match (rhs != 0, rhs >> (BITS - 1)) {
-                (true, 0) => MAX,
+            let ext = match (rhs != 0, sgn(&[rhs])) {
+                (true, false) => MAX,
                 (_, _) => 0,
             };
 
@@ -1758,8 +1760,8 @@ pub mod uops {
 
             let neg = rhs.wrapping_neg();
 
-            let ext = match (rhs != 0, rhs >> (BITS - 1)) {
-                (true, 0) => MAX,
+            let ext = match (rhs != 0, sgn(&[rhs])) {
+                (true, false) => MAX,
                 (_, _) => 0,
             };
 
@@ -1840,12 +1842,12 @@ pub mod uops {
         /// Shr expression for signed numbers.
         #[inline]
         pub fn signed(self) -> Self {
-            let bit = self.words[L - 1] >> (BITS - 1);
+            let bit = sgn(self.words);
 
             Self {
                 words: self.words,
                 shift: self.shift,
-                default: [0, MAX][(bit > 0) as usize],
+                default: [0, MAX][bit as usize],
             }
         }
 
@@ -1861,12 +1863,12 @@ pub mod uops {
         /// Shr expression for signed numbers.
         #[inline]
         pub fn signed(self) -> Self {
-            let bit = self.words[L - 1] >> (BITS - 1);
+            let bit = sgn(self.words);
 
             Self {
                 words: self.words,
                 shift: self.shift,
-                default: [0, MAX][(bit > 0) as usize],
+                default: [0, MAX][bit as usize],
             }
         }
 
@@ -2359,9 +2361,9 @@ pub mod uops {
             let rhs = self.rhs as Single;
             let func = self.func;
 
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
+            let ext = match sgn(&[rhs]) {
+                false => 0,
+                true => MAX,
             };
 
             lhs.iter()
@@ -2384,9 +2386,9 @@ pub mod uops {
             let rhs = self.rhs as Single;
             let func = self.func;
 
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
+            let ext = match sgn(&[rhs]) {
+                false => 0,
+                true => MAX,
             };
 
             lhs.iter_mut()
@@ -2730,6 +2732,12 @@ pub mod uops {
         res
     }
 
+    /// Reads MSB.
+    #[inline]
+    pub fn sgn<const L: usize>(words: &[Single; L]) -> bool {
+        words[L - 1] >> (BITS - 1) == 1
+    }
+
     /// Returns `words` two's complement sign.
     #[inline]
     pub fn sign<const L: usize>(words: &[Single; L], pos: Sign, neg: Sign) -> Sign {
@@ -2885,9 +2893,9 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs as Single;
 
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
+            let ext = match uops::sgn(&[rhs]) {
+                false => 0,
+                true => MAX,
             };
 
             let rhs = (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]);
@@ -2908,9 +2916,9 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs as Single;
 
-            let ext = match rhs >> (BITS - 1) {
-                0 => 0,
-                _ => MAX,
+            let ext = match uops::sgn(&[rhs]) {
+                false => 0,
+                true => MAX,
             };
 
             let rhs = (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]);
@@ -4080,23 +4088,23 @@ impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
 impl<const L: usize> Ord for Signed<L> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        let lhs_bit = self.0[L - 1] >> (BITS - 1);
-        let rhs_bit = other.0[L - 1] >> (BITS - 1);
+        let lhs_bit = uops::sgn(&self.0);
+        let rhs_bit = uops::sgn(&other.0);
 
         let (lhs_xor, lhs_acc) = match lhs_bit {
-            1 => (MAX, 1),
+            true => (MAX, 1),
             _ => (0, 0),
         };
 
         let (rhs_xor, rhs_acc) = match rhs_bit {
-            1 => (MAX, 1),
+            true => (MAX, 1),
             _ => (0, 0),
         };
 
         let (lt, gt) = match (lhs_bit, rhs_bit) {
-            (0, 0) => (-1, 1),
-            (0, 1) => (1, 1),
-            (1, 0) => (-1, -1),
+            (false, false) => (-1, 1),
+            (false, true) => (1, 1),
+            (true, false) => (-1, -1),
             _ => (1, -1),
         };
 
