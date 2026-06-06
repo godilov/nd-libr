@@ -351,13 +351,10 @@ macro_rules! num_ct_impl {
 }
 
 macro_rules! sign_from {
-    (@signed [$($primitive:ty),+ $(,)?]) => {
-        $(sign_from!(@signed $primitive);)+
+    ([$($primitive:ty),+ $(,)?]) => {
+        $(sign_from!($primitive);)+
     };
-    (@unsigned [$($primitive:ty),+ $(,)?]) => {
-        $(sign_from!(@unsigned $primitive);)+
-    };
-    (@signed $primitive:ty $(,)?) => {
+    ($primitive:ty $(,)?) => {
         impl From<$primitive> for Sign {
             #[inline]
             fn from(value: $primitive) -> Self {
@@ -369,13 +366,20 @@ macro_rules! sign_from {
             }
         }
     };
-    (@unsigned $primitive:ty $(,)?) => {
-        impl From<$primitive> for Sign {
+}
+
+macro_rules! dir_from {
+    ([$($primitive:ty),+ $(,)?]) => {
+        $(dir_from!($primitive);)+
+    };
+    ($primitive:ty $(,)?) => {
+        impl From<$primitive> for Dir {
             #[inline]
             fn from(value: $primitive) -> Self {
-                match value {
-                    0 => Sign::ZERO,
-                    _ => Sign::POS,
+                match value.cmp(&0) {
+                    Ordering::Less => Dir::NEG,
+                    Ordering::Equal => Dir::POS,
+                    Ordering::Greater => Dir::POS,
                 }
             }
         }
@@ -652,6 +656,17 @@ pub enum Sign {
 
     /// Positive number variant.
     POS = 1,
+}
+
+/// Number direction (positive/negative).
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Dir {
+    /// Positive number variant.
+    #[default]
+    POS = 1,
+
+    /// Negative number variant.
+    NEG = -1,
 }
 
 /// Mask for Const-time operations.
@@ -1424,8 +1439,11 @@ num_ct_impl!(@signed [i8 > u8, i16 > u16, i32 > u32, i64 > u64, i128 > u128, isi
 #[cfg(feature = "const-time")]
 num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
-sign_from!(@signed [i8, i16, i32, i64, i128, isize]);
-sign_from!(@unsigned [u8, u16, u32, u64, u128, usize]);
+sign_from!([i8, i16, i32, i64, i128, isize]);
+sign_from!([u8, u16, u32, u64, u128, usize]);
+
+dir_from!([i8, i16, i32, i64, i128, isize]);
+dir_from!([u8, u16, u32, u64, u128, usize]);
 
 impl<N> From<N> for Strict<N> {
     #[inline]
@@ -1557,6 +1575,7 @@ impl<N: Max> Max for Unbounded<N> {
 }
 
 ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
+ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
 
 ndops::fwd! { @ndun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
     ! where                     [N: NdNot                   <N, Type = N>],
