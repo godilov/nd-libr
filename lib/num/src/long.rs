@@ -501,12 +501,13 @@ fn search<N: Num, F: Fn(N) -> bool>(l: N, r: N, f: F) -> N {
     let mut idx = N::ZERO;
     let mut len = N::nd_sub(&r, &l);
 
-    while len > N::ONE {
+    while len > N::ZERO {
         let half = N::nd_shr(&len, 1);
-        let diff = [N::ZERO, half][f(N::nd_add(&idx, &half)) as usize];
+        let diff = [N::ZERO, N::nd_sub(&len, &half)][f(N::nd_add(&idx, &half)) as usize];
 
         N::nd_add_assign(&mut idx, &diff);
-        N::nd_sub_assign(&mut len, &half);
+
+        len = half;
     }
 
     idx
@@ -1173,6 +1174,13 @@ pub mod uops {
 
             Some(val as Single)
         }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            let lhs = self.lhs.size_hint();
+            let rhs = self.lhs.size_hint();
+
+            (lhs.0.min(rhs.0), lhs.1.and_then(|l| rhs.1.map(|r| l.min(r))))
+        }
     }
 
     impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Iterator
@@ -1195,6 +1203,13 @@ pub mod uops {
             *lhs = val as Single;
 
             Some(self.acc)
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            let lhs = self.lhs.size_hint();
+            let rhs = self.lhs.size_hint();
+
+            (lhs.0.min(rhs.0), lhs.1.and_then(|l| rhs.1.map(|r| l.min(r))))
         }
     }
 
