@@ -6,7 +6,7 @@ use std::str::FromStr;
 ///
 /// Allows to implement [`NdFrom`] and [`NdTryFrom`] at the same time.
 ///
-/// Auto-implemented for all `V: From<U>`.
+/// Auto-implemented for all `V: From<U>` with `Ctx = ()`.
 ///
 /// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
 pub trait NdFrom<T>: Sized {
@@ -18,7 +18,7 @@ pub trait NdFrom<T>: Sized {
 ///
 /// Allows to implement [`NdFrom`] and [`NdTryFrom`] at the same time.
 ///
-/// Auto-implemented for all `V: TryFrom<U>`.
+/// Auto-implemented for all `V: TryFrom<U>` with `Ctx = ()`.
 ///
 /// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
 pub trait NdTryFrom<T>: Sized {
