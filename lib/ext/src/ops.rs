@@ -21,12 +21,18 @@ macro_rules! nd_ops_impl {
             - @wrapping value.wrapping_neg(),
             - @saturating value.saturating_neg(),
             - @overflowing value.overflowing_neg(),
-            abs value.abs(),
-            abs @checked value.checked_abs(),
-            abs @strict value.strict_abs(),
-            abs @wrapping value.wrapping_abs(),
-            abs @saturating value.saturating_abs(),
-            abs @overflowing value.overflowing_abs(),
+            posx value.abs(),
+            posx @checked value.checked_abs(),
+            posx @strict value.strict_abs(),
+            posx @wrapping value.wrapping_abs(),
+            posx @saturating value.saturating_abs(),
+            posx @overflowing value.overflowing_abs(),
+            negx value.wrapping_abs().wrapping_neg(),
+            negx @checked Some(value.wrapping_abs().wrapping_neg()),
+            negx @strict value.wrapping_abs().wrapping_neg(),
+            negx @wrapping value.wrapping_abs().wrapping_neg(),
+            negx @saturating value.wrapping_abs().wrapping_neg(),
+            negx @overflowing (value.wrapping_abs().wrapping_neg(), false),
         ] }
 
         nd_ops_impl!(@impl $primitive);
@@ -144,7 +150,7 @@ pub trait NdNot<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_not(value: &Value) -> Self::Type;
 }
 
@@ -163,7 +169,7 @@ pub trait NdNeg<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_neg(value: &Value) -> Self::Type;
 }
 
@@ -174,7 +180,7 @@ pub trait NdNegChecked<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_neg_checked(value: &Value) -> Option<Self::Type>;
 }
 
@@ -185,7 +191,7 @@ pub trait NdNegStrict<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_neg_strict(value: &Value) -> Self::Type;
 }
 
@@ -196,7 +202,7 @@ pub trait NdNegWrapping<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_neg_wrapping(value: &Value) -> Self::Type;
 }
 
@@ -207,7 +213,7 @@ pub trait NdNegSaturating<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_neg_saturating(value: &Value) -> Self::Type;
 }
 
@@ -218,82 +224,156 @@ pub trait NdNegOverflowing<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_neg_overflowing(value: &Value) -> (Self::Type, bool);
 }
 
-/// `Nd-kind` absolute value.
+/// `Nd-kind` positive absolute value.
 ///
 /// # Related
 ///
-/// - [`NdAbsChecked`] - checked alternative.
-/// - [`NdAbsStrict`] - strict alternative.
-/// - [`NdAbsWrapping`] - wrapping alternative.
-/// - [`NdAbsSaturating`] - saturating alternative.
-/// - [`NdAbsOverflowing`] - overflowing alternative.
+/// - [`NdPosxChecked`] - checked alternative.
+/// - [`NdPosxStrict`] - strict alternative.
+/// - [`NdPosxWrapping`] - wrapping alternative.
+/// - [`NdPosxSaturating`] - saturating alternative.
+/// - [`NdPosxOverflowing`] - overflowing alternative.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAbs<Value = Self> {
+pub trait NdPosx<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
-    fn nd_abs(value: &Value) -> Self::Type;
+    /// Operation function.
+    fn nd_posx(value: &Value) -> Self::Type;
 }
 
-/// `Nd-kind` absolute value with checked semantics.
+/// `Nd-kind` positive absolute value with checked semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAbsChecked<Value = Self> {
+pub trait NdPosxChecked<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
-    fn nd_abs_checked(value: &Value) -> Option<Self::Type>;
+    /// Operation function.
+    fn nd_posx_checked(value: &Value) -> Option<Self::Type>;
 }
 
-/// `Nd-kind` absolute value with strict semantics.
+/// `Nd-kind` positive absolute value with strict semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAbsStrict<Value = Self> {
+pub trait NdPosxStrict<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
-    fn nd_abs_strict(value: &Value) -> Self::Type;
+    /// Operation function.
+    fn nd_posx_strict(value: &Value) -> Self::Type;
 }
 
-/// `Nd-kind` absolute value with wrapping semantics.
+/// `Nd-kind` positive absolute value with wrapping semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAbsWrapping<Value = Self> {
+pub trait NdPosxWrapping<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
-    fn nd_abs_wrapping(value: &Value) -> Self::Type;
+    /// Operation function.
+    fn nd_posx_wrapping(value: &Value) -> Self::Type;
 }
 
-/// `Nd-kind` absolute value with saturating semantics.
+/// `Nd-kind` positive absolute value with saturating semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAbsSaturating<Value = Self> {
+pub trait NdPosxSaturating<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
-    fn nd_abs_saturating(value: &Value) -> Self::Type;
+    /// Operation function.
+    fn nd_posx_saturating(value: &Value) -> Self::Type;
 }
 
-/// `Nd-kind` absolute value with overflowing semantics.
+/// `Nd-kind` positive absolute value with overflowing semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAbsOverflowing<Value = Self> {
+pub trait NdPosxOverflowing<Value = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
-    fn nd_abs_overflowing(value: &Value) -> (Self::Type, bool);
+    /// Operation function.
+    fn nd_posx_overflowing(value: &Value) -> (Self::Type, bool);
+}
+
+/// `Nd-kind` negative absolute value.
+///
+/// # Related
+///
+/// - [`NdNegxChecked`] - checked alternative.
+/// - [`NdNegxStrict`] - strict alternative.
+/// - [`NdNegxWrapping`] - wrapping alternative.
+/// - [`NdNegxSaturating`] - saturating alternative.
+/// - [`NdNegxOverflowing`] - overflowing alternative.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdNegx<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_negx(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` negative absolute value with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdNegxChecked<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_negx_checked(value: &Value) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` negative absolute value with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdNegxStrict<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_negx_strict(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` negative absolute value with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdNegxWrapping<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_negx_wrapping(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` negative absolute value with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdNegxSaturating<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_negx_saturating(value: &Value) -> Self::Type;
+}
+
+/// `Nd-kind` negative absolute value with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdNegxOverflowing<Value = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_negx_overflowing(value: &Value) -> (Self::Type, bool);
 }
 
 /// `Nd-kind` extension for [`std::ops::Add`].
@@ -312,7 +392,7 @@ pub trait NdAdd<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_add(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -323,7 +403,7 @@ pub trait NdAddx<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_addx(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -342,7 +422,7 @@ pub trait NdSub<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -362,7 +442,7 @@ pub trait NdMul<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -373,7 +453,7 @@ pub trait NdMulx<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_mulx(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -392,7 +472,7 @@ pub trait NdDiv<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_div(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -411,7 +491,7 @@ pub trait NdRem<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -422,7 +502,7 @@ pub trait NdBitOr<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_bitor(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -433,7 +513,7 @@ pub trait NdBitAnd<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_bitand(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -444,7 +524,7 @@ pub trait NdBitXor<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_bitxor(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -460,7 +540,7 @@ pub trait NdShl<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
@@ -476,7 +556,7 @@ pub trait NdShr<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
@@ -487,7 +567,7 @@ pub trait NdAddChecked<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
 }
 
@@ -498,7 +578,7 @@ pub trait NdSubChecked<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
 }
 
@@ -509,7 +589,7 @@ pub trait NdMulChecked<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
 }
 
@@ -520,7 +600,7 @@ pub trait NdDivChecked<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
 }
 
@@ -531,7 +611,7 @@ pub trait NdRemChecked<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
 }
 
@@ -542,7 +622,7 @@ pub trait NdShlChecked<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
 }
 
@@ -553,7 +633,7 @@ pub trait NdShrChecked<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
 }
 
@@ -564,7 +644,7 @@ pub trait NdAddStrict<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -575,7 +655,7 @@ pub trait NdSubStrict<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -586,7 +666,7 @@ pub trait NdMulStrict<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -597,7 +677,7 @@ pub trait NdDivStrict<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -608,7 +688,7 @@ pub trait NdRemStrict<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -619,7 +699,7 @@ pub trait NdShlStrict<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl_strict(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
@@ -630,7 +710,7 @@ pub trait NdShrStrict<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr_strict(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
@@ -641,7 +721,7 @@ pub trait NdAddWrapping<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -652,7 +732,7 @@ pub trait NdSubWrapping<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -663,7 +743,7 @@ pub trait NdMulWrapping<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -674,7 +754,7 @@ pub trait NdDivWrapping<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -685,7 +765,7 @@ pub trait NdRemWrapping<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -696,7 +776,7 @@ pub trait NdAddSaturating<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -707,7 +787,7 @@ pub trait NdSubSaturating<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -718,7 +798,7 @@ pub trait NdMulSaturating<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -729,7 +809,7 @@ pub trait NdDivSaturating<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -740,7 +820,7 @@ pub trait NdRemSaturating<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
@@ -751,7 +831,7 @@ pub trait NdAddOverflowing<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
 }
 
@@ -762,7 +842,7 @@ pub trait NdSubOverflowing<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
 }
 
@@ -773,7 +853,7 @@ pub trait NdMulOverflowing<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
 }
 
@@ -784,7 +864,7 @@ pub trait NdDivOverflowing<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
 }
 
@@ -795,7 +875,7 @@ pub trait NdRemOverflowing<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
 }
 
@@ -806,7 +886,7 @@ pub trait NdShlOverflowing<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
 }
 
@@ -817,7 +897,7 @@ pub trait NdShrOverflowing<Lhs = Self, Rhs = usize> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
 }
 
@@ -828,7 +908,7 @@ pub trait NdShlUnbounded<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl_unbounded(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
@@ -839,7 +919,7 @@ pub trait NdShrUnbounded<Lhs = Self, Rhs = Self> {
     /// Operation resulting type.
     type Type;
 
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr_unbounded(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
@@ -853,7 +933,7 @@ pub trait NdShrUnbounded<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -867,7 +947,7 @@ pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -881,7 +961,7 @@ pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -895,7 +975,7 @@ pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -909,7 +989,7 @@ pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -917,7 +997,7 @@ pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_bitor_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -925,7 +1005,7 @@ pub trait NdBitOrAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_bitand_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -933,7 +1013,7 @@ pub trait NdBitAndAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_bitxor_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -946,7 +1026,7 @@ pub trait NdBitXorAssign<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl_assign(lhs: &mut Lhs, rhs: Rhs);
 }
 
@@ -959,7 +1039,7 @@ pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr_assign(lhs: &mut Lhs, rhs: Rhs);
 }
 
@@ -967,7 +1047,7 @@ pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdAddAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -975,7 +1055,7 @@ pub trait NdAddAssignStrict<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdSubAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -983,7 +1063,7 @@ pub trait NdSubAssignStrict<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdMulAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -991,7 +1071,7 @@ pub trait NdMulAssignStrict<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdDivAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -999,7 +1079,7 @@ pub trait NdDivAssignStrict<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdRemAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1007,7 +1087,7 @@ pub trait NdRemAssignStrict<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShlAssignStrict<Lhs = Self, Rhs = usize> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl_assign_strict(lhs: &mut Lhs, rhs: Rhs);
 }
 
@@ -1015,7 +1095,7 @@ pub trait NdShlAssignStrict<Lhs = Self, Rhs = usize> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShrAssignStrict<Lhs = Self, Rhs = usize> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr_assign_strict(lhs: &mut Lhs, rhs: Rhs);
 }
 
@@ -1023,7 +1103,7 @@ pub trait NdShrAssignStrict<Lhs = Self, Rhs = usize> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdAddAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1031,7 +1111,7 @@ pub trait NdAddAssignWrapping<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdSubAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1039,7 +1119,7 @@ pub trait NdSubAssignWrapping<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdMulAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1047,7 +1127,7 @@ pub trait NdMulAssignWrapping<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdDivAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1055,7 +1135,7 @@ pub trait NdDivAssignWrapping<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdRemAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1063,7 +1143,7 @@ pub trait NdRemAssignWrapping<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdAddAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_add_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1071,7 +1151,7 @@ pub trait NdAddAssignSaturating<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdSubAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_sub_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1079,7 +1159,7 @@ pub trait NdSubAssignSaturating<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdMulAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_mul_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1087,7 +1167,7 @@ pub trait NdMulAssignSaturating<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdDivAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_div_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1095,7 +1175,7 @@ pub trait NdDivAssignSaturating<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdRemAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_rem_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
 }
 
@@ -1103,7 +1183,7 @@ pub trait NdRemAssignSaturating<Lhs = Self, Rhs = Self> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShlAssignUnbounded<Lhs = Self, Rhs = usize> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_shl_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
 }
 
@@ -1111,7 +1191,7 @@ pub trait NdShlAssignUnbounded<Lhs = Self, Rhs = usize> {
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShrAssignUnbounded<Lhs = Self, Rhs = usize> {
-    /// Operation required function.
+    /// Operation function.
     fn nd_shr_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
 }
 

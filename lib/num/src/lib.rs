@@ -1582,9 +1582,12 @@ ndops::fwd! { @ndun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
     - with @strict where        [N: NdNegStrict             <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    abs with @strict where      [N: NdAbsStrict             <N, Type = N>],
-    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
-    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
+    posx with @strict where     [N: NdPosxStrict            <N, Type = N>],
+    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
+    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
+    negx with @strict where     [N: NdNegxStrict            <N, Type = N>],
+    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
+    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
@@ -1592,9 +1595,12 @@ ndops::fwd! { @ndun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
     - with @wrapping where      [N: NdNegWrapping           <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    abs with @wrapping where    [N: NdAbsWrapping           <N, Type = N>],
-    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
-    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
+    posx with @wrapping where   [N: NdPosxWrapping          <N, Type = N>],
+    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
+    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
+    negx with @wrapping where   [N: NdNegxWrapping          <N, Type = N>],
+    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
+    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
@@ -1602,9 +1608,12 @@ ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0)
     - with @saturating where    [N: NdNegSaturating         <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    abs with @saturating where  [N: NdAbsSaturating         <N, Type = N>],
-    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
-    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
+    posx with @saturating where [N: NdPosxSaturating        <N, Type = N>],
+    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
+    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
+    negx with @saturating where [N: NdNegxSaturating        <N, Type = N>],
+    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
+    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndun <N> (value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
@@ -1615,12 +1624,18 @@ ndops::fwd! { @ndun <N> (value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
     - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
     - @saturating where         [N: NdNegSaturating         <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    abs where                   [N: NdAbs                   <N, Type = N>],
-    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
-    abs @strict where           [N: NdAbsStrict             <N, Type = N>],
-    abs @wrapping where         [N: NdAbsWrapping           <N, Type = N>],
-    abs @saturating where       [N: NdAbsSaturating         <N, Type = N>],
-    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
+    posx where                  [N: NdPosx                  <N, Type = N>],
+    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
+    posx @strict where          [N: NdPosxStrict            <N, Type = N>],
+    posx @wrapping where        [N: NdPosxWrapping          <N, Type = N>],
+    posx @saturating where      [N: NdPosxSaturating        <N, Type = N>],
+    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
+    negx where                  [N: NdNegx                  <N, Type = N>],
+    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
+    negx @strict where          [N: NdNegxStrict            <N, Type = N>],
+    negx @wrapping where        [N: NdNegxWrapping          <N, Type = N>],
+    negx @saturating where      [N: NdNegxSaturating        <N, Type = N>],
+    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
 ] }
 
 #[cfg(feature = "const-time")]
@@ -1632,12 +1647,18 @@ ndops::fwd! { @ndun <N> (value: &AutoCt<N>) -> AutoCt<N>, (N) (&value.0) [
     - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
     - @saturating where         [N: NdNegSaturating         <N, Type = N>],
     - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    abs where                   [N: NdAbs                   <N, Type = N>],
-    abs @checked where          [N: NdAbsChecked            <N, Type = N>],
-    abs @strict where           [N: NdAbsStrict             <N, Type = N>],
-    abs @wrapping where         [N: NdAbsWrapping           <N, Type = N>],
-    abs @saturating where       [N: NdAbsSaturating         <N, Type = N>],
-    abs @overflowing where      [N: NdAbsOverflowing        <N, Type = N>],
+    posx where                  [N: NdPosx                  <N, Type = N>],
+    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
+    posx @strict where          [N: NdPosxStrict            <N, Type = N>],
+    posx @wrapping where        [N: NdPosxWrapping          <N, Type = N>],
+    posx @saturating where      [N: NdPosxSaturating        <N, Type = N>],
+    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
+    negx where                  [N: NdNegx                  <N, Type = N>],
+    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
+    negx @strict where          [N: NdNegxStrict            <N, Type = N>],
+    negx @wrapping where        [N: NdNegxWrapping          <N, Type = N>],
+    negx @saturating where      [N: NdNegxSaturating        <N, Type = N>],
+    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Strict<Lhs>, rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [
@@ -2406,13 +2427,13 @@ mod tests {
             (!Strict(val), Strict(!val)),
 
             (Strict::nd_neg_checked(&Strict(val)), val.checked_neg().map(Strict)),
-            (Strict::nd_abs_checked(&Strict(val)), val.checked_abs().map(Strict)),
+            (Strict::nd_posx_checked(&Strict(val)), val.checked_abs().map(Strict)),
 
             (Strict::nd_neg_overflowing(&Strict(val)), { let (val, flag) = val.overflowing_neg(); (Strict(val), flag) }),
-            (Strict::nd_abs_overflowing(&Strict(val)), { let (val, flag) = val.overflowing_abs(); (Strict(val), flag) }),
+            (Strict::nd_posx_overflowing(&Strict(val)), { let (val, flag) = val.overflowing_abs(); (Strict(val), flag) }),
 
             ndassert::catch!(Strict::nd_neg(&Strict(val)), Strict(val.strict_neg())),
-            ndassert::catch!(Strict::nd_abs(&Strict(val)), Strict(val.strict_abs())),
+            ndassert::catch!(Strict::nd_posx(&Strict(val)), Strict(val.strict_abs())),
         ] }
 
         ndassert::check! { @eq (
@@ -2471,13 +2492,13 @@ mod tests {
             (!Wrapping(val), Wrapping(!val)),
 
             (Wrapping::nd_neg_checked(&Wrapping(val)), val.checked_neg().map(Wrapping)),
-            (Wrapping::nd_abs_checked(&Wrapping(val)), val.checked_abs().map(Wrapping)),
+            (Wrapping::nd_posx_checked(&Wrapping(val)), val.checked_abs().map(Wrapping)),
 
             (Wrapping::nd_neg_overflowing(&Wrapping(val)), { let (val, flag) = val.overflowing_neg(); (Wrapping(val), flag) }),
-            (Wrapping::nd_abs_overflowing(&Wrapping(val)), { let (val, flag) = val.overflowing_abs(); (Wrapping(val), flag) }),
+            (Wrapping::nd_posx_overflowing(&Wrapping(val)), { let (val, flag) = val.overflowing_abs(); (Wrapping(val), flag) }),
 
             (Wrapping::nd_neg(&Wrapping(val)), Wrapping(val.wrapping_neg())),
-            (Wrapping::nd_abs(&Wrapping(val)), Wrapping(val.wrapping_abs())),
+            (Wrapping::nd_posx(&Wrapping(val)), Wrapping(val.wrapping_abs())),
         ] }
 
         ndassert::check! { @eq (
@@ -2534,13 +2555,13 @@ mod tests {
             (!Saturating(val), Saturating(!val)),
 
             (Saturating::nd_neg_checked(&Saturating(val)), val.checked_neg().map(Saturating)),
-            (Saturating::nd_abs_checked(&Saturating(val)), val.checked_abs().map(Saturating)),
+            (Saturating::nd_posx_checked(&Saturating(val)), val.checked_abs().map(Saturating)),
 
             (Saturating::nd_neg_overflowing(&Saturating(val)), { let (val, flag) = val.overflowing_neg(); (Saturating(val), flag) }),
-            (Saturating::nd_abs_overflowing(&Saturating(val)), { let (val, flag) = val.overflowing_abs(); (Saturating(val), flag) }),
+            (Saturating::nd_posx_overflowing(&Saturating(val)), { let (val, flag) = val.overflowing_abs(); (Saturating(val), flag) }),
 
             (Saturating::nd_neg(&Saturating(val)), Saturating(val.saturating_neg())),
-            (Saturating::nd_abs(&Saturating(val)), Saturating(val.saturating_abs())),
+            (Saturating::nd_posx(&Saturating(val)), Saturating(val.saturating_abs())),
         ] }
 
         ndassert::check! { @eq (
@@ -2597,13 +2618,13 @@ mod tests {
             (!Unbounded(val), Unbounded(!val)),
 
             (Unbounded::nd_neg_checked(&Unbounded(val)), val.checked_neg().map(Unbounded)),
-            (Unbounded::nd_abs_checked(&Unbounded(val)), val.checked_abs().map(Unbounded)),
+            (Unbounded::nd_posx_checked(&Unbounded(val)), val.checked_abs().map(Unbounded)),
 
             (Unbounded::nd_neg_overflowing(&Unbounded(val)), { let (val, flag) = val.overflowing_neg(); (Unbounded(val), flag) }),
-            (Unbounded::nd_abs_overflowing(&Unbounded(val)), { let (val, flag) = val.overflowing_abs(); (Unbounded(val), flag) }),
+            (Unbounded::nd_posx_overflowing(&Unbounded(val)), { let (val, flag) = val.overflowing_abs(); (Unbounded(val), flag) }),
 
             ndassert::catch!(Unbounded::nd_neg(&Unbounded(val)), Unbounded(val.neg())),
-            ndassert::catch!(Unbounded::nd_abs(&Unbounded(val)), Unbounded(val.abs())),
+            ndassert::catch!(Unbounded::nd_posx(&Unbounded(val)), Unbounded(val.abs())),
         ] }
 
         ndassert::check! { @eq (

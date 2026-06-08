@@ -22,7 +22,8 @@ mod kw {
     syn::custom_keyword!(ndbin);
     syn::custom_keyword!(ndun);
 
-    syn::custom_keyword!(abs);
+    syn::custom_keyword!(posx);
+    syn::custom_keyword!(negx);
     syn::custom_keyword!(addx);
     syn::custom_keyword!(mulx);
 
@@ -542,7 +543,8 @@ enum OpsUnary<Ext: Parse> {
 
 enum OpsUnaryExtra<Ext: Parse> {
     Std(OpsUnary<Ext>),
-    Abs(kw::abs, Ext),
+    Posx(kw::posx, Ext),
+    Negx(kw::negx, Ext),
 }
 
 enum OpsUnaryMode<Ext: Parse> {
@@ -1395,8 +1397,10 @@ impl<Ext: Parse> Parse for OpsUnaryExtra<Ext> {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::abs) {
-            Ok(Self::Abs(input.parse()?, input.parse()?))
+        if lookahead.peek(kw::posx) {
+            Ok(Self::Posx(input.parse()?, input.parse()?))
+        } else if lookahead.peek(kw::negx) {
+            Ok(Self::Negx(input.parse()?, input.parse()?))
         } else {
             input.parse().map(Self::Std).map_err(|mut err| {
                 err.extend(lookahead.error());
@@ -2141,7 +2145,8 @@ impl From<OpsNdUnaryFwd> for OpsNdUnary {
                 OpsUnary::Not(token) => OpsUnary::Not(token),
                 OpsUnary::Neg(token, mode) => OpsUnary::Neg(token, mode.into()),
             }),
-            OpsUnaryExtra::Abs(token, mode) => Self::Abs(token, mode.into()),
+            OpsUnaryExtra::Posx(token, mode) => Self::Posx(token, mode.into()),
+            OpsUnaryExtra::Negx(token, mode) => Self::Negx(token, mode.into()),
         }
     }
 }
@@ -2640,13 +2645,21 @@ impl OpsNdUnary {
                     OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_neg_overflowing },
                 },
             },
-            Self::Abs(_, mode) => match mode {
-                OpsUnaryMode::Default(_) => parse_quote! { nd_abs },
-                OpsUnaryMode::Checked(_, _) => parse_quote! { nd_abs_checked },
-                OpsUnaryMode::Strict(_, _) => parse_quote! { nd_abs_strict },
-                OpsUnaryMode::Wrapping(_, _) => parse_quote! { nd_abs_wrapping },
-                OpsUnaryMode::Saturating(_, _) => parse_quote! { nd_abs_saturating },
-                OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_abs_overflowing },
+            Self::Posx(_, mode) => match mode {
+                OpsUnaryMode::Default(_) => parse_quote! { nd_posx },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { nd_posx_checked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { nd_posx_strict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { nd_posx_wrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { nd_posx_saturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_posx_overflowing },
+            },
+            Self::Negx(_, mode) => match mode {
+                OpsUnaryMode::Default(_) => parse_quote! { nd_negx },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { nd_negx_checked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { nd_negx_strict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { nd_negx_wrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { nd_negx_saturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { nd_negx_overflowing },
             },
         }
     }
@@ -2666,13 +2679,21 @@ impl OpsNdUnary {
                     OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
                 },
             },
-            Self::Abs(_, mode) => match mode {
-                OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdAbs },
-                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdAbsChecked },
-                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAbsStrict },
-                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAbsWrapping },
-                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAbsSaturating },
-                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdAbsOverflowing },
+            Self::Posx(_, mode) => match mode {
+                OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdPosx },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdPosxChecked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdPosxStrict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdPosxWrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdPosxSaturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdPosxOverflowing },
+            },
+            Self::Negx(_, mode) => match mode {
+                OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdNegx },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdNegxChecked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdNegxStrict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdNegxWrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdNegxSaturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdNegxOverflowing },
             },
         }
     }
@@ -2684,8 +2705,10 @@ impl OpsNdUnary {
                 OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
                 _ => ty.clone(),
             },
-            Self::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
-            Self::Abs(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
+            Self::Posx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
+            Self::Posx(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
+            Self::Negx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { Option<#ty> },
+            Self::Negx(_, OpsUnaryMode::Overflowing(_, _)) => parse_quote! { (#ty, bool) },
             _ => ty.clone(),
         }
     }
@@ -2699,8 +2722,12 @@ impl OpsNdUnary {
                 },
                 _ => expr,
             },
-            Self::Abs(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
-            Self::Abs(_, OpsUnaryMode::Overflowing(_, _)) => {
+            Self::Posx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+            Self::Posx(_, OpsUnaryMode::Overflowing(_, _)) => {
+                parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+            },
+            Self::Negx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+            Self::Negx(_, OpsUnaryMode::Overflowing(_, _)) => {
                 parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
             },
             _ => expr,
@@ -2846,7 +2873,18 @@ impl OpsNdUnaryFwd {
                     },
                 ),
             }),
-            Self::Abs(token, mode) => OpsNdUnary::Abs(
+            Self::Posx(token, mode) => OpsNdUnary::Posx(
+                *token,
+                match mode {
+                    OpsUnaryMode::Default(mode) => mode.into(),
+                    OpsUnaryMode::Checked(token, kw) => OpsUnaryMode::Checked(*token, *kw),
+                    OpsUnaryMode::Strict(token, kw) => OpsUnaryMode::Strict(*token, *kw),
+                    OpsUnaryMode::Wrapping(token, kw) => OpsUnaryMode::Wrapping(*token, *kw),
+                    OpsUnaryMode::Saturating(token, kw) => OpsUnaryMode::Saturating(*token, *kw),
+                    OpsUnaryMode::Overflowing(token, kw) => OpsUnaryMode::Overflowing(*token, *kw),
+                },
+            ),
+            Self::Negx(token, mode) => OpsNdUnary::Negx(
                 *token,
                 match mode {
                     OpsUnaryMode::Default(mode) => mode.into(),

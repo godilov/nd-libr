@@ -906,13 +906,13 @@ pub mod uops {
         pub words: Words,
     }
 
-    /// Pos iterator expression.
+    /// Positive iterator expression.
     pub struct PosIter<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
-    /// Neg iterator expression.
+    /// Negative iterator expression.
     pub struct NegIter<Words> {
         /// Words of expression.
         pub words: Words,
@@ -924,25 +924,25 @@ pub mod uops {
         pub words: Words,
     }
 
-    /// Pos value expression.
+    /// Positive value expression.
     pub struct Pos<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
-    /// Neg value expression.
+    /// Negative value expression.
     pub struct Neg<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
-    /// Pos absolute value expression.
+    /// Positive absolute value expression.
     pub struct Posx<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
-    /// Neg absolute value expression.
+    /// Negative absolute value expression.
     pub struct Negx<Words> {
         /// Words of expression.
         pub words: Words,
@@ -2494,7 +2494,7 @@ pub mod uops {
         NotIter { words }
     }
 
-    /// Pos iterator expression.
+    /// Positive iterator expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
@@ -2502,7 +2502,7 @@ pub mod uops {
         PosIter { words }
     }
 
-    /// Neg iterator expression.
+    /// Negative iterator expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
@@ -2518,7 +2518,7 @@ pub mod uops {
         Not { words }
     }
 
-    /// Pos expression.
+    /// Positive expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
@@ -2526,7 +2526,7 @@ pub mod uops {
         Pos { words }
     }
 
-    /// Neg expression.
+    /// Negative expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
@@ -2534,7 +2534,7 @@ pub mod uops {
         Neg { words }
     }
 
-    /// Pos absolute expression.
+    /// Positive absolute expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
@@ -2542,7 +2542,7 @@ pub mod uops {
         Posx { words }
     }
 
-    /// Neg absolute expression.
+    /// Negative absolute expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
