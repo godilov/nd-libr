@@ -101,11 +101,11 @@ macro_rules! from_arr_impl {
         $group.throughput(Throughput::Bytes(len as u64));
 
         $group.bench_with_input(BenchmarkId::new("Slong::from_arr", 8 * len), &bytes, |b, bytes| {
-            b.iter(|| black_box(Aligned(Slong::nd_from(bytes))))
+            b.iter(|| black_box(Aligned(Slong::nd_from(bytes, ()))))
         });
 
         $group.bench_with_input(BenchmarkId::new("Ulong::from_arr", 8 * len), &bytes, |b, bytes| {
-            b.iter(|| black_box(Aligned(Ulong::nd_from(bytes))))
+            b.iter(|| black_box(Aligned(Ulong::nd_from(bytes, ()))))
         });
     };
 }
@@ -270,11 +270,11 @@ fn from_slice(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         group.throughput(Throughput::Bytes(len as u64));
 
         group.bench_with_input(BenchmarkId::new("Slong::from_slice", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| black_box(Aligned(Slong::nd_from(bytes))))
+            b.iter(|| black_box(Aligned(Slong::nd_from(bytes, ()))))
         });
 
         group.bench_with_input(BenchmarkId::new("Ulong::from_slice", 8 * len), &bytes[..len], |b, bytes| {
-            b.iter(|| black_box(Aligned(Ulong::nd_from(bytes))))
+            b.iter(|| black_box(Aligned(Ulong::nd_from(bytes, ()))))
         });
     }
 }
@@ -399,8 +399,8 @@ fn to_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
-        let signed = Slong::nd_from(&bytes[..]);
-        let unsigned = Ulong::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..], ());
+        let unsigned = Ulong::nd_from(&bytes[..], ());
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -423,8 +423,8 @@ fn to_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdR
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
-        let signed = Slong::nd_from(&bytes[..]);
-        let unsigned = Ulong::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..], ());
+        let unsigned = Ulong::nd_from(&bytes[..], ());
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -447,8 +447,8 @@ fn to_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
         let bytes = rng.random::<[u8; BYTES]>();
 
         let radix = 1u8 << exp;
-        let signed = Slong::nd_from(&bytes[..]);
-        let unsigned = Ulong::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..], ());
+        let unsigned = Ulong::nd_from(&bytes[..], ());
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -478,8 +478,8 @@ fn into_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = Slong::nd_from(&bytes[..]);
-        let unsigned = Ulong::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..], ());
+        let unsigned = Ulong::nd_from(&bytes[..], ());
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -501,8 +501,8 @@ fn into_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = Slong::nd_from(&bytes[..]);
-        let unsigned = Ulong::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..], ());
+        let unsigned = Ulong::nd_from(&bytes[..], ());
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -524,8 +524,8 @@ fn into_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut 
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = Slong::nd_from(&bytes[..]);
-        let unsigned = Ulong::nd_from(&bytes[..]);
+        let signed = Slong::nd_from(&bytes[..], ());
+        let unsigned = Ulong::nd_from(&bytes[..], ());
 
         group.throughput(Throughput::Bytes(bytes.len() as u64));
 
@@ -556,8 +556,8 @@ fn from_str(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let len = BYTES >> shift;
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = Slong::nd_from(&bytes[..len]);
-        let unsigned = Ulong::nd_from(&bytes[..len]);
+        let signed = Slong::nd_from(&bytes[..len], ());
+        let unsigned = Ulong::nd_from(&bytes[..len], ());
 
         let dec_signed = format!("{:#}", &signed);
         let bin_signed = format!("{:#b}", &signed);
@@ -616,8 +616,8 @@ fn to_str(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let len = BYTES >> shift;
         let bytes = rng.random::<[u8; BYTES]>();
 
-        let signed = Slong::nd_from(&bytes[..len]);
-        let unsigned = Ulong::nd_from(&bytes[..len]);
+        let signed = Slong::nd_from(&bytes[..len], ());
+        let unsigned = Ulong::nd_from(&bytes[..len], ());
 
         group.throughput(Throughput::Bytes(len as u64));
 

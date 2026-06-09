@@ -9,9 +9,9 @@ use std::str::FromStr;
 /// Auto-implemented for all `V: From<U>` with `Ctx = ()`.
 ///
 /// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
-pub trait NdFrom<T>: Sized {
+pub trait NdFrom<T, Ctx>: Sized {
     /// Convert from value in non-failable way.
-    fn nd_from(value: T) -> Self;
+    fn nd_from(value: T, ctx: Ctx) -> Self;
 }
 
 /// `Nd-kind` extension for [`std::convert::TryFrom`].
@@ -21,12 +21,12 @@ pub trait NdFrom<T>: Sized {
 /// Auto-implemented for all `V: TryFrom<U>` with `Ctx = ()`.
 ///
 /// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
-pub trait NdTryFrom<T>: Sized {
+pub trait NdTryFrom<T, Ctx>: Sized {
     /// Conversion error type.
     type Error;
 
     /// Convert from value in failable way.
-    fn nd_try_from(value: T) -> Result<Self, Self::Error>;
+    fn nd_try_from(value: T, ctx: Ctx) -> Result<Self, Self::Error>;
 }
 
 /// `Nd-kind` extension for [`std::str::FromStr`].
@@ -44,18 +44,18 @@ pub trait NdFromStr<Ctx>: Sized {
     fn nd_from_str(s: &str, ctx: Ctx) -> Result<Self, Self::Err>;
 }
 
-impl<U, V: From<U>> NdFrom<U> for V {
+impl<U, V: From<U>> NdFrom<U, ()> for V {
     #[inline]
-    fn nd_from(value: U) -> Self {
+    fn nd_from(value: U, _: ()) -> Self {
         V::from(value)
     }
 }
 
-impl<U, V: TryFrom<U>> NdTryFrom<U> for V {
+impl<U, V: TryFrom<U>> NdTryFrom<U, ()> for V {
     type Error = V::Error;
 
     #[inline]
-    fn nd_try_from(value: U) -> Result<Self, Self::Error> {
+    fn nd_try_from(value: U, _: ()) -> Result<Self, Self::Error> {
         V::try_from(value)
     }
 }

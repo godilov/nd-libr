@@ -3581,98 +3581,98 @@ impl<const L: usize> From<[Single; L]> for Bytes<L> {
     }
 }
 
-impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Signed<L> {
+impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N], ()> for Signed<L> {
     #[inline]
-    fn nd_from(value: &[W; N]) -> Self {
+    fn nd_from(value: &[W; N], _: ()) -> Self {
         Self(from_arr(value, 0))
     }
 }
 
-impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Unsigned<L> {
+impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N], ()> for Unsigned<L> {
     #[inline]
-    fn nd_from(value: &[W; N]) -> Self {
+    fn nd_from(value: &[W; N], _: ()) -> Self {
         Self(from_arr(value, 0))
     }
 }
 
-impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N]> for Bytes<L> {
+impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N], ()> for Bytes<L> {
     #[inline]
-    fn nd_from(value: &[W; N]) -> Self {
+    fn nd_from(value: &[W; N], _: ()) -> Self {
         Self(from_arr(value, 0))
     }
 }
 
-impl<const L: usize, W: Word> NdFrom<&[W]> for Signed<L> {
+impl<const L: usize, W: Word> NdFrom<&[W], ()> for Signed<L> {
     #[inline]
-    fn nd_from(value: &[W]) -> Self {
+    fn nd_from(value: &[W], _: ()) -> Self {
         Self(from_slice(value))
     }
 }
 
-impl<const L: usize, W: Word> NdFrom<&[W]> for Unsigned<L> {
+impl<const L: usize, W: Word> NdFrom<&[W], ()> for Unsigned<L> {
     #[inline]
-    fn nd_from(value: &[W]) -> Self {
+    fn nd_from(value: &[W], _: ()) -> Self {
         Self(from_slice(value))
     }
 }
 
-impl<const L: usize, W: Word> NdFrom<&[W]> for Bytes<L> {
+impl<const L: usize, W: Word> NdFrom<&[W], ()> for Bytes<L> {
     #[inline]
-    fn nd_from(value: &[W]) -> Self {
+    fn nd_from(value: &[W], _: ()) -> Self {
         Self(from_slice(value))
     }
 }
 
-impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Signed<L> {
+impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N], ()> for Signed<L> {
     type Error = TryFromArrError;
 
     #[inline]
-    fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
+    fn nd_try_from(value: &[W; N], _: ()) -> Result<Self, Self::Error> {
         try_from_arr(value, 0).map(Self)
     }
 }
 
-impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Unsigned<L> {
+impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N], ()> for Unsigned<L> {
     type Error = TryFromArrError;
 
     #[inline]
-    fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
+    fn nd_try_from(value: &[W; N], _: ()) -> Result<Self, Self::Error> {
         try_from_arr(value, 0).map(Self)
     }
 }
 
-impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N]> for Bytes<L> {
+impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N], ()> for Bytes<L> {
     type Error = TryFromArrError;
 
     #[inline]
-    fn nd_try_from(value: &[W; N]) -> Result<Self, Self::Error> {
+    fn nd_try_from(value: &[W; N], _: ()) -> Result<Self, Self::Error> {
         try_from_arr(value, 0).map(Self)
     }
 }
 
-impl<const L: usize, W: Word> NdTryFrom<&[W]> for Signed<L> {
+impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Signed<L> {
     type Error = TryFromSliceError;
 
     #[inline]
-    fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
+    fn nd_try_from(value: &[W], _: ()) -> Result<Self, Self::Error> {
         try_from_slice(value).map(Self)
     }
 }
 
-impl<const L: usize, W: Word> NdTryFrom<&[W]> for Unsigned<L> {
+impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Unsigned<L> {
     type Error = TryFromSliceError;
 
     #[inline]
-    fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
+    fn nd_try_from(value: &[W], _: ()) -> Result<Self, Self::Error> {
         try_from_slice(value).map(Self)
     }
 }
 
-impl<const L: usize, W: Word> NdTryFrom<&[W]> for Bytes<L> {
+impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Bytes<L> {
     type Error = TryFromSliceError;
 
     #[inline]
-    fn nd_try_from(value: &[W]) -> Result<Self, Self::Error> {
+    fn nd_try_from(value: &[W], _: ()) -> Result<Self, Self::Error> {
         try_from_slice(value).map(Self)
     }
 }
@@ -5897,41 +5897,41 @@ mod tests {
         #![allow(clippy::unnecessary_cast)]
 
         ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (S64::nd_from(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (S64::nd_from(&(val as u32).to_le_bytes()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as u32).to_le_bytes()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (S64::nd_from(&(val as u16).to_le_bytes()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as u16).to_le_bytes()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (S64::nd_from(&(val as  u8).to_le_bytes()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as  u8).to_le_bytes()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (S64::nd_from(&(val as u64).to_le_bytes(), ()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as u64).to_le_bytes(), ()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (S64::nd_from(&(val as u32).to_le_bytes(), ()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as u32).to_le_bytes(), ()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (S64::nd_from(&(val as u16).to_le_bytes(), ()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as u16).to_le_bytes(), ()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (S64::nd_from(&(val as  u8).to_le_bytes(), ()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (U64::nd_from(&(val as  u8).to_le_bytes(), ()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
 
-            (S32::nd_from(&(val as u64).to_le_bytes()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as u64).to_le_bytes()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (S32::nd_from(&(val as u32).to_le_bytes()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as u32).to_le_bytes()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (S32::nd_from(&(val as u16).to_le_bytes()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as u16).to_le_bytes()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (S32::nd_from(&(val as  u8).to_le_bytes()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as  u8).to_le_bytes()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as u64).to_le_bytes(), ()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as u64).to_le_bytes(), ()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as u32).to_le_bytes(), ()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as u32).to_le_bytes(), ()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as u16).to_le_bytes(), ()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as u16).to_le_bytes(), ()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (S32::nd_from(&(val as  u8).to_le_bytes(), ()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (U32::nd_from(&(val as  u8).to_le_bytes(), ()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
 
-            (S64::nd_try_from(&(val as u64).to_le_bytes()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as u64).to_le_bytes()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&(val as u32).to_le_bytes()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as u32).to_le_bytes()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&(val as u16).to_le_bytes()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as u16).to_le_bytes()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&(val as  u8).to_le_bytes()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as  u8).to_le_bytes()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as u64).to_le_bytes(), ()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as u64).to_le_bytes(), ()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
 
-            (S32::nd_try_from(&(val as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
-            (U32::nd_try_from(&(val as u64).to_le_bytes()), Err(TryFromArrError::InvalidLength)),
-            (S32::nd_try_from(&(val as u32).to_le_bytes()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&(val as u32).to_le_bytes()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&(val as u16).to_le_bytes()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&(val as u16).to_le_bytes()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&(val as  u8).to_le_bytes()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&(val as  u8).to_le_bytes()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(TryFromArrError::InvalidLength)),
+            (U32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(TryFromArrError::InvalidLength)),
+            (S32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
         ] }
     }
 
@@ -5940,49 +5940,49 @@ mod tests {
         #![allow(clippy::unnecessary_cast)]
 
         ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (S64::nd_from(&val.to_le_bytes()[..8]), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..8]), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..4]), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..4]), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..2]), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..2]), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..1]), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..1]), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..0]), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..0]), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..8], ()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..8], ()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..4], ()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..4], ()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..2], ()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..2], ()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..1], ()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..1], ()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+            (S64::nd_from(&val.to_le_bytes()[..0], ()), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+            (U64::nd_from(&val.to_le_bytes()[..0], ()), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
 
-            (S32::nd_from(&val.to_le_bytes()[..8]), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..8]), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..4]), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..4]), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..2]), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..2]), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..1]), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..1]), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..0]), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..0]), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..8], ()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..8], ()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..4], ()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..4], ()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..2], ()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..2], ()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..1], ()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..1], ()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            (S32::nd_from(&val.to_le_bytes()[..0], ()), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+            (U32::nd_from(&val.to_le_bytes()[..0], ()), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
 
-            (S64::nd_try_from(&val.to_le_bytes()[..8]), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..8]), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..4]), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..4]), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..2]), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..2]), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..1]), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..1]), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..0]), Ok(S64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..0]), Ok(U64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..8], ()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..8], ()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
+            (S64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(S64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
+            (U64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(U64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
 
-            (S32::nd_try_from(&val.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
-            (U32::nd_try_from(&val.to_le_bytes()[..8]), Err(TryFromSliceError::InvalidLength)),
-            (S32::nd_try_from(&val.to_le_bytes()[..4]), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..4]), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&val.to_le_bytes()[..2]), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..2]), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&val.to_le_bytes()[..1]), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..1]), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&val.to_le_bytes()[..0]), Ok(S32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..0]), Ok(U32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(TryFromSliceError::InvalidLength)),
+            (U32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(TryFromSliceError::InvalidLength)),
+            (S32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            (S32::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(S32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
+            (U32::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(U32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
         ] }
     }
 
@@ -6033,7 +6033,7 @@ mod tests {
                     .to_le_bytes();
 
                 let lhs = <$long>::from_digits(digits, RadixImpl { radix });
-                let rhs = <$long>::nd_from(&bytes);
+                let rhs = <$long>::nd_from(&bytes, ());
 
                 (lhs, Ok(rhs))
             }};
@@ -6066,7 +6066,7 @@ mod tests {
                     .to_le_bytes();
 
                 let lhs = <$long>::from_digits_iter(iter, RadixImpl { radix });
-                let rhs = <$long>::nd_from(&bytes);
+                let rhs = <$long>::nd_from(&bytes, ());
 
                 (lhs, Ok(rhs))
             }};
