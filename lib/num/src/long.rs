@@ -4219,8 +4219,17 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L>
     << uops::shl(&lhs.0, rhs).signed().with(Signed),
     >> uops::shr(&lhs.0, rhs).signed().with(Signed),
 
+    << @checked uops::shl(&lhs.0, rhs).signed().checked(Signed),
+    >> @checked uops::shr(&lhs.0, rhs).signed().checked(Signed),
+
+    << @strict uops::shl(&lhs.0, rhs).signed().strict(Signed),
+    >> @strict uops::shr(&lhs.0, rhs).signed().strict(Signed),
+
     << @unbounded uops::shl(&lhs.0, rhs).signed().with(Signed),
     >> @unbounded uops::shr(&lhs.0, rhs).signed().with(Signed),
+
+    << @overflowing uops::shl(&lhs.0, rhs).signed().overflowing(Signed),
+    >> @overflowing uops::shr(&lhs.0, rhs).signed().overflowing(Signed),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
@@ -4269,8 +4278,17 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigne
     << uops::shl(&lhs.0, rhs).with(Unsigned),
     >> uops::shr(&lhs.0, rhs).with(Unsigned),
 
+    << @checked uops::shl(&lhs.0, rhs).checked(Unsigned),
+    >> @checked uops::shr(&lhs.0, rhs).checked(Unsigned),
+
+    << @strict uops::shl(&lhs.0, rhs).strict(Unsigned),
+    >> @strict uops::shr(&lhs.0, rhs).strict(Unsigned),
+
     << @unbounded uops::shl(&lhs.0, rhs).with(Unsigned),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Unsigned),
+
+    << @overflowing uops::shl(&lhs.0, rhs).overflowing(Unsigned),
+    >> @overflowing uops::shr(&lhs.0, rhs).overflowing(Unsigned),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
@@ -4283,8 +4301,17 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> f
     << uops::shl(&lhs.0, rhs).with(Bytes),
     >> uops::shr(&lhs.0, rhs).with(Bytes),
 
+    << @checked uops::shl(&lhs.0, rhs).checked(Bytes),
+    >> @checked uops::shr(&lhs.0, rhs).checked(Bytes),
+
+    << @strict uops::shl(&lhs.0, rhs).strict(Bytes),
+    >> @strict uops::shr(&lhs.0, rhs).strict(Bytes),
+
     << @unbounded uops::shl(&lhs.0, rhs).with(Bytes),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Bytes),
+
+    << @overflowing uops::shl(&lhs.0, rhs).overflowing(Bytes),
+    >> @overflowing uops::shr(&lhs.0, rhs).overflowing(Bytes),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
