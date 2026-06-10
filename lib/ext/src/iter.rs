@@ -1,5 +1,19 @@
 #![doc = include_str!("../docs/iter.md")]
 
+/// `Nd-kind` extension for [`std::iter::FromIterator`].
+///
+/// Allows to implement [`NdFromIterator`] convertion with additional context or interpretation.
+///
+/// Auto-implemented for all `V: From<U>` with `Ctx = ()`.
+///
+/// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
+pub trait NdFromIterator<T, Ctx>: Sized {
+    /// Convert from iterator.
+    fn nd_from_iter<Iter>(iter: Iter, ctx: Ctx) -> Self
+    where
+        Iter: IntoIterator<Item = T>;
+}
+
 /// `Nd-kind` extension for [std::iter::Iterator].
 ///
 /// For more info, see [module-level](crate::iter) and [crate-level](crate) documentation.
@@ -79,3 +93,13 @@ pub trait IteratorExt: Iterator {
 }
 
 impl<Iter: Iterator> IteratorExt for Iter {}
+
+impl<U, V: FromIterator<U>> NdFromIterator<U, ()> for V {
+    #[inline]
+    fn nd_from_iter<Iter>(iter: Iter, _: ()) -> Self
+    where
+        Iter: IntoIterator<Item = U>,
+    {
+        V::from_iter(iter)
+    }
+}

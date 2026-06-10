@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 /// `Nd-kind` extension for [`std::convert::From`].
 ///
-/// Allows to implement [`NdFrom`] and [`NdTryFrom`] at the same time.
+/// Allows to implement [`NdFrom`] and [`NdTryFrom`] at the same time with additional context or interpretation.
 ///
 /// Auto-implemented for all `V: From<U>` with `Ctx = ()`.
 ///
@@ -16,7 +16,7 @@ pub trait NdFrom<T, Ctx>: Sized {
 
 /// `Nd-kind` extension for [`std::convert::TryFrom`].
 ///
-/// Allows to implement [`NdFrom`] and [`NdTryFrom`] at the same time.
+/// Allows to implement [`NdFrom`] and [`NdTryFrom`] at the same time with additional context or interpretation.
 ///
 /// Auto-implemented for all `V: TryFrom<U>` with `Ctx = ()`.
 ///
@@ -31,7 +31,7 @@ pub trait NdTryFrom<T, Ctx>: Sized {
 
 /// `Nd-kind` extension for [`std::str::FromStr`].
 ///
-/// Allows to implement [`NdFromStr`] parsing with additional context or interpretation.
+/// Allows to implement [`NdFromStr`] conversion with additional context or interpretation.
 ///
 /// Auto-implemented for all `V: FromStr` with `Ctx = ()`.
 ///
