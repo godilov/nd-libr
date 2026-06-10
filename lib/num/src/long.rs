@@ -1002,6 +1002,18 @@ pub mod uops {
         pub rhs: Rhs,
     }
 
+    /// Bit-wise iterator expression.
+    pub struct BitIter<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
+        /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        pub rhs: Rhs,
+
+        /// Bit-wise operation.
+        pub func: F,
+    }
+
     /// Bit-wise expression.
     pub struct Bit<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
         /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
@@ -1148,38 +1160,26 @@ pub mod uops {
     }
 
     impl<Words: Iterator<Item = Single>> NotIter<Words> {
-        /// Iterator for [Not] expression.
+        /// Iterator for [NotIter] expression.
         #[inline]
-        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
-            ExprIter {
-                lhs: self.words.map(|word| !word),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-            }
+        pub fn iter(self) -> impl Iterator<Item = Single> {
+            self.words.map(|word| !word)
         }
     }
 
     impl<'words, Words: Iterator<Item = &'words mut Single>> NotIter<Words> {
-        /// Iterator for [Not] expression.
+        /// Iterator for [NotIter] expression.
         #[inline]
-        pub fn iter_mut(
-            self,
-        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
-            ExprIterMut {
-                lhs: self.words.map(|word| {
-                    *word = !*word;
-                    word
-                }),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-            }
+        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
+            self.words.map(|word| {
+                *word = !*word;
+                word
+            })
         }
     }
 
     impl<Words: Iterator<Item = Single>> PosIter<Words> {
-        /// Iterator for [Pos] expression.
+        /// Iterator for [PosIter] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             ExprIter {
@@ -1192,7 +1192,7 @@ pub mod uops {
     }
 
     impl<'words, Words: Iterator<Item = &'words mut Single>> PosIter<Words> {
-        /// Iterator for [Pos] expression.
+        /// Iterator for [PosIter] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1207,7 +1207,7 @@ pub mod uops {
     }
 
     impl<Words: Iterator<Item = Single>> NegIter<Words> {
-        /// Iterator for [Neg] expression.
+        /// Iterator for [NegIter] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             ExprIter {
@@ -1220,7 +1220,7 @@ pub mod uops {
     }
 
     impl<'words, Words: Iterator<Item = &'words mut Single>> NegIter<Words> {
-        /// Iterator for [Neg] expression.
+        /// Iterator for [NegIter] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1240,7 +1240,7 @@ pub mod uops {
     impl<const L: usize> Not<&[Single; L]> {
         /// Iterator for [Not] expression.
         #[inline]
-        pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
+        pub fn iter(self) -> impl Iterator<Item = Single> {
             let words = self.words.iter().copied();
 
             NotIter { words }.iter()
@@ -1250,9 +1250,7 @@ pub mod uops {
     impl<'words, const L: usize> Not<&'words mut [Single; L]> {
         /// Iterator for [Not] expression.
         #[inline]
-        pub fn iter_mut(
-            self,
-        ) -> ExprIterMut<'words, impl Iterator<Item = &'words mut Single>, impl Iterator<Item = Single>> {
+        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
             let words = self.words.iter_mut();
 
             NotIter { words }.iter_mut()
@@ -1746,6 +1744,65 @@ pub mod uops {
         }
     }
 
+    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>, F: 'static + Fn(Single, Single) -> Single>
+        BitIter<Lhs, Rhs, F>
+    {
+        /// Iterator for [BitIter] expression.
+        #[inline]
+        pub fn iter(self) -> impl Iterator<Item = Single> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.zip(rhs).map(move |(lhs, rhs)| func(lhs, rhs))
+        }
+    }
+
+    impl<
+        'words,
+        Lhs: Iterator<Item = &'words mut Single>,
+        Rhs: Iterator<Item = Single>,
+        F: 'static + Fn(Single, Single) -> Single,
+    > BitIter<Lhs, Rhs, F>
+    {
+        /// Iterator for [BitIter] expression.
+        #[inline]
+        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.zip(rhs).map(move |(ptr, val)| {
+                *ptr = func(*ptr, val);
+                ptr
+            })
+        }
+    }
+
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Bit<&[Single; L], &[Single; L], F> {
+        /// Iterator for [Bit] expression.
+        #[inline]
+        pub fn iter(self) -> impl Iterator<Item = Single> {
+            let lhs = self.lhs.iter().copied();
+            let rhs = self.rhs.iter().copied();
+            let func = self.func;
+
+            BitIter { lhs, rhs, func }.iter()
+        }
+    }
+
+    impl<'words, const L: usize, F: 'static + Fn(Single, Single) -> Single> Bit<&'words mut [Single; L], &[Single; L], F> {
+        /// Iterator for [Bit] expression.
+        #[inline]
+        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
+            let lhs = self.lhs.iter_mut();
+            let rhs = self.rhs.iter().copied();
+            let func = self.func;
+
+            BitIter { lhs, rhs, func }.iter_mut()
+        }
+    }
+
     impl<const L: usize> Shl<&[Single; L]> {
         /// Shl expression for signed numbers.
         #[inline]
@@ -1851,24 +1908,26 @@ pub mod uops {
     impl<const L: usize> Expr<[Single; L]> for Not<&[Single; L]> {
         #[inline]
         fn eval(self) -> [Single; L] {
-            self.iter().eval()
+            self.iter().collect_arr()
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            (self.iter().collect_arr(), false)
         }
     }
 
     impl<const L: usize> Expr<()> for Not<&mut [Single; L]> {
         #[inline]
         fn eval(self) {
-            self.iter_mut().eval()
+            self.iter_mut().for_each(|_| ());
         }
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            self.iter_mut().eval_ext()
+            self.iter_mut().for_each(|_| ());
+
+            ((), false)
         }
     }
 
@@ -2212,41 +2271,31 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize, F: Fn(Single, Single) -> Single> Expr<[Single; L]> for Bit<&[Single; L], &[Single; L], F> {
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Expr<[Single; L]>
+        for Bit<&[Single; L], &[Single; L], F>
+    {
         #[inline]
         fn eval(self) -> [Single; L] {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-            let func = self.func;
-
-            lhs.iter()
-                .copied()
-                .zip(rhs.iter().copied())
-                .map(|(lhs, rhs)| func(lhs, rhs))
-                .collect_arr()
+            self.iter().collect_arr()
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.eval(), false)
+            (self.iter().collect_arr(), false)
         }
     }
 
-    impl<const L: usize, F: Fn(Single, Single) -> Single> Expr<()> for Bit<&mut [Single; L], &[Single; L], F> {
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Expr<()> for Bit<&mut [Single; L], &[Single; L], F> {
         #[inline]
         fn eval(self) {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-            let func = self.func;
-
-            lhs.iter_mut()
-                .zip(rhs.iter().copied())
-                .for_each(|(ptr, val)| *ptr = func(*ptr, val));
+            self.iter_mut().for_each(|_| ());
         }
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            (self.eval(), false)
+            self.iter_mut().for_each(|_| ());
+
+            ((), false)
         }
     }
 
@@ -2598,11 +2647,47 @@ pub mod uops {
         Mul { lhs, rhs }
     }
 
+    /// BitOr iterator expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn bitor_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> BitIter<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
+        BitIter {
+            lhs,
+            rhs,
+            func: |lhs: Single, rhs: Single| lhs | rhs,
+        }
+    }
+
+    /// BitAnd iterator expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn bitand_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> BitIter<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
+        BitIter {
+            lhs,
+            rhs,
+            func: |lhs: Single, rhs: Single| lhs & rhs,
+        }
+    }
+
+    /// BitXor iterator expression.
+    ///
+    /// Evaluated via [Expr] methods.
+    #[inline]
+    pub fn bitxor_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> BitIter<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
+        BitIter {
+            lhs,
+            rhs,
+            func: |lhs: Single, rhs: Single| lhs ^ rhs,
+        }
+    }
+
     /// BitOr expression.
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
-    pub fn bitor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
+    pub fn bitor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         Bit {
             lhs,
             rhs,
@@ -2614,7 +2699,7 @@ pub mod uops {
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
-    pub fn bitand<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
+    pub fn bitand<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         Bit {
             lhs,
             rhs,
@@ -2626,7 +2711,7 @@ pub mod uops {
     ///
     /// Evaluated via [Expr] methods.
     #[inline]
-    pub fn bitxor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl Fn(Single, Single) -> Single> {
+    pub fn bitxor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         Bit {
             lhs,
             rhs,
@@ -5688,6 +5773,7 @@ fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::
     Ok(())
 }
 
+#[inline]
 fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     words: &[Single; L],
@@ -5725,6 +5811,7 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Res
     write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
+#[inline]
 fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     words: Words,
@@ -5765,6 +5852,7 @@ where
     write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
+#[inline]
 fn get_sign_from_str(s: &str) -> Result<(&str, Sign), FromStrError> {
     if s.is_empty() {
         return Err(FromStrError::InvalidLength);
@@ -5777,6 +5865,7 @@ fn get_sign_from_str(s: &str) -> Result<(&str, Sign), FromStrError> {
     })
 }
 
+#[inline]
 fn get_radix_from_str(s: &str, default: u8) -> Result<(&str, u8), FromStrError> {
     if s.is_empty() {
         return Err(FromStrError::InvalidLength);
@@ -5794,6 +5883,7 @@ fn get_radix_from_str(s: &str, default: u8) -> Result<(&str, u8), FromStrError> 
     })
 }
 
+#[inline]
 fn get_digit_from_byte(byte: u8) -> Option<u8> {
     match byte {
         b'0'..=b'9' => Some(byte - b'0'),
@@ -5803,6 +5893,7 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
     }
 }
 
+#[inline]
 fn get_sign<const L: usize, W: Word>(words: &[W; L], sign: Sign) -> Sign {
     if words != &[W::ZERO; L] { sign } else { Sign::ZERO }
 }
