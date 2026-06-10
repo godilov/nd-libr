@@ -4187,28 +4187,30 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     + @checked uops::add(&lhs.0, &rhs.0).checked(Signed),
     - @checked uops::sub(&lhs.0, &rhs.0).checked(Signed),
     * @checked algo::mul(&lhs.0, &rhs.0).checked(Signed),
-
     / @checked algo::div(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.dir() * rhs.dir())),
     % @checked algo::rem(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.dir())),
 
     + @strict uops::add(&lhs.0, &rhs.0).strict(Signed),
     - @strict uops::sub(&lhs.0, &rhs.0).strict(Signed),
     * @strict algo::mul(&lhs.0, &rhs.0).strict(Signed),
-
     / @strict algo::div(&lhs.abs().0, &rhs.abs().0).strict(|res| Signed(res).signed(lhs.dir() * rhs.dir())),
     % @strict algo::rem(&lhs.abs().0, &rhs.abs().0).strict(|res| Signed(res).signed(lhs.dir())),
 
     + @wrapping uops::add(&lhs.0, &rhs.0).with(Signed),
     - @wrapping uops::sub(&lhs.0, &rhs.0).with(Signed),
     * @wrapping algo::mul(&lhs.0, &rhs.0).with(Signed),
-
     / @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).with(|res| Signed(res).signed(lhs.dir() * rhs.dir())),
     % @wrapping algo::rem(&lhs.abs().0, &rhs.abs().0).with(|res| Signed(res).signed(lhs.dir())),
+
+    + @saturating uops::add(&lhs.0, &rhs.0).checked(Signed).unwrap_or([Signed::MIN, Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+    - @saturating uops::sub(&lhs.0, &rhs.0).checked(Signed).unwrap_or([Signed::MIN, Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+    * @saturating algo::mul(&lhs.0, &rhs.0).checked(Signed).unwrap_or([Signed::MIN, Signed::MAX][(lhs.dir() * rhs.dir() == Dir::POS) as usize]),
+    / @saturating algo::div(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.dir() * rhs.dir())).unwrap_or(Signed::MAX),
+    % @saturating algo::rem(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.dir())).unwrap_or(Signed::MAX),
 
     + @overflowing uops::add(&lhs.0, &rhs.0).overflowing(Signed),
     - @overflowing uops::sub(&lhs.0, &rhs.0).overflowing(Signed),
     * @overflowing algo::mul(&lhs.0, &rhs.0).overflowing(Signed),
-
     / @overflowing algo::div(&lhs.abs().0, &rhs.abs().0).overflowing(|res| Signed(res).signed(lhs.dir() * rhs.dir())),
     % @overflowing algo::rem(&lhs.abs().0, &rhs.abs().0).overflowing(|res| Signed(res).signed(lhs.dir())),
 ] }
@@ -4249,6 +4251,12 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     * @wrapping algo::mul(&lhs.0, &rhs.0).with(Unsigned),
     / @wrapping algo::div(&lhs.0, &rhs.0).with(Unsigned),
     % @wrapping algo::rem(&lhs.0, &rhs.0).with(Unsigned),
+
+    + @saturating uops::add(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MAX),
+    - @saturating uops::sub(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MIN),
+    * @saturating algo::mul(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MAX),
+    / @saturating algo::div(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MIN),
+    % @saturating algo::rem(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MIN),
 
     + @overflowing uops::add(&lhs.0, &rhs.0).overflowing(Unsigned),
     - @overflowing uops::sub(&lhs.0, &rhs.0).overflowing(Unsigned),
