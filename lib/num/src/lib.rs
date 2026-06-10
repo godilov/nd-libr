@@ -227,13 +227,23 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl AbsCt for $signed {
+        impl PosxCt for $signed {
             #[inline]
-            fn abs_ct(&self) -> Self {
+            fn posx_ct(&self) -> Self {
                 let pos = *self;
                 let neg = (!self).wrapping_add(1);
 
                 SelectCt::select_ct(&pos, &neg, self.pos_ct())
+            }
+        }
+
+        impl NegxCt for $signed {
+            #[inline]
+            fn negx_ct(&self) -> Self {
+                let pos = *self;
+                let neg = (!self).wrapping_add(1);
+
+                SelectCt::select_ct(&pos, &neg, self.neg_ct())
             }
         }
 
@@ -420,7 +430,8 @@ macro_rules! dir_from {
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -460,7 +471,8 @@ pub struct Strict<N>(pub N);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -500,7 +512,8 @@ pub struct Wrapping<N>(pub N);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -540,7 +553,8 @@ pub struct Saturating<N>(pub N);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -590,7 +604,8 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PosxCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: NegxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with N: PowCt!))]
 #[derive(Debug, Default, Clone, Copy)]
@@ -637,7 +652,8 @@ pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 #[ndfwd::def(self.0 with N: EqCt)]
 #[ndfwd::def(self.0 with N: LtCt)]
 #[ndfwd::def(self.0 with N: GtCt)]
-#[ndfwd::def(self.0 with N: AbsCt)]
+#[ndfwd::def(self.0 with N: PosxCt)]
+#[ndfwd::def(self.0 with N: NegxCt)]
 #[ndfwd::def(self.0 with N: SelectCt)]
 #[ndfwd::def(self.0 with N: PowCt)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -1339,13 +1355,22 @@ pub trait MaxCt: Copy {
     fn max_ct(&self, other: &Self) -> Self;
 }
 
-/// Const-time absolute value.
+/// Const-time positive absolute value.
 #[ndfwd::decl]
 #[cfg(feature = "const-time")]
-pub trait AbsCt: Copy {
-    /// Const-time absolute function.
+pub trait PosxCt: Copy {
+    /// Const-time positive absolute function.
     #[ndfwd::as_into]
-    fn abs_ct(&self) -> Self;
+    fn posx_ct(&self) -> Self;
+}
+
+/// Const-time positive absolute value.
+#[ndfwd::decl]
+#[cfg(feature = "const-time")]
+pub trait NegxCt: Copy {
+    /// Const-time negative absolute function.
+    #[ndfwd::as_into]
+    fn negx_ct(&self) -> Self;
 }
 
 /// Const-time select value.
@@ -2709,7 +2734,8 @@ mod tests {
             (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
-            (lhs.abs_ct(), AutoCt(lhs.0.wrapping_abs())),
+            (lhs.posx_ct(), AutoCt(lhs.0.wrapping_abs())),
+            (lhs.negx_ct(), AutoCt(lhs.0.wrapping_abs().wrapping_neg())),
         ] }
 
         ndassert::check! { @eq (

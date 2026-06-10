@@ -617,7 +617,7 @@ pub struct AsWordsIter<'bytes, W: Word> {
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[cfg_attr(target_arch = "x86",     repr(align(64)))]
@@ -667,7 +667,7 @@ pub struct Aligned<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[repr(align(32))]
@@ -710,7 +710,7 @@ pub struct Aligned32<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[repr(align(64))]
@@ -753,7 +753,7 @@ pub struct Aligned64<T>(pub T);
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::CmpCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MinCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::MaxCt))]
-#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::AbsCt))]
+#[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PosxCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::SelectCt))]
 #[cfg_attr(feature = "const-time", ndfwd::def(self.0 with T: crate::PowCt))]
 #[repr(align(128))]
@@ -1214,7 +1214,7 @@ mod tests {
             (Aligned(lhs).cmp_ct(&Aligned(rhs)), lhs.cmp(&rhs) as RelCt),
             (Aligned(lhs).min_ct(&Aligned(rhs)), Aligned(lhs.min(rhs))),
             (Aligned(lhs).max_ct(&Aligned(rhs)), Aligned(lhs.max(rhs))),
-            (Aligned(lhs).abs_ct(), Aligned(AutoCt(lhs.0.wrapping_abs()))),
+            (Aligned(lhs).posx_ct(), Aligned(AutoCt(lhs.0.wrapping_abs()))),
         ] }
 
         ndassert::check! { @eq (
