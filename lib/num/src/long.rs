@@ -4144,39 +4144,18 @@ impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
 impl<const L: usize> Ord for Signed<L> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        let lhs_bit = uops::dir(&self.0);
-        let rhs_bit = uops::dir(&other.0);
+        let lhs_dir = uops::dir(&self.0);
+        let rhs_dir = uops::dir(&other.0);
 
-        let (lhs_xor, lhs_acc) = match lhs_bit {
-            Dir::POS => (0, 0),
-            Dir::NEG => (MAX, 1),
-        };
-
-        let (rhs_xor, rhs_acc) = match rhs_bit {
-            Dir::POS => (0, 0),
-            Dir::NEG => (MAX, 1),
-        };
-
-        let (lt, gt) = match (lhs_bit, rhs_bit) {
+        let (lt, gt) = match (lhs_dir, rhs_dir) {
             (Dir::POS, Dir::POS) => (-1, 1),
             (Dir::POS, Dir::NEG) => (1, 1),
             (Dir::NEG, Dir::POS) => (-1, -1),
             (Dir::NEG, Dir::NEG) => (1, -1),
         };
 
-        let lhs = uops::ExprIter {
-            lhs: self.0.iter().copied().map(|val| val ^ lhs_xor),
-            rhs: std::iter::repeat(0),
-            mul: 1,
-            acc: lhs_acc,
-        };
-
-        let rhs = uops::ExprIter {
-            lhs: other.0.iter().copied().map(|val| val ^ rhs_xor),
-            rhs: std::iter::repeat(0),
-            mul: 1,
-            acc: rhs_acc,
-        };
+        let lhs = uops::posx(&self.0).iter();
+        let rhs = uops::posx(&other.0).iter();
 
         let cmp = lhs.zip(rhs).fold(0i8, |acc, (x, y)| match x.cmp(&y) {
             Ordering::Less => lt,
