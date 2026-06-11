@@ -518,18 +518,6 @@ pub mod word {
         #[cfg(feature = "rand")]
         fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self;
     }
-
-    /// Word-like primitives iterator.
-    ///
-    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
-    pub trait WordsIterator: Clone + Iterator<Item: Word> {}
-
-    impl<Iter> WordsIterator for Iter
-    where
-        Iter: Clone + Iterator,
-        Iter::Item: Word,
-    {
-    }
 }
 
 /// Infinite iterator of words.

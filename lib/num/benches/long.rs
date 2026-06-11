@@ -5,14 +5,14 @@ use std::{hint::black_box, str::FromStr, time::Duration};
 use criterion::{
     BenchmarkGroup, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main, measurement::WallTime,
 };
-use ndext::{convert::NdFrom, iter::IteratorExt};
+use ndext::{
+    convert::{NdFrom, NdTryFrom},
+    iter::{IteratorExt, NdTryFromIterator},
+};
 use ndnum::{
     Num,
     arch::{Aligned, word::Single},
-    long::{
-        ExpImpl, FromDigits, FromDigitsIter, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops,
-        uops::Expr,
-    },
+    long::{ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops, uops::Expr},
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
@@ -313,13 +313,13 @@ fn from_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         group.bench_with_input(
             BenchmarkId::new("Slong::from_digits", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Slong::from_digits(digits, ExpImpl { exp })))),
+            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Slong::nd_try_from(digits, ExpImpl { exp })))),
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::from_digits", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Ulong::from_digits(digits, ExpImpl { exp })))),
+            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Ulong::nd_try_from(digits, ExpImpl { exp })))),
         );
     }
 }
@@ -337,13 +337,13 @@ fn from_digits_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) 
         group.bench_with_input(
             BenchmarkId::new("Slong::from_digits_iter", 8 * len),
             &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Slong::from_digits_iter(iter.clone(), ExpImpl { exp })))),
+            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Slong::nd_try_from_iter(iter.clone(), ExpImpl { exp })))),
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::from_digits_iter", 8 * len),
             &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Ulong::from_digits_iter(iter.clone(), ExpImpl { exp })))),
+            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Ulong::nd_try_from_iter(iter.clone(), ExpImpl { exp })))),
         );
     }
 }
@@ -360,13 +360,13 @@ fn from_digits_radix(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng)
         group.bench_with_input(
             BenchmarkId::new("Slong::from_digits_radix", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Slong::from_digits(digits, RadixImpl { radix })))),
+            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Slong::nd_try_from(digits, RadixImpl { radix })))),
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::from_digits_radix", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Ulong::from_digits(digits, RadixImpl { radix })))),
+            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Ulong::nd_try_from(digits, RadixImpl { radix })))),
         );
     }
 }
@@ -383,13 +383,13 @@ fn from_digits_radix_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
         group.bench_with_input(
             BenchmarkId::new("Slong::from_digits_radix_iter", 8 * len),
             &(&digits[..len].iter().copied(), radix),
-            |b, &(iter, radix)| b.iter(|| black_box(Slong::from_digits_iter(iter.clone(), RadixImpl { radix }))),
+            |b, &(iter, radix)| b.iter(|| black_box(Slong::nd_try_from_iter(iter.clone(), RadixImpl { radix }))),
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::from_digits_radix_iter", 8 * len),
             &(&digits[..len].iter().copied(), radix),
-            |b, &(iter, radix)| b.iter(|| black_box(Ulong::from_digits_iter(iter.clone(), RadixImpl { radix }))),
+            |b, &(iter, radix)| b.iter(|| black_box(Ulong::nd_try_from_iter(iter.clone(), RadixImpl { radix }))),
         );
     }
 }

@@ -4,14 +4,23 @@
 ///
 /// Allows to implement [`NdFromIterator`] convertion with additional context or interpretation.
 ///
-/// Auto-implemented for all `V: From<U>` with `Ctx = ()`.
+/// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
+pub trait NdFromIterator<Iter: Iterator, Ctx>: Sized {
+    /// Convert from iterator in non-failable way.
+    fn nd_from_iter(iter: Iter, ctx: Ctx) -> Self;
+}
+
+/// `Nd-kind` extension for [`std::iter::FromIterator`].
+///
+/// Allows to implement [`NdTryFromIterator`] convertion with additional context or interpretation.
 ///
 /// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
-pub trait NdFromIterator<T, Ctx>: Sized {
-    /// Convert from iterator.
-    fn nd_from_iter<Iter>(iter: Iter, ctx: Ctx) -> Self
-    where
-        Iter: IntoIterator<Item = T>;
+pub trait NdTryFromIterator<Iter: Iterator, Ctx>: Sized {
+    /// Conversion error type.
+    type Error;
+
+    /// Convert from iterator in non-failable.
+    fn nd_try_from_iter(iter: Iter, ctx: Ctx) -> Result<Self, Self::Error>;
 }
 
 /// `Nd-kind` extension for [std::iter::Iterator].
@@ -93,13 +102,3 @@ pub trait IteratorExt: Iterator {
 }
 
 impl<Iter: Iterator> IteratorExt for Iter {}
-
-impl<U, V: FromIterator<U>> NdFromIterator<U, ()> for V {
-    #[inline]
-    fn nd_from_iter<Iter>(iter: Iter, _: ()) -> Self
-    where
-        Iter: IntoIterator<Item = U>,
-    {
-        V::from_iter(iter)
-    }
-}
