@@ -955,7 +955,7 @@ pub trait NdGcd: NumFn {
     ///
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     ///
-    /// See [`NumGcdChecked`] for checked semantics.
+    /// See [`NdGcdChecked`] for checked semantics.
     #[inline]
     #[ndfwd::as_into]
     fn nd_gcd(mut lhs: Self, mut rhs: Self) -> Self {
@@ -977,7 +977,7 @@ pub trait NdGcd: NumFn {
     ///
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     ///
-    /// See [`NumGcdChecked`] for checked semantics.
+    /// See [`NdGcdChecked`] for checked semantics.
     #[inline]
     #[ndfwd::as_expr(|(r, x, y)| (Self::from(r), Self::from(x), Self::from(y)))]
     fn nd_gcde(lhs: Self, rhs: Self) -> (Self, Self, Self) {
@@ -1017,7 +1017,7 @@ pub trait NdGcd: NumFn {
     ///
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     ///
-    /// See [`NumGcdChecked`] for checked semantics.
+    /// See [`NdGcdChecked`] for checked semantics.
     #[inline]
     #[ndfwd::as_into]
     fn nd_lcm(lhs: Self, rhs: Self) -> Self {

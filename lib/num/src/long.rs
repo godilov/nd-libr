@@ -1164,7 +1164,7 @@ pub mod uops {
     }
 
     impl<Words: Iterator<Item = Single>> NotIter<Words> {
-        /// Iterator for [NotIter] expression.
+        /// Iterator for [`NotIter`] expression.
         #[inline]
         pub fn iter(self) -> impl Iterator<Item = Single> {
             self.words.map(|word| !word)
@@ -1172,7 +1172,7 @@ pub mod uops {
     }
 
     impl<'words, Words: Iterator<Item = &'words mut Single>> NotIter<Words> {
-        /// Iterator for [NotIter] expression.
+        /// Iterator for [`NotIter`] expression.
         #[inline]
         pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
             self.words.map(|word| {
@@ -1183,7 +1183,7 @@ pub mod uops {
     }
 
     impl<Words: Iterator<Item = Single>> PosIter<Words> {
-        /// Iterator for [PosIter] expression.
+        /// Iterator for [`PosIter`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             ExprIter {
@@ -1196,7 +1196,7 @@ pub mod uops {
     }
 
     impl<'words, Words: Iterator<Item = &'words mut Single>> PosIter<Words> {
-        /// Iterator for [PosIter] expression.
+        /// Iterator for [`PosIter`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1211,7 +1211,7 @@ pub mod uops {
     }
 
     impl<Words: Iterator<Item = Single>> NegIter<Words> {
-        /// Iterator for [NegIter] expression.
+        /// Iterator for [`NegIter`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             ExprIter {
@@ -1224,7 +1224,7 @@ pub mod uops {
     }
 
     impl<'words, Words: Iterator<Item = &'words mut Single>> NegIter<Words> {
-        /// Iterator for [NegIter] expression.
+        /// Iterator for [`NegIter`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1242,7 +1242,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Not<&[Single; L]> {
-        /// Iterator for [Not] expression.
+        /// Iterator for [`Not`] expression.
         #[inline]
         pub fn iter(self) -> impl Iterator<Item = Single> {
             let words = self.words.iter().copied();
@@ -1252,7 +1252,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Not<&'words mut [Single; L]> {
-        /// Iterator for [Not] expression.
+        /// Iterator for [`Not`] expression.
         #[inline]
         pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
             let words = self.words.iter_mut();
@@ -1262,7 +1262,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Pos<&[Single; L]> {
-        /// Iterator for [Pos] expression.
+        /// Iterator for [`Pos`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let words = self.words.iter().copied();
@@ -1272,7 +1272,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Pos<&'words mut [Single; L]> {
-        /// Iterator for [Pos] expression.
+        /// Iterator for [`Pos`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1284,7 +1284,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Neg<&[Single; L]> {
-        /// Iterator for [Neg] expression.
+        /// Iterator for [`Neg`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let words = self.words.iter().copied();
@@ -1294,7 +1294,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Neg<&'words mut [Single; L]> {
-        /// Iterator for [Neg] expression.
+        /// Iterator for [`Neg`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1306,7 +1306,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Posx<&[Single; L]> {
-        /// Iterator for [Posx] expression.
+        /// Iterator for [`Posx`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let (xor, acc) = match dir(self.words) {
@@ -1324,7 +1324,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Posx<&'words mut [Single; L]> {
-        /// Iterator for [Posx] expression.
+        /// Iterator for [`Posx`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1347,7 +1347,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Negx<&[Single; L]> {
-        /// Iterator for [Negx] expression.
+        /// Iterator for [`Negx`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let (xor, acc) = match dir(self.words) {
@@ -1365,7 +1365,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Negx<&'words mut [Single; L]> {
-        /// Iterator for [Negx] expression.
+        /// Iterator for [`Negx`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1388,7 +1388,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Dirx<&[Single; L]> {
-        /// Iterator for [Dirx] expression.
+        /// Iterator for [`Dirx`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let (xor, acc) = match dir(self.words) == self.dir {
@@ -1406,7 +1406,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Dirx<&'words mut [Single; L]> {
-        /// Iterator for [Sgx] expression.
+        /// Iterator for [`Dirx`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1429,7 +1429,7 @@ pub mod uops {
     }
 
     impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> AddIter<Lhs, Rhs> {
-        /// Iterator for [AddIter] expression.
+        /// Iterator for [`AddIter`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs;
@@ -1440,7 +1440,7 @@ pub mod uops {
     }
 
     impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> AddIter<Lhs, Rhs> {
-        /// Iterator for [AddIter] expression.
+        /// Iterator for [`AddIter`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1453,7 +1453,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Add<&[Single; L], &[Single; L]> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs.iter().copied();
@@ -1464,7 +1464,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Add<&'words mut [Single; L], &[Single; L]> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1477,7 +1477,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Add<&[Single; L], <Single as Num>::Unsigned> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs.iter().copied();
@@ -1493,7 +1493,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Add<<Single as Num>::Unsigned, &[Single; L]> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             Add { lhs: self.rhs, rhs: self.lhs }.iter()
@@ -1501,7 +1501,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Add<&'words mut [Single; L], <Single as Num>::Unsigned> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1519,7 +1519,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Add<&[Single; L], <Single as Num>::Signed> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs.iter().copied();
@@ -1540,7 +1540,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Add<<Single as Num>::Signed, &[Single; L]> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             Add { lhs: self.rhs, rhs: self.lhs }.iter()
@@ -1548,7 +1548,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Add<&'words mut [Single; L], <Single as Num>::Signed> {
-        /// Iterator for [Add] expression.
+        /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1571,7 +1571,7 @@ pub mod uops {
     }
 
     impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
-        /// Iterator for [SubIter] expression.
+        /// Iterator for [`SubIter`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs;
@@ -1587,7 +1587,7 @@ pub mod uops {
     }
 
     impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
-        /// Iterator for [SubIter] expression.
+        /// Iterator for [`SubIter`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1605,7 +1605,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Sub<&[Single; L], &[Single; L]> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs.iter().copied();
@@ -1616,7 +1616,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Sub<&'words mut [Single; L], &[Single; L]> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1629,7 +1629,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Sub<&[Single; L], <Single as Num>::Unsigned> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs.iter().copied();
@@ -1652,7 +1652,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Sub<<Single as Num>::Unsigned, &[Single; L]> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             NegIter {
@@ -1663,7 +1663,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Sub<&'words mut [Single; L], <Single as Num>::Unsigned> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1688,7 +1688,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Sub<&[Single; L], <Single as Num>::Signed> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs.iter().copied();
@@ -1714,7 +1714,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Sub<<Single as Num>::Signed, &[Single; L]> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             NegIter {
@@ -1725,7 +1725,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Sub<&'words mut [Single; L], <Single as Num>::Signed> {
-        /// Iterator for [Sub] expression.
+        /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1753,7 +1753,7 @@ pub mod uops {
     }
 
     impl<const L: usize> Mul<&[Single; L], Single> {
-        /// Iterator for [Mul] expression.
+        /// Iterator for [`Mul`] expression.
         #[inline]
         pub fn iter(self) -> ExprIter<impl Iterator<Item = Single>, impl Iterator<Item = Single>> {
             let lhs = self.lhs.iter().copied();
@@ -1769,7 +1769,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> Mul<&'words mut [Single; L], Single> {
-        /// Iterator for [Mul] expression.
+        /// Iterator for [`Mul`] expression.
         #[inline]
         pub fn iter_mut(
             self,
@@ -1789,7 +1789,7 @@ pub mod uops {
     impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>, F: 'static + Fn(Single, Single) -> Single>
         BitIter<Lhs, Rhs, F>
     {
-        /// Iterator for [BitIter] expression.
+        /// Iterator for [`BitIter`] expression.
         #[inline]
         pub fn iter(self) -> impl Iterator<Item = Single> {
             let lhs = self.lhs;
@@ -1807,7 +1807,7 @@ pub mod uops {
         F: 'static + Fn(Single, Single) -> Single,
     > BitIter<Lhs, Rhs, F>
     {
-        /// Iterator for [BitIter] expression.
+        /// Iterator for [`BitIter`] expression.
         #[inline]
         pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
             let lhs = self.lhs;
@@ -1822,7 +1822,7 @@ pub mod uops {
     }
 
     impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Bit<&[Single; L], &[Single; L], F> {
-        /// Iterator for [Bit] expression.
+        /// Iterator for [`Bit`] expression.
         #[inline]
         pub fn iter(self) -> impl Iterator<Item = Single> {
             let lhs = self.lhs.iter().copied();
@@ -1834,7 +1834,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize, F: 'static + Fn(Single, Single) -> Single> Bit<&'words mut [Single; L], &[Single; L], F> {
-        /// Iterator for [Bit] expression.
+        /// Iterator for [`Bit`] expression.
         #[inline]
         pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
             let lhs = self.lhs.iter_mut();
@@ -2627,7 +2627,7 @@ pub mod uops {
 
     /// Not iterator expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn not_iter<Words>(words: Words) -> NotIter<Words> {
         NotIter { words }
@@ -2635,7 +2635,7 @@ pub mod uops {
 
     /// Positive iterator expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn pos_iter<Words>(words: Words) -> PosIter<Words> {
         PosIter { words }
@@ -2643,7 +2643,7 @@ pub mod uops {
 
     /// Negative iterator expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn neg_iter<Words>(words: Words) -> NegIter<Words> {
         NegIter { words }
@@ -2651,7 +2651,7 @@ pub mod uops {
 
     /// Not expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn not<Words>(words: Words) -> Not<Words> {
         Not { words }
@@ -2659,7 +2659,7 @@ pub mod uops {
 
     /// Positive expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn pos<Words>(words: Words) -> Pos<Words> {
         Pos { words }
@@ -2667,7 +2667,7 @@ pub mod uops {
 
     /// Negative expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn neg<Words>(words: Words) -> Neg<Words> {
         Neg { words }
@@ -2675,7 +2675,7 @@ pub mod uops {
 
     /// Positive absolute expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn posx<Words>(words: Words) -> Posx<Words> {
         Posx { words }
@@ -2683,7 +2683,7 @@ pub mod uops {
 
     /// Negative absolute expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn negx<Words>(words: Words) -> Negx<Words> {
         Negx { words }
@@ -2691,7 +2691,7 @@ pub mod uops {
 
     /// Dir absolute expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn dirx<Words>(words: Words, dir: Dir) -> Dirx<Words> {
         Dirx { words, dir }
@@ -2699,7 +2699,7 @@ pub mod uops {
 
     /// Add iterators expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn add_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> AddIter<Lhs, Rhs> {
         AddIter { lhs, rhs }
@@ -2707,7 +2707,7 @@ pub mod uops {
 
     /// Sub iterators expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn sub_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> SubIter<Lhs, Rhs> {
         SubIter { lhs, rhs }
@@ -2715,7 +2715,7 @@ pub mod uops {
 
     /// Add expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn add<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Add<Lhs, Rhs> {
         Add { lhs, rhs }
@@ -2723,7 +2723,7 @@ pub mod uops {
 
     /// Sub expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn sub<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Sub<Lhs, Rhs> {
         Sub { lhs, rhs }
@@ -2731,7 +2731,7 @@ pub mod uops {
 
     /// Mul expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn mul<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Mul<Lhs, Rhs> {
         Mul { lhs, rhs }
@@ -2739,7 +2739,7 @@ pub mod uops {
 
     /// BitOr iterator expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn bitor_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> BitIter<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         BitIter {
@@ -2751,7 +2751,7 @@ pub mod uops {
 
     /// BitAnd iterator expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn bitand_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> BitIter<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         BitIter {
@@ -2763,7 +2763,7 @@ pub mod uops {
 
     /// BitXor iterator expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn bitxor_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> BitIter<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         BitIter {
@@ -2775,7 +2775,7 @@ pub mod uops {
 
     /// BitOr expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn bitor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         Bit {
@@ -2787,7 +2787,7 @@ pub mod uops {
 
     /// BitAnd expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn bitand<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         Bit {
@@ -2799,7 +2799,7 @@ pub mod uops {
 
     /// BitXor expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn bitxor<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Bit<Lhs, Rhs, impl 'static + Fn(Single, Single) -> Single> {
         Bit {
@@ -2811,7 +2811,7 @@ pub mod uops {
 
     /// Shl expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn shl<Words>(words: Words, shift: usize) -> Shl<Words> {
         Shl { words, shift, default: 0 }
@@ -2819,7 +2819,7 @@ pub mod uops {
 
     /// Shr expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn shr<Words>(words: Words, shift: usize) -> Shr<Words> {
         Shr { words, shift, default: 0 }
@@ -3341,7 +3341,7 @@ pub mod algo {
 
     /// Multiplication expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn mul<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Mul<Lhs, Rhs> {
         Mul { lhs, rhs }
@@ -3349,7 +3349,7 @@ pub mod algo {
 
     /// Division expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn div<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Div<Lhs, Rhs> {
         Div { lhs, rhs }
@@ -3357,7 +3357,7 @@ pub mod algo {
 
     /// Remainder expression.
     ///
-    /// Evaluated via [Expr] methods.
+    /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn rem<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Rem<Lhs, Rhs> {
         Rem { lhs, rhs }
@@ -3619,7 +3619,7 @@ pub enum IntoDigitsError {
 
 /// `From`/`To`/`Into` digits conversion by `exp` details.
 ///
-/// For more info, see [`FromDigits`], [`FromDigitsIter`], [`ToDigits`], [`ToDigitsIter`] documentation.
+/// For more info, see [`ToDigits`], [`ToDigitsIter`] documentation.
 pub struct ExpImpl<W: Word> {
     /// Exponent used in conversions.
     ///
@@ -3629,7 +3629,7 @@ pub struct ExpImpl<W: Word> {
 
 /// `From`/`To`/`Into` digits conversion by `radix` details.
 ///
-/// For more info, see [`FromDigits`], [`FromDigitsIter`], [`IntoDigits`], [`IntoDigitsIter`] documentation.
+/// For more info, see [`IntoDigits`], [`IntoDigitsIter`] documentation.
 pub struct RadixImpl<W: Word> {
     /// Radix used in conversions.
     ///
