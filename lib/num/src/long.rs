@@ -2857,13 +2857,12 @@ pub mod uops {
     /// Reads sign.
     #[inline]
     pub fn sign<const L: usize>(words: &[Single; L]) -> Sign {
-        if words == &[0; L] {
-            return Sign::ZERO;
-        }
-
-        match words[L - 1] >> (BITS - 1) {
-            0 => Sign::POS,
-            _ => Sign::NEG,
+        match words == &[0; L] {
+            false => match words[L - 1] >> (BITS - 1) {
+                0 => Sign::POS,
+                _ => Sign::NEG,
+            },
+            true => Sign::ZERO,
         }
     }
 
@@ -3339,7 +3338,7 @@ pub mod algo {
         }
     }
 
-    /// Multiplication expression.
+    /// Mul expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
@@ -3347,7 +3346,7 @@ pub mod algo {
         Mul { lhs, rhs }
     }
 
-    /// Division expression.
+    /// Div expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
@@ -3355,7 +3354,7 @@ pub mod algo {
         Div { lhs, rhs }
     }
 
-    /// Remainder expression.
+    /// Rem expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
