@@ -560,7 +560,7 @@ pub struct Saturating<N>(pub N);
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Unbounded<N>(pub N);
 
-/// Number within Range.
+/// Number with Range.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
 ///
@@ -572,7 +572,7 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::def(self.0 with N: Num)]
 pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 
-/// Number with specified binary width.
+/// Number with Width.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
 ///
@@ -611,7 +611,7 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(N);
 
-/// Number with specified modulus.
+/// Number with Modulus.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
 ///
@@ -671,7 +671,7 @@ pub enum Dir {
     NEG = -1,
 }
 
-/// Number sign.
+/// Number sign (positive/negative/zero).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
     /// Zero number variant.

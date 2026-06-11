@@ -864,7 +864,7 @@ pub mod radix {
 }
 
 pub mod uops {
-    //! # Uops
+    //! # Micro-ops
     //!
     //! **Long numbers/bytes uops**
 
@@ -952,7 +952,7 @@ pub mod uops {
         pub words: Words,
     }
 
-    /// Dir absolute expression.
+    /// Dir absolute value expression.
     pub struct Dirx<Words> {
         /// Words of expression.
         pub words: Words,
@@ -1845,6 +1845,88 @@ pub mod uops {
         }
     }
 
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Bit<&[Single; L], <Single as Num>::Unsigned, F> {
+        /// Iterator for [`Bit`] expression.
+        #[inline]
+        pub fn iter(self) -> impl Iterator<Item = Single> {
+            let lhs = self.lhs.iter().copied();
+            let rhs = self.rhs;
+            let func = self.func;
+
+            BitIter {
+                lhs,
+                rhs: (0..).map(move |idx| [rhs, 0][(idx > 0) as usize]),
+                func,
+            }
+            .iter()
+        }
+    }
+
+    impl<'words, const L: usize, F: 'static + Fn(Single, Single) -> Single>
+        Bit<&'words mut [Single; L], <Single as Num>::Unsigned, F>
+    {
+        /// Iterator for [`Bit`] expression.
+        #[inline]
+        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
+            let lhs = self.lhs.iter_mut();
+            let rhs = self.rhs;
+            let func = self.func;
+
+            BitIter {
+                lhs,
+                rhs: (0..).map(move |idx| [rhs, 0][(idx > 0) as usize]),
+                func,
+            }
+            .iter_mut()
+        }
+    }
+
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Bit<&[Single; L], <Single as Num>::Signed, F> {
+        /// Iterator for [`Bit`] expression.
+        #[inline]
+        pub fn iter(self) -> impl Iterator<Item = Single> {
+            let lhs = self.lhs.iter().copied();
+            let rhs = self.rhs as Single;
+            let func = self.func;
+
+            let ext = match dir(&[rhs]) {
+                Dir::POS => 0,
+                Dir::NEG => MAX,
+            };
+
+            BitIter {
+                lhs,
+                rhs: (0..).map(move |idx| [rhs, ext][(idx > 0) as usize]),
+                func,
+            }
+            .iter()
+        }
+    }
+
+    impl<'words, const L: usize, F: 'static + Fn(Single, Single) -> Single>
+        Bit<&'words mut [Single; L], <Single as Num>::Signed, F>
+    {
+        /// Iterator for [`Bit`] expression.
+        #[inline]
+        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
+            let lhs = self.lhs.iter_mut();
+            let rhs = self.rhs as Single;
+            let func = self.func;
+
+            let ext = match dir(&[rhs]) {
+                Dir::POS => 0,
+                Dir::NEG => MAX,
+            };
+
+            BitIter {
+                lhs,
+                rhs: (0..).map(move |idx| [rhs, ext][(idx > 0) as usize]),
+                func,
+            }
+            .iter_mut()
+        }
+    }
+
     impl<const L: usize> Shl<&[Single; L]> {
         /// Shl expression for signed numbers.
         #[inline]
@@ -2389,93 +2471,63 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize, F: Fn(Single, Single) -> Single> Expr<[Single; L]>
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Expr<[Single; L]>
         for Bit<&[Single; L], <Single as Num>::Unsigned, F>
     {
         #[inline]
         fn eval(self) -> [Single; L] {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-            let func = self.func;
-
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| [rhs, 0][(idx > 0) as usize]))
-                .map(|(lhs, rhs)| func(lhs, rhs))
-                .collect_arr()
+            self.iter().collect_arr()
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.eval(), false)
+            (self.iter().collect_arr(), false)
         }
     }
 
-    impl<const L: usize, F: Fn(Single, Single) -> Single> Expr<()> for Bit<&mut [Single; L], <Single as Num>::Unsigned, F> {
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Expr<()>
+        for Bit<&mut [Single; L], <Single as Num>::Unsigned, F>
+    {
         #[inline]
         fn eval(self) {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-            let func = self.func;
-
-            lhs.iter_mut()
-                .zip((0..).map(|idx| [rhs, 0][(idx > 0) as usize]))
-                .for_each(|(ptr, val)| *ptr = func(*ptr, val));
+            self.iter_mut().for_each(|_| ());
         }
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            (self.eval(), false)
+            self.iter_mut().for_each(|_| ());
+
+            ((), false)
         }
     }
 
-    impl<const L: usize, F: Fn(Single, Single) -> Single> Expr<[Single; L]>
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Expr<[Single; L]>
         for Bit<&[Single; L], <Single as Num>::Signed, F>
     {
         #[inline]
         fn eval(self) -> [Single; L] {
-            let lhs = self.lhs;
-            let rhs = self.rhs as Single;
-            let func = self.func;
-
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
-            lhs.iter()
-                .copied()
-                .zip((0..).map(|idx| [rhs, ext][(idx > 0) as usize]))
-                .map(|(lhs, rhs)| func(lhs, rhs))
-                .collect_arr()
+            self.iter().collect_arr()
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.eval(), false)
+            (self.iter().collect_arr(), false)
         }
     }
 
-    impl<const L: usize, F: Fn(Single, Single) -> Single> Expr<()> for Bit<&mut [Single; L], <Single as Num>::Signed, F> {
+    impl<const L: usize, F: 'static + Fn(Single, Single) -> Single> Expr<()>
+        for Bit<&mut [Single; L], <Single as Num>::Signed, F>
+    {
         #[inline]
         fn eval(self) {
-            let lhs = self.lhs;
-            let rhs = self.rhs as Single;
-            let func = self.func;
-
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
-            lhs.iter_mut()
-                .zip((0..).map(|idx| [rhs, ext][(idx > 0) as usize]))
-                .for_each(|(ptr, val)| *ptr = func(*ptr, val));
+            self.iter_mut().for_each(|_| ());
         }
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            (self.eval(), false)
+            self.iter_mut().for_each(|_| ());
+
+            ((), false)
         }
     }
 
@@ -2673,7 +2725,7 @@ pub mod uops {
         Neg { words }
     }
 
-    /// Positive absolute expression.
+    /// Positive absolute value expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
@@ -2681,7 +2733,7 @@ pub mod uops {
         Posx { words }
     }
 
-    /// Negative absolute expression.
+    /// Negative absolute value expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
@@ -2689,7 +2741,7 @@ pub mod uops {
         Negx { words }
     }
 
-    /// Dir absolute expression.
+    /// Dir absolute value expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
