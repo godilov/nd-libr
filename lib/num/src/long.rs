@@ -1087,6 +1087,16 @@ pub mod uops {
             func(res)
         }
 
+        /// Evaluates expression as saturating.
+        #[inline]
+        fn saturating<Long: Copy, F: Fn(Words) -> Long>(self, func: F, default: &Long) -> Long {
+            let (res, overflow) = self.eval_ext();
+
+            let res = func(res);
+
+            *[&res, default][overflow as usize]
+        }
+
         /// Evaluates expression as overflowing.
         #[inline]
         fn overflowing<Long, F: Fn(Words) -> Long>(self, func: F) -> (Long, bool) {
@@ -2675,6 +2685,12 @@ pub mod uops {
 
             ((), shift < BITS * L)
         }
+    }
+
+    /// Identity function.
+    #[inline]
+    pub fn id<T>(value: T) -> T {
+        value
     }
 
     /// Not iterator expression.
@@ -4380,21 +4396,21 @@ ndops::def! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
     - @checked uops::neg(&value.0).checked(Signed),
     - @strict uops::neg(&value.0).strict(Signed),
     - @wrapping uops::neg(&value.0).with(Signed),
-    - @saturating uops::neg(&value.0).checked(Signed).unwrap_or(Signed::MAX),
+    - @saturating uops::neg(&value.0).saturating(Signed, &Signed::MAX),
     - @overflowing uops::neg(&value.0).overflowing(Signed),
 
     posx uops::posx(&value.0).with(Signed),
     posx @checked uops::posx(&value.0).checked(Signed),
     posx @strict uops::posx(&value.0).strict(Signed),
     posx @wrapping uops::posx(&value.0).with(Signed),
-    posx @saturating uops::posx(&value.0).checked(Signed).unwrap_or(Signed::MAX),
+    posx @saturating uops::posx(&value.0).saturating(Signed, &Signed::MAX),
     posx @overflowing uops::posx(&value.0).overflowing(Signed),
 
     negx uops::negx(&value.0).with(Signed),
     negx @checked uops::negx(&value.0).checked(Signed),
     negx @strict uops::negx(&value.0).strict(Signed),
     negx @wrapping uops::negx(&value.0).with(Signed),
-    negx @saturating uops::negx(&value.0).checked(Signed).unwrap_or(Signed::MAX),
+    negx @saturating uops::negx(&value.0).saturating(Signed, &Signed::MAX),
     negx @overflowing uops::negx(&value.0).overflowing(Signed),
 ] }
 
@@ -4435,11 +4451,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     / @wrapping algo::div(&lhs.abs().0, &rhs.abs().0).with(|res| Signed(res).signed(lhs.dir() * rhs.dir())),
     % @wrapping algo::rem(&lhs.abs().0, &rhs.abs().0).with(|res| Signed(res).signed(lhs.dir())),
 
-    + @saturating uops::add(&lhs.0, &rhs.0).checked(Signed).unwrap_or(*[&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
-    - @saturating uops::sub(&lhs.0, &rhs.0).checked(Signed).unwrap_or(*[&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
-    * @saturating algo::mul(&lhs.0, &rhs.0).checked(Signed).unwrap_or(*[&Signed::MIN, &Signed::MAX][(lhs.dir() * rhs.dir() == Dir::POS) as usize]),
-    / @saturating algo::div(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.dir() * rhs.dir())).unwrap_or(Signed::MAX),
-    % @saturating algo::rem(&lhs.abs().0, &rhs.abs().0).checked(|res| Signed(res).signed(lhs.dir())).unwrap_or(Signed::MAX),
+    + @saturating uops::add(&lhs.0, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+    - @saturating uops::sub(&lhs.0, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+    * @saturating algo::mul(&lhs.0, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * rhs.dir() == Dir::POS) as usize]),
+    / @saturating algo::div(&lhs.abs().0, &rhs.abs().0).saturating(|res| Signed(res).signed(lhs.dir() * rhs.dir()), &Signed::MAX),
+    % @saturating algo::rem(&lhs.abs().0, &rhs.abs().0).saturating(|res| Signed(res).signed(lhs.dir()), &Signed::MAX),
 
     + @overflowing uops::add(&lhs.0, &rhs.0).overflowing(Signed),
     - @overflowing uops::sub(&lhs.0, &rhs.0).overflowing(Signed),
@@ -4494,11 +4510,11 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     / @wrapping algo::div(&lhs.0, &rhs.0).with(Unsigned),
     % @wrapping algo::rem(&lhs.0, &rhs.0).with(Unsigned),
 
-    + @saturating uops::add(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MAX),
-    - @saturating uops::sub(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MIN),
-    * @saturating algo::mul(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MAX),
-    / @saturating algo::div(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MIN),
-    % @saturating algo::rem(&lhs.0, &rhs.0).checked(Unsigned).unwrap_or(Unsigned::MIN),
+    + @saturating uops::add(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+    - @saturating uops::sub(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
+    * @saturating algo::mul(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+    / @saturating algo::div(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
+    % @saturating algo::rem(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
 
     + @overflowing uops::add(&lhs.0, &rhs.0).overflowing(Unsigned),
     - @overflowing uops::sub(&lhs.0, &rhs.0).overflowing(Unsigned),
