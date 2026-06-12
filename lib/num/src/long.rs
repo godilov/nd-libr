@@ -4497,7 +4497,7 @@ ndops::def! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
     negx @checked uops::negx(&value.0).checked(Signed),
     negx @strict uops::negx(&value.0).strict(Signed),
     negx @wrapping uops::negx(&value.0).with(Signed),
-    negx @saturating uops::negx(&value.0).saturating(Signed, &Signed::MAX),
+    negx @saturating uops::negx(&value.0).saturating(Signed, &Signed::MIN),
     negx @overflowing uops::negx(&value.0).overflowing(Signed),
 ] }
 
@@ -4666,9 +4666,37 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     -= @strict uops::sub(&mut lhs.0, &rhs.0).strict(),
     *= @strict algo::mul(&mut lhs.0, &rhs.0).strict(),
 
+    /= @strict { *lhs = algo::div(&Signed::nd_posx(lhs).0, &Signed::nd_posx(rhs).0).strict(|res| Signed(res).signed(lhs.dir() * rhs.dir())); },
+    %= @strict { *lhs = algo::rem(&Signed::nd_posx(lhs).0, &Signed::nd_posx(rhs).0).strict(|res| Signed(res).signed(lhs.dir())); },
+
     += @wrapping uops::add(&mut lhs.0, &rhs.0).eval(),
     -= @wrapping uops::sub(&mut lhs.0, &rhs.0).eval(),
     *= @wrapping algo::mul(&mut lhs.0, &rhs.0).eval(),
+
+    /= @wrapping { *lhs = algo::div(&Signed::nd_posx(lhs).0, &Signed::nd_posx(rhs).0).with(|res| Signed(res).signed(lhs.dir() * rhs.dir())); },
+    %= @wrapping { *lhs = algo::rem(&Signed::nd_posx(lhs).0, &Signed::nd_posx(rhs).0).with(|res| Signed(res).signed(lhs.dir())); },
+
+    += @saturating {
+        let dir = lhs.dir();
+
+        uops::add(&mut lhs.0, &rhs.0).saturating([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+    },
+    -= @saturating {
+        let dir = lhs.dir();
+
+        uops::sub(&mut lhs.0, &rhs.0).saturating([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+    },
+    *= @saturating {
+        let dir = lhs.dir() * rhs.dir();
+
+        algo::mul(&mut lhs.0, &rhs.0).saturating([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+    },
+    /= @saturating {
+        *lhs = algo::div(&Signed::nd_posx(lhs).0, &Signed::nd_posx(rhs).0).saturating(|res| Signed(res).signed(lhs.dir() * rhs.dir()), &Signed::MAX);
+    },
+    %= @saturating {
+        *lhs = algo::rem(&Signed::nd_posx(lhs).0, &Signed::nd_posx(rhs).0).saturating(|res| Signed(res).signed(lhs.dir()), &Signed::MAX);
+    },
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for Signed<L>, [
@@ -4696,14 +4724,20 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     += @strict uops::add(&mut lhs.0, &rhs.0).strict(),
     -= @strict uops::sub(&mut lhs.0, &rhs.0).strict(),
     *= @strict algo::mul(&mut lhs.0, &rhs.0).strict(),
+    /= @strict algo::div(&mut lhs.0, &rhs.0).strict(),
+    %= @strict algo::rem(&mut lhs.0, &rhs.0).strict(),
 
     += @wrapping uops::add(&mut lhs.0, &rhs.0).eval(),
     -= @wrapping uops::sub(&mut lhs.0, &rhs.0).eval(),
     *= @wrapping algo::mul(&mut lhs.0, &rhs.0).eval(),
+    /= @wrapping algo::div(&mut lhs.0, &rhs.0).eval(),
+    %= @wrapping algo::rem(&mut lhs.0, &rhs.0).eval(),
 
     += @saturating uops::add(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
     -= @saturating uops::sub(&mut lhs.0, &rhs.0).saturating(&Unsigned::MIN.0),
     *= @saturating algo::mul(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
+    /= @saturating algo::div(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
+    %= @saturating algo::rem(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Unsigned<L>, [
