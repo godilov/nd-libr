@@ -12,7 +12,10 @@ use ndext::{
 use ndnum::{
     Num,
     arch::{Aligned, word::Single},
-    long::{ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops, uops::Expr},
+    long::{
+        ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops,
+        uops::{Expr, ExprMut},
+    },
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
