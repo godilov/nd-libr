@@ -3801,7 +3801,7 @@ pub struct Signed<const L: usize>(pub [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignedRef<'reference, const L: usize>(pub &'reference [Single; L]);
+pub struct SignedRef<'words, const L: usize>(pub &'words [Single; L]);
 
 /// Signed long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
 ///
@@ -3809,7 +3809,7 @@ pub struct SignedRef<'reference, const L: usize>(pub &'reference [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, PartialEq, Eq)]
-pub struct SignedMut<'reference, const L: usize>(pub &'reference mut [Single; L]);
+pub struct SignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
 /// Signed long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
@@ -3830,7 +3830,7 @@ pub struct Unsigned<const L: usize>(pub [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UnsignedRef<'reference, const L: usize>(pub &'reference [Single; L]);
+pub struct UnsignedRef<'words, const L: usize>(pub &'words [Single; L]);
 
 /// Unsigned long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
 ///
@@ -3838,7 +3838,7 @@ pub struct UnsignedRef<'reference, const L: usize>(pub &'reference [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, PartialEq, Eq)]
-pub struct UnsignedMut<'reference, const L: usize>(pub &'reference mut [Single; L]);
+pub struct UnsignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
 /// Unsigned long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
@@ -3859,7 +3859,7 @@ pub struct Bytes<const L: usize>(pub [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BytesRef<'reference, const L: usize>(pub &'reference [Single; L]);
+pub struct BytesRef<'words, const L: usize>(pub &'words [Single; L]);
 
 /// Bytes long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
 ///
@@ -3867,7 +3867,7 @@ pub struct BytesRef<'reference, const L: usize>(pub &'reference [Single; L]);
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, PartialEq, Eq)]
-pub struct BytesMut<'reference, const L: usize>(pub &'reference mut [Single; L]);
+pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
 /// Bytes long dynamic number. (**WIP**)
 #[cfg(feature = "dyn")]
