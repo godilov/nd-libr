@@ -3667,15 +3667,6 @@ pub mod algo {
 
             (div, rem)
         }
-
-        /// Div expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> DivSigned<&'words [Single; L], &'words [Single; L]> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            DivSigned { lhs, rhs }
-        }
     }
 
     impl<const L: usize> Div<&[Single; L], Single> {
@@ -3698,6 +3689,17 @@ pub mod algo {
             }
 
             (div, rem as Single)
+        }
+    }
+
+    impl<'words, const L: usize> Div<&'words [Single; L], &'words [Single; L]> {
+        /// Div expression for signed numbers.
+        #[inline]
+        pub fn signed(self) -> DivSigned<&'words [Single; L], &'words [Single; L]> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            DivSigned { lhs, rhs }
         }
     }
 
