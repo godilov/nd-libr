@@ -178,6 +178,41 @@ macro_rules! nd_ops_primitive_impl {
             | uops::bitor(&lhs.0, &Signed::from(rhs).0).eval(),
             & uops::bitand(&lhs.0, &Signed::from(rhs).0).eval(),
             ^ uops::bitxor(&lhs.0, &Signed::from(rhs).0).eval(),
+
+            + @checked uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).checked(Signed),
+            - @checked uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).checked(Signed),
+
+            * @checked algo::mul(&lhs.0, &Signed::from(rhs).0).checked(Signed),
+            / @checked algo::div(&lhs.0, &Signed::from(rhs).0).signed().checked(Signed),
+            % @checked algo::rem(&lhs.0, &Signed::from(rhs).0).signed().checked(Signed),
+
+            + @strict uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(Signed),
+            - @strict uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(Signed),
+
+            * @strict algo::mul(&lhs.0, &Signed::from(rhs).0).strict(Signed),
+            / @strict algo::div(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
+            % @strict algo::rem(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
+
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(Signed),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(Signed),
+
+            * @wrapping algo::mul(&lhs.0, &Signed::from(rhs).0).with(Signed),
+            / @wrapping algo::div(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
+            % @wrapping algo::rem(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
+
+            + @saturating uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+            - @saturating uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+
+            * @saturating algo::mul(&lhs.0, &Signed::from(rhs).0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
+            / @saturating algo::div(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, &Signed::MAX),
+            % @saturating algo::rem(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, &Signed::MAX),
+
+            + @overflowing uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).overflowing(Signed),
+            - @overflowing uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).overflowing(Signed),
+
+            * @overflowing algo::mul(&lhs.0, &Signed::from(rhs).0).overflowing(Signed),
+            / @overflowing algo::div(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
+            % @overflowing algo::rem(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
@@ -189,6 +224,31 @@ macro_rules! nd_ops_primitive_impl {
             | uops::bitor(&Signed::from(lhs).0, &rhs.0).eval(),
             & uops::bitand(&Signed::from(lhs).0, &rhs.0).eval(),
             ^ uops::bitxor(&Signed::from(lhs).0, &rhs.0).eval(),
+
+            + @checked uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).checked(Signed),
+            - @checked uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).checked(Signed),
+
+            * @checked algo::mul(&Signed::from(lhs).0, &rhs.0).checked(Signed),
+
+            + @strict uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).strict(Signed),
+            - @strict uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).strict(Signed),
+
+            * @strict algo::mul(&Signed::from(lhs).0, &rhs.0).strict(Signed),
+
+            + @wrapping uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
+            - @wrapping uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
+
+            * @wrapping algo::mul(&Signed::from(lhs).0, &rhs.0).with(Signed),
+
+            + @saturating uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            - @saturating uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+
+            * @saturating algo::mul(&Signed::from(lhs).0, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) * rhs.dir() == Dir::POS) as usize]),
+
+            + @overflowing uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).overflowing(Signed),
+            - @overflowing uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).overflowing(Signed),
+
+            * @overflowing algo::mul(&Signed::from(lhs).0, &rhs.0).overflowing(Signed),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
@@ -202,6 +262,39 @@ macro_rules! nd_ops_primitive_impl {
             |= uops::bitor(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
             &= uops::bitand(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
             ^= uops::bitxor(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
+
+            += @strict uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(|_| ()),
+            -= @strict uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(|_| ()),
+
+            *= @strict algo::mul(&mut lhs.0, &Signed::from(rhs).0).strict_mut(),
+            /= @strict algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
+            %= @strict algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
+
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(|_| ()),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(|_| ()),
+
+            *= @wrapping algo::mul(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
+            /= @wrapping algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
+            %= @wrapping algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
+
+            += @saturating {
+                let dir = lhs.dir();
+
+                uops::add(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+            },
+            -= @saturating {
+                let dir = lhs.dir();
+
+                uops::sub(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+            },
+            *= @saturating {
+                let dir = lhs.dir() * Dir::from(rhs);
+
+                algo::mul(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+            },
+
+            /= @saturating algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut(&Signed::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut(&Signed::MAX.0),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -216,6 +309,41 @@ macro_rules! nd_ops_primitive_impl {
             | uops::bitor(&lhs.0, &Unsigned::from(rhs).0).eval(),
             & uops::bitand(&lhs.0, &Unsigned::from(rhs).0).eval(),
             ^ uops::bitxor(&lhs.0, &Unsigned::from(rhs).0).eval(),
+
+            + @checked uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).checked(Unsigned),
+            - @checked uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).checked(Unsigned),
+
+            * @checked algo::mul(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
+            / @checked algo::div(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
+            % @checked algo::rem(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
+
+            + @strict uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).strict(Unsigned),
+            - @strict uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).strict(Unsigned),
+
+            * @strict algo::mul(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
+            / @strict algo::div(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
+            % @strict algo::rem(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
+
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).with(Unsigned),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).with(Unsigned),
+
+            * @wrapping algo::mul(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
+            / @wrapping algo::div(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
+            % @wrapping algo::rem(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
+
+            + @saturating uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).saturating(Unsigned, &Unsigned::MAX),
+            - @saturating uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).saturating(Unsigned, &Unsigned::MIN),
+
+            * @saturating algo::mul(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
+            / @saturating algo::div(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
+            % @saturating algo::rem(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
+
+            + @overflowing uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).overflowing(Unsigned),
+            - @overflowing uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).overflowing(Unsigned),
+
+            * @overflowing algo::mul(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
+            / @overflowing algo::div(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
+            % @overflowing algo::rem(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
@@ -227,6 +355,31 @@ macro_rules! nd_ops_primitive_impl {
             | uops::bitor(&Unsigned::from(lhs).0, &rhs.0).eval(),
             & uops::bitand(&Unsigned::from(lhs).0, &rhs.0).eval(),
             ^ uops::bitxor(&Unsigned::from(lhs).0, &rhs.0).eval(),
+
+            + @checked uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).checked(Unsigned),
+            - @checked uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).checked(Unsigned),
+
+            * @checked algo::mul(&Unsigned::from(lhs).0, &rhs.0).checked(Unsigned),
+
+            + @strict uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).strict(Unsigned),
+            - @strict uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).strict(Unsigned),
+
+            * @strict algo::mul(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
+
+            + @wrapping uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).with(Unsigned),
+            - @wrapping uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).with(Unsigned),
+
+            * @wrapping algo::mul(&Unsigned::from(lhs).0, &rhs.0).with(Unsigned),
+
+            + @saturating uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).saturating(Unsigned, &Unsigned::MAX),
+            - @saturating uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).saturating(Unsigned, &Unsigned::MIN),
+
+            * @saturating algo::mul(&Unsigned::from(lhs).0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+
+            + @overflowing uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).overflowing(Unsigned),
+            - @overflowing uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).overflowing(Unsigned),
+
+            * @overflowing algo::mul(&Unsigned::from(lhs).0, &rhs.0).overflowing(Unsigned),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -240,6 +393,27 @@ macro_rules! nd_ops_primitive_impl {
             |= uops::bitor(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
             &= uops::bitand(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
             ^= uops::bitxor(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
+
+            += @strict uops::add_iter(lhs.0.iter_mut(), rhs.iter_words()).strict(|_| ()),
+            -= @strict uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words()).strict(|_| ()),
+
+            *= @strict algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
+            /= @strict algo::div(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
+            %= @strict algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
+
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.iter_words()).eval(),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words()).eval(),
+
+            *= @wrapping algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
+            /= @wrapping algo::div(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
+            %= @wrapping algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
+
+            += @saturating uops::add(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
+            -= @saturating uops::sub(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MIN.0),
+            *= @saturating algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
+
+            /= @saturating algo::div(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
@@ -284,6 +458,36 @@ macro_rules! nd_ops_primitive_native_impl {
             | uops::bitor(&lhs.0, rhs as <Single as Num>::Signed).eval(),
             & uops::bitand(&lhs.0, rhs as <Single as Num>::Signed).eval(),
             ^ uops::bitxor(&lhs.0, rhs as <Single as Num>::Signed).eval(),
+
+            + @checked uops::add(&lhs.0, rhs as <Single as Num>::Signed).checked(Signed),
+            - @checked uops::sub(&lhs.0, rhs as <Single as Num>::Signed).checked(Signed),
+            * @checked algo::mul(&lhs.0, rhs as <Single as Num>::Signed).checked(Signed),
+            / @checked algo::div(&lhs.0, rhs as <Single as Num>::Signed).signed().checked(Signed::from),
+            % @checked algo::rem(&lhs.0, rhs as <Single as Num>::Signed).signed().checked(Signed::from),
+
+            + @strict uops::add(&lhs.0, rhs as <Single as Num>::Signed).strict(Signed),
+            - @strict uops::sub(&lhs.0, rhs as <Single as Num>::Signed).strict(Signed),
+            * @strict algo::mul(&lhs.0, rhs as <Single as Num>::Signed).strict(Signed),
+            / @strict algo::div(&lhs.0, rhs as <Single as Num>::Signed).signed().strict(Signed::from),
+            % @strict algo::rem(&lhs.0, rhs as <Single as Num>::Signed).signed().strict(Signed::from),
+
+            + @wrapping uops::add(&lhs.0, rhs as <Single as Num>::Signed).with(Signed),
+            - @wrapping uops::sub(&lhs.0, rhs as <Single as Num>::Signed).with(Signed),
+            * @wrapping algo::mul(&lhs.0, rhs as <Single as Num>::Signed).with(Signed),
+            / @wrapping algo::div(&lhs.0, rhs as <Single as Num>::Signed).signed().with(Signed::from),
+            % @wrapping algo::rem(&lhs.0, rhs as <Single as Num>::Signed).signed().with(Signed::from),
+
+            + @saturating uops::add(&lhs.0, rhs as <Single as Num>::Signed).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+            - @saturating uops::sub(&lhs.0, rhs as <Single as Num>::Signed).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+            * @saturating algo::mul(&lhs.0, rhs as <Single as Num>::Signed).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
+            / @saturating algo::div(&lhs.0, rhs as <Single as Num>::Signed).signed().saturating(Signed::from, &Signed::MAX),
+            % @saturating algo::rem(&lhs.0, rhs as <Single as Num>::Signed).signed().saturating(Signed::from, &Signed::MAX),
+
+            + @overflowing uops::add(&lhs.0, rhs as <Single as Num>::Signed).overflowing(Signed),
+            - @overflowing uops::sub(&lhs.0, rhs as <Single as Num>::Signed).overflowing(Signed),
+            * @overflowing algo::mul(&lhs.0, rhs as <Single as Num>::Signed).overflowing(Signed),
+            / @overflowing algo::div(&lhs.0, rhs as <Single as Num>::Signed).signed().overflowing(Signed::from),
+            % @overflowing algo::rem(&lhs.0, rhs as <Single as Num>::Signed).signed().overflowing(Signed::from),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
@@ -294,6 +498,26 @@ macro_rules! nd_ops_primitive_native_impl {
             | uops::bitor(&rhs.0, lhs as <Single as Num>::Signed).eval(),
             & uops::bitand(&rhs.0, lhs as <Single as Num>::Signed).eval(),
             ^ uops::bitxor(&rhs.0, lhs as <Single as Num>::Signed).eval(),
+
+            + @checked uops::add(lhs as <Single as Num>::Signed, &rhs.0).checked(Signed),
+            - @checked uops::sub(lhs as <Single as Num>::Signed, &rhs.0).checked(Signed),
+            * @checked algo::mul(lhs as <Single as Num>::Signed, &rhs.0).checked(Signed),
+
+            + @strict uops::add(lhs as <Single as Num>::Signed, &rhs.0).strict(Signed),
+            - @strict uops::sub(lhs as <Single as Num>::Signed, &rhs.0).strict(Signed),
+            * @strict algo::mul(lhs as <Single as Num>::Signed, &rhs.0).strict(Signed),
+
+            + @wrapping uops::add(lhs as <Single as Num>::Signed, &rhs.0).with(Signed),
+            - @wrapping uops::sub(lhs as <Single as Num>::Signed, &rhs.0).with(Signed),
+            * @wrapping algo::mul(lhs as <Single as Num>::Signed, &rhs.0).with(Signed),
+
+            + @saturating uops::add(lhs as <Single as Num>::Signed, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            - @saturating uops::sub(lhs as <Single as Num>::Signed, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            * @saturating algo::mul(lhs as <Single as Num>::Signed, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) * rhs.dir() == Dir::POS) as usize]),
+
+            + @overflowing uops::add(lhs as <Single as Num>::Signed, &rhs.0).overflowing(Signed),
+            - @overflowing uops::sub(lhs as <Single as Num>::Signed, &rhs.0).overflowing(Signed),
+            * @overflowing algo::mul(lhs as <Single as Num>::Signed, &rhs.0).overflowing(Signed),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
@@ -306,6 +530,37 @@ macro_rules! nd_ops_primitive_native_impl {
             |= uops::bitor(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
             &= uops::bitand(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
             ^= uops::bitxor(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
+
+            += @strict uops::add(&mut lhs.0, rhs as <Single as Num>::Signed).strict_mut(),
+            -= @strict uops::sub(&mut lhs.0, rhs as <Single as Num>::Signed).strict_mut(),
+            *= @strict algo::mul(&mut lhs.0, rhs as <Single as Num>::Signed).strict_mut(),
+            /= @strict algo::div(&mut lhs.0, rhs as <Single as Num>::Signed).signed().strict_mut(),
+            %= @strict algo::rem(&mut lhs.0, rhs as <Single as Num>::Signed).signed().strict_mut(),
+
+            += @wrapping uops::add(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
+            -= @wrapping uops::sub(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
+            *= @wrapping algo::mul(&mut lhs.0, rhs as <Single as Num>::Signed).eval_mut(),
+            /= @wrapping algo::div(&mut lhs.0, rhs as <Single as Num>::Signed).signed().eval_mut(),
+            %= @wrapping algo::rem(&mut lhs.0, rhs as <Single as Num>::Signed).signed().eval_mut(),
+
+            += @saturating {
+                let dir = lhs.dir();
+
+                uops::add(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+            },
+            -= @saturating {
+                let dir = lhs.dir();
+
+                uops::sub(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+            },
+            *= @saturating {
+                let dir = lhs.dir() * Dir::from(rhs);
+
+                algo::mul(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+            },
+
+            /= @saturating algo::div(&mut lhs.0, rhs as <Single as Num>::Signed).signed().saturating_mut(&Signed::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, rhs as <Single as Num>::Signed).signed().saturating_mut(&Signed::MAX.0),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -319,6 +574,36 @@ macro_rules! nd_ops_primitive_native_impl {
             | uops::bitor(&lhs.0, rhs as Single).eval(),
             & uops::bitand(&lhs.0, rhs as Single).eval(),
             ^ uops::bitxor(&lhs.0, rhs as Single).eval(),
+
+            + @checked uops::add(&lhs.0, rhs as Single).checked(Unsigned),
+            - @checked uops::sub(&lhs.0, rhs as Single).checked(Unsigned),
+            * @checked algo::mul(&lhs.0, rhs as Single).checked(Unsigned),
+            / @checked algo::div(&lhs.0, rhs as Single).checked(Unsigned::from),
+            % @checked algo::rem(&lhs.0, rhs as Single).checked(Unsigned::from),
+
+            + @strict uops::add(&lhs.0, rhs as Single).strict(Unsigned),
+            - @strict uops::sub(&lhs.0, rhs as Single).strict(Unsigned),
+            * @strict algo::mul(&lhs.0, rhs as Single).strict(Unsigned),
+            / @strict algo::div(&lhs.0, rhs as Single).strict(Unsigned::from),
+            % @strict algo::rem(&lhs.0, rhs as Single).strict(Unsigned::from),
+
+            + @wrapping uops::add(&lhs.0, rhs as Single).with(Unsigned),
+            - @wrapping uops::sub(&lhs.0, rhs as Single).with(Unsigned),
+            * @wrapping algo::mul(&lhs.0, rhs as Single).with(Unsigned),
+            / @wrapping algo::div(&lhs.0, rhs as Single).with(Unsigned::from),
+            % @wrapping algo::rem(&lhs.0, rhs as Single).with(Unsigned::from),
+
+            + @saturating uops::add(&lhs.0, rhs as Single).saturating(Unsigned, &Unsigned::MAX),
+            - @saturating uops::sub(&lhs.0, rhs as Single).saturating(Unsigned, &Unsigned::MIN),
+            * @saturating algo::mul(&lhs.0, rhs as Single).saturating(Unsigned, &Unsigned::MAX),
+            / @saturating algo::div(&lhs.0, rhs as Single).saturating(Unsigned::from, &Unsigned::MAX),
+            % @saturating algo::rem(&lhs.0, rhs as Single).saturating(Unsigned::from, &Unsigned::MAX),
+
+            + @overflowing uops::add(&lhs.0, rhs as Single).overflowing(Unsigned),
+            - @overflowing uops::sub(&lhs.0, rhs as Single).overflowing(Unsigned),
+            * @overflowing algo::mul(&lhs.0, rhs as Single).overflowing(Unsigned),
+            / @overflowing algo::div(&lhs.0, rhs as Single).overflowing(Unsigned::from),
+            % @overflowing algo::rem(&lhs.0, rhs as Single).overflowing(Unsigned::from),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Unsigned<L>) -> Unsigned<L> for [Unsigned<L>, $primitive], [
@@ -329,6 +614,26 @@ macro_rules! nd_ops_primitive_native_impl {
             | uops::bitor(&rhs.0, lhs as Single).eval(),
             & uops::bitand(&rhs.0, lhs as Single).eval(),
             ^ uops::bitxor(&rhs.0, lhs as Single).eval(),
+
+            + @checked uops::add(lhs as Single, &rhs.0).checked(Unsigned),
+            - @checked uops::sub(lhs as Single, &rhs.0).checked(Unsigned),
+            * @checked algo::mul(lhs as Single, &rhs.0).checked(Unsigned),
+
+            + @strict uops::add(lhs as Single, &rhs.0).strict(Unsigned),
+            - @strict uops::sub(lhs as Single, &rhs.0).strict(Unsigned),
+            * @strict algo::mul(lhs as Single, &rhs.0).strict(Unsigned),
+
+            + @wrapping uops::add(lhs as Single, &rhs.0).with(Unsigned),
+            - @wrapping uops::sub(lhs as Single, &rhs.0).with(Unsigned),
+            * @wrapping algo::mul(lhs as Single, &rhs.0).with(Unsigned),
+
+            + @saturating uops::add(lhs as Single, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+            - @saturating uops::sub(lhs as Single, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
+            * @saturating algo::mul(lhs as Single, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+
+            + @overflowing uops::add(lhs as Single, &rhs.0).overflowing(Unsigned),
+            - @overflowing uops::sub(lhs as Single, &rhs.0).overflowing(Unsigned),
+            * @overflowing algo::mul(lhs as Single, &rhs.0).overflowing(Unsigned),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, &rhs: &$primitive), [
@@ -341,6 +646,24 @@ macro_rules! nd_ops_primitive_native_impl {
             |= uops::bitor(&mut lhs.0, rhs as Single).eval_mut(),
             &= uops::bitand(&mut lhs.0, rhs as Single).eval_mut(),
             ^= uops::bitxor(&mut lhs.0, rhs as Single).eval_mut(),
+
+            += @strict uops::add(&mut lhs.0, rhs as Single).strict_mut(),
+            -= @strict uops::sub(&mut lhs.0, rhs as Single).strict_mut(),
+            *= @strict algo::mul(&mut lhs.0, rhs as Single).strict_mut(),
+            /= @strict algo::div(&mut lhs.0, rhs as Single).strict_mut(),
+            %= @strict algo::rem(&mut lhs.0, rhs as Single).strict_mut(),
+
+            += @wrapping uops::add(&mut lhs.0, rhs as Single).eval_mut(),
+            -= @wrapping uops::sub(&mut lhs.0, rhs as Single).eval_mut(),
+            *= @wrapping algo::mul(&mut lhs.0, rhs as Single).eval_mut(),
+            /= @wrapping algo::div(&mut lhs.0, rhs as Single).eval_mut(),
+            %= @wrapping algo::rem(&mut lhs.0, rhs as Single).eval_mut(),
+
+            += @saturating uops::add(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MAX.0),
+            -= @saturating uops::sub(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MIN.0),
+            *= @saturating algo::mul(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MAX.0),
+            /= @saturating algo::div(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MAX.0),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
@@ -1121,7 +1444,7 @@ pub mod uops {
     pub trait ExprMut<'words, Words: 'words + Copy>: Sized {
         /// Evaluates expression as default.
         #[inline]
-        fn default(self) {
+        fn default_mut(self) {
             let (_, overflow) = self.eval_ext_mut();
 
             debug_assert!(!overflow);
@@ -1129,7 +1452,7 @@ pub mod uops {
 
         /// Evaluates expression as strict.
         #[inline]
-        fn strict(self) {
+        fn strict_mut(self) {
             let (_, overflow) = self.eval_ext_mut();
 
             assert!(!overflow);
@@ -1137,7 +1460,7 @@ pub mod uops {
 
         /// Evaluates expression as saturating.
         #[inline]
-        fn saturating(self, default: &Words) {
+        fn saturating_mut(self, default: &Words) {
             let (res, overflow) = self.eval_ext_mut();
 
             *res = *[res, default][overflow as usize];
@@ -4818,8 +5141,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     + @saturating uops::add(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
     - @saturating uops::sub(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
     * @saturating algo::mul(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
-    / @saturating algo::div(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
-    % @saturating algo::rem(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
+    / @saturating algo::div(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+    % @saturating algo::rem(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
 
     + @overflowing uops::add(&lhs.0, &rhs.0).overflowing(Unsigned),
     - @overflowing uops::sub(&lhs.0, &rhs.0).overflowing(Unsigned),
@@ -4879,11 +5202,11 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     &= uops::bitand(&mut lhs.0, &rhs.0).eval_mut(),
     ^= uops::bitxor(&mut lhs.0, &rhs.0).eval_mut(),
 
-    += @strict uops::add(&mut lhs.0, &rhs.0).strict(),
-    -= @strict uops::sub(&mut lhs.0, &rhs.0).strict(),
-    *= @strict algo::mul(&mut lhs.0, &rhs.0).strict(),
-    /= @strict algo::div(&mut lhs.0, &rhs.0).signed().strict(),
-    %= @strict algo::rem(&mut lhs.0, &rhs.0).signed().strict(),
+    += @strict uops::add(&mut lhs.0, &rhs.0).strict_mut(),
+    -= @strict uops::sub(&mut lhs.0, &rhs.0).strict_mut(),
+    *= @strict algo::mul(&mut lhs.0, &rhs.0).strict_mut(),
+    /= @strict algo::div(&mut lhs.0, &rhs.0).signed().strict_mut(),
+    %= @strict algo::rem(&mut lhs.0, &rhs.0).signed().strict_mut(),
 
     += @wrapping uops::add(&mut lhs.0, &rhs.0).eval_mut(),
     -= @wrapping uops::sub(&mut lhs.0, &rhs.0).eval_mut(),
@@ -4894,28 +5217,28 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
     += @saturating {
         let dir = lhs.dir();
 
-        uops::add(&mut lhs.0, &rhs.0).saturating([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+        uops::add(&mut lhs.0, &rhs.0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
     },
     -= @saturating {
         let dir = lhs.dir();
 
-        uops::sub(&mut lhs.0, &rhs.0).saturating([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+        uops::sub(&mut lhs.0, &rhs.0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
     },
     *= @saturating {
         let dir = lhs.dir() * rhs.dir();
 
-        algo::mul(&mut lhs.0, &rhs.0).saturating([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+        algo::mul(&mut lhs.0, &rhs.0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
     },
-    /= @saturating algo::div(&mut lhs.0, &rhs.0).signed().saturating(&Signed::MAX.0),
-    %= @saturating algo::rem(&mut lhs.0, &rhs.0).signed().saturating(&Signed::MAX.0),
+    /= @saturating algo::div(&mut lhs.0, &rhs.0).signed().saturating_mut(&Signed::MAX.0),
+    %= @saturating algo::rem(&mut lhs.0, &rhs.0).signed().saturating_mut(&Signed::MAX.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for Signed<L>, [
     <<= uops::shl(&mut lhs.0, rhs).signed().eval_mut(),
     >>= uops::shr(&mut lhs.0, rhs).signed().eval_mut(),
 
-    <<= @strict uops::shl(&mut lhs.0, rhs).signed().strict(),
-    >>= @strict uops::shr(&mut lhs.0, rhs).signed().strict(),
+    <<= @strict uops::shl(&mut lhs.0, rhs).signed().strict_mut(),
+    >>= @strict uops::shr(&mut lhs.0, rhs).signed().strict_mut(),
 
     <<= @unbounded uops::shl(&mut lhs.0, rhs).signed().eval_mut(),
     >>= @unbounded uops::shr(&mut lhs.0, rhs).signed().eval_mut(),
@@ -4932,11 +5255,11 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     &= uops::bitand(&mut lhs.0, &rhs.0).eval_mut(),
     ^= uops::bitxor(&mut lhs.0, &rhs.0).eval_mut(),
 
-    += @strict uops::add(&mut lhs.0, &rhs.0).strict(),
-    -= @strict uops::sub(&mut lhs.0, &rhs.0).strict(),
-    *= @strict algo::mul(&mut lhs.0, &rhs.0).strict(),
-    /= @strict algo::div(&mut lhs.0, &rhs.0).strict(),
-    %= @strict algo::rem(&mut lhs.0, &rhs.0).strict(),
+    += @strict uops::add(&mut lhs.0, &rhs.0).strict_mut(),
+    -= @strict uops::sub(&mut lhs.0, &rhs.0).strict_mut(),
+    *= @strict algo::mul(&mut lhs.0, &rhs.0).strict_mut(),
+    /= @strict algo::div(&mut lhs.0, &rhs.0).strict_mut(),
+    %= @strict algo::rem(&mut lhs.0, &rhs.0).strict_mut(),
 
     += @wrapping uops::add(&mut lhs.0, &rhs.0).eval_mut(),
     -= @wrapping uops::sub(&mut lhs.0, &rhs.0).eval_mut(),
@@ -4944,19 +5267,19 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     /= @wrapping algo::div(&mut lhs.0, &rhs.0).eval_mut(),
     %= @wrapping algo::rem(&mut lhs.0, &rhs.0).eval_mut(),
 
-    += @saturating uops::add(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
-    -= @saturating uops::sub(&mut lhs.0, &rhs.0).saturating(&Unsigned::MIN.0),
-    *= @saturating algo::mul(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
-    /= @saturating algo::div(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
-    %= @saturating algo::rem(&mut lhs.0, &rhs.0).saturating(&Unsigned::MAX.0),
+    += @saturating uops::add(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MAX.0),
+    -= @saturating uops::sub(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MIN.0),
+    *= @saturating algo::mul(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MAX.0),
+    /= @saturating algo::div(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MAX.0),
+    %= @saturating algo::rem(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MAX.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Unsigned<L>, [
     <<= uops::shl(&mut lhs.0, rhs).eval_mut(),
     >>= uops::shr(&mut lhs.0, rhs).eval_mut(),
 
-    <<= @strict uops::shl(&mut lhs.0, rhs).strict(),
-    >>= @strict uops::shr(&mut lhs.0, rhs).strict(),
+    <<= @strict uops::shl(&mut lhs.0, rhs).strict_mut(),
+    >>= @strict uops::shr(&mut lhs.0, rhs).strict_mut(),
 
     <<= @unbounded uops::shl(&mut lhs.0, rhs).eval_mut(),
     >>= @unbounded uops::shr(&mut lhs.0, rhs).eval_mut(),
@@ -4972,8 +5295,8 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize) for Bytes
     <<= uops::shl(&mut lhs.0, rhs).eval_mut(),
     >>= uops::shr(&mut lhs.0, rhs).eval_mut(),
 
-    <<= @strict uops::shl(&mut lhs.0, rhs).strict(),
-    >>= @strict uops::shr(&mut lhs.0, rhs).strict(),
+    <<= @strict uops::shl(&mut lhs.0, rhs).strict_mut(),
+    >>= @strict uops::shr(&mut lhs.0, rhs).strict_mut(),
 
     <<= @unbounded uops::shl(&mut lhs.0, rhs).eval_mut(),
     >>= @unbounded uops::shr(&mut lhs.0, rhs).eval_mut(),
