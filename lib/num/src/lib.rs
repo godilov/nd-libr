@@ -1391,7 +1391,7 @@ pub trait SelectCt: Copy {
 /// Const-time power functions.
 #[cfg(feature = "const-time")]
 #[ndfwd::decl]
-pub trait PowCt: Num {
+pub trait PowCt: Num + SelectCt {
     /// Calculates `self ^ exp` in const-time.
     ///
     /// For true const-time, use with [`Wrapping`].
@@ -1411,7 +1411,7 @@ pub trait PowCt: Num {
         while exp != zero {
             let val = Self::nd_mul(&res, &acc);
 
-            res = [res, val][exp.is_odd() as usize];
+            res = SelectCt::select_ct(&res, &val, [0, MaskCt::MAX][exp.is_even() as usize]);
 
             let tmp = acc;
 
@@ -1442,7 +1442,7 @@ pub trait PowCt: Num {
             let val = Self::nd_mul(&res, &acc);
             let val = Self::nd_rem(&val, rem);
 
-            res = [res, val][exp.is_odd() as usize];
+            res = SelectCt::select_ct(&res, &val, [0, MaskCt::MAX][exp.is_even() as usize]);
 
             let tmp = acc;
 
