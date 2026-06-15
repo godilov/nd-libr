@@ -7343,49 +7343,55 @@ mod tests {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            lhs_long as S64::from(lhs),
+            rhs_long as S64::from(rhs),
         ) [
-            (S64::from(lhs) + S64::from(rhs), S64::from(lhs.wrapping_add(rhs))),
-            (S64::from(lhs) - S64::from(rhs), S64::from(lhs.wrapping_sub(rhs))),
-            (S64::from(lhs) * S64::from(rhs), S64::from(lhs.wrapping_mul(rhs))),
+            (lhs_long + rhs_long, S64::from(lhs.wrapping_add(rhs))),
+            (lhs_long - rhs_long, S64::from(lhs.wrapping_sub(rhs))),
+            (lhs_long * rhs_long, S64::from(lhs.wrapping_mul(rhs))),
 
-            ((rhs != 0).then_some(S64::from(lhs) / S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(S64::from(lhs) % S64::from(rhs)), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+            ((rhs != 0).then_some(lhs_long / rhs_long), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(lhs_long % rhs_long), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
 
-            (S64::from(lhs) | S64::from(rhs), S64::from(lhs | rhs)),
-            (S64::from(lhs) & S64::from(rhs), S64::from(lhs & rhs)),
-            (S64::from(lhs) ^ S64::from(rhs), S64::from(lhs ^ rhs)),
+            (lhs_long | rhs_long, S64::from(lhs | rhs)),
+            (lhs_long & rhs_long, S64::from(lhs & rhs)),
+            (lhs_long ^ rhs_long, S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
+            lhs_long as U64::from(lhs),
+            rhs_long as U64::from(rhs),
         ) [
-            (U64::from(lhs) + U64::from(rhs), U64::from(lhs.wrapping_add(rhs))),
-            (U64::from(lhs) - U64::from(rhs), U64::from(lhs.wrapping_sub(rhs))),
-            (U64::from(lhs) * U64::from(rhs), U64::from(lhs.wrapping_mul(rhs))),
+            (lhs_long + rhs_long, U64::from(lhs.wrapping_add(rhs))),
+            (lhs_long - rhs_long, U64::from(lhs.wrapping_sub(rhs))),
+            (lhs_long * rhs_long, U64::from(lhs.wrapping_mul(rhs))),
 
-            ((rhs != 0).then_some(U64::from(lhs) / U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(U64::from(lhs) % U64::from(rhs)), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+            ((rhs != 0).then_some(lhs_long / rhs_long), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(lhs_long % rhs_long), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
 
-            (U64::from(lhs) | U64::from(rhs), U64::from(lhs | rhs)),
-            (U64::from(lhs) & U64::from(rhs), U64::from(lhs & rhs)),
-            (U64::from(lhs) ^ U64::from(rhs), U64::from(lhs ^ rhs)),
+            (lhs_long | rhs_long, U64::from(lhs | rhs)),
+            (lhs_long & rhs_long, U64::from(lhs & rhs)),
+            (lhs_long ^ rhs_long, U64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 52),
-            rhs in 0..96,
+            value in ndassert::range!(i64, 52),
+            shift in 0..96,
+            long as S64::from(value),
         ) [
-            (S64::from(lhs) << rhs, S64::from(lhs.unbounded_shl(rhs as u32))),
-            (S64::from(lhs) >> rhs, S64::from(lhs.unbounded_shr(rhs as u32))),
+            (long << shift, S64::from(value.unbounded_shl(shift as u32))),
+            (long >> shift, S64::from(value.unbounded_shr(shift as u32))),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 52),
-            rhs in 0..96,
+            value in ndassert::range!(u64, 52),
+            shift in 0..96,
+            long as U64::from(value),
         ) [
-            (U64::from(lhs) << rhs, U64::from(lhs.unbounded_shl(rhs as u32))),
-            (U64::from(lhs) >> rhs, U64::from(lhs.unbounded_shr(rhs as u32))),
+            (long << shift, U64::from(value.unbounded_shl(shift as u32))),
+            (long >> shift, U64::from(value.unbounded_shr(shift as u32))),
         ] }
     }
 
@@ -7394,49 +7400,55 @@ mod tests {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            lhs_long as S64::from(lhs),
+            rhs_long as S64::from(rhs),
         ) [
-            ({ let mut val = S64::from(lhs); val += S64::from(rhs); val }, S64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = S64::from(lhs); val -= S64::from(rhs); val }, S64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = S64::from(lhs); val *= S64::from(rhs); val }, S64::from(lhs.wrapping_mul(rhs))),
+            ({ let mut val = lhs_long; val += rhs_long; val }, S64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = lhs_long; val -= rhs_long; val }, S64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = lhs_long; val *= rhs_long; val }, S64::from(lhs.wrapping_mul(rhs))),
 
-            ({ let mut val = S64::from(lhs); val /= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = S64::from(lhs); val %= S64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+            ({ let mut val = lhs_long; val /= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = lhs_long; val %= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
 
-            ({ let mut val = S64::from(lhs); val |= S64::from(rhs); val }, S64::from(lhs | rhs)),
-            ({ let mut val = S64::from(lhs); val &= S64::from(rhs); val }, S64::from(lhs & rhs)),
-            ({ let mut val = S64::from(lhs); val ^= S64::from(rhs); val }, S64::from(lhs ^ rhs)),
+            ({ let mut val = lhs_long; val |= rhs_long; val }, S64::from(lhs | rhs)),
+            ({ let mut val = lhs_long; val &= rhs_long; val }, S64::from(lhs & rhs)),
+            ({ let mut val = lhs_long; val ^= rhs_long; val }, S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
+            lhs_long as U64::from(lhs),
+            rhs_long as U64::from(rhs),
         ) [
-            ({ let mut val = U64::from(lhs); val += U64::from(rhs); val }, U64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = U64::from(lhs); val -= U64::from(rhs); val }, U64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = U64::from(lhs); val *= U64::from(rhs); val }, U64::from(lhs.wrapping_mul(rhs))),
+            ({ let mut val = lhs_long; val += rhs_long; val }, U64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = lhs_long; val -= rhs_long; val }, U64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = lhs_long; val *= rhs_long; val }, U64::from(lhs.wrapping_mul(rhs))),
 
-            ({ let mut val = U64::from(lhs); val /= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = U64::from(lhs); val %= U64::from(rhs); (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+            ({ let mut val = lhs_long; val /= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = lhs_long; val %= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
 
-            ({ let mut val = U64::from(lhs); val |= U64::from(rhs); val }, U64::from(lhs | rhs)),
-            ({ let mut val = U64::from(lhs); val &= U64::from(rhs); val }, U64::from(lhs & rhs)),
-            ({ let mut val = U64::from(lhs); val ^= U64::from(rhs); val }, U64::from(lhs ^ rhs)),
+            ({ let mut val = lhs_long; val |= rhs_long; val }, U64::from(lhs | rhs)),
+            ({ let mut val = lhs_long; val &= rhs_long; val }, U64::from(lhs & rhs)),
+            ({ let mut val = lhs_long; val ^= rhs_long; val }, U64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 52),
-            rhs in 0..96,
+            value in ndassert::range!(i64, 52),
+            shift in 0..96,
+            long as S64::from(value),
         ) [
-            ({ let mut val = S64::from(lhs); val <<= rhs; val }, S64::from(lhs.unbounded_shl(rhs as u32))),
-            ({ let mut val = S64::from(lhs); val >>= rhs; val }, S64::from(lhs.unbounded_shr(rhs as u32))),
+            ({ let mut val = long; val <<= shift; val }, S64::from(value.unbounded_shl(shift as u32))),
+            ({ let mut val = long; val >>= shift; val }, S64::from(value.unbounded_shr(shift as u32))),
         ] }
 
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 52),
-            rhs in 0..96,
+            value in ndassert::range!(u64, 52),
+            shift in 0..96,
+            long as U64::from(value),
         ) [
-            ({ let mut val = U64::from(lhs); val <<= rhs; val }, U64::from(lhs.unbounded_shl(rhs as u32))),
-            ({ let mut val = U64::from(lhs); val >>= rhs; val }, U64::from(lhs.unbounded_shr(rhs as u32))),
+            ({ let mut val = long; val <<= shift; val }, U64::from(value.unbounded_shl(shift as u32))),
+            ({ let mut val = long; val >>= shift; val }, U64::from(value.unbounded_shr(shift as u32))),
         ] }
     }
 
@@ -7445,45 +7457,49 @@ mod tests {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            long as S64::from(lhs),
         ) [
-            (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs))),
-            (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs))),
-            (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs))),
+            (long + rhs, S64::from(lhs.wrapping_add(rhs))),
+            (long - rhs, S64::from(lhs.wrapping_sub(rhs))),
+            (long * rhs, S64::from(lhs.wrapping_mul(rhs))),
 
-            ((rhs != 0).then_some(S64::from(lhs) / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(S64::from(lhs) % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
 
-            (S64::from(lhs) | rhs, S64::from(lhs | rhs)),
-            (S64::from(lhs) & rhs, S64::from(lhs & rhs)),
-            (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs)),
+            (rhs + long, S64::from(lhs.wrapping_add(rhs))),
+            (rhs * long, S64::from(lhs.wrapping_mul(rhs))),
 
-            (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs))),
-            (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs))),
-            (rhs | S64::from(lhs), S64::from(lhs | rhs)),
-            (rhs & S64::from(lhs), S64::from(lhs & rhs)),
-            (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs)),
+            (long | rhs, S64::from(lhs | rhs)),
+            (long & rhs, S64::from(lhs & rhs)),
+            (long ^ rhs, S64::from(lhs ^ rhs)),
+
+            (rhs | long, S64::from(lhs | rhs)),
+            (rhs & long, S64::from(lhs & rhs)),
+            (rhs ^ long, S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
+            long as U64::from(lhs),
         ) [
-            (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs))),
-            (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs))),
-            (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs))),
+            (long + rhs, U64::from(lhs.wrapping_add(rhs))),
+            (long - rhs, U64::from(lhs.wrapping_sub(rhs))),
+            (long * rhs, U64::from(lhs.wrapping_mul(rhs))),
 
-            ((rhs != 0).then_some(U64::from(lhs) / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(U64::from(lhs) % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
 
-            (U64::from(lhs) | rhs, U64::from(lhs | rhs)),
-            (U64::from(lhs) & rhs, U64::from(lhs & rhs)),
-            (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs)),
+            (rhs + long, U64::from(lhs.wrapping_add(rhs))),
+            (rhs * long, U64::from(lhs.wrapping_mul(rhs))),
 
-            (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs))),
-            (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs))),
-            (rhs | U64::from(lhs), U64::from(lhs | rhs)),
-            (rhs & U64::from(lhs), U64::from(lhs & rhs)),
-            (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs)),
+            (long | rhs, U64::from(lhs | rhs)),
+            (long & rhs, U64::from(lhs & rhs)),
+            (long ^ rhs, U64::from(lhs ^ rhs)),
+
+            (rhs | long, U64::from(lhs | rhs)),
+            (rhs & long, U64::from(lhs & rhs)),
+            (rhs ^ long, U64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -7492,33 +7508,35 @@ mod tests {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            long as S64::from(lhs),
         ) [
-            ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs))),
+            ({ let mut val = long; val += rhs; val }, S64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = long; val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = long; val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs))),
 
-            ({ let mut val = S64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = S64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
+            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
 
-            ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs)),
-            ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs)),
-            ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs)),
+            ({ let mut val = long; val |= rhs; val }, S64::from(lhs | rhs)),
+            ({ let mut val = long; val &= rhs; val }, S64::from(lhs & rhs)),
+            ({ let mut val = long; val ^= rhs; val }, S64::from(lhs ^ rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
+            long as U64::from(lhs),
         ) [
-            ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs))),
+            ({ let mut val = long; val += rhs; val }, U64::from(lhs.wrapping_add(rhs))),
+            ({ let mut val = long; val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs))),
+            ({ let mut val = long; val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs))),
 
-            ({ let mut val = U64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = U64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
+            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
+            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
 
-            ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs)),
-            ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs)),
-            ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs)),
+            ({ let mut val = long; val |= rhs; val }, U64::from(lhs | rhs)),
+            ({ let mut val = long; val &= rhs; val }, U64::from(lhs & rhs)),
+            ({ let mut val = long; val ^= rhs; val }, U64::from(lhs ^ rhs)),
         ] }
     }
 
@@ -7527,45 +7545,49 @@ mod tests {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56).chain([-1, 0, 1]),
             rhs in i8::MIN..i8::MAX,
+            long as S64::from(lhs),
         ) [
-            (S64::from(lhs) + rhs, S64::from(lhs.wrapping_add(rhs as i64))),
-            (S64::from(lhs) - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
-            (S64::from(lhs) * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
+            (long + rhs, S64::from(lhs.wrapping_add(rhs as i64))),
+            (long - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
+            (long * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
 
-            ((rhs != 0).then_some(S64::from(lhs) / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
-            ((rhs != 0).then_some(S64::from(lhs) % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
+            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
+            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
 
-            (S64::from(lhs) | rhs, S64::from(lhs | rhs as i64)),
-            (S64::from(lhs) & rhs, S64::from(lhs & rhs as i64)),
-            (S64::from(lhs) ^ rhs, S64::from(lhs ^ rhs as i64)),
+            (rhs + long, S64::from(lhs.wrapping_add(rhs as i64))),
+            (rhs * long, S64::from(lhs.wrapping_mul(rhs as i64))),
 
-            (rhs + S64::from(lhs), S64::from(lhs.wrapping_add(rhs as i64))),
-            (rhs * S64::from(lhs), S64::from(lhs.wrapping_mul(rhs as i64))),
-            (rhs | S64::from(lhs), S64::from(lhs | rhs as i64)),
-            (rhs & S64::from(lhs), S64::from(lhs & rhs as i64)),
-            (rhs ^ S64::from(lhs), S64::from(lhs ^ rhs as i64)),
+            (long | rhs, S64::from(lhs | rhs as i64)),
+            (long & rhs, S64::from(lhs & rhs as i64)),
+            (long ^ rhs, S64::from(lhs ^ rhs as i64)),
+
+            (rhs | long, S64::from(lhs | rhs as i64)),
+            (rhs & long, S64::from(lhs & rhs as i64)),
+            (rhs ^ long, S64::from(lhs ^ rhs as i64)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56).chain([0, 1]),
             rhs in u8::MIN..u8::MAX,
+            long as U64::from(lhs),
         ) [
-            (U64::from(lhs) + rhs, U64::from(lhs.wrapping_add(rhs as u64))),
-            (U64::from(lhs) - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
-            (U64::from(lhs) * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
+            (long + rhs, U64::from(lhs.wrapping_add(rhs as u64))),
+            (long - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
+            (long * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
 
-            ((rhs != 0).then_some(U64::from(lhs) / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
-            ((rhs != 0).then_some(U64::from(lhs) % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
+            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
+            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
 
-            (U64::from(lhs) | rhs, U64::from(lhs | rhs as u64)),
-            (U64::from(lhs) & rhs, U64::from(lhs & rhs as u64)),
-            (U64::from(lhs) ^ rhs, U64::from(lhs ^ rhs as u64)),
+            (rhs + long, U64::from(lhs.wrapping_add(rhs as u64))),
+            (rhs * long, U64::from(lhs.wrapping_mul(rhs as u64))),
 
-            (rhs + U64::from(lhs), U64::from(lhs.wrapping_add(rhs as u64))),
-            (rhs * U64::from(lhs), U64::from(lhs.wrapping_mul(rhs as u64))),
-            (rhs | U64::from(lhs), U64::from(lhs | rhs as u64)),
-            (rhs & U64::from(lhs), U64::from(lhs & rhs as u64)),
-            (rhs ^ U64::from(lhs), U64::from(lhs ^ rhs as u64)),
+            (long | rhs, U64::from(lhs | rhs as u64)),
+            (long & rhs, U64::from(lhs & rhs as u64)),
+            (long ^ rhs, U64::from(lhs ^ rhs as u64)),
+
+            (rhs | long, U64::from(lhs | rhs as u64)),
+            (rhs & long, U64::from(lhs & rhs as u64)),
+            (rhs ^ long, U64::from(lhs ^ rhs as u64)),
         ] }
     }
 
@@ -7574,33 +7596,35 @@ mod tests {
         ndassert::check! { @eq (
             lhs in ndassert::range!(i64, 56).chain([-1, 0, 1]),
             rhs in i8::MIN..i8::MAX,
+            long as S64::from(lhs),
         ) [
-            ({ let mut val = S64::from(lhs); val += rhs; val }, S64::from(lhs.wrapping_add(rhs as i64))),
-            ({ let mut val = S64::from(lhs); val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs as i64))),
-            ({ let mut val = S64::from(lhs); val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs as i64))),
+            ({ let mut val = long; val += rhs; val }, S64::from(lhs.wrapping_add(rhs as i64))),
+            ({ let mut val = long; val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs as i64))),
+            ({ let mut val = long; val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs as i64))),
 
-            ({ let mut val = S64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
-            ({ let mut val = S64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
+            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
+            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
 
-            ({ let mut val = S64::from(lhs); val |= rhs; val }, S64::from(lhs | rhs as i64)),
-            ({ let mut val = S64::from(lhs); val &= rhs; val }, S64::from(lhs & rhs as i64)),
-            ({ let mut val = S64::from(lhs); val ^= rhs; val }, S64::from(lhs ^ rhs as i64)),
+            ({ let mut val = long; val |= rhs; val }, S64::from(lhs | rhs as i64)),
+            ({ let mut val = long; val &= rhs; val }, S64::from(lhs & rhs as i64)),
+            ({ let mut val = long; val ^= rhs; val }, S64::from(lhs ^ rhs as i64)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56).chain([0, 1]),
             rhs in u8::MIN..u8::MAX,
+            long as U64::from(lhs),
         ) [
-            ({ let mut val = U64::from(lhs); val += rhs; val }, U64::from(lhs.wrapping_add(rhs as u64))),
-            ({ let mut val = U64::from(lhs); val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs as u64))),
-            ({ let mut val = U64::from(lhs); val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs as u64))),
+            ({ let mut val = long; val += rhs; val }, U64::from(lhs.wrapping_add(rhs as u64))),
+            ({ let mut val = long; val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs as u64))),
+            ({ let mut val = long; val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs as u64))),
 
-            ({ let mut val = U64::from(lhs); val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
-            ({ let mut val = U64::from(lhs); val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
+            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
+            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
 
-            ({ let mut val = U64::from(lhs); val |= rhs; val }, U64::from(lhs | rhs as u64)),
-            ({ let mut val = U64::from(lhs); val &= rhs; val }, U64::from(lhs & rhs as u64)),
-            ({ let mut val = U64::from(lhs); val ^= rhs; val }, U64::from(lhs ^ rhs as u64)),
+            ({ let mut val = long; val |= rhs; val }, U64::from(lhs | rhs as u64)),
+            ({ let mut val = long; val &= rhs; val }, U64::from(lhs & rhs as u64)),
+            ({ let mut val = long; val ^= rhs; val }, U64::from(lhs ^ rhs as u64)),
         ] }
     }
 
