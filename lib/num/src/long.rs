@@ -710,11 +710,12 @@ macro_rules! ops_primitive_impl {
         ] }
 
         ndops::def! { @stdbin <const L: usize> (lhs: $primitive, *rhs: &Signed<L>) -> Signed<L>, [
-            + <Signed<L> as NdAdd<Signed<L>, $primitive>>::nd_add(&rhs, &lhs),
-            * <Signed<L> as NdMul<Signed<L>, $primitive>>::nd_mul(&rhs, &lhs),
-            | <Signed<L> as NdBitOr<Signed<L>, $primitive>>::nd_bitor(&rhs, &lhs),
-            & <Signed<L> as NdBitAnd<Signed<L>, $primitive>>::nd_bitand(&rhs, &lhs),
-            ^ <Signed<L> as NdBitXor<Signed<L>, $primitive>>::nd_bitxor(&rhs, &lhs),
+            + <Signed<L> as NdAdd<$primitive, Signed<L>>>::nd_add(&lhs, &rhs),
+            - <Signed<L> as NdSub<$primitive, Signed<L>>>::nd_sub(&lhs, &rhs),
+            * <Signed<L> as NdMul<$primitive, Signed<L>>>::nd_mul(&lhs, &rhs),
+            | <Signed<L> as NdBitOr<$primitive, Signed<L>>>::nd_bitor(&lhs, &rhs),
+            & <Signed<L> as NdBitAnd<$primitive, Signed<L>>>::nd_bitand(&lhs, &rhs),
+            ^ <Signed<L> as NdBitXor<$primitive, Signed<L>>>::nd_bitxor(&lhs, &rhs),
         ] }
 
         ndops::def! { @stdmut <const L: usize> (lhs: &mut Signed<L>, rhs: $primitive), [
@@ -741,11 +742,12 @@ macro_rules! ops_primitive_impl {
         ] }
 
         ndops::def! { @stdbin <const L: usize> (lhs: $primitive, *rhs: &Unsigned<L>) -> Unsigned<L>, [
-            + <Unsigned<L> as NdAdd<Unsigned<L>, $primitive>>::nd_add(&rhs, &lhs),
-            * <Unsigned<L> as NdMul<Unsigned<L>, $primitive>>::nd_mul(&rhs, &lhs),
-            | <Unsigned<L> as NdBitOr<Unsigned<L>, $primitive>>::nd_bitor(&rhs, &lhs),
-            & <Unsigned<L> as NdBitAnd<Unsigned<L>, $primitive>>::nd_bitand(&rhs, &lhs),
-            ^ <Unsigned<L> as NdBitXor<Unsigned<L>, $primitive>>::nd_bitxor(&rhs, &lhs),
+            + <Unsigned<L> as NdAdd<$primitive, Unsigned<L>>>::nd_add(&lhs, &rhs),
+            - <Unsigned<L> as NdSub<$primitive, Unsigned<L>>>::nd_sub(&lhs, &rhs),
+            * <Unsigned<L> as NdMul<$primitive, Unsigned<L>>>::nd_mul(&lhs, &rhs),
+            | <Unsigned<L> as NdBitOr<$primitive, Unsigned<L>>>::nd_bitor(&lhs, &rhs),
+            & <Unsigned<L> as NdBitAnd<$primitive, Unsigned<L>>>::nd_bitand(&lhs, &rhs),
+            ^ <Unsigned<L> as NdBitXor<$primitive, Unsigned<L>>>::nd_bitxor(&lhs, &rhs),
         ] }
 
         ndops::def! { @stdmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: $primitive), [
@@ -7466,8 +7468,9 @@ mod tests {
             ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
             ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
 
-            (rhs + long, S64::from(lhs.wrapping_add(rhs))),
-            (rhs * long, S64::from(lhs.wrapping_mul(rhs))),
+            (rhs + long, S64::from(rhs.wrapping_add(lhs))),
+            (rhs - long, S64::from(rhs.wrapping_sub(lhs))),
+            (rhs * long, S64::from(rhs.wrapping_mul(lhs))),
 
             (long | rhs, S64::from(lhs | rhs)),
             (long & rhs, S64::from(lhs & rhs)),
@@ -7490,8 +7493,9 @@ mod tests {
             ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
             ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
 
-            (rhs + long, U64::from(lhs.wrapping_add(rhs))),
-            (rhs * long, U64::from(lhs.wrapping_mul(rhs))),
+            (rhs + long, U64::from(rhs.wrapping_add(lhs))),
+            (rhs - long, U64::from(rhs.wrapping_sub(lhs))),
+            (rhs * long, U64::from(rhs.wrapping_mul(lhs))),
 
             (long | rhs, U64::from(lhs | rhs)),
             (long & rhs, U64::from(lhs & rhs)),
@@ -7554,8 +7558,9 @@ mod tests {
             ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
             ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
 
-            (rhs + long, S64::from(lhs.wrapping_add(rhs as i64))),
-            (rhs * long, S64::from(lhs.wrapping_mul(rhs as i64))),
+            (rhs + long, S64::from((rhs as i64).wrapping_add(lhs))),
+            (rhs - long, S64::from((rhs as i64).wrapping_sub(lhs))),
+            (rhs * long, S64::from((rhs as i64).wrapping_mul(lhs))),
 
             (long | rhs, S64::from(lhs | rhs as i64)),
             (long & rhs, S64::from(lhs & rhs as i64)),
@@ -7578,8 +7583,9 @@ mod tests {
             ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
             ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
 
-            (rhs + long, U64::from(lhs.wrapping_add(rhs as u64))),
-            (rhs * long, U64::from(lhs.wrapping_mul(rhs as u64))),
+            (rhs + long, U64::from((rhs as u64).wrapping_add(lhs))),
+            (rhs - long, U64::from((rhs as u64).wrapping_sub(lhs))),
+            (rhs * long, U64::from((rhs as u64).wrapping_mul(lhs))),
 
             (long | rhs, U64::from(lhs | rhs as u64)),
             (long & rhs, U64::from(lhs & rhs as u64)),
