@@ -6803,14 +6803,139 @@ fn get_sign<const L: usize, W: Word>(words: &[W; L], sign: Sign) -> Sign {
 
 #[cfg(test)]
 mod tests {
-    use std::iter::repeat_n;
+    use std::{iter::repeat_n, ops::*, panic::RefUnwindSafe};
 
     use rand::{RngExt, SeedableRng, rngs::StdRng};
 
     use super::*;
-    use crate::long::alias::{S32, S64, U32, U64};
     #[cfg(feature = "const-time")]
     use crate::{AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt};
+    use crate::{
+        Unbounded, Wrapping,
+        long::alias::{S32, S64, U32, U64},
+    };
+
+    fn ops_impl<
+        Lhs: Zero + Num + Debug + RefUnwindSafe,
+        Rhs: Zero + Num + Debug + RefUnwindSafe,
+        LhsLong: Num + Debug + RefUnwindSafe + Ops<RhsLong, usize, Type = LhsLong> + OpsAssign<RhsLong, usize>,
+        RhsLong: Num
+            + Debug
+            + RefUnwindSafe
+            + Add<LhsLong, Output = LhsLong>
+            + Sub<LhsLong, Output = LhsLong>
+            + Mul<LhsLong, Output = LhsLong>
+            + BitOr<LhsLong, Output = LhsLong>
+            + BitAnd<LhsLong, Output = LhsLong>
+            + BitXor<LhsLong, Output = LhsLong>,
+        LhsAlt: Num + Debug + RefUnwindSafe + Ops<RhsAlt, usize, Type = LhsAlt> + OpsAssign<RhsAlt, usize>,
+        RhsAlt: Num
+            + Debug
+            + RefUnwindSafe
+            + Add<LhsAlt, Output = LhsAlt>
+            + Sub<LhsAlt, Output = LhsAlt>
+            + Mul<LhsAlt, Output = LhsAlt>
+            + BitOr<LhsAlt, Output = LhsAlt>
+            + BitAnd<LhsAlt, Output = LhsAlt>
+            + BitXor<LhsAlt, Output = LhsAlt>,
+    >(
+        lhs_iter: impl Iterator<Item = Lhs> + Clone,
+        rhs_iter: impl Iterator<Item = Rhs> + Clone,
+        lhs_long_fn: impl Fn(Lhs) -> LhsLong,
+        rhs_long_fn: impl Fn(Rhs) -> RhsLong,
+        lhs_alt_fn: impl Fn(Lhs) -> LhsAlt,
+        rhs_alt_fn: impl Fn(Rhs) -> RhsAlt,
+        func: impl Fn(LhsAlt) -> LhsLong + RefUnwindSafe,
+    ) {
+        ndassert::check! { @eq (
+            lhs in lhs_iter.clone(),
+            rhs in rhs_iter.clone(),
+            lhs_long as lhs_long_fn(lhs),
+            rhs_long as rhs_long_fn(rhs),
+            lhs_alt as lhs_alt_fn(lhs),
+            rhs_alt as rhs_alt_fn(rhs),
+        ) [
+            ndassert::catch!(lhs_long + rhs_long, func(lhs_alt + rhs_alt)),
+            ndassert::catch!(lhs_long - rhs_long, func(lhs_alt - rhs_alt)),
+            ndassert::catch!(lhs_long * rhs_long, func(lhs_alt * rhs_alt)),
+
+            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long / rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
+            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long % rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
+
+            (lhs_long | rhs_long, func(lhs_alt | rhs_alt)),
+            (lhs_long & rhs_long, func(lhs_alt & rhs_alt)),
+            (lhs_long ^ rhs_long, func(lhs_alt ^ rhs_alt)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in lhs_iter.clone(),
+            rhs in rhs_iter.clone(),
+            lhs_long as lhs_long_fn(lhs),
+            rhs_long as rhs_long_fn(rhs),
+            lhs_alt as lhs_alt_fn(lhs),
+            rhs_alt as rhs_alt_fn(rhs),
+        ) [
+            ndassert::catch!(rhs_long + lhs_long, func(rhs_alt + lhs_alt)),
+            ndassert::catch!(rhs_long - lhs_long, func(rhs_alt - lhs_alt)),
+            ndassert::catch!(rhs_long * lhs_long, func(rhs_alt * lhs_alt)),
+
+            (rhs_long | lhs_long, func(rhs_alt | lhs_alt)),
+            (rhs_long & lhs_long, func(rhs_alt & lhs_alt)),
+            (rhs_long ^ lhs_long, func(rhs_alt ^ lhs_alt)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in lhs_iter.clone(),
+            rhs in rhs_iter.clone(),
+            lhs_long as lhs_long_fn(lhs),
+            rhs_long as rhs_long_fn(rhs),
+            lhs_alt as lhs_alt_fn(lhs),
+            rhs_alt as rhs_alt_fn(rhs),
+        ) [
+            ndassert::catch!({ let mut val = lhs_long; val += rhs_long; val }, func(lhs_alt + rhs_alt)),
+            ndassert::catch!({ let mut val = lhs_long; val -= rhs_long; val }, func(lhs_alt - rhs_alt)),
+            ndassert::catch!({ let mut val = lhs_long; val *= rhs_long; val }, func(lhs_alt * rhs_alt)),
+
+            ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val /= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
+            ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val %= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
+
+            ({ let mut val = lhs_long; val |= rhs_long; val }, func(lhs_alt | rhs_alt)),
+            ({ let mut val = lhs_long; val &= rhs_long; val }, func(lhs_alt & rhs_alt)),
+            ({ let mut val = lhs_long; val ^= rhs_long; val }, func(lhs_alt ^ rhs_alt)),
+        ] }
+    }
+
+    fn ops_shift_impl<
+        Value: Num + Debug + RefUnwindSafe,
+        ValueLong: Num + Debug + RefUnwindSafe + Ops<ValueLong, usize, Type = ValueLong> + OpsAssign<ValueLong, usize>,
+        ValueAlt: Num + Debug + RefUnwindSafe + Ops<ValueAlt, usize, Type = ValueAlt> + OpsAssign<ValueAlt, usize>,
+    >(
+        value_iter: impl Iterator<Item = Value> + Clone,
+        shift_iter: impl Iterator<Item = usize> + Clone,
+        long_fn: impl Fn(Value) -> ValueLong,
+        alt_fn: impl Fn(Value) -> ValueAlt,
+        func: impl Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
+    ) {
+        ndassert::check! { @eq (
+            value in value_iter.clone(),
+            shift in shift_iter.clone(),
+            long as long_fn(value),
+            alt as alt_fn(value),
+        ) [
+            ndassert::catch!(long << shift, func(alt << shift)),
+            ndassert::catch!(long >> shift, func(alt >> shift)),
+        ] }
+
+        ndassert::check! { @eq (
+            value in value_iter.clone(),
+            shift in shift_iter.clone(),
+            long as long_fn(value),
+            alt as alt_fn(value),
+        ) [
+            ndassert::catch!({ let mut val = long; val <<= shift; val }, func(alt << shift)),
+            ndassert::catch!({ let mut val = long; val >>= shift; val }, func(alt >> shift)),
+        ] }
+    }
 
     #[test]
     fn from_primitive() {
@@ -7341,297 +7466,97 @@ mod tests {
     }
 
     #[test]
-    fn ops() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            lhs_long as S64::from(lhs),
-            rhs_long as S64::from(rhs),
-        ) [
-            (lhs_long + rhs_long, S64::from(lhs.wrapping_add(rhs))),
-            (lhs_long - rhs_long, S64::from(lhs.wrapping_sub(rhs))),
-            (lhs_long * rhs_long, S64::from(lhs.wrapping_mul(rhs))),
+    fn ops_signed() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            |val: i64| S64::from(val),
+            |val: i64| S64::from(val),
+            |val: i64| Wrapping(val),
+            |val: i64| Wrapping(val),
+            |val: Wrapping<i64>| S64::from(val.0),
+        );
 
-            ((rhs != 0).then_some(lhs_long / rhs_long), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(lhs_long % rhs_long), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
-
-            (lhs_long | rhs_long, S64::from(lhs | rhs)),
-            (lhs_long & rhs_long, S64::from(lhs & rhs)),
-            (lhs_long ^ rhs_long, S64::from(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
-            lhs_long as U64::from(lhs),
-            rhs_long as U64::from(rhs),
-        ) [
-            (lhs_long + rhs_long, U64::from(lhs.wrapping_add(rhs))),
-            (lhs_long - rhs_long, U64::from(lhs.wrapping_sub(rhs))),
-            (lhs_long * rhs_long, U64::from(lhs.wrapping_mul(rhs))),
-
-            ((rhs != 0).then_some(lhs_long / rhs_long), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(lhs_long % rhs_long), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
-
-            (lhs_long | rhs_long, U64::from(lhs | rhs)),
-            (lhs_long & rhs_long, U64::from(lhs & rhs)),
-            (lhs_long ^ rhs_long, U64::from(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            value in ndassert::range!(i64, 52),
-            shift in 0..96,
-            long as S64::from(value),
-        ) [
-            (long << shift, S64::from(value.unbounded_shl(shift as u32))),
-            (long >> shift, S64::from(value.unbounded_shr(shift as u32))),
-        ] }
-
-        ndassert::check! { @eq (
-            value in ndassert::range!(u64, 52),
-            shift in 0..96,
-            long as U64::from(value),
-        ) [
-            (long << shift, U64::from(value.unbounded_shl(shift as u32))),
-            (long >> shift, U64::from(value.unbounded_shr(shift as u32))),
-        ] }
+        ops_shift_impl(
+            ndassert::range!(i64, 52),
+            0..96,
+            |val: i64| S64::from(val),
+            |val: i64| Unbounded(val),
+            |val: Unbounded<i64>| S64::from(val.0),
+        );
     }
 
     #[test]
-    fn ops_mut() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            lhs_long as S64::from(lhs),
-            rhs_long as S64::from(rhs),
-        ) [
-            ({ let mut val = lhs_long; val += rhs_long; val }, S64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = lhs_long; val -= rhs_long; val }, S64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = lhs_long; val *= rhs_long; val }, S64::from(lhs.wrapping_mul(rhs))),
+    fn ops_unsigned() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
+            |val: u64| U64::from(val),
+            |val: u64| U64::from(val),
+            |val: u64| Wrapping(val),
+            |val: u64| Wrapping(val),
+            |val: Wrapping<u64>| U64::from(val.0),
+        );
 
-            ({ let mut val = lhs_long; val /= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = lhs_long; val %= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
-
-            ({ let mut val = lhs_long; val |= rhs_long; val }, S64::from(lhs | rhs)),
-            ({ let mut val = lhs_long; val &= rhs_long; val }, S64::from(lhs & rhs)),
-            ({ let mut val = lhs_long; val ^= rhs_long; val }, S64::from(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
-            lhs_long as U64::from(lhs),
-            rhs_long as U64::from(rhs),
-        ) [
-            ({ let mut val = lhs_long; val += rhs_long; val }, U64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = lhs_long; val -= rhs_long; val }, U64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = lhs_long; val *= rhs_long; val }, U64::from(lhs.wrapping_mul(rhs))),
-
-            ({ let mut val = lhs_long; val /= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = lhs_long; val %= rhs_long; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
-
-            ({ let mut val = lhs_long; val |= rhs_long; val }, U64::from(lhs | rhs)),
-            ({ let mut val = lhs_long; val &= rhs_long; val }, U64::from(lhs & rhs)),
-            ({ let mut val = lhs_long; val ^= rhs_long; val }, U64::from(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            value in ndassert::range!(i64, 52),
-            shift in 0..96,
-            long as S64::from(value),
-        ) [
-            ({ let mut val = long; val <<= shift; val }, S64::from(value.unbounded_shl(shift as u32))),
-            ({ let mut val = long; val >>= shift; val }, S64::from(value.unbounded_shr(shift as u32))),
-        ] }
-
-        ndassert::check! { @eq (
-            value in ndassert::range!(u64, 52),
-            shift in 0..96,
-            long as U64::from(value),
-        ) [
-            ({ let mut val = long; val <<= shift; val }, U64::from(value.unbounded_shl(shift as u32))),
-            ({ let mut val = long; val >>= shift; val }, U64::from(value.unbounded_shr(shift as u32))),
-        ] }
+        ops_shift_impl(
+            ndassert::range!(u64, 52),
+            0..96,
+            |val: u64| U64::from(val),
+            |val: u64| Unbounded(val),
+            |val: Unbounded<u64>| U64::from(val.0),
+        );
     }
 
     #[test]
-    fn ops_primitive() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            long as S64::from(lhs),
-        ) [
-            (long + rhs, S64::from(lhs.wrapping_add(rhs))),
-            (long - rhs, S64::from(lhs.wrapping_sub(rhs))),
-            (long * rhs, S64::from(lhs.wrapping_mul(rhs))),
-
-            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
-
-            (rhs + long, S64::from(rhs.wrapping_add(lhs))),
-            (rhs - long, S64::from(rhs.wrapping_sub(lhs))),
-            (rhs * long, S64::from(rhs.wrapping_mul(lhs))),
-
-            (long | rhs, S64::from(lhs | rhs)),
-            (long & rhs, S64::from(lhs & rhs)),
-            (long ^ rhs, S64::from(lhs ^ rhs)),
-
-            (rhs | long, S64::from(lhs | rhs)),
-            (rhs & long, S64::from(lhs & rhs)),
-            (rhs ^ long, S64::from(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
-            long as U64::from(lhs),
-        ) [
-            (long + rhs, U64::from(lhs.wrapping_add(rhs))),
-            (long - rhs, U64::from(lhs.wrapping_sub(rhs))),
-            (long * rhs, U64::from(lhs.wrapping_mul(rhs))),
-
-            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
-
-            (rhs + long, U64::from(rhs.wrapping_add(lhs))),
-            (rhs - long, U64::from(rhs.wrapping_sub(lhs))),
-            (rhs * long, U64::from(rhs.wrapping_mul(lhs))),
-
-            (long | rhs, U64::from(lhs | rhs)),
-            (long & rhs, U64::from(lhs & rhs)),
-            (long ^ rhs, U64::from(lhs ^ rhs)),
-
-            (rhs | long, U64::from(lhs | rhs)),
-            (rhs & long, U64::from(lhs & rhs)),
-            (rhs ^ long, U64::from(lhs ^ rhs)),
-        ] }
+    fn ops_signed_primitive() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            |val: i64| S64::from(val),
+            |val: i64| val,
+            |val: i64| Wrapping(val),
+            |val: i64| Wrapping(val),
+            |val: Wrapping<i64>| S64::from(val.0),
+        );
     }
 
     #[test]
-    fn ops_primitive_mut() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            long as S64::from(lhs),
-        ) [
-            ({ let mut val = long; val += rhs; val }, S64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = long; val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = long; val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs))),
-
-            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs)))),
-
-            ({ let mut val = long; val |= rhs; val }, S64::from(lhs | rhs)),
-            ({ let mut val = long; val &= rhs; val }, S64::from(lhs & rhs)),
-            ({ let mut val = long; val ^= rhs; val }, S64::from(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
-            rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
-            long as U64::from(lhs),
-        ) [
-            ({ let mut val = long; val += rhs; val }, U64::from(lhs.wrapping_add(rhs))),
-            ({ let mut val = long; val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs))),
-            ({ let mut val = long; val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs))),
-
-            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs)))),
-            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs)))),
-
-            ({ let mut val = long; val |= rhs; val }, U64::from(lhs | rhs)),
-            ({ let mut val = long; val &= rhs; val }, U64::from(lhs & rhs)),
-            ({ let mut val = long; val ^= rhs; val }, U64::from(lhs ^ rhs)),
-        ] }
+    fn ops_unsigned_primitive() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
+            |val: u64| U64::from(val),
+            |val: u64| val,
+            |val: u64| Wrapping(val),
+            |val: u64| Wrapping(val),
+            |val: Wrapping<u64>| U64::from(val.0),
+        );
     }
 
     #[test]
-    fn ops_primitive_native() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56).chain([-1, 0, 1]),
-            rhs in i8::MIN..i8::MAX,
-            long as S64::from(lhs),
-        ) [
-            (long + rhs, S64::from(lhs.wrapping_add(rhs as i64))),
-            (long - rhs, S64::from(lhs.wrapping_sub(rhs as i64))),
-            (long * rhs, S64::from(lhs.wrapping_mul(rhs as i64))),
-
-            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
-            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
-
-            (rhs + long, S64::from((rhs as i64).wrapping_add(lhs))),
-            (rhs - long, S64::from((rhs as i64).wrapping_sub(lhs))),
-            (rhs * long, S64::from((rhs as i64).wrapping_mul(lhs))),
-
-            (long | rhs, S64::from(lhs | rhs as i64)),
-            (long & rhs, S64::from(lhs & rhs as i64)),
-            (long ^ rhs, S64::from(lhs ^ rhs as i64)),
-
-            (rhs | long, S64::from(lhs | rhs as i64)),
-            (rhs & long, S64::from(lhs & rhs as i64)),
-            (rhs ^ long, S64::from(lhs ^ rhs as i64)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56).chain([0, 1]),
-            rhs in u8::MIN..u8::MAX,
-            long as U64::from(lhs),
-        ) [
-            (long + rhs, U64::from(lhs.wrapping_add(rhs as u64))),
-            (long - rhs, U64::from(lhs.wrapping_sub(rhs as u64))),
-            (long * rhs, U64::from(lhs.wrapping_mul(rhs as u64))),
-
-            ((rhs != 0).then_some(long / rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
-            ((rhs != 0).then_some(long % rhs), (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
-
-            (rhs + long, U64::from((rhs as u64).wrapping_add(lhs))),
-            (rhs - long, U64::from((rhs as u64).wrapping_sub(lhs))),
-            (rhs * long, U64::from((rhs as u64).wrapping_mul(lhs))),
-
-            (long | rhs, U64::from(lhs | rhs as u64)),
-            (long & rhs, U64::from(lhs & rhs as u64)),
-            (long ^ rhs, U64::from(lhs ^ rhs as u64)),
-
-            (rhs | long, U64::from(lhs | rhs as u64)),
-            (rhs & long, U64::from(lhs & rhs as u64)),
-            (rhs ^ long, U64::from(lhs ^ rhs as u64)),
-        ] }
+    fn ops_signed_primitive_native() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            i8::MIN..i8::MAX,
+            |val: i64| S64::from(val),
+            |val: i8| val,
+            |val: i64| Wrapping(val),
+            |val: i8| Wrapping(val as i64),
+            |val: Wrapping<i64>| S64::from(val.0),
+        );
     }
 
     #[test]
-    fn ops_primitive_native_mut() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56).chain([-1, 0, 1]),
-            rhs in i8::MIN..i8::MAX,
-            long as S64::from(lhs),
-        ) [
-            ({ let mut val = long; val += rhs; val }, S64::from(lhs.wrapping_add(rhs as i64))),
-            ({ let mut val = long; val -= rhs; val }, S64::from(lhs.wrapping_sub(rhs as i64))),
-            ({ let mut val = long; val *= rhs; val }, S64::from(lhs.wrapping_mul(rhs as i64))),
-
-            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_div(rhs as i64)))),
-            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| S64::from(lhs.wrapping_rem(rhs as i64)))),
-
-            ({ let mut val = long; val |= rhs; val }, S64::from(lhs | rhs as i64)),
-            ({ let mut val = long; val &= rhs; val }, S64::from(lhs & rhs as i64)),
-            ({ let mut val = long; val ^= rhs; val }, S64::from(lhs ^ rhs as i64)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56).chain([0, 1]),
-            rhs in u8::MIN..u8::MAX,
-            long as U64::from(lhs),
-        ) [
-            ({ let mut val = long; val += rhs; val }, U64::from(lhs.wrapping_add(rhs as u64))),
-            ({ let mut val = long; val -= rhs; val }, U64::from(lhs.wrapping_sub(rhs as u64))),
-            ({ let mut val = long; val *= rhs; val }, U64::from(lhs.wrapping_mul(rhs as u64))),
-
-            ({ let mut val = long; val /= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_div(rhs as u64)))),
-            ({ let mut val = long; val %= rhs; (rhs != 0).then_some(val) }, (rhs != 0).then(|| U64::from(lhs.wrapping_rem(rhs as u64)))),
-
-            ({ let mut val = long; val |= rhs; val }, U64::from(lhs | rhs as u64)),
-            ({ let mut val = long; val &= rhs; val }, U64::from(lhs & rhs as u64)),
-            ({ let mut val = long; val ^= rhs; val }, U64::from(lhs ^ rhs as u64)),
-        ] }
+    fn ops_unsigned_primitive_native() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            u8::MIN..u8::MAX,
+            |val: u64| U64::from(val),
+            |val: u8| val,
+            |val: u64| Wrapping(val),
+            |val: u8| Wrapping(val as u64),
+            |val: Wrapping<u64>| U64::from(val.0),
+        );
     }
 
     #[test]
