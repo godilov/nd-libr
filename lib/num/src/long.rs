@@ -7466,6 +7466,23 @@ mod tests {
     }
 
     #[test]
+    fn ops_unary() {
+        let func = |val: Wrapping<i64>| S64::from(val.0);
+
+        ndassert::check! { @eq (
+            value in ndassert::range!(i64, 52),
+            long as S64::from(value),
+            alt as Wrapping(value),
+        ) [
+            (!long, func(!alt)),
+
+            ndassert::catch!(-long, func(-alt)),
+            ndassert::catch!(S64::nd_posx(&long), func(Wrapping::<i64>::nd_posx(&alt))),
+            ndassert::catch!(S64::nd_negx(&long), func(Wrapping::<i64>::nd_negx(&alt))),
+        ] }
+    }
+
+    #[test]
     fn ops_signed() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
