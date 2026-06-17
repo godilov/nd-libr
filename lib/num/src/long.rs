@@ -1429,7 +1429,7 @@ pub mod uops {
             (func(res), overflow)
         }
 
-        /// Evaluates expression with func.
+        /// Evaluates expression with function.
         #[inline]
         fn with<Long: Copy, F: Fn(Words) -> Long>(self, func: F) -> Long {
             func(self.eval())
