@@ -1608,6 +1608,20 @@ pub mod uops {
                 ctx_func: |_, _, _, _| (),
             }
         }
+
+        /// Evaluates expression.
+        #[inline]
+        pub fn eval<const L: usize>(mut self) -> [Single; L] {
+            self.collect_arr()
+        }
+
+        /// Evaluates expression with context.
+        #[inline]
+        pub fn eval_ext<const L: usize>(mut self) -> ([Single; L], bool) {
+            let res = self.collect_arr();
+
+            (res, false)
+        }
     }
 
     impl<
@@ -1646,6 +1660,20 @@ pub mod uops {
                 ctx: (),
                 ctx_func: |_, _, _, _| (),
             }
+        }
+
+        /// Evaluates expression.
+        #[inline]
+        pub fn eval(self) {
+            self.for_each(|_| ());
+        }
+
+        /// Evaluates expression with context.
+        #[inline]
+        pub fn eval_ext(self) -> ((), bool) {
+            self.for_each(|_| ());
+
+            ((), false)
         }
     }
 
@@ -2748,48 +2776,6 @@ pub mod uops {
         pub fn default(mut self, default: Single) -> Self {
             self.default = default;
             self
-        }
-    }
-
-    impl<
-        const L: usize,
-        Lhs: Iterator<Item = Single>,
-        Rhs: Iterator<Item = Single>,
-        Ctx: Copy,
-        CtxFn: Copy + Fn(Single, Single, Single, Ctx) -> Ctx,
-    > Expr<[Single; L]> for ExprIter<Lhs, Rhs, Ctx, CtxFn>
-    {
-        #[inline]
-        fn eval(mut self) -> [Single; L] {
-            self.collect_arr()
-        }
-
-        #[inline]
-        fn eval_ext(mut self) -> ([Single; L], bool) {
-            let res = self.collect_arr();
-
-            (res, false)
-        }
-    }
-
-    impl<
-        'words,
-        Lhs: Iterator<Item = &'words mut Single>,
-        Rhs: Iterator<Item = Single>,
-        Ctx: Copy,
-        CtxFn: Copy + Fn(Single, Single, Single, Ctx) -> Ctx,
-    > Expr<()> for ExprIterMut<'words, Lhs, Rhs, Ctx, CtxFn>
-    {
-        #[inline]
-        fn eval(self) {
-            self.for_each(|_| ());
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ((), bool) {
-            self.for_each(|_| ());
-
-            ((), false)
         }
     }
 
