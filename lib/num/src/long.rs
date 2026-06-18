@@ -2768,7 +2768,7 @@ pub mod uops {
         fn eval_ext(mut self) -> ([Single; L], bool) {
             let res = self.collect_arr();
 
-            (res, self.acc > 0)
+            (res, false)
         }
     }
 
@@ -2787,7 +2787,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            ((), self.last().unwrap_or_default() > 0)
+            ((), false)
         }
     }
 
