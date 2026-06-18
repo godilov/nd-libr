@@ -1353,6 +1353,33 @@ pub mod uops {
         pub rhs: Rhs,
     }
 
+    /// Add signed expression.
+    pub struct AddSigned<Lhs, Rhs> {
+        /// Lhs in `lhs + rhs`, `lhs += rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs + rhs`, `lhs += rhs`.
+        pub rhs: Rhs,
+    }
+
+    /// Sub signed expression.
+    pub struct SubSigned<Lhs, Rhs> {
+        /// Lhs in `lhs - rhs`, `lhs -= rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs - rhs`, `lhs -= rhs`.
+        pub rhs: Rhs,
+    }
+
+    /// Mul signed expression.
+    pub struct MulSigned<Lhs, Rhs> {
+        /// Lhs in `lhs * rhs`, `lhs *= rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs * rhs`, `lhs *= rhs`.
+        pub rhs: Rhs,
+    }
+
     /// Bit-wise iterator expression.
     pub struct BitIter<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
         /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
@@ -1674,6 +1701,36 @@ pub mod uops {
             self.for_each(|_| ());
 
             ((), false)
+        }
+    }
+
+    impl<Lhs, Rhs> Add<Lhs, Rhs> {
+        /// Add expression for signed numbers.
+        pub fn signed(self) -> AddSigned<Lhs, Rhs> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            AddSigned { lhs, rhs }
+        }
+    }
+
+    impl<Lhs, Rhs> Sub<Lhs, Rhs> {
+        /// Sub expression for signed numbers.
+        pub fn signed(self) -> SubSigned<Lhs, Rhs> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            SubSigned { lhs, rhs }
+        }
+    }
+
+    impl<Lhs, Rhs> Mul<Lhs, Rhs> {
+        /// Mul expression for signed numbers.
+        pub fn signed(self) -> MulSigned<Lhs, Rhs> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            MulSigned { lhs, rhs }
         }
     }
 
@@ -3859,6 +3916,28 @@ pub mod algo {
         idx
     }
 
+    impl<Lhs, Rhs> Div<Lhs, Rhs> {
+        /// Div expression for signed numbers.
+        #[inline]
+        pub fn signed(self) -> DivSigned<Lhs, Rhs> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            DivSigned { lhs, rhs }
+        }
+    }
+
+    impl<Lhs, Rhs> Rem<Lhs, Rhs> {
+        /// Rem expression for signed numbers.
+        #[inline]
+        pub fn signed(self) -> RemSigned<Lhs, Rhs> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            RemSigned { lhs, rhs }
+        }
+    }
+
     impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], &[Single; L]> {
         #[inline]
         fn eval(self) -> [Single; L] {
@@ -4054,7 +4133,7 @@ pub mod algo {
     }
 
     impl<'words, const L: usize> Div<&'words [Single; L], &'words [Single; L]> {
-        /// Evaluate div + rem.
+        /// Evaluates div + rem.
         #[inline]
         pub fn evalx(self) -> ([Single; L], [Single; L]) {
             let lhs = self.lhs;
@@ -4093,7 +4172,7 @@ pub mod algo {
     }
 
     impl<const L: usize> Div<&[Single; L], Single> {
-        /// Evaluate div + rem.
+        /// Evaluates div + rem.
         #[inline]
         pub fn evalx(self) -> ([Single; L], Single) {
             let lhs = self.lhs;
@@ -4112,94 +4191,6 @@ pub mod algo {
             }
 
             (div, rem as Single)
-        }
-    }
-
-    impl<'words, const L: usize> Div<&'words [Single; L], &'words [Single; L]> {
-        /// Div expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> DivSigned<&'words [Single; L], &'words [Single; L]> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            DivSigned { lhs, rhs }
-        }
-    }
-
-    impl<'words, const L: usize> Div<&'words [Single; L], <Single as Num>::Signed> {
-        /// Div expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> DivSigned<&'words [Single; L], <Single as Num>::Signed> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            DivSigned { lhs, rhs }
-        }
-    }
-
-    impl<'words, const L: usize> Rem<&'words [Single; L], &'words [Single; L]> {
-        /// Rem expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> RemSigned<&'words [Single; L], &'words [Single; L]> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            RemSigned { lhs, rhs }
-        }
-    }
-
-    impl<'words, const L: usize> Rem<&'words [Single; L], <Single as Num>::Signed> {
-        /// Rem expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> RemSigned<&'words [Single; L], <Single as Num>::Signed> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            RemSigned { lhs, rhs }
-        }
-    }
-
-    impl<'words, const L: usize> Div<&'words mut [Single; L], &'words [Single; L]> {
-        /// Div expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> DivSigned<&'words mut [Single; L], &'words [Single; L]> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            DivSigned { lhs, rhs }
-        }
-    }
-
-    impl<'words, const L: usize> Div<&'words mut [Single; L], <Single as Num>::Signed> {
-        /// Div expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> DivSigned<&'words mut [Single; L], <Single as Num>::Signed> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            DivSigned { lhs, rhs }
-        }
-    }
-
-    impl<'words, const L: usize> Rem<&'words mut [Single; L], &'words [Single; L]> {
-        /// Rem expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> RemSigned<&'words mut [Single; L], &'words [Single; L]> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            RemSigned { lhs, rhs }
-        }
-    }
-
-    impl<'words, const L: usize> Rem<&'words mut [Single; L], <Single as Num>::Signed> {
-        /// Rem expression for signed numbers.
-        #[inline]
-        pub fn signed(self) -> RemSigned<&'words mut [Single; L], <Single as Num>::Signed> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            RemSigned { lhs, rhs }
         }
     }
 
