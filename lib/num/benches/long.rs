@@ -894,8 +894,8 @@ fn uops_signed(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_signed",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::add(&lhs.0, *rhs).iter().for_each(black_box(|_| ()))),
-        "sub_signed",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::sub(&lhs.0, *rhs).iter().for_each(black_box(|_| ()))),
+        "add_signed",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::add(&lhs.0, *rhs).signed().iter().for_each(black_box(|_| ()))),
+        "sub_signed",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::sub(&lhs.0, *rhs).signed().iter().for_each(black_box(|_| ()))),
 
         "bitor_signed",   &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitor (&lhs.0, *rhs).iter().for_each(black_box(|_| ()))),
         "bitand_signed",  &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| black_box(uops::bitand(&lhs.0, *rhs).iter().for_each(black_box(|_| ()))),
@@ -911,8 +911,8 @@ fn uops_signed_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "add_signed_mut",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| { let mut val = *lhs; black_box(uops::add(&mut val.0, *rhs).iter_mut().for_each(black_box(|_| ()))); },
-        "sub_signed_mut",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| { let mut val = *lhs; black_box(uops::sub(&mut val.0, *rhs).iter_mut().for_each(black_box(|_| ()))); },
+        "add_signed_mut",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| { let mut val = *lhs; black_box(uops::add(&mut val.0, *rhs).signed().iter_mut().for_each(black_box(|_| ()))); },
+        "sub_signed_mut",     &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| { let mut val = *lhs; black_box(uops::sub(&mut val.0, *rhs).signed().iter_mut().for_each(black_box(|_| ()))); },
 
         "bitor_signed_mut",   &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| { let mut val = *lhs; black_box(uops::bitor (&mut val.0, *rhs).iter_mut().for_each(black_box(|_| ()))); },
         "bitand_signed_mut",  &args, |Aligned((lhs, rhs)): &Aligned<(Slong, Isize)>| { let mut val = *lhs; black_box(uops::bitand(&mut val.0, *rhs).iter_mut().for_each(black_box(|_| ()))); },
