@@ -1698,20 +1698,14 @@ pub mod uops {
     impl<Lhs, Rhs> Add<Lhs, Rhs> {
         /// Add expression for signed numbers.
         pub fn signed(self) -> AddSigned<Lhs, Rhs> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            AddSigned { lhs, rhs }
+            AddSigned { lhs: self.lhs, rhs: self.rhs }
         }
     }
 
     impl<Lhs, Rhs> Sub<Lhs, Rhs> {
         /// Sub expression for signed numbers.
         pub fn signed(self) -> SubSigned<Lhs, Rhs> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-
-            SubSigned { lhs, rhs }
+            SubSigned { lhs: self.lhs, rhs: self.rhs }
         }
     }
 
