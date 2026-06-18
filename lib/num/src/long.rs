@@ -2787,6 +2787,8 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
+            self.for_each(|_| ());
+
             ((), false)
         }
     }
