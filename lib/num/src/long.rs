@@ -4273,7 +4273,7 @@ pub mod algo {
             Mul {
                 lhs: self.rhs,
                 rhs: self.lhs,
-                imp: SignedImpl,
+                imp: self.imp,
             }
             .eval()
         }
@@ -4283,7 +4283,7 @@ pub mod algo {
             Mul {
                 lhs: self.rhs,
                 rhs: self.lhs,
-                imp: SignedImpl,
+                imp: self.imp,
             }
             .eval_ext()
         }
@@ -4365,7 +4365,7 @@ pub mod algo {
             *self.lhs = Mul {
                 lhs: &*self.lhs,
                 rhs: self.rhs,
-                imp: SignedImpl,
+                imp: self.imp,
             }
             .eval();
 
@@ -4377,7 +4377,7 @@ pub mod algo {
             let (res, overflow) = Mul {
                 lhs: &*self.lhs,
                 rhs: self.rhs,
-                imp: SignedImpl,
+                imp: self.imp,
             }
             .eval_ext();
 
