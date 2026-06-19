@@ -10,11 +10,11 @@ use ndext::{
     iter::{IteratorExt, NdTryFromIterator},
 };
 use ndnum::{
-    Num,
+    Dir, Num,
     arch::{Aligned, word::Single},
     long::{
-        ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter, uops,
-        uops::{Expr, ExprMut},
+        ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter,
+        uops::{self, Expr, ExprMut},
     },
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
@@ -804,8 +804,8 @@ fn uops(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "posx",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| black_box(uops::posx(&lhs.0).iter().for_each(black_box(|_| ()))),
-        "negx",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| black_box(uops::negx(&lhs.0).iter().for_each(black_box(|_| ()))),
+        "posx",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| black_box(uops::dirx(&lhs.0, Dir::POS).iter().for_each(black_box(|_| ()))),
+        "negx",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| black_box(uops::dirx(&lhs.0, Dir::NEG).iter().for_each(black_box(|_| ()))),
 
         "not",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| black_box(uops::not(&lhs.0,       ).iter().for_each(black_box(|_| ()))),
         "pos",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| black_box(uops::pos(&lhs.0,       ).iter().for_each(black_box(|_| ()))),
@@ -832,8 +832,8 @@ fn uops_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "posx_mut",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| { let mut val = *lhs; black_box(uops::posx(&mut val.0).iter_mut().for_each(black_box(|_| ()))); },
-        "negx_mut",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| { let mut val = *lhs; black_box(uops::negx(&mut val.0).iter_mut().for_each(black_box(|_| ()))); },
+        "posx_mut",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| { let mut val = *lhs; black_box(uops::dirx(&mut val.0, Dir::POS).iter_mut().for_each(black_box(|_| ()))); },
+        "negx_mut",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| { let mut val = *lhs; black_box(uops::dirx(&mut val.0, Dir::NEG).iter_mut().for_each(black_box(|_| ()))); },
 
         "not_mut",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| { let mut val = *lhs; black_box(uops::not(&mut val.0,       ).iter_mut().for_each(black_box(|_| ()))); },
         "pos_mut",     &args, |Aligned([lhs,   _]): &Aligned<[Ulong; 2]>| { let mut val = *lhs; black_box(uops::pos(&mut val.0,       ).iter_mut().for_each(black_box(|_| ()))); },

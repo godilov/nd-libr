@@ -1293,18 +1293,6 @@ pub mod uops {
         pub words: Words,
     }
 
-    /// Positive absolute value expression.
-    pub struct Posx<Words> {
-        /// Words of expression.
-        pub words: Words,
-    }
-
-    /// Negative absolute value expression.
-    pub struct Negx<Words> {
-        /// Words of expression.
-        pub words: Words,
-    }
-
     /// Dir absolute value expression.
     pub struct Dirx<Words> {
         /// Words of expression.
@@ -1886,12 +1874,14 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, (usize, bool)) -> (usize, bool),
         > {
             let words = self.words.iter().copied();
 
-            NegIter { words }.iter()
+            NegIter { words }.iter().ctx((0, true), move |word, _, _, (idx, flag)| {
+                (idx + 1, flag && Signed::<L>::MIN.0[idx] == !word)
+            })
         }
     }
 
@@ -1904,128 +1894,14 @@ pub mod uops {
             '_,
             impl Iterator<Item = &mut Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, (usize, bool)) -> (usize, bool),
         > {
             let words = self.words.iter_mut();
 
-            NegIter { words }.iter_mut()
-        }
-    }
-
-    impl<const L: usize> Posx<&[Single; L]> {
-        /// Iterator for [`Posx`] expression.
-        #[inline]
-        pub fn iter(
-            self,
-        ) -> ExprIter<
-            impl Iterator<Item = Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
-        > {
-            let (xor, acc) = match dir(self.words) {
-                Dir::POS => (0, 0),
-                Dir::NEG => (MAX, 1),
-            };
-
-            ExprIter {
-                lhs: self.words.iter().copied().map(move |word| word ^ xor),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
-            }
-        }
-    }
-
-    impl<const L: usize> Posx<&mut [Single; L]> {
-        /// Iterator for [`Posx`] expression.
-        #[inline]
-        pub fn iter_mut(
-            &mut self,
-        ) -> ExprIterMut<
-            '_,
-            impl Iterator<Item = &mut Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
-        > {
-            let (xor, acc) = match dir(self.words) {
-                Dir::POS => (0, 0),
-                Dir::NEG => (MAX, 1),
-            };
-
-            ExprIterMut {
-                lhs: self.words.iter_mut().map(move |word| {
-                    *word ^= xor;
-                    word
-                }),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
-            }
-        }
-    }
-
-    impl<const L: usize> Negx<&[Single; L]> {
-        /// Iterator for [`Negx`] expression.
-        #[inline]
-        pub fn iter(
-            self,
-        ) -> ExprIter<
-            impl Iterator<Item = Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
-        > {
-            let (xor, acc) = match dir(self.words) {
-                Dir::POS => (MAX, 1),
-                Dir::NEG => (0, 0),
-            };
-
-            ExprIter {
-                lhs: self.words.iter().copied().map(move |word| word ^ xor),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
-            }
-        }
-    }
-
-    impl<const L: usize> Negx<&mut [Single; L]> {
-        /// Iterator for [`Negx`] expression.
-        #[inline]
-        pub fn iter_mut(
-            &mut self,
-        ) -> ExprIterMut<
-            '_,
-            impl Iterator<Item = &mut Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
-        > {
-            let (xor, acc) = match dir(self.words) {
-                Dir::POS => (MAX, 1),
-                Dir::NEG => (0, 0),
-            };
-
-            ExprIterMut {
-                lhs: self.words.iter_mut().map(move |word| {
-                    *word ^= xor;
-                    word
-                }),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
-            }
+            NegIter { words }.iter_mut().ctx((0, true), move |word, _, _, (idx, flag)| {
+                (idx + 1, flag && Signed::<L>::MIN.0[idx] == !word)
+            })
         }
     }
 
@@ -2037,9 +1913,10 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, (usize, bool)) -> (usize, bool),
         > {
+            let dirx = self.dir;
             let (xor, acc) = match dir(self.words) == self.dir {
                 false => (MAX, 1),
                 true => (0, 0),
@@ -2050,8 +1927,10 @@ pub mod uops {
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                ctx: (0, true),
+                ctx_func: move |word, _, _, (idx, flag)| {
+                    (idx + 1, flag && Signed::<L>::MIN.0[idx] == word ^ xor && dirx == Dir::POS)
+                },
             }
         }
     }
@@ -2065,9 +1944,10 @@ pub mod uops {
             '_,
             impl Iterator<Item = &mut Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, (usize, bool)) -> (usize, bool),
         > {
+            let dirx = self.dir;
             let (xor, acc) = match dir(self.words) == self.dir {
                 false => (MAX, 1),
                 true => (0, 0),
@@ -2081,8 +1961,10 @@ pub mod uops {
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                ctx: (0, true),
+                ctx_func: move |word, _, _, (idx, flag)| {
+                    (idx + 1, flag && Signed::<L>::MIN.0[idx] == word ^ xor && dirx == Dir::POS)
+                },
             }
         }
     }
@@ -2921,66 +2803,6 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Posx<&[Single; L]> {
-        #[inline]
-        fn eval(self) -> [Single; L] {
-            self.iter().raw().eval()
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ([Single; L], bool) {
-            let overflow = self.words == &Signed::MIN.0;
-
-            (self.iter().eval(), overflow)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Posx<&'words mut [Single; L]> {
-        #[inline]
-        fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
-
-            self.words
-        }
-
-        #[inline]
-        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let overflow = self.words == &Signed::MIN.0;
-
-            let _ = self.iter_mut().eval_ext();
-
-            (self.words, overflow)
-        }
-    }
-
-    impl<const L: usize> Expr<[Single; L]> for Negx<&[Single; L]> {
-        #[inline]
-        fn eval(self) -> [Single; L] {
-            self.iter().raw().eval()
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Negx<&'words mut [Single; L]> {
-        #[inline]
-        fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
-
-            self.words
-        }
-
-        #[inline]
-        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext();
-
-            (self.words, overflow)
-        }
-    }
-
     impl<const L: usize> Expr<[Single; L]> for Dirx<&[Single; L]> {
         #[inline]
         fn eval(self) -> [Single; L] {
@@ -3787,22 +3609,6 @@ pub mod uops {
         Neg { words }
     }
 
-    /// Positive absolute value expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn posx<Words>(words: Words) -> Posx<Words> {
-        Posx { words }
-    }
-
-    /// Negative absolute value expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn negx<Words>(words: Words) -> Negx<Words> {
-        Negx { words }
-    }
-
     /// Dir absolute value expression.
     ///
     /// Evaluated via [`Expr`] methods.
@@ -4508,8 +4314,8 @@ pub mod algo {
     impl<const L: usize> Expr<[Single; L]> for Div<&[Single; L], &[Single; L], SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
-            let lhs = uops::posx(self.lhs).eval();
-            let rhs = uops::posx(self.rhs).eval();
+            let lhs = uops::dirx(self.lhs, Dir::POS).eval();
+            let rhs = uops::dirx(self.rhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
             let rhs_dir = uops::dir(self.rhs);
 
@@ -4534,7 +4340,7 @@ pub mod algo {
 
     impl<const L: usize> Expr<[Single; L]> for Div<&[Single; L], <Single as Num>::Signed, SignedImpl> {
         fn eval(self) -> [Single; L] {
-            let lhs = uops::posx(self.lhs).eval();
+            let lhs = uops::dirx(self.lhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
 
             let rhs = self.rhs.unsigned_abs();
@@ -4561,8 +4367,8 @@ pub mod algo {
     impl<const L: usize> Expr<[Single; L]> for Rem<&[Single; L], &[Single; L], SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
-            let lhs = uops::posx(self.lhs).eval();
-            let rhs = uops::posx(self.rhs).eval();
+            let lhs = uops::dirx(self.lhs, Dir::POS).eval();
+            let rhs = uops::dirx(self.rhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
 
             let res = Div {
@@ -4586,7 +4392,7 @@ pub mod algo {
 
     impl<const L: usize> Expr<<Single as Num>::Signed> for Rem<&[Single; L], <Single as Num>::Signed, SignedImpl> {
         fn eval(self) -> <Single as Num>::Signed {
-            let lhs = uops::posx(self.lhs).eval();
+            let lhs = uops::dirx(self.lhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
 
             let rhs = self.rhs.unsigned_abs();
@@ -5585,8 +5391,8 @@ impl<const L: usize> Ord for Signed<L> {
             (Dir::NEG, Dir::NEG) => (1, -1),
         };
 
-        let lhs = uops::posx(&self.0).iter();
-        let rhs = uops::posx(&other.0).iter();
+        let lhs = uops::dirx(&self.0, Dir::POS).iter();
+        let rhs = uops::dirx(&other.0, Dir::POS).iter();
 
         let cmp = lhs.zip(rhs).fold(0i8, |acc, (x, y)| match x.cmp(&y) {
             Ordering::Less => lt,
@@ -5763,19 +5569,19 @@ ndops::def! { @ndun <const L: usize> (value: &Signed<L>) -> Signed<L>, [
     - @saturating uops::neg(&value.0).saturating(Signed, &Signed::MAX),
     - @overflowing uops::neg(&value.0).overflowing(Signed),
 
-    posx uops::posx(&value.0).with(Signed),
-    posx @checked uops::posx(&value.0).checked(Signed),
-    posx @strict uops::posx(&value.0).strict(Signed),
-    posx @wrapping uops::posx(&value.0).with(Signed),
-    posx @saturating uops::posx(&value.0).saturating(Signed, &Signed::MAX),
-    posx @overflowing uops::posx(&value.0).overflowing(Signed),
+    posx uops::dirx(&value.0, Dir::POS).with(Signed),
+    posx @checked uops::dirx(&value.0, Dir::POS).checked(Signed),
+    posx @strict uops::dirx(&value.0, Dir::POS).strict(Signed),
+    posx @wrapping uops::dirx(&value.0, Dir::POS).with(Signed),
+    posx @saturating uops::dirx(&value.0, Dir::POS).saturating(Signed, &Signed::MAX),
+    posx @overflowing uops::dirx(&value.0, Dir::POS).overflowing(Signed),
 
-    negx uops::negx(&value.0).with(Signed),
-    negx @checked uops::negx(&value.0).checked(Signed),
-    negx @strict uops::negx(&value.0).strict(Signed),
-    negx @wrapping uops::negx(&value.0).with(Signed),
-    negx @saturating uops::negx(&value.0).saturating(Signed, &Signed::MIN),
-    negx @overflowing uops::negx(&value.0).overflowing(Signed),
+    negx uops::dirx(&value.0, Dir::NEG).with(Signed),
+    negx @checked uops::dirx(&value.0, Dir::NEG).checked(Signed),
+    negx @strict uops::dirx(&value.0, Dir::NEG).strict(Signed),
+    negx @wrapping uops::dirx(&value.0, Dir::NEG).with(Signed),
+    negx @saturating uops::dirx(&value.0, Dir::NEG).saturating(Signed, &Signed::MIN),
+    negx @overflowing uops::dirx(&value.0, Dir::NEG).overflowing(Signed),
 ] }
 
 ndops::def! { @ndun <const L: usize> (value: &Unsigned<L>) -> Unsigned<L>, [
@@ -8292,9 +8098,6 @@ mod tests {
             (uops::pos(&bytes).eval(), pos.to_le_bytes()),
             (uops::neg(&bytes).eval(), neg.to_le_bytes()),
 
-            (uops::posx(&bytes).eval(), [pos, neg][(neg > 0) as usize].to_le_bytes()),
-            (uops::negx(&bytes).eval(), [pos, neg][(pos > 0) as usize].to_le_bytes()),
-
             (uops::dirx(&bytes, Dir::POS).eval(), [pos, neg][(neg > 0) as usize].to_le_bytes()),
             (uops::dirx(&bytes, Dir::NEG).eval(), [pos, neg][(pos > 0) as usize].to_le_bytes()),
         ] }
@@ -8361,9 +8164,6 @@ mod tests {
             ({ let mut bytes = bytes; uops::not(&mut bytes).eval_mut(); bytes }, (!val).to_le_bytes()),
             ({ let mut bytes = bytes; uops::pos(&mut bytes).eval_mut(); bytes }, pos.to_le_bytes()),
             ({ let mut bytes = bytes; uops::neg(&mut bytes).eval_mut(); bytes }, neg.to_le_bytes()),
-
-            ({ let mut bytes = bytes; uops::posx(&mut bytes).eval_mut(); bytes }, [pos, neg][(neg > 0) as usize].to_le_bytes()),
-            ({ let mut bytes = bytes; uops::negx(&mut bytes).eval_mut(); bytes }, [pos, neg][(pos > 0) as usize].to_le_bytes()),
 
             ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::POS).eval_mut(); bytes }, [pos, neg][(neg > 0) as usize].to_le_bytes()),
             ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::NEG).eval_mut(); bytes }, [pos, neg][(pos > 0) as usize].to_le_bytes()),
