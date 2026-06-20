@@ -1199,6 +1199,7 @@ pub mod uops {
     /// Expression iterator for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct ExprIter<
         Lhs: Iterator<Item = Single>,
         Rhs: Iterator<Item = Single>,
@@ -1227,6 +1228,7 @@ pub mod uops {
     /// Expression iterator mutable for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct ExprIterMut<
         'words,
         Lhs: Iterator<Item = &'words mut Single>,
@@ -1254,48 +1256,57 @@ pub mod uops {
     }
 
     /// Signed expression implementation marker.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct SignedImpl;
 
     /// Unsigned expression implementation marker.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct UnsignedImpl;
 
     /// Not iterator expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct NotIter<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
     /// Positive iterator expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct PosIter<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
     /// Negative iterator expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct NegIter<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
     /// Not value expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Not<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
     /// Positive value expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Pos<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
     /// Negative value expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Neg<Words> {
         /// Words of expression.
         pub words: Words,
     }
 
     /// Dir absolute value expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Dirx<Words> {
         /// Words of expression.
         pub words: Words,
@@ -1305,6 +1316,7 @@ pub mod uops {
     }
 
     /// Add iterators expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct AddIter<Lhs, Rhs> {
         /// Lhs in `lhs + rhs`, `lhs += rhs`.
         pub lhs: Lhs,
@@ -1314,6 +1326,7 @@ pub mod uops {
     }
 
     /// Sub iterators expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct SubIter<Lhs, Rhs> {
         /// Lhs in `lhs - rhs`, `lhs -= rhs`.
         pub lhs: Lhs,
@@ -1323,6 +1336,7 @@ pub mod uops {
     }
 
     /// Add expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Add<Lhs, Rhs, Impl> {
         /// Lhs in `lhs + rhs`, `lhs += rhs`.
         pub lhs: Lhs,
@@ -1335,6 +1349,7 @@ pub mod uops {
     }
 
     /// Sub expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Sub<Lhs, Rhs, Impl> {
         /// Lhs in `lhs - rhs`, `lhs -= rhs`.
         pub lhs: Lhs,
@@ -1347,6 +1362,7 @@ pub mod uops {
     }
 
     /// Mul expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Mul<Lhs, Rhs> {
         /// Lhs in `lhs * rhs`, `lhs *= rhs`.
         pub lhs: Lhs,
@@ -1356,6 +1372,7 @@ pub mod uops {
     }
 
     /// Bit-wise iterator expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct BitIter<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
         /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
         pub lhs: Lhs,
@@ -1368,6 +1385,7 @@ pub mod uops {
     }
 
     /// Bit-wise expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Bit<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
         /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
         pub lhs: Lhs,
@@ -1380,6 +1398,7 @@ pub mod uops {
     }
 
     /// Shl expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Shl<Words> {
         /// Lhs in `lhs << rhs`, `lhs <<= rhs`
         pub words: Words,
@@ -1392,6 +1411,7 @@ pub mod uops {
     }
 
     /// Shr expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Shr<Words> {
         /// Lhs in `lhs >> rhs`, `lhs >>= rhs`
         pub words: Words,
@@ -2139,11 +2159,7 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
+            let ext = ext(&[rhs]);
             let dirx = dir(self.lhs);
             let eq = dir(self.lhs) == dir(&[rhs]);
 
@@ -2192,11 +2208,7 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
+            let ext = ext(&[rhs]);
             let dirx = dir(self.lhs);
             let eq = dir(self.lhs) == dir(&[rhs]);
 
@@ -2381,11 +2393,7 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
+            let ext = ext(&[rhs]);
             let dirx = dir(self.lhs);
             let eq = dir(self.lhs) == dir(&[rhs]);
 
@@ -2413,11 +2421,7 @@ pub mod uops {
         > {
             let lhs = self.lhs as Single;
 
-            let ext = match dir(&[lhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
+            let ext = ext(&[lhs]);
             let dirx = dir(self.rhs);
             let eq = dir(self.rhs) == dir(&[lhs]);
 
@@ -2446,11 +2450,7 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
+            let ext = ext(&[rhs]);
             let dirx = dir(self.lhs);
             let eq = dir(self.lhs) == dir(&[rhs]);
 
@@ -2611,10 +2611,7 @@ pub mod uops {
             let rhs = self.rhs as Single;
             let func = self.func;
 
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
+            let ext = ext(&[rhs]);
 
             BitIter {
                 lhs,
@@ -2635,10 +2632,7 @@ pub mod uops {
             let rhs = self.rhs as Single;
             let func = self.func;
 
-            let ext = match dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
+            let ext = ext(&[rhs]);
 
             BitIter {
                 lhs,
@@ -3806,6 +3800,15 @@ pub mod uops {
         }
     }
 
+    /// Reads extension.
+    #[inline]
+    pub fn ext<const L: usize>(words: &[Single; L]) -> Single {
+        match words[L - 1] >> (BITS - 1) {
+            0 => 0,
+            _ => MAX,
+        }
+    }
+
     /// Reads sign.
     #[inline]
     pub fn sign<const L: usize>(words: &[Single; L]) -> Sign {
@@ -3865,6 +3868,7 @@ pub mod algo {
     use super::*;
 
     /// Mul expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Mul<Lhs, Rhs, Impl> {
         /// Lhs in `lhs * rhs`, `lhs *= rhs`.
         pub lhs: Lhs,
@@ -3877,6 +3881,7 @@ pub mod algo {
     }
 
     /// Div expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Div<Lhs, Rhs, Impl> {
         /// Lhs in `lhs / rhs`.
         pub lhs: Lhs,
@@ -3889,6 +3894,7 @@ pub mod algo {
     }
 
     /// Rem expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Rem<Lhs, Rhs, Impl> {
         /// Lhs in `lhs % rhs`.
         pub lhs: Lhs,
@@ -3921,6 +3927,7 @@ pub mod algo {
 
     impl<Lhs, Rhs, Impl> Mul<Lhs, Rhs, Impl> {
         /// Mul expression for signed numbers.
+        #[inline]
         pub fn signed(self) -> Mul<Lhs, Rhs, SignedImpl> {
             Mul {
                 lhs: self.lhs,
@@ -3951,6 +3958,38 @@ pub mod algo {
                 rhs: self.rhs,
                 imp: SignedImpl,
             }
+        }
+    }
+
+    impl<const L: usize> Div<&[Single; L], &[Single; L], UnsignedImpl> {
+        /// Checks if overflows.
+        #[inline]
+        pub fn overflows(&self) -> bool {
+            self.rhs == &[0; L]
+        }
+    }
+
+    impl<const L: usize> Div<&[Single; L], Single, UnsignedImpl> {
+        /// Checks if overflows.
+        #[inline]
+        pub fn overflows(&self) -> bool {
+            self.rhs == 0
+        }
+    }
+
+    impl<const L: usize> Div<&[Single; L], &[Single; L], SignedImpl> {
+        /// Checks if overflows.
+        #[inline]
+        pub fn overflows(&self) -> bool {
+            self.rhs == &[0; L] || self.lhs == &Signed::MIN.0 && self.rhs == &[MAX; L]
+        }
+    }
+
+    impl<const L: usize> Div<&[Single; L], <Single as Num>::Signed, SignedImpl> {
+        /// Checks if overflows.
+        #[inline]
+        pub fn overflows(&self) -> bool {
+            self.rhs == 0 || self.lhs == &Signed::MIN.0 && self.rhs == -1
         }
     }
 
@@ -4030,47 +4069,31 @@ pub mod algo {
     impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], &[Single; L], SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
-            Mul {
-                lhs: self.lhs,
-                rhs: self.rhs,
-                imp: UnsignedImpl,
-            }
-            .eval()
+            self.eval_ext().0
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            Mul {
-                lhs: self.lhs,
-                rhs: self.rhs,
-                imp: UnsignedImpl,
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+
+            let mut res = [0; L];
+
+            for (idx, val) in rhs.iter().copied().enumerate() {
+                uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
+                    .iter_mut()
+                    .last()
+                    .unwrap_or(0);
             }
-            .eval_ext()
+
+            (res, uops::dir(lhs) != uops::dir(&res))
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], <Single as Num>::Signed, SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
-            let lhs = self.lhs;
-            let rhs = self.rhs as Single;
-
-            let ext = match uops::dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
-            let rhs = (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]);
-
-            let mut res = [0; L];
-
-            for (idx, val) in rhs.enumerate() {
-                uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
-                    .iter_mut()
-                    .eval_mut();
-            }
-
-            res
+            self.eval_ext().0
         }
 
         #[inline]
@@ -4078,24 +4101,18 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs as Single;
 
-            let ext = match uops::dir(&[rhs]) {
-                Dir::POS => 0,
-                Dir::NEG => MAX,
-            };
-
-            let rhs = (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]);
+            let ext = uops::ext(&[rhs]);
 
             let mut res = [0; L];
-            let mut any = 0;
 
-            for (idx, val) in rhs.enumerate() {
-                any |= uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
+            for (idx, val) in (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]).enumerate() {
+                uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
                     .iter_mut()
                     .last()
                     .unwrap_or(0);
             }
 
-            (res, any > 0)
+            (res, uops::dir(lhs) != uops::dir(&res))
         }
     }
 
@@ -4297,17 +4314,23 @@ pub mod algo {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.eval(), false)
+            let overflow = self.overflows();
+
+            (self.eval(), overflow)
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Div<&[Single; L], Single, UnsignedImpl> {
+        #[inline]
         fn eval(self) -> [Single; L] {
             self.evalx().0
         }
 
+        #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.eval(), false)
+            let overflow = self.overflows();
+
+            (self.eval(), overflow)
         }
     }
 
@@ -4325,11 +4348,19 @@ pub mod algo {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.eval(), false)
+            let overflow = Div {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval(), overflow)
         }
     }
 
     impl<const L: usize> Expr<Single> for Rem<&[Single; L], Single, UnsignedImpl> {
+        #[inline]
         fn eval(self) -> Single {
             Div {
                 lhs: self.lhs,
@@ -4340,8 +4371,16 @@ pub mod algo {
             .1
         }
 
+        #[inline]
         fn eval_ext(self) -> (Single, bool) {
-            (self.eval(), false)
+            let overflow = Div {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval(), overflow)
         }
     }
 
@@ -4358,21 +4397,21 @@ pub mod algo {
                 rhs: &rhs,
                 imp: UnsignedImpl,
             }
-            .evalx()
-            .0;
+            .eval();
 
             uops::dirx(&res, lhs_dir * rhs_dir).eval()
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == &[MAX; L] || self.rhs == &[0; L];
+            let overflow = self.overflows();
 
             (self.eval(), overflow)
         }
     }
 
     impl<const L: usize> Expr<[Single; L]> for Div<&[Single; L], <Single as Num>::Signed, SignedImpl> {
+        #[inline]
         fn eval(self) -> [Single; L] {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
@@ -4385,14 +4424,14 @@ pub mod algo {
                 rhs,
                 imp: UnsignedImpl,
             }
-            .evalx()
-            .0;
+            .eval();
 
             uops::dirx(&res, lhs_dir * rhs_dir).eval()
         }
 
+        #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == -1 || self.rhs == 0;
+            let overflow = self.overflows();
 
             (self.eval(), overflow)
         }
@@ -4405,165 +4444,114 @@ pub mod algo {
             let rhs = uops::dirx(self.rhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
 
-            let res = Div {
+            let res = Rem {
                 lhs: &lhs,
                 rhs: &rhs,
                 imp: UnsignedImpl,
             }
-            .evalx()
-            .1;
+            .eval();
 
             uops::dirx(&res, lhs_dir).eval()
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == &[MAX; L] || self.rhs == &[0; L];
+            let overflow = Div {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
 
             (self.eval(), overflow)
         }
     }
 
     impl<const L: usize> Expr<<Single as Num>::Signed> for Rem<&[Single; L], <Single as Num>::Signed, SignedImpl> {
+        #[inline]
         fn eval(self) -> <Single as Num>::Signed {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
 
             let rhs = self.rhs.unsigned_abs();
 
-            let res = Div {
+            let res = Rem {
                 lhs: &lhs,
                 rhs,
                 imp: UnsignedImpl,
             }
-            .evalx()
-            .1 as <Single as Num>::Signed;
+            .eval() as <Single as Num>::Signed;
 
             [res, res.wrapping_neg()][(lhs_dir == Dir::NEG) as usize]
         }
 
+        #[inline]
         fn eval_ext(self) -> (<Single as Num>::Signed, bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == -1 || self.rhs == 0;
+            let overflow = Div {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
 
             (self.eval(), overflow)
         }
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Div<&'words mut [Single; L], &[Single; L], UnsignedImpl> {
+        #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
             *self.lhs = Div {
                 lhs: &*self.lhs,
                 rhs: self.rhs,
                 imp: self.imp,
             }
-            .evalx()
-            .0;
+            .eval();
 
             self.lhs
         }
 
+        #[inline]
         fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            (self.eval_mut(), false)
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval_mut(), overflow)
         }
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Div<&'words mut [Single; L], Single, UnsignedImpl> {
+        #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
             *self.lhs = Div {
                 lhs: &*self.lhs,
                 rhs: self.rhs,
                 imp: self.imp,
             }
-            .evalx()
-            .0;
+            .eval();
 
             self.lhs
         }
 
+        #[inline]
         fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            (self.eval_mut(), false)
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval_mut(), overflow)
         }
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Rem<&'words mut [Single; L], &[Single; L], UnsignedImpl> {
-        fn eval_mut(self) -> &'words mut [Single; L] {
-            *self.lhs = Div {
-                lhs: &*self.lhs,
-                rhs: self.rhs,
-                imp: self.imp,
-            }
-            .evalx()
-            .1;
-
-            self.lhs
-        }
-
-        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            (self.eval_mut(), false)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Rem<&'words mut [Single; L], Single, UnsignedImpl> {
-        fn eval_mut(self) -> &'words mut [Single; L] {
-            let val = Div {
-                lhs: &*self.lhs,
-                rhs: self.rhs,
-                imp: self.imp,
-            }
-            .evalx()
-            .1;
-
-            self.lhs[0] = val;
-            self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
-            self.lhs
-        }
-
-        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            (self.eval_mut(), false)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Div<&'words mut [Single; L], &[Single; L], SignedImpl> {
-        fn eval_mut(self) -> &'words mut [Single; L] {
-            *self.lhs = Div {
-                lhs: &*self.lhs,
-                rhs: self.rhs,
-                imp: self.imp,
-            }
-            .eval();
-
-            self.lhs
-        }
-
-        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == &[MAX; L] || self.rhs == &[0; L];
-
-            (self.eval_mut(), overflow)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]>
-        for Div<&'words mut [Single; L], <Single as Num>::Signed, SignedImpl>
-    {
-        fn eval_mut(self) -> &'words mut [Single; L] {
-            *self.lhs = Div {
-                lhs: &*self.lhs,
-                rhs: self.rhs,
-                imp: self.imp,
-            }
-            .eval();
-
-            self.lhs
-        }
-
-        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == -1 || self.rhs == 0;
-
-            (self.eval_mut(), overflow)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Rem<&'words mut [Single; L], &[Single; L], SignedImpl> {
+        #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
             *self.lhs = Rem {
                 lhs: &*self.lhs,
@@ -4575,8 +4563,122 @@ pub mod algo {
             self.lhs
         }
 
+        #[inline]
         fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == &[MAX; L] || self.rhs == &[0; L];
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval_mut(), overflow)
+        }
+    }
+
+    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Rem<&'words mut [Single; L], Single, UnsignedImpl> {
+        #[inline]
+        fn eval_mut(self) -> &'words mut [Single; L] {
+            let res = Rem {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .eval();
+
+            self.lhs[0] = res;
+            self.lhs[1..].iter_mut().for_each(|ptr| *ptr = 0);
+            self.lhs
+        }
+
+        #[inline]
+        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval_mut(), overflow)
+        }
+    }
+
+    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Div<&'words mut [Single; L], &[Single; L], SignedImpl> {
+        #[inline]
+        fn eval_mut(self) -> &'words mut [Single; L] {
+            *self.lhs = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .eval();
+
+            self.lhs
+        }
+
+        #[inline]
+        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval_mut(), overflow)
+        }
+    }
+
+    impl<'words, const L: usize> ExprMut<'words, [Single; L]>
+        for Div<&'words mut [Single; L], <Single as Num>::Signed, SignedImpl>
+    {
+        #[inline]
+        fn eval_mut(self) -> &'words mut [Single; L] {
+            *self.lhs = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .eval();
+
+            self.lhs
+        }
+
+        #[inline]
+        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
+
+            (self.eval_mut(), overflow)
+        }
+    }
+
+    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Rem<&'words mut [Single; L], &[Single; L], SignedImpl> {
+        #[inline]
+        fn eval_mut(self) -> &'words mut [Single; L] {
+            *self.lhs = Rem {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .eval();
+
+            self.lhs
+        }
+
+        #[inline]
+        fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
 
             (self.eval_mut(), overflow)
         }
@@ -4585,6 +4687,7 @@ pub mod algo {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]>
         for Rem<&'words mut [Single; L], <Single as Num>::Signed, SignedImpl>
     {
+        #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
             let val = Rem {
                 lhs: &*self.lhs,
@@ -4603,8 +4706,14 @@ pub mod algo {
             self.lhs
         }
 
+        #[inline]
         fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            let overflow = self.lhs == &Signed::MIN.0 && self.rhs == -1 || self.rhs == 0;
+            let overflow = Div {
+                lhs: &*self.lhs,
+                rhs: self.rhs,
+                imp: self.imp,
+            }
+            .overflows();
 
             (self.eval_mut(), overflow)
         }
