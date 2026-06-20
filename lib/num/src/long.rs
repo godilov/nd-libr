@@ -1188,6 +1188,8 @@ pub mod radix {
 }
 
 pub mod uops {
+    #![allow(clippy::type_complexity)]
+
     //! # Micro-ops
     //!
     //! **Long numbers/bytes uops**
@@ -2061,16 +2063,16 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            bool,
+            impl Copy + Fn(Single, Single, Single, bool) -> bool,
         > {
             ExprIter {
                 lhs: self.lhs.iter().copied(),
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc: self.rhs,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                ctx: false,
+                ctx_func: |_, _, acc, _| acc > 0,
             }
         }
     }
@@ -2083,8 +2085,8 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            bool,
+            impl Copy + Fn(Single, Single, Single, bool) -> bool,
         > {
             Add {
                 lhs: self.rhs,
@@ -2104,16 +2106,16 @@ pub mod uops {
             '_,
             impl Iterator<Item = &mut Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            bool,
+            impl Copy + Fn(Single, Single, Single, bool) -> bool,
         > {
             ExprIterMut {
                 lhs: self.lhs.iter_mut(),
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc: self.rhs,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                ctx: false,
+                ctx_func: |_, _, acc, _| acc > 0,
             }
         }
     }
@@ -2126,8 +2128,8 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            bool,
+            impl Copy + Fn(Single, Single, Single, bool) -> bool,
         > {
             let rhs = self.rhs as Single;
 
@@ -2136,13 +2138,16 @@ pub mod uops {
                 Dir::NEG => MAX,
             };
 
+            let dirx = dir(self.lhs);
+            let eq = dir(self.lhs) == dir(&[rhs]);
+
             ExprIter {
                 lhs: self.lhs.iter().copied(),
                 rhs: (0..).map(move |idx| [rhs, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                ctx: false,
+                ctx_func: move |word, _, _, _| eq && dirx != dir(&[word]),
             }
         }
     }
@@ -2155,8 +2160,8 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            bool,
+            impl Copy + Fn(Single, Single, Single, bool) -> bool,
         > {
             Add {
                 lhs: self.rhs,
@@ -2176,8 +2181,8 @@ pub mod uops {
             '_,
             impl Iterator<Item = &mut Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            bool,
+            impl Copy + Fn(Single, Single, Single, bool) -> bool,
         > {
             let rhs = self.rhs as Single;
 
@@ -2186,13 +2191,16 @@ pub mod uops {
                 Dir::NEG => MAX,
             };
 
+            let dirx = dir(self.lhs);
+            let eq = dir(self.lhs) == dir(&[rhs]);
+
             ExprIterMut {
                 lhs: self.lhs.iter_mut(),
                 rhs: (0..).map(move |idx| [rhs, ext][(idx > 0) as usize]),
                 mul: 1,
                 acc: 0,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                ctx: false,
+                ctx_func: move |word, _, _, _| eq && dirx != dir(&[word]),
             }
         }
     }
@@ -2289,25 +2297,18 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (bool, bool),
+            impl Copy + Fn(Single, Single, Single, (bool, bool)) -> (bool, bool),
         > {
             let rhs = self.rhs as Single;
 
-            let neg = rhs.wrapping_neg();
-
-            let ext = match rhs != 0 {
-                false => 0,
-                true => MAX,
-            };
-
             ExprIter {
                 lhs: self.lhs.iter().copied(),
-                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
+                rhs: (0..).map(move |idx| [!rhs, MAX][(idx > 0) as usize]),
                 mul: 1,
-                acc: 0,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                acc: 1,
+                ctx: (false, true),
+                ctx_func: |lhs, rhs, acc, (_, eq)| (acc > 0, eq && lhs == !rhs),
             }
         }
     }
@@ -2320,18 +2321,19 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (bool, bool),
+            impl Copy + Fn(Single, Single, Single, (bool, bool)) -> (bool, bool),
         > {
-            NegIter {
-                words: Sub {
-                    lhs: self.rhs,
-                    rhs: self.lhs,
-                    imp: self.imp,
-                }
-                .iter(),
+            let lhs = self.lhs as Single;
+
+            ExprIter {
+                lhs: (0..).map(move |idx| [lhs, 0][(idx > 0) as usize]),
+                rhs: self.rhs.iter().copied().map(|word| !word),
+                mul: 1,
+                acc: 1,
+                ctx: (false, true),
+                ctx_func: |lhs, rhs, acc, (_, eq)| (acc > 0, eq && lhs == !rhs),
             }
-            .iter()
         }
     }
 
@@ -2344,25 +2346,18 @@ pub mod uops {
             '_,
             impl Iterator<Item = &mut Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (bool, bool),
+            impl Copy + Fn(Single, Single, Single, (bool, bool)) -> (bool, bool),
         > {
             let rhs = self.rhs as Single;
 
-            let neg = rhs.wrapping_neg();
-
-            let ext = match rhs != 0 {
-                false => 0,
-                true => MAX,
-            };
-
             ExprIterMut {
                 lhs: self.lhs.iter_mut(),
-                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
+                rhs: (0..).map(move |idx| [!rhs, MAX][(idx > 0) as usize]),
                 mul: 1,
-                acc: 0,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                acc: 1,
+                ctx: (false, true),
+                ctx_func: |lhs, rhs, acc, (_, eq)| (acc > 0, eq && lhs == !rhs),
             }
         }
     }
@@ -2375,28 +2370,23 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (bool, bool),
+            impl Copy + Fn(Single, Single, Single, (bool, bool)) -> (bool, bool),
         > {
             let rhs = self.rhs as Single;
 
-            let neg = rhs.wrapping_neg();
-
-            let ext = match rhs != 0 {
-                true => match dir(&[rhs]) {
-                    Dir::POS => MAX,
-                    Dir::NEG => 0,
-                },
-                false => 0,
+            let ext = match dir(&[rhs]) {
+                Dir::POS => MAX,
+                Dir::NEG => 0,
             };
 
             ExprIter {
                 lhs: self.lhs.iter().copied(),
-                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
+                rhs: (0..).map(move |idx| [!rhs, ext][(idx > 0) as usize]),
                 mul: 1,
-                acc: 0,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                acc: 1,
+                ctx: (false, true),
+                ctx_func: |lhs, rhs, acc, (_, eq)| (acc > 0, eq && lhs == !rhs),
             }
         }
     }
@@ -2409,18 +2399,24 @@ pub mod uops {
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (bool, bool),
+            impl Copy + Fn(Single, Single, Single, (bool, bool)) -> (bool, bool),
         > {
-            NegIter {
-                words: Sub {
-                    lhs: self.rhs,
-                    rhs: self.lhs,
-                    imp: self.imp,
-                }
-                .iter(),
+            let lhs = self.lhs as Single;
+
+            let ext = match dir(&[lhs]) {
+                Dir::POS => 0,
+                Dir::NEG => MAX,
+            };
+
+            ExprIter {
+                lhs: (0..).map(move |idx| [lhs, ext][(idx > 0) as usize]),
+                rhs: self.rhs.iter().copied().map(|word| !word),
+                mul: 1,
+                acc: 1,
+                ctx: (false, true),
+                ctx_func: |lhs, rhs, acc, (_, eq)| (acc > 0, eq && lhs == !rhs),
             }
-            .iter()
         }
     }
 
@@ -2433,28 +2429,23 @@ pub mod uops {
             '_,
             impl Iterator<Item = &mut Single>,
             impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, ()),
+            (bool, bool),
+            impl Copy + Fn(Single, Single, Single, (bool, bool)) -> (bool, bool),
         > {
             let rhs = self.rhs as Single;
 
-            let neg = rhs.wrapping_neg();
-
-            let ext = match rhs != 0 {
-                true => match dir(&[rhs]) {
-                    Dir::POS => MAX,
-                    Dir::NEG => 0,
-                },
-                false => 0,
+            let ext = match dir(&[rhs]) {
+                Dir::POS => MAX,
+                Dir::NEG => 0,
             };
 
             ExprIterMut {
                 lhs: self.lhs.iter_mut(),
-                rhs: (0..).map(move |idx| [neg, ext][(idx > 0) as usize]),
+                rhs: (0..).map(move |idx| [!rhs, ext][(idx > 0) as usize]),
                 mul: 1,
-                acc: 0,
-                ctx: (),
-                ctx_func: |_, _, _, _| (),
+                acc: 1,
+                ctx: (false, true),
+                ctx_func: |lhs, rhs, acc, (_, eq)| (acc > 0, eq && lhs == !rhs),
             }
         }
     }
