@@ -1672,13 +1672,13 @@ pub mod uops {
 
         /// Evaluates expression.
         #[inline]
-        pub fn eval(self) {
+        pub fn eval_mut(self) {
             self.for_each(|_| ());
         }
 
         /// Evaluates expression with context.
         #[inline]
-        pub fn eval_ext<F: Fn(Ctx) -> bool>(mut self, func: F) -> ((), bool) {
+        pub fn eval_ext_mut<F: Fn(Ctx) -> bool>(mut self, func: F) -> ((), bool) {
             (&mut self).for_each(|_| ());
 
             ((), func(self.ctx))
@@ -2764,14 +2764,14 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Pos<&'words mut [Single; L]> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.words
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext(|_| false);
+            let (_, overflow) = self.iter_mut().eval_ext_mut(|_| false);
 
             (self.words, overflow)
         }
@@ -2792,14 +2792,14 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Neg<&'words mut [Single; L]> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.words
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext(|(_, flag)| flag);
+            let (_, overflow) = self.iter_mut().eval_ext_mut(|(_, flag)| flag);
 
             (self.words, overflow)
         }
@@ -2820,14 +2820,14 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Dirx<&'words mut [Single; L]> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.words
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext(|(_, flag)| flag);
+            let (_, overflow) = self.iter_mut().eval_ext_mut(|(_, flag)| flag);
 
             (self.words, overflow)
         }
@@ -2850,12 +2850,12 @@ pub mod uops {
     impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for AddIter<Lhs, Rhs> {
         #[inline]
         fn eval(self) {
-            self.iter_mut().raw().eval()
+            self.iter_mut().raw().eval_mut()
         }
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            self.iter_mut().eval_ext(|_| false)
+            self.iter_mut().eval_ext_mut(|_| false)
         }
     }
 
@@ -2876,12 +2876,12 @@ pub mod uops {
     impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> Expr<()> for SubIter<Lhs, Rhs> {
         #[inline]
         fn eval(self) {
-            self.iter_mut().raw().eval()
+            self.iter_mut().raw().eval_mut()
         }
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            self.iter_mut().eval_ext(|_| false)
+            self.iter_mut().eval_ext_mut(|_| false)
         }
     }
 
@@ -2900,14 +2900,14 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Add<&'words mut [Single; L], &[Single; L], UnsignedImpl> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.lhs
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().ctx(false, move |_, _, acc, _| acc > 0).eval_ext(id);
+            let (_, overflow) = self.iter_mut().ctx(false, move |_, _, acc, _| acc > 0).eval_ext_mut(id);
 
             (self.lhs, overflow)
         }
@@ -2940,14 +2940,14 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Add<&'words mut [Single; L], Single, UnsignedImpl> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.lhs
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext(id);
+            let (_, overflow) = self.iter_mut().eval_ext_mut(id);
 
             (self.lhs, overflow)
         }
@@ -2991,7 +2991,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            expr.iter_mut().raw().eval();
+            expr.iter_mut().raw().eval_mut();
 
             expr.lhs
         }
@@ -3010,7 +3010,7 @@ pub mod uops {
             let (_, overflow) = expr
                 .iter_mut()
                 .ctx(false, move |word, _, _, _| eq && dirx != dir(&[word]))
-                .eval_ext(id);
+                .eval_ext_mut(id);
 
             (expr.lhs, overflow)
         }
@@ -3077,7 +3077,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            expr.iter_mut().raw().eval();
+            expr.iter_mut().raw().eval_mut();
 
             expr.lhs
         }
@@ -3090,7 +3090,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            let (_, overflow) = expr.iter_mut().eval_ext(id);
+            let (_, overflow) = expr.iter_mut().eval_ext_mut(id);
 
             (expr.lhs, overflow)
         }
@@ -3113,7 +3113,7 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Sub<&'words mut [Single; L], &[Single; L], UnsignedImpl> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.lhs
         }
@@ -3123,7 +3123,7 @@ pub mod uops {
             let (_, overflow) = self
                 .iter_mut()
                 .ctx(false, |lhs, rhs, _, flag| lhs < !rhs || lhs == !rhs && flag)
-                .eval_ext(id);
+                .eval_ext_mut(id);
 
             (self.lhs, overflow)
         }
@@ -3156,14 +3156,14 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Sub<&'words mut [Single; L], Single, UnsignedImpl> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.lhs
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext(id);
+            let (_, overflow) = self.iter_mut().eval_ext_mut(id);
 
             (self.lhs, overflow)
         }
@@ -3207,7 +3207,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            expr.iter_mut().raw().eval();
+            expr.iter_mut().raw().eval_mut();
 
             expr.lhs
         }
@@ -3226,7 +3226,7 @@ pub mod uops {
             let (_, overflow) = expr
                 .iter_mut()
                 .ctx(false, move |word, _, _, _| !eq && dirx != dir(&[word]))
-                .eval_ext(id);
+                .eval_ext_mut(id);
 
             (expr.lhs, overflow)
         }
@@ -3293,7 +3293,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            expr.iter_mut().raw().eval();
+            expr.iter_mut().raw().eval_mut();
 
             expr.lhs
         }
@@ -3306,7 +3306,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            let (_, overflow) = expr.iter_mut().eval_ext(id);
+            let (_, overflow) = expr.iter_mut().eval_ext_mut(id);
 
             (expr.lhs, overflow)
         }
@@ -3327,14 +3327,14 @@ pub mod uops {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Mul<&'words mut [Single; L], Single> {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval();
+            self.iter_mut().raw().eval_mut();
 
             self.lhs
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext(|_| false);
+            let (_, overflow) = self.iter_mut().eval_ext_mut(|_| false);
 
             (self.lhs, overflow)
         }
@@ -3965,7 +3965,7 @@ pub mod algo {
             for (idx, val) in rhs.iter().copied().enumerate() {
                 uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
                     .iter_mut()
-                    .eval();
+                    .eval_mut();
             }
 
             res
@@ -3993,12 +3993,15 @@ pub mod algo {
     impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], Single, UnsignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
-            uops::mul(self.lhs, self.rhs).eval()
+            uops::mul(self.lhs, self.rhs).iter().raw().eval()
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            uops::mul(self.lhs, self.rhs).eval_ext()
+            uops::mul(self.lhs, self.rhs)
+                .iter()
+                .ctx(false, |_, _, acc, _| acc > 0)
+                .eval_ext(uops::id)
         }
     }
 
@@ -4064,7 +4067,7 @@ pub mod algo {
             for (idx, val) in rhs.enumerate() {
                 uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
                     .iter_mut()
-                    .eval();
+                    .eval_mut();
             }
 
             res
@@ -4149,12 +4152,20 @@ pub mod algo {
     impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Mul<&'words mut [Single; L], Single, UnsignedImpl> {
         #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
-            uops::mul(self.lhs, self.rhs).eval_mut()
+            let mut expr = uops::mul(self.lhs, self.rhs);
+
+            expr.iter_mut().raw().eval_mut();
+
+            expr.lhs
         }
 
         #[inline]
         fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            uops::mul(self.lhs, self.rhs).eval_ext_mut()
+            let mut expr = uops::mul(self.lhs, self.rhs);
+
+            let (_, overflow) = expr.iter_mut().ctx(false, |_, _, acc, _| acc > 0).eval_ext_mut(uops::id);
+
+            (expr.lhs, overflow)
         }
     }
 
