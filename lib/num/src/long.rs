@@ -1707,6 +1707,7 @@ pub mod uops {
 
     impl<Lhs, Rhs, Impl> Add<Lhs, Rhs, Impl> {
         /// Add expression for signed numbers.
+        #[inline]
         pub fn signed(self) -> Add<Lhs, Rhs, SignedImpl> {
             Add {
                 lhs: self.lhs,
@@ -1718,6 +1719,7 @@ pub mod uops {
 
     impl<Lhs, Rhs, Impl> Sub<Lhs, Rhs, Impl> {
         /// Sub expression for signed numbers.
+        #[inline]
         pub fn signed(self) -> Sub<Lhs, Rhs, SignedImpl> {
             Sub {
                 lhs: self.lhs,
@@ -3962,7 +3964,7 @@ pub mod algo {
     }
 
     impl<const L: usize> Div<&[Single; L], &[Single; L], UnsignedImpl> {
-        /// Checks if overflows.
+        /// Checks overflow.
         #[inline]
         pub fn overflows(&self) -> bool {
             self.rhs == &[0; L]
@@ -3970,7 +3972,7 @@ pub mod algo {
     }
 
     impl<const L: usize> Div<&[Single; L], Single, UnsignedImpl> {
-        /// Checks if overflows.
+        /// Checks overflow.
         #[inline]
         pub fn overflows(&self) -> bool {
             self.rhs == 0
@@ -3978,7 +3980,7 @@ pub mod algo {
     }
 
     impl<const L: usize> Div<&[Single; L], &[Single; L], SignedImpl> {
-        /// Checks if overflows.
+        /// Checks overflow.
         #[inline]
         pub fn overflows(&self) -> bool {
             self.rhs == &[0; L] || self.lhs == &Signed::MIN.0 && self.rhs == &[MAX; L]
@@ -3986,7 +3988,7 @@ pub mod algo {
     }
 
     impl<const L: usize> Div<&[Single; L], <Single as Num>::Signed, SignedImpl> {
-        /// Checks if overflows.
+        /// Checks overflow.
         #[inline]
         pub fn overflows(&self) -> bool {
             self.rhs == 0 || self.lhs == &Signed::MIN.0 && self.rhs == -1
