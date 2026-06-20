@@ -1500,6 +1500,12 @@ pub mod uops {
         fn eval_ext_mut(self) -> (&'words mut Words, bool);
     }
 
+    /// Identity function.
+    #[inline]
+    pub fn id<T>(value: T) -> T {
+        value
+    }
+
     impl<
         Lhs: Iterator<Item = Single>,
         Rhs: Iterator<Item = Single>,
@@ -1619,10 +1625,10 @@ pub mod uops {
 
         /// Evaluates expression with context.
         #[inline]
-        pub fn eval_ext<const L: usize>(mut self) -> ([Single; L], bool) {
+        pub fn eval_ext<const L: usize, F: Fn(Ctx) -> bool>(mut self, func: F) -> ([Single; L], bool) {
             let res = self.collect_arr();
 
-            (res, false)
+            (res, func(self.ctx))
         }
     }
 
@@ -1672,10 +1678,10 @@ pub mod uops {
 
         /// Evaluates expression with context.
         #[inline]
-        pub fn eval_ext(self) -> ((), bool) {
-            self.for_each(|_| ());
+        pub fn eval_ext<F: Fn(Ctx) -> bool>(mut self, func: F) -> ((), bool) {
+            (&mut self).for_each(|_| ());
 
-            ((), false)
+            ((), func(self.ctx))
         }
     }
 
@@ -2751,7 +2757,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(|_| false)
         }
     }
 
@@ -2765,7 +2771,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext();
+            let (_, overflow) = self.iter_mut().eval_ext(|_| false);
 
             (self.words, overflow)
         }
@@ -2779,9 +2785,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            let overflow = self.words == &Signed::MIN.0;
-
-            (self.iter().eval(), overflow)
+            self.iter().eval_ext(|(_, flag)| flag)
         }
     }
 
@@ -2795,9 +2799,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let overflow = self.words == &Signed::MIN.0;
-
-            let _ = self.iter_mut().eval_ext();
+            let (_, overflow) = self.iter_mut().eval_ext(|(_, flag)| flag);
 
             (self.words, overflow)
         }
@@ -2811,9 +2813,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            let overflow = self.words == &Signed::MIN.0 && self.dir == Dir::POS;
-
-            (self.iter().eval(), overflow)
+            self.iter().eval_ext(|(_, flag)| flag)
         }
     }
 
@@ -2827,9 +2827,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let overflow = self.words == &Signed::MIN.0 && self.dir == Dir::POS;
-
-            let _ = self.iter_mut().eval_ext();
+            let (_, overflow) = self.iter_mut().eval_ext(|(_, flag)| flag);
 
             (self.words, overflow)
         }
@@ -2845,7 +2843,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(|_| false)
         }
     }
 
@@ -2857,7 +2855,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            self.iter_mut().eval_ext()
+            self.iter_mut().eval_ext(|_| false)
         }
     }
 
@@ -2871,7 +2869,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(|_| false)
         }
     }
 
@@ -2883,7 +2881,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ((), bool) {
-            self.iter_mut().eval_ext()
+            self.iter_mut().eval_ext(|_| false)
         }
     }
 
@@ -2895,7 +2893,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().ctx(false, move |_, _, acc, _| acc > 0).eval_ext()
+            self.iter().ctx(false, move |_, _, acc, _| acc > 0).eval_ext(id)
         }
     }
 
@@ -2909,7 +2907,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().ctx(false, move |_, _, acc, _| acc > 0).eval_ext();
+            let (_, overflow) = self.iter_mut().ctx(false, move |_, _, acc, _| acc > 0).eval_ext(id);
 
             (self.lhs, overflow)
         }
@@ -2923,7 +2921,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(id)
         }
     }
 
@@ -2935,7 +2933,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(id)
         }
     }
 
@@ -2949,7 +2947,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext();
+            let (_, overflow) = self.iter_mut().eval_ext(id);
 
             (self.lhs, overflow)
         }
@@ -2980,7 +2978,7 @@ pub mod uops {
             }
             .iter()
             .ctx(false, move |word, _, _, _| eq && dirx != dir(&[word]))
-            .eval_ext()
+            .eval_ext(id)
         }
     }
 
@@ -3012,7 +3010,7 @@ pub mod uops {
             let (_, overflow) = expr
                 .iter_mut()
                 .ctx(false, move |word, _, _, _| eq && dirx != dir(&[word]))
-                .eval_ext();
+                .eval_ext(id);
 
             (expr.lhs, overflow)
         }
@@ -3039,7 +3037,7 @@ pub mod uops {
                 imp: self.imp,
             }
             .iter()
-            .eval_ext()
+            .eval_ext(id)
         }
     }
 
@@ -3064,7 +3062,7 @@ pub mod uops {
                 imp: self.imp,
             }
             .iter()
-            .eval_ext()
+            .eval_ext(id)
         }
     }
 
@@ -3092,7 +3090,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            let (_, overflow) = expr.iter_mut().eval_ext();
+            let (_, overflow) = expr.iter_mut().eval_ext(id);
 
             (expr.lhs, overflow)
         }
@@ -3108,7 +3106,7 @@ pub mod uops {
         fn eval_ext(self) -> ([Single; L], bool) {
             self.iter()
                 .ctx(false, |lhs, rhs, _, flag| lhs < !rhs || lhs == !rhs && flag)
-                .eval_ext()
+                .eval_ext(id)
         }
     }
 
@@ -3125,7 +3123,7 @@ pub mod uops {
             let (_, overflow) = self
                 .iter_mut()
                 .ctx(false, |lhs, rhs, _, flag| lhs < !rhs || lhs == !rhs && flag)
-                .eval_ext();
+                .eval_ext(id);
 
             (self.lhs, overflow)
         }
@@ -3139,7 +3137,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(id)
         }
     }
 
@@ -3151,7 +3149,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(id)
         }
     }
 
@@ -3165,7 +3163,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext();
+            let (_, overflow) = self.iter_mut().eval_ext(id);
 
             (self.lhs, overflow)
         }
@@ -3196,7 +3194,7 @@ pub mod uops {
             }
             .iter()
             .ctx(false, move |word, _, _, _| !eq && dirx != dir(&[word]))
-            .eval_ext()
+            .eval_ext(id)
         }
     }
 
@@ -3228,7 +3226,7 @@ pub mod uops {
             let (_, overflow) = expr
                 .iter_mut()
                 .ctx(false, move |word, _, _, _| !eq && dirx != dir(&[word]))
-                .eval_ext();
+                .eval_ext(id);
 
             (expr.lhs, overflow)
         }
@@ -3255,7 +3253,7 @@ pub mod uops {
                 imp: self.imp,
             }
             .iter()
-            .eval_ext()
+            .eval_ext(id)
         }
     }
 
@@ -3280,7 +3278,7 @@ pub mod uops {
                 imp: self.imp,
             }
             .iter()
-            .eval_ext()
+            .eval_ext(id)
         }
     }
 
@@ -3308,7 +3306,7 @@ pub mod uops {
                 imp: self.imp,
             };
 
-            let (_, overflow) = expr.iter_mut().eval_ext();
+            let (_, overflow) = expr.iter_mut().eval_ext(id);
 
             (expr.lhs, overflow)
         }
@@ -3322,7 +3320,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext()
+            self.iter().eval_ext(|_| false)
         }
     }
 
@@ -3336,7 +3334,7 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext();
+            let (_, overflow) = self.iter_mut().eval_ext(|_| false);
 
             (self.lhs, overflow)
         }
