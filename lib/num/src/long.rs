@@ -1199,7 +1199,7 @@ pub mod uops {
     /// Expression iterator for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct ExprIter<
         Lhs: Iterator<Item = Single>,
         Rhs: Iterator<Item = Single>,
@@ -1228,7 +1228,7 @@ pub mod uops {
     /// Expression iterator mutable for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct ExprIterMut<
         'words,
         Lhs: Iterator<Item = &'words mut Single>,
@@ -4821,11 +4821,6 @@ pub struct SignedRef<'words, const L: usize>(pub &'words [Single; L]);
 #[derive(Debug, PartialEq, Eq)]
 pub struct SignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
-/// Signed long dynamic number. (**WIP**)
-#[cfg(feature = "dyn")]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SignedDyn(Vec<Single>, Sign);
-
 /// Unsigned long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
@@ -4850,11 +4845,6 @@ pub struct UnsignedRef<'words, const L: usize>(pub &'words [Single; L]);
 #[derive(Debug, PartialEq, Eq)]
 pub struct UnsignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
-/// Unsigned long dynamic number. (**WIP**)
-#[cfg(feature = "dyn")]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnsignedDyn(Vec<Single>);
-
 /// Bytes long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
@@ -4878,11 +4868,6 @@ pub struct BytesRef<'words, const L: usize>(pub &'words [Single; L]);
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, PartialEq, Eq)]
 pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
-
-/// Bytes long dynamic number. (**WIP**)
-#[cfg(feature = "dyn")]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BytesDyn(Vec<Single>);
 
 /// Digits iterator by `exp`.
 ///
@@ -8140,8 +8125,8 @@ mod tests {
     #[test]
     fn ops_signed() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
             |val: i64| S64::from(val),
             |val: i64| S64::from(val),
             |val: i64| Wrapping(val),
@@ -8161,8 +8146,8 @@ mod tests {
     #[test]
     fn ops_unsigned() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
             |val: u64| U64::from(val),
             |val: u64| U64::from(val),
             |val: u64| Wrapping(val),
@@ -8182,8 +8167,8 @@ mod tests {
     #[test]
     fn ops_signed_primitive() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
             |val: i64| S64::from(val),
             |val: i64| val,
             |val: i64| Wrapping(val),
@@ -8195,8 +8180,8 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
             |val: u64| U64::from(val),
             |val: u64| val,
             |val: u64| Wrapping(val),
@@ -8208,7 +8193,7 @@ mod tests {
     #[test]
     fn ops_signed_primitive_native() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
             i8::MIN..i8::MAX,
             |val: i64| S64::from(val),
             |val: i8| val,
@@ -8221,7 +8206,7 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_native() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
             u8::MIN..u8::MAX,
             |val: u64| U64::from(val),
             |val: u8| val,
