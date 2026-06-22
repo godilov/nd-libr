@@ -18,15 +18,14 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    BytesFn, Dir, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned, NumUnsigned, One, Sign, Zero,
+    BytesFn, Dir, EqCt, GtCt, LtCt, MaskCt, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned, NumUnsigned, One,
+    RelCt, SelectCt, Sign, Zero, ZeroCt,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
     long::{
         radix::*,
         uops::{Expr, ExprMut},
     },
 };
-#[cfg(feature = "const-time")]
-use crate::{EqCt, GtCt, LtCt, MaskCt, RelCt, SelectCt, ZeroCt};
 
 macro_rules! signed {
     ($bits:expr) => {
@@ -46,7 +45,6 @@ macro_rules! bytes {
     };
 }
 
-#[cfg(feature = "const-time")]
 macro_rules! eq_ct {
     ($lhs:expr, $rhs:expr) => {{
         let diff = $lhs.zip($rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
@@ -55,7 +53,6 @@ macro_rules! eq_ct {
     }};
 }
 
-#[cfg(feature = "const-time")]
 macro_rules! cmp_ct {
     ($lhs:expr, $rhs:expr) => {{
         let (lt, gt) =
@@ -3829,9 +3826,8 @@ pub mod uops {
         }
     }
 
-    /// Returns `words` two's complement sign in const-time.
+    /// Reads sign in const-time.
     #[inline(never)]
-    #[cfg(feature = "const-time")]
     pub fn sign_ct<const L: usize>(words: &[Single; L]) -> RelCt {
         let zero = zero_ct(words);
         let neg = neg_ct(words);
@@ -3842,7 +3838,6 @@ pub mod uops {
 
     /// Checks `words > 0` in const-time.
     #[inline(never)]
-    #[cfg(feature = "const-time")]
     pub fn pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let zero = zero_ct(words);
         let neg = neg_ct(words);
@@ -3852,7 +3847,6 @@ pub mod uops {
 
     /// Checks `words < 0` in const-time.
     #[inline(never)]
-    #[cfg(feature = "const-time")]
     pub fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
 
@@ -3861,7 +3855,6 @@ pub mod uops {
 
     /// Checks `words == 0` in const-time.
     #[inline(never)]
-    #[cfg(feature = "const-time")]
     pub fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).zero_ct()
     }
@@ -6303,7 +6296,6 @@ impl<const L: usize> IntoDigitsIter for Unsigned<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Signed<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
@@ -6311,7 +6303,6 @@ impl<const L: usize> EqCt for Signed<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Unsigned<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
@@ -6319,7 +6310,6 @@ impl<const L: usize> EqCt for Unsigned<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> EqCt for Bytes<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
@@ -6327,7 +6317,6 @@ impl<const L: usize> EqCt for Bytes<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> LtCt for Signed<L> {
     #[inline(never)]
     fn lt_ct(&self, other: &Self) -> MaskCt {
@@ -6344,7 +6333,6 @@ impl<const L: usize> LtCt for Signed<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> GtCt for Signed<L> {
     #[inline(never)]
     fn gt_ct(&self, other: &Self) -> MaskCt {
@@ -6361,7 +6349,6 @@ impl<const L: usize> GtCt for Signed<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> LtCt for Unsigned<L> {
     #[inline(never)]
     fn lt_ct(&self, other: &Self) -> MaskCt {
@@ -6371,7 +6358,6 @@ impl<const L: usize> LtCt for Unsigned<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> GtCt for Unsigned<L> {
     #[inline(never)]
     fn gt_ct(&self, other: &Self) -> MaskCt {
@@ -6381,7 +6367,6 @@ impl<const L: usize> GtCt for Unsigned<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> SelectCt for Signed<L> {
     #[inline(never)]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
@@ -6392,7 +6377,6 @@ impl<const L: usize> SelectCt for Signed<L> {
     }
 }
 
-#[cfg(feature = "const-time")]
 impl<const L: usize> SelectCt for Unsigned<L> {
     #[inline(never)]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
@@ -7481,10 +7465,9 @@ mod tests {
     use rand::{RngExt, SeedableRng, rngs::StdRng};
 
     use super::*;
-    #[cfg(feature = "const-time")]
-    use crate::{AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt};
+
     use crate::{
-        Strict, Unbounded, Wrapping,
+        AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt, Strict, Unbounded, Wrapping,
         long::alias::{S32, S64, U32, U64},
     };
 
@@ -8106,7 +8089,6 @@ mod tests {
         ] }
     }
 
-    #[cfg(feature = "const-time")]
     #[test]
     fn cmp_ct() {
         ndassert::check! { @eq (

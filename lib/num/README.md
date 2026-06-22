@@ -17,7 +17,6 @@ ndnum = "*"
 - `simd` - enables SIMD-optimized long numbers.
 - `rand` - enables `rand` dependency.
 - `rayon` - enables `rayon` dependency.
-- `const-time` - enables const-time operations.
 
 ## License
 

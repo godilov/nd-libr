@@ -37,11 +37,10 @@ name    = "long"
 harness = false
 
 [features]
-default    = []
-all        = ["std", "dyn", "rand", "rayon", "const-time"]
-std        = []
-dyn        = ["std"]
-rand       = ["dep:rand"]
-rayon      = ["dep:rayon"]
-const-time = []
-asm        = []
+default = []
+all     = ["std", "dyn", "rand", "rayon"]
+std     = []
+dyn     = ["std"]
+rand    = ["dep:rand"]
+rayon   = ["dep:rayon"]
+asm     = []
