@@ -4101,7 +4101,10 @@ pub mod algo {
                 arr[idx] = iter.acc;
             }
 
-            (res, arr != [uops::ext(&res); L])
+            (
+                res,
+                arr != [uops::ext(&res); L] && lhs != &Signed::ONE.0 && rhs != &Signed::ONE.0,
+            )
         }
     }
 
@@ -4143,7 +4146,7 @@ pub mod algo {
                 arr[idx] = iter.acc;
             }
 
-            (res, arr != [uops::ext(&res); L])
+            (res, arr != [uops::ext(&res); L] && lhs != &Signed::ONE.0 && rhs != 1)
         }
     }
 
@@ -4223,7 +4226,7 @@ pub mod algo {
             *self.lhs = Mul {
                 lhs: &*self.lhs,
                 rhs: self.rhs,
-                imp: UnsignedImpl,
+                imp: SignedImpl,
             }
             .eval();
 
@@ -4235,7 +4238,7 @@ pub mod algo {
             let (res, overflow) = Mul {
                 lhs: &*self.lhs,
                 rhs: self.rhs,
-                imp: UnsignedImpl,
+                imp: SignedImpl,
             }
             .eval_ext();
 
