@@ -7565,14 +7565,7 @@ mod tests {
         ) [
             ndassert::catch!(long << shift, func(alt << shift)),
             ndassert::catch!(long >> shift, func(alt >> shift)),
-        ] }
 
-        ndassert::check! { @eq (
-            value in value_iter.clone(),
-            shift in shift_iter.clone(),
-            long as long_fn(value),
-            alt as alt_fn(value),
-        ) [
             ndassert::catch!({ let mut val = long; val <<= shift; val }, func(alt << shift)),
             ndassert::catch!({ let mut val = long; val >>= shift; val }, func(alt >> shift)),
         ] }
