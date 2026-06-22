@@ -7518,45 +7518,27 @@ mod tests {
             ndassert::catch!(lhs_long - rhs_long, func(lhs_alt - rhs_alt)),
             ndassert::catch!(lhs_long * rhs_long, func(lhs_alt * rhs_alt)),
 
-            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long / rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
-            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long % rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
-
-            (lhs_long | rhs_long, func(lhs_alt | rhs_alt)),
-            (lhs_long & rhs_long, func(lhs_alt & rhs_alt)),
-            (lhs_long ^ rhs_long, func(lhs_alt ^ rhs_alt)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in lhs_iter.clone(),
-            rhs in rhs_iter.clone(),
-            lhs_long as lhs_long_fn(lhs),
-            rhs_long as rhs_long_fn(rhs),
-            lhs_alt as lhs_alt_fn(lhs),
-            rhs_alt as rhs_alt_fn(rhs),
-        ) [
             ndassert::catch!(rhs_long + lhs_long, func(rhs_alt + lhs_alt)),
             ndassert::catch!(rhs_long - lhs_long, func(rhs_alt - lhs_alt)),
             ndassert::catch!(rhs_long * lhs_long, func(rhs_alt * lhs_alt)),
 
-            (rhs_long | lhs_long, func(rhs_alt | lhs_alt)),
-            (rhs_long & lhs_long, func(rhs_alt & lhs_alt)),
-            (rhs_long ^ lhs_long, func(rhs_alt ^ lhs_alt)),
-        ] }
+            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long / rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
+            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long % rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
 
-        ndassert::check! { @eq (
-            lhs in lhs_iter.clone(),
-            rhs in rhs_iter.clone(),
-            lhs_long as lhs_long_fn(lhs),
-            rhs_long as rhs_long_fn(rhs),
-            lhs_alt as lhs_alt_fn(lhs),
-            rhs_alt as rhs_alt_fn(rhs),
-        ) [
             ndassert::catch!({ let mut val = lhs_long; val += rhs_long; val }, func(lhs_alt + rhs_alt)),
             ndassert::catch!({ let mut val = lhs_long; val -= rhs_long; val }, func(lhs_alt - rhs_alt)),
             ndassert::catch!({ let mut val = lhs_long; val *= rhs_long; val }, func(lhs_alt * rhs_alt)),
 
             ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val /= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
             ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val %= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
+
+            (lhs_long | rhs_long, func(lhs_alt | rhs_alt)),
+            (lhs_long & rhs_long, func(lhs_alt & rhs_alt)),
+            (lhs_long ^ rhs_long, func(lhs_alt ^ rhs_alt)),
+
+            (rhs_long | lhs_long, func(rhs_alt | lhs_alt)),
+            (rhs_long & lhs_long, func(rhs_alt & lhs_alt)),
+            (rhs_long ^ lhs_long, func(rhs_alt ^ lhs_alt)),
 
             ({ let mut val = lhs_long; val |= rhs_long; val }, func(lhs_alt | rhs_alt)),
             ({ let mut val = lhs_long; val &= rhs_long; val }, func(lhs_alt & rhs_alt)),
