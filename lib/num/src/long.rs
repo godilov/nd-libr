@@ -4097,14 +4097,18 @@ pub mod algo {
             let rhs = self.rhs;
 
             let mut res = [0; L];
+            let mut arr = [0; L];
 
             for (idx, val) in rhs.iter().copied().enumerate() {
-                uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
-                    .iter_mut()
-                    .eval_mut();
+                let mut iter = uops::mul(lhs, val).iter();
+
+                uops::add_iter(res[idx..].iter_mut(), &mut iter).iter_mut().eval_mut();
+                uops::add_iter(arr[..idx].iter_mut(), &mut iter).iter_mut().eval_mut();
+
+                arr[idx] = iter.acc;
             }
 
-            (res, false)
+            (res, arr != [uops::ext(&res); L])
         }
     }
 
@@ -4121,8 +4125,7 @@ pub mod algo {
             for (idx, val) in (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]).enumerate() {
                 uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
                     .iter_mut()
-                    .last()
-                    .unwrap_or(0);
+                    .eval_mut();
             }
 
             res
@@ -4136,15 +4139,18 @@ pub mod algo {
             let ext = uops::ext(&[rhs]);
 
             let mut res = [0; L];
+            let mut arr = [0; L];
 
             for (idx, val) in (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]).enumerate() {
-                uops::add_iter(res[idx..].iter_mut(), uops::mul(lhs, val).iter())
-                    .iter_mut()
-                    .last()
-                    .unwrap_or(0);
+                let mut iter = uops::mul(lhs, val).iter();
+
+                uops::add_iter(res[idx..].iter_mut(), &mut iter).iter_mut().eval_mut();
+                uops::add_iter(arr[..idx].iter_mut(), &mut iter).iter_mut().eval_mut();
+
+                arr[idx] = iter.acc;
             }
 
-            (res, false)
+            (res, arr != [uops::ext(&res); L])
         }
     }
 
