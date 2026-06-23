@@ -199,7 +199,7 @@ macro_rules! nd_ops_primitive_impl {
             - @saturating uops::sub(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
             * @saturating algo::mul(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
             / @saturating algo::div(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, &Signed::MAX),
-            % @saturating algo::rem(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, &Signed::MAX),
+            % @saturating algo::rem(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, &Signed::ZERO),
 
             + @overflowing uops::add(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
             - @overflowing uops::sub(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
@@ -282,7 +282,7 @@ macro_rules! nd_ops_primitive_impl {
             },
 
             /= @saturating algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut(&Signed::MAX.0),
-            %= @saturating algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut(&Signed::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut(&Signed::ZERO.0),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -321,7 +321,7 @@ macro_rules! nd_ops_primitive_impl {
             - @saturating uops::sub(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MIN),
             * @saturating algo::mul(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
             / @saturating algo::div(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
-            % @saturating algo::rem(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
+            % @saturating algo::rem(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MIN),
 
             + @overflowing uops::add(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
             - @overflowing uops::sub(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
@@ -391,7 +391,7 @@ macro_rules! nd_ops_primitive_impl {
             -= @saturating uops::sub(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MIN.0),
             *= @saturating algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
             /= @saturating algo::div(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
-            %= @saturating algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MIN.0),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
@@ -459,7 +459,7 @@ macro_rules! nd_ops_primitive_native_impl {
             - @saturating uops::sub(&lhs.0, rhs as <Single as Num>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
             * @saturating algo::mul(&lhs.0, rhs as <Single as Num>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
             / @saturating algo::div(&lhs.0, rhs as <Single as Num>::Signed).signed().saturating(Signed::from, &Signed::MAX),
-            % @saturating algo::rem(&lhs.0, rhs as <Single as Num>::Signed).signed().saturating(Signed::from, &Signed::MAX),
+            % @saturating algo::rem(&lhs.0, rhs as <Single as Num>::Signed).signed().saturating(Signed::from, &Signed::ZERO),
 
             + @overflowing uops::add(&lhs.0, rhs as <Single as Num>::Signed).signed().overflowing(Signed),
             - @overflowing uops::sub(&lhs.0, rhs as <Single as Num>::Signed).signed().overflowing(Signed),
@@ -538,7 +538,7 @@ macro_rules! nd_ops_primitive_native_impl {
             },
 
             /= @saturating algo::div(&mut lhs.0, rhs as <Single as Num>::Signed).signed().saturating_mut(&Signed::MAX.0),
-            %= @saturating algo::rem(&mut lhs.0, rhs as <Single as Num>::Signed).signed().saturating_mut(&Signed::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, rhs as <Single as Num>::Signed).signed().saturating_mut(&Signed::ZERO.0),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -575,7 +575,7 @@ macro_rules! nd_ops_primitive_native_impl {
             - @saturating uops::sub(&lhs.0, rhs as Single).saturating(Unsigned, &Unsigned::MIN),
             * @saturating algo::mul(&lhs.0, rhs as Single).saturating(Unsigned, &Unsigned::MAX),
             / @saturating algo::div(&lhs.0, rhs as Single).saturating(Unsigned::from, &Unsigned::MAX),
-            % @saturating algo::rem(&lhs.0, rhs as Single).saturating(Unsigned::from, &Unsigned::MAX),
+            % @saturating algo::rem(&lhs.0, rhs as Single).saturating(Unsigned::from, &Unsigned::MIN),
 
             + @overflowing uops::add(&lhs.0, rhs as Single).overflowing(Unsigned),
             - @overflowing uops::sub(&lhs.0, rhs as Single).overflowing(Unsigned),
@@ -641,7 +641,7 @@ macro_rules! nd_ops_primitive_native_impl {
             -= @saturating uops::sub(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MIN.0),
             *= @saturating algo::mul(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MAX.0),
             /= @saturating algo::div(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MAX.0),
-            %= @saturating algo::rem(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, rhs as Single).saturating_mut(&Unsigned::MIN.0),
         ] }
     };
     (@bytes $primitive:ty $(,)?) => {
@@ -5834,7 +5834,7 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: &Signed<L>) -> Sign
     - @saturating uops::sub(&lhs.0, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
     * @saturating algo::mul(&lhs.0, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * rhs.dir() == Dir::POS) as usize]),
     / @saturating algo::div(&lhs.0, &rhs.0).signed().saturating(Signed, &Signed::MAX),
-    % @saturating algo::rem(&lhs.0, &rhs.0).signed().saturating(Signed, &Signed::MAX),
+    % @saturating algo::rem(&lhs.0, &rhs.0).signed().saturating(Signed, &Signed::ZERO),
 
     + @overflowing uops::add(&lhs.0, &rhs.0).signed().overflowing(Signed),
     - @overflowing uops::sub(&lhs.0, &rhs.0).signed().overflowing(Signed),
@@ -5893,7 +5893,7 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> 
     - @saturating uops::sub(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
     * @saturating algo::mul(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
     / @saturating algo::div(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
-    % @saturating algo::rem(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+    % @saturating algo::rem(&lhs.0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
 
     + @overflowing uops::add(&lhs.0, &rhs.0).overflowing(Unsigned),
     - @overflowing uops::sub(&lhs.0, &rhs.0).overflowing(Unsigned),
@@ -5981,7 +5981,7 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
         algo::mul(&mut lhs.0, &rhs.0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
     },
     /= @saturating algo::div(&mut lhs.0, &rhs.0).signed().saturating_mut(&Signed::MAX.0),
-    %= @saturating algo::rem(&mut lhs.0, &rhs.0).signed().saturating_mut(&Signed::MAX.0),
+    %= @saturating algo::rem(&mut lhs.0, &rhs.0).signed().saturating_mut(&Signed::ZERO.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: usize) for Signed<L>, [
@@ -6022,7 +6022,7 @@ ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: &Unsigned<L>)
     -= @saturating uops::sub(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MIN.0),
     *= @saturating algo::mul(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MAX.0),
     /= @saturating algo::div(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MAX.0),
-    %= @saturating algo::rem(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MAX.0),
+    %= @saturating algo::rem(&mut lhs.0, &rhs.0).saturating_mut(&Unsigned::MIN.0),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Unsigned<L>, rhs: usize) for Unsigned<L>, [
@@ -7520,7 +7520,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt, Strict, Unbounded, Wrapping,
+        AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt, Saturating, Strict, Unbounded, Wrapping,
         long::alias::{S32, S64, U32, U64},
     };
 
@@ -8260,6 +8260,100 @@ mod tests {
     }
 
     #[test]
+    fn ops_signed_strict() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(val),
+            |val: i64| Strict(val),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+
+        ops_shift_impl(
+            ndassert::range!(i64, 52),
+            0..96,
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(val),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_strict() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(val),
+            |val: u64| Strict(val),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
+        );
+
+        ops_shift_impl(
+            ndassert::range!(u64, 52),
+            0..96,
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(val),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_signed_primitive_strict() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(val),
+            |val: i64| Strict(val),
+            |val: i64| Strict(val),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_primitive_strict() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(val),
+            |val: u64| Strict(val),
+            |val: u64| Strict(val),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_signed_primitive_native_strict() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            i8::MIN..i8::MAX,
+            |val: i64| Strict(S64::from(val)),
+            |val: i8| Strict(val),
+            |val: i64| Strict(val),
+            |val: i8| Strict(val as i64),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_primitive_native_strict() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            u8::MIN..u8::MAX,
+            |val: u64| Strict(U64::from(val)),
+            |val: u8| Strict(val),
+            |val: u64| Strict(val),
+            |val: u8| Strict(val as u64),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
+        );
+    }
+
+    #[test]
     fn ops_signed_wrapping() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
@@ -8354,96 +8448,96 @@ mod tests {
     }
 
     #[test]
-    fn ops_signed_strict() {
+    fn ops_signed_saturating() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
             ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
+            |val: i64| Saturating(S64::from(val)),
+            |val: i64| Saturating(S64::from(val)),
+            |val: i64| Saturating(val),
+            |val: i64| Saturating(val),
+            |val: Saturating<i64>| Saturating(S64::from(val.0)),
         );
 
-        ops_shift_impl(
-            ndassert::range!(i64, 52),
-            0..96,
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
+        // ops_shift_impl(
+        //     ndassert::range!(i64, 52),
+        //     0..96,
+        //     |val: i64| Saturating(S64::from(val)),
+        //     |val: i64| Saturating(val),
+        //     |val: Saturating<i64>| Saturating(S64::from(val.0)),
+        // );
     }
 
     #[test]
-    fn ops_unsigned_strict() {
+    fn ops_unsigned_saturating() {
         ops_impl(
             ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
             ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
+            |val: u64| Saturating(U64::from(val)),
+            |val: u64| Saturating(U64::from(val)),
+            |val: u64| Saturating(val),
+            |val: u64| Saturating(val),
+            |val: Saturating<u64>| Saturating(U64::from(val.0)),
         );
 
-        ops_shift_impl(
-            ndassert::range!(u64, 52),
-            0..96,
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
-        );
+        // ops_shift_impl(
+        //     ndassert::range!(u64, 52),
+        //     0..96,
+        //     |val: u64| Saturating(U64::from(val)),
+        //     |val: u64| Saturating(val),
+        //     |val: Saturating<u64>| Saturating(U64::from(val.0)),
+        // );
     }
 
     #[test]
-    fn ops_signed_primitive_strict() {
+    fn ops_signed_primitive_saturating() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
             ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: i64| Strict(val),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
+            |val: i64| Saturating(S64::from(val)),
+            |val: i64| Saturating(val),
+            |val: i64| Saturating(val),
+            |val: i64| Saturating(val),
+            |val: Saturating<i64>| Saturating(S64::from(val.0)),
         );
     }
 
     #[test]
-    fn ops_unsigned_primitive_strict() {
+    fn ops_unsigned_primitive_saturating() {
         ops_impl(
             ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
             ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: u64| Strict(val),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
+            |val: u64| Saturating(U64::from(val)),
+            |val: u64| Saturating(val),
+            |val: u64| Saturating(val),
+            |val: u64| Saturating(val),
+            |val: Saturating<u64>| Saturating(U64::from(val.0)),
         );
     }
 
     #[test]
-    fn ops_signed_primitive_native_strict() {
+    fn ops_signed_primitive_native_saturating() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
             i8::MIN..i8::MAX,
-            |val: i64| Strict(S64::from(val)),
-            |val: i8| Strict(val),
-            |val: i64| Strict(val),
-            |val: i8| Strict(val as i64),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
+            |val: i64| Saturating(S64::from(val)),
+            |val: i8| Saturating(val),
+            |val: i64| Saturating(val),
+            |val: i8| Saturating(val as i64),
+            |val: Saturating<i64>| Saturating(S64::from(val.0)),
         );
     }
 
     #[test]
-    fn ops_unsigned_primitive_native_strict() {
+    fn ops_unsigned_primitive_native_saturating() {
         ops_impl(
             ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
             u8::MIN..u8::MAX,
-            |val: u64| Strict(U64::from(val)),
-            |val: u8| Strict(val),
-            |val: u64| Strict(val),
-            |val: u8| Strict(val as u64),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
+            |val: u64| Saturating(U64::from(val)),
+            |val: u8| Saturating(val),
+            |val: u64| Saturating(val),
+            |val: u8| Saturating(val as u64),
+            |val: Saturating<u64>| Saturating(U64::from(val.0)),
         );
     }
 
