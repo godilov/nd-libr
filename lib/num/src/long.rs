@@ -8260,6 +8260,100 @@ mod tests {
     }
 
     #[test]
+    fn ops_signed_wrapping() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            |val: i64| Wrapping(S64::from(val)),
+            |val: i64| Wrapping(S64::from(val)),
+            |val: i64| Wrapping(val),
+            |val: i64| Wrapping(val),
+            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+        );
+
+        // ops_shift_impl(
+        //     ndassert::range!(i64, 52),
+        //     0..96,
+        //     |val: i64| Wrapping(S64::from(val)),
+        //     |val: i64| Wrapping(val),
+        //     |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+        // );
+    }
+
+    #[test]
+    fn ops_unsigned_wrapping() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            |val: u64| Wrapping(U64::from(val)),
+            |val: u64| Wrapping(U64::from(val)),
+            |val: u64| Wrapping(val),
+            |val: u64| Wrapping(val),
+            |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+        );
+
+        // ops_shift_impl(
+        //     ndassert::range!(u64, 52),
+        //     0..96,
+        //     |val: u64| Wrapping(U64::from(val)),
+        //     |val: u64| Wrapping(val),
+        //     |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+        // );
+    }
+
+    #[test]
+    fn ops_signed_primitive_wrapping() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            |val: i64| Wrapping(S64::from(val)),
+            |val: i64| Wrapping(val),
+            |val: i64| Wrapping(val),
+            |val: i64| Wrapping(val),
+            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_primitive_wrapping() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            |val: u64| Wrapping(U64::from(val)),
+            |val: u64| Wrapping(val),
+            |val: u64| Wrapping(val),
+            |val: u64| Wrapping(val),
+            |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_signed_primitive_native_wrapping() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            i8::MIN..i8::MAX,
+            |val: i64| Wrapping(S64::from(val)),
+            |val: i8| Wrapping(val),
+            |val: i64| Wrapping(val),
+            |val: i8| Wrapping(val as i64),
+            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_primitive_native_wrapping() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            u8::MIN..u8::MAX,
+            |val: u64| Wrapping(U64::from(val)),
+            |val: u8| Wrapping(val),
+            |val: u64| Wrapping(val),
+            |val: u8| Wrapping(val as u64),
+            |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+        );
+    }
+
+    #[test]
     fn ops_signed_strict() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
