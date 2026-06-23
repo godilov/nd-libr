@@ -7527,7 +7527,13 @@ mod tests {
     fn ops_impl<
         Lhs: Zero + Num + Debug + RefUnwindSafe,
         Rhs: Zero + Num + Debug + RefUnwindSafe,
-        LhsLong: Num + Debug + RefUnwindSafe + Ops<RhsLong, usize, Type = LhsLong> + OpsAssign<RhsLong, usize>,
+        LhsLong: Num
+            + Debug
+            + RefUnwindSafe
+            + Ops<RhsLong, usize, Type = LhsLong>
+            + OpsAssign<RhsLong, usize>
+            + NdOpsChecked<LhsLong, RhsLong, usize, All = LhsLong>
+            + NdOpsOverflowing<LhsLong, RhsLong, usize, All = LhsLong>,
         RhsLong: Num
             + Debug
             + RefUnwindSafe
@@ -7537,7 +7543,13 @@ mod tests {
             + BitOr<LhsLong, Output = LhsLong>
             + BitAnd<LhsLong, Output = LhsLong>
             + BitXor<LhsLong, Output = LhsLong>,
-        LhsAlt: Num + Debug + RefUnwindSafe + Ops<RhsAlt, usize, Type = LhsAlt> + OpsAssign<RhsAlt, usize>,
+        LhsAlt: Num
+            + Debug
+            + RefUnwindSafe
+            + Ops<RhsAlt, usize, Type = LhsAlt>
+            + OpsAssign<RhsAlt, usize>
+            + NdOpsChecked<LhsAlt, RhsAlt, usize, All = LhsAlt>
+            + NdOpsOverflowing<LhsAlt, RhsAlt, usize, All = LhsAlt>,
         RhsAlt: Num
             + Debug
             + RefUnwindSafe
@@ -7554,7 +7566,7 @@ mod tests {
         rhs_long_fn: impl Fn(Rhs) -> RhsLong,
         lhs_alt_fn: impl Fn(Lhs) -> LhsAlt,
         rhs_alt_fn: impl Fn(Rhs) -> RhsAlt,
-        func: impl Fn(LhsAlt) -> LhsLong + RefUnwindSafe,
+        func: impl Copy + Fn(LhsAlt) -> LhsLong + RefUnwindSafe,
     ) {
         ndassert::check! { @eq (
             lhs in lhs_iter.clone(),
@@ -7581,6 +7593,12 @@ mod tests {
 
             ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val /= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
             ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val %= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
+
+            (LhsLong::nd_add_checked(&lhs_long, &rhs_long), LhsAlt::nd_add_checked(&lhs_alt, &rhs_alt).map(func)),
+            (LhsLong::nd_sub_checked(&lhs_long, &rhs_long), LhsAlt::nd_sub_checked(&lhs_alt, &rhs_alt).map(func)),
+            (LhsLong::nd_mul_checked(&lhs_long, &rhs_long), LhsAlt::nd_mul_checked(&lhs_alt, &rhs_alt).map(func)),
+            (LhsLong::nd_div_checked(&lhs_long, &rhs_long), LhsAlt::nd_div_checked(&lhs_alt, &rhs_alt).map(func)),
+            (LhsLong::nd_rem_checked(&lhs_long, &rhs_long), LhsAlt::nd_rem_checked(&lhs_alt, &rhs_alt).map(func)),
 
             (lhs_long | rhs_long, func(lhs_alt | rhs_alt)),
             (lhs_long & rhs_long, func(lhs_alt & rhs_alt)),
