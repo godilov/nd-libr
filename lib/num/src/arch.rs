@@ -984,7 +984,7 @@ mod tests {
     #[test]
     #[allow(clippy::unnecessary_cast)]
     fn fmt() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 52).map(S64::from)) [
+        ndassert::check! { @eq (val in ndassert::range!(i64, 52)) [
             (format!("{:}",   Aligned(val)), format!("{:}",   val)),
             (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
             (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
@@ -997,7 +997,7 @@ mod tests {
             (format!("{:#X}", Aligned(val)), format!("{:#X}", val)),
         ] }
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 52).map(U64::from)) [
+        ndassert::check! { @eq (val in ndassert::range!(u64, 52)) [
             (format!("{:}",   Aligned(val)), format!("{:}",   val)),
             (format!("{:b}",  Aligned(val)), format!("{:b}",  val)),
             (format!("{:o}",  Aligned(val)), format!("{:o}",  val)),
@@ -1017,11 +1017,12 @@ mod tests {
             lhs in ndassert::range!(i64, 60, 0).map(S64::from),
             rhs in ndassert::range!(i64, 60, 1).map(S64::from),
         ) [
-            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            ndassert::catch!(Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
@@ -1031,11 +1032,12 @@ mod tests {
             lhs in ndassert::range!(i64, 60, 0).map(S64::from),
             rhs in ndassert::range!(i64, 60, 1),
         ) [
-            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            ndassert::catch!(Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
@@ -1045,8 +1047,10 @@ mod tests {
             lhs in ndassert::range!(i64, 60, 0),
             rhs in ndassert::range!(i64, 60, 1).map(S64::from),
         ) [
-            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
@@ -1056,11 +1060,12 @@ mod tests {
             lhs in ndassert::range!(u64, 60, 0).map(U64::from),
             rhs in ndassert::range!(u64, 60, 1).map(U64::from),
         ) [
-            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            ndassert::catch!(Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
@@ -1070,11 +1075,12 @@ mod tests {
             lhs in ndassert::range!(u64, 60, 0).map(U64::from),
             rhs in ndassert::range!(u64, 60, 1),
         ) [
-            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            (Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
-            (Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
-            (Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
+            ndassert::catch!(Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
+
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
@@ -1084,8 +1090,10 @@ mod tests {
             lhs in ndassert::range!(u64, 60, 0),
             rhs in ndassert::range!(u64, 60, 1).map(U64::from),
         ) [
-            (Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            (Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
+            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
+            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
@@ -1095,16 +1103,16 @@ mod tests {
             lhs in ndassert::range!(i64, 60).map(S64::from),
             rhs in 0..96,
         ) [
-            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
-            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
+            ndassert::catch!(Aligned(lhs) << rhs, Aligned(lhs << rhs)),
+            ndassert::catch!(Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 60).map(U64::from),
             rhs in 0..96,
         ) [
-            (Aligned(lhs) << rhs, Aligned(lhs << rhs)),
-            (Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
+            ndassert::catch!(Aligned(lhs) << rhs, Aligned(lhs << rhs)),
+            ndassert::catch!(Aligned(lhs) >> rhs, Aligned(lhs >> rhs)),
         ] }
     }
 
@@ -1114,11 +1122,12 @@ mod tests {
             lhs in ndassert::range!(i64, 60, 0).map(S64::from),
             rhs in ndassert::range!(i64, 60, 1).map(S64::from),
         ) [
-            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+
             ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
             ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
             ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
@@ -1128,11 +1137,12 @@ mod tests {
             lhs in ndassert::range!(i64, 60, 0).map(S64::from),
             rhs in ndassert::range!(i64, 60, 1),
         ) [
-            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+
             ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
             ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
             ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
@@ -1142,11 +1152,12 @@ mod tests {
             lhs in ndassert::range!(u64, 60, 0).map(U64::from),
             rhs in ndassert::range!(u64, 60, 1).map(U64::from),
         ) [
-            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+
             ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
             ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
             ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
@@ -1156,11 +1167,12 @@ mod tests {
             lhs in ndassert::range!(u64, 60, 0).map(U64::from),
             rhs in ndassert::range!(u64, 60, 1),
         ) [
-            ({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
-            ({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
-            ({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
-            ({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
-            ({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val += Aligned(rhs); val }, Aligned(lhs + rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val -= Aligned(rhs); val }, Aligned(lhs - rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val *= Aligned(rhs); val }, Aligned(lhs * rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val /= Aligned(rhs); val }, Aligned(lhs / rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val %= Aligned(rhs); val }, Aligned(lhs % rhs)),
+
             ({ let mut val = Aligned(lhs); val |= Aligned(rhs); val }, Aligned(lhs | rhs)),
             ({ let mut val = Aligned(lhs); val &= Aligned(rhs); val }, Aligned(lhs & rhs)),
             ({ let mut val = Aligned(lhs); val ^= Aligned(rhs); val }, Aligned(lhs ^ rhs)),
@@ -1170,16 +1182,16 @@ mod tests {
             lhs in ndassert::range!(i64, 60).map(S64::from),
             rhs in 0..96,
         ) [
-            ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
-            ({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 60).map(U64::from),
             rhs in 0..96,
         ) [
-            ({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
-            ({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val <<= rhs; val }, Aligned(lhs << rhs)),
+            ndassert::catch!({ let mut val = Aligned(lhs); val >>= rhs; val }, Aligned(lhs >> rhs)),
         ] }
     }
 
