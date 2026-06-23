@@ -81,7 +81,7 @@ macro_rules! from_primitive {
                 #![allow(unused_comparisons)]
 
                 let bytes = value.to_le_bytes();
-                let res = from_arr(&bytes, if value >= 0 { 0 } else { MAX });
+                let res = from_arr(&bytes, [0, MAX][(value < 0) as usize]);
 
                 Self(res)
             }
@@ -168,7 +168,7 @@ macro_rules! nd_ops_primitive_impl {
             + uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(Signed),
             - uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(Signed),
 
-            * algo::mul(&lhs.0, &Signed::from(rhs).0).with(Signed),
+            * algo::mul(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             / algo::div(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             % algo::rem(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
 
@@ -176,38 +176,34 @@ macro_rules! nd_ops_primitive_impl {
             & uops::bitand(&lhs.0, &Signed::from(rhs).0).eval(),
             ^ uops::bitxor(&lhs.0, &Signed::from(rhs).0).eval(),
 
-            + @checked uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).checked(Signed),
-            - @checked uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).checked(Signed),
-
-            * @checked algo::mul(&lhs.0, &Signed::from(rhs).0).checked(Signed),
+            + @checked uops::add(&lhs.0, &Signed::from(rhs).0).signed().checked(Signed),
+            - @checked uops::sub(&lhs.0, &Signed::from(rhs).0).signed().checked(Signed),
+            * @checked algo::mul(&lhs.0, &Signed::from(rhs).0).signed().checked(Signed),
             / @checked algo::div(&lhs.0, &Signed::from(rhs).0).signed().checked(Signed),
             % @checked algo::rem(&lhs.0, &Signed::from(rhs).0).signed().checked(Signed),
 
-            + @strict uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(Signed),
-            - @strict uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(Signed),
-
-            * @strict algo::mul(&lhs.0, &Signed::from(rhs).0).strict(Signed),
+            + @strict uops::add(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
+            - @strict uops::sub(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
+            * @strict algo::mul(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
             / @strict algo::div(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
             % @strict algo::rem(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
 
             + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(Signed),
             - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(Signed),
 
-            * @wrapping algo::mul(&lhs.0, &Signed::from(rhs).0).with(Signed),
+            * @wrapping algo::mul(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             / @wrapping algo::div(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             % @wrapping algo::rem(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
 
-            + @saturating uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
-            - @saturating uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
-
-            * @saturating algo::mul(&lhs.0, &Signed::from(rhs).0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
+            + @saturating uops::add(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+            - @saturating uops::sub(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+            * @saturating algo::mul(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
             / @saturating algo::div(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, &Signed::MAX),
             % @saturating algo::rem(&lhs.0, &Signed::from(rhs).0).signed().saturating(Signed, &Signed::MAX),
 
-            + @overflowing uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).overflowing(Signed),
-            - @overflowing uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).overflowing(Signed),
-
-            * @overflowing algo::mul(&lhs.0, &Signed::from(rhs).0).overflowing(Signed),
+            + @overflowing uops::add(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
+            - @overflowing uops::sub(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
+            * @overflowing algo::mul(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
             / @overflowing algo::div(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
             % @overflowing algo::rem(&lhs.0, &Signed::from(rhs).0).signed().overflowing(Signed),
         ] }
@@ -216,43 +212,39 @@ macro_rules! nd_ops_primitive_impl {
             + uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
             - uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
 
-            * algo::mul(&Signed::from(lhs).0, &rhs.0).with(Signed),
+            * algo::mul(&Signed::from(lhs).0, &rhs.0).signed().with(Signed),
 
             | uops::bitor(&Signed::from(lhs).0, &rhs.0).eval(),
             & uops::bitand(&Signed::from(lhs).0, &rhs.0).eval(),
             ^ uops::bitxor(&Signed::from(lhs).0, &rhs.0).eval(),
 
-            + @checked uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).checked(Signed),
-            - @checked uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).checked(Signed),
+            + @checked uops::add(&Signed::from(lhs).0, &rhs.0).signed().checked(Signed),
+            - @checked uops::sub(&Signed::from(lhs).0, &rhs.0).signed().checked(Signed),
+            * @checked algo::mul(&Signed::from(lhs).0, &rhs.0).signed().checked(Signed),
 
-            * @checked algo::mul(&Signed::from(lhs).0, &rhs.0).checked(Signed),
-
-            + @strict uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).strict(Signed),
-            - @strict uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).strict(Signed),
-
-            * @strict algo::mul(&Signed::from(lhs).0, &rhs.0).strict(Signed),
+            + @strict uops::add(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
+            - @strict uops::sub(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
+            * @strict algo::mul(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
 
             + @wrapping uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
             - @wrapping uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
 
-            * @wrapping algo::mul(&Signed::from(lhs).0, &rhs.0).with(Signed),
+            * @wrapping algo::mul(&Signed::from(lhs).0, &rhs.0).signed().with(Signed),
 
-            + @saturating uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
-            - @saturating uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            + @saturating uops::add(&Signed::from(lhs).0, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            - @saturating uops::sub(&Signed::from(lhs).0, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            * @saturating algo::mul(&Signed::from(lhs).0, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) * rhs.dir() == Dir::POS) as usize]),
 
-            * @saturating algo::mul(&Signed::from(lhs).0, &rhs.0).saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) * rhs.dir() == Dir::POS) as usize]),
-
-            + @overflowing uops::add_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).overflowing(Signed),
-            - @overflowing uops::sub_iter(lhs.iter_words_default([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).overflowing(Signed),
-
-            * @overflowing algo::mul(&Signed::from(lhs).0, &rhs.0).overflowing(Signed),
+            + @overflowing uops::add(&Signed::from(lhs).0, &rhs.0).signed().overflowing(Signed),
+            - @overflowing uops::sub(&Signed::from(lhs).0, &rhs.0).signed().overflowing(Signed),
+            * @overflowing algo::mul(&Signed::from(lhs).0, &rhs.0).signed().overflowing(Signed),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
             += uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).eval(),
             -= uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).eval(),
 
-            *= algo::mul(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
+            *= algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             /= algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             %= algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
 
@@ -260,34 +252,33 @@ macro_rules! nd_ops_primitive_impl {
             &= uops::bitand(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
             ^= uops::bitxor(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
 
-            += @strict uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(|_| ()),
-            -= @strict uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).strict(|_| ()),
-
-            *= @strict algo::mul(&mut lhs.0, &Signed::from(rhs).0).strict_mut(),
+            += @strict uops::add(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
+            -= @strict uops::sub(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
+            *= @strict algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
             /= @strict algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
 
             += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(|_| ()),
             -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_default([0, MAX][(rhs < 0) as usize])).with(|_| ()),
 
-            *= @wrapping algo::mul(&mut lhs.0, &Signed::from(rhs).0).eval_mut(),
+            *= @wrapping algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             %= @wrapping algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
 
             += @saturating {
                 let dir = lhs.dir();
 
-                uops::add(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+                uops::add(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
             },
             -= @saturating {
                 let dir = lhs.dir();
 
-                uops::sub(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+                uops::sub(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
             },
             *= @saturating {
                 let dir = lhs.dir() * Dir::from(rhs);
 
-                algo::mul(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+                algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
             },
 
             /= @saturating algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut(&Signed::MAX.0),
@@ -307,16 +298,14 @@ macro_rules! nd_ops_primitive_impl {
             & uops::bitand(&lhs.0, &Unsigned::from(rhs).0).eval(),
             ^ uops::bitxor(&lhs.0, &Unsigned::from(rhs).0).eval(),
 
-            + @checked uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).checked(Unsigned),
-            - @checked uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).checked(Unsigned),
-
+            + @checked uops::add(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
+            - @checked uops::sub(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
             * @checked algo::mul(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
             / @checked algo::div(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
             % @checked algo::rem(&lhs.0, &Unsigned::from(rhs).0).checked(Unsigned),
 
-            + @strict uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).strict(Unsigned),
-            - @strict uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).strict(Unsigned),
-
+            + @strict uops::add(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
+            - @strict uops::sub(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
             * @strict algo::mul(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
             / @strict algo::div(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
             % @strict algo::rem(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
@@ -328,16 +317,14 @@ macro_rules! nd_ops_primitive_impl {
             / @wrapping algo::div(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
             % @wrapping algo::rem(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
 
-            + @saturating uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).saturating(Unsigned, &Unsigned::MAX),
-            - @saturating uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).saturating(Unsigned, &Unsigned::MIN),
-
+            + @saturating uops::add(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
+            - @saturating uops::sub(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MIN),
             * @saturating algo::mul(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
             / @saturating algo::div(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
             % @saturating algo::rem(&lhs.0, &Unsigned::from(rhs).0).saturating(Unsigned, &Unsigned::MAX),
 
-            + @overflowing uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).overflowing(Unsigned),
-            - @overflowing uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).overflowing(Unsigned),
-
+            + @overflowing uops::add(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
+            - @overflowing uops::sub(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
             * @overflowing algo::mul(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
             / @overflowing algo::div(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
             % @overflowing algo::rem(&lhs.0, &Unsigned::from(rhs).0).overflowing(Unsigned),
@@ -353,14 +340,12 @@ macro_rules! nd_ops_primitive_impl {
             & uops::bitand(&Unsigned::from(lhs).0, &rhs.0).eval(),
             ^ uops::bitxor(&Unsigned::from(lhs).0, &rhs.0).eval(),
 
-            + @checked uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).checked(Unsigned),
-            - @checked uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).checked(Unsigned),
-
+            + @checked uops::add(&Unsigned::from(lhs).0, &rhs.0).checked(Unsigned),
+            - @checked uops::sub(&Unsigned::from(lhs).0, &rhs.0).checked(Unsigned),
             * @checked algo::mul(&Unsigned::from(lhs).0, &rhs.0).checked(Unsigned),
 
-            + @strict uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).strict(Unsigned),
-            - @strict uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).strict(Unsigned),
-
+            + @strict uops::add(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
+            - @strict uops::sub(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
             * @strict algo::mul(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
 
             + @wrapping uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).with(Unsigned),
@@ -368,14 +353,12 @@ macro_rules! nd_ops_primitive_impl {
 
             * @wrapping algo::mul(&Unsigned::from(lhs).0, &rhs.0).with(Unsigned),
 
-            + @saturating uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).saturating(Unsigned, &Unsigned::MAX),
-            - @saturating uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).saturating(Unsigned, &Unsigned::MIN),
-
+            + @saturating uops::add(&Unsigned::from(lhs).0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
+            - @saturating uops::sub(&Unsigned::from(lhs).0, &rhs.0).saturating(Unsigned, &Unsigned::MIN),
             * @saturating algo::mul(&Unsigned::from(lhs).0, &rhs.0).saturating(Unsigned, &Unsigned::MAX),
 
-            + @overflowing uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).overflowing(Unsigned),
-            - @overflowing uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).overflowing(Unsigned),
-
+            + @overflowing uops::add(&Unsigned::from(lhs).0, &rhs.0).overflowing(Unsigned),
+            - @overflowing uops::sub(&Unsigned::from(lhs).0, &rhs.0).overflowing(Unsigned),
             * @overflowing algo::mul(&Unsigned::from(lhs).0, &rhs.0).overflowing(Unsigned),
         ] }
 
@@ -391,9 +374,8 @@ macro_rules! nd_ops_primitive_impl {
             &= uops::bitand(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
             ^= uops::bitxor(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
 
-            += @strict uops::add_iter(lhs.0.iter_mut(), rhs.iter_words()).strict(|_| ()),
-            -= @strict uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words()).strict(|_| ()),
-
+            += @strict uops::add(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
+            -= @strict uops::sub(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
             *= @strict algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
             /= @strict algo::div(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
@@ -408,7 +390,6 @@ macro_rules! nd_ops_primitive_impl {
             += @saturating uops::add(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
             -= @saturating uops::sub(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MIN.0),
             *= @saturating algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
-
             /= @saturating algo::div(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
             %= @saturating algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).saturating_mut(&Unsigned::MAX.0),
         ] }
@@ -543,17 +524,17 @@ macro_rules! nd_ops_primitive_native_impl {
             += @saturating {
                 let dir = lhs.dir();
 
-                uops::add(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+                uops::add(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
             },
             -= @saturating {
                 let dir = lhs.dir();
 
-                uops::sub(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+                uops::sub(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
             },
             *= @saturating {
                 let dir = lhs.dir() * Dir::from(rhs);
 
-                algo::mul(&mut lhs.0, &Signed::from(rhs).0).saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
+                algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
             },
 
             /= @saturating algo::div(&mut lhs.0, rhs as <Single as Num>::Signed).signed().saturating_mut(&Signed::MAX.0),
@@ -1610,6 +1591,19 @@ pub mod uops {
         CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
     > ExprIter<Lhs, Rhs, Ctx, CtxFn>
     {
+        /// Creates expression with acc.
+        #[inline]
+        pub fn acc(self, acc: Single) -> ExprIter<Lhs, Rhs, Ctx, CtxFn> {
+            ExprIter {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                mul: self.mul,
+                acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
+        }
+
         /// Creates expression with `Ctx`.
         #[inline]
         pub fn ctx<CtxNext: Copy, CtxFnNext: Copy + Fn(Single, Single, Single, Single, CtxNext) -> CtxNext>(
@@ -1663,6 +1657,19 @@ pub mod uops {
         CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
     > ExprIterMut<'words, Lhs, Rhs, Ctx, CtxFn>
     {
+        /// Creates expression with acc.
+        #[inline]
+        pub fn acc(self, acc: Single) -> ExprIterMut<'words, Lhs, Rhs, Ctx, CtxFn> {
+            ExprIterMut {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                mul: self.mul,
+                acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
+        }
+
         /// Creates expression with `Ctx`.
         #[inline]
         pub fn ctx<CtxNext: Copy, CtxFnNext: Copy + Fn(Single, Single, Single, Single, CtxNext) -> CtxNext>(
@@ -2427,8 +2434,8 @@ pub mod uops {
             let lhs = self.lhs as Single;
 
             let ext = ext(&[lhs]);
-            let dirx = dir(self.rhs);
-            let eq = dir(self.rhs) == dir(&[lhs]);
+            let dirx = dir(&[lhs]);
+            let eq = dir(&[lhs]) == dir(self.rhs);
 
             ExprIter {
                 lhs: (0..).map(move |idx| [lhs, ext][(idx > 0) as usize]),
@@ -4089,22 +4096,43 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            let mut res = [0; L];
-            let mut arr = [0; L];
+            let ext = uops::ext(rhs);
+
+            let mut res = [[0; L]; 2];
 
             for (idx, val) in rhs.iter().copied().enumerate() {
                 let mut iter = uops::mul(lhs, val).iter();
 
-                uops::add_iter(res[idx..].iter_mut(), &mut iter).iter_mut().eval_mut();
-                uops::add_iter(arr[..idx].iter_mut(), &mut iter).iter_mut().eval_mut();
+                let acc = uops::add_iter(res[0][idx..].iter_mut(), &mut iter)
+                    .iter_mut()
+                    .last()
+                    .unwrap_or(0);
 
-                arr[idx] = iter.acc;
+                let acc = uops::add_iter(res[1][..idx].iter_mut(), &mut iter)
+                    .iter_mut()
+                    .acc(acc)
+                    .last()
+                    .unwrap_or(0);
+
+                let mut iter = uops::mul([&[0; L], &[MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
+                    .iter()
+                    .acc(iter.acc);
+
+                uops::add_iter(res[1][idx..].iter_mut(), &mut iter)
+                    .iter_mut()
+                    .acc(acc)
+                    .eval_mut();
             }
 
-            (
-                res,
-                arr != [uops::ext(&res); L] && lhs != &Signed::ONE.0 && rhs != &Signed::ONE.0,
-            )
+            for (idx, val) in (0..L).map(|_| ext).enumerate() {
+                uops::add_iter(res[1][idx..].iter_mut(), uops::mul(lhs, val).iter())
+                    .iter_mut()
+                    .eval_mut();
+            }
+
+            let dir = uops::dir(&res[0]);
+
+            (res[0], &res[1] != [&[0; L], &[MAX; L]][(dir == Dir::NEG) as usize])
         }
     }
 
@@ -4134,19 +4162,41 @@ pub mod algo {
 
             let ext = uops::ext(&[rhs]);
 
-            let mut res = [0; L];
-            let mut arr = [0; L];
+            let mut res = [[0; L]; 2];
 
             for (idx, val) in (0..L).map(|idx| [rhs, ext][(idx > 0) as usize]).enumerate() {
                 let mut iter = uops::mul(lhs, val).iter();
 
-                uops::add_iter(res[idx..].iter_mut(), &mut iter).iter_mut().eval_mut();
-                uops::add_iter(arr[..idx].iter_mut(), &mut iter).iter_mut().eval_mut();
+                let acc = uops::add_iter(res[0][idx..].iter_mut(), &mut iter)
+                    .iter_mut()
+                    .last()
+                    .unwrap_or(0);
 
-                arr[idx] = iter.acc;
+                let acc = uops::add_iter(res[1][..idx].iter_mut(), &mut iter)
+                    .iter_mut()
+                    .acc(acc)
+                    .last()
+                    .unwrap_or(0);
+
+                let mut iter = uops::mul([&[0; L], &[MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
+                    .iter()
+                    .acc(iter.acc);
+
+                uops::add_iter(res[1][idx..].iter_mut(), &mut iter)
+                    .iter_mut()
+                    .acc(acc)
+                    .eval_mut();
             }
 
-            (res, arr != [uops::ext(&res); L] && lhs != &Signed::ONE.0 && rhs != 1)
+            for (idx, val) in (0..L).map(|_| ext).enumerate() {
+                uops::add_iter(res[1][idx..].iter_mut(), uops::mul(lhs, val).iter())
+                    .iter_mut()
+                    .eval_mut();
+            }
+
+            let dir = uops::dir(&res[0]);
+
+            (res[0], &res[1] != [&[0; L], &[MAX; L]][(dir == Dir::NEG) as usize])
         }
     }
 
@@ -8116,48 +8166,6 @@ mod tests {
     }
 
     #[test]
-    fn ops_signed_strict() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([0, 1, i64::MAX]),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(i64, 52),
-            0..96,
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_strict() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(u64, 52),
-            0..96,
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
-        );
-    }
-
-    #[test]
     fn ops_signed() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
@@ -8248,6 +8256,100 @@ mod tests {
             |val: u64| Wrapping(val),
             |val: u8| Wrapping(val as u64),
             |val: Wrapping<u64>| U64::from(val.0),
+        );
+    }
+
+    #[test]
+    fn ops_signed_strict() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(val),
+            |val: i64| Strict(val),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+
+        ops_shift_impl(
+            ndassert::range!(i64, 52),
+            0..96,
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(val),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_strict() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(val),
+            |val: u64| Strict(val),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
+        );
+
+        ops_shift_impl(
+            ndassert::range!(u64, 52),
+            0..96,
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(val),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_signed_primitive_strict() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(val),
+            |val: i64| Strict(val),
+            |val: i64| Strict(val),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_primitive_strict() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            |val: u64| Strict(U64::from(val)),
+            |val: u64| Strict(val),
+            |val: u64| Strict(val),
+            |val: u64| Strict(val),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_signed_primitive_native_strict() {
+        ops_impl(
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            i8::MIN..i8::MAX,
+            |val: i64| Strict(S64::from(val)),
+            |val: i8| Strict(val),
+            |val: i64| Strict(val),
+            |val: i8| Strict(val as i64),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
+    }
+
+    #[test]
+    fn ops_unsigned_primitive_native_strict() {
+        ops_impl(
+            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            u8::MIN..u8::MAX,
+            |val: u64| Strict(U64::from(val)),
+            |val: u8| Strict(val),
+            |val: u64| Strict(val),
+            |val: u8| Strict(val as u64),
+            |val: Strict<u64>| Strict(U64::from(val.0)),
         );
     }
 
