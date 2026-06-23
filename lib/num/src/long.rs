@@ -7600,6 +7600,13 @@ mod tests {
             (LhsLong::nd_div_checked(&lhs_long, &rhs_long), LhsAlt::nd_div_checked(&lhs_alt, &rhs_alt).map(func)),
             (LhsLong::nd_rem_checked(&lhs_long, &rhs_long), LhsAlt::nd_rem_checked(&lhs_alt, &rhs_alt).map(func)),
 
+            (LhsLong::nd_add_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_add_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
+            (LhsLong::nd_sub_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_sub_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
+            (LhsLong::nd_mul_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_mul_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
+
+            ((rhs != Rhs::ZERO).then(|| LhsLong::nd_div_overflowing(&lhs_long, &rhs_long)), (rhs != Rhs::ZERO).then(|| { let (val, flag) = LhsAlt::nd_div_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) })),
+            ((rhs != Rhs::ZERO).then(|| LhsLong::nd_rem_overflowing(&lhs_long, &rhs_long)), (rhs != Rhs::ZERO).then(|| { let (val, flag) = LhsAlt::nd_rem_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) })),
+
             (lhs_long | rhs_long, func(lhs_alt | rhs_alt)),
             (lhs_long & rhs_long, func(lhs_alt & rhs_alt)),
             (lhs_long ^ rhs_long, func(lhs_alt ^ rhs_alt)),
