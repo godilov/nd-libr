@@ -7627,7 +7627,7 @@ mod tests {
         shift_iter: impl Iterator<Item = usize> + Clone,
         long_fn: impl Fn(Value) -> ValueLong,
         alt_fn: impl Fn(Value) -> ValueAlt,
-        func: impl Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
+        func: impl Copy + Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
     ) {
         ndassert::check! { @eq (
             value in value_iter.clone(),
@@ -7640,6 +7640,41 @@ mod tests {
 
             ndassert::catch!({ let mut val = long; val <<= shift; val }, func(alt << shift)),
             ndassert::catch!({ let mut val = long; val >>= shift; val }, func(alt >> shift)),
+        ] }
+    }
+
+    fn ops_unary_impl<
+        Value: Num + Debug + RefUnwindSafe,
+        ValueLong: Num
+            + Debug
+            + RefUnwindSafe
+            + Not<Output = ValueLong>
+            + Neg<Output = ValueLong>
+            + NdPosx<Type = ValueLong>
+            + NdNegx<Type = ValueLong>,
+        ValueAlt: Num
+            + Debug
+            + RefUnwindSafe
+            + Not<Output = ValueAlt>
+            + Neg<Output = ValueAlt>
+            + NdPosx<Type = ValueAlt>
+            + NdNegx<Type = ValueAlt>,
+    >(
+        value_iter: impl Iterator<Item = Value> + Clone,
+        long_fn: impl Fn(Value) -> ValueLong,
+        alt_fn: impl Fn(Value) -> ValueAlt,
+        func: impl Copy + Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
+    ) {
+        ndassert::check! { @eq (
+            value in value_iter.clone(),
+            long as long_fn(value),
+            alt as alt_fn(value),
+        ) [
+            (!long, func(!alt)),
+
+            ndassert::catch!(-long, func(-alt)),
+            ndassert::catch!(ValueLong::nd_posx(&long), func(ValueAlt::nd_posx(&alt))),
+            ndassert::catch!(ValueLong::nd_negx(&long), func(ValueAlt::nd_negx(&alt))),
         ] }
     }
 
@@ -8171,20 +8206,6 @@ mod tests {
     }
 
     #[test]
-    fn ops_unary() {
-        ndassert::check! { @eq (
-            value in ndassert::range!(i64, 52),
-            long as S64::from(value),
-        ) [
-            (!long, S64::from(!value)),
-
-            ndassert::catch!(-long, S64::from(-value)),
-            ndassert::catch!(S64::nd_posx(&long), S64::from(i64::nd_posx(&value))),
-            ndassert::catch!(S64::nd_negx(&long), S64::from(i64::nd_negx(&value))),
-        ] }
-    }
-
-    #[test]
     fn ops_signed() {
         ops_impl(
             ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
@@ -8199,6 +8220,13 @@ mod tests {
         ops_shift_impl(
             ndassert::range!(i64, 52),
             0..96,
+            |val: i64| S64::from(val),
+            |val: i64| val,
+            |val: i64| S64::from(val),
+        );
+
+        ops_unary_impl(
+            ndassert::range!(i64, 52),
             |val: i64| S64::from(val),
             |val: i64| val,
             |val: i64| S64::from(val),
@@ -8297,6 +8325,13 @@ mod tests {
             |val: i64| Strict(val),
             |val: Strict<i64>| Strict(S64::from(val.0)),
         );
+
+        ops_unary_impl(
+            ndassert::range!(i64, 52),
+            |val: i64| Strict(S64::from(val)),
+            |val: i64| Strict(val),
+            |val: Strict<i64>| Strict(S64::from(val.0)),
+        );
     }
 
     #[test]
@@ -8387,6 +8422,13 @@ mod tests {
         ops_shift_impl(
             ndassert::range!(i64, 52),
             0..96,
+            |val: i64| Wrapping(S64::from(val)),
+            |val: i64| Wrapping(val),
+            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+        );
+
+        ops_unary_impl(
+            ndassert::range!(i64, 52),
             |val: i64| Wrapping(S64::from(val)),
             |val: i64| Wrapping(val),
             |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
@@ -8485,6 +8527,13 @@ mod tests {
             |val: i64| Saturating(val),
             |val: Saturating<i64>| Saturating(S64::from(val.0)),
         );
+
+        ops_unary_impl(
+            ndassert::range!(i64, 52),
+            |val: i64| Saturating(S64::from(val)),
+            |val: i64| Saturating(val),
+            |val: Saturating<i64>| Saturating(S64::from(val.0)),
+        );
     }
 
     #[test]
@@ -8575,6 +8624,13 @@ mod tests {
         ops_shift_impl(
             ndassert::range!(i64, 52),
             0..96,
+            |val: i64| Unbounded(S64::from(val)),
+            |val: i64| Unbounded(val),
+            |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
+        );
+
+        ops_unary_impl(
+            ndassert::range!(i64, 52),
             |val: i64| Unbounded(S64::from(val)),
             |val: i64| Unbounded(val),
             |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
