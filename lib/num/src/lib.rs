@@ -122,9 +122,9 @@ macro_rules! num_ct_impl {
         $(num_ct_impl!(@unsigned $unsigned);)+
     };
     (@signed $signed:ty > $unsigned:ty $(,)?) => {
-        impl OneCt for $signed {
+        impl IsOneCt for $signed {
             #[inline(never)]
-            fn one_ct(&self) -> MaskCt {
+            fn is_one_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
                 let val = val ^ 1;
 
@@ -135,9 +135,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl ZeroCt for $signed {
+        impl IsZeroCt for $signed {
             #[inline(never)]
-            fn zero_ct(&self) -> MaskCt {
+            fn is_zero_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
                 let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
@@ -147,9 +147,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl PosCt for $signed {
+        impl IsPosCt for $signed {
             #[inline(never)]
-            fn pos_ct(&self) -> MaskCt {
+            fn is_pos_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
                 let neg = val >> (Self::BITS - 1);
@@ -162,9 +162,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl NegCt for $signed {
+        impl IsNegCt for $signed {
             #[inline(never)]
-            fn neg_ct(&self) -> MaskCt {
+            fn is_neg_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
                 let neg = val >> (Self::BITS - 1);
@@ -230,7 +230,7 @@ macro_rules! num_ct_impl {
                 let pos = *self;
                 let neg = (!self).wrapping_add(1);
 
-                SelectCt::select_ct(&pos, &neg, self.pos_ct())
+                SelectCt::select_ct(&pos, &neg, self.is_pos_ct())
             }
         }
 
@@ -240,16 +240,16 @@ macro_rules! num_ct_impl {
                 let pos = *self;
                 let neg = (!self).wrapping_add(1);
 
-                SelectCt::select_ct(&pos, &neg, self.neg_ct())
+                SelectCt::select_ct(&pos, &neg, self.is_neg_ct())
             }
         }
 
         num_ct_impl!(@impl $signed);
     };
     (@unsigned $unsigned:ty $(,)?) => {
-        impl OneCt for $unsigned {
+        impl IsOneCt for $unsigned {
             #[inline(never)]
-            fn one_ct(&self) -> MaskCt {
+            fn is_one_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
                 let any = ((val ^ 1) | (val ^ 1).wrapping_neg()) >> (Self::BITS - 1);
@@ -259,9 +259,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl ZeroCt for $unsigned {
+        impl IsZeroCt for $unsigned {
             #[inline(never)]
-            fn zero_ct(&self) -> MaskCt {
+            fn is_zero_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
                 let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
@@ -271,9 +271,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl PosCt for $unsigned {
+        impl IsPosCt for $unsigned {
             #[inline(never)]
-            fn pos_ct(&self) -> MaskCt {
+            fn is_pos_ct(&self) -> MaskCt {
                 let val = *self as $unsigned;
 
                 let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
@@ -283,9 +283,9 @@ macro_rules! num_ct_impl {
             }
         }
 
-        impl NegCt for $unsigned {
+        impl IsNegCt for $unsigned {
             #[inline(never)]
-            fn neg_ct(&self) -> MaskCt {
+            fn is_neg_ct(&self) -> MaskCt {
                 MaskCt::ZERO
             }
         }
@@ -393,6 +393,88 @@ macro_rules! sign_from {
     };
 }
 
+/// Number with ops by immutable reference.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with &'num N)]
+#[ndfwd::cmp(self.0 with &'num N)]
+#[ndfwd::fmt(self.0 with &'num N)]
+#[ndfwd::iter(self.0 with &'num N)]
+#[ndfwd::def(self.0 with &'num N: arch::BytesLen)]
+#[ndfwd::def(self.0 with &'num N: arch::BytesFn)]
+#[ndfwd::def(self.0 with &'num N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with &'num N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with &'num N: NumFn!)]
+#[ndfwd::def(self.0 with &'num N: Num!)]
+#[ndfwd::def(self.0 with &'num N: NumSigned)]
+#[ndfwd::def(self.0 with &'num N: NumUnsigned)]
+#[ndfwd::def(self.0 with &'num N: NdRand!)]
+#[ndfwd::def(self.0 with &'num N: NdPow!)]
+#[ndfwd::def(self.0 with &'num N: NdGcd!)]
+#[ndfwd::def(self.0 with &'num N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with &'num N: IsOneCt)]
+#[ndfwd::def(self.0 with &'num N: IsZeroCt)]
+#[ndfwd::def(self.0 with &'num N: IsPosCt)]
+#[ndfwd::def(self.0 with &'num N: IsNegCt)]
+#[ndfwd::def(self.0 with &'num N: EqCt)]
+#[ndfwd::def(self.0 with &'num N: LtCt)]
+#[ndfwd::def(self.0 with &'num N: GtCt)]
+#[ndfwd::def(self.0 with &'num N: LeCt)]
+#[ndfwd::def(self.0 with &'num N: GeCt)]
+#[ndfwd::def(self.0 with &'num N: SignCt)]
+#[ndfwd::def(self.0 with &'num N: CmpCt)]
+#[ndfwd::def(self.0 with &'num N: MinCt)]
+#[ndfwd::def(self.0 with &'num N: MaxCt)]
+#[ndfwd::def(self.0 with &'num N: PosxCt)]
+#[ndfwd::def(self.0 with &'num N: NegxCt)]
+#[ndfwd::def(self.0 with &'num N: SelectCt)]
+#[ndfwd::def(self.0 with &'num N: PowCt!)]
+#[derive(Debug, Clone, Copy)]
+pub struct Ref<'num, N>(pub &'num N);
+
+/// Number with ops by mutable reference.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with &'num mut N)]
+#[ndfwd::cmp(self.0 with &'num mut N)]
+#[ndfwd::fmt(self.0 with &'num mut N)]
+#[ndfwd::iter(self.0 with &'num mut N)]
+#[ndfwd::def(self.0 with &'num mut N: arch::BytesLen)]
+#[ndfwd::def(self.0 with &'num mut N: arch::BytesFn)]
+#[ndfwd::def(self.0 with &'num mut N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with &'num mut N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with &'num mut N: NumFn!)]
+#[ndfwd::def(self.0 with &'num mut N: Num!)]
+#[ndfwd::def(self.0 with &'num mut N: NumSigned)]
+#[ndfwd::def(self.0 with &'num mut N: NumUnsigned)]
+#[ndfwd::def(self.0 with &'num mut N: NdRand!)]
+#[ndfwd::def(self.0 with &'num mut N: NdPow!)]
+#[ndfwd::def(self.0 with &'num mut N: NdGcd!)]
+#[ndfwd::def(self.0 with &'num mut N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with &'num mut N: IsOneCt)]
+#[ndfwd::def(self.0 with &'num mut N: IsZeroCt)]
+#[ndfwd::def(self.0 with &'num mut N: IsPosCt)]
+#[ndfwd::def(self.0 with &'num mut N: IsNegCt)]
+#[ndfwd::def(self.0 with &'num mut N: EqCt)]
+#[ndfwd::def(self.0 with &'num mut N: LtCt)]
+#[ndfwd::def(self.0 with &'num mut N: GtCt)]
+#[ndfwd::def(self.0 with &'num mut N: LeCt)]
+#[ndfwd::def(self.0 with &'num mut N: GeCt)]
+#[ndfwd::def(self.0 with &'num mut N: SignCt)]
+#[ndfwd::def(self.0 with &'num mut N: CmpCt)]
+#[ndfwd::def(self.0 with &'num mut N: MinCt)]
+#[ndfwd::def(self.0 with &'num mut N: MaxCt)]
+#[ndfwd::def(self.0 with &'num mut N: PosxCt)]
+#[ndfwd::def(self.0 with &'num mut N: NegxCt)]
+#[ndfwd::def(self.0 with &'num mut N: SelectCt)]
+#[ndfwd::def(self.0 with &'num mut N: PowCt!)]
+#[derive(Debug)]
+pub struct Mut<'num, N>(pub &'num mut N);
+
 /// Number with Strict operations semantics.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
@@ -414,10 +496,10 @@ macro_rules! sign_from {
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
-#[ndfwd::def(self.0 with N: OneCt)]
-#[ndfwd::def(self.0 with N: ZeroCt)]
-#[ndfwd::def(self.0 with N: PosCt)]
-#[ndfwd::def(self.0 with N: NegCt)]
+#[ndfwd::def(self.0 with N: IsOneCt)]
+#[ndfwd::def(self.0 with N: IsZeroCt)]
+#[ndfwd::def(self.0 with N: IsPosCt)]
+#[ndfwd::def(self.0 with N: IsNegCt)]
 #[ndfwd::def(self.0 with N: EqCt)]
 #[ndfwd::def(self.0 with N: LtCt)]
 #[ndfwd::def(self.0 with N: GtCt)]
@@ -455,10 +537,10 @@ pub struct Strict<N>(pub N);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
-#[ndfwd::def(self.0 with N: OneCt)]
-#[ndfwd::def(self.0 with N: ZeroCt)]
-#[ndfwd::def(self.0 with N: PosCt)]
-#[ndfwd::def(self.0 with N: NegCt)]
+#[ndfwd::def(self.0 with N: IsOneCt)]
+#[ndfwd::def(self.0 with N: IsZeroCt)]
+#[ndfwd::def(self.0 with N: IsPosCt)]
+#[ndfwd::def(self.0 with N: IsNegCt)]
 #[ndfwd::def(self.0 with N: EqCt)]
 #[ndfwd::def(self.0 with N: LtCt)]
 #[ndfwd::def(self.0 with N: GtCt)]
@@ -496,10 +578,10 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
-#[ndfwd::def(self.0 with N: OneCt)]
-#[ndfwd::def(self.0 with N: ZeroCt)]
-#[ndfwd::def(self.0 with N: PosCt)]
-#[ndfwd::def(self.0 with N: NegCt)]
+#[ndfwd::def(self.0 with N: IsOneCt)]
+#[ndfwd::def(self.0 with N: IsZeroCt)]
+#[ndfwd::def(self.0 with N: IsPosCt)]
+#[ndfwd::def(self.0 with N: IsNegCt)]
 #[ndfwd::def(self.0 with N: EqCt)]
 #[ndfwd::def(self.0 with N: LtCt)]
 #[ndfwd::def(self.0 with N: GtCt)]
@@ -537,10 +619,10 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
-#[ndfwd::def(self.0 with N: OneCt)]
-#[ndfwd::def(self.0 with N: ZeroCt)]
-#[ndfwd::def(self.0 with N: PosCt)]
-#[ndfwd::def(self.0 with N: NegCt)]
+#[ndfwd::def(self.0 with N: IsOneCt)]
+#[ndfwd::def(self.0 with N: IsZeroCt)]
+#[ndfwd::def(self.0 with N: IsPosCt)]
+#[ndfwd::def(self.0 with N: IsNegCt)]
 #[ndfwd::def(self.0 with N: EqCt)]
 #[ndfwd::def(self.0 with N: LtCt)]
 #[ndfwd::def(self.0 with N: GtCt)]
@@ -588,10 +670,10 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
-#[ndfwd::def(self.0 with N: OneCt)]
-#[ndfwd::def(self.0 with N: ZeroCt)]
-#[ndfwd::def(self.0 with N: PosCt)]
-#[ndfwd::def(self.0 with N: NegCt)]
+#[ndfwd::def(self.0 with N: IsOneCt)]
+#[ndfwd::def(self.0 with N: IsZeroCt)]
+#[ndfwd::def(self.0 with N: IsPosCt)]
+#[ndfwd::def(self.0 with N: IsNegCt)]
 #[ndfwd::def(self.0 with N: EqCt)]
 #[ndfwd::def(self.0 with N: LtCt)]
 #[ndfwd::def(self.0 with N: GtCt)]
@@ -642,10 +724,10 @@ pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 #[ndfwd::def(self.0 with N: NdPow)]
 #[ndfwd::def(self.0 with N: NdGcd)]
 #[ndfwd::def(self.0 with N: NdGcdChecked)]
-#[ndfwd::def(self.0 with N: OneCt)]
-#[ndfwd::def(self.0 with N: ZeroCt)]
-#[ndfwd::def(self.0 with N: PosCt)]
-#[ndfwd::def(self.0 with N: NegCt)]
+#[ndfwd::def(self.0 with N: IsOneCt)]
+#[ndfwd::def(self.0 with N: IsZeroCt)]
+#[ndfwd::def(self.0 with N: IsPosCt)]
+#[ndfwd::def(self.0 with N: IsNegCt)]
 #[ndfwd::def(self.0 with N: EqCt)]
 #[ndfwd::def(self.0 with N: LtCt)]
 #[ndfwd::def(self.0 with N: GtCt)]
@@ -1176,50 +1258,50 @@ pub trait MaxFn {
 
 /// Const-time equality with one comparison.
 #[ndfwd::decl]
-pub trait OneCt {
+pub trait IsOneCt {
     /// Const-time equality with one function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `value != 0`.
     /// - `MaskCt::MAX` => `value == 0`.
-    fn one_ct(&self) -> MaskCt;
+    fn is_one_ct(&self) -> MaskCt;
 }
 
 /// Const-time equality with zero comparison.
 #[ndfwd::decl]
-pub trait ZeroCt {
+pub trait IsZeroCt {
     /// Const-time equality with zero function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `value != 0`.
     /// - `MaskCt::MAX` => `value == 0`.
-    fn zero_ct(&self) -> MaskCt;
+    fn is_zero_ct(&self) -> MaskCt;
 }
 
 /// Const-time greater-then-zero comparison.
 #[ndfwd::decl]
-pub trait PosCt {
+pub trait IsPosCt {
     /// Const-time greater-then-zero function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `lhs > 0`.
     /// - `MaskCt::MAX` => `lhs <= 0`.
-    fn pos_ct(&self) -> MaskCt;
+    fn is_pos_ct(&self) -> MaskCt;
 }
 
 /// Const-time less-then-zero comparison.
 #[ndfwd::decl]
-pub trait NegCt {
+pub trait IsNegCt {
     /// Const-time less-then-zero function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `lhs >= 0`.
     /// - `MaskCt::MAX` => `lhs < 0`.
-    fn neg_ct(&self) -> MaskCt;
+    fn is_neg_ct(&self) -> MaskCt;
 }
 
 /// Const-time equality comparison.
@@ -1260,7 +1342,7 @@ pub trait GtCt {
 
 /// Const-time less-or-equal-then comparison.
 ///
-/// Auto-implemented for all types with [`GtCt`].
+/// Auto-implemented for all types with [`GtCt`] via [`AutoCt`].
 #[ndfwd::decl]
 pub trait LeCt {
     /// Const-time less-or-equal-then function.
@@ -1274,7 +1356,7 @@ pub trait LeCt {
 
 /// Const-time greater-or-equal-then comparison.
 ///
-/// Auto-implemented for all types with [`LtCt`].
+/// Auto-implemented for all types with [`LtCt`] via [`AutoCt`].
 #[ndfwd::decl]
 pub trait GeCt {
     /// Const-time greater-or-equal-then function.
@@ -1288,7 +1370,7 @@ pub trait GeCt {
 
 /// Const-time sign.
 ///
-/// Auto-implemented for all types with [`ZeroCt`], [`PosCt`], [`NegCt`].
+/// Auto-implemented for all types with [`ZeroCt`], [`PosCt`], [`NegCt`] via [`AutoCt`].
 #[ndfwd::decl]
 pub trait SignCt {
     /// Const-time sign function.
@@ -1303,7 +1385,7 @@ pub trait SignCt {
 
 /// Const-time comparison.
 ///
-/// Auto-implemented for all types with [`EqCt`], [`LtCt`], [`GtCt`].
+/// Auto-implemented for all types with [`EqCt`], [`LtCt`], [`GtCt`] via [`AutoCt`].
 #[ndfwd::decl]
 pub trait CmpCt {
     /// Const-time comparison function.
@@ -1318,7 +1400,7 @@ pub trait CmpCt {
 
 /// Const-time minimum value.
 ///
-/// Auto-implemented for all types with [`LtCt`], [`SelectCt`].
+/// Auto-implemented for all types with [`LtCt`], [`SelectCt`] via [`AutoCt`].
 #[ndfwd::decl]
 pub trait MinCt: Copy {
     /// Const-time minimum function.
@@ -1328,7 +1410,7 @@ pub trait MinCt: Copy {
 
 /// Const-time maximum value.
 ///
-/// Auto-implemented for all types with [`GtCt`], [`SelectCt`].
+/// Auto-implemented for all types with [`GtCt`], [`SelectCt`] via [`AutoCt`].
 #[ndfwd::decl]
 pub trait MaxCt: Copy {
     /// Const-time maximum function.
@@ -1444,6 +1526,20 @@ dir_from!([u8, u16, u32, u64, u128, usize]);
 
 sign_from!([i8, i16, i32, i64, i128, isize]);
 sign_from!([u8, u16, u32, u64, u128, usize]);
+
+impl<'num, N> From<&'num N> for Ref<'num, N> {
+    #[inline]
+    fn from(value: &'num N) -> Self {
+        Self(value)
+    }
+}
+
+impl<'num, N> From<&'num mut N> for Mut<'num, N> {
+    #[inline]
+    fn from(value: &'num mut N) -> Self {
+        Self(value)
+    }
+}
 
 impl<N> From<N> for Strict<N> {
     #[inline]
@@ -2229,11 +2325,11 @@ impl<N: LtCt> GeCt for AutoCt<N> {
     }
 }
 
-impl<N: ZeroCt + PosCt + NegCt> SignCt for AutoCt<N> {
+impl<N: IsZeroCt + IsPosCt + IsNegCt> SignCt for AutoCt<N> {
     #[inline(never)]
     fn sign_ct(&self) -> RelCt {
-        let pos = self.pos_ct() as RelCt;
-        let neg = self.neg_ct() as RelCt;
+        let pos = self.is_pos_ct() as RelCt;
+        let neg = self.is_neg_ct() as RelCt;
 
         pos & 1 | neg
     }
@@ -2677,10 +2773,10 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0).chain([0, 1, i64::MIN, i64::MAX]).map(AutoCt),
             rhs in ndassert::range!(i64, 56, 1).chain([0, 1, i64::MIN, i64::MAX]).map(AutoCt),
         ) [
-            (lhs.one_ct(),      MaskCt::MAX * (lhs.0 == 1) as MaskCt),
-            (lhs.zero_ct(),     MaskCt::MAX * (lhs.0 == 0) as MaskCt),
-            (lhs.pos_ct(),      MaskCt::MAX * (lhs.0 >  0) as MaskCt),
-            (lhs.neg_ct(),      MaskCt::MAX * (lhs.0 <  0) as MaskCt),
+            (lhs.is_one_ct(),   MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (lhs.is_zero_ct(),  MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (lhs.is_pos_ct(),   MaskCt::MAX * (lhs.0 >  0) as MaskCt),
+            (lhs.is_neg_ct(),   MaskCt::MAX * (lhs.0 <  0) as MaskCt),
             (lhs.eq_ct(&rhs),   MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs),   MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs),   MaskCt::MAX * (lhs >  rhs) as MaskCt),
@@ -2698,10 +2794,10 @@ mod tests {
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1, u64::MIN, u64::MAX]).map(AutoCt),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1, u64::MIN, u64::MAX]).map(AutoCt),
         ) [
-            (lhs.one_ct(),      MaskCt::MAX * (lhs.0 == 1) as MaskCt),
-            (lhs.zero_ct(),     MaskCt::MAX * (lhs.0 == 0) as MaskCt),
-            (lhs.pos_ct(),      MaskCt::MAX * (lhs.0 >  0) as MaskCt),
-            (lhs.neg_ct(),      MaskCt::MAX * (lhs.0 <  0) as MaskCt),
+            (lhs.is_one_ct(),   MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (lhs.is_zero_ct(),  MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (lhs.is_pos_ct(),   MaskCt::MAX * (lhs.0 >  0) as MaskCt),
+            (lhs.is_neg_ct(),   MaskCt::MAX * (lhs.0 <  0) as MaskCt),
             (lhs.eq_ct(&rhs),   MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs),   MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs),   MaskCt::MAX * (lhs >  rhs) as MaskCt),

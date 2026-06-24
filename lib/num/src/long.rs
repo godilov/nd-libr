@@ -18,8 +18,8 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    BytesFn, Dir, EqCt, GtCt, LtCt, MaskCt, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned, NumUnsigned, One,
-    RelCt, SelectCt, Sign, Zero, ZeroCt,
+    BytesFn, Dir, EqCt, GtCt, IsZeroCt, LtCt, MaskCt, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned,
+    NumUnsigned, One, RelCt, SelectCt, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
     long::{
         radix::*,
@@ -49,7 +49,7 @@ macro_rules! eq_ct {
     ($lhs:expr, $rhs:expr) => {{
         let diff = $lhs.zip($rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
 
-        std::hint::black_box(diff).zero_ct() as MaskCt
+        std::hint::black_box(diff).is_zero_ct() as MaskCt
     }};
 }
 
@@ -3857,7 +3857,7 @@ pub mod uops {
     /// Checks `words == 0` in const-time.
     #[inline(never)]
     pub fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).zero_ct()
+        std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).is_zero_ct()
     }
 }
 

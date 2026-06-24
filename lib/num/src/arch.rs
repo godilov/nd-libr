@@ -592,10 +592,10 @@ pub struct AsWordsIter<'bytes, W: Word> {
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
-#[ndfwd::def(self.0 with T: crate::OneCt)]
-#[ndfwd::def(self.0 with T: crate::ZeroCt)]
-#[ndfwd::def(self.0 with T: crate::PosCt)]
-#[ndfwd::def(self.0 with T: crate::NegCt)]
+#[ndfwd::def(self.0 with T: crate::IsOneCt)]
+#[ndfwd::def(self.0 with T: crate::IsZeroCt)]
+#[ndfwd::def(self.0 with T: crate::IsPosCt)]
+#[ndfwd::def(self.0 with T: crate::IsNegCt)]
 #[ndfwd::def(self.0 with T: crate::EqCt)]
 #[ndfwd::def(self.0 with T: crate::LtCt)]
 #[ndfwd::def(self.0 with T: crate::GtCt)]
@@ -643,10 +643,10 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
-#[ndfwd::def(self.0 with T: crate::OneCt)]
-#[ndfwd::def(self.0 with T: crate::ZeroCt)]
-#[ndfwd::def(self.0 with T: crate::PosCt)]
-#[ndfwd::def(self.0 with T: crate::NegCt)]
+#[ndfwd::def(self.0 with T: crate::IsOneCt)]
+#[ndfwd::def(self.0 with T: crate::IsZeroCt)]
+#[ndfwd::def(self.0 with T: crate::IsPosCt)]
+#[ndfwd::def(self.0 with T: crate::IsNegCt)]
 #[ndfwd::def(self.0 with T: crate::EqCt)]
 #[ndfwd::def(self.0 with T: crate::LtCt)]
 #[ndfwd::def(self.0 with T: crate::GtCt)]
@@ -687,10 +687,10 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
-#[ndfwd::def(self.0 with T: crate::OneCt)]
-#[ndfwd::def(self.0 with T: crate::ZeroCt)]
-#[ndfwd::def(self.0 with T: crate::PosCt)]
-#[ndfwd::def(self.0 with T: crate::NegCt)]
+#[ndfwd::def(self.0 with T: crate::IsOneCt)]
+#[ndfwd::def(self.0 with T: crate::IsZeroCt)]
+#[ndfwd::def(self.0 with T: crate::IsPosCt)]
+#[ndfwd::def(self.0 with T: crate::IsNegCt)]
 #[ndfwd::def(self.0 with T: crate::EqCt)]
 #[ndfwd::def(self.0 with T: crate::LtCt)]
 #[ndfwd::def(self.0 with T: crate::GtCt)]
@@ -731,10 +731,10 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
-#[ndfwd::def(self.0 with T: crate::OneCt)]
-#[ndfwd::def(self.0 with T: crate::ZeroCt)]
-#[ndfwd::def(self.0 with T: crate::PosCt)]
-#[ndfwd::def(self.0 with T: crate::NegCt)]
+#[ndfwd::def(self.0 with T: crate::IsOneCt)]
+#[ndfwd::def(self.0 with T: crate::IsZeroCt)]
+#[ndfwd::def(self.0 with T: crate::IsPosCt)]
+#[ndfwd::def(self.0 with T: crate::IsNegCt)]
 #[ndfwd::def(self.0 with T: crate::EqCt)]
 #[ndfwd::def(self.0 with T: crate::LtCt)]
 #[ndfwd::def(self.0 with T: crate::GtCt)]
@@ -1204,10 +1204,10 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0).map(AutoCt),
             rhs in ndassert::range!(i64, 56, 1).map(AutoCt),
         ) [
-            (Aligned(lhs).one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
-            (Aligned(lhs).zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
-            (Aligned(lhs).pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
-            (Aligned(lhs).neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
+            (Aligned(lhs).is_one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (Aligned(lhs).is_zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (Aligned(lhs).is_pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
+            (Aligned(lhs).is_neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
             (Aligned(lhs).eq_ct(&Aligned(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (Aligned(lhs).lt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (Aligned(lhs).gt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
@@ -1224,10 +1224,10 @@ mod tests {
             lhs in ndassert::range!(u64, 56, 0).map(AutoCt),
             rhs in ndassert::range!(u64, 56, 1).map(AutoCt),
         ) [
-            (Aligned(lhs).one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
-            (Aligned(lhs).zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
-            (Aligned(lhs).pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
-            (Aligned(lhs).neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
+            (Aligned(lhs).is_one_ct(), MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (Aligned(lhs).is_zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (Aligned(lhs).is_pos_ct(), MaskCt::MAX * (lhs.0 > 0) as MaskCt),
+            (Aligned(lhs).is_neg_ct(), MaskCt::MAX * (lhs.0 < 0) as MaskCt),
             (Aligned(lhs).eq_ct(&Aligned(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
             (Aligned(lhs).lt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (Aligned(lhs).gt_ct(&Aligned(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),

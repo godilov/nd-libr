@@ -60,14 +60,14 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     quote! {
         #item
 
-        impl<AsRefRet, #gen_params> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref {
+        impl<#gen_params, AsRefRet> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref {
             #[inline]
             fn as_ref(&self) -> &AsRefRet {
                 #expr.as_ref()
             }
         }
 
-        impl<AsMutRet, #gen_params> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut {
+        impl<#gen_params, AsMutRet> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut {
             #[inline]
             fn as_mut(&mut self) -> &mut AsMutRet {
                 #expr.as_mut()
@@ -355,7 +355,7 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     quote! {
         #item
 
-        impl<Elem, #gen_params> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
+        impl<#gen_params, Elem> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
             #[inline]
             fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
                 <#ty>::from_iter(iter).into()
