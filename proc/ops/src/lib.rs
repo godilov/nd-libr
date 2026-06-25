@@ -1885,7 +1885,7 @@ impl From<OpsImplFwd<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
 
                     OpsDefinition {
                         op: op.into(),
-                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs); }},
+                        expr: parse_quote! {{ use #path; <#ty>::#ident(#lhs, #rhs); }},
                         conditions,
                     }
                 })
@@ -1917,7 +1917,7 @@ impl From<OpsImplFwd<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
 
                     OpsDefinition {
                         op: op.into(),
-                        expr: parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs) }},
+                        expr: parse_quote! {{ use #path; <#ty>::#ident(#lhs, #rhs) }},
                         conditions,
                     }
                 })
@@ -1948,7 +1948,7 @@ impl From<OpsImplFwd<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
 
                     OpsDefinition {
                         op: op.into(),
-                        expr: parse_quote! {{ use #path; #ty::#ident(#expr) }},
+                        expr: parse_quote! {{ use #path; <#ty>::#ident(#expr) }},
                         conditions,
                     }
                 })
@@ -1977,7 +1977,7 @@ impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
                     let op_impl = op.to_impl();
                     let ident = op_impl.ident();
                     let path = op_impl.path(value.token);
-                    let expr = parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs); }};
+                    let expr = parse_quote! {{ use #path; <#ty>::#ident(#lhs, #rhs); }};
 
                     OpsDefinition {
                         op: op.into(),
@@ -1992,6 +1992,8 @@ impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
 
 impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
     fn from(value: OpsImplFwd<OpsNdKindBinary>) -> Self {
+        let res_ty = value.signature.res_ty.clone();
+
         OpsImpl {
             token: value.token,
             signature: value.signature,
@@ -2010,7 +2012,7 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
                     let op_impl = op.to_impl();
                     let ident = op_impl.ident();
                     let path = op_impl.path(value.token);
-                    let expr = op_impl.expr(parse_quote! {{ use #path; #ty::#ident(#lhs, #rhs) }});
+                    let expr = op_impl.expr(&res_ty, parse_quote! {{ use #path; <#ty>::#ident(#lhs, #rhs) }});
 
                     OpsDefinition {
                         op: op.into(),
@@ -2025,6 +2027,8 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
 
 impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
     fn from(value: OpsImplFwd<OpsNdKindUnary>) -> Self {
+        let res_ty = value.signature.res_ty.clone();
+
         OpsImpl {
             token: value.token,
             signature: value.signature,
@@ -2042,7 +2046,7 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
                     let op_impl = op.to_impl();
                     let ident = op_impl.ident();
                     let path = op_impl.path(value.token);
-                    let expr = op_impl.expr(parse_quote! {{ use #path; #ty::#ident(#expr) }});
+                    let expr = op_impl.expr(&res_ty, parse_quote! {{ use #path; <#ty>::#ident(#expr) }});
 
                     OpsDefinition {
                         op: op.into(),
@@ -2605,7 +2609,7 @@ impl OpsNdBinary {
         }
     }
 
-    fn expr(&self, expr: Expr) -> Expr {
+    fn expr(&self, ty: &Type, expr: Expr) -> Expr {
         match self {
             Self::Std(value) => match value {
                 OpsBinary::Add(_, OpsBinaryMode::Checked(_, _))
@@ -2614,7 +2618,7 @@ impl OpsNdBinary {
                 | OpsBinary::Div(_, OpsBinaryMode::Checked(_, _))
                 | OpsBinary::Rem(_, OpsBinaryMode::Checked(_, _))
                 | OpsBinary::Shl(_, OpsBinaryShiftMode::Checked(_, _))
-                | OpsBinary::Shr(_, OpsBinaryShiftMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+                | OpsBinary::Shr(_, OpsBinaryShiftMode::Checked(_, _)) => parse_quote! { (#expr).map(<#ty>::from) },
                 OpsBinary::Add(_, OpsBinaryMode::Overflowing(_, _))
                 | OpsBinary::Sub(_, OpsBinaryMode::Overflowing(_, _))
                 | OpsBinary::Mul(_, OpsBinaryMode::Overflowing(_, _))
@@ -2622,7 +2626,7 @@ impl OpsNdBinary {
                 | OpsBinary::Rem(_, OpsBinaryMode::Overflowing(_, _))
                 | OpsBinary::Shl(_, OpsBinaryShiftMode::Overflowing(_, _))
                 | OpsBinary::Shr(_, OpsBinaryShiftMode::Overflowing(_, _)) => {
-                    parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+                    parse_quote! {{ let (val, flag) = (#expr); (<#ty>::from(val), flag) }}
                 },
                 _ => expr,
             },
@@ -2713,22 +2717,22 @@ impl OpsNdUnary {
         }
     }
 
-    fn expr(&self, expr: Expr) -> Expr {
+    fn expr(&self, ty: &Type, expr: Expr) -> Expr {
         match self {
             Self::Std(value) => match value {
-                OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+                OpsUnary::Neg(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(<#ty>::from) },
                 OpsUnary::Neg(_, OpsUnaryMode::Overflowing(_, _)) => {
-                    parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+                    parse_quote! {{ let (val, flag) = (#expr); (<#ty>::from(val), flag) }}
                 },
                 _ => expr,
             },
-            Self::Posx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+            Self::Posx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(<#ty>::from) },
             Self::Posx(_, OpsUnaryMode::Overflowing(_, _)) => {
-                parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+                parse_quote! {{ let (val, flag) = (#expr); (<#ty>::from(val), flag) }}
             },
-            Self::Negx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(Self::from) },
+            Self::Negx(_, OpsUnaryMode::Checked(_, _)) => parse_quote! { (#expr).map(<#ty>::from) },
             Self::Negx(_, OpsUnaryMode::Overflowing(_, _)) => {
-                parse_quote! {{ let (val, flag) = (#expr); (Self::from(val), flag) }}
+                parse_quote! {{ let (val, flag) = (#expr); (<#ty>::from(val), flag) }}
             },
             _ => expr,
         }
