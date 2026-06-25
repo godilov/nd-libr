@@ -10,18 +10,6 @@ pub mod arch;
 pub mod long;
 pub mod prime;
 
-macro_rules! dir_ct {
-    ($expr:expr) => {
-        MaskCt::ZERO.wrapping_sub($expr)
-    };
-}
-
-macro_rules! inv_ct {
-    ($expr:expr) => {
-        !MaskCt::ZERO.wrapping_sub($expr)
-    };
-}
-
 macro_rules! num_impl {
     (@signed [$($primitive:ty > $unsigned:ty),+] $(,)?) => {
         $(num_impl!(@impl $primitive, $primitive, $unsigned);)+
@@ -131,7 +119,7 @@ macro_rules! num_ct_impl {
                 let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
                 let any = any as MaskCt;
 
-                inv_ct!(any)
+                inv_ct(any)
             }
         }
 
@@ -143,7 +131,7 @@ macro_rules! num_ct_impl {
                 let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
                 let any = any as MaskCt;
 
-                inv_ct!(any)
+                inv_ct(any)
             }
         }
 
@@ -158,7 +146,7 @@ macro_rules! num_ct_impl {
                 let neg = neg as MaskCt;
                 let any = any as MaskCt;
 
-                inv_ct!(neg) & dir_ct!(any)
+                inv_ct(neg) & dir_ct(any)
             }
         }
 
@@ -170,7 +158,7 @@ macro_rules! num_ct_impl {
                 let neg = val >> (Self::BITS - 1);
                 let neg = neg as MaskCt;
 
-                dir_ct!(neg)
+                dir_ct(neg)
             }
         }
 
@@ -184,7 +172,7 @@ macro_rules! num_ct_impl {
                 let any = (any | any.wrapping_neg()) >> (Self::BITS - 1);
                 let any = any as MaskCt;
 
-                inv_ct!(any)
+                inv_ct(any)
             }
         }
 
@@ -202,7 +190,7 @@ macro_rules! num_ct_impl {
                 let xor = lhs_neg ^ rhs_neg;
                 let res = xor & lhs_neg | !xor & lt;
 
-                dir_ct!(res)
+                dir_ct(res)
             }
         }
 
@@ -220,7 +208,7 @@ macro_rules! num_ct_impl {
                 let xor = lhs_neg ^ rhs_neg;
                 let res = xor & rhs_neg | !xor & gt;
 
-                dir_ct!(res)
+                dir_ct(res)
             }
         }
 
@@ -255,7 +243,7 @@ macro_rules! num_ct_impl {
                 let any = ((val ^ 1) | (val ^ 1).wrapping_neg()) >> (Self::BITS - 1);
                 let any = any as MaskCt;
 
-                inv_ct!(any)
+                inv_ct(any)
             }
         }
 
@@ -267,7 +255,7 @@ macro_rules! num_ct_impl {
                 let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
                 let any = any as MaskCt;
 
-                inv_ct!(any)
+                inv_ct(any)
             }
         }
 
@@ -279,7 +267,7 @@ macro_rules! num_ct_impl {
                 let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
                 let any = any as MaskCt;
 
-                dir_ct!(any)
+                dir_ct(any)
             }
         }
 
@@ -300,7 +288,7 @@ macro_rules! num_ct_impl {
                 let any = (any | any.wrapping_neg()) >> (Self::BITS - 1);
                 let any = any as MaskCt;
 
-                inv_ct!(any)
+                inv_ct(any)
             }
         }
 
@@ -318,7 +306,7 @@ macro_rules! num_ct_impl {
                 let xor = lhs_bit ^ rhs_bit;
                 let res = xor & rhs_bit | !xor & lt;
 
-                dir_ct!(res)
+                dir_ct(res)
             }
         }
 
@@ -336,7 +324,7 @@ macro_rules! num_ct_impl {
                 let xor = lhs_bit ^ rhs_bit;
                 let res = xor & lhs_bit | !xor & gt;
 
-                dir_ct!(res)
+                dir_ct(res)
             }
         }
 
@@ -2357,6 +2345,16 @@ impl<N: GtCt + SelectCt> MaxCt for AutoCt<N> {
     fn max_ct(&self, other: &Self) -> Self {
         SelectCt::select_ct(self, other, self.gt_ct(other))
     }
+}
+
+#[inline]
+fn dir_ct(val: MaskCt) -> MaskCt {
+    MaskCt::ZERO.wrapping_sub(val)
+}
+
+#[inline]
+fn inv_ct(val: MaskCt) -> MaskCt {
+    !MaskCt::ZERO.wrapping_sub(val)
 }
 
 #[cfg(test)]
