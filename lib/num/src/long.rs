@@ -5853,8 +5853,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L>
     << @unbounded uops::shl(&lhs.0, rhs).signed().with(Signed),
     >> @unbounded uops::shr(&lhs.0, rhs).signed().with(Signed),
 
-    << @overflowing uops::shl(&lhs.0, rhs).signed().overflowing(Signed),
-    >> @overflowing uops::shr(&lhs.0, rhs).signed().overflowing(Signed),
+    << @overflowing (uops::shl(&lhs.0, rhs % (L * BITS)).signed().with(Signed), rhs >= BITS * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % (L * BITS)).signed().with(Signed), rhs >= BITS * L),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
@@ -5912,8 +5912,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigne
     << @unbounded uops::shl(&lhs.0, rhs).with(Unsigned),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Unsigned),
 
-    << @overflowing uops::shl(&lhs.0, rhs).overflowing(Unsigned),
-    >> @overflowing uops::shr(&lhs.0, rhs).overflowing(Unsigned),
+    << @overflowing (uops::shl(&lhs.0, rhs % (L * BITS)).with(Unsigned), rhs >= BITS * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % (L * BITS)).with(Unsigned), rhs >= BITS * L),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
@@ -5935,8 +5935,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> f
     << @unbounded uops::shl(&lhs.0, rhs).with(Bytes),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Bytes),
 
-    << @overflowing uops::shl(&lhs.0, rhs).overflowing(Bytes),
-    >> @overflowing uops::shr(&lhs.0, rhs).overflowing(Bytes),
+    << @overflowing (uops::shl(&lhs.0, rhs % (L * BITS)).with(Bytes), rhs >= BITS * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % (L * BITS)).with(Bytes), rhs >= BITS * L),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
@@ -7620,8 +7620,20 @@ mod tests {
 
     fn ops_shift_impl<
         Value: Num + Debug + RefUnwindSafe,
-        ValueLong: Num + Debug + RefUnwindSafe + Ops<ValueLong, usize, Type = ValueLong> + OpsAssign<ValueLong, usize>,
-        ValueAlt: Num + Debug + RefUnwindSafe + Ops<ValueAlt, usize, Type = ValueAlt> + OpsAssign<ValueAlt, usize>,
+        ValueLong: Num
+            + Debug
+            + RefUnwindSafe
+            + Ops<ValueLong, usize, Type = ValueLong>
+            + OpsAssign<ValueLong, usize>
+            + NdOpsChecked<ValueLong, ValueLong, usize, All = ValueLong>
+            + NdOpsOverflowing<ValueLong, ValueLong, usize, All = ValueLong>,
+        ValueAlt: Num
+            + Debug
+            + RefUnwindSafe
+            + Ops<ValueAlt, usize, Type = ValueAlt>
+            + OpsAssign<ValueAlt, usize>
+            + NdOpsChecked<ValueAlt, ValueAlt, usize, All = ValueAlt>
+            + NdOpsOverflowing<ValueAlt, ValueAlt, usize, All = ValueAlt>,
     >(
         value_iter: impl Iterator<Item = Value> + Clone,
         shift_iter: impl Iterator<Item = usize> + Clone,
@@ -7640,6 +7652,12 @@ mod tests {
 
             ndassert::catch!({ let mut val = long; val <<= shift; val }, func(alt << shift)),
             ndassert::catch!({ let mut val = long; val >>= shift; val }, func(alt >> shift)),
+
+            (ValueLong::nd_shl_checked(&long, shift), ValueAlt::nd_shl_checked(&alt, shift).map(func)),
+            (ValueLong::nd_shr_checked(&long, shift), ValueAlt::nd_shr_checked(&alt, shift).map(func)),
+
+            (ValueLong::nd_shl_overflowing(&long, shift), { let (val, flag) = ValueAlt::nd_shl_overflowing(&alt, shift); (func(val), flag) }),
+            (ValueLong::nd_shr_overflowing(&long, shift), { let (val, flag) = ValueAlt::nd_shr_overflowing(&alt, shift); (func(val), flag) }),
         ] }
     }
 
