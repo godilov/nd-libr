@@ -407,6 +407,61 @@ pub trait NdAddx<Lhs = Self, Rhs = Self> {
     fn nd_addx(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
+/// `Nd-kind` extension for [`std::ops::Add`] with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddChecked<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_add_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` extension for [`std::ops::Add`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddStrict<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_add_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Add`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_add_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Add`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_add_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Add`] with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddOverflowing<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_add_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+}
+
 /// `Nd-kind` extension for [`std::ops::Sub`].
 ///
 /// # Related
@@ -424,6 +479,61 @@ pub trait NdSub<Lhs = Self, Rhs = Self> {
 
     /// Operation function.
     fn nd_sub(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Sub`] with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubChecked<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_sub_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` extension for [`std::ops::Sub`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubStrict<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_sub_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Sub`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_sub_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Sub`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_sub_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Sub`] with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubOverflowing<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_sub_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
 }
 
 /// `Nd-kind` extension for [`std::ops::Mul`].
@@ -457,6 +567,61 @@ pub trait NdMulx<Lhs = Self, Rhs = Self> {
     fn nd_mulx(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
+/// `Nd-kind` extension for [`std::ops::Mul`] with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulChecked<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_mul_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` extension for [`std::ops::Mul`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulStrict<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_mul_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Mul`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_mul_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Mul`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_mul_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Mul`] with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulOverflowing<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_mul_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+}
+
 /// `Nd-kind` extension for [`std::ops::Div`].
 ///
 /// # Related
@@ -476,6 +641,61 @@ pub trait NdDiv<Lhs = Self, Rhs = Self> {
     fn nd_div(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
 }
 
+/// `Nd-kind` extension for [`std::ops::Div`] with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivChecked<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_div_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` extension for [`std::ops::Div`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivStrict<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_div_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Div`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_div_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Div`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_div_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Div`] with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivOverflowing<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_div_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
+}
+
 /// `Nd-kind` extension for [`std::ops::Rem`].
 ///
 /// # Related
@@ -493,6 +713,61 @@ pub trait NdRem<Lhs = Self, Rhs = Self> {
 
     /// Operation function.
     fn nd_rem(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Rem`] with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemChecked<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_rem_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` extension for [`std::ops::Rem`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemStrict<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_rem_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Rem`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_rem_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Rem`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_rem_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Rem`] with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemOverflowing<Lhs = Self, Rhs = Self> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_rem_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
 }
 
 /// `Nd-kind` extension for [`std::ops::BitOr`].
@@ -533,7 +808,9 @@ pub trait NdBitXor<Lhs = Self, Rhs = Self> {
 /// # Related
 ///
 /// - [`NdShlChecked`] - checked alternative.
+/// - [`NdShlStrict`] - strict alternative.
 /// - [`NdShlUnbounded`] - unbounded alternative.
+/// - [`NdShlOverflowing`] - overflowing alternative.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShl<Lhs = Self, Rhs = usize> {
@@ -542,77 +819,6 @@ pub trait NdShl<Lhs = Self, Rhs = usize> {
 
     /// Operation function.
     fn nd_shl(lhs: &Lhs, rhs: Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Shr`].
-///
-/// # Related
-///
-/// - [`NdShrChecked`] - checked alternative.
-/// - [`NdShrUnbounded`] - unbounded alternative.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdShr<Lhs = Self, Rhs = usize> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_shr(lhs: &Lhs, rhs: Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Add`] with checked semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddChecked<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_add_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
-}
-
-/// `Nd-kind` extension for [`std::ops::Sub`] with checked semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubChecked<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_sub_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
-}
-
-/// `Nd-kind` extension for [`std::ops::Mul`] with checked semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulChecked<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_mul_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
-}
-
-/// `Nd-kind` extension for [`std::ops::Div`] with checked semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivChecked<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_div_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
-}
-
-/// `Nd-kind` extension for [`std::ops::Rem`] with checked semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemChecked<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_rem_checked(lhs: &Lhs, rhs: &Rhs) -> Option<Self::Type>;
 }
 
 /// `Nd-kind` extension for [`std::ops::Shl`] with checked semantics.
@@ -626,72 +832,6 @@ pub trait NdShlChecked<Lhs = Self, Rhs = usize> {
     fn nd_shl_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
 }
 
-/// `Nd-kind` extension for [`std::ops::Shr`] with checked semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdShrChecked<Lhs = Self, Rhs = usize> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_shr_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
-}
-
-/// `Nd-kind` extension for [`std::ops::Add`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddStrict<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_add_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Sub`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubStrict<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_sub_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Mul`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulStrict<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_mul_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Div`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivStrict<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_div_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Rem`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemStrict<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_rem_strict(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
 /// `Nd-kind` extension for [`std::ops::Shl`] with strict semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
@@ -701,204 +841,6 @@ pub trait NdShlStrict<Lhs = Self, Rhs = usize> {
 
     /// Operation function.
     fn nd_shl_strict(lhs: &Lhs, rhs: Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Shr`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdShrStrict<Lhs = Self, Rhs = usize> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_shr_strict(lhs: &Lhs, rhs: Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Add`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_add_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Sub`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_sub_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Mul`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_mul_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Div`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_div_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Rem`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_rem_wrapping(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Add`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_add_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Sub`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_sub_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Mul`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_mul_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Div`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_div_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Rem`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_rem_saturating(lhs: &Lhs, rhs: &Rhs) -> Self::Type;
-}
-
-/// `Nd-kind` extension for [`std::ops::Add`] with overflowing semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddOverflowing<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_add_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
-}
-
-/// `Nd-kind` extension for [`std::ops::Sub`] with overflowing semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubOverflowing<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_sub_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
-}
-
-/// `Nd-kind` extension for [`std::ops::Mul`] with overflowing semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulOverflowing<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_mul_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
-}
-
-/// `Nd-kind` extension for [`std::ops::Div`] with overflowing semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivOverflowing<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_div_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
-}
-
-/// `Nd-kind` extension for [`std::ops::Rem`] with overflowing semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemOverflowing<Lhs = Self, Rhs = Self> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_rem_overflowing(lhs: &Lhs, rhs: &Rhs) -> (Self::Type, bool);
-}
-
-/// `Nd-kind` extension for [`std::ops::Shl`] with overflowing semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdShlOverflowing<Lhs = Self, Rhs = usize> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_shl_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
-}
-
-/// `Nd-kind` extension for [`std::ops::Shr`] with overflowing semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdShrOverflowing<Lhs = Self, Rhs = usize> {
-    /// Operation resulting type.
-    type Type;
-
-    /// Operation function.
-    fn nd_shr_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
 }
 
 /// `Nd-kind` extension for [`std::ops::Shl`] with unbounded semantics.
@@ -912,6 +854,57 @@ pub trait NdShlUnbounded<Lhs = Self, Rhs = Self> {
     fn nd_shl_unbounded(lhs: &Lhs, rhs: Rhs) -> Self::Type;
 }
 
+/// `Nd-kind` extension for [`std::ops::Shl`] with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdShlOverflowing<Lhs = Self, Rhs = usize> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_shl_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
+}
+
+/// `Nd-kind` extension for [`std::ops::Shr`].
+///
+/// # Related
+///
+/// - [`NdShrChecked`] - checked alternative.
+/// - [`NdShrStrict`] - strict alternative.
+/// - [`NdShrUnbounded`] - unbounded alternative.
+/// - [`NdShrOverflowing`] - overflowing alternative.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdShr<Lhs = Self, Rhs = usize> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_shr(lhs: &Lhs, rhs: Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Shr`] with checked semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdShrChecked<Lhs = Self, Rhs = usize> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_shr_checked(lhs: &Lhs, rhs: Rhs) -> Option<Self::Type>;
+}
+
+/// `Nd-kind` extension for [`std::ops::Shr`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdShrStrict<Lhs = Self, Rhs = usize> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_shr_strict(lhs: &Lhs, rhs: Rhs) -> Self::Type;
+}
+
 /// `Nd-kind` extension for [`std::ops::Shr`] with unbounded semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
@@ -921,6 +914,17 @@ pub trait NdShrUnbounded<Lhs = Self, Rhs = Self> {
 
     /// Operation function.
     fn nd_shr_unbounded(lhs: &Lhs, rhs: Rhs) -> Self::Type;
+}
+
+/// `Nd-kind` extension for [`std::ops::Shr`] with overflowing semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdShrOverflowing<Lhs = Self, Rhs = usize> {
+    /// Operation resulting type.
+    type Type;
+
+    /// Operation function.
+    fn nd_shr_overflowing(lhs: &Lhs, rhs: Rhs) -> (Self::Type, bool);
 }
 
 /// `Nd-kind` extension for [`std::ops::AddAssign`].
@@ -937,6 +941,30 @@ pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
     fn nd_add_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
+/// `Nd-kind` extension for [`std::ops::AddAssign`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddAssignStrict<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_add_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::AddAssign`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddAssignWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_add_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::AddAssign`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdAddAssignSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_add_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
+}
+
 /// `Nd-kind` extension for [`std::ops::SubAssign`].
 ///
 /// # Related
@@ -949,6 +977,30 @@ pub trait NdAddAssign<Lhs = Self, Rhs = Self> {
 pub trait NdSubAssign<Lhs = Self, Rhs = Self> {
     /// Operation function.
     fn nd_sub_assign(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::SubAssign`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubAssignStrict<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_sub_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::SubAssign`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubAssignWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_sub_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::SubAssign`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdSubAssignSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_sub_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 /// `Nd-kind` extension for [`std::ops::MulAssign`].
@@ -965,6 +1017,30 @@ pub trait NdMulAssign<Lhs = Self, Rhs = Self> {
     fn nd_mul_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
+/// `Nd-kind` extension for [`std::ops::MulAssign`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulAssignStrict<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_mul_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::MulAssign`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulAssignWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_mul_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::MulAssign`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdMulAssignSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_mul_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
+}
+
 /// `Nd-kind` extension for [`std::ops::DivAssign`].
 ///
 /// # Related
@@ -979,6 +1055,30 @@ pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
     fn nd_div_assign(lhs: &mut Lhs, rhs: &Rhs);
 }
 
+/// `Nd-kind` extension for [`std::ops::DivAssign`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivAssignStrict<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_div_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::DivAssign`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivAssignWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_div_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::DivAssign`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdDivAssignSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_div_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
+}
+
 /// `Nd-kind` extension for [`std::ops::RemAssign`].
 ///
 /// # Related
@@ -991,6 +1091,30 @@ pub trait NdDivAssign<Lhs = Self, Rhs = Self> {
 pub trait NdRemAssign<Lhs = Self, Rhs = Self> {
     /// Operation function.
     fn nd_rem_assign(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::RemAssign`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemAssignStrict<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_rem_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::RemAssign`] with wrapping semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemAssignWrapping<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_rem_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::RemAssign`] with saturating semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdRemAssignSaturating<Lhs = Self, Rhs = Self> {
+    /// Operation function.
+    fn nd_rem_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
 }
 
 /// `Nd-kind` extension for [`std::ops::BitOrAssign`].
@@ -1030,6 +1154,22 @@ pub trait NdShlAssign<Lhs = Self, Rhs = usize> {
     fn nd_shl_assign(lhs: &mut Lhs, rhs: Rhs);
 }
 
+/// `Nd-kind` extension for [`std::ops::ShlAssign`] with strict semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdShlAssignStrict<Lhs = Self, Rhs = usize> {
+    /// Operation function.
+    fn nd_shl_assign_strict(lhs: &mut Lhs, rhs: Rhs);
+}
+
+/// `Nd-kind` extension for [`std::ops::ShlAssign`] with unbounded semantics.
+///
+/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
+pub trait NdShlAssignUnbounded<Lhs = Self, Rhs = usize> {
+    /// Operation function.
+    fn nd_shl_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
+}
+
 /// `Nd-kind` extension for [`std::ops::ShrAssign`].
 ///
 /// # Related
@@ -1043,148 +1183,12 @@ pub trait NdShrAssign<Lhs = Self, Rhs = usize> {
     fn nd_shr_assign(lhs: &mut Lhs, rhs: Rhs);
 }
 
-/// `Nd-kind` extension for [`std::ops::AddAssign`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_add_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::SubAssign`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_sub_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::MulAssign`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_mul_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::DivAssign`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_div_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::RemAssign`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemAssignStrict<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_rem_assign_strict(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::ShlAssign`] with strict semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdShlAssignStrict<Lhs = Self, Rhs = usize> {
-    /// Operation function.
-    fn nd_shl_assign_strict(lhs: &mut Lhs, rhs: Rhs);
-}
-
 /// `Nd-kind` extension for [`std::ops::ShrAssign`] with strict semantics.
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
 pub trait NdShrAssignStrict<Lhs = Self, Rhs = usize> {
     /// Operation function.
     fn nd_shr_assign_strict(lhs: &mut Lhs, rhs: Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::AddAssign`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_add_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::SubAssign`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_sub_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::MulAssign`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_mul_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::DivAssign`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_div_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::RemAssign`] with wrapping semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemAssignWrapping<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_rem_assign_wrapping(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::AddAssign`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdAddAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_add_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::SubAssign`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdSubAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_sub_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::MulAssign`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdMulAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_mul_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::DivAssign`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdDivAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_div_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::RemAssign`] with saturating semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdRemAssignSaturating<Lhs = Self, Rhs = Self> {
-    /// Operation function.
-    fn nd_rem_assign_saturating(lhs: &mut Lhs, rhs: &Rhs);
-}
-
-/// `Nd-kind` extension for [`std::ops::ShlAssign`] with unbounded semantics.
-///
-/// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
-pub trait NdShlAssignUnbounded<Lhs = Self, Rhs = usize> {
-    /// Operation function.
-    fn nd_shl_assign_unbounded(lhs: &mut Lhs, rhs: Rhs);
 }
 
 /// `Nd-kind` extension for [`std::ops::ShrAssign`] with unbounded semantics.
