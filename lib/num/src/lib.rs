@@ -1564,87 +1564,87 @@ impl<N: Max> Max for Unbounded<N> {
 ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
 
-ndops::fwd! { @ndun <N> (value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - with @strict where        [N: NdNegStrict             <N, Type = N>],
-    - @checked where            [N: NdNegChecked            <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    posx with @strict where     [N: NdPosxStrict            <N, Type = N>],
-    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
-    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
-    negx with @strict where     [N: NdNegxStrict            <N, Type = N>],
-    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
-    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
+ndops::fwd! { @ndun <Value, N> (value: &Strict<Value>) -> Strict<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - with @strict where        [Value: NdNegStrict         <Value, Type = N>],
+    - @checked where            [Value: NdNegChecked        <Value, Type = N>],
+    - @overflowing where        [Value: NdNegOverflowing    <Value, Type = N>],
+    posx with @strict where     [Value: NdPosxStrict        <Value, Type = N>],
+    posx @checked where         [Value: NdPosxChecked       <Value, Type = N>],
+    posx @overflowing where     [Value: NdPosxOverflowing   <Value, Type = N>],
+    negx with @strict where     [Value: NdNegxStrict        <Value, Type = N>],
+    negx @checked where         [Value: NdNegxChecked       <Value, Type = N>],
+    negx @overflowing where     [Value: NdNegxOverflowing   <Value, Type = N>],
 ] }
 
-ndops::fwd! { @ndun <N> (value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - with @wrapping where      [N: NdNegWrapping           <N, Type = N>],
-    - @checked where            [N: NdNegChecked            <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    posx with @wrapping where   [N: NdPosxWrapping          <N, Type = N>],
-    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
-    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
-    negx with @wrapping where   [N: NdNegxWrapping          <N, Type = N>],
-    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
-    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
+ndops::fwd! { @ndun <Value, N> (value: &Wrapping<Value>) -> Wrapping<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - with @wrapping where      [Value: NdNegWrapping       <Value, Type = N>],
+    - @checked where            [Value: NdNegChecked        <Value, Type = N>],
+    - @overflowing where        [Value: NdNegOverflowing    <Value, Type = N>],
+    posx with @wrapping where   [Value: NdPosxWrapping      <Value, Type = N>],
+    posx @checked where         [Value: NdPosxChecked       <Value, Type = N>],
+    posx @overflowing where     [Value: NdPosxOverflowing   <Value, Type = N>],
+    negx with @wrapping where   [Value: NdNegxWrapping      <Value, Type = N>],
+    negx @checked where         [Value: NdNegxChecked       <Value, Type = N>],
+    negx @overflowing where     [Value: NdNegxOverflowing   <Value, Type = N>],
 ] }
 
-ndops::fwd! { @ndun <N> (value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - with @saturating where    [N: NdNegSaturating         <N, Type = N>],
-    - @checked where            [N: NdNegChecked            <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    posx with @saturating where [N: NdPosxSaturating        <N, Type = N>],
-    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
-    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
-    negx with @saturating where [N: NdNegxSaturating        <N, Type = N>],
-    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
-    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
+ndops::fwd! { @ndun <Value, N> (value: &Saturating<Value>) -> Saturating<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - with @saturating where    [Value: NdNegSaturating     <Value, Type = N>],
+    - @checked where            [Value: NdNegChecked        <Value, Type = N>],
+    - @overflowing where        [Value: NdNegOverflowing    <Value, Type = N>],
+    posx with @saturating where [Value: NdPosxSaturating    <Value, Type = N>],
+    posx @checked where         [Value: NdPosxChecked       <Value, Type = N>],
+    posx @overflowing where     [Value: NdPosxOverflowing   <Value, Type = N>],
+    negx with @saturating where [Value: NdNegxSaturating    <Value, Type = N>],
+    negx @checked where         [Value: NdNegxChecked       <Value, Type = N>],
+    negx @overflowing where     [Value: NdNegxOverflowing   <Value, Type = N>],
 ] }
 
-ndops::fwd! { @ndun <N> (value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - where                     [N: NdNeg                   <N, Type = N>],
-    - @checked where            [N: NdNegChecked            <N, Type = N>],
-    - @strict where             [N: NdNegStrict             <N, Type = N>],
-    - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
-    - @saturating where         [N: NdNegSaturating         <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    posx where                  [N: NdPosx                  <N, Type = N>],
-    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
-    posx @strict where          [N: NdPosxStrict            <N, Type = N>],
-    posx @wrapping where        [N: NdPosxWrapping          <N, Type = N>],
-    posx @saturating where      [N: NdPosxSaturating        <N, Type = N>],
-    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
-    negx where                  [N: NdNegx                  <N, Type = N>],
-    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
-    negx @strict where          [N: NdNegxStrict            <N, Type = N>],
-    negx @wrapping where        [N: NdNegxWrapping          <N, Type = N>],
-    negx @saturating where      [N: NdNegxSaturating        <N, Type = N>],
-    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
+ndops::fwd! { @ndun <Value, N> (value: &Unbounded<Value>) -> Unbounded<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - where                     [Value: NdNeg               <Value, Type = N>],
+    - @checked where            [Value: NdNegChecked        <Value, Type = N>],
+    - @strict where             [Value: NdNegStrict         <Value, Type = N>],
+    - @wrapping where           [Value: NdNegWrapping       <Value, Type = N>],
+    - @saturating where         [Value: NdNegSaturating     <Value, Type = N>],
+    - @overflowing where        [Value: NdNegOverflowing    <Value, Type = N>],
+    posx where                  [Value: NdPosx              <Value, Type = N>],
+    posx @checked where         [Value: NdPosxChecked       <Value, Type = N>],
+    posx @strict where          [Value: NdPosxStrict        <Value, Type = N>],
+    posx @wrapping where        [Value: NdPosxWrapping      <Value, Type = N>],
+    posx @saturating where      [Value: NdPosxSaturating    <Value, Type = N>],
+    posx @overflowing where     [Value: NdPosxOverflowing   <Value, Type = N>],
+    negx where                  [Value: NdNegx              <Value, Type = N>],
+    negx @checked where         [Value: NdNegxChecked       <Value, Type = N>],
+    negx @strict where          [Value: NdNegxStrict        <Value, Type = N>],
+    negx @wrapping where        [Value: NdNegxWrapping      <Value, Type = N>],
+    negx @saturating where      [Value: NdNegxSaturating    <Value, Type = N>],
+    negx @overflowing where     [Value: NdNegxOverflowing   <Value, Type = N>],
 ] }
 
-ndops::fwd! { @ndun <N> (value: &AutoCt<N>) -> AutoCt<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - where                     [N: NdNeg                   <N, Type = N>],
-    - @checked where            [N: NdNegChecked            <N, Type = N>],
-    - @strict where             [N: NdNegStrict             <N, Type = N>],
-    - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
-    - @saturating where         [N: NdNegSaturating         <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    posx where                  [N: NdPosx                  <N, Type = N>],
-    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
-    posx @strict where          [N: NdPosxStrict            <N, Type = N>],
-    posx @wrapping where        [N: NdPosxWrapping          <N, Type = N>],
-    posx @saturating where      [N: NdPosxSaturating        <N, Type = N>],
-    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
-    negx where                  [N: NdNegx                  <N, Type = N>],
-    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
-    negx @strict where          [N: NdNegxStrict            <N, Type = N>],
-    negx @wrapping where        [N: NdNegxWrapping          <N, Type = N>],
-    negx @saturating where      [N: NdNegxSaturating        <N, Type = N>],
-    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
+ndops::fwd! { @ndun <Value, N> (value: &AutoCt<Value>) -> AutoCt<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - where                     [Value: NdNeg               <Value, Type = N>],
+    - @checked where            [Value: NdNegChecked        <Value, Type = N>],
+    - @strict where             [Value: NdNegStrict         <Value, Type = N>],
+    - @wrapping where           [Value: NdNegWrapping       <Value, Type = N>],
+    - @saturating where         [Value: NdNegSaturating     <Value, Type = N>],
+    - @overflowing where        [Value: NdNegOverflowing    <Value, Type = N>],
+    posx where                  [Value: NdPosx              <Value, Type = N>],
+    posx @checked where         [Value: NdPosxChecked       <Value, Type = N>],
+    posx @strict where          [Value: NdPosxStrict        <Value, Type = N>],
+    posx @wrapping where        [Value: NdPosxWrapping      <Value, Type = N>],
+    posx @saturating where      [Value: NdPosxSaturating    <Value, Type = N>],
+    posx @overflowing where     [Value: NdPosxOverflowing   <Value, Type = N>],
+    negx where                  [Value: NdNegx              <Value, Type = N>],
+    negx @checked where         [Value: NdNegxChecked       <Value, Type = N>],
+    negx @strict where          [Value: NdNegxStrict        <Value, Type = N>],
+    negx @wrapping where        [Value: NdNegxWrapping      <Value, Type = N>],
+    negx @saturating where      [Value: NdNegxSaturating    <Value, Type = N>],
+    negx @overflowing where     [Value: NdNegxOverflowing   <Value, Type = N>],
 ] }
 
 ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &Strict<Lhs>, rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [
@@ -1943,29 +1943,29 @@ ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: Rhs), (Lhs) (&mut l
     >>= where                   [Lhs: NdShrAssign           <Lhs, Rhs>],
 ] }
 
-ndops::fwd! { @stdun <N> (*value: &Strict<N>) -> Strict<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - with @strict where        [N: NdNegStrict             <N, Type = N>],
+ndops::fwd! { @stdun <Value, N> (*value: &Strict<Value>) -> Strict<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - with @strict where        [Value: NdNegStrict         <Value, Type = N>],
 ] }
 
-ndops::fwd! { @stdun <N> (*value: &Wrapping<N>) -> Wrapping<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - with @wrapping where      [N: NdNegWrapping           <N, Type = N>],
+ndops::fwd! { @stdun <Value, N> (*value: &Wrapping<Value>) -> Wrapping<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - with @wrapping where      [Value: NdNegWrapping       <Value, Type = N>],
 ] }
 
-ndops::fwd! { @stdun <N> (*value: &Saturating<N>) -> Saturating<N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - with @saturating where    [N: NdNegSaturating         <N, Type = N>],
+ndops::fwd! { @stdun <Value, N> (*value: &Saturating<Value>) -> Saturating<N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - with @saturating where    [Value: NdNegSaturating     <Value, Type = N>],
 ] }
 
-ndops::fwd! { @stdun <N> (*value: &Unbounded<N>) -> Unbounded<N>, (N) (&value.0) [
-    - where                     [N: NdNeg                   <N, Type = N>],
-    ! where                     [N: NdNot                   <N, Type = N>],
+ndops::fwd! { @stdun <Value, N> (*value: &Unbounded<Value>) -> Unbounded<N>, (Value) (&value.0) [
+    - where                     [Value: NdNeg               <Value, Type = N>],
+    ! where                     [Value: NdNot               <Value, Type = N>],
 ] }
 
-ndops::fwd! { @stdun <N> (*value: &AutoCt<N>) -> AutoCt<N>, (N) (&value.0) [
-    - where                     [N: NdNeg                   <N, Type = N>],
-    ! where                     [N: NdNot                   <N, Type = N>],
+ndops::fwd! { @stdun <Value, N> (*value: &AutoCt<Value>) -> AutoCt<N>, (Value) (&value.0) [
+    - where                     [Value: NdNeg               <Value, Type = N>],
+    ! where                     [Value: NdNot               <Value, Type = N>],
 ] }
 
 ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &Strict<Lhs>, *rhs: &Strict<Rhs>) -> Strict<T>, (Lhs) (&lhs.0) (&rhs.0) [

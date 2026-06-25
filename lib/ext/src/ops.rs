@@ -1448,48 +1448,48 @@ impl<'num, N> From<&'num mut N> for Mut<'num, N> {
     }
 }
 
-ndops::fwd! { @ndun crate <'num, N> (value: &Ref<'num, N>) -> N for Ref<'num, N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - where                     [N: NdNeg                   <N, Type = N>],
-    - @checked where            [N: NdNegChecked            <N, Type = N>],
-    - @strict where             [N: NdNegStrict             <N, Type = N>],
-    - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
-    - @saturating where         [N: NdNegSaturating         <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    posx where                  [N: NdPosx                  <N, Type = N>],
-    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
-    posx @strict where          [N: NdPosxStrict            <N, Type = N>],
-    posx @wrapping where        [N: NdPosxWrapping          <N, Type = N>],
-    posx @saturating where      [N: NdPosxSaturating        <N, Type = N>],
-    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
-    negx where                  [N: NdNegx                  <N, Type = N>],
-    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
-    negx @strict where          [N: NdNegxStrict            <N, Type = N>],
-    negx @wrapping where        [N: NdNegxWrapping          <N, Type = N>],
-    negx @saturating where      [N: NdNegxSaturating        <N, Type = N>],
-    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
+ndops::fwd! { @ndun crate <'num, Value, N> (value: &Ref<'num, Value>) -> N for Ref<'num, N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - where                     [Value: NdNeg               <Value, Type = N>],
+    - @checked where            [Value: NdNegChecked        <Value, Type = N>],
+    - @strict where             [Value: NdNegStrict         <Value, Type = N>],
+    - @wrapping where           [Value: NdNegWrapping       <Value, Type = N>],
+    - @saturating where         [Value: NdNegSaturating     <Value, Type = N>],
+    - @overflowing where        [Value: NdNegOverflowing    <Value, Type = N>],
+    posx where                  [Value: NdPosx              <Value, Type = N>],
+    posx @checked where         [Value: NdPosxChecked       <Value, Type = N>],
+    posx @strict where          [Value: NdPosxStrict        <Value, Type = N>],
+    posx @wrapping where        [Value: NdPosxWrapping      <Value, Type = N>],
+    posx @saturating where      [Value: NdPosxSaturating    <Value, Type = N>],
+    posx @overflowing where     [Value: NdPosxOverflowing   <Value, Type = N>],
+    negx where                  [Value: NdNegx              <Value, Type = N>],
+    negx @checked where         [Value: NdNegxChecked       <Value, Type = N>],
+    negx @strict where          [Value: NdNegxStrict        <Value, Type = N>],
+    negx @wrapping where        [Value: NdNegxWrapping      <Value, Type = N>],
+    negx @saturating where      [Value: NdNegxSaturating    <Value, Type = N>],
+    negx @overflowing where     [Value: NdNegxOverflowing   <Value, Type = N>],
 ] }
 
-ndops::fwd! { @ndun crate <'num, N> (value: &Mut<'num, N>) -> N for Mut<'num, N>, (N) (&value.0) [
-    ! where                     [N: NdNot                   <N, Type = N>],
-    - where                     [N: NdNeg                   <N, Type = N>],
-    - @checked where            [N: NdNegChecked            <N, Type = N>],
-    - @strict where             [N: NdNegStrict             <N, Type = N>],
-    - @wrapping where           [N: NdNegWrapping           <N, Type = N>],
-    - @saturating where         [N: NdNegSaturating         <N, Type = N>],
-    - @overflowing where        [N: NdNegOverflowing        <N, Type = N>],
-    posx where                  [N: NdPosx                  <N, Type = N>],
-    posx @checked where         [N: NdPosxChecked           <N, Type = N>],
-    posx @strict where          [N: NdPosxStrict            <N, Type = N>],
-    posx @wrapping where        [N: NdPosxWrapping          <N, Type = N>],
-    posx @saturating where      [N: NdPosxSaturating        <N, Type = N>],
-    posx @overflowing where     [N: NdPosxOverflowing       <N, Type = N>],
-    negx where                  [N: NdNegx                  <N, Type = N>],
-    negx @checked where         [N: NdNegxChecked           <N, Type = N>],
-    negx @strict where          [N: NdNegxStrict            <N, Type = N>],
-    negx @wrapping where        [N: NdNegxWrapping          <N, Type = N>],
-    negx @saturating where      [N: NdNegxSaturating        <N, Type = N>],
-    negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
+ndops::fwd! { @ndun crate <'num, Value, N> (value: &Mut<'num, Value>) -> N for Mut<'num, N>, (Value) (&value.0) [
+    ! where                     [Value: NdNot               <Value, Type = N>],
+    - where                     [Value: NdNeg               <Value, Type = N>],
+    - @checked where            [Value: NdNegChecked        <Value, Type = N>],
+    - @strict where             [Value: NdNegStrict         <Value, Type = N>],
+    - @wrapping where           [Value: NdNegWrapping       <Value, Type = N>],
+    - @saturating where         [Value: NdNegSaturating     <Value, Type = N>],
+    - @overflowing where        [Value: NdNegOverflowing    <Value, Type = N>],
+    posx where                  [Value: NdPosx              <Value, Type = N>],
+    posx @checked where         [Value: NdPosxChecked       <Value, Type = N>],
+    posx @strict where          [Value: NdPosxStrict        <Value, Type = N>],
+    posx @wrapping where        [Value: NdPosxWrapping      <Value, Type = N>],
+    posx @saturating where      [Value: NdPosxSaturating    <Value, Type = N>],
+    posx @overflowing where     [Value: NdPosxOverflowing   <Value, Type = N>],
+    negx where                  [Value: NdNegx              <Value, Type = N>],
+    negx @checked where         [Value: NdNegxChecked       <Value, Type = N>],
+    negx @strict where          [Value: NdNegxStrict        <Value, Type = N>],
+    negx @wrapping where        [Value: NdNegxWrapping      <Value, Type = N>],
+    negx @saturating where      [Value: NdNegxSaturating    <Value, Type = N>],
+    negx @overflowing where     [Value: NdNegxOverflowing   <Value, Type = N>],
 ] }
 
 ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Ref<'num, N>, (Lhs) (&lhs.0) (&rhs.0) [
@@ -1625,14 +1625,14 @@ ndops::fwd! { @ndmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs)
     >>= @unbounded where    [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
 ] }
 
-ndops::fwd! { @stdun crate <'num, N> (*value: &Ref<'num, N>) -> N, (N) (&value.0) [
-    - where [N: NdNeg<N, Type = N>],
-    ! where [N: NdNot<N, Type = N>],
+ndops::fwd! { @stdun crate <'num, Value, N> (*value: &Ref<'num, Value>) -> N, (Value) (&value.0) [
+    - where [Value: NdNeg<Value, Type = N>],
+    ! where [Value: NdNot<Value, Type = N>],
 ] }
 
-ndops::fwd! { @stdun crate <'num, N> (*value: &Mut<'num, N>) -> N, (N) (&value.0) [
-    - where [N: NdNeg<N, Type = N>],
-    ! where [N: NdNot<N, Type = N>],
+ndops::fwd! { @stdun crate <'num, Value, N> (*value: &Mut<'num, Value>) -> N, (Value) (&value.0) [
+    - where [Value: NdNeg<Value, Type = N>],
+    ! where [Value: NdNot<Value, Type = N>],
 ] }
 
 ndops::fwd! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Ref<'num, Lhs>, *rhs: &Ref<'num, Rhs>) -> N, (Lhs) (&lhs.0) (&rhs.0) [

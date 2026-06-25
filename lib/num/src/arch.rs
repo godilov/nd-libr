@@ -189,14 +189,14 @@ macro_rules! aligned_impl {
             }
         }
 
-        ndops::fwd! { @ndun <T> (value: &$aligned<T>) -> $aligned<T>, (T) (&value.0) [
-            ! where                 [T: NdNot           <Type = T>],
-            - where                 [T: NdNeg           <Type = T>],
-            - @checked where        [T: NdNegChecked    <Type = T>],
-            - @strict where         [T: NdNegStrict     <Type = T>],
-            - @wrapping where       [T: NdNegWrapping   <Type = T>],
-            - @saturating where     [T: NdNegSaturating <Type = T>],
-            - @overflowing where    [T: NdNegOverflowing<Type = T>],
+        ndops::fwd! { @ndun <Value, T> (value: &$aligned<Value>) -> $aligned<T>, (Value) (&value.0) [
+            ! where                 [Value: NdNot           <Value, Type = T>],
+            - where                 [Value: NdNeg           <Value, Type = T>],
+            - @checked where        [Value: NdNegChecked    <Value, Type = T>],
+            - @strict where         [Value: NdNegStrict     <Value, Type = T>],
+            - @wrapping where       [Value: NdNegWrapping   <Value, Type = T>],
+            - @saturating where     [Value: NdNegSaturating <Value, Type = T>],
+            - @overflowing where    [Value: NdNegOverflowing<Value, Type = T>],
         ] }
 
         ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &$aligned<Lhs>, rhs: &$aligned<Rhs>) -> $aligned<T>, (Lhs) (&lhs.0) (&rhs.0) [
@@ -283,9 +283,9 @@ macro_rules! aligned_impl {
             >>= @unbounded where    [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
         ] }
 
-        ndops::fwd! { @stdun <T> (*value: &$aligned<T>) -> $aligned<T>, (T) (&value.0) [
-            - where [T: NdNeg<T, Type = T>],
-            ! where [T: NdNot<T, Type = T>],
+        ndops::fwd! { @stdun <Value, T> (*value: &$aligned<Value>) -> $aligned<T>, (Value) (&value.0) [
+            - where [Value: NdNeg<Value, Type = T>],
+            ! where [Value: NdNot<Value, Type = T>],
         ] }
 
         ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &$aligned<Lhs>, *rhs: &$aligned<Rhs>) -> $aligned<T>, (Lhs) (&lhs.0) (&rhs.0) [
