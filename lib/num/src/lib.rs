@@ -381,88 +381,6 @@ macro_rules! sign_from {
     };
 }
 
-/// Number with ops by immutable reference.
-///
-/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::std(self.0 with &'num N)]
-#[ndfwd::cmp(self.0 with &'num N)]
-#[ndfwd::fmt(self.0 with &'num N)]
-#[ndfwd::iter(self.0 with &'num N)]
-#[ndfwd::def(self.0 with &'num N: arch::BytesLen)]
-#[ndfwd::def(self.0 with &'num N: arch::BytesFn)]
-#[ndfwd::def(self.0 with &'num N: arch::AsBytesRef)]
-#[ndfwd::def(self.0 with &'num N: arch::AsBytesMut)]
-#[ndfwd::def(self.0 with &'num N: NumFn!)]
-#[ndfwd::def(self.0 with &'num N: Num!)]
-#[ndfwd::def(self.0 with &'num N: NumSigned)]
-#[ndfwd::def(self.0 with &'num N: NumUnsigned)]
-#[ndfwd::def(self.0 with &'num N: NdRand!)]
-#[ndfwd::def(self.0 with &'num N: NdPow!)]
-#[ndfwd::def(self.0 with &'num N: NdGcd!)]
-#[ndfwd::def(self.0 with &'num N: NdGcdChecked!)]
-#[ndfwd::def(self.0 with &'num N: IsOneCt)]
-#[ndfwd::def(self.0 with &'num N: IsZeroCt)]
-#[ndfwd::def(self.0 with &'num N: IsPosCt)]
-#[ndfwd::def(self.0 with &'num N: IsNegCt)]
-#[ndfwd::def(self.0 with &'num N: EqCt)]
-#[ndfwd::def(self.0 with &'num N: LtCt)]
-#[ndfwd::def(self.0 with &'num N: GtCt)]
-#[ndfwd::def(self.0 with &'num N: LeCt)]
-#[ndfwd::def(self.0 with &'num N: GeCt)]
-#[ndfwd::def(self.0 with &'num N: SignCt)]
-#[ndfwd::def(self.0 with &'num N: CmpCt)]
-#[ndfwd::def(self.0 with &'num N: MinCt)]
-#[ndfwd::def(self.0 with &'num N: MaxCt)]
-#[ndfwd::def(self.0 with &'num N: PosxCt)]
-#[ndfwd::def(self.0 with &'num N: NegxCt)]
-#[ndfwd::def(self.0 with &'num N: SelectCt)]
-#[ndfwd::def(self.0 with &'num N: PowCt!)]
-#[derive(Debug, Clone, Copy)]
-pub struct Ref<'num, N>(pub &'num N);
-
-/// Number with ops by mutable reference.
-///
-/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::std(self.0 with &'num mut N)]
-#[ndfwd::cmp(self.0 with &'num mut N)]
-#[ndfwd::fmt(self.0 with &'num mut N)]
-#[ndfwd::iter(self.0 with &'num mut N)]
-#[ndfwd::def(self.0 with &'num mut N: arch::BytesLen)]
-#[ndfwd::def(self.0 with &'num mut N: arch::BytesFn)]
-#[ndfwd::def(self.0 with &'num mut N: arch::AsBytesRef)]
-#[ndfwd::def(self.0 with &'num mut N: arch::AsBytesMut)]
-#[ndfwd::def(self.0 with &'num mut N: NumFn!)]
-#[ndfwd::def(self.0 with &'num mut N: Num!)]
-#[ndfwd::def(self.0 with &'num mut N: NumSigned)]
-#[ndfwd::def(self.0 with &'num mut N: NumUnsigned)]
-#[ndfwd::def(self.0 with &'num mut N: NdRand!)]
-#[ndfwd::def(self.0 with &'num mut N: NdPow!)]
-#[ndfwd::def(self.0 with &'num mut N: NdGcd!)]
-#[ndfwd::def(self.0 with &'num mut N: NdGcdChecked!)]
-#[ndfwd::def(self.0 with &'num mut N: IsOneCt)]
-#[ndfwd::def(self.0 with &'num mut N: IsZeroCt)]
-#[ndfwd::def(self.0 with &'num mut N: IsPosCt)]
-#[ndfwd::def(self.0 with &'num mut N: IsNegCt)]
-#[ndfwd::def(self.0 with &'num mut N: EqCt)]
-#[ndfwd::def(self.0 with &'num mut N: LtCt)]
-#[ndfwd::def(self.0 with &'num mut N: GtCt)]
-#[ndfwd::def(self.0 with &'num mut N: LeCt)]
-#[ndfwd::def(self.0 with &'num mut N: GeCt)]
-#[ndfwd::def(self.0 with &'num mut N: SignCt)]
-#[ndfwd::def(self.0 with &'num mut N: CmpCt)]
-#[ndfwd::def(self.0 with &'num mut N: MinCt)]
-#[ndfwd::def(self.0 with &'num mut N: MaxCt)]
-#[ndfwd::def(self.0 with &'num mut N: PosxCt)]
-#[ndfwd::def(self.0 with &'num mut N: NegxCt)]
-#[ndfwd::def(self.0 with &'num mut N: SelectCt)]
-#[ndfwd::def(self.0 with &'num mut N: PowCt!)]
-#[derive(Debug)]
-pub struct Mut<'num, N>(pub &'num mut N);
-
 /// Number with Strict operations semantics.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
@@ -1514,20 +1432,6 @@ dir_from!([u8, u16, u32, u64, u128, usize]);
 
 sign_from!([i8, i16, i32, i64, i128, isize]);
 sign_from!([u8, u16, u32, u64, u128, usize]);
-
-impl<'num, N> From<&'num N> for Ref<'num, N> {
-    #[inline]
-    fn from(value: &'num N) -> Self {
-        Self(value)
-    }
-}
-
-impl<'num, N> From<&'num mut N> for Mut<'num, N> {
-    #[inline]
-    fn from(value: &'num mut N) -> Self {
-        Self(value)
-    }
-}
 
 impl<N> From<N> for Strict<N> {
     #[inline]
