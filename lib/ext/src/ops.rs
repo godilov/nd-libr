@@ -1470,7 +1470,7 @@ ndops::fwd! { @ndun crate <'num, N> (value: &Ref<'num, N>) -> N for Ref<'num, N>
     negx @overflowing where     [N: NdNegxOverflowing       <N, Type = N>],
 ] }
 
-ndops::fwd! { @ndun crate <'num, N> (value: &Mut<'num, N>) -> N for Ref<'num, N>, (N) (&value.0) [
+ndops::fwd! { @ndun crate <'num, N> (value: &Mut<'num, N>) -> N for Mut<'num, N>, (N) (&value.0) [
     ! where                     [N: NdNot                   <N, Type = N>],
     - where                     [N: NdNeg                   <N, Type = N>],
     - @checked where            [N: NdNegChecked            <N, Type = N>],
@@ -1528,7 +1528,7 @@ ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: &Ref<
     % @overflowing where    [Lhs: NdRemOverflowing  <Lhs, Rhs, Type = N>],
 ] }
 
-ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: &Mut<'num, Rhs>) -> N for Ref<'num, N>, (Lhs) (&lhs.0) (&rhs.0) [
+ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Mut<'num, N>, (Lhs) (&lhs.0) (&rhs.0) [
     + where                 [Lhs: NdAdd             <Lhs, Rhs, Type = N>],
     - where                 [Lhs: NdSub             <Lhs, Rhs, Type = N>],
     * where                 [Lhs: NdMul             <Lhs, Rhs, Type = N>],
@@ -1577,7 +1577,7 @@ ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: Rhs) 
     >> @unbounded where     [Lhs: NdShrUnbounded    <Lhs, Rhs, Type = N>],
 ] }
 
-ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: Rhs) -> N for Ref<'num, N>, (Lhs) (&lhs.0) (rhs) [
+ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: Rhs) -> N for Mut<'num, N>, (Lhs) (&lhs.0) (rhs) [
     << where                [Lhs: NdShl             <Lhs, Rhs, Type = N>],
     >> where                [Lhs: NdShr             <Lhs, Rhs, Type = N>],
     << @checked where       [Lhs: NdShlChecked      <Lhs, Rhs, Type = N>],
@@ -1590,7 +1590,7 @@ ndops::fwd! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: Rhs) 
     >> @unbounded where     [Lhs: NdShrUnbounded    <Lhs, Rhs, Type = N>],
 ] }
 
-ndops::fwd! { @ndmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: &Mut<'num, Rhs>) for Ref<'num, Lhs>, (Lhs) (&mut lhs.0) (&rhs.0) [
+ndops::fwd! { @ndmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: &Ref<'num, Rhs>) for Mut<'num, Lhs>, (Lhs) (&mut lhs.0) (&rhs.0) [
     += where                [Lhs: NdAddAssign           <Lhs, Rhs>],
     -= where                [Lhs: NdSubAssign           <Lhs, Rhs>],
     *= where                [Lhs: NdMulAssign           <Lhs, Rhs>],
@@ -1616,7 +1616,7 @@ ndops::fwd! { @ndmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: &Mut
     %= @saturating where    [Lhs: NdRemAssignSaturating <Lhs, Rhs>],
 ] }
 
-ndops::fwd! { @ndmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs) for Ref<'num, Lhs>, (Lhs) (&mut lhs.0) (rhs) [
+ndops::fwd! { @ndmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs) for Mut<'num, Lhs>, (Lhs) (&mut lhs.0) (rhs) [
     <<= where               [Lhs: NdShlAssign           <Lhs, Rhs>],
     >>= where               [Lhs: NdShrAssign           <Lhs, Rhs>],
     <<= @strict where       [Lhs: NdShlAssignStrict     <Lhs, Rhs>],
@@ -1646,7 +1646,7 @@ ndops::fwd! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Ref<'num, Lhs>, *rhs: &R
     ^ where [Lhs: NdBitXor<Lhs, Rhs, Type = N>],
 ] }
 
-ndops::fwd! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Mut<'num, Lhs>, *rhs: &Mut<'num, Rhs>) -> N, (Lhs) (&lhs.0) (&rhs.0) [
+ndops::fwd! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Mut<'num, Lhs>, *rhs: &Ref<'num, Rhs>) -> N, (Lhs) (&lhs.0) (&rhs.0) [
     + where [Lhs: NdAdd   <Lhs, Rhs, Type = N>],
     - where [Lhs: NdSub   <Lhs, Rhs, Type = N>],
     * where [Lhs: NdMul   <Lhs, Rhs, Type = N>],
@@ -1667,7 +1667,7 @@ ndops::fwd! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Mut<'num, Lhs>, rhs: Rhs
     >> where [Lhs: NdShr<Lhs, Rhs, Type = N>],
 ] }
 
-ndops::fwd! { @stdmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, *rhs: &Mut<'num, Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
+ndops::fwd! { @stdmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, *rhs: &Ref<'num, Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
     += where [Lhs: NdAddAssign   <Lhs, Rhs>],
     -= where [Lhs: NdSubAssign   <Lhs, Rhs>],
     *= where [Lhs: NdMulAssign   <Lhs, Rhs>],
