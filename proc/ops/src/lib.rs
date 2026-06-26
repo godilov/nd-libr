@@ -27,6 +27,7 @@ mod kw {
     syn::custom_keyword!(addx);
     syn::custom_keyword!(mulx);
 
+    syn::custom_keyword!(default);
     syn::custom_keyword!(checked);
     syn::custom_keyword!(strict);
     syn::custom_keyword!(wrapping);
@@ -50,7 +51,7 @@ mod kw {
 /// ] }
 ///
 /// <kind> := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
-/// <mode> := "" | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
+/// <mode> := "" | @default | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
 ///
 /// <operation> := <op> <mode>?
 ///
@@ -154,7 +155,7 @@ pub fn def(stream: TokenStreamStd) -> TokenStreamStd {
 /// ] }
 ///
 /// <kind> := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
-/// <mode> := "" | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
+/// <mode> := "" | @default | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
 ///
 /// <operation> := <op> <mode>?
 ///
@@ -389,10 +390,10 @@ struct OpsStdSignatureUnary {
     generics: Generics,
     conditions: Option<OpsConditions>,
     paren: Paren,
-    self_star: Option<Token![*]>,
-    self_pat: PatType,
-    self_ref: Option<Token![&]>,
-    self_ty: Type,
+    value_star: Option<Token![*]>,
+    value_pat: PatType,
+    value_ref: Option<Token![&]>,
+    value_ty: Type,
     arrow: Token![->],
     res_ty: Type,
 }
@@ -430,8 +431,8 @@ struct OpsNdSignatureUnary {
     generics: Generics,
     conditions: Option<OpsConditions>,
     paren: Paren,
-    self_pat: PatType,
-    self_ty: Type,
+    value_pat: PatType,
+    value_ty: Type,
     arrow: Token![->],
     res_ty: Type,
     impl_ty: OpsImplType,
@@ -505,18 +506,18 @@ struct OpsExpressionBinaryAuto {
 struct OpsExpressionUnaryFwd {
     ty_paren: Paren,
     ty_expr: Type,
-    self_paren: Paren,
-    self_expr: Expr,
+    value_paren: Paren,
+    value_expr: Expr,
 }
 
 #[allow(unused)]
 struct OpsExpressionUnaryAuto {
-    self_ty_paren: Paren,
-    self_ty_expr: Expr,
+    value_ty_paren: Paren,
+    value_ty_expr: Expr,
     ty_paren: Paren,
     ty_expr: Type,
-    self_paren: Paren,
-    self_expr: Expr,
+    value_paren: Paren,
+    value_expr: Expr,
 }
 
 #[allow(unused)]
@@ -662,6 +663,12 @@ enum OpsUnaryModeWith {
     Saturating(Token![@], kw::saturating),
 }
 
+#[derive(Clone, Copy)]
+struct OpsModeAuto<Std: Parse, Shift: Parse> {
+    std: Std,
+    shift: Shift,
+}
+
 type OpsStdAssign = OpsAssign<OpsNoop, OpsNoop>;
 type OpsStdBinary = OpsBinary<OpsNoop, OpsNoop>;
 type OpsStdUnary = OpsUnary<OpsNoop>;
@@ -677,6 +684,10 @@ type OpsStdUnaryFwd = OpsUnary<OpsUnaryModeWith>;
 type OpsNdAssignFwd = OpsAssignExtra<OpsAssignMode<OpsAssignModeWith>, OpsAssignShiftMode<OpsAssignShiftModeWith>>;
 type OpsNdBinaryFwd = OpsBinaryExtra<OpsBinaryMode<OpsBinaryModeWith>, OpsBinaryShiftMode<OpsBinaryShiftModeWith>>;
 type OpsNdUnaryFwd = OpsUnaryExtra<OpsUnaryMode<OpsUnaryModeWith>>;
+
+type OpsAssignModeAuto = OpsModeAuto<OpsAssignModeWith, OpsAssignShiftModeWith>;
+type OpsBinaryModeAuto = OpsModeAuto<OpsBinaryModeWith, OpsBinaryShiftModeWith>;
+type OpsUnaryModeAuto = OpsModeAuto<OpsUnaryModeWith, OpsNoop>;
 
 trait OpsKind {
     type Signature: Parse;
@@ -762,37 +773,37 @@ impl OpsKindFwd for OpsNdKindUnary {
 }
 
 impl OpsKindAuto for OpsStdKindAssign {
-    type Mode = OpsAssignModeWith;
+    type Mode = OpsAssignModeAuto;
     type Signature = OpsStdSignatureAssign;
     type Expression = OpsExpressionAssignAuto;
 }
 
 impl OpsKindAuto for OpsStdKindBinary {
-    type Mode = OpsBinaryModeWith;
+    type Mode = OpsBinaryModeAuto;
     type Signature = OpsStdSignatureBinary;
     type Expression = OpsExpressionBinaryAuto;
 }
 
 impl OpsKindAuto for OpsStdKindUnary {
-    type Mode = OpsUnaryModeWith;
+    type Mode = OpsUnaryModeAuto;
     type Signature = OpsStdSignatureUnary;
     type Expression = OpsExpressionUnaryAuto;
 }
 
 impl OpsKindAuto for OpsNdKindAssign {
-    type Mode = OpsAssignModeWith;
+    type Mode = OpsAssignModeAuto;
     type Signature = OpsNdSignatureAssign;
     type Expression = OpsExpressionAssignAuto;
 }
 
 impl OpsKindAuto for OpsNdKindBinary {
-    type Mode = OpsBinaryModeWith;
+    type Mode = OpsBinaryModeAuto;
     type Signature = OpsNdSignatureBinary;
     type Expression = OpsExpressionBinaryAuto;
 }
 
 impl OpsKindAuto for OpsNdKindUnary {
-    type Mode = OpsUnaryModeWith;
+    type Mode = OpsUnaryModeAuto;
     type Signature = OpsNdSignatureUnary;
     type Expression = OpsExpressionUnaryAuto;
 }
@@ -1060,17 +1071,17 @@ impl Parse for OpsStdSignatureUnary {
         let generics = input.parse::<Generics>()?;
         let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
-        let self_star = content.parse()?;
-        let self_pat: PatType = content.parse()?;
+        let value_star = content.parse()?;
+        let value_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
         let res_ty = input.parse()?;
 
-        let (self_ty, self_ref) = match *self_pat.ty {
+        let (value_ty, value_ref) = match *value_pat.ty {
             Type::Reference(ref val) => match val.mutability {
                 Some(_) => {
                     return Err(Error::new_spanned(
-                        self_pat.ty,
-                        "Failed to parse signature, self expected to be reference",
+                        value_pat.ty,
+                        "Failed to parse signature, value expected to be reference",
                     ));
                 },
                 None => ((*val.elem).clone(), Some(Default::default())),
@@ -1082,10 +1093,10 @@ impl Parse for OpsStdSignatureUnary {
             generics,
             conditions,
             paren,
-            self_star,
-            self_pat,
-            self_ref,
-            self_ty,
+            value_star,
+            value_pat,
+            value_ref,
+            value_ty,
             arrow,
             res_ty,
         })
@@ -1175,12 +1186,12 @@ impl Parse for OpsNdSignatureUnary {
         let generics = input.parse::<Generics>()?;
         let conditions = input.parse().ok();
         let paren = parenthesized!(content in input);
-        let self_pat: PatType = content.parse()?;
+        let value_pat: PatType = content.parse()?;
         let arrow = input.parse()?;
         let res_ty = input.parse()?;
         let impl_ty = input.parse()?;
 
-        let self_ty = match *self_pat.ty {
+        let value_ty = match *value_pat.ty {
             Type::Reference(ref val) if val.mutability.is_none() => (*val.elem).clone(),
             ref val => val.clone(),
         };
@@ -1189,8 +1200,8 @@ impl Parse for OpsNdSignatureUnary {
             generics,
             conditions,
             paren,
-            self_pat,
-            self_ty,
+            value_pat,
+            value_ty,
             arrow,
             res_ty,
             impl_ty,
@@ -1313,30 +1324,30 @@ impl Parse for OpsExpressionBinaryAuto {
 impl Parse for OpsExpressionUnaryFwd {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty_content;
-        let self_content;
+        let value_content;
 
         Ok(Self {
             ty_paren: parenthesized!(ty_content in input),
             ty_expr: ty_content.parse()?,
-            self_paren: parenthesized!(self_content in input),
-            self_expr: self_content.parse()?,
+            value_paren: parenthesized!(value_content in input),
+            value_expr: value_content.parse()?,
         })
     }
 }
 
 impl Parse for OpsExpressionUnaryAuto {
     fn parse(input: ParseStream) -> Result<Self> {
-        let self_ty_content;
+        let value_ty_content;
         let ty_content;
-        let self_content;
+        let value_content;
 
         Ok(Self {
-            self_ty_paren: parenthesized!(self_ty_content in input),
-            self_ty_expr: self_ty_content.parse()?,
+            value_ty_paren: parenthesized!(value_ty_content in input),
+            value_ty_expr: value_ty_content.parse()?,
             ty_paren: parenthesized!(ty_content in input),
             ty_expr: ty_content.parse()?,
-            self_paren: parenthesized!(self_content in input),
-            self_expr: self_content.parse()?,
+            value_paren: parenthesized!(value_content in input),
+            value_expr: value_content.parse()?,
         })
     }
 }
@@ -1416,7 +1427,11 @@ impl<Ext: Parse> Parse for OpsAssignMode<Ext> {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::strict) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default(input.parse()?))
+        } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
         } else if lookahead.peek(kw::wrapping) {
             Ok(Self::Wrapping(token, input.parse()?))
@@ -1439,7 +1454,11 @@ impl Parse for OpsAssignModeWith {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::strict) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default)
+        } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
         } else if lookahead.peek(kw::wrapping) {
             Ok(Self::Wrapping(token, input.parse()?))
@@ -1460,7 +1479,11 @@ impl<Ext: Parse> Parse for OpsAssignShiftMode<Ext> {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::strict) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default(input.parse()?))
+        } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
         } else if lookahead.peek(kw::unbounded) {
             Ok(Self::Unbounded(token, input.parse()?))
@@ -1481,13 +1504,27 @@ impl Parse for OpsAssignShiftModeWith {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::strict) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default)
+        } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
         } else if lookahead.peek(kw::unbounded) {
             Ok(Self::Unbounded(token, input.parse()?))
         } else {
             Err(lookahead.error())
         }
+    }
+}
+
+impl Parse for OpsAssignModeAuto {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let std = input.parse()?;
+        let _ = input.parse::<Token![/]>()?;
+        let shift = input.parse()?;
+
+        Ok(Self { std, shift })
     }
 }
 
@@ -1547,7 +1584,11 @@ impl<Ext: Parse> Parse for OpsBinaryMode<Ext> {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::checked) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default(input.parse()?))
+        } else if lookahead.peek(kw::checked) {
             Ok(Self::Checked(token, input.parse()?))
         } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
@@ -1574,7 +1615,11 @@ impl Parse for OpsBinaryModeWith {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::strict) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default)
+        } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
         } else if lookahead.peek(kw::wrapping) {
             Ok(Self::Wrapping(token, input.parse()?))
@@ -1595,7 +1640,11 @@ impl<Ext: Parse> Parse for OpsBinaryShiftMode<Ext> {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::checked) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default(input.parse()?))
+        } else if lookahead.peek(kw::checked) {
             Ok(Self::Checked(token, input.parse()?))
         } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
@@ -1620,13 +1669,27 @@ impl Parse for OpsBinaryShiftModeWith {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::strict) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default)
+        } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
         } else if lookahead.peek(kw::unbounded) {
             Ok(Self::Unbounded(token, input.parse()?))
         } else {
             Err(lookahead.error())
         }
+    }
+}
+
+impl Parse for OpsBinaryModeAuto {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let std = input.parse()?;
+        let _ = input.parse::<Token![/]>()?;
+        let shift = input.parse()?;
+
+        Ok(Self { std, shift })
     }
 }
 
@@ -1670,7 +1733,11 @@ impl<Ext: Parse> Parse for OpsUnaryMode<Ext> {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::checked) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default(input.parse()?))
+        } else if lookahead.peek(kw::checked) {
             Ok(Self::Checked(token, input.parse()?))
         } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
@@ -1697,7 +1764,11 @@ impl Parse for OpsUnaryModeWith {
         let token = input.parse()?;
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(kw::strict) {
+        if lookahead.peek(kw::default) {
+            input.parse::<kw::default>()?;
+
+            Ok(Self::Default)
+        } else if lookahead.peek(kw::strict) {
             Ok(Self::Strict(token, input.parse()?))
         } else if lookahead.peek(kw::wrapping) {
             Ok(Self::Wrapping(token, input.parse()?))
@@ -1706,6 +1777,14 @@ impl Parse for OpsUnaryModeWith {
         } else {
             Err(lookahead.error())
         }
+    }
+}
+
+impl Parse for OpsUnaryModeAuto {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let std = input.parse()?;
+
+        Ok(Self { std, shift: OpsNoop })
     }
 }
 
@@ -1921,27 +2000,27 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                 (None, None) => quote! { where },
             };
 
-            let self_pat = &spec.signature.self_pat.pat;
-            let self_ty = &spec.signature.self_ty;
+            let value_pat = &spec.signature.value_pat.pat;
+            let value_ty = &spec.signature.value_ty;
             let res_ty = &spec.signature.res_ty;
 
             let expr = &spec.expr;
 
             quote! {
-                impl #gen_impl #path for #lhs_ref #self_ty #gen_where {
+                impl #gen_impl #path for #lhs_ref #value_ty #gen_where {
                     type Output = #res_ty;
 
                     #[inline]
                     fn #ident(self) -> Self::Output {
                         #[allow(clippy::needless_borrow)]
-                        <#res_ty>::from((|#self_pat: #lhs_ref #self_ty| { #expr })(self))
+                        <#res_ty>::from((|#value_pat: #lhs_ref #value_ty| { #expr })(self))
                     }
                 }
             }
         }
 
-        let self_star = self.signature.self_star.is_some();
-        let self_ref = self.signature.self_ref.is_some();
+        let value_star = self.signature.value_star.is_some();
+        let value_ref = self.signature.value_ref.is_some();
 
         let some = Some(Default::default());
         let none = None;
@@ -1954,8 +2033,8 @@ impl ToTokens for OpsImpl<OpsStdKindUnary> {
                 conditions: definition.conditions.as_ref(),
             };
 
-            match self_ref {
-                true => match self_star {
+            match value_ref {
+                true => match value_star {
                     true => {
                         tokens.extend(get_impl(spec, some));
                         tokens.extend(get_impl(spec, none));
@@ -2084,8 +2163,8 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
                 (None, None) => quote! { where },
             };
 
-            let self_pat = &self.signature.self_pat;
-            let self_ty = &self.signature.self_ty;
+            let value_pat = &self.signature.value_pat;
+            let value_ty = &self.signature.value_ty;
             let res_ty = &self.signature.res_ty;
             let ty = definition.op.ty(res_ty);
 
@@ -2093,11 +2172,11 @@ impl ToTokens for OpsImpl<OpsNdKindUnary> {
 
             let quote = |impl_ty: &Type| {
                 quote! {
-                    impl #gen_impl #path<#self_ty> for #impl_ty #gen_where {
+                    impl #gen_impl #path<#value_ty> for #impl_ty #gen_where {
                         type Type = #res_ty;
 
                         #[inline]
-                        fn #ident(#self_pat) -> #ty {
+                        fn #ident(#value_pat) -> #ty {
                             <#ty>::from(#expr)
                         }
                     }
@@ -2230,7 +2309,7 @@ impl From<OpsImplFwd<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
                 .map(|definition| {
                     let op = definition.op;
                     let ty = &value.expression.ty_expr;
-                    let expr = &value.expression.self_expr;
+                    let expr = &value.expression.value_expr;
                     let conditions = definition.conditions;
 
                     let op_impl = op.to_impl();
@@ -2257,8 +2336,8 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImplFwd<OpsStdKindUnary> {
             expression: OpsExpressionUnaryFwd {
                 ty_paren: value.expression.ty_paren,
                 ty_expr: value.expression.ty_expr,
-                self_paren: value.expression.self_paren,
-                self_expr: value.expression.self_expr,
+                value_paren: value.expression.value_paren,
+                value_expr: value.expression.value_expr,
             },
             definitions_bracket: Default::default(),
             definitions: Punctuated::new(),
@@ -2389,7 +2468,7 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
                 .map(|definition| {
                     let op = definition.op;
                     let ty = &value.expression.ty_expr;
-                    let expr = &value.expression.self_expr;
+                    let expr = &value.expression.value_expr;
                     let conditions = definition.conditions;
 
                     let op_impl = op.to_impl();
@@ -2417,8 +2496,8 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImplFwd<OpsNdKindUnary> {
             expression: OpsExpressionUnaryFwd {
                 ty_paren: value.expression.ty_paren,
                 ty_expr: value.expression.ty_expr,
-                self_paren: value.expression.self_paren,
-                self_expr: value.expression.self_expr,
+                value_paren: value.expression.value_paren,
+                value_expr: value.expression.value_expr,
             },
             definitions_bracket: Default::default(),
             definitions: Punctuated::new(),
