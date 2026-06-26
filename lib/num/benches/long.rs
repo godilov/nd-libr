@@ -778,22 +778,22 @@ fn ops_single_mut(group: &mut BenchmarkGroup<'_, WallTime>) {
     group.throughput(Throughput::Bits(BITS as u64));
 
     exec! { group => [
-        "Slong::add_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val += Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::add_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val += Wrapping(Ref(rhs)); black_box(&val); },
-        "Slong::sub_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val -= Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::sub_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val -= Wrapping(Ref(rhs)); black_box(&val); },
-        "Slong::mul_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val *= Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::mul_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val *= Wrapping(Ref(rhs)); black_box(&val); },
-        "Slong::div_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val /= Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::div_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val /= Wrapping(Ref(rhs)); black_box(&val); },
-        "Slong::rem_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val %= Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::rem_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val %= Wrapping(Ref(rhs)); black_box(&val); },
-        "Slong::bitor_single_mut",  &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val |= Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::bitor_single_mut",  &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val |= Wrapping(Ref(rhs)); black_box(&val); },
-        "Slong::bitand_single_mut", &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val &= Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::bitand_single_mut", &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val &= Wrapping(Ref(rhs)); black_box(&val); },
-        "Slong::bitxor_single_mut", &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val ^= Wrapping(Ref(rhs)); black_box(&val); },
-        "Ulong::bitxor_single_mut", &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); val ^= Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::add_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp += Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::add_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp += Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::sub_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp -= Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::sub_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp -= Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::mul_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp *= Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::mul_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp *= Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::div_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp /= Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::div_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp /= Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::rem_single_mut",    &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp %= Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::rem_single_mut",    &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp %= Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::bitor_single_mut",  &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp |= Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::bitor_single_mut",  &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp |= Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::bitand_single_mut", &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp &= Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::bitand_single_mut", &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp &= Wrapping(Ref(rhs)); black_box(&val); },
+        "Slong::bitxor_single_mut", &s4096.0, |(lhs, rhs): &(Slong, Isize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp ^= Wrapping(Ref(rhs)); black_box(&val); },
+        "Ulong::bitxor_single_mut", &u4096.0, |(lhs, rhs): &(Ulong, Usize)| { let mut val = *lhs; let mut tmp = Wrapping(Mut(&mut val)); tmp ^= Wrapping(Ref(rhs)); black_box(&val); },
     ] };
 }
 

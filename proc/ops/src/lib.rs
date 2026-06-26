@@ -242,6 +242,49 @@ pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
     }
 }
 
+/// Zero-boilerplate operations automation.
+#[proc_macro]
+pub fn auto(stream: TokenStreamStd) -> TokenStreamStd {
+    match parse_macro_input!(stream as OpsAuto) {
+        OpsAuto::StdAssign(ops) => {
+            let ops = OpsImplFwd::<OpsStdKindAssign>::from(ops);
+            let ops = OpsImpl::<OpsStdKindAssign>::from(ops);
+
+            quote! { #ops }.into()
+        },
+        OpsAuto::StdBinary(ops) => {
+            let ops = OpsImplFwd::<OpsStdKindBinary>::from(ops);
+            let ops = OpsImpl::<OpsStdKindBinary>::from(ops);
+
+            quote! { #ops }.into()
+        },
+        OpsAuto::StdUnary(ops) => {
+            let ops = OpsImplFwd::<OpsStdKindUnary>::from(ops);
+            let ops = OpsImpl::<OpsStdKindUnary>::from(ops);
+
+            quote! { #ops }.into()
+        },
+        OpsAuto::NdAssign(ops) => {
+            let ops = OpsImplFwd::<OpsNdKindAssign>::from(ops);
+            let ops = OpsImpl::<OpsNdKindAssign>::from(ops);
+
+            quote! { #ops }.into()
+        },
+        OpsAuto::NdBinary(ops) => {
+            let ops = OpsImplFwd::<OpsNdKindBinary>::from(ops);
+            let ops = OpsImpl::<OpsNdKindBinary>::from(ops);
+
+            quote! { #ops }.into()
+        },
+        OpsAuto::NdUnary(ops) => {
+            let ops = OpsImplFwd::<OpsNdKindUnary>::from(ops);
+            let ops = OpsImpl::<OpsNdKindUnary>::from(ops);
+
+            quote! { #ops }.into()
+        },
+    }
+}
+
 #[allow(unused)]
 struct OpsNoop;
 struct OpsStdKindAssign;
@@ -271,6 +314,16 @@ enum OpsFwd {
     NdUnary(OpsImplFwd<OpsNdKindUnary>),
 }
 
+#[allow(clippy::large_enum_variant)]
+enum OpsAuto {
+    StdAssign(OpsImplAuto<OpsStdKindAssign>),
+    StdBinary(OpsImplAuto<OpsStdKindBinary>),
+    StdUnary(OpsImplAuto<OpsStdKindUnary>),
+    NdAssign(OpsImplAuto<OpsNdKindAssign>),
+    NdBinary(OpsImplAuto<OpsNdKindBinary>),
+    NdUnary(OpsImplAuto<OpsNdKindUnary>),
+}
+
 #[allow(unused)]
 struct OpsImpl<Kind: OpsKind> {
     token: Option<Token![crate]>,
@@ -288,6 +341,15 @@ struct OpsImplFwd<Kind: OpsKindFwd> {
     expression: Kind::Expression,
     definitions_bracket: Bracket,
     definitions: Punctuated<Kind::Definition, Token![,]>,
+}
+
+#[allow(unused)]
+struct OpsImplAuto<Kind: OpsKindAuto> {
+    mode: Option<Kind::Mode>,
+    token: Option<Token![crate]>,
+    signature: Kind::Signature,
+    colon: Token![,],
+    expression: Kind::Expression,
 }
 
 #[allow(unused)]
@@ -394,7 +456,7 @@ struct OpsImplTypeMultiple {
 }
 
 #[allow(unused)]
-struct OpsExpressionAssign {
+struct OpsExpressionAssignFwd {
     ty_paren: Paren,
     ty_expr: Type,
     lhs_paren: Paren,
@@ -404,7 +466,19 @@ struct OpsExpressionAssign {
 }
 
 #[allow(unused)]
-struct OpsExpressionBinary {
+struct OpsExpressionAssignAuto {
+    lhs_ty_paren: Paren,
+    lhs_ty_expr: Type,
+    rhs_ty_paren: Paren,
+    rhs_ty_expr: Type,
+    lhs_paren: Paren,
+    lhs_expr: Expr,
+    rhs_paren: Paren,
+    rhs_expr: Expr,
+}
+
+#[allow(unused)]
+struct OpsExpressionBinaryFwd {
     ty_paren: Paren,
     ty_expr: Type,
     lhs_paren: Paren,
@@ -414,7 +488,31 @@ struct OpsExpressionBinary {
 }
 
 #[allow(unused)]
-struct OpsExpressionUnary {
+struct OpsExpressionBinaryAuto {
+    lhs_ty_paren: Paren,
+    lhs_ty_expr: Expr,
+    rhs_ty_paren: Paren,
+    rhs_ty_expr: Expr,
+    ty_paren: Paren,
+    ty_expr: Type,
+    lhs_paren: Paren,
+    lhs_expr: Expr,
+    rhs_paren: Paren,
+    rhs_expr: Expr,
+}
+
+#[allow(unused)]
+struct OpsExpressionUnaryFwd {
+    ty_paren: Paren,
+    ty_expr: Type,
+    self_paren: Paren,
+    self_expr: Expr,
+}
+
+#[allow(unused)]
+struct OpsExpressionUnaryAuto {
+    self_ty_paren: Paren,
+    self_ty_expr: Expr,
     ty_paren: Paren,
     ty_expr: Type,
     self_paren: Paren,
@@ -581,80 +679,122 @@ type OpsNdBinaryFwd = OpsBinaryExtra<OpsBinaryMode<OpsBinaryModeWith>, OpsBinary
 type OpsNdUnaryFwd = OpsUnaryExtra<OpsUnaryMode<OpsUnaryModeWith>>;
 
 trait OpsKind {
-    type Definition: Parse;
     type Signature: Parse;
+    type Definition: Parse;
 }
 
 trait OpsKindFwd {
-    type Definition: Parse;
-    type Expression: Parse;
     type Signature: Parse;
+    type Expression: Parse;
+    type Definition: Parse;
+}
+
+trait OpsKindAuto {
+    type Mode: Parse;
+    type Signature: Parse;
+    type Expression: Parse;
 }
 
 impl OpsKind for OpsStdKindAssign {
-    type Definition = OpsDefinition<OpsStdAssign>;
     type Signature = OpsStdSignatureAssign;
+    type Definition = OpsDefinition<OpsStdAssign>;
 }
 
 impl OpsKind for OpsStdKindBinary {
-    type Definition = OpsDefinition<OpsStdBinary>;
     type Signature = OpsStdSignatureBinary;
+    type Definition = OpsDefinition<OpsStdBinary>;
 }
 
 impl OpsKind for OpsStdKindUnary {
-    type Definition = OpsDefinition<OpsStdUnary>;
     type Signature = OpsStdSignatureUnary;
+    type Definition = OpsDefinition<OpsStdUnary>;
 }
 
 impl OpsKind for OpsNdKindAssign {
-    type Definition = OpsDefinition<OpsNdAssign>;
     type Signature = OpsNdSignatureAssign;
+    type Definition = OpsDefinition<OpsNdAssign>;
 }
 
 impl OpsKind for OpsNdKindBinary {
-    type Definition = OpsDefinition<OpsNdBinary>;
     type Signature = OpsNdSignatureBinary;
+    type Definition = OpsDefinition<OpsNdBinary>;
 }
 
 impl OpsKind for OpsNdKindUnary {
-    type Definition = OpsDefinition<OpsNdUnary>;
     type Signature = OpsNdSignatureUnary;
+    type Definition = OpsDefinition<OpsNdUnary>;
 }
 
 impl OpsKindFwd for OpsStdKindAssign {
-    type Definition = OpsDefinitionFwd<OpsStdAssignFwd>;
-    type Expression = OpsExpressionAssign;
     type Signature = OpsStdSignatureAssign;
+    type Expression = OpsExpressionAssignFwd;
+    type Definition = OpsDefinitionFwd<OpsStdAssignFwd>;
 }
 
 impl OpsKindFwd for OpsStdKindBinary {
-    type Definition = OpsDefinitionFwd<OpsStdBinaryFwd>;
-    type Expression = OpsExpressionBinary;
     type Signature = OpsStdSignatureBinary;
+    type Expression = OpsExpressionBinaryFwd;
+    type Definition = OpsDefinitionFwd<OpsStdBinaryFwd>;
 }
 
 impl OpsKindFwd for OpsStdKindUnary {
-    type Definition = OpsDefinitionFwd<OpsStdUnaryFwd>;
-    type Expression = OpsExpressionUnary;
     type Signature = OpsStdSignatureUnary;
+    type Expression = OpsExpressionUnaryFwd;
+    type Definition = OpsDefinitionFwd<OpsStdUnaryFwd>;
 }
 
 impl OpsKindFwd for OpsNdKindAssign {
-    type Definition = OpsDefinitionFwd<OpsNdAssignFwd>;
-    type Expression = OpsExpressionAssign;
     type Signature = OpsNdSignatureAssign;
+    type Expression = OpsExpressionAssignFwd;
+    type Definition = OpsDefinitionFwd<OpsNdAssignFwd>;
 }
 
 impl OpsKindFwd for OpsNdKindBinary {
-    type Definition = OpsDefinitionFwd<OpsNdBinaryFwd>;
-    type Expression = OpsExpressionBinary;
     type Signature = OpsNdSignatureBinary;
+    type Expression = OpsExpressionBinaryFwd;
+    type Definition = OpsDefinitionFwd<OpsNdBinaryFwd>;
 }
 
 impl OpsKindFwd for OpsNdKindUnary {
-    type Definition = OpsDefinitionFwd<OpsNdUnaryFwd>;
-    type Expression = OpsExpressionUnary;
     type Signature = OpsNdSignatureUnary;
+    type Expression = OpsExpressionUnaryFwd;
+    type Definition = OpsDefinitionFwd<OpsNdUnaryFwd>;
+}
+
+impl OpsKindAuto for OpsStdKindAssign {
+    type Mode = OpsAssignModeWith;
+    type Signature = OpsStdSignatureAssign;
+    type Expression = OpsExpressionAssignAuto;
+}
+
+impl OpsKindAuto for OpsStdKindBinary {
+    type Mode = OpsBinaryModeWith;
+    type Signature = OpsStdSignatureBinary;
+    type Expression = OpsExpressionBinaryAuto;
+}
+
+impl OpsKindAuto for OpsStdKindUnary {
+    type Mode = OpsUnaryModeWith;
+    type Signature = OpsStdSignatureUnary;
+    type Expression = OpsExpressionUnaryAuto;
+}
+
+impl OpsKindAuto for OpsNdKindAssign {
+    type Mode = OpsAssignModeWith;
+    type Signature = OpsNdSignatureAssign;
+    type Expression = OpsExpressionAssignAuto;
+}
+
+impl OpsKindAuto for OpsNdKindBinary {
+    type Mode = OpsBinaryModeWith;
+    type Signature = OpsNdSignatureBinary;
+    type Expression = OpsExpressionBinaryAuto;
+}
+
+impl OpsKindAuto for OpsNdKindUnary {
+    type Mode = OpsUnaryModeWith;
+    type Signature = OpsNdSignatureUnary;
+    type Expression = OpsExpressionUnaryAuto;
 }
 
 impl Parse for OpsNoop {
@@ -723,6 +863,36 @@ impl Parse for OpsFwd {
     }
 }
 
+impl Parse for OpsAuto {
+    fn parse(input: ParseStream) -> Result<Self> {
+        input.parse::<Token![@]>()?;
+
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(kw::stdmut) {
+            input.parse::<kw::stdmut>()?;
+            input.parse::<OpsImplAuto<OpsStdKindAssign>>().map(Self::StdAssign)
+        } else if lookahead.peek(kw::stdbin) {
+            input.parse::<kw::stdbin>()?;
+            input.parse::<OpsImplAuto<OpsStdKindBinary>>().map(Self::StdBinary)
+        } else if lookahead.peek(kw::stdun) {
+            input.parse::<kw::stdun>()?;
+            input.parse::<OpsImplAuto<OpsStdKindUnary>>().map(Self::StdUnary)
+        } else if lookahead.peek(kw::ndmut) {
+            input.parse::<kw::ndmut>()?;
+            input.parse::<OpsImplAuto<OpsNdKindAssign>>().map(Self::NdAssign)
+        } else if lookahead.peek(kw::ndbin) {
+            input.parse::<kw::ndbin>()?;
+            input.parse::<OpsImplAuto<OpsNdKindBinary>>().map(Self::NdBinary)
+        } else if lookahead.peek(kw::ndun) {
+            input.parse::<kw::ndun>()?;
+            input.parse::<OpsImplAuto<OpsNdKindUnary>>().map(Self::NdUnary)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
 impl<Kind: OpsKind> Parse for OpsImpl<Kind> {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
@@ -748,6 +918,27 @@ impl<Kind: OpsKindFwd> Parse for OpsImplFwd<Kind> {
             expression: input.parse()?,
             definitions_bracket: bracketed!(content in input),
             definitions: content.parse_terminated(Kind::Definition::parse, Token![,])?,
+        })
+    }
+}
+
+impl<Kind: OpsKindAuto> Parse for OpsImplAuto<Kind> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mode = if input.peek(kw::with) {
+            input.parse::<kw::with>()?;
+            input.parse::<Token![@]>()?;
+
+            Some(input.parse::<Kind::Mode>()?)
+        } else {
+            None
+        };
+
+        Ok(Self {
+            mode,
+            token: input.parse()?,
+            signature: input.parse()?,
+            colon: input.parse()?,
+            expression: input.parse()?,
         })
     }
 }
@@ -1042,7 +1233,7 @@ impl Parse for OpsImplTypeMultiple {
     }
 }
 
-impl Parse for OpsExpressionAssign {
+impl Parse for OpsExpressionAssignFwd {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty_content;
         let lhs_content;
@@ -1059,7 +1250,27 @@ impl Parse for OpsExpressionAssign {
     }
 }
 
-impl Parse for OpsExpressionBinary {
+impl Parse for OpsExpressionAssignAuto {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lhs_ty_content;
+        let rhs_ty_content;
+        let lhs_content;
+        let rhs_content;
+
+        Ok(Self {
+            lhs_ty_paren: parenthesized!(lhs_ty_content in input),
+            lhs_ty_expr: lhs_ty_content.parse()?,
+            rhs_ty_paren: parenthesized!(rhs_ty_content in input),
+            rhs_ty_expr: rhs_ty_content.parse()?,
+            lhs_paren: parenthesized!(lhs_content in input),
+            lhs_expr: lhs_content.parse()?,
+            rhs_paren: parenthesized!(rhs_content in input),
+            rhs_expr: rhs_content.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsExpressionBinaryFwd {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty_content;
         let lhs_content;
@@ -1076,12 +1287,52 @@ impl Parse for OpsExpressionBinary {
     }
 }
 
-impl Parse for OpsExpressionUnary {
+impl Parse for OpsExpressionBinaryAuto {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lhs_ty_content;
+        let rhs_ty_content;
+        let ty_content;
+        let lhs_content;
+        let rhs_content;
+
+        Ok(Self {
+            lhs_ty_paren: parenthesized!(lhs_ty_content in input),
+            lhs_ty_expr: lhs_ty_content.parse()?,
+            rhs_ty_paren: parenthesized!(rhs_ty_content in input),
+            rhs_ty_expr: rhs_ty_content.parse()?,
+            ty_paren: parenthesized!(ty_content in input),
+            ty_expr: ty_content.parse()?,
+            lhs_paren: parenthesized!(lhs_content in input),
+            lhs_expr: lhs_content.parse()?,
+            rhs_paren: parenthesized!(rhs_content in input),
+            rhs_expr: rhs_content.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsExpressionUnaryFwd {
     fn parse(input: ParseStream) -> Result<Self> {
         let ty_content;
         let self_content;
 
         Ok(Self {
+            ty_paren: parenthesized!(ty_content in input),
+            ty_expr: ty_content.parse()?,
+            self_paren: parenthesized!(self_content in input),
+            self_expr: self_content.parse()?,
+        })
+    }
+}
+
+impl Parse for OpsExpressionUnaryAuto {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let self_ty_content;
+        let ty_content;
+        let self_content;
+
+        Ok(Self {
+            self_ty_paren: parenthesized!(self_ty_content in input),
+            self_ty_expr: self_ty_content.parse()?,
             ty_paren: parenthesized!(ty_content in input),
             ty_expr: ty_content.parse()?,
             self_paren: parenthesized!(self_content in input),
@@ -1867,7 +2118,7 @@ impl From<OpsImplFwd<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
         OpsImpl {
             token: value.token,
             signature: value.signature,
-            colon: Default::default(),
+            colon: value.colon,
             definitions_bracket: value.definitions_bracket,
             definitions: value
                 .definitions
@@ -1894,12 +2145,32 @@ impl From<OpsImplFwd<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
     }
 }
 
+impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImplFwd<OpsStdKindAssign> {
+    fn from(value: OpsImplAuto<OpsStdKindAssign>) -> Self {
+        OpsImplFwd {
+            token: value.token,
+            signature: value.signature,
+            colon: value.colon,
+            expression: OpsExpressionAssignFwd {
+                ty_paren: value.expression.lhs_ty_paren,
+                ty_expr: value.expression.lhs_ty_expr,
+                lhs_paren: value.expression.lhs_paren,
+                lhs_expr: value.expression.lhs_expr,
+                rhs_paren: value.expression.rhs_paren,
+                rhs_expr: value.expression.rhs_expr,
+            },
+            definitions_bracket: Default::default(),
+            definitions: Punctuated::new(),
+        }
+    }
+}
+
 impl From<OpsImplFwd<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
     fn from(value: OpsImplFwd<OpsStdKindBinary>) -> Self {
         OpsImpl {
             token: value.token,
             signature: value.signature,
-            colon: Default::default(),
+            colon: value.colon,
             definitions_bracket: value.definitions_bracket,
             definitions: value
                 .definitions
@@ -1926,12 +2197,32 @@ impl From<OpsImplFwd<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
     }
 }
 
+impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImplFwd<OpsStdKindBinary> {
+    fn from(value: OpsImplAuto<OpsStdKindBinary>) -> Self {
+        OpsImplFwd {
+            token: value.token,
+            signature: value.signature,
+            colon: value.colon,
+            expression: OpsExpressionBinaryFwd {
+                ty_paren: value.expression.ty_paren,
+                ty_expr: value.expression.ty_expr,
+                lhs_paren: value.expression.lhs_paren,
+                lhs_expr: value.expression.lhs_expr,
+                rhs_paren: value.expression.rhs_paren,
+                rhs_expr: value.expression.rhs_expr,
+            },
+            definitions_bracket: Default::default(),
+            definitions: Punctuated::new(),
+        }
+    }
+}
+
 impl From<OpsImplFwd<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
     fn from(value: OpsImplFwd<OpsStdKindUnary>) -> Self {
         OpsImpl {
             token: value.token,
             signature: value.signature,
-            colon: Default::default(),
+            colon: value.colon,
             definitions_bracket: value.definitions_bracket,
             definitions: value
                 .definitions
@@ -1957,12 +2248,30 @@ impl From<OpsImplFwd<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
     }
 }
 
+impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImplFwd<OpsStdKindUnary> {
+    fn from(value: OpsImplAuto<OpsStdKindUnary>) -> Self {
+        OpsImplFwd {
+            token: value.token,
+            signature: value.signature,
+            colon: value.colon,
+            expression: OpsExpressionUnaryFwd {
+                ty_paren: value.expression.ty_paren,
+                ty_expr: value.expression.ty_expr,
+                self_paren: value.expression.self_paren,
+                self_expr: value.expression.self_expr,
+            },
+            definitions_bracket: Default::default(),
+            definitions: Punctuated::new(),
+        }
+    }
+}
+
 impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
     fn from(value: OpsImplFwd<OpsNdKindAssign>) -> Self {
         OpsImpl {
             token: value.token,
             signature: value.signature,
-            colon: Default::default(),
+            colon: value.colon,
             definitions_bracket: value.definitions_bracket,
             definitions: value
                 .definitions
@@ -1990,6 +2299,26 @@ impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
     }
 }
 
+impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImplFwd<OpsNdKindAssign> {
+    fn from(value: OpsImplAuto<OpsNdKindAssign>) -> Self {
+        OpsImplFwd {
+            token: value.token,
+            signature: value.signature,
+            colon: value.colon,
+            expression: OpsExpressionAssignFwd {
+                ty_paren: value.expression.lhs_ty_paren,
+                ty_expr: value.expression.lhs_ty_expr,
+                lhs_paren: value.expression.lhs_paren,
+                lhs_expr: value.expression.lhs_expr,
+                rhs_paren: value.expression.rhs_paren,
+                rhs_expr: value.expression.rhs_expr,
+            },
+            definitions_bracket: Default::default(),
+            definitions: Punctuated::new(),
+        }
+    }
+}
+
 impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
     fn from(value: OpsImplFwd<OpsNdKindBinary>) -> Self {
         let res_ty = value.signature.res_ty.clone();
@@ -1997,7 +2326,7 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
         OpsImpl {
             token: value.token,
             signature: value.signature,
-            colon: Default::default(),
+            colon: value.colon,
             definitions_bracket: value.definitions_bracket,
             definitions: value
                 .definitions
@@ -2025,6 +2354,26 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
     }
 }
 
+impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImplFwd<OpsNdKindBinary> {
+    fn from(value: OpsImplAuto<OpsNdKindBinary>) -> Self {
+        OpsImplFwd {
+            token: value.token,
+            signature: value.signature,
+            colon: value.colon,
+            expression: OpsExpressionBinaryFwd {
+                ty_paren: value.expression.ty_paren,
+                ty_expr: value.expression.ty_expr,
+                lhs_paren: value.expression.lhs_paren,
+                lhs_expr: value.expression.lhs_expr,
+                rhs_paren: value.expression.rhs_paren,
+                rhs_expr: value.expression.rhs_expr,
+            },
+            definitions_bracket: Default::default(),
+            definitions: Punctuated::new(),
+        }
+    }
+}
+
 impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
     fn from(value: OpsImplFwd<OpsNdKindUnary>) -> Self {
         let res_ty = value.signature.res_ty.clone();
@@ -2032,7 +2381,7 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
         OpsImpl {
             token: value.token,
             signature: value.signature,
-            colon: Default::default(),
+            colon: value.colon,
             definitions_bracket: value.definitions_bracket,
             definitions: value
                 .definitions
@@ -2055,6 +2404,24 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
                     }
                 })
                 .collect(),
+        }
+    }
+}
+
+impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImplFwd<OpsNdKindUnary> {
+    fn from(value: OpsImplAuto<OpsNdKindUnary>) -> Self {
+        OpsImplFwd {
+            token: value.token,
+            signature: value.signature,
+            colon: value.colon,
+            expression: OpsExpressionUnaryFwd {
+                ty_paren: value.expression.ty_paren,
+                ty_expr: value.expression.ty_expr,
+                self_paren: value.expression.self_paren,
+                self_expr: value.expression.self_expr,
+            },
+            definitions_bracket: Default::default(),
+            definitions: Punctuated::new(),
         }
     }
 }
