@@ -969,22 +969,17 @@ mod tests {
             ndassert::catch!(Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
             ndassert::catch!(Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
 
-            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 60, 0),
-            rhs in ndassert::range!(i64, 60, 1).map(S64::from),
-        ) [
-            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(rhs) + Aligned(lhs), Aligned(rhs + lhs)),
+            ndassert::catch!(Aligned(rhs) - Aligned(lhs), Aligned(rhs - lhs)),
+            ndassert::catch!(Aligned(rhs) * Aligned(lhs), Aligned(rhs * lhs)),
 
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+
+            (Aligned(rhs) | Aligned(lhs), Aligned(rhs | lhs)),
+            (Aligned(rhs) & Aligned(lhs), Aligned(rhs & lhs)),
+            (Aligned(rhs) ^ Aligned(lhs), Aligned(rhs ^ lhs)),
         ] }
 
         ndassert::check! { @eq (
@@ -1012,22 +1007,17 @@ mod tests {
             ndassert::catch!(Aligned(lhs) / Aligned(rhs), Aligned(lhs / rhs)),
             ndassert::catch!(Aligned(lhs) % Aligned(rhs), Aligned(lhs % rhs)),
 
-            (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
-            (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
-            (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 60, 0),
-            rhs in ndassert::range!(u64, 60, 1).map(U64::from),
-        ) [
-            ndassert::catch!(Aligned(lhs) + Aligned(rhs), Aligned(lhs + rhs)),
-            ndassert::catch!(Aligned(lhs) - Aligned(rhs), Aligned(lhs - rhs)),
-            ndassert::catch!(Aligned(lhs) * Aligned(rhs), Aligned(lhs * rhs)),
+            ndassert::catch!(Aligned(rhs) + Aligned(lhs), Aligned(rhs + lhs)),
+            ndassert::catch!(Aligned(rhs) - Aligned(lhs), Aligned(rhs - lhs)),
+            ndassert::catch!(Aligned(rhs) * Aligned(lhs), Aligned(rhs * lhs)),
 
             (Aligned(lhs) | Aligned(rhs), Aligned(lhs | rhs)),
             (Aligned(lhs) & Aligned(rhs), Aligned(lhs & rhs)),
             (Aligned(lhs) ^ Aligned(rhs), Aligned(lhs ^ rhs)),
+
+            (Aligned(rhs) | Aligned(lhs), Aligned(rhs | lhs)),
+            (Aligned(rhs) & Aligned(lhs), Aligned(rhs & lhs)),
+            (Aligned(rhs) ^ Aligned(lhs), Aligned(rhs ^ lhs)),
         ] }
 
         ndassert::check! { @eq (
