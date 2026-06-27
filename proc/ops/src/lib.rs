@@ -3783,51 +3783,65 @@ impl OpsUnaryModeAuto {
         let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
-            OpsUnaryModeAuto::Std(mode) => match mode {
-                OpsUnaryModeWith::Default => parse_quote! {
-                    ! where                 [#value_ty: #prefix::NdNot           <#value_ty, Type = #ty>],
-                    - where                 [#value_ty: #prefix::NdNeg           <#value_ty, Type = #ty>],
-                    - @checked where        [#value_ty: #prefix::NdNegChecked    <#value_ty, Type = #ty>],
-                    - @strict where         [#value_ty: #prefix::NdNegStrict     <#value_ty, Type = #ty>],
-                    - @wrapping where       [#value_ty: #prefix::NdNegWrapping   <#value_ty, Type = #ty>],
-                    - @saturating where     [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
-                    - @overflowing where    [#value_ty: #prefix::NdNegOverflowing<#value_ty, Type = #ty>],
+            OpsUnaryModeAuto::Std(mode) => {
+                let quote = quote! {
+                    - @checked where        [#value_ty: #prefix::NdNegChecked <#value_ty, Type = #ty>],
+                    posx @checked where     [#value_ty: #prefix::NdPosxChecked<#value_ty, Type = #ty>],
+                    negx @checked where     [#value_ty: #prefix::NdNegxChecked<#value_ty, Type = #ty>],
 
-                    posx where              [#value_ty: #prefix::NdPosx           <#value_ty, Type = #ty>],
-                    posx @checked where     [#value_ty: #prefix::NdPosxChecked    <#value_ty, Type = #ty>],
-                    posx @strict where      [#value_ty: #prefix::NdPosxStrict     <#value_ty, Type = #ty>],
-                    posx @wrapping where    [#value_ty: #prefix::NdPosxWrapping   <#value_ty, Type = #ty>],
-                    posx @saturating where  [#value_ty: #prefix::NdPosxSaturating <#value_ty, Type = #ty>],
+                    - @overflowing where    [#value_ty: #prefix::NdNegOverflowing <#value_ty, Type = #ty>],
                     posx @overflowing where [#value_ty: #prefix::NdPosxOverflowing<#value_ty, Type = #ty>],
-
-                    negx where              [#value_ty: #prefix::NdNegx           <#value_ty, Type = #ty>],
-                    negx @checked where     [#value_ty: #prefix::NdNegxChecked    <#value_ty, Type = #ty>],
-                    negx @strict where      [#value_ty: #prefix::NdNegxStrict     <#value_ty, Type = #ty>],
-                    negx @wrapping where    [#value_ty: #prefix::NdNegxWrapping   <#value_ty, Type = #ty>],
-                    negx @saturating where  [#value_ty: #prefix::NdNegxSaturating <#value_ty, Type = #ty>],
                     negx @overflowing where [#value_ty: #prefix::NdNegxOverflowing<#value_ty, Type = #ty>],
-                },
-                OpsUnaryModeWith::Strict(_, _) => parse_quote! {
-                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
+                };
 
-                    -    with @strict where [#value_ty: #prefix::NdNegStrict <#value_ty, Type = #ty>],
-                    posx with @strict where [#value_ty: #prefix::NdPosxStrict<#value_ty, Type = #ty>],
-                    negx with @strict where [#value_ty: #prefix::NdNegxStrict<#value_ty, Type = #ty>],
-                },
-                OpsUnaryModeWith::Wrapping(_, _) => parse_quote! {
-                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
+                match mode {
+                    OpsUnaryModeWith::Default => parse_quote! {
+                        ! where                 [#value_ty: #prefix::NdNot           <#value_ty, Type = #ty>],
+                        - where                 [#value_ty: #prefix::NdNeg           <#value_ty, Type = #ty>],
+                        - @strict where         [#value_ty: #prefix::NdNegStrict     <#value_ty, Type = #ty>],
+                        - @wrapping where       [#value_ty: #prefix::NdNegWrapping   <#value_ty, Type = #ty>],
+                        - @saturating where     [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
 
-                    -    with @wrapping where [#value_ty: #prefix::NdNegWrapping <#value_ty, Type = #ty>],
-                    posx with @wrapping where [#value_ty: #prefix::NdPosxWrapping<#value_ty, Type = #ty>],
-                    negx with @wrapping where [#value_ty: #prefix::NdNegxWrapping<#value_ty, Type = #ty>],
-                },
-                OpsUnaryModeWith::Saturating(_, _) => parse_quote! {
-                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
+                        posx where              [#value_ty: #prefix::NdPosx           <#value_ty, Type = #ty>],
+                        posx @strict where      [#value_ty: #prefix::NdPosxStrict     <#value_ty, Type = #ty>],
+                        posx @wrapping where    [#value_ty: #prefix::NdPosxWrapping   <#value_ty, Type = #ty>],
+                        posx @saturating where  [#value_ty: #prefix::NdPosxSaturating <#value_ty, Type = #ty>],
 
-                    -    with @saturating where [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
-                    posx with @saturating where [#value_ty: #prefix::NdPosxSaturating<#value_ty, Type = #ty>],
-                    negx with @saturating where [#value_ty: #prefix::NdNegxSaturating<#value_ty, Type = #ty>],
-                },
+                        negx where              [#value_ty: #prefix::NdNegx           <#value_ty, Type = #ty>],
+                        negx @strict where      [#value_ty: #prefix::NdNegxStrict     <#value_ty, Type = #ty>],
+                        negx @wrapping where    [#value_ty: #prefix::NdNegxWrapping   <#value_ty, Type = #ty>],
+                        negx @saturating where  [#value_ty: #prefix::NdNegxSaturating <#value_ty, Type = #ty>],
+
+                        #quote
+                    },
+                    OpsUnaryModeWith::Strict(_, _) => parse_quote! {
+                        ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
+
+                        -    with @strict where [#value_ty: #prefix::NdNegStrict <#value_ty, Type = #ty>],
+                        posx with @strict where [#value_ty: #prefix::NdPosxStrict<#value_ty, Type = #ty>],
+                        negx with @strict where [#value_ty: #prefix::NdNegxStrict<#value_ty, Type = #ty>],
+
+                        #quote
+                    },
+                    OpsUnaryModeWith::Wrapping(_, _) => parse_quote! {
+                        ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
+
+                        -    with @wrapping where [#value_ty: #prefix::NdNegWrapping <#value_ty, Type = #ty>],
+                        posx with @wrapping where [#value_ty: #prefix::NdPosxWrapping<#value_ty, Type = #ty>],
+                        negx with @wrapping where [#value_ty: #prefix::NdNegxWrapping<#value_ty, Type = #ty>],
+
+                        #quote
+                    },
+                    OpsUnaryModeWith::Saturating(_, _) => parse_quote! {
+                        ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
+
+                        -    with @saturating where [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
+                        posx with @saturating where [#value_ty: #prefix::NdPosxSaturating<#value_ty, Type = #ty>],
+                        negx with @saturating where [#value_ty: #prefix::NdNegxSaturating<#value_ty, Type = #ty>],
+
+                        #quote
+                    },
+                }
             },
         }
     }
