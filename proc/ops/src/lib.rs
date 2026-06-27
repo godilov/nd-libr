@@ -2303,8 +2303,8 @@ impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImplFwd<OpsStdKindBinary> {
             signature: value.signature,
             colon: value.colon,
             expression: OpsExpressionBinaryFwd {
-                ty_paren: value.expression.ty_paren,
-                ty_expr: value.expression.ty_expr,
+                ty_paren: value.expression.lhs_ty_paren,
+                ty_expr: value.expression.lhs_ty_expr,
                 lhs_paren: value.expression.lhs_paren,
                 lhs_expr: value.expression.lhs_expr,
                 rhs_paren: value.expression.rhs_paren,
@@ -2356,8 +2356,8 @@ impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImplFwd<OpsStdKindUnary> {
             signature: value.signature,
             colon: value.colon,
             expression: OpsExpressionUnaryFwd {
-                ty_paren: value.expression.ty_paren,
-                ty_expr: value.expression.ty_expr,
+                ty_paren: value.expression.value_ty_paren,
+                ty_expr: value.expression.value_ty_expr,
                 value_paren: value.expression.value_paren,
                 value_expr: value.expression.value_expr,
             },
@@ -2466,8 +2466,8 @@ impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImplFwd<OpsNdKindBinary> {
             signature: value.signature,
             colon: value.colon,
             expression: OpsExpressionBinaryFwd {
-                ty_paren: value.expression.ty_paren,
-                ty_expr: value.expression.ty_expr,
+                ty_paren: value.expression.lhs_ty_paren,
+                ty_expr: value.expression.lhs_ty_expr,
                 lhs_paren: value.expression.lhs_paren,
                 lhs_expr: value.expression.lhs_expr,
                 rhs_paren: value.expression.rhs_paren,
@@ -2522,8 +2522,8 @@ impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImplFwd<OpsNdKindUnary> {
             signature: value.signature,
             colon: value.colon,
             expression: OpsExpressionUnaryFwd {
-                ty_paren: value.expression.ty_paren,
-                ty_expr: value.expression.ty_expr,
+                ty_paren: value.expression.value_ty_paren,
+                ty_expr: value.expression.value_ty_expr,
                 value_paren: value.expression.value_paren,
                 value_expr: value.expression.value_expr,
             },
@@ -3546,9 +3546,6 @@ impl OpsBinaryModeAuto {
                     | where [#lhs_ty: NdBitOr <#lhs_ty, #rhs_ty, Type = #ty>],
                     & where [#lhs_ty: NdBitAnd<#lhs_ty, #rhs_ty, Type = #ty>],
                     ^ where [#lhs_ty: NdBitXor<#lhs_ty, #rhs_ty, Type = #ty>],
-
-                    addx where [#lhs_ty: NdAddx<#lhs_ty, #rhs_ty, Type = #ty>],
-                    mulx where [#lhs_ty: NdMulx<#lhs_ty, #rhs_ty, Type = #ty>],
                 };
 
                 match mode {

@@ -180,148 +180,6 @@ macro_rules! bytes_impl {
     };
 }
 
-macro_rules! aligned_impl {
-    ($aligned:ident) => {
-        impl<T> From<T> for $aligned<T> {
-            #[inline]
-            fn from(value: T) -> Self {
-                Self(value)
-            }
-        }
-
-        ndops::fwd! { @ndun <Value, T> (value: &$aligned<Value>) -> $aligned<T>, (Value) (&value.0) [
-            ! where                 [Value: NdNot           <Value, Type = T>],
-            - where                 [Value: NdNeg           <Value, Type = T>],
-            - @checked where        [Value: NdNegChecked    <Value, Type = T>],
-            - @strict where         [Value: NdNegStrict     <Value, Type = T>],
-            - @wrapping where       [Value: NdNegWrapping   <Value, Type = T>],
-            - @saturating where     [Value: NdNegSaturating <Value, Type = T>],
-            - @overflowing where    [Value: NdNegOverflowing<Value, Type = T>],
-        ] }
-
-        ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &$aligned<Lhs>, rhs: &$aligned<Rhs>) -> $aligned<T>, (Lhs) (&lhs.0) (&rhs.0) [
-            + where                 [Lhs: NdAdd             <Lhs, Rhs, Type = T>],
-            - where                 [Lhs: NdSub             <Lhs, Rhs, Type = T>],
-            * where                 [Lhs: NdMul             <Lhs, Rhs, Type = T>],
-            / where                 [Lhs: NdDiv             <Lhs, Rhs, Type = T>],
-            % where                 [Lhs: NdRem             <Lhs, Rhs, Type = T>],
-            | where                 [Lhs: NdBitOr           <Lhs, Rhs, Type = T>],
-            & where                 [Lhs: NdBitAnd          <Lhs, Rhs, Type = T>],
-            ^ where                 [Lhs: NdBitXor          <Lhs, Rhs, Type = T>],
-            + @checked where        [Lhs: NdAddChecked      <Lhs, Rhs, Type = T>],
-            - @checked where        [Lhs: NdSubChecked      <Lhs, Rhs, Type = T>],
-            * @checked where        [Lhs: NdMulChecked      <Lhs, Rhs, Type = T>],
-            / @checked where        [Lhs: NdDivChecked      <Lhs, Rhs, Type = T>],
-            % @checked where        [Lhs: NdRemChecked      <Lhs, Rhs, Type = T>],
-            + @strict where         [Lhs: NdAddStrict       <Lhs, Rhs, Type = T>],
-            - @strict where         [Lhs: NdSubStrict       <Lhs, Rhs, Type = T>],
-            * @strict where         [Lhs: NdMulStrict       <Lhs, Rhs, Type = T>],
-            / @strict where         [Lhs: NdDivStrict       <Lhs, Rhs, Type = T>],
-            % @strict where         [Lhs: NdRemStrict       <Lhs, Rhs, Type = T>],
-            + @wrapping where       [Lhs: NdAddWrapping     <Lhs, Rhs, Type = T>],
-            - @wrapping where       [Lhs: NdSubWrapping     <Lhs, Rhs, Type = T>],
-            * @wrapping where       [Lhs: NdMulWrapping     <Lhs, Rhs, Type = T>],
-            / @wrapping where       [Lhs: NdDivWrapping     <Lhs, Rhs, Type = T>],
-            % @wrapping where       [Lhs: NdRemWrapping     <Lhs, Rhs, Type = T>],
-            + @saturating where     [Lhs: NdAddSaturating   <Lhs, Rhs, Type = T>],
-            - @saturating where     [Lhs: NdSubSaturating   <Lhs, Rhs, Type = T>],
-            * @saturating where     [Lhs: NdMulSaturating   <Lhs, Rhs, Type = T>],
-            / @saturating where     [Lhs: NdDivSaturating   <Lhs, Rhs, Type = T>],
-            % @saturating where     [Lhs: NdRemSaturating   <Lhs, Rhs, Type = T>],
-            + @overflowing where    [Lhs: NdAddOverflowing  <Lhs, Rhs, Type = T>],
-            - @overflowing where    [Lhs: NdSubOverflowing  <Lhs, Rhs, Type = T>],
-            * @overflowing where    [Lhs: NdMulOverflowing  <Lhs, Rhs, Type = T>],
-            / @overflowing where    [Lhs: NdDivOverflowing  <Lhs, Rhs, Type = T>],
-            % @overflowing where    [Lhs: NdRemOverflowing  <Lhs, Rhs, Type = T>],
-        ] }
-
-        ndops::fwd! { @ndbin <Lhs, Rhs, T> (lhs: &$aligned<Lhs>, rhs: Rhs) -> $aligned<T>, (Lhs) (&lhs.0) (rhs) [
-            << where                [Lhs: NdShl             <Lhs, Rhs, Type = T>],
-            >> where                [Lhs: NdShr             <Lhs, Rhs, Type = T>],
-            << @checked where       [Lhs: NdShlChecked      <Lhs, Rhs, Type = T>],
-            >> @checked where       [Lhs: NdShrChecked      <Lhs, Rhs, Type = T>],
-            << @strict where        [Lhs: NdShlStrict       <Lhs, Rhs, Type = T>],
-            >> @strict where        [Lhs: NdShrStrict       <Lhs, Rhs, Type = T>],
-            << @overflowing where   [Lhs: NdShlOverflowing  <Lhs, Rhs, Type = T>],
-            >> @overflowing where   [Lhs: NdShrOverflowing  <Lhs, Rhs, Type = T>],
-            << @unbounded where     [Lhs: NdShlUnbounded    <Lhs, Rhs, Type = T>],
-            >> @unbounded where     [Lhs: NdShrUnbounded    <Lhs, Rhs, Type = T>],
-        ] }
-
-        ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut $aligned<Lhs>, rhs: &$aligned<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
-            += where                [Lhs: NdAddAssign           <Lhs, Rhs>],
-            -= where                [Lhs: NdSubAssign           <Lhs, Rhs>],
-            *= where                [Lhs: NdMulAssign           <Lhs, Rhs>],
-            /= where                [Lhs: NdDivAssign           <Lhs, Rhs>],
-            %= where                [Lhs: NdRemAssign           <Lhs, Rhs>],
-            |= where                [Lhs: NdBitOrAssign         <Lhs, Rhs>],
-            &= where                [Lhs: NdBitAndAssign        <Lhs, Rhs>],
-            ^= where                [Lhs: NdBitXorAssign        <Lhs, Rhs>],
-            += @strict where        [Lhs: NdAddAssignStrict     <Lhs, Rhs>],
-            -= @strict where        [Lhs: NdSubAssignStrict     <Lhs, Rhs>],
-            *= @strict where        [Lhs: NdMulAssignStrict     <Lhs, Rhs>],
-            /= @strict where        [Lhs: NdDivAssignStrict     <Lhs, Rhs>],
-            %= @strict where        [Lhs: NdRemAssignStrict     <Lhs, Rhs>],
-            += @wrapping where      [Lhs: NdAddAssignWrapping   <Lhs, Rhs>],
-            -= @wrapping where      [Lhs: NdSubAssignWrapping   <Lhs, Rhs>],
-            *= @wrapping where      [Lhs: NdMulAssignWrapping   <Lhs, Rhs>],
-            /= @wrapping where      [Lhs: NdDivAssignWrapping   <Lhs, Rhs>],
-            %= @wrapping where      [Lhs: NdRemAssignWrapping   <Lhs, Rhs>],
-            += @saturating where    [Lhs: NdAddAssignSaturating <Lhs, Rhs>],
-            -= @saturating where    [Lhs: NdSubAssignSaturating <Lhs, Rhs>],
-            *= @saturating where    [Lhs: NdMulAssignSaturating <Lhs, Rhs>],
-            /= @saturating where    [Lhs: NdDivAssignSaturating <Lhs, Rhs>],
-            %= @saturating where    [Lhs: NdRemAssignSaturating <Lhs, Rhs>],
-        ] }
-
-        ndops::fwd! { @ndmut <Lhs, Rhs> (lhs: &mut $aligned<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
-            <<= where               [Lhs: NdShlAssign           <Lhs, Rhs>],
-            >>= where               [Lhs: NdShrAssign           <Lhs, Rhs>],
-            <<= @strict where       [Lhs: NdShlAssignStrict     <Lhs, Rhs>],
-            >>= @strict where       [Lhs: NdShrAssignStrict     <Lhs, Rhs>],
-            <<= @unbounded where    [Lhs: NdShlAssignUnbounded  <Lhs, Rhs>],
-            >>= @unbounded where    [Lhs: NdShrAssignUnbounded  <Lhs, Rhs>],
-        ] }
-
-        ndops::fwd! { @stdun <Value, T> (*value: &$aligned<Value>) -> $aligned<T>, (Value) (&value.0) [
-            - where [Value: NdNeg<Value, Type = T>],
-            ! where [Value: NdNot<Value, Type = T>],
-        ] }
-
-        ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &$aligned<Lhs>, *rhs: &$aligned<Rhs>) -> $aligned<T>, (Lhs) (&lhs.0) (&rhs.0) [
-            + where [Lhs: NdAdd   <Lhs, Rhs, Type = T>],
-            - where [Lhs: NdSub   <Lhs, Rhs, Type = T>],
-            * where [Lhs: NdMul   <Lhs, Rhs, Type = T>],
-            / where [Lhs: NdDiv   <Lhs, Rhs, Type = T>],
-            % where [Lhs: NdRem   <Lhs, Rhs, Type = T>],
-            | where [Lhs: NdBitOr <Lhs, Rhs, Type = T>],
-            & where [Lhs: NdBitAnd<Lhs, Rhs, Type = T>],
-            ^ where [Lhs: NdBitXor<Lhs, Rhs, Type = T>],
-        ] }
-
-        ndops::fwd! { @stdbin <Lhs, Rhs, T> (*lhs: &$aligned<Lhs>, rhs: Rhs) -> $aligned<T>, (Lhs) (&lhs.0) (rhs) [
-            << where [Lhs: NdShl<Lhs, Rhs, Type = T>],
-            >> where [Lhs: NdShr<Lhs, Rhs, Type = T>],
-        ] }
-
-        ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut $aligned<Lhs>, *rhs: &$aligned<Rhs>), (Lhs) (&mut lhs.0) (&rhs.0) [
-            += where [Lhs: NdAddAssign   <Lhs, Rhs>],
-            -= where [Lhs: NdSubAssign   <Lhs, Rhs>],
-            *= where [Lhs: NdMulAssign   <Lhs, Rhs>],
-            /= where [Lhs: NdDivAssign   <Lhs, Rhs>],
-            %= where [Lhs: NdRemAssign   <Lhs, Rhs>],
-            |= where [Lhs: NdBitOrAssign <Lhs, Rhs>],
-            &= where [Lhs: NdBitAndAssign<Lhs, Rhs>],
-            ^= where [Lhs: NdBitXorAssign<Lhs, Rhs>],
-        ] }
-
-        ndops::fwd! { @stdmut <Lhs, Rhs> (lhs: &mut $aligned<Lhs>, rhs: Rhs), (Lhs) (&mut lhs.0) (rhs) [
-            <<= where [Lhs: NdShlAssign<Lhs, Rhs>],
-            >>= where [Lhs: NdShrAssign<Lhs, Rhs>],
-        ] }
-    };
-}
-
 pub mod word {
     //! # Word
     //!
@@ -918,13 +776,33 @@ pub trait AsWordsIterator {
     }
 }
 
-aligned_impl!(Aligned);
-aligned_impl!(Aligned32);
-aligned_impl!(Aligned64);
-aligned_impl!(Aligned128);
+impl<T> From<T> for Aligned<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
 
-bytes_impl!([i8, i16, i32, i64, i128, isize]);
-bytes_impl!([u8, u16, u32, u64, u128, usize]);
+impl<T> From<T> for Aligned32<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> From<T> for Aligned64<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> From<T> for Aligned128<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
 
 impl<'bytes, W: Word> Iterator for AsWordsIter<'bytes, W> {
     type Item = W;
@@ -946,6 +824,59 @@ impl<'bytes, W: Word> Iterator for AsWordsIter<'bytes, W> {
         Some(res)
     }
 }
+
+ndops::auto! { @ndun <Value, T> (value: &Aligned<Value>)    -> Aligned<T>,    (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned32<Value>)  -> Aligned32<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned64<Value>)  -> Aligned64<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned128<Value>) -> Aligned128<T>, (Value) (T) (&value.0) }
+
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,    rhs: &Aligned<Rhs>)    -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,  rhs: &Aligned32<Rhs>)  -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,  rhs: &Aligned64<Rhs>)  -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>, rhs: &Aligned128<Rhs>) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,    rhs: Rhs) -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,  rhs: Rhs) -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,  rhs: Rhs) -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>, rhs: Rhs) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    rhs: &Aligned<Rhs>),    (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  rhs: &Aligned32<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  rhs: &Aligned64<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, rhs: &Aligned128<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+
+ndops::auto! { @stdun <Value, T> (*value: &Aligned<Value>)    -> Aligned<T>,    (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned32<Value>)  -> Aligned32<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned64<Value>)  -> Aligned64<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned128<Value>) -> Aligned128<T>, (Value) (T) (&value.0) }
+
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,    *rhs: &Aligned<Rhs>)    -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,  *rhs: &Aligned32<Rhs>)  -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,  *rhs: &Aligned64<Rhs>)  -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>, *rhs: &Aligned128<Rhs>) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,    rhs: Rhs) -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,  rhs: Rhs) -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,  rhs: Rhs) -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>, rhs: Rhs) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    *rhs: &Aligned<Rhs>),    (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  *rhs: &Aligned32<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  *rhs: &Aligned64<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, *rhs: &Aligned128<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+
+bytes_impl!([i8, i16, i32, i64, i128, isize]);
+bytes_impl!([u8, u16, u32, u64, u128, usize]);
 
 #[cfg(test)]
 mod tests {
@@ -1218,6 +1149,7 @@ mod tests {
             (Aligned(lhs).min_ct(&Aligned(rhs)), Aligned(lhs.min(rhs))),
             (Aligned(lhs).max_ct(&Aligned(rhs)), Aligned(lhs.max(rhs))),
             (Aligned(lhs).posx_ct(), Aligned(AutoCt(lhs.0.wrapping_abs()))),
+            (Aligned(lhs).negx_ct(), Aligned(AutoCt(lhs.0.wrapping_abs().wrapping_neg()))),
         ] }
 
         ndassert::check! { @eq (
