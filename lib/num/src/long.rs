@@ -8226,8 +8226,8 @@ mod tests {
     #[test]
     fn ops_signed() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| S64::from(val),
             |val: i64| S64::from(val),
             |val: i64| val,
@@ -8254,8 +8254,8 @@ mod tests {
     #[test]
     fn ops_unsigned() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| U64::from(val),
             |val: u64| U64::from(val),
             |val: u64| val,
@@ -8275,8 +8275,8 @@ mod tests {
     #[test]
     fn ops_signed_primitive() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| S64::from(val),
             |val: i64| val,
             |val: i64| val,
@@ -8288,8 +8288,8 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| U64::from(val),
             |val: u64| val,
             |val: u64| val,
@@ -8301,7 +8301,7 @@ mod tests {
     #[test]
     fn ops_signed_primitive_native() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             i8::MIN..i8::MAX,
             |val: i64| S64::from(val),
             |val: i8| val,
@@ -8314,7 +8314,7 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_native() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
             u8::MIN..u8::MAX,
             |val: u64| U64::from(val),
             |val: u8| val,
@@ -8327,8 +8327,8 @@ mod tests {
     #[test]
     fn ops_signed_strict() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Strict(S64::from(val)),
             |val: i64| Strict(S64::from(val)),
             |val: i64| Strict(val),
@@ -8355,8 +8355,8 @@ mod tests {
     #[test]
     fn ops_unsigned_strict() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Strict(U64::from(val)),
             |val: u64| Strict(U64::from(val)),
             |val: u64| Strict(val),
@@ -8376,8 +8376,8 @@ mod tests {
     #[test]
     fn ops_signed_primitive_strict() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Strict(S64::from(val)),
             |val: i64| Strict(val),
             |val: i64| Strict(val),
@@ -8389,8 +8389,8 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_strict() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Strict(U64::from(val)),
             |val: u64| Strict(val),
             |val: u64| Strict(val),
@@ -8402,7 +8402,7 @@ mod tests {
     #[test]
     fn ops_signed_primitive_native_strict() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             i8::MIN..i8::MAX,
             |val: i64| Strict(S64::from(val)),
             |val: i8| Strict(val),
@@ -8415,7 +8415,7 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_native_strict() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
             u8::MIN..u8::MAX,
             |val: u64| Strict(U64::from(val)),
             |val: u8| Strict(val),
@@ -8428,8 +8428,8 @@ mod tests {
     #[test]
     fn ops_signed_wrapping() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Wrapping(S64::from(val)),
             |val: i64| Wrapping(S64::from(val)),
             |val: i64| Wrapping(val),
@@ -8456,8 +8456,8 @@ mod tests {
     #[test]
     fn ops_unsigned_wrapping() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Wrapping(U64::from(val)),
             |val: u64| Wrapping(U64::from(val)),
             |val: u64| Wrapping(val),
@@ -8477,8 +8477,8 @@ mod tests {
     #[test]
     fn ops_signed_primitive_wrapping() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Wrapping(S64::from(val)),
             |val: i64| Wrapping(val),
             |val: i64| Wrapping(val),
@@ -8490,8 +8490,8 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_wrapping() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Wrapping(U64::from(val)),
             |val: u64| Wrapping(val),
             |val: u64| Wrapping(val),
@@ -8503,7 +8503,7 @@ mod tests {
     #[test]
     fn ops_signed_primitive_native_wrapping() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             i8::MIN..i8::MAX,
             |val: i64| Wrapping(S64::from(val)),
             |val: i8| Wrapping(val),
@@ -8516,7 +8516,7 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_native_wrapping() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
             u8::MIN..u8::MAX,
             |val: u64| Wrapping(U64::from(val)),
             |val: u8| Wrapping(val),
@@ -8529,8 +8529,8 @@ mod tests {
     #[test]
     fn ops_signed_saturating() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Saturating(S64::from(val)),
             |val: i64| Saturating(S64::from(val)),
             |val: i64| Saturating(val),
@@ -8557,8 +8557,8 @@ mod tests {
     #[test]
     fn ops_unsigned_saturating() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Saturating(U64::from(val)),
             |val: u64| Saturating(U64::from(val)),
             |val: u64| Saturating(val),
@@ -8578,8 +8578,8 @@ mod tests {
     #[test]
     fn ops_signed_primitive_saturating() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Saturating(S64::from(val)),
             |val: i64| Saturating(val),
             |val: i64| Saturating(val),
@@ -8591,8 +8591,8 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_saturating() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Saturating(U64::from(val)),
             |val: u64| Saturating(val),
             |val: u64| Saturating(val),
@@ -8604,7 +8604,7 @@ mod tests {
     #[test]
     fn ops_signed_primitive_native_saturating() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             i8::MIN..i8::MAX,
             |val: i64| Saturating(S64::from(val)),
             |val: i8| Saturating(val),
@@ -8617,7 +8617,7 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_native_saturating() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
             u8::MIN..u8::MAX,
             |val: u64| Saturating(U64::from(val)),
             |val: u8| Saturating(val),
@@ -8630,8 +8630,8 @@ mod tests {
     #[test]
     fn ops_signed_unbounded() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Unbounded(S64::from(val)),
             |val: i64| Unbounded(S64::from(val)),
             |val: i64| Unbounded(val),
@@ -8658,8 +8658,8 @@ mod tests {
     #[test]
     fn ops_unsigned_unbounded() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Unbounded(U64::from(val)),
             |val: u64| Unbounded(U64::from(val)),
             |val: u64| Unbounded(val),
@@ -8679,8 +8679,8 @@ mod tests {
     #[test]
     fn ops_signed_primitive_unbounded() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
             |val: i64| Unbounded(S64::from(val)),
             |val: i64| Unbounded(val),
             |val: i64| Unbounded(val),
@@ -8692,8 +8692,8 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_unbounded() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
-            ndassert::range!(u64, 56, 1).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
+            ndassert::range!(u64, 56, 1).chain([0, 1]),
             |val: u64| Unbounded(U64::from(val)),
             |val: u64| Unbounded(val),
             |val: u64| Unbounded(val),
@@ -8705,7 +8705,7 @@ mod tests {
     #[test]
     fn ops_signed_primitive_native_unbounded() {
         ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1, i64::MAX]),
+            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             i8::MIN..i8::MAX,
             |val: i64| Unbounded(S64::from(val)),
             |val: i8| Unbounded(val),
@@ -8718,7 +8718,7 @@ mod tests {
     #[test]
     fn ops_unsigned_primitive_native_unbounded() {
         ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1, u64::MAX]),
+            ndassert::range!(u64, 56, 0).chain([0, 1]),
             u8::MIN..u8::MAX,
             |val: u64| Unbounded(U64::from(val)),
             |val: u8| Unbounded(val),

@@ -529,7 +529,7 @@ impl ToTokens for AssertRange {
         let ty = &self.ty;
         let prime = &self.prime;
 
-        tokens.extend(quote! { (#ty::MIN..=#ty::MAX).step_by(#prime as usize) });
+        tokens.extend(quote! { (<#ty>::MIN..=<#ty>::MAX).step_by(#prime as usize).chain([<#ty>::MAX]) });
     }
 }
 
