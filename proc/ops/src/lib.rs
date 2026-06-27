@@ -2242,7 +2242,7 @@ impl From<OpsImplFwd<OpsStdKindAssign>> for OpsImpl<OpsStdKindAssign> {
 
 impl From<OpsImplAuto<OpsStdKindAssign>> for OpsImplFwd<OpsStdKindAssign> {
     fn from(value: OpsImplAuto<OpsStdKindAssign>) -> Self {
-        let definitions = value.mode.std_definitions(&value.expression).ops;
+        let definitions = value.mode.std_definitions(&value.expression, value.token).ops;
 
         OpsImplFwd {
             token: value.token,
@@ -2296,7 +2296,7 @@ impl From<OpsImplFwd<OpsStdKindBinary>> for OpsImpl<OpsStdKindBinary> {
 
 impl From<OpsImplAuto<OpsStdKindBinary>> for OpsImplFwd<OpsStdKindBinary> {
     fn from(value: OpsImplAuto<OpsStdKindBinary>) -> Self {
-        let definitions = value.mode.std_definitions(&value.expression).ops;
+        let definitions = value.mode.std_definitions(&value.expression, value.token).ops;
 
         OpsImplFwd {
             token: value.token,
@@ -2349,7 +2349,7 @@ impl From<OpsImplFwd<OpsStdKindUnary>> for OpsImpl<OpsStdKindUnary> {
 
 impl From<OpsImplAuto<OpsStdKindUnary>> for OpsImplFwd<OpsStdKindUnary> {
     fn from(value: OpsImplAuto<OpsStdKindUnary>) -> Self {
-        let definitions = value.mode.std_definitions(&value.expression).ops;
+        let definitions = value.mode.std_definitions(&value.expression, value.token).ops;
 
         OpsImplFwd {
             token: value.token,
@@ -2402,7 +2402,7 @@ impl From<OpsImplFwd<OpsNdKindAssign>> for OpsImpl<OpsNdKindAssign> {
 
 impl From<OpsImplAuto<OpsNdKindAssign>> for OpsImplFwd<OpsNdKindAssign> {
     fn from(value: OpsImplAuto<OpsNdKindAssign>) -> Self {
-        let definitions = value.mode.nd_definitions(&value.expression).ops;
+        let definitions = value.mode.nd_definitions(&value.expression, value.token).ops;
 
         OpsImplFwd {
             token: value.token,
@@ -2459,7 +2459,7 @@ impl From<OpsImplFwd<OpsNdKindBinary>> for OpsImpl<OpsNdKindBinary> {
 
 impl From<OpsImplAuto<OpsNdKindBinary>> for OpsImplFwd<OpsNdKindBinary> {
     fn from(value: OpsImplAuto<OpsNdKindBinary>) -> Self {
-        let definitions = value.mode.nd_definitions(&value.expression).ops;
+        let definitions = value.mode.nd_definitions(&value.expression, value.token).ops;
 
         OpsImplFwd {
             token: value.token,
@@ -2515,7 +2515,7 @@ impl From<OpsImplFwd<OpsNdKindUnary>> for OpsImpl<OpsNdKindUnary> {
 
 impl From<OpsImplAuto<OpsNdKindUnary>> for OpsImplFwd<OpsNdKindUnary> {
     fn from(value: OpsImplAuto<OpsNdKindUnary>) -> Self {
-        let definitions = value.mode.nd_definitions(&value.expression).ops;
+        let definitions = value.mode.nd_definitions(&value.expression, value.token).ops;
 
         OpsImplFwd {
             token: value.token,
@@ -2873,52 +2873,52 @@ impl OpsNdAssign {
     }
 
     fn path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             Self::Std(value) => match value {
                 OpsAssign::Add(_, mode) => match mode {
-                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdAddAssign },
-                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAddAssignStrict },
-                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAddAssignWrapping },
-                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAddAssignSaturating },
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::NdAddAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::NdAddAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::NdAddAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::NdAddAssignSaturating },
                 },
                 OpsAssign::Sub(_, mode) => match mode {
-                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdSubAssign },
-                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdSubAssignStrict },
-                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdSubAssignWrapping },
-                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdSubAssignSaturating },
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::NdSubAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::NdSubAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::NdSubAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::NdSubAssignSaturating },
                 },
                 OpsAssign::Mul(_, mode) => match mode {
-                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdMulAssign },
-                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdMulAssignStrict },
-                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdMulAssignWrapping },
-                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdMulAssignSaturating },
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::NdMulAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::NdMulAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::NdMulAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::NdMulAssignSaturating },
                 },
                 OpsAssign::Div(_, mode) => match mode {
-                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdDivAssign },
-                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdDivAssignStrict },
-                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdDivAssignWrapping },
-                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdDivAssignSaturating },
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::NdDivAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::NdDivAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::NdDivAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::NdDivAssignSaturating },
                 },
                 OpsAssign::Rem(_, mode) => match mode {
-                    OpsAssignMode::Default(_) => parse_quote! { #prefix::ops::NdRemAssign },
-                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::ops::NdRemAssignStrict },
-                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdRemAssignWrapping },
-                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdRemAssignSaturating },
+                    OpsAssignMode::Default(_) => parse_quote! { #prefix::NdRemAssign },
+                    OpsAssignMode::Strict(_, _) => parse_quote! { #prefix::NdRemAssignStrict },
+                    OpsAssignMode::Wrapping(_, _) => parse_quote! { #prefix::NdRemAssignWrapping },
+                    OpsAssignMode::Saturating(_, _) => parse_quote! { #prefix::NdRemAssignSaturating },
                 },
-                OpsAssign::BitOr(_) => parse_quote! { #prefix::ops::NdBitOrAssign },
-                OpsAssign::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAndAssign },
-                OpsAssign::BitXor(_) => parse_quote! { #prefix::ops::NdBitXorAssign },
+                OpsAssign::BitOr(_) => parse_quote! { #prefix::NdBitOrAssign },
+                OpsAssign::BitAnd(_) => parse_quote! { #prefix::NdBitAndAssign },
+                OpsAssign::BitXor(_) => parse_quote! { #prefix::NdBitXorAssign },
                 OpsAssign::Shl(_, mode) => match mode {
-                    OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShlAssign },
-                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShlAssignStrict },
-                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShlAssignUnbounded },
+                    OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::NdShlAssign },
+                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::NdShlAssignStrict },
+                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::NdShlAssignUnbounded },
                 },
                 OpsAssign::Shr(_, mode) => match mode {
-                    OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShrAssign },
-                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShrAssignStrict },
-                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShrAssignUnbounded },
+                    OpsAssignShiftMode::Default(_) => parse_quote! { #prefix::NdShrAssign },
+                    OpsAssignShiftMode::Strict(_, _) => parse_quote! { #prefix::NdShrAssignStrict },
+                    OpsAssignShiftMode::Unbounded(_, _) => parse_quote! { #prefix::NdShrAssignUnbounded },
                 },
             },
         }
@@ -2993,70 +2993,70 @@ impl OpsNdBinary {
     }
 
     fn path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             Self::Std(value) => match value {
                 OpsBinary::Add(_, mode) => match mode {
-                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdAdd },
-                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdAddChecked },
-                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdAddStrict },
-                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdAddWrapping },
-                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdAddSaturating },
-                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdAddOverflowing },
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::NdAdd },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::NdAddChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::NdAddStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdAddWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::NdAddSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdAddOverflowing },
                 },
                 OpsBinary::Sub(_, mode) => match mode {
-                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdSub },
-                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdSubChecked },
-                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdSubStrict },
-                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdSubWrapping },
-                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdSubSaturating },
-                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdSubOverflowing },
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::NdSub },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::NdSubChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::NdSubStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdSubWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::NdSubSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdSubOverflowing },
                 },
                 OpsBinary::Mul(_, mode) => match mode {
-                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdMul },
-                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdMulChecked },
-                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdMulStrict },
-                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdMulWrapping },
-                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdMulSaturating },
-                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdMulOverflowing },
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::NdMul },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::NdMulChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::NdMulStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdMulWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::NdMulSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdMulOverflowing },
                 },
                 OpsBinary::Div(_, mode) => match mode {
-                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdDiv },
-                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdDivChecked },
-                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdDivStrict },
-                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdDivWrapping },
-                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdDivSaturating },
-                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdDivOverflowing },
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::NdDiv },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::NdDivChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::NdDivStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdDivWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::NdDivSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdDivOverflowing },
                 },
                 OpsBinary::Rem(_, mode) => match mode {
-                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::ops::NdRem },
-                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdRemChecked },
-                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdRemStrict },
-                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdRemWrapping },
-                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdRemSaturating },
-                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdRemOverflowing },
+                    OpsBinaryMode::Default(_) => parse_quote! { #prefix::NdRem },
+                    OpsBinaryMode::Checked(_, _) => parse_quote! { #prefix::NdRemChecked },
+                    OpsBinaryMode::Strict(_, _) => parse_quote! { #prefix::NdRemStrict },
+                    OpsBinaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdRemWrapping },
+                    OpsBinaryMode::Saturating(_, _) => parse_quote! { #prefix::NdRemSaturating },
+                    OpsBinaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdRemOverflowing },
                 },
-                OpsBinary::BitOr(_) => parse_quote! { #prefix::ops::NdBitOr },
-                OpsBinary::BitAnd(_) => parse_quote! { #prefix::ops::NdBitAnd },
-                OpsBinary::BitXor(_) => parse_quote! { #prefix::ops::NdBitXor },
+                OpsBinary::BitOr(_) => parse_quote! { #prefix::NdBitOr },
+                OpsBinary::BitAnd(_) => parse_quote! { #prefix::NdBitAnd },
+                OpsBinary::BitXor(_) => parse_quote! { #prefix::NdBitXor },
                 OpsBinary::Shl(_, mode) => match mode {
-                    OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShl },
-                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::ops::NdShlChecked },
-                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShlStrict },
-                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShlUnbounded },
-                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdShlOverflowing },
+                    OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::NdShl },
+                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::NdShlChecked },
+                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::NdShlStrict },
+                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::NdShlUnbounded },
+                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::NdShlOverflowing },
                 },
                 OpsBinary::Shr(_, mode) => match mode {
-                    OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::ops::NdShr },
-                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::ops::NdShrChecked },
-                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::ops::NdShrStrict },
-                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::ops::NdShrUnbounded },
-                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdShrOverflowing },
+                    OpsBinaryShiftMode::Default(_) => parse_quote! { #prefix::NdShr },
+                    OpsBinaryShiftMode::Checked(_, _) => parse_quote! { #prefix::NdShrChecked },
+                    OpsBinaryShiftMode::Strict(_, _) => parse_quote! { #prefix::NdShrStrict },
+                    OpsBinaryShiftMode::Unbounded(_, _) => parse_quote! { #prefix::NdShrUnbounded },
+                    OpsBinaryShiftMode::Overflowing(_, _) => parse_quote! { #prefix::NdShrOverflowing },
                 },
             },
-            Self::Addx(_) => parse_quote! { #prefix::ops::NdAddx },
-            Self::Mulx(_) => parse_quote! { #prefix::ops::NdMulx },
+            Self::Addx(_) => parse_quote! { #prefix::NdAddx },
+            Self::Mulx(_) => parse_quote! { #prefix::NdMulx },
         }
     }
 
@@ -3143,35 +3143,35 @@ impl OpsNdUnary {
     }
 
     fn path(&self, token: Option<Token![crate]>) -> Path {
-        let prefix = token.map(|token| quote! { #token }).unwrap_or(quote! { ndext });
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             Self::Std(value) => match value {
-                OpsUnary::Not(_) => parse_quote! { #prefix::ops::NdNot },
+                OpsUnary::Not(_) => parse_quote! { #prefix::NdNot },
                 OpsUnary::Neg(_, mode) => match mode {
-                    OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdNeg },
-                    OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdNegChecked },
-                    OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdNegStrict },
-                    OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdNegWrapping },
-                    OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdNegSaturating },
-                    OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdNegOverflowing },
+                    OpsUnaryMode::Default(_) => parse_quote! { #prefix::NdNeg },
+                    OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::NdNegChecked },
+                    OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::NdNegStrict },
+                    OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdNegWrapping },
+                    OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::NdNegSaturating },
+                    OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdNegOverflowing },
                 },
             },
             Self::Posx(_, mode) => match mode {
-                OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdPosx },
-                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdPosxChecked },
-                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdPosxStrict },
-                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdPosxWrapping },
-                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdPosxSaturating },
-                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdPosxOverflowing },
+                OpsUnaryMode::Default(_) => parse_quote! { #prefix::NdPosx },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::NdPosxChecked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::NdPosxStrict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdPosxWrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::NdPosxSaturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdPosxOverflowing },
             },
             Self::Negx(_, mode) => match mode {
-                OpsUnaryMode::Default(_) => parse_quote! { #prefix::ops::NdNegx },
-                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::ops::NdNegxChecked },
-                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::ops::NdNegxStrict },
-                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::ops::NdNegxWrapping },
-                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::ops::NdNegxSaturating },
-                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::ops::NdNegxOverflowing },
+                OpsUnaryMode::Default(_) => parse_quote! { #prefix::NdNegx },
+                OpsUnaryMode::Checked(_, _) => parse_quote! { #prefix::NdNegxChecked },
+                OpsUnaryMode::Strict(_, _) => parse_quote! { #prefix::NdNegxStrict },
+                OpsUnaryMode::Wrapping(_, _) => parse_quote! { #prefix::NdNegxWrapping },
+                OpsUnaryMode::Saturating(_, _) => parse_quote! { #prefix::NdNegxSaturating },
+                OpsUnaryMode::Overflowing(_, _) => parse_quote! { #prefix::NdNegxOverflowing },
             },
         }
     }
@@ -3378,52 +3378,57 @@ impl OpsNdUnaryFwd {
 }
 
 impl OpsAssignModeAuto {
-    fn std_definitions(&self, expr: &OpsExpressionAssignAuto) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsStdAssignFwd>> {
+    fn std_definitions(
+        &self,
+        expr: &OpsExpressionAssignAuto,
+        token: Option<Token![crate]>,
+    ) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsStdAssignFwd>> {
         let lhs_ty = &expr.lhs_ty_expr;
         let rhs_ty = &expr.rhs_ty_expr;
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             OpsAssignModeAuto::Std(mode) => {
                 let quote = quote! {
-                    |= where [#lhs_ty: NdBitOrAssign <#lhs_ty, #rhs_ty>],
-                    &= where [#lhs_ty: NdBitAndAssign<#lhs_ty, #rhs_ty>],
-                    ^= where [#lhs_ty: NdBitXorAssign<#lhs_ty, #rhs_ty>],
+                    |= where [#lhs_ty: #prefix::NdBitOrAssign <#lhs_ty, #rhs_ty>],
+                    &= where [#lhs_ty: #prefix::NdBitAndAssign<#lhs_ty, #rhs_ty>],
+                    ^= where [#lhs_ty: #prefix::NdBitXorAssign<#lhs_ty, #rhs_ty>],
                 };
 
                 match mode {
                     OpsAssignModeWith::Default => parse_quote! {
-                        += where [#lhs_ty: NdAddAssign<#lhs_ty, #rhs_ty>],
-                        -= where [#lhs_ty: NdSubAssign<#lhs_ty, #rhs_ty>],
-                        *= where [#lhs_ty: NdMulAssign<#lhs_ty, #rhs_ty>],
-                        /= where [#lhs_ty: NdDivAssign<#lhs_ty, #rhs_ty>],
-                        %= where [#lhs_ty: NdRemAssign<#lhs_ty, #rhs_ty>],
+                        += where [#lhs_ty: #prefix::NdAddAssign<#lhs_ty, #rhs_ty>],
+                        -= where [#lhs_ty: #prefix::NdSubAssign<#lhs_ty, #rhs_ty>],
+                        *= where [#lhs_ty: #prefix::NdMulAssign<#lhs_ty, #rhs_ty>],
+                        /= where [#lhs_ty: #prefix::NdDivAssign<#lhs_ty, #rhs_ty>],
+                        %= where [#lhs_ty: #prefix::NdRemAssign<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
                     OpsAssignModeWith::Strict(_, _) => parse_quote! {
-                        += with @strict where [#lhs_ty: NdAddAssignStrict<#lhs_ty, #rhs_ty>],
-                        -= with @strict where [#lhs_ty: NdSubAssignStrict<#lhs_ty, #rhs_ty>],
-                        *= with @strict where [#lhs_ty: NdMulAssignStrict<#lhs_ty, #rhs_ty>],
-                        /= with @strict where [#lhs_ty: NdDivAssignStrict<#lhs_ty, #rhs_ty>],
-                        %= with @strict where [#lhs_ty: NdRemAssignStrict<#lhs_ty, #rhs_ty>],
+                        += with @strict where [#lhs_ty: #prefix::NdAddAssignStrict<#lhs_ty, #rhs_ty>],
+                        -= with @strict where [#lhs_ty: #prefix::NdSubAssignStrict<#lhs_ty, #rhs_ty>],
+                        *= with @strict where [#lhs_ty: #prefix::NdMulAssignStrict<#lhs_ty, #rhs_ty>],
+                        /= with @strict where [#lhs_ty: #prefix::NdDivAssignStrict<#lhs_ty, #rhs_ty>],
+                        %= with @strict where [#lhs_ty: #prefix::NdRemAssignStrict<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
                     OpsAssignModeWith::Wrapping(_, _) => parse_quote! {
-                        += with @wrapping where [#lhs_ty: NdAddAssignWrapping<#lhs_ty, #rhs_ty>],
-                        -= with @wrapping where [#lhs_ty: NdSubAssignWrapping<#lhs_ty, #rhs_ty>],
-                        *= with @wrapping where [#lhs_ty: NdMulAssignWrapping<#lhs_ty, #rhs_ty>],
-                        /= with @wrapping where [#lhs_ty: NdDivAssignWrapping<#lhs_ty, #rhs_ty>],
-                        %= with @wrapping where [#lhs_ty: NdRemAssignWrapping<#lhs_ty, #rhs_ty>],
+                        += with @wrapping where [#lhs_ty: #prefix::NdAddAssignWrapping<#lhs_ty, #rhs_ty>],
+                        -= with @wrapping where [#lhs_ty: #prefix::NdSubAssignWrapping<#lhs_ty, #rhs_ty>],
+                        *= with @wrapping where [#lhs_ty: #prefix::NdMulAssignWrapping<#lhs_ty, #rhs_ty>],
+                        /= with @wrapping where [#lhs_ty: #prefix::NdDivAssignWrapping<#lhs_ty, #rhs_ty>],
+                        %= with @wrapping where [#lhs_ty: #prefix::NdRemAssignWrapping<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
                     OpsAssignModeWith::Saturating(_, _) => parse_quote! {
-                        += with @saturating where [#lhs_ty: NdAddAssignSaturating<#lhs_ty, #rhs_ty>],
-                        -= with @saturating where [#lhs_ty: NdSubAssignSaturating<#lhs_ty, #rhs_ty>],
-                        *= with @saturating where [#lhs_ty: NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
-                        /= with @saturating where [#lhs_ty: NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
-                        %= with @saturating where [#lhs_ty: NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
+                        += with @saturating where [#lhs_ty: #prefix::NdAddAssignSaturating<#lhs_ty, #rhs_ty>],
+                        -= with @saturating where [#lhs_ty: #prefix::NdSubAssignSaturating<#lhs_ty, #rhs_ty>],
+                        *= with @saturating where [#lhs_ty: #prefix::NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
+                        /= with @saturating where [#lhs_ty: #prefix::NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
+                        %= with @saturating where [#lhs_ty: #prefix::NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
@@ -3431,82 +3436,87 @@ impl OpsAssignModeAuto {
             },
             OpsAssignModeAuto::Shift(mode) => match mode {
                 OpsAssignShiftModeWith::Default => parse_quote! {
-                    <<= where [#lhs_ty: NdShlAssign<#lhs_ty, #rhs_ty>],
-                    >>= where [#lhs_ty: NdShrAssign<#lhs_ty, #rhs_ty>],
+                    <<= where [#lhs_ty: #prefix::NdShlAssign<#lhs_ty, #rhs_ty>],
+                    >>= where [#lhs_ty: #prefix::NdShrAssign<#lhs_ty, #rhs_ty>],
                 },
                 OpsAssignShiftModeWith::Strict(_, _) => parse_quote! {
-                    <<= with @strict where [#lhs_ty: NdShlAssignStrict<#lhs_ty, #rhs_ty>],
-                    >>= with @strict where [#lhs_ty: NdShrAssignStrict<#lhs_ty, #rhs_ty>],
+                    <<= with @strict where [#lhs_ty: #prefix::NdShlAssignStrict<#lhs_ty, #rhs_ty>],
+                    >>= with @strict where [#lhs_ty: #prefix::NdShrAssignStrict<#lhs_ty, #rhs_ty>],
                 },
                 OpsAssignShiftModeWith::Unbounded(_, _) => parse_quote! {
-                    <<= with @unbounded where [#lhs_ty: NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
-                    >>= with @unbounded where [#lhs_ty: NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
+                    <<= with @unbounded where [#lhs_ty: #prefix::NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
+                    >>= with @unbounded where [#lhs_ty: #prefix::NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
                 },
             },
         }
     }
 
-    fn nd_definitions(&self, expr: &OpsExpressionAssignAuto) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsNdAssignFwd>> {
+    fn nd_definitions(
+        &self,
+        expr: &OpsExpressionAssignAuto,
+        token: Option<Token![crate]>,
+    ) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsNdAssignFwd>> {
         let lhs_ty = &expr.lhs_ty_expr;
         let rhs_ty = &expr.rhs_ty_expr;
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             OpsAssignModeAuto::Std(mode) => {
                 let quote = quote! {
-                    |= where [#lhs_ty: NdBitOrAssign <#lhs_ty, #rhs_ty>],
-                    &= where [#lhs_ty: NdBitAndAssign<#lhs_ty, #rhs_ty>],
-                    ^= where [#lhs_ty: NdBitXorAssign<#lhs_ty, #rhs_ty>],
+                    |= where [#lhs_ty: #prefix::NdBitOrAssign <#lhs_ty, #rhs_ty>],
+                    &= where [#lhs_ty: #prefix::NdBitAndAssign<#lhs_ty, #rhs_ty>],
+                    ^= where [#lhs_ty: #prefix::NdBitXorAssign<#lhs_ty, #rhs_ty>],
                 };
 
                 match mode {
                     OpsAssignModeWith::Default => parse_quote! {
-                        += where             [#lhs_ty: NdAddAssign          <#lhs_ty, #rhs_ty>],
-                        -= where             [#lhs_ty: NdSubAssign          <#lhs_ty, #rhs_ty>],
-                        *= where             [#lhs_ty: NdMulAssign          <#lhs_ty, #rhs_ty>],
-                        /= where             [#lhs_ty: NdDivAssign          <#lhs_ty, #rhs_ty>],
-                        %= where             [#lhs_ty: NdRemAssign          <#lhs_ty, #rhs_ty>],
-                        += @strict where     [#lhs_ty: NdAddAssignStrict    <#lhs_ty, #rhs_ty>],
-                        -= @strict where     [#lhs_ty: NdSubAssignStrict    <#lhs_ty, #rhs_ty>],
-                        *= @strict where     [#lhs_ty: NdMulAssignStrict    <#lhs_ty, #rhs_ty>],
-                        /= @strict where     [#lhs_ty: NdDivAssignStrict    <#lhs_ty, #rhs_ty>],
-                        %= @strict where     [#lhs_ty: NdRemAssignStrict    <#lhs_ty, #rhs_ty>],
-                        += @wrapping where   [#lhs_ty: NdAddAssignWrapping  <#lhs_ty, #rhs_ty>],
-                        -= @wrapping where   [#lhs_ty: NdSubAssignWrapping  <#lhs_ty, #rhs_ty>],
-                        *= @wrapping where   [#lhs_ty: NdMulAssignWrapping  <#lhs_ty, #rhs_ty>],
-                        /= @wrapping where   [#lhs_ty: NdDivAssignWrapping  <#lhs_ty, #rhs_ty>],
-                        %= @wrapping where   [#lhs_ty: NdRemAssignWrapping  <#lhs_ty, #rhs_ty>],
-                        += @saturating where [#lhs_ty: NdAddAssignSaturating<#lhs_ty, #rhs_ty>],
-                        -= @saturating where [#lhs_ty: NdSubAssignSaturating<#lhs_ty, #rhs_ty>],
-                        *= @saturating where [#lhs_ty: NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
-                        /= @saturating where [#lhs_ty: NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
-                        %= @saturating where [#lhs_ty: NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
+                        += where             [#lhs_ty: #prefix::NdAddAssign          <#lhs_ty, #rhs_ty>],
+                        -= where             [#lhs_ty: #prefix::NdSubAssign          <#lhs_ty, #rhs_ty>],
+                        *= where             [#lhs_ty: #prefix::NdMulAssign          <#lhs_ty, #rhs_ty>],
+                        /= where             [#lhs_ty: #prefix::NdDivAssign          <#lhs_ty, #rhs_ty>],
+                        %= where             [#lhs_ty: #prefix::NdRemAssign          <#lhs_ty, #rhs_ty>],
+                        += @strict where     [#lhs_ty: #prefix::NdAddAssignStrict    <#lhs_ty, #rhs_ty>],
+                        -= @strict where     [#lhs_ty: #prefix::NdSubAssignStrict    <#lhs_ty, #rhs_ty>],
+                        *= @strict where     [#lhs_ty: #prefix::NdMulAssignStrict    <#lhs_ty, #rhs_ty>],
+                        /= @strict where     [#lhs_ty: #prefix::NdDivAssignStrict    <#lhs_ty, #rhs_ty>],
+                        %= @strict where     [#lhs_ty: #prefix::NdRemAssignStrict    <#lhs_ty, #rhs_ty>],
+                        += @wrapping where   [#lhs_ty: #prefix::NdAddAssignWrapping  <#lhs_ty, #rhs_ty>],
+                        -= @wrapping where   [#lhs_ty: #prefix::NdSubAssignWrapping  <#lhs_ty, #rhs_ty>],
+                        *= @wrapping where   [#lhs_ty: #prefix::NdMulAssignWrapping  <#lhs_ty, #rhs_ty>],
+                        /= @wrapping where   [#lhs_ty: #prefix::NdDivAssignWrapping  <#lhs_ty, #rhs_ty>],
+                        %= @wrapping where   [#lhs_ty: #prefix::NdRemAssignWrapping  <#lhs_ty, #rhs_ty>],
+                        += @saturating where [#lhs_ty: #prefix::NdAddAssignSaturating<#lhs_ty, #rhs_ty>],
+                        -= @saturating where [#lhs_ty: #prefix::NdSubAssignSaturating<#lhs_ty, #rhs_ty>],
+                        *= @saturating where [#lhs_ty: #prefix::NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
+                        /= @saturating where [#lhs_ty: #prefix::NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
+                        %= @saturating where [#lhs_ty: #prefix::NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
                     OpsAssignModeWith::Strict(_, _) => parse_quote! {
-                        += with @strict where [#lhs_ty: NdAddAssignStrict<#lhs_ty, #rhs_ty>],
-                        -= with @strict where [#lhs_ty: NdSubAssignStrict<#lhs_ty, #rhs_ty>],
-                        *= with @strict where [#lhs_ty: NdMulAssignStrict<#lhs_ty, #rhs_ty>],
-                        /= with @strict where [#lhs_ty: NdDivAssignStrict<#lhs_ty, #rhs_ty>],
-                        %= with @strict where [#lhs_ty: NdRemAssignStrict<#lhs_ty, #rhs_ty>],
+                        += with @strict where [#lhs_ty: #prefix::NdAddAssignStrict<#lhs_ty, #rhs_ty>],
+                        -= with @strict where [#lhs_ty: #prefix::NdSubAssignStrict<#lhs_ty, #rhs_ty>],
+                        *= with @strict where [#lhs_ty: #prefix::NdMulAssignStrict<#lhs_ty, #rhs_ty>],
+                        /= with @strict where [#lhs_ty: #prefix::NdDivAssignStrict<#lhs_ty, #rhs_ty>],
+                        %= with @strict where [#lhs_ty: #prefix::NdRemAssignStrict<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
                     OpsAssignModeWith::Wrapping(_, _) => parse_quote! {
-                        += with @wrapping where [#lhs_ty: NdAddAssignWrapping<#lhs_ty, #rhs_ty>],
-                        -= with @wrapping where [#lhs_ty: NdSubAssignWrapping<#lhs_ty, #rhs_ty>],
-                        *= with @wrapping where [#lhs_ty: NdMulAssignWrapping<#lhs_ty, #rhs_ty>],
-                        /= with @wrapping where [#lhs_ty: NdDivAssignWrapping<#lhs_ty, #rhs_ty>],
-                        %= with @wrapping where [#lhs_ty: NdRemAssignWrapping<#lhs_ty, #rhs_ty>],
+                        += with @wrapping where [#lhs_ty: #prefix::NdAddAssignWrapping<#lhs_ty, #rhs_ty>],
+                        -= with @wrapping where [#lhs_ty: #prefix::NdSubAssignWrapping<#lhs_ty, #rhs_ty>],
+                        *= with @wrapping where [#lhs_ty: #prefix::NdMulAssignWrapping<#lhs_ty, #rhs_ty>],
+                        /= with @wrapping where [#lhs_ty: #prefix::NdDivAssignWrapping<#lhs_ty, #rhs_ty>],
+                        %= with @wrapping where [#lhs_ty: #prefix::NdRemAssignWrapping<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
                     OpsAssignModeWith::Saturating(_, _) => parse_quote! {
-                        += with @saturating where [#lhs_ty: NdAddAssignSaturating<#lhs_ty, #rhs_ty>],
-                        -= with @saturating where [#lhs_ty: NdSubAssignSaturating<#lhs_ty, #rhs_ty>],
-                        *= with @saturating where [#lhs_ty: NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
-                        /= with @saturating where [#lhs_ty: NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
-                        %= with @saturating where [#lhs_ty: NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
+                        += with @saturating where [#lhs_ty: #prefix::NdAddAssignSaturating<#lhs_ty, #rhs_ty>],
+                        -= with @saturating where [#lhs_ty: #prefix::NdSubAssignSaturating<#lhs_ty, #rhs_ty>],
+                        *= with @saturating where [#lhs_ty: #prefix::NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
+                        /= with @saturating where [#lhs_ty: #prefix::NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
+                        %= with @saturating where [#lhs_ty: #prefix::NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
@@ -3514,20 +3524,20 @@ impl OpsAssignModeAuto {
             },
             OpsAssignModeAuto::Shift(mode) => match mode {
                 OpsAssignShiftModeWith::Default => parse_quote! {
-                    <<= where            [#lhs_ty: NdShlAssign         <#lhs_ty, #rhs_ty>],
-                    >>= where            [#lhs_ty: NdShrAssign         <#lhs_ty, #rhs_ty>],
-                    <<= @strict where    [#lhs_ty: NdShlAssignStrict   <#lhs_ty, #rhs_ty>],
-                    >>= @strict where    [#lhs_ty: NdShrAssignStrict   <#lhs_ty, #rhs_ty>],
-                    <<= @unbounded where [#lhs_ty: NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
-                    >>= @unbounded where [#lhs_ty: NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
+                    <<= where            [#lhs_ty: #prefix::NdShlAssign         <#lhs_ty, #rhs_ty>],
+                    >>= where            [#lhs_ty: #prefix::NdShrAssign         <#lhs_ty, #rhs_ty>],
+                    <<= @strict where    [#lhs_ty: #prefix::NdShlAssignStrict   <#lhs_ty, #rhs_ty>],
+                    >>= @strict where    [#lhs_ty: #prefix::NdShrAssignStrict   <#lhs_ty, #rhs_ty>],
+                    <<= @unbounded where [#lhs_ty: #prefix::NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
+                    >>= @unbounded where [#lhs_ty: #prefix::NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
                 },
                 OpsAssignShiftModeWith::Strict(_, _) => parse_quote! {
-                    <<= with @strict where [#lhs_ty: NdShlAssignStrict<#lhs_ty, #rhs_ty>],
-                    >>= with @strict where [#lhs_ty: NdShrAssignStrict<#lhs_ty, #rhs_ty>],
+                    <<= with @strict where [#lhs_ty: #prefix::NdShlAssignStrict<#lhs_ty, #rhs_ty>],
+                    >>= with @strict where [#lhs_ty: #prefix::NdShrAssignStrict<#lhs_ty, #rhs_ty>],
                 },
                 OpsAssignShiftModeWith::Unbounded(_, _) => parse_quote! {
-                    <<= with @unbounded where [#lhs_ty: NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
-                    >>= with @unbounded where [#lhs_ty: NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
+                    <<= with @unbounded where [#lhs_ty: #prefix::NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
+                    >>= with @unbounded where [#lhs_ty: #prefix::NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
                 },
             },
         }
@@ -3535,53 +3545,58 @@ impl OpsAssignModeAuto {
 }
 
 impl OpsBinaryModeAuto {
-    fn std_definitions(&self, expr: &OpsExpressionBinaryAuto) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsStdBinaryFwd>> {
+    fn std_definitions(
+        &self,
+        expr: &OpsExpressionBinaryAuto,
+        token: Option<Token![crate]>,
+    ) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsStdBinaryFwd>> {
         let lhs_ty = &expr.lhs_ty_expr;
         let rhs_ty = &expr.rhs_ty_expr;
         let ty = &expr.ty_expr;
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             OpsBinaryModeAuto::Std(mode) => {
                 let quote = quote! {
-                    | where [#lhs_ty: NdBitOr <#lhs_ty, #rhs_ty, Type = #ty>],
-                    & where [#lhs_ty: NdBitAnd<#lhs_ty, #rhs_ty, Type = #ty>],
-                    ^ where [#lhs_ty: NdBitXor<#lhs_ty, #rhs_ty, Type = #ty>],
+                    | where [#lhs_ty: #prefix::NdBitOr <#lhs_ty, #rhs_ty, Type = #ty>],
+                    & where [#lhs_ty: #prefix::NdBitAnd<#lhs_ty, #rhs_ty, Type = #ty>],
+                    ^ where [#lhs_ty: #prefix::NdBitXor<#lhs_ty, #rhs_ty, Type = #ty>],
                 };
 
                 match mode {
                     OpsBinaryModeWith::Default => parse_quote! {
-                        + where [#lhs_ty: NdAdd<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - where [#lhs_ty: NdSub<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * where [#lhs_ty: NdMul<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / where [#lhs_ty: NdDiv<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % where [#lhs_ty: NdRem<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + where [#lhs_ty: #prefix::NdAdd<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - where [#lhs_ty: #prefix::NdSub<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * where [#lhs_ty: #prefix::NdMul<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / where [#lhs_ty: #prefix::NdDiv<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % where [#lhs_ty: #prefix::NdRem<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryModeWith::Strict(_, _) => parse_quote! {
-                        + with @strict where [#lhs_ty: NdAddStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - with @strict where [#lhs_ty: NdSubStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * with @strict where [#lhs_ty: NdMulStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / with @strict where [#lhs_ty: NdDivStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % with @strict where [#lhs_ty: NdRemStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + with @strict where [#lhs_ty: #prefix::NdAddStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - with @strict where [#lhs_ty: #prefix::NdSubStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * with @strict where [#lhs_ty: #prefix::NdMulStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / with @strict where [#lhs_ty: #prefix::NdDivStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % with @strict where [#lhs_ty: #prefix::NdRemStrict<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryModeWith::Wrapping(_, _) => parse_quote! {
-                        + with @wrapping where [#lhs_ty: NdAddWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - with @wrapping where [#lhs_ty: NdSubWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * with @wrapping where [#lhs_ty: NdMulWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / with @wrapping where [#lhs_ty: NdDivWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % with @wrapping where [#lhs_ty: NdRemWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + with @wrapping where [#lhs_ty: #prefix::NdAddWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - with @wrapping where [#lhs_ty: #prefix::NdSubWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * with @wrapping where [#lhs_ty: #prefix::NdMulWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / with @wrapping where [#lhs_ty: #prefix::NdDivWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % with @wrapping where [#lhs_ty: #prefix::NdRemWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryModeWith::Saturating(_, _) => parse_quote! {
-                        + with @saturating where [#lhs_ty: NdAddSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - with @saturating where [#lhs_ty: NdSubSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * with @saturating where [#lhs_ty: NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / with @saturating where [#lhs_ty: NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % with @saturating where [#lhs_ty: NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + with @saturating where [#lhs_ty: #prefix::NdAddSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - with @saturating where [#lhs_ty: #prefix::NdSubSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * with @saturating where [#lhs_ty: #prefix::NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / with @saturating where [#lhs_ty: #prefix::NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % with @saturating where [#lhs_ty: #prefix::NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
@@ -3589,93 +3604,98 @@ impl OpsBinaryModeAuto {
             },
             OpsBinaryModeAuto::Shift(mode) => match mode {
                 OpsBinaryShiftModeWith::Default => parse_quote! {
-                    << where [#lhs_ty: NdShl<#lhs_ty, #rhs_ty, Type = #ty>],
-                    >> where [#lhs_ty: NdShr<#lhs_ty, #rhs_ty, Type = #ty>],
+                    << where [#lhs_ty: #prefix::NdShl<#lhs_ty, #rhs_ty, Type = #ty>],
+                    >> where [#lhs_ty: #prefix::NdShr<#lhs_ty, #rhs_ty, Type = #ty>],
                 },
                 OpsBinaryShiftModeWith::Strict(_, _) => parse_quote! {
-                    << with @strict where [#lhs_ty: NdShlStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                    >> with @strict where [#lhs_ty: NdShrStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                    << with @strict where [#lhs_ty: #prefix::NdShlStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                    >> with @strict where [#lhs_ty: #prefix::NdShrStrict<#lhs_ty, #rhs_ty, Type = #ty>],
                 },
                 OpsBinaryShiftModeWith::Unbounded(_, _) => parse_quote! {
-                    << with @unbounded where [#lhs_ty: NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
-                    >> with @unbounded where [#lhs_ty: NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+                    << with @unbounded where [#lhs_ty: #prefix::NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+                    >> with @unbounded where [#lhs_ty: #prefix::NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
                 },
             },
         }
     }
 
-    fn nd_definitions(&self, expr: &OpsExpressionBinaryAuto) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsNdBinaryFwd>> {
+    fn nd_definitions(
+        &self,
+        expr: &OpsExpressionBinaryAuto,
+        token: Option<Token![crate]>,
+    ) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsNdBinaryFwd>> {
         let lhs_ty = &expr.lhs_ty_expr;
         let rhs_ty = &expr.rhs_ty_expr;
         let ty = &expr.ty_expr;
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             OpsBinaryModeAuto::Std(mode) => {
                 let quote = quote! {
-                    | where              [#lhs_ty: NdBitOr         <#lhs_ty, #rhs_ty, Type = #ty>],
-                    & where              [#lhs_ty: NdBitAnd        <#lhs_ty, #rhs_ty, Type = #ty>],
-                    ^ where              [#lhs_ty: NdBitXor        <#lhs_ty, #rhs_ty, Type = #ty>],
-                    + @checked where     [#lhs_ty: NdAddChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
-                    - @checked where     [#lhs_ty: NdSubChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
-                    * @checked where     [#lhs_ty: NdMulChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
-                    / @checked where     [#lhs_ty: NdDivChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
-                    % @checked where     [#lhs_ty: NdRemChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
-                    + @overflowing where [#lhs_ty: NdAddOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
-                    - @overflowing where [#lhs_ty: NdSubOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
-                    * @overflowing where [#lhs_ty: NdMulOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
-                    / @overflowing where [#lhs_ty: NdDivOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
-                    % @overflowing where [#lhs_ty: NdRemOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
+                    | where              [#lhs_ty: #prefix::NdBitOr         <#lhs_ty, #rhs_ty, Type = #ty>],
+                    & where              [#lhs_ty: #prefix::NdBitAnd        <#lhs_ty, #rhs_ty, Type = #ty>],
+                    ^ where              [#lhs_ty: #prefix::NdBitXor        <#lhs_ty, #rhs_ty, Type = #ty>],
+                    + @checked where     [#lhs_ty: #prefix::NdAddChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
+                    - @checked where     [#lhs_ty: #prefix::NdSubChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
+                    * @checked where     [#lhs_ty: #prefix::NdMulChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
+                    / @checked where     [#lhs_ty: #prefix::NdDivChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
+                    % @checked where     [#lhs_ty: #prefix::NdRemChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
+                    + @overflowing where [#lhs_ty: #prefix::NdAddOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
+                    - @overflowing where [#lhs_ty: #prefix::NdSubOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
+                    * @overflowing where [#lhs_ty: #prefix::NdMulOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
+                    / @overflowing where [#lhs_ty: #prefix::NdDivOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
+                    % @overflowing where [#lhs_ty: #prefix::NdRemOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
                 };
 
                 match mode {
                     OpsBinaryModeWith::Default => parse_quote! {
-                        + where             [#lhs_ty: NdAdd          <#lhs_ty, #rhs_ty, Type = #ty>],
-                        - where             [#lhs_ty: NdSub          <#lhs_ty, #rhs_ty, Type = #ty>],
-                        * where             [#lhs_ty: NdMul          <#lhs_ty, #rhs_ty, Type = #ty>],
-                        / where             [#lhs_ty: NdDiv          <#lhs_ty, #rhs_ty, Type = #ty>],
-                        % where             [#lhs_ty: NdRem          <#lhs_ty, #rhs_ty, Type = #ty>],
-                        + @strict where     [#lhs_ty: NdAddStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
-                        - @strict where     [#lhs_ty: NdSubStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
-                        * @strict where     [#lhs_ty: NdMulStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
-                        / @strict where     [#lhs_ty: NdDivStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
-                        % @strict where     [#lhs_ty: NdRemStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
-                        + @wrapping where   [#lhs_ty: NdAddWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
-                        - @wrapping where   [#lhs_ty: NdSubWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
-                        * @wrapping where   [#lhs_ty: NdMulWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
-                        / @wrapping where   [#lhs_ty: NdDivWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
-                        % @wrapping where   [#lhs_ty: NdRemWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
-                        + @saturating where [#lhs_ty: NdAddSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - @saturating where [#lhs_ty: NdSubSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * @saturating where [#lhs_ty: NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / @saturating where [#lhs_ty: NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % @saturating where [#lhs_ty: NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + where             [#lhs_ty: #prefix::NdAdd          <#lhs_ty, #rhs_ty, Type = #ty>],
+                        - where             [#lhs_ty: #prefix::NdSub          <#lhs_ty, #rhs_ty, Type = #ty>],
+                        * where             [#lhs_ty: #prefix::NdMul          <#lhs_ty, #rhs_ty, Type = #ty>],
+                        / where             [#lhs_ty: #prefix::NdDiv          <#lhs_ty, #rhs_ty, Type = #ty>],
+                        % where             [#lhs_ty: #prefix::NdRem          <#lhs_ty, #rhs_ty, Type = #ty>],
+                        + @strict where     [#lhs_ty: #prefix::NdAddStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
+                        - @strict where     [#lhs_ty: #prefix::NdSubStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
+                        * @strict where     [#lhs_ty: #prefix::NdMulStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
+                        / @strict where     [#lhs_ty: #prefix::NdDivStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
+                        % @strict where     [#lhs_ty: #prefix::NdRemStrict    <#lhs_ty, #rhs_ty, Type = #ty>],
+                        + @wrapping where   [#lhs_ty: #prefix::NdAddWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
+                        - @wrapping where   [#lhs_ty: #prefix::NdSubWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
+                        * @wrapping where   [#lhs_ty: #prefix::NdMulWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
+                        / @wrapping where   [#lhs_ty: #prefix::NdDivWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
+                        % @wrapping where   [#lhs_ty: #prefix::NdRemWrapping  <#lhs_ty, #rhs_ty, Type = #ty>],
+                        + @saturating where [#lhs_ty: #prefix::NdAddSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - @saturating where [#lhs_ty: #prefix::NdSubSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * @saturating where [#lhs_ty: #prefix::NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / @saturating where [#lhs_ty: #prefix::NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % @saturating where [#lhs_ty: #prefix::NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryModeWith::Strict(_, _) => parse_quote! {
-                        + with @strict where [#lhs_ty: NdAddStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - with @strict where [#lhs_ty: NdSubStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * with @strict where [#lhs_ty: NdMulStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / with @strict where [#lhs_ty: NdDivStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % with @strict where [#lhs_ty: NdRemStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + with @strict where [#lhs_ty: #prefix::NdAddStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - with @strict where [#lhs_ty: #prefix::NdSubStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * with @strict where [#lhs_ty: #prefix::NdMulStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / with @strict where [#lhs_ty: #prefix::NdDivStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % with @strict where [#lhs_ty: #prefix::NdRemStrict<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryModeWith::Wrapping(_, _) => parse_quote! {
-                        + with @wrapping where [#lhs_ty: NdAddWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - with @wrapping where [#lhs_ty: NdSubWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * with @wrapping where [#lhs_ty: NdMulWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / with @wrapping where [#lhs_ty: NdDivWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % with @wrapping where [#lhs_ty: NdRemWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + with @wrapping where [#lhs_ty: #prefix::NdAddWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - with @wrapping where [#lhs_ty: #prefix::NdSubWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * with @wrapping where [#lhs_ty: #prefix::NdMulWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / with @wrapping where [#lhs_ty: #prefix::NdDivWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % with @wrapping where [#lhs_ty: #prefix::NdRemWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryModeWith::Saturating(_, _) => parse_quote! {
-                        + with @saturating where [#lhs_ty: NdAddSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        - with @saturating where [#lhs_ty: NdSubSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        * with @saturating where [#lhs_ty: NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        / with @saturating where [#lhs_ty: NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
-                        % with @saturating where [#lhs_ty: NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        + with @saturating where [#lhs_ty: #prefix::NdAddSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - with @saturating where [#lhs_ty: #prefix::NdSubSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * with @saturating where [#lhs_ty: #prefix::NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / with @saturating where [#lhs_ty: #prefix::NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % with @saturating where [#lhs_ty: #prefix::NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
@@ -3683,32 +3703,32 @@ impl OpsBinaryModeAuto {
             },
             OpsBinaryModeAuto::Shift(mode) => {
                 let quote = quote! {
-                    << @checked where     [#lhs_ty: NdShlChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
-                    >> @checked where     [#lhs_ty: NdShrChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
-                    << @overflowing where [#lhs_ty: NdShlOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
-                    >> @overflowing where [#lhs_ty: NdShrOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
+                    << @checked where     [#lhs_ty: #prefix::NdShlChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
+                    >> @checked where     [#lhs_ty: #prefix::NdShrChecked    <#lhs_ty, #rhs_ty, Type = #ty>],
+                    << @overflowing where [#lhs_ty: #prefix::NdShlOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
+                    >> @overflowing where [#lhs_ty: #prefix::NdShrOverflowing<#lhs_ty, #rhs_ty, Type = #ty>],
                 };
 
                 match mode {
                     OpsBinaryShiftModeWith::Default => parse_quote! {
-                        << where            [#lhs_ty: NdShl         <#lhs_ty, #rhs_ty, Type = #ty>],
-                        >> where            [#lhs_ty: NdShr         <#lhs_ty, #rhs_ty, Type = #ty>],
-                        << @strict where    [#lhs_ty: NdShlStrict   <#lhs_ty, #rhs_ty, Type = #ty>],
-                        >> @strict where    [#lhs_ty: NdShrStrict   <#lhs_ty, #rhs_ty, Type = #ty>],
-                        << @unbounded where [#lhs_ty: NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
-                        >> @unbounded where [#lhs_ty: NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+                        << where            [#lhs_ty: #prefix::NdShl         <#lhs_ty, #rhs_ty, Type = #ty>],
+                        >> where            [#lhs_ty: #prefix::NdShr         <#lhs_ty, #rhs_ty, Type = #ty>],
+                        << @strict where    [#lhs_ty: #prefix::NdShlStrict   <#lhs_ty, #rhs_ty, Type = #ty>],
+                        >> @strict where    [#lhs_ty: #prefix::NdShrStrict   <#lhs_ty, #rhs_ty, Type = #ty>],
+                        << @unbounded where [#lhs_ty: #prefix::NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+                        >> @unbounded where [#lhs_ty: #prefix::NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryShiftModeWith::Strict(_, _) => parse_quote! {
-                        << with @strict where [#lhs_ty: NdShlStrict<#lhs_ty, #rhs_ty, Type = #ty>],
-                        >> with @strict where [#lhs_ty: NdShrStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        << with @strict where [#lhs_ty: #prefix::NdShlStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        >> with @strict where [#lhs_ty: #prefix::NdShrStrict<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
                     OpsBinaryShiftModeWith::Unbounded(_, _) => parse_quote! {
-                        << with @unbounded where [#lhs_ty: NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
-                        >> with @unbounded where [#lhs_ty: NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+                        << with @unbounded where [#lhs_ty: #prefix::NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+                        >> with @unbounded where [#lhs_ty: #prefix::NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
@@ -3719,84 +3739,94 @@ impl OpsBinaryModeAuto {
 }
 
 impl OpsUnaryModeAuto {
-    fn std_definitions(&self, expr: &OpsExpressionUnaryAuto) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsStdUnaryFwd>> {
+    fn std_definitions(
+        &self,
+        expr: &OpsExpressionUnaryAuto,
+        token: Option<Token![crate]>,
+    ) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsStdUnaryFwd>> {
         let value_ty = &expr.value_ty_expr;
         let ty = &expr.ty_expr;
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             OpsUnaryModeAuto::Std(mode) => match mode {
                 OpsUnaryModeWith::Default => parse_quote! {
-                    ! where [#value_ty: NdNot<#value_ty, Type = #ty>],
-                    - where [#value_ty: NdNeg<#value_ty, Type = #ty>],
+                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
+                    - where [#value_ty: #prefix::NdNeg<#value_ty, Type = #ty>],
                 },
                 OpsUnaryModeWith::Strict(_, _) => parse_quote! {
-                    ! where [#value_ty: NdNot<#value_ty, Type = #ty>],
+                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
 
-                    - with @strict where [#value_ty: NdNegStrict <#value_ty, Type = #ty>],
+                    - with @strict where [#value_ty: #prefix::NdNegStrict <#value_ty, Type = #ty>],
                 },
                 OpsUnaryModeWith::Wrapping(_, _) => parse_quote! {
-                    ! where [#value_ty: NdNot<#value_ty, Type = #ty>],
+                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
 
-                    - with @wrapping where [#value_ty: NdNegWrapping <#value_ty, Type = #ty>],
+                    - with @wrapping where [#value_ty: #prefix::NdNegWrapping <#value_ty, Type = #ty>],
                 },
                 OpsUnaryModeWith::Saturating(_, _) => parse_quote! {
-                    ! where [#value_ty: NdNot<#value_ty, Type = #ty>],
+                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
 
-                    - with @saturating where [#value_ty: NdNegSaturating <#value_ty, Type = #ty>],
+                    - with @saturating where [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
                 },
             },
         }
     }
 
-    fn nd_definitions(&self, expr: &OpsExpressionUnaryAuto) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsNdUnaryFwd>> {
+    fn nd_definitions(
+        &self,
+        expr: &OpsExpressionUnaryAuto,
+        token: Option<Token![crate]>,
+    ) -> OpsDefinitionAuto<OpsDefinitionFwd<OpsNdUnaryFwd>> {
         let value_ty = &expr.value_ty_expr;
         let ty = &expr.ty_expr;
+        let prefix = token.map(|token| quote! { #token::ops }).unwrap_or(quote! { ndext::ops });
 
         match self {
             OpsUnaryModeAuto::Std(mode) => match mode {
                 OpsUnaryModeWith::Default => parse_quote! {
-                    ! where                 [#value_ty: NdNot           <#value_ty, Type = #ty>],
-                    - where                 [#value_ty: NdNeg           <#value_ty, Type = #ty>],
-                    - @checked where        [#value_ty: NdNegChecked    <#value_ty, Type = #ty>],
-                    - @strict where         [#value_ty: NdNegStrict     <#value_ty, Type = #ty>],
-                    - @wrapping where       [#value_ty: NdNegWrapping   <#value_ty, Type = #ty>],
-                    - @saturating where     [#value_ty: NdNegSaturating <#value_ty, Type = #ty>],
-                    - @overflowing where    [#value_ty: NdNegOverflowing<#value_ty, Type = #ty>],
+                    ! where                 [#value_ty: #prefix::NdNot           <#value_ty, Type = #ty>],
+                    - where                 [#value_ty: #prefix::NdNeg           <#value_ty, Type = #ty>],
+                    - @checked where        [#value_ty: #prefix::NdNegChecked    <#value_ty, Type = #ty>],
+                    - @strict where         [#value_ty: #prefix::NdNegStrict     <#value_ty, Type = #ty>],
+                    - @wrapping where       [#value_ty: #prefix::NdNegWrapping   <#value_ty, Type = #ty>],
+                    - @saturating where     [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
+                    - @overflowing where    [#value_ty: #prefix::NdNegOverflowing<#value_ty, Type = #ty>],
 
-                    posx where              [#value_ty: NdPosx           <#value_ty, Type = #ty>],
-                    posx @checked where     [#value_ty: NdPosxChecked    <#value_ty, Type = #ty>],
-                    posx @strict where      [#value_ty: NdPosxStrict     <#value_ty, Type = #ty>],
-                    posx @wrapping where    [#value_ty: NdPosxWrapping   <#value_ty, Type = #ty>],
-                    posx @saturating where  [#value_ty: NdPosxSaturating <#value_ty, Type = #ty>],
-                    posx @overflowing where [#value_ty: NdPosxOverflowing<#value_ty, Type = #ty>],
+                    posx where              [#value_ty: #prefix::NdPosx           <#value_ty, Type = #ty>],
+                    posx @checked where     [#value_ty: #prefix::NdPosxChecked    <#value_ty, Type = #ty>],
+                    posx @strict where      [#value_ty: #prefix::NdPosxStrict     <#value_ty, Type = #ty>],
+                    posx @wrapping where    [#value_ty: #prefix::NdPosxWrapping   <#value_ty, Type = #ty>],
+                    posx @saturating where  [#value_ty: #prefix::NdPosxSaturating <#value_ty, Type = #ty>],
+                    posx @overflowing where [#value_ty: #prefix::NdPosxOverflowing<#value_ty, Type = #ty>],
 
-                    negx where              [#value_ty: NdNegx           <#value_ty, Type = #ty>],
-                    negx @checked where     [#value_ty: NdNegxChecked    <#value_ty, Type = #ty>],
-                    negx @strict where      [#value_ty: NdNegxStrict     <#value_ty, Type = #ty>],
-                    negx @wrapping where    [#value_ty: NdNegxWrapping   <#value_ty, Type = #ty>],
-                    negx @saturating where  [#value_ty: NdNegxSaturating <#value_ty, Type = #ty>],
-                    negx @overflowing where [#value_ty: NdNegxOverflowing<#value_ty, Type = #ty>],
+                    negx where              [#value_ty: #prefix::NdNegx           <#value_ty, Type = #ty>],
+                    negx @checked where     [#value_ty: #prefix::NdNegxChecked    <#value_ty, Type = #ty>],
+                    negx @strict where      [#value_ty: #prefix::NdNegxStrict     <#value_ty, Type = #ty>],
+                    negx @wrapping where    [#value_ty: #prefix::NdNegxWrapping   <#value_ty, Type = #ty>],
+                    negx @saturating where  [#value_ty: #prefix::NdNegxSaturating <#value_ty, Type = #ty>],
+                    negx @overflowing where [#value_ty: #prefix::NdNegxOverflowing<#value_ty, Type = #ty>],
                 },
                 OpsUnaryModeWith::Strict(_, _) => parse_quote! {
-                    ! where [#value_ty: NdNot<#value_ty, Type = #ty>],
+                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
 
-                    -    with @strict where [#value_ty: NdNegStrict <#value_ty, Type = #ty>],
-                    posx with @strict where [#value_ty: NdPosxStrict<#value_ty, Type = #ty>],
-                    negx with @strict where [#value_ty: NdNegxStrict<#value_ty, Type = #ty>],
+                    -    with @strict where [#value_ty: #prefix::NdNegStrict <#value_ty, Type = #ty>],
+                    posx with @strict where [#value_ty: #prefix::NdPosxStrict<#value_ty, Type = #ty>],
+                    negx with @strict where [#value_ty: #prefix::NdNegxStrict<#value_ty, Type = #ty>],
                 },
                 OpsUnaryModeWith::Wrapping(_, _) => parse_quote! {
-                    ! where [#value_ty: NdNot<#value_ty, Type = #ty>],
+                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
 
-                    -    with @wrapping where [#value_ty: NdNegWrapping <#value_ty, Type = #ty>],
-                    posx with @wrapping where [#value_ty: NdPosxWrapping<#value_ty, Type = #ty>],
-                    negx with @wrapping where [#value_ty: NdNegxWrapping<#value_ty, Type = #ty>],
+                    -    with @wrapping where [#value_ty: #prefix::NdNegWrapping <#value_ty, Type = #ty>],
+                    posx with @wrapping where [#value_ty: #prefix::NdPosxWrapping<#value_ty, Type = #ty>],
+                    negx with @wrapping where [#value_ty: #prefix::NdNegxWrapping<#value_ty, Type = #ty>],
                 },
                 OpsUnaryModeWith::Saturating(_, _) => parse_quote! {
-                    ! where [#value_ty: NdNot<#value_ty, Type = #ty>],
+                    ! where [#value_ty: #prefix::NdNot<#value_ty, Type = #ty>],
 
-                    -    with @saturating where [#value_ty: NdNegSaturating <#value_ty, Type = #ty>],
-                    posx with @saturating where [#value_ty: NdPosxSaturating<#value_ty, Type = #ty>],
-                    negx with @saturating where [#value_ty: NdNegxSaturating<#value_ty, Type = #ty>],
+                    -    with @saturating where [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
+                    posx with @saturating where [#value_ty: #prefix::NdPosxSaturating<#value_ty, Type = #ty>],
+                    negx with @saturating where [#value_ty: #prefix::NdNegxSaturating<#value_ty, Type = #ty>],
                 },
             },
         }
