@@ -245,6 +245,37 @@ pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
 }
 
 /// Zero-boilerplate operations automation.
+///
+/// The macro defines operation implementation with provided expressions.
+///
+/// - For `Std-kind` operations definition it supports asterisk notation.
+/// - For `Nd-kind` operations definition it supports seven modes.
+///
+/// # Syntax
+///
+/// ```text
+/// ndops::fwd! { <kind> <opts> <generics> <signature>, <impl> }
+///
+/// <kind> := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
+/// <mode> := "" | @default | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
+/// <opts> := "" | with <mode> | @shift with <mode>
+///
+/// <generics> := <<param>,*> <conditions>?
+///
+/// <signature> :=
+///     (<pat>: &mut <type>, (*)? <pat>: <type>)                    | // @stdmut
+///     ((*)? <pat>: <type>, (*)? <pat>: <type>) -> <type>          | // @stdbin
+///     ((*)? <pat>: <type>)                     -> <type>          | // @stdun
+///     (<pat>: &mut <type>, <pat>: &<type>)           <impl_type>? | // @ndmut
+///     (<pat>: &<type>,     <pat>: &<type>) -> <type> <impl_type>? | // @ndbin
+///     (<pat>: &<type>)                     -> <type> <impl_type>? | // @ndun
+///
+/// <impl_type> := for <type> | for [<type>,*]
+/// <impl> :=
+///     (<lhs_ty>) (<rhs_ty>) (<lhs_expr>) (<rhs_expr>)            | // @stdmut, @ndmut
+///     (<lhs_ty>) (<rhs_ty>) (<res_ty>) (<lhs_expr>) (<rhs_expr>) | // @stdbin, @ndbin
+///     (<type>) (<res_ty>) (<value_expr>)                         | // @stdun, @ndun
+/// ```
 #[proc_macro]
 pub fn auto(stream: TokenStreamStd) -> TokenStreamStd {
     match parse_macro_input!(stream as OpsAuto) {
