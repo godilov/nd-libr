@@ -4,8 +4,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta, Path,
-    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
+    Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemStruct, ItemTrait, ItemUnion, Meta, Path, Result,
+    Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
@@ -586,34 +586,6 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
         ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
         ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
-        ForwardDefItem::Impl(val) => {
-            let ForwardImpl { fwd: _, idents: _ } = parse_macro_input!(attr as ForwardImpl);
-
-            let attrs = &val.attrs;
-            let default = &val.defaultness;
-            let unsafety = &val.unsafety;
-            let generics = &val.generics;
-            let interface = &val.trait_;
-            let ty = &val.self_ty;
-            let items = &val.items;
-
-            let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
-
-            let interface = match interface {
-                Some((x, y, z)) => {
-                    quote! { #x #y #z }
-                },
-                None => quote! {},
-            };
-
-            quote! {
-                #(#attrs)*
-                #default #unsafety impl #gen_impl #interface #gen_type #ty #gen_where {
-                    #(#items)*
-                }
-            }
-            .into()
-        },
     }
 }
 
@@ -718,7 +690,6 @@ enum ForwardDefItem {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
-    Impl(ItemImpl),
 }
 
 #[allow(unused)]
@@ -792,16 +763,9 @@ impl Parse for ForwardDefItem {
             Item::Struct(val) => Ok(Self::Struct(val)),
             Item::Enum(val) => Ok(Self::Enum(val)),
             Item::Union(val) => Ok(Self::Union(val)),
-            Item::Impl(val) => {
-                if val.trait_.is_none() {
-                    return Err(Error::new_spanned(val, "Failed to find correct item, expected impl for trait"));
-                }
-
-                Ok(Self::Impl(val))
-            },
             _ => Err(Error::new_spanned(
                 item,
-                "Failed to find correct item, expected struct, enum, union or impl",
+                "Failed to find correct item, expected struct, enum or union",
             )),
         }
     }
@@ -853,7 +817,6 @@ impl ToTokens for ForwardDefItem {
             ForwardDefItem::Struct(val) => val.to_tokens(tokens),
             ForwardDefItem::Enum(val) => val.to_tokens(tokens),
             ForwardDefItem::Union(val) => val.to_tokens(tokens),
-            ForwardDefItem::Impl(val) => val.to_tokens(tokens),
         }
     }
 }
