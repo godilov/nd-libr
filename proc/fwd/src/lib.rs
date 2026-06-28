@@ -525,7 +525,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         }};
     }
 
-    fn forward(ident: &Ident, generics: &Generics, attr: &ForwardData, item: TokenStream) -> TokenStreamStd {
+    fn forward(ident: &Ident, generics: &Generics, attr: &ForwardAttr, item: TokenStream) -> TokenStreamStd {
         let gen_params = &generics.params;
         let (_, gen_type, _) = generics.split_for_impl();
 
@@ -583,9 +583,9 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let item = parse_macro_input!(item as ForwardDefItem);
 
     match item {
-        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
-        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
-        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardData)),
+        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
+        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
+        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
     }
 }
 
@@ -693,7 +693,7 @@ enum ForwardDefItem {
 }
 
 #[allow(unused)]
-struct ForwardData {
+struct ForwardAttr {
     fwd: Forward,
     colon: Token![:],
     path: Path,
@@ -701,27 +701,15 @@ struct ForwardData {
     conditions: Option<WhereClause>,
 }
 
-#[allow(unused)]
-struct ForwardImpl {
-    fwd: Forward,
-    idents: Option<ForwardIdents>,
-}
-
-#[allow(unused)]
-struct ForwardIdents {
-    colon: Token![:],
-    elems: Punctuated<Ident, Token![,]>,
-}
-
 #[derive(Debug, Clone)]
-enum ForwardExpression {
+enum ForwardExpr {
     Raw(TokenStream),
     Ref(TokenStream),
     Mut(TokenStream),
 }
 
 #[derive(Debug, Clone)]
-enum ForwardArgument {
+enum ForwardArg {
     Raw(TokenStream),
     Alt(TokenStream),
 }
@@ -771,7 +759,7 @@ impl Parse for ForwardDefItem {
     }
 }
 
-impl Parse for ForwardData {
+impl Parse for ForwardAttr {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             fwd: input.parse()?,
@@ -779,24 +767,6 @@ impl Parse for ForwardData {
             path: input.parse()?,
             defaults: input.parse()?,
             conditions: input.parse()?,
-        })
-    }
-}
-
-impl Parse for ForwardImpl {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            fwd: input.parse()?,
-            idents: input.parse().ok(),
-        })
-    }
-}
-
-impl Parse for ForwardIdents {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            colon: input.parse()?,
-            elems: input.parse_terminated(Ident::parse, Token![,])?,
         })
     }
 }
@@ -821,12 +791,12 @@ impl ToTokens for ForwardDefItem {
     }
 }
 
-impl ToTokens for ForwardExpression {
+impl ToTokens for ForwardExpr {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            ForwardExpression::Raw(val) => val.to_tokens(tokens),
-            ForwardExpression::Ref(val) => val.to_tokens(tokens),
-            ForwardExpression::Mut(val) => val.to_tokens(tokens),
+            ForwardExpr::Raw(val) => val.to_tokens(tokens),
+            ForwardExpr::Ref(val) => val.to_tokens(tokens),
+            ForwardExpr::Mut(val) => val.to_tokens(tokens),
         }
     }
 }
@@ -847,21 +817,21 @@ impl ForwardDataItem {
     }
 }
 
-impl ForwardExpression {
+impl ForwardExpr {
     fn stream(self) -> TokenStream {
         match self {
-            ForwardExpression::Raw(val) => val,
-            ForwardExpression::Ref(val) => val,
-            ForwardExpression::Mut(val) => val,
+            ForwardExpr::Raw(val) => val,
+            ForwardExpr::Ref(val) => val,
+            ForwardExpr::Mut(val) => val,
         }
     }
 }
 
-impl ForwardArgument {
+impl ForwardArg {
     fn stream(self) -> TokenStream {
         match self {
-            ForwardArgument::Raw(val) => val,
-            ForwardArgument::Alt(val) => val,
+            ForwardArg::Raw(val) => val,
+            ForwardArg::Alt(val) => val,
         }
     }
 }
@@ -989,7 +959,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
             let ident = format_ident!("arg{}", idx);
             let expr = quote! { #ident };
 
-            let arg = get_forward_argument(ForwardExpression::Raw(expr), &val.ty);
+            let arg = get_forward_argument(ForwardExpr::Raw(expr), &val.ty);
 
             Ok(arg?.stream())
         })
@@ -1144,33 +1114,33 @@ fn get_forward_expr(meta: &Meta) -> Result<Expr> {
     }
 }
 
-fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArgument> {
+fn get_forward_argument(expr: ForwardExpr, ty: &Type) -> Result<ForwardArg> {
     match ty {
         Type::Path(val) => {
             if val.path.segments.last().is_some_and(|seg| seg.ident == "Self") {
                 return Ok(match expr {
-                    ForwardExpression::Raw(val) => ForwardArgument::Alt(quote! { #val.forward() }),
-                    ForwardExpression::Ref(val) => ForwardArgument::Alt(quote! { #val.forward_ref() }),
-                    ForwardExpression::Mut(val) => ForwardArgument::Alt(quote! { #val.forward_mut() }),
+                    ForwardExpr::Raw(val) => ForwardArg::Alt(quote! { #val.forward() }),
+                    ForwardExpr::Ref(val) => ForwardArg::Alt(quote! { #val.forward_ref() }),
+                    ForwardExpr::Mut(val) => ForwardArg::Alt(quote! { #val.forward_mut() }),
                 });
             }
 
             if val.path.segments.first().is_some_and(|seg| seg.ident == "Self") {
-                return Ok(ForwardArgument::Alt(quote! { #expr.into() }));
+                return Ok(ForwardArg::Alt(quote! { #expr.into() }));
             }
 
-            Ok(ForwardArgument::Raw(expr.stream()))
+            Ok(ForwardArg::Raw(expr.stream()))
         },
         Type::Array(val) => match get_forward_argument(expr, &val.elem)? {
-            ForwardArgument::Raw(val) => Ok(ForwardArgument::Raw(val)),
-            ForwardArgument::Alt(val) => Err(Error::new_spanned(
+            ForwardArg::Raw(val) => Ok(ForwardArg::Raw(val)),
+            ForwardArg::Alt(val) => Err(Error::new_spanned(
                 val,
                 "Failed to forward argument, alternating in array is unsupported",
             )),
         },
         Type::Slice(val) => match get_forward_argument(expr, &val.elem)? {
-            ForwardArgument::Raw(val) => Ok(ForwardArgument::Raw(val)),
-            ForwardArgument::Alt(val) => Err(Error::new_spanned(
+            ForwardArg::Raw(val) => Ok(ForwardArg::Raw(val)),
+            ForwardArg::Alt(val) => Err(Error::new_spanned(
                 val,
                 "Failed to forward argument, alternating in slice is unsupported",
             )),
@@ -1180,44 +1150,44 @@ fn get_forward_argument(expr: ForwardExpression, ty: &Type) -> Result<ForwardArg
                 .elems
                 .iter()
                 .enumerate()
-                .map(|(idx, elem)| get_forward_argument(ForwardExpression::Raw(quote! { #expr.#idx }), elem))
-                .collect::<Result<Vec<ForwardArgument>>>()?;
+                .map(|(idx, elem)| get_forward_argument(ForwardExpr::Raw(quote! { #expr.#idx }), elem))
+                .collect::<Result<Vec<ForwardArg>>>()?;
 
             if args.iter().all(|arg| match arg {
-                ForwardArgument::Raw(_) => true,
-                ForwardArgument::Alt(_) => false,
+                ForwardArg::Raw(_) => true,
+                ForwardArg::Alt(_) => false,
             }) {
-                return Ok(ForwardArgument::Raw(expr.stream()));
+                return Ok(ForwardArg::Raw(expr.stream()));
             }
 
             let args = args.iter().map(|arg| match arg {
-                ForwardArgument::Raw(val) => quote! { #val },
-                ForwardArgument::Alt(val) => quote! { #val },
+                ForwardArg::Raw(val) => quote! { #val },
+                ForwardArg::Alt(val) => quote! { #val },
             });
 
-            Ok(ForwardArgument::Alt(quote! { #(#args),* }))
+            Ok(ForwardArg::Alt(quote! { #(#args),* }))
         },
-        Type::Group(val) => get_forward_argument(ForwardExpression::Raw(expr.stream()), &val.elem),
-        Type::Paren(val) => get_forward_argument(ForwardExpression::Raw(expr.stream()), &val.elem),
+        Type::Group(val) => get_forward_argument(ForwardExpr::Raw(expr.stream()), &val.elem),
+        Type::Paren(val) => get_forward_argument(ForwardExpr::Raw(expr.stream()), &val.elem),
         Type::Ptr(val) => get_forward_argument(
             match val.mutability {
-                Some(_) => ForwardExpression::Mut(expr.stream()),
-                None => ForwardExpression::Ref(expr.stream()),
+                Some(_) => ForwardExpr::Mut(expr.stream()),
+                None => ForwardExpr::Ref(expr.stream()),
             },
             &val.elem,
         ),
         Type::Reference(val) => get_forward_argument(
             match val.mutability {
-                Some(_) => ForwardExpression::Mut(expr.stream()),
-                None => ForwardExpression::Ref(expr.stream()),
+                Some(_) => ForwardExpr::Mut(expr.stream()),
+                None => ForwardExpr::Ref(expr.stream()),
             },
             &val.elem,
         ),
         Type::Never(val) => Err(Error::new_spanned(val, "Failed to forward argument, never type is unsupported")),
         Type::Macro(val) => Err(Error::new_spanned(val, "Failed to forward argument, macro type is unsupported")),
-        Type::BareFn(_) => Ok(ForwardArgument::Raw(expr.stream())),
-        Type::ImplTrait(_) => Ok(ForwardArgument::Raw(expr.stream())),
-        Type::TraitObject(_) => Ok(ForwardArgument::Raw(expr.stream())),
+        Type::BareFn(_) => Ok(ForwardArg::Raw(expr.stream())),
+        Type::ImplTrait(_) => Ok(ForwardArg::Raw(expr.stream())),
+        Type::TraitObject(_) => Ok(ForwardArg::Raw(expr.stream())),
         Type::Verbatim(val) => Err(Error::new_spanned(val, "Failed to forward argument, verbatim was found")),
         ty => Err(Error::new_spanned(ty, "Failed to forward argument, unknown type was found")),
     }
