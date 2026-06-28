@@ -254,7 +254,7 @@ pub fn fwd(stream: TokenStreamStd) -> TokenStreamStd {
 /// # Syntax
 ///
 /// ```text
-/// ndops::fwd! { <kind> <opts> <generics> <signature>, <impl> }
+/// ndops::auto! { <kind> <opts> <generics> <signature>, <impl> }
 ///
 /// <kind> := @stdmut | @stdbin | @stdun | @ndmut | @ndbin | @ndun
 /// <mode> := "" | @default | @checked | @strict | @wrapping | @saturating | @overflowing | @unbounded
