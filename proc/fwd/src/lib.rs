@@ -521,61 +521,63 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let item = $item;
             let attr = $attr;
 
-            let ident = &item.ident;
-            let generics = &item.generics;
-            let gen_params = &item.generics.params;
-            let (_, gen_type, _) = item.generics.split_for_impl();
-
-            let expr = &attr.fwd.expr;
-            let ty = &attr.fwd.ty;
-            let path = &attr.path;
-            let defaults = &attr.defaults;
-
-            let sig_predicates = item.generics.where_clause.as_ref().map(|val| val.predicates.iter());
-            let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
-
-            let gen_where = match (sig_predicates, attr_predicates) {
-                (Some(sig), Some(attr)) => quote! { #ty: #path, #(#sig,)* #(#attr,)* },
-                (Some(sig), None) => quote! { #ty: #path, #(#sig,)* },
-                (None, Some(attr)) => quote! { #ty: #path, #(#attr,)* },
-                (None, None) => quote! { #ty: #path, },
-            };
-
-            let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
-            let id = match path.segments.last() {
-                Some(val) => &val.ident,
-                None => {
-                    return Error::new_spanned(&path.segments, "Failed to forward definition, path is empty")
-                        .into_compile_error()
-                        .into();
-                },
-            };
-
-            let forward = get_forward_impl(ident, generics, expr, ty);
-            let module = format_ident!("__forward_impl_{}_{}", &id, &ident);
-            let macros = format_ident!("__forward_impl_{}", &id);
-
-            quote! {
-                #item
-
-                #[doc(hidden)]
-                #[allow(non_snake_case)]
-                mod #module {
-                    #forward
-
-                    #macros!(@ #defaults #ident #gen_type, #ty, (#gen_params), (#gen_where));
-
-                    use super::*;
-
-                    #[allow(unused_imports)]
-                    use #(#segs::)*#macros;
-
-                    #[allow(unused_imports)]
-                    use #path;
-                }
-            }
-            .into()
+            forward(&item.ident, &item.generics, &attr, quote! { #item })
         }};
+    }
+
+    fn forward(ident: &Ident, generics: &Generics, attr: &ForwardData, item: TokenStream) -> TokenStreamStd {
+        let gen_params = &generics.params;
+        let (_, gen_type, _) = generics.split_for_impl();
+
+        let expr = &attr.fwd.expr;
+        let ty = &attr.fwd.ty;
+        let path = &attr.path;
+        let defaults = &attr.defaults;
+
+        let sig_predicates = generics.where_clause.as_ref().map(|val| val.predicates.iter());
+        let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
+
+        let gen_where = match (sig_predicates, attr_predicates) {
+            (Some(sig), Some(attr)) => quote! { #ty: #path, #(#sig,)* #(#attr,)* },
+            (Some(sig), None) => quote! { #ty: #path, #(#sig,)* },
+            (None, Some(attr)) => quote! { #ty: #path, #(#attr,)* },
+            (None, None) => quote! { #ty: #path, },
+        };
+
+        let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
+        let id = match path.segments.last() {
+            Some(val) => &val.ident,
+            None => {
+                return Error::new_spanned(&path.segments, "Failed to forward definition, path is empty")
+                    .into_compile_error()
+                    .into();
+            },
+        };
+
+        let forward = get_forward_impl(ident, generics, expr, ty);
+        let module = format_ident!("__forward_impl_{}_{}", &id, &ident);
+        let macros = format_ident!("__forward_impl_{}", &id);
+
+        quote! {
+            #item
+
+            #[doc(hidden)]
+            #[allow(non_snake_case)]
+            mod #module {
+                #forward
+
+                #macros!(@ #defaults #ident #gen_type, #ty, (#gen_params), (#gen_where));
+
+                use super::*;
+
+                #[allow(unused_imports)]
+                use #(#segs::)*#macros;
+
+                #[allow(unused_imports)]
+                use #path;
+            }
+        }
+        .into()
     }
 
     let item = parse_macro_input!(item as ForwardDefItem);
