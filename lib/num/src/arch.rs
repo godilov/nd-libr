@@ -610,8 +610,6 @@ pub struct Aligned64<T>(pub T);
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned128<T>(pub T);
 
-// ndfwd::impl(<T> BytesLen for Aligned<T>)
-
 /// Offset for reading/writing binary mask.
 ///
 /// - `Offset::Left(val)` specifies `val`-bits offset from `0`.

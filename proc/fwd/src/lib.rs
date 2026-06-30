@@ -448,13 +448,13 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            (@ $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
+            ($self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
                 impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
                     #(#all)*
                 }
             };
 
-            (@ ! $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
+            (! $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
                 impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
                     #(#defaults)*
                 }
@@ -565,7 +565,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             mod #module {
                 #forward
 
-                #macros!(@ #defaults #ident #gen_type, #ty, (#gen_params), (#gen_where));
+                #macros!(#defaults #ident #gen_type, #ty, (#gen_params), (#gen_where));
 
                 use super::*;
 
