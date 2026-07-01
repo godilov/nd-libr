@@ -411,7 +411,7 @@ impl Parse for AssertPrime {
             _ => {
                 return Err(Error::new_spanned(
                     len,
-                    "Failed to parse assert range, expected len to be 4 * N, where N in [1; 15]",
+                    "Failed to parse assert range, len is expected to be 4 * N, where N in [1; 15]",
                 ));
             },
         };

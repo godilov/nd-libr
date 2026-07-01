@@ -1006,7 +1006,7 @@ impl Parse for OpsStdSignatureAssign {
             _ => {
                 return Err(Error::new_spanned(
                     lhs_pat.ty,
-                    "Failed to parse signature, lhs expected to be mutable reference",
+                    "Failed to parse signature, lhs is expected to be mutable reference",
                 ));
             },
         };
@@ -1016,7 +1016,7 @@ impl Parse for OpsStdSignatureAssign {
                 Some(_) => {
                     return Err(Error::new_spanned(
                         rhs_pat.ty,
-                        "Failed to parse signature, rhs expected to be reference",
+                        "Failed to parse signature, rhs is expected to be reference",
                     ));
                 },
                 None => ((*val.elem).clone(), Some(Default::default())),
@@ -1059,7 +1059,7 @@ impl Parse for OpsStdSignatureBinary {
                 Some(_) => {
                     return Err(Error::new_spanned(
                         lhs_pat.ty,
-                        "Failed to parse signature, lhs expected to be reference",
+                        "Failed to parse signature, lhs is expected to be reference",
                     ));
                 },
                 None => ((*val.elem).clone(), Some(Default::default())),
@@ -1072,7 +1072,7 @@ impl Parse for OpsStdSignatureBinary {
                 Some(_) => {
                     return Err(Error::new_spanned(
                         rhs_pat.ty,
-                        "Failed to parse signature, rhs expected to be reference",
+                        "Failed to parse signature, rhs is expected to be reference",
                     ));
                 },
                 None => ((*val.elem).clone(), Some(Default::default())),
@@ -1116,7 +1116,7 @@ impl Parse for OpsStdSignatureUnary {
                 Some(_) => {
                     return Err(Error::new_spanned(
                         value_pat.ty,
-                        "Failed to parse signature, value expected to be reference",
+                        "Failed to parse signature, value is expected to be reference",
                     ));
                 },
                 None => ((*val.elem).clone(), Some(Default::default())),

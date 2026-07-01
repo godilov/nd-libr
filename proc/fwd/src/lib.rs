@@ -4,8 +4,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemStruct, ItemTrait, ItemUnion, Meta, Path, Result,
-    Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
+    Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta, Path,
+    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
 };
@@ -585,6 +585,27 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
         ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
         ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
+        ForwardDefItem::Impl(val) => {
+            let ident = match val.self_ty.as_ref() {
+                Type::Path(val) => match val.path.segments.last().map(|seg| &seg.ident) {
+                    Some(val) => val,
+                    None => {
+                        return Error::new_spanned(val, "Failed to forward definition, ident is not found")
+                            .into_compile_error()
+                            .into();
+                    },
+                },
+                ty => {
+                    return Error::new_spanned(ty, "Failed to forward definition, expected path for impl type")
+                        .into_compile_error()
+                        .into();
+                },
+            };
+
+            let generics = &val.generics;
+
+            forward(ident, generics, &parse_macro_input!(attr as ForwardAttr), quote! {})
+        },
     }
 }
 
@@ -689,6 +710,7 @@ enum ForwardDefItem {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
+    Impl(ItemImpl),
 }
 
 #[allow(unused)]
@@ -750,9 +772,25 @@ impl Parse for ForwardDefItem {
             Item::Struct(val) => Ok(Self::Struct(val)),
             Item::Enum(val) => Ok(Self::Enum(val)),
             Item::Union(val) => Ok(Self::Union(val)),
+            Item::Impl(val) => match &val.trait_ {
+                Some((not, path, _)) => match not {
+                    Some(val) => Err(Error::new_spanned(
+                        val,
+                        "Failed to find correct NdForward impl marker: ! is not allowed",
+                    )),
+                    None => match path.is_ident(&format_ident!("NdForward")) {
+                        true => Ok(Self::Impl(val)),
+                        false => Err(Error::new_spanned(
+                            path,
+                            "Failed to find correct NdForward impl marker: ident is expected to be NdForward",
+                        )),
+                    },
+                },
+                None => Err(Error::new_spanned(val, "Failed to find correct NdForward impl marker")),
+            },
             _ => Err(Error::new_spanned(
                 item,
-                "Failed to find correct item, expected struct, enum or union",
+                "Failed to find correct item, expected struct, enum, union or impl",
             )),
         }
     }
@@ -786,6 +824,7 @@ impl ToTokens for ForwardDefItem {
             ForwardDefItem::Struct(val) => val.to_tokens(tokens),
             ForwardDefItem::Enum(val) => val.to_tokens(tokens),
             ForwardDefItem::Union(val) => val.to_tokens(tokens),
+            ForwardDefItem::Impl(val) => val.to_tokens(tokens),
         }
     }
 }
