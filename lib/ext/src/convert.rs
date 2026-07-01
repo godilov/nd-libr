@@ -14,6 +14,14 @@ pub trait NdFrom<T, Ctx>: Sized {
     fn nd_from(value: T, ctx: Ctx) -> Self;
 }
 
+/// `Nd-kind` eXtra extension for [`std::convert::From`] and [`NdFrom`].
+///
+/// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
+pub trait NdxFrom<T, Ctx>: Sized {
+    /// Convert from value in non-failable way.
+    fn ndx_from(value: T, ctx: Ctx) -> Self;
+}
+
 /// `Nd-kind` extension for [`std::convert::TryFrom`].
 ///
 /// Allows to implement [`NdFrom`] and [`NdTryFrom`] at the same time with additional context or interpretation.
@@ -27,6 +35,17 @@ pub trait NdTryFrom<T, Ctx>: Sized {
 
     /// Convert from value in failable way.
     fn nd_try_from(value: T, ctx: Ctx) -> Result<Self, Self::Error>;
+}
+
+/// `Nd-kind` eXtra extension for [`std::convert::TryFrom`] and [`NdTryFrom`].
+///
+/// For more info, see [module-level](crate::convert) and [crate-level](crate) documentation.
+pub trait NdxTryFrom<T, Ctx>: Sized {
+    /// Conversion error type.
+    type Error;
+
+    /// Convert from value in failable way.
+    fn ndx_try_from(value: T, ctx: Ctx) -> Result<Self, Self::Error>;
 }
 
 /// `Nd-kind` extension for [`std::str::FromStr`].
