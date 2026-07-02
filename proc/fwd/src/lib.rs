@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta, Path,
-    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
+    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypePath, WhereClause,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
 };
@@ -136,7 +136,8 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where #ty: std::cmp::Eq },
     };
 
-    let forward_impl = get_forward_impl(&Path::from(ident.clone()), generics, expr, ty);
+    let path = parse_quote! { #ident #gen_type };
+    let forward_impl = get_forward_impl(&path, generics, expr, ty);
 
     quote! {
         #item
@@ -528,13 +529,15 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             let attr = $attr;
             let quote = quote! { #item };
 
-            forward(&Path::from(item.ident), &item.generics, &attr, quote)
+            let ident = &item.ident;
+            let (_, gen_type, _) = &item.generics.split_for_impl();
+
+            forward(parse_quote! { #ident #gen_type }, &item.generics, &attr, quote)
         }};
     }
 
-    fn forward(path: &Path, generics: &Generics, attr: &ForwardAttr, item: TokenStream) -> TokenStreamStd {
+    fn forward(path: TypePath, generics: &Generics, attr: &ForwardAttr, item: TokenStream) -> TokenStreamStd {
         let gen_params = &generics.params;
-        let (_, gen_type, _) = generics.split_for_impl();
 
         let expr = &attr.fwd.expr;
         let ty = &attr.fwd.ty;
@@ -562,11 +565,12 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         };
 
         let name = path
+            .path
             .segments
             .iter()
             .fold(String::new(), |acc, seg| format!("{}_{}", &acc, seg.ident));
 
-        let forward = get_forward_impl(path, generics, expr, ty);
+        let forward = get_forward_impl(&path, generics, expr, ty);
         let module = format_ident!("__forward_impl_{}_{}", &id, &name);
         let macros = format_ident!("__forward_impl_{}", &id);
 
@@ -578,7 +582,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             mod #module {
                 #forward
 
-                #macros!(#defaults #path #gen_type, #ty, (#gen_params), (#gen_where));
+                #macros!(#defaults #path, #ty, (#gen_params), (#gen_where));
 
                 use super::*;
 
@@ -599,8 +603,9 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
         ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
         ForwardDefItem::Impl(val) => {
-            let path = match val.self_ty.as_ref() {
-                Type::Path(val) => &val.path,
+            let quote = quote! { #val };
+            let path = match *val.self_ty {
+                Type::Path(val) => val,
                 ty => {
                     return Error::new_spanned(ty, "Failed to forward definition, expected path for impl type")
                         .into_compile_error()
@@ -610,7 +615,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let generics = &val.generics;
 
-            forward(path, generics, &parse_macro_input!(attr as ForwardAttr), quote! {})
+            forward(path, generics, &parse_macro_input!(attr as ForwardAttr), quote)
         },
     }
 }
@@ -880,8 +885,8 @@ impl ForwardArg {
     }
 }
 
-fn get_forward_impl(path: &Path, generics: &Generics, expr: &Expr, ty: &Type) -> TokenStream {
-    let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
+fn get_forward_impl(path: &TypePath, generics: &Generics, expr: &Expr, ty: &Type) -> TokenStream {
+    let (gen_impl, _, gen_where) = generics.split_for_impl();
 
     quote! {
         trait Forward {
@@ -894,7 +899,7 @@ fn get_forward_impl(path: &Path, generics: &Generics, expr: &Expr, ty: &Type) ->
             fn forward_mut(&mut self) -> &mut Self::Type;
         }
 
-        impl #gen_impl Forward for #path #gen_type #gen_where {
+        impl #gen_impl Forward for #path #gen_where {
             type Type = #ty;
 
             #[inline]
