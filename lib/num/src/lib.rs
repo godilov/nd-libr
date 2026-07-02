@@ -79,53 +79,14 @@ macro_rules! num_impl {
             const MAX: Self = Self::MAX;
         }
 
-        impl LeCt for $primitive {
-            #[inline(never)]
-            fn le_ct(&self, other: &Self) -> MaskCt {
-                !self.gt_ct(other)
-            }
-        }
+        impl LeCt for $primitive {}
+        impl GeCt for $primitive {}
 
-        impl GeCt for $primitive {
-            #[inline(never)]
-            fn ge_ct(&self, other: &Self) -> MaskCt {
-                !self.lt_ct(other)
-            }
-        }
+        impl SignCt for $primitive {}
+        impl CmpCt for $primitive {}
 
-        impl SignCt for $primitive {
-            #[inline(never)]
-            fn sign_ct(&self) -> RelCt {
-                let pos = self.is_pos_ct() as RelCt;
-                let neg = self.is_neg_ct() as RelCt;
-
-                pos & 1 | neg
-            }
-        }
-
-        impl CmpCt for $primitive {
-            #[inline(never)]
-            fn cmp_ct(&self, other: &Self) -> RelCt {
-                let lt = self.lt_ct(other) as RelCt;
-                let gt = self.gt_ct(other) as RelCt;
-
-                lt | gt & 1
-            }
-        }
-
-        impl MinCt for $primitive {
-            #[inline]
-            fn min_ct(&self, other: &Self) -> Self {
-                SelectCt::select_ct(self, other, self.lt_ct(other))
-            }
-        }
-
-        impl MaxCt for $primitive {
-            #[inline]
-            fn max_ct(&self, other: &Self) -> Self {
-                SelectCt::select_ct(self, other, self.gt_ct(other))
-            }
-        }
+        impl MinCt for $primitive {}
+        impl MaxCt for $primitive {}
 
         impl SelectCt for $primitive {
             #[inline(never)]
@@ -1125,35 +1086,41 @@ pub trait GtCt {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait LeCt {
+pub trait LeCt: EqCt + LtCt + GtCt {
     /// Const-time less-or-equal-then function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `lhs > rhs`.
     /// - `MaskCt::MAX` => `lhs <= rhs`.
-    fn le_ct(&self, other: &Self) -> MaskCt;
+    #[inline]
+    fn le_ct(&self, other: &Self) -> MaskCt {
+        !self.gt_ct(other)
+    }
 }
 
 /// Const-time greater-or-equal-then comparison.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait GeCt {
+pub trait GeCt: EqCt + LtCt + GtCt {
     /// Const-time greater-or-equal-then function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `lhs < rhs`.
     /// - `MaskCt::MAX` => `lhs >= rhs`.
-    fn ge_ct(&self, other: &Self) -> MaskCt;
+    #[inline]
+    fn ge_ct(&self, other: &Self) -> MaskCt {
+        !self.lt_ct(other)
+    }
 }
 
 /// Const-time sign.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait SignCt {
+pub trait SignCt: IsZeroCt + IsPosCt + IsNegCt {
     /// Const-time sign function.
     ///
     /// # Returns
@@ -1161,14 +1128,20 @@ pub trait SignCt {
     /// - `-1` => `lhs < 0`
     /// - `0` => `lhs == 0`.
     /// - `1` => `lhs > 0`
-    fn sign_ct(&self) -> RelCt;
+    #[inline]
+    fn sign_ct(&self) -> RelCt {
+        let pos = self.is_pos_ct() as RelCt;
+        let neg = self.is_neg_ct() as RelCt;
+
+        pos & 1 | neg
+    }
 }
 
 /// Const-time comparison.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait CmpCt {
+pub trait CmpCt: EqCt + LtCt + GtCt {
     /// Const-time comparison function.
     ///
     /// # Returns
@@ -1176,34 +1149,46 @@ pub trait CmpCt {
     /// - `-1` => `lhs < rhs`
     /// - `0` => `lhs == rhs`.
     /// - `1` => `lhs > rhs`
-    fn cmp_ct(&self, other: &Self) -> RelCt;
+    #[inline]
+    fn cmp_ct(&self, other: &Self) -> RelCt {
+        let lt = self.lt_ct(other) as RelCt;
+        let gt = self.gt_ct(other) as RelCt;
+
+        lt | gt & 1
+    }
 }
 
 /// Const-time minimum value.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait MinCt: Copy {
+pub trait MinCt: Copy + EqCt + LtCt + GtCt + SelectCt {
     /// Const-time minimum function.
+    #[inline]
     #[ndfwd::as_into]
-    fn min_ct(&self, other: &Self) -> Self;
+    fn min_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.lt_ct(other))
+    }
 }
 
 /// Const-time maximum value.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait MaxCt: Copy {
+pub trait MaxCt: Copy + EqCt + LtCt + GtCt + SelectCt {
     /// Const-time maximum function.
+    #[inline]
     #[ndfwd::as_into]
-    fn max_ct(&self, other: &Self) -> Self;
+    fn max_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.gt_ct(other))
+    }
 }
 
 /// Const-time positive absolute value.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait PosxCt: Copy {
+pub trait PosxCt {
     /// Const-time positive absolute function.
     #[ndfwd::as_into]
     fn posx_ct(&self) -> Self;
@@ -1213,7 +1198,7 @@ pub trait PosxCt: Copy {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NegxCt: Copy {
+pub trait NegxCt {
     /// Const-time negative absolute function.
     #[ndfwd::as_into]
     fn negx_ct(&self) -> Self;
@@ -1223,7 +1208,7 @@ pub trait NegxCt: Copy {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait SelectCt: Copy {
+pub trait SelectCt {
     /// Const-time select function.
     ///
     /// # Returns

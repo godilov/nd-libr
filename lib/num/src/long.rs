@@ -6417,81 +6417,20 @@ impl<const L: usize> GtCt for Unsigned<L> {
     }
 }
 
-impl<const L: usize> LeCt for Signed<L> {
-    #[inline(never)]
-    fn le_ct(&self, other: &Self) -> MaskCt {
-        !self.gt_ct(other)
-    }
-}
+impl<const L: usize> LeCt for Signed<L> {}
+impl<const L: usize> GeCt for Signed<L> {}
 
-impl<const L: usize> GeCt for Signed<L> {
-    #[inline(never)]
-    fn ge_ct(&self, other: &Self) -> MaskCt {
-        !self.lt_ct(other)
-    }
-}
+impl<const L: usize> LeCt for Unsigned<L> {}
+impl<const L: usize> GeCt for Unsigned<L> {}
 
-impl<const L: usize> LeCt for Unsigned<L> {
-    #[inline(never)]
-    fn le_ct(&self, other: &Self) -> MaskCt {
-        !self.gt_ct(other)
-    }
-}
+impl<const L: usize> CmpCt for Signed<L> {}
+impl<const L: usize> CmpCt for Unsigned<L> {}
 
-impl<const L: usize> GeCt for Unsigned<L> {
-    #[inline(never)]
-    fn ge_ct(&self, other: &Self) -> MaskCt {
-        !self.lt_ct(other)
-    }
-}
+impl<const L: usize> MinCt for Signed<L> {}
+impl<const L: usize> MaxCt for Signed<L> {}
 
-impl<const L: usize> CmpCt for Signed<L> {
-    #[inline(never)]
-    fn cmp_ct(&self, other: &Self) -> RelCt {
-        let lt = self.lt_ct(other) as RelCt;
-        let gt = self.gt_ct(other) as RelCt;
-
-        lt | gt & 1
-    }
-}
-
-impl<const L: usize> CmpCt for Unsigned<L> {
-    #[inline(never)]
-    fn cmp_ct(&self, other: &Self) -> RelCt {
-        let lt = self.lt_ct(other) as RelCt;
-        let gt = self.gt_ct(other) as RelCt;
-
-        lt | gt & 1
-    }
-}
-
-impl<const L: usize> MinCt for Signed<L> {
-    #[inline]
-    fn min_ct(&self, other: &Self) -> Self {
-        SelectCt::select_ct(self, other, self.lt_ct(other))
-    }
-}
-
-impl<const L: usize> MaxCt for Signed<L> {
-    #[inline]
-    fn max_ct(&self, other: &Self) -> Self {
-        SelectCt::select_ct(self, other, self.gt_ct(other))
-    }
-}
-
-impl<const L: usize> MinCt for Unsigned<L> {
-    #[inline]
-    fn min_ct(&self, other: &Self) -> Self {
-        SelectCt::select_ct(self, other, self.lt_ct(other))
-    }
-}
-
-impl<const L: usize> MaxCt for Unsigned<L> {
-    #[inline]
-    fn max_ct(&self, other: &Self) -> Self {
-        SelectCt::select_ct(self, other, self.gt_ct(other))
-    }
-}
+impl<const L: usize> MinCt for Unsigned<L> {}
+impl<const L: usize> MaxCt for Unsigned<L> {}
 
 impl<const L: usize> SelectCt for Signed<L> {
     #[inline(never)]
