@@ -167,6 +167,66 @@ pub struct Ref<'num, N>(pub &'num N);
 #[derive(Debug)]
 pub struct Mut<'num, N>(pub &'num mut N);
 
+/// Number with strict operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::iter(self.0 with N)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Strict<N>(pub N);
+
+/// Number with wrapping operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::iter(self.0 with N)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Wrapping<N>(pub N);
+
+/// Number with saturating operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::iter(self.0 with N)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Saturating<N>(pub N);
+
+/// Number with unbounded operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::iter(self.0 with N)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Unbounded<N>(pub N);
+
+/// Number with wrapping + unbounded operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::iter(self.0 with N)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Relaxed<N>(pub N);
+
 /// `Nd-kind` extension for [`std::ops::Not`].
 ///
 /// For more info, see [module-level](crate::ops) and [crate-level](crate) documentation.
@@ -1448,8 +1508,49 @@ impl<'num, N> From<&'num mut N> for Mut<'num, N> {
     }
 }
 
+impl<N> From<N> for Strict<N> {
+    #[inline]
+    fn from(value: N) -> Self {
+        Self(value)
+    }
+}
+
+impl<N> From<N> for Wrapping<N> {
+    #[inline]
+    fn from(value: N) -> Self {
+        Self(value)
+    }
+}
+
+impl<N> From<N> for Saturating<N> {
+    #[inline]
+    fn from(value: N) -> Self {
+        Self(value)
+    }
+}
+
+impl<N> From<N> for Unbounded<N> {
+    #[inline]
+    fn from(value: N) -> Self {
+        Self(value)
+    }
+}
+
+impl<N> From<N> for Relaxed<N> {
+    #[inline]
+    fn from(value: N) -> Self {
+        Self(value)
+    }
+}
+
 ndops::auto! { @ndun crate <'num, Value, N> (value: &Ref<'num, Value>) -> N for Ref<'num, N>, (Value) (N) (&value.0) }
 ndops::auto! { @ndun crate <'num, Value, N> (value: &Mut<'num, Value>) -> N for Mut<'num, N>, (Value) (N) (&value.0) }
+
+ndops::auto! { @ndun with @strict     crate <Value, N> (value:     &Strict<Value>) ->     Strict<N>, (Value) (N) (&value.0) }
+ndops::auto! { @ndun with @wrapping   crate <Value, N> (value:   &Wrapping<Value>) ->   Wrapping<N>, (Value) (N) (&value.0) }
+ndops::auto! { @ndun with @saturating crate <Value, N> (value: &Saturating<Value>) -> Saturating<N>, (Value) (N) (&value.0) }
+ndops::auto! { @ndun with @default    crate <Value, N> (value:  &Unbounded<Value>) ->  Unbounded<N>, (Value) (N) (&value.0) }
+ndops::auto! { @ndun with @wrapping   crate <Value, N> (value:    &Relaxed<Value>) ->    Relaxed<N>, (Value) (N) (&value.0) }
 
 ndops::auto! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Ref<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Mut<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
@@ -1457,22 +1558,74 @@ ndops::auto! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: &Ref
 ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: Rhs) -> N for Ref<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
 ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: Rhs) -> N for Mut<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
 
-ndops::auto! { @ndmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: &Ref<'num, Rhs>) for Mut<'num, Lhs>, (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin with @strict     crate <Lhs, Rhs, N> (lhs:     &Strict<Lhs>, rhs:     &Strict<Rhs>) ->     Strict<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin with @wrapping   crate <Lhs, Rhs, N> (lhs:   &Wrapping<Lhs>, rhs:   &Wrapping<Rhs>) ->   Wrapping<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin with @saturating crate <Lhs, Rhs, N> (lhs: &Saturating<Lhs>, rhs: &Saturating<Rhs>) -> Saturating<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin with @default    crate <Lhs, Rhs, N> (lhs:  &Unbounded<Lhs>, rhs:  &Unbounded<Rhs>) ->  Unbounded<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin with @wrapping   crate <Lhs, Rhs, N> (lhs:    &Relaxed<Lhs>, rhs:    &Relaxed<Rhs>) ->    Relaxed<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 
-ndops::auto! { @ndmut @shift crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs) for Mut<'num, Lhs>, (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift with @strict    crate <Lhs, Rhs, N> (lhs:     &Strict<Lhs>, rhs: Rhs) ->     Strict<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift with @default   crate <Lhs, Rhs, N> (lhs:   &Wrapping<Lhs>, rhs: Rhs) ->   Wrapping<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift with @default   crate <Lhs, Rhs, N> (lhs: &Saturating<Lhs>, rhs: Rhs) -> Saturating<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift with @unbounded crate <Lhs, Rhs, N> (lhs:  &Unbounded<Lhs>, rhs: Rhs) ->  Unbounded<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift with @unbounded crate <Lhs, Rhs, N> (lhs:    &Relaxed<Lhs>, rhs: Rhs) ->    Relaxed<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+
+ndops::auto! { @ndmut        crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: &Ref<'num, Rhs>) for Mut<'num, Lhs>, (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut @shift crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs)             for Mut<'num, Lhs>, (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+
+ndops::auto! { @ndmut with @strict     crate <Lhs, Rhs> (lhs:     &mut Strict<Lhs>, rhs:     &Strict<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut with @wrapping   crate <Lhs, Rhs> (lhs:   &mut Wrapping<Lhs>, rhs:   &Wrapping<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut with @saturating crate <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, rhs: &Saturating<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut with @default    crate <Lhs, Rhs> (lhs:  &mut Unbounded<Lhs>, rhs:  &Unbounded<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut with @wrapping   crate <Lhs, Rhs> (lhs:    &mut Relaxed<Lhs>, rhs:    &Relaxed<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+
+ndops::auto! { @ndmut @shift with @strict    crate <Lhs, Rhs> (lhs:     &mut Strict<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift with @default   crate <Lhs, Rhs> (lhs:   &mut Wrapping<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift with @default   crate <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift with @unbounded crate <Lhs, Rhs> (lhs:  &mut Unbounded<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift with @unbounded crate <Lhs, Rhs> (lhs:    &mut Relaxed<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 ndops::auto! { @stdun crate <'num, Value, N> (*value: &Ref<'num, Value>) -> N, (Value) (N) (&value.0) }
 ndops::auto! { @stdun crate <'num, Value, N> (*value: &Mut<'num, Value>) -> N, (Value) (N) (&value.0) }
 
+ndops::auto! { @stdun with @strict     crate <Value, N> (*value:     &Strict<Value>) ->     Strict<N>, (Value) (N) (&value.0) }
+ndops::auto! { @stdun with @wrapping   crate <Value, N> (*value:   &Wrapping<Value>) ->   Wrapping<N>, (Value) (N) (&value.0) }
+ndops::auto! { @stdun with @saturating crate <Value, N> (*value: &Saturating<Value>) -> Saturating<N>, (Value) (N) (&value.0) }
+ndops::auto! { @stdun with @default    crate <Value, N> (*value:  &Unbounded<Value>) ->  Unbounded<N>, (Value) (N) (&value.0) }
+ndops::auto! { @stdun with @wrapping   crate <Value, N> (*value:    &Relaxed<Value>) ->    Relaxed<N>, (Value) (N) (&value.0) }
+
 ndops::auto! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Ref<'num, Lhs>, *rhs: &Ref<'num, Rhs>) -> N, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Mut<'num, Lhs>, *rhs: &Ref<'num, Rhs>) -> N, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+
+ndops::auto! { @stdbin with @strict     crate <Lhs, Rhs, N> (*lhs:     &Strict<Lhs>, *rhs:     &Strict<Rhs>) ->     Strict<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin with @wrapping   crate <Lhs, Rhs, N> (*lhs:   &Wrapping<Lhs>, *rhs:   &Wrapping<Rhs>) ->   Wrapping<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin with @saturating crate <Lhs, Rhs, N> (*lhs: &Saturating<Lhs>, *rhs: &Saturating<Rhs>) -> Saturating<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin with @default    crate <Lhs, Rhs, N> (*lhs:  &Unbounded<Lhs>, *rhs:  &Unbounded<Rhs>) ->  Unbounded<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin with @wrapping   crate <Lhs, Rhs, N> (*lhs:    &Relaxed<Lhs>, *rhs:    &Relaxed<Rhs>) ->    Relaxed<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+
+ndops::auto! { @stdbin @shift with @strict    crate <Lhs, Rhs, N> (*lhs:     &Strict<Lhs>, rhs: Rhs) ->     Strict<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift with @default   crate <Lhs, Rhs, N> (*lhs:   &Wrapping<Lhs>, rhs: Rhs) ->   Wrapping<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift with @default   crate <Lhs, Rhs, N> (*lhs: &Saturating<Lhs>, rhs: Rhs) -> Saturating<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift with @unbounded crate <Lhs, Rhs, N> (*lhs:  &Unbounded<Lhs>, rhs: Rhs) ->  Unbounded<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift with @unbounded crate <Lhs, Rhs, N> (*lhs:    &Relaxed<Lhs>, rhs: Rhs) ->    Relaxed<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
 
 ndops::auto! { @stdbin @shift crate <'num, Lhs, Rhs, N> (*lhs: &Ref<'num, Lhs>, rhs: Rhs) -> N, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
 ndops::auto! { @stdbin @shift crate <'num, Lhs, Rhs, N> (*lhs: &Mut<'num, Lhs>, rhs: Rhs) -> N, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
 
-ndops::auto! { @stdmut crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, *rhs: &Ref<'num, Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut        crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, *rhs: &Ref<'num, Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut @shift crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs),              (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
-ndops::auto! { @stdmut @shift crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut with @strict     crate <Lhs, Rhs> (lhs:     &mut Strict<Lhs>, *rhs:     &Strict<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut with @wrapping   crate <Lhs, Rhs> (lhs:   &mut Wrapping<Lhs>, *rhs:   &Wrapping<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut with @saturating crate <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, *rhs: &Saturating<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut with @default    crate <Lhs, Rhs> (lhs:  &mut Unbounded<Lhs>, *rhs:  &Unbounded<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut with @wrapping   crate <Lhs, Rhs> (lhs:    &mut Relaxed<Lhs>, *rhs:    &Relaxed<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+
+ndops::auto! { @stdmut @shift with @strict    crate <Lhs, Rhs> (lhs:     &mut Strict<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift with @default   crate <Lhs, Rhs> (lhs:   &mut Wrapping<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift with @default   crate <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift with @unbounded crate <Lhs, Rhs> (lhs:  &mut Unbounded<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift with @unbounded crate <Lhs, Rhs> (lhs:    &mut Relaxed<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 impl<Lhs, Rhs, ShiftRhs, Type> Ops<Rhs, ShiftRhs> for Lhs
 where
@@ -1645,3 +1798,329 @@ nd_ops_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
 
 nd_opsx_impl!([i8 > i16, i16 > i32, i32 > i64, i64 > i128]);
 nd_opsx_impl!([u8 > u16, u16 > u32, u32 > u64, u64 > u128]);
+
+#[cfg(test)]
+mod tests {
+    use std::ops::Neg;
+
+    use super::*;
+
+    #[test]
+    fn strict() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([-1, 0, 1])) [
+            (!Strict(val), Strict(!val)),
+
+            (Strict::nd_neg_checked(&Strict(val)), val.checked_neg().map(Strict)),
+            (Strict::nd_posx_checked(&Strict(val)), val.checked_abs().map(Strict)),
+
+            (Strict::nd_neg_overflowing(&Strict(val)), { let (val, flag) = val.overflowing_neg(); (Strict(val), flag) }),
+            (Strict::nd_posx_overflowing(&Strict(val)), { let (val, flag) = val.overflowing_abs(); (Strict(val), flag) }),
+
+            ndassert::catch!(Strict::nd_neg(&Strict(val)), Strict(val.strict_neg())),
+            ndassert::catch!(Strict::nd_posx(&Strict(val)), Strict(val.strict_abs())),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ndassert::catch!(Strict(lhs) + Strict(rhs), Strict(lhs.strict_add(rhs))),
+            ndassert::catch!(Strict(lhs) - Strict(rhs), Strict(lhs.strict_sub(rhs))),
+            ndassert::catch!(Strict(lhs) * Strict(rhs), Strict(lhs.strict_mul(rhs))),
+            ndassert::catch!(Strict(lhs) / Strict(rhs), Strict(lhs.strict_div(rhs))),
+            ndassert::catch!(Strict(lhs) % Strict(rhs), Strict(lhs.strict_rem(rhs))),
+
+            (Strict(lhs) | Strict(rhs), Strict(lhs | rhs)),
+            (Strict(lhs) & Strict(rhs), Strict(lhs & rhs)),
+            (Strict(lhs) ^ Strict(rhs), Strict(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!(Strict(lhs) << rhs, Strict(lhs.strict_shl(rhs as u32))),
+            ndassert::catch!(Strict(lhs) >> rhs, Strict(lhs.strict_shr(rhs as u32))),
+        ] }
+    }
+
+    #[test]
+    fn strict_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ndassert::catch!({ let mut val = Strict(lhs); val += Strict(rhs); val }, Strict(lhs.strict_add(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val -= Strict(rhs); val }, Strict(lhs.strict_sub(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val *= Strict(rhs); val }, Strict(lhs.strict_mul(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val /= Strict(rhs); val }, Strict(lhs.strict_div(rhs))),
+            ndassert::catch!({ let mut val = Strict(lhs); val %= Strict(rhs); val }, Strict(lhs.strict_rem(rhs))),
+
+            ({ let mut val = Strict(lhs); val |= Strict(rhs); val }, Strict(lhs | rhs)),
+            ({ let mut val = Strict(lhs); val &= Strict(rhs); val }, Strict(lhs & rhs)),
+            ({ let mut val = Strict(lhs); val ^= Strict(rhs); val }, Strict(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!({ let mut val = Strict(lhs); val <<= rhs; val }, Strict(lhs.strict_shl(rhs as u32))),
+            ndassert::catch!({ let mut val = Strict(lhs); val >>= rhs; val }, Strict(lhs.strict_shr(rhs as u32))),
+        ] }
+    }
+
+    #[test]
+    fn wrapping() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([-1, 0, 1])) [
+            (!Wrapping(val), Wrapping(!val)),
+
+            (Wrapping::nd_neg_checked(&Wrapping(val)), val.checked_neg().map(Wrapping)),
+            (Wrapping::nd_posx_checked(&Wrapping(val)), val.checked_abs().map(Wrapping)),
+
+            (Wrapping::nd_neg_overflowing(&Wrapping(val)), { let (val, flag) = val.overflowing_neg(); (Wrapping(val), flag) }),
+            (Wrapping::nd_posx_overflowing(&Wrapping(val)), { let (val, flag) = val.overflowing_abs(); (Wrapping(val), flag) }),
+
+            (Wrapping::nd_neg(&Wrapping(val)), Wrapping(val.wrapping_neg())),
+            (Wrapping::nd_posx(&Wrapping(val)), Wrapping(val.wrapping_abs())),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            (Wrapping(lhs) + Wrapping(rhs), Wrapping(lhs.wrapping_add(rhs))),
+            (Wrapping(lhs) - Wrapping(rhs), Wrapping(lhs.wrapping_sub(rhs))),
+            (Wrapping(lhs) * Wrapping(rhs), Wrapping(lhs.wrapping_mul(rhs))),
+            (Wrapping(lhs) / Wrapping(rhs), Wrapping(lhs.wrapping_div(rhs))),
+            (Wrapping(lhs) % Wrapping(rhs), Wrapping(lhs.wrapping_rem(rhs))),
+            (Wrapping(lhs) | Wrapping(rhs), Wrapping(lhs | rhs)),
+            (Wrapping(lhs) & Wrapping(rhs), Wrapping(lhs & rhs)),
+            (Wrapping(lhs) ^ Wrapping(rhs), Wrapping(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!(Wrapping(lhs) << rhs, Wrapping(lhs << rhs)),
+            ndassert::catch!(Wrapping(lhs) >> rhs, Wrapping(lhs >> rhs)),
+        ] }
+    }
+
+    #[test]
+    fn wrapping_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ({ let mut val = Wrapping(lhs); val += Wrapping(rhs); val }, Wrapping(lhs.wrapping_add(rhs))),
+            ({ let mut val = Wrapping(lhs); val -= Wrapping(rhs); val }, Wrapping(lhs.wrapping_sub(rhs))),
+            ({ let mut val = Wrapping(lhs); val *= Wrapping(rhs); val }, Wrapping(lhs.wrapping_mul(rhs))),
+            ({ let mut val = Wrapping(lhs); val /= Wrapping(rhs); val }, Wrapping(lhs.wrapping_div(rhs))),
+            ({ let mut val = Wrapping(lhs); val %= Wrapping(rhs); val }, Wrapping(lhs.wrapping_rem(rhs))),
+            ({ let mut val = Wrapping(lhs); val |= Wrapping(rhs); val }, Wrapping(lhs | rhs)),
+            ({ let mut val = Wrapping(lhs); val &= Wrapping(rhs); val }, Wrapping(lhs & rhs)),
+            ({ let mut val = Wrapping(lhs); val ^= Wrapping(rhs); val }, Wrapping(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!({ let mut val = Wrapping(lhs); val <<= rhs; val }, Wrapping(lhs << rhs)),
+            ndassert::catch!({ let mut val = Wrapping(lhs); val >>= rhs; val }, Wrapping(lhs >> rhs)),
+        ] }
+    }
+
+    #[test]
+    fn saturating() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([-1, 0, 1])) [
+            (!Saturating(val), Saturating(!val)),
+
+            (Saturating::nd_neg_checked(&Saturating(val)), val.checked_neg().map(Saturating)),
+            (Saturating::nd_posx_checked(&Saturating(val)), val.checked_abs().map(Saturating)),
+
+            (Saturating::nd_neg_overflowing(&Saturating(val)), { let (val, flag) = val.overflowing_neg(); (Saturating(val), flag) }),
+            (Saturating::nd_posx_overflowing(&Saturating(val)), { let (val, flag) = val.overflowing_abs(); (Saturating(val), flag) }),
+
+            (Saturating::nd_neg(&Saturating(val)), Saturating(val.saturating_neg())),
+            (Saturating::nd_posx(&Saturating(val)), Saturating(val.saturating_abs())),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            (Saturating(lhs) + Saturating(rhs), Saturating(lhs.saturating_add(rhs))),
+            (Saturating(lhs) - Saturating(rhs), Saturating(lhs.saturating_sub(rhs))),
+            (Saturating(lhs) * Saturating(rhs), Saturating(lhs.saturating_mul(rhs))),
+            (Saturating(lhs) / Saturating(rhs), Saturating(lhs.saturating_div(rhs))),
+            (Saturating(lhs) % Saturating(rhs), Saturating(lhs.wrapping_rem(rhs))),
+            (Saturating(lhs) | Saturating(rhs), Saturating(lhs | rhs)),
+            (Saturating(lhs) & Saturating(rhs), Saturating(lhs & rhs)),
+            (Saturating(lhs) ^ Saturating(rhs), Saturating(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!(Saturating(lhs) << rhs, Saturating(lhs << rhs)),
+            ndassert::catch!(Saturating(lhs) >> rhs, Saturating(lhs >> rhs)),
+        ] }
+    }
+
+    #[test]
+    fn saturating_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ({ let mut val = Saturating(lhs); val += Saturating(rhs); val }, Saturating(lhs.saturating_add(rhs))),
+            ({ let mut val = Saturating(lhs); val -= Saturating(rhs); val }, Saturating(lhs.saturating_sub(rhs))),
+            ({ let mut val = Saturating(lhs); val *= Saturating(rhs); val }, Saturating(lhs.saturating_mul(rhs))),
+            ({ let mut val = Saturating(lhs); val /= Saturating(rhs); val }, Saturating(lhs.saturating_div(rhs))),
+            ({ let mut val = Saturating(lhs); val %= Saturating(rhs); val }, Saturating(lhs.wrapping_rem(rhs))),
+            ({ let mut val = Saturating(lhs); val |= Saturating(rhs); val }, Saturating(lhs | rhs)),
+            ({ let mut val = Saturating(lhs); val &= Saturating(rhs); val }, Saturating(lhs & rhs)),
+            ({ let mut val = Saturating(lhs); val ^= Saturating(rhs); val }, Saturating(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ndassert::catch!({ let mut val = Saturating(lhs); val <<= rhs; val }, Saturating(lhs << rhs)),
+            ndassert::catch!({ let mut val = Saturating(lhs); val >>= rhs; val }, Saturating(lhs >> rhs)),
+        ] }
+    }
+
+    #[test]
+    fn unbounded() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([-1, 0, 1])) [
+            (!Unbounded(val), Unbounded(!val)),
+
+            (Unbounded::nd_neg_checked(&Unbounded(val)), val.checked_neg().map(Unbounded)),
+            (Unbounded::nd_posx_checked(&Unbounded(val)), val.checked_abs().map(Unbounded)),
+
+            (Unbounded::nd_neg_overflowing(&Unbounded(val)), { let (val, flag) = val.overflowing_neg(); (Unbounded(val), flag) }),
+            (Unbounded::nd_posx_overflowing(&Unbounded(val)), { let (val, flag) = val.overflowing_abs(); (Unbounded(val), flag) }),
+
+            ndassert::catch!(Unbounded::nd_neg(&Unbounded(val)), Unbounded(val.neg())),
+            ndassert::catch!(Unbounded::nd_posx(&Unbounded(val)), Unbounded(val.abs())),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ndassert::catch!(Unbounded(lhs) + Unbounded(rhs), Unbounded(lhs + rhs)),
+            ndassert::catch!(Unbounded(lhs) - Unbounded(rhs), Unbounded(lhs - rhs)),
+            ndassert::catch!(Unbounded(lhs) * Unbounded(rhs), Unbounded(lhs * rhs)),
+            ndassert::catch!(Unbounded(lhs) / Unbounded(rhs), Unbounded(lhs / rhs)),
+            ndassert::catch!(Unbounded(lhs) % Unbounded(rhs), Unbounded(lhs % rhs)),
+
+            (Unbounded(lhs) | Unbounded(rhs), Unbounded(lhs | rhs)),
+            (Unbounded(lhs) & Unbounded(rhs), Unbounded(lhs & rhs)),
+            (Unbounded(lhs) ^ Unbounded(rhs), Unbounded(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            (Unbounded(lhs) << rhs, Unbounded(lhs.unbounded_shl(rhs as u32))),
+            (Unbounded(lhs) >> rhs, Unbounded(lhs.unbounded_shr(rhs as u32))),
+        ] }
+    }
+
+    #[test]
+    fn unbounded_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ndassert::catch!({ let mut val = Unbounded(lhs); val += Unbounded(rhs); val }, Unbounded(lhs + rhs)),
+            ndassert::catch!({ let mut val = Unbounded(lhs); val -= Unbounded(rhs); val }, Unbounded(lhs - rhs)),
+            ndassert::catch!({ let mut val = Unbounded(lhs); val *= Unbounded(rhs); val }, Unbounded(lhs * rhs)),
+            ndassert::catch!({ let mut val = Unbounded(lhs); val /= Unbounded(rhs); val }, Unbounded(lhs / rhs)),
+            ndassert::catch!({ let mut val = Unbounded(lhs); val %= Unbounded(rhs); val }, Unbounded(lhs % rhs)),
+
+            ({ let mut val = Unbounded(lhs); val |= Unbounded(rhs); val }, Unbounded(lhs | rhs)),
+            ({ let mut val = Unbounded(lhs); val &= Unbounded(rhs); val }, Unbounded(lhs & rhs)),
+            ({ let mut val = Unbounded(lhs); val ^= Unbounded(rhs); val }, Unbounded(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ({ let mut val = Unbounded(lhs); val <<= rhs; val }, Unbounded(lhs.unbounded_shl(rhs as u32))),
+            ({ let mut val = Unbounded(lhs); val >>= rhs; val }, Unbounded(lhs.unbounded_shr(rhs as u32))),
+        ] }
+    }
+
+    #[test]
+    fn relaxed() {
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48).chain([-1, 0, 1])) [
+            (!Relaxed(val), Relaxed(!val)),
+
+            (Relaxed::nd_neg_checked(&Relaxed(val)), val.checked_neg().map(Relaxed)),
+            (Relaxed::nd_posx_checked(&Relaxed(val)), val.checked_abs().map(Relaxed)),
+
+            (Relaxed::nd_neg_overflowing(&Relaxed(val)), { let (val, flag) = val.overflowing_neg(); (Relaxed(val), flag) }),
+            (Relaxed::nd_posx_overflowing(&Relaxed(val)), { let (val, flag) = val.overflowing_abs(); (Relaxed(val), flag) }),
+
+            (Relaxed::nd_neg(&Relaxed(val)), Relaxed(val.wrapping_neg())),
+            (Relaxed::nd_posx(&Relaxed(val)), Relaxed(val.wrapping_abs())),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            (Relaxed(lhs) + Relaxed(rhs), Relaxed(lhs.wrapping_add(rhs))),
+            (Relaxed(lhs) - Relaxed(rhs), Relaxed(lhs.wrapping_sub(rhs))),
+            (Relaxed(lhs) * Relaxed(rhs), Relaxed(lhs.wrapping_mul(rhs))),
+            (Relaxed(lhs) / Relaxed(rhs), Relaxed(lhs.wrapping_div(rhs))),
+            (Relaxed(lhs) % Relaxed(rhs), Relaxed(lhs.wrapping_rem(rhs))),
+            (Relaxed(lhs) | Relaxed(rhs), Relaxed(lhs | rhs)),
+            (Relaxed(lhs) & Relaxed(rhs), Relaxed(lhs & rhs)),
+            (Relaxed(lhs) ^ Relaxed(rhs), Relaxed(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            (Relaxed(lhs) << rhs, Relaxed(lhs.unbounded_shl(rhs as u32))),
+            (Relaxed(lhs) >> rhs, Relaxed(lhs.unbounded_shr(rhs as u32))),
+        ] }
+    }
+
+    #[test]
+    fn relaxed_mut() {
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+        ) [
+            ({ let mut val = Relaxed(lhs); val += Relaxed(rhs); val }, Relaxed(lhs.wrapping_add(rhs))),
+            ({ let mut val = Relaxed(lhs); val -= Relaxed(rhs); val }, Relaxed(lhs.wrapping_sub(rhs))),
+            ({ let mut val = Relaxed(lhs); val *= Relaxed(rhs); val }, Relaxed(lhs.wrapping_mul(rhs))),
+            ({ let mut val = Relaxed(lhs); val /= Relaxed(rhs); val }, Relaxed(lhs.wrapping_div(rhs))),
+            ({ let mut val = Relaxed(lhs); val %= Relaxed(rhs); val }, Relaxed(lhs.wrapping_rem(rhs))),
+            ({ let mut val = Relaxed(lhs); val |= Relaxed(rhs); val }, Relaxed(lhs | rhs)),
+            ({ let mut val = Relaxed(lhs); val &= Relaxed(rhs); val }, Relaxed(lhs & rhs)),
+            ({ let mut val = Relaxed(lhs); val ^= Relaxed(rhs); val }, Relaxed(lhs ^ rhs)),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 52),
+            rhs in 0..96,
+        ) [
+            ({ let mut val = Relaxed(lhs); val <<= rhs; val }, Relaxed(lhs.unbounded_shl(rhs as u32))),
+            ({ let mut val = Relaxed(lhs); val >>= rhs; val }, Relaxed(lhs.unbounded_shr(rhs as u32))),
+        ] }
+    }
+}

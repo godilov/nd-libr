@@ -8,10 +8,10 @@ use criterion::{
 use ndext::{
     convert::{NdFrom, NdTryFrom},
     iter::{IteratorExt, NdTryFromIterator},
-    ops::{Mut, Ref},
+    ops::{Mut, Ref, Relaxed},
 };
 use ndnum::{
-    Dir, Num, Relaxed,
+    Dir, Num,
     arch::{Aligned, word::Single},
     long::{
         ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter,

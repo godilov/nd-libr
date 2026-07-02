@@ -12,8 +12,9 @@ readme.workspace     = true
 description          = "Nd Extensions Library"
 
 [dependencies]
-ndops = { workspace = true }
-ndfwd = { workspace = true }
+ndassert = { workspace = true }
+ndops    = { workspace = true }
+ndfwd    = { workspace = true }
 
 [dev-dependencies]
 
