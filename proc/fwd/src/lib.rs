@@ -46,12 +46,18 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
     let predicates = gen_where.map(|val| val.predicates.iter());
 
-    let as_ref = match predicates.clone() {
+    let params = gen_params.iter();
+    let as_ref = quote! { #(#params,)* AsRefRet };
+
+    let params = gen_params.iter();
+    let as_mut = quote! { #(#params,)* AsMutRet };
+
+    let as_ref_where = match predicates.clone() {
         Some(val) => quote! { where #(#val,)* #ty: std::convert::AsRef<AsRefRet> },
         None => quote! { where #ty: std::convert::AsRef<AsRefRet> },
     };
 
-    let as_mut = match predicates.clone() {
+    let as_mut_where = match predicates.clone() {
         Some(val) => quote! { where #(#val,)* #ty: std::convert::AsMut<AsMutRet> },
         None => quote! { where #ty: std::convert::AsMut<AsMutRet> },
     };
@@ -59,14 +65,14 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     quote! {
         #item
 
-        impl<#gen_params, AsRefRet> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref {
+        impl<#as_ref> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref_where {
             #[inline]
             fn as_ref(&self) -> &AsRefRet {
                 #expr.as_ref()
             }
         }
 
-        impl<#gen_params, AsMutRet> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut {
+        impl<#as_mut> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut_where {
             #[inline]
             fn as_mut(&mut self) -> &mut AsMutRet {
                 #expr.as_mut()
@@ -130,7 +136,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where #ty: std::cmp::Eq },
     };
 
-    let forward_impl = get_forward_impl(ident, generics, expr, ty);
+    let forward_impl = get_forward_impl(&Path::from(ident.clone()), generics, expr, ty);
 
     quote! {
         #item
@@ -329,6 +335,7 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let gen_params = &generics.params;
     let (_, gen_type, gen_where) = generics.split_for_impl();
 
+    let params = gen_params.iter();
     let predicates = gen_where.map(|val| val.predicates.iter());
 
     let from_iter = match predicates.clone() {
@@ -354,7 +361,7 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     quote! {
         #item
 
-        impl<#gen_params, Elem> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
+        impl<#(#params,)* Elem> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
             #[inline]
             fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
                 <#ty>::from_iter(iter).into()
@@ -519,42 +526,48 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ($item:expr, $attr:expr) => {{
             let item = $item;
             let attr = $attr;
+            let quote = quote! { #item };
 
-            forward(&item.ident, &item.generics, &attr, quote! { #item })
+            forward(&Path::from(item.ident), &item.generics, &attr, quote)
         }};
     }
 
-    fn forward(ident: &Ident, generics: &Generics, attr: &ForwardAttr, item: TokenStream) -> TokenStreamStd {
+    fn forward(path: &Path, generics: &Generics, attr: &ForwardAttr, item: TokenStream) -> TokenStreamStd {
         let gen_params = &generics.params;
         let (_, gen_type, _) = generics.split_for_impl();
 
         let expr = &attr.fwd.expr;
         let ty = &attr.fwd.ty;
-        let path = &attr.path;
+        let interface = &attr.path;
         let defaults = &attr.defaults;
 
         let sig_predicates = generics.where_clause.as_ref().map(|val| val.predicates.iter());
         let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
 
         let gen_where = match (sig_predicates, attr_predicates) {
-            (Some(sig), Some(attr)) => quote! { #ty: #path, #(#sig,)* #(#attr,)* },
-            (Some(sig), None) => quote! { #ty: #path, #(#sig,)* },
-            (None, Some(attr)) => quote! { #ty: #path, #(#attr,)* },
-            (None, None) => quote! { #ty: #path, },
+            (Some(sig), Some(attr)) => quote! { #ty: #interface, #(#sig,)* #(#attr,)* },
+            (Some(sig), None) => quote! { #ty: #interface, #(#sig,)* },
+            (None, Some(attr)) => quote! { #ty: #interface, #(#attr,)* },
+            (None, None) => quote! { #ty: #interface, },
         };
 
-        let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
-        let id = match path.segments.last() {
+        let segs = interface.segments.iter().take(interface.segments.len().saturating_sub(1));
+        let id = match interface.segments.last() {
             Some(val) => &val.ident,
             None => {
-                return Error::new_spanned(&path.segments, "Failed to forward definition, path is empty")
+                return Error::new_spanned(&interface.segments, "Failed to forward definition, path is empty")
                     .into_compile_error()
                     .into();
             },
         };
 
-        let forward = get_forward_impl(ident, generics, expr, ty);
-        let module = format_ident!("__forward_impl_{}_{}", &id, &ident);
+        let name = path
+            .segments
+            .iter()
+            .fold(String::new(), |acc, seg| format!("{}_{}", &acc, seg.ident));
+
+        let forward = get_forward_impl(path, generics, expr, ty);
+        let module = format_ident!("__forward_impl_{}_{}", &id, &name);
         let macros = format_ident!("__forward_impl_{}", &id);
 
         quote! {
@@ -565,7 +578,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             mod #module {
                 #forward
 
-                #macros!(#defaults #ident #gen_type, #ty, (#gen_params), (#gen_where));
+                #macros!(#defaults #path #gen_type, #ty, (#gen_params), (#gen_where));
 
                 use super::*;
 
@@ -573,7 +586,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
                 use #(#segs::)*#macros;
 
                 #[allow(unused_imports)]
-                use #path;
+                use #interface;
             }
         }
         .into()
@@ -586,15 +599,8 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
         ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
         ForwardDefItem::Impl(val) => {
-            let ident = match val.self_ty.as_ref() {
-                Type::Path(val) => match val.path.segments.last().map(|seg| &seg.ident) {
-                    Some(val) => val,
-                    None => {
-                        return Error::new_spanned(val, "Failed to forward definition, ident is not found")
-                            .into_compile_error()
-                            .into();
-                    },
-                },
+            let path = match val.self_ty.as_ref() {
+                Type::Path(val) => &val.path,
                 ty => {
                     return Error::new_spanned(ty, "Failed to forward definition, expected path for impl type")
                         .into_compile_error()
@@ -604,7 +610,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let generics = &val.generics;
 
-            forward(ident, generics, &parse_macro_input!(attr as ForwardAttr), quote! {})
+            forward(path, generics, &parse_macro_input!(attr as ForwardAttr), quote! {})
         },
     }
 }
@@ -874,7 +880,7 @@ impl ForwardArg {
     }
 }
 
-fn get_forward_impl(ident: &Ident, generics: &Generics, expr: &Expr, ty: &Type) -> TokenStream {
+fn get_forward_impl(path: &Path, generics: &Generics, expr: &Expr, ty: &Type) -> TokenStream {
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
     quote! {
@@ -888,17 +894,20 @@ fn get_forward_impl(ident: &Ident, generics: &Generics, expr: &Expr, ty: &Type) 
             fn forward_mut(&mut self) -> &mut Self::Type;
         }
 
-        impl #gen_impl Forward for #ident #gen_type #gen_where {
+        impl #gen_impl Forward for #path #gen_type #gen_where {
             type Type = #ty;
 
+            #[inline]
             fn forward(self) -> Self::Type {
                 #expr
             }
 
+            #[inline]
             fn forward_ref(&self) -> &Self::Type {
                 &#expr
             }
 
+            #[inline]
             fn forward_mut(&mut self) -> &mut Self::Type {
                 &mut #expr
             }
