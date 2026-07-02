@@ -18,8 +18,8 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    BytesFn, Dir, EqCt, GtCt, IsZeroCt, LtCt, MaskCt, Max, Min, NdGcd, NdPow, NdRand, Num, NumFn, NumSigned,
-    NumUnsigned, One, RelCt, SelectCt, Sign, Zero,
+    BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt, NdGcd, NdPow, NdRand,
+    Num, NumFn, NumSigned, NumUnsigned, One, RelCt, SelectCt, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
     long::{
         radix::*,
@@ -6417,6 +6417,82 @@ impl<const L: usize> GtCt for Unsigned<L> {
     }
 }
 
+impl<const L: usize> LeCt for Signed<L> {
+    #[inline(never)]
+    fn le_ct(&self, other: &Self) -> MaskCt {
+        !self.gt_ct(other)
+    }
+}
+
+impl<const L: usize> GeCt for Signed<L> {
+    #[inline(never)]
+    fn ge_ct(&self, other: &Self) -> MaskCt {
+        !self.lt_ct(other)
+    }
+}
+
+impl<const L: usize> LeCt for Unsigned<L> {
+    #[inline(never)]
+    fn le_ct(&self, other: &Self) -> MaskCt {
+        !self.gt_ct(other)
+    }
+}
+
+impl<const L: usize> GeCt for Unsigned<L> {
+    #[inline(never)]
+    fn ge_ct(&self, other: &Self) -> MaskCt {
+        !self.lt_ct(other)
+    }
+}
+
+impl<const L: usize> CmpCt for Signed<L> {
+    #[inline(never)]
+    fn cmp_ct(&self, other: &Self) -> RelCt {
+        let lt = self.lt_ct(other) as RelCt;
+        let gt = self.gt_ct(other) as RelCt;
+
+        lt | gt & 1
+    }
+}
+
+impl<const L: usize> CmpCt for Unsigned<L> {
+    #[inline(never)]
+    fn cmp_ct(&self, other: &Self) -> RelCt {
+        let lt = self.lt_ct(other) as RelCt;
+        let gt = self.gt_ct(other) as RelCt;
+
+        lt | gt & 1
+    }
+}
+
+impl<const L: usize> MinCt for Signed<L> {
+    #[inline]
+    fn min_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.lt_ct(other))
+    }
+}
+
+impl<const L: usize> MaxCt for Signed<L> {
+    #[inline]
+    fn max_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.gt_ct(other))
+    }
+}
+
+impl<const L: usize> MinCt for Unsigned<L> {
+    #[inline]
+    fn min_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.lt_ct(other))
+    }
+}
+
+impl<const L: usize> MaxCt for Unsigned<L> {
+    #[inline]
+    fn max_ct(&self, other: &Self) -> Self {
+        SelectCt::select_ct(self, other, self.gt_ct(other))
+    }
+}
+
 impl<const L: usize> SelectCt for Signed<L> {
     #[inline(never)]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
@@ -7517,7 +7593,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        AutoCt, CmpCt, GeCt, LeCt, MaxCt, MinCt, Saturating, Strict, Unbounded, Wrapping,
+        CmpCt, GeCt, LeCt, MaxCt, MinCt, Saturating, Strict, Unbounded, Wrapping,
         long::alias::{S32, S64, U32, U64},
     };
 
@@ -8198,28 +8274,28 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0),
             rhs in ndassert::range!(i64, 56, 1),
         ) [
-            (AutoCt(S64::from(lhs)).eq_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (AutoCt(S64::from(lhs)).lt_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (AutoCt(S64::from(lhs)).gt_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (AutoCt(S64::from(lhs)).le_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (AutoCt(S64::from(lhs)).ge_ct(&AutoCt(S64::from(rhs))), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (AutoCt(S64::from(lhs)).cmp_ct(&AutoCt(S64::from(rhs))), lhs.cmp(&rhs) as RelCt),
-            (AutoCt(S64::from(lhs)).min_ct(&AutoCt(S64::from(rhs))), AutoCt(S64::from(lhs.min(rhs)))),
-            (AutoCt(S64::from(lhs)).max_ct(&AutoCt(S64::from(rhs))), AutoCt(S64::from(lhs.max(rhs)))),
+            (S64::from(lhs).eq_ct(&S64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (S64::from(lhs).lt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (S64::from(lhs).gt_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (S64::from(lhs).le_ct(&S64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (S64::from(lhs).ge_ct(&S64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (S64::from(lhs).cmp_ct(&S64::from(rhs)), lhs.cmp(&rhs) as RelCt),
+            (S64::from(lhs).min_ct(&S64::from(rhs)), S64::from(lhs.min(rhs))),
+            (S64::from(lhs).max_ct(&S64::from(rhs)), S64::from(lhs.max(rhs))),
         ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0),
             rhs in ndassert::range!(u64, 56, 1),
         ) [
-            (AutoCt(U64::from(lhs)).eq_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (AutoCt(U64::from(lhs)).lt_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (AutoCt(U64::from(lhs)).gt_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (AutoCt(U64::from(lhs)).le_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (AutoCt(U64::from(lhs)).ge_ct(&AutoCt(U64::from(rhs))), MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (AutoCt(U64::from(lhs)).cmp_ct(&AutoCt(U64::from(rhs))), lhs.cmp(&rhs) as RelCt),
-            (AutoCt(U64::from(lhs)).min_ct(&AutoCt(U64::from(rhs))), AutoCt(U64::from(lhs.min(rhs)))),
-            (AutoCt(U64::from(lhs)).max_ct(&AutoCt(U64::from(rhs))), AutoCt(U64::from(lhs.max(rhs)))),
+            (U64::from(lhs).eq_ct(&U64::from(rhs)), MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (U64::from(lhs).lt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (U64::from(lhs).gt_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (U64::from(lhs).le_ct(&U64::from(rhs)), MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (U64::from(lhs).ge_ct(&U64::from(rhs)), MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (U64::from(lhs).cmp_ct(&U64::from(rhs)), lhs.cmp(&rhs) as RelCt),
+            (U64::from(lhs).min_ct(&U64::from(rhs)), U64::from(lhs.min(rhs))),
+            (U64::from(lhs).max_ct(&U64::from(rhs)), U64::from(lhs.max(rhs))),
         ] }
     }
 

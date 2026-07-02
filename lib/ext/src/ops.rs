@@ -1552,11 +1552,10 @@ ndops::auto! { @ndun with @saturating crate <Value, N> (value: &Saturating<Value
 ndops::auto! { @ndun with @default    crate <Value, N> (value:  &Unbounded<Value>) ->  Unbounded<N>, (Value) (N) (&value.0) }
 ndops::auto! { @ndun with @wrapping   crate <Value, N> (value:    &Relaxed<Value>) ->    Relaxed<N>, (Value) (N) (&value.0) }
 
-ndops::auto! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Ref<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Mut<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
-
-ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: Rhs) -> N for Ref<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
-ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: Rhs) -> N for Mut<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin        crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Ref<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin        crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: &Ref<'num, Rhs>) -> N for Mut<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rhs: Rhs)             -> N for Ref<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: Rhs)             -> N for Mut<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
 
 ndops::auto! { @ndbin with @strict     crate <Lhs, Rhs, N> (lhs:     &Strict<Lhs>, rhs:     &Strict<Rhs>) ->     Strict<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @ndbin with @wrapping   crate <Lhs, Rhs, N> (lhs:   &Wrapping<Lhs>, rhs:   &Wrapping<Rhs>) ->   Wrapping<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
