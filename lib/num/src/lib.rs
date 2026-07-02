@@ -11,13 +11,13 @@ pub mod long;
 pub mod prime;
 
 macro_rules! num_impl {
-    (@signed [$($primitive:ty > $unsigned:ty),+] $(,)?) => {
-        $(num_impl!(@impl $primitive, $primitive, $unsigned);)+
-        $(num_impl!(@signed $primitive);)+
+    (@signed [$($signed:ty > $unsigned:ty),+] $(,)?) => {
+        $(num_impl!(@impl $signed, $signed, $unsigned);)+
+        $(num_impl!(@signed $signed, $unsigned);)+
     };
-    (@unsigned [$($primitive:ty > $signed:ty),+] $(,)?) => {
-        $(num_impl!(@impl $primitive, $signed, $primitive);)+
-        $(num_impl!(@unsigned $primitive);)+
+    (@unsigned [$($unsigned:ty > $signed:ty),+] $(,)?) => {
+        $(num_impl!(@impl $unsigned, $signed, $unsigned);)+
+        $(num_impl!(@unsigned $unsigned, $signed);)+
     };
     (@impl $primitive:ty, $signed:ty, $unsigned:ty $(,)?) => {
         impl NumFn for $primitive {
@@ -78,38 +78,22 @@ macro_rules! num_impl {
         impl Max for $primitive {
             const MAX: Self = Self::MAX;
         }
-    };
-    (@signed $primitive:ty $(,)?) => {
-        impl NumSigned for $primitive {}
-    };
-    (@unsigned $primitive:ty $(,)?) => {
-        impl NumUnsigned for $primitive {
-            #[inline]
-            fn order(&self) -> usize {
-                self.ilog2() as usize
-            }
 
-            #[inline]
-            fn log(&self) -> Self {
-                self.ilog2() as $primitive
-            }
+        impl SelectCt for $primitive {
+            #[inline(never)]
+            fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+                let lhs_mask = Self::from_ne_bytes([mask; (Self::BYTES) as usize]);
+                let rhs_mask = Self::from_ne_bytes([!mask; (Self::BYTES) as usize]);
 
-            #[inline]
-            fn sqrt(&self) -> Self {
-                self.isqrt() as $primitive
+                lhs & lhs_mask | rhs & rhs_mask
             }
         }
-    };
-}
 
-macro_rules! num_ct_impl {
-    (@signed [$($signed:ty > $unsigned:ty),+ $(,)?]) => {
-        $(num_ct_impl!(@signed $signed > $unsigned);)+
+        impl PowCt for $primitive {}
     };
-    (@unsigned [$($unsigned:ty),+ $(,)?]) => {
-        $(num_ct_impl!(@unsigned $unsigned);)+
-    };
-    (@signed $signed:ty > $unsigned:ty $(,)?) => {
+    (@signed $signed:ty, $unsigned:ty $(,)?) => {
+        impl NumSigned for $signed {}
+
         impl IsOneCt for $signed {
             #[inline(never)]
             fn is_one_ct(&self) -> MaskCt {
@@ -231,10 +215,25 @@ macro_rules! num_ct_impl {
                 SelectCt::select_ct(&pos, &neg, self.is_neg_ct())
             }
         }
-
-        num_ct_impl!(@impl $signed);
     };
-    (@unsigned $unsigned:ty $(,)?) => {
+    (@unsigned $unsigned:ty, $signed:ty $(,)?) => {
+        impl NumUnsigned for $unsigned {
+            #[inline]
+            fn order(&self) -> usize {
+                self.ilog2() as usize
+            }
+
+            #[inline]
+            fn log(&self) -> Self {
+                self.ilog2() as $unsigned
+            }
+
+            #[inline]
+            fn sqrt(&self) -> Self {
+                self.isqrt() as $unsigned
+            }
+        }
+
         impl IsOneCt for $unsigned {
             #[inline(never)]
             fn is_one_ct(&self) -> MaskCt {
@@ -327,21 +326,6 @@ macro_rules! num_ct_impl {
                 dir_ct(res)
             }
         }
-
-        num_ct_impl!(@impl $unsigned);
-    };
-    (@impl $primitive:ty $(,)?) => {
-        impl SelectCt for $primitive {
-            #[inline(never)]
-            fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-                let lhs_mask = Self::from_ne_bytes([mask; (Self::BYTES) as usize]);
-                let rhs_mask = Self::from_ne_bytes([!mask; (Self::BYTES) as usize]);
-
-                lhs & lhs_mask | rhs & rhs_mask
-            }
-        }
-
-        impl PowCt for $primitive {}
     };
 }
 
@@ -1262,10 +1246,6 @@ pub trait PowCt: Num + SelectCt {
 num_impl!(@signed [i8 > u8, i16 > u16, i32 > u32, i64 > u64, i128 > u128, isize > usize]);
 num_impl!(@unsigned [u8 > i8, u16 > i16, u32 > i32, u64 > i64, u128 > i128, usize > isize]);
 
-num_ct_impl!(@signed [i8 > u8, i16 > u16, i32 > u32, i64 > u64, i128 > u128, isize > usize]);
-
-num_ct_impl!(@unsigned [u8, u16, u32, u64, u128, usize]);
-
 dir_from!([i8, i16, i32, i64, i128, isize]);
 dir_from!([u8, u16, u32, u64, u128, usize]);
 
@@ -1307,6 +1287,25 @@ impl<N> From<N> for AutoCt<N> {
         Self(value)
     }
 }
+
+ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
+ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
+
+ndops::auto! { @ndun with @default <Value, N> (value: &AutoCt<Value>) -> AutoCt<N>, (Value) (N) (&value.0) }
+
+ndops::auto! { @ndbin        with @default <Lhs, Rhs, N> (lhs: &AutoCt<Lhs>, rhs: &AutoCt<Rhs>) -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin @shift with @default <Lhs, Rhs, N> (lhs: &AutoCt<Lhs>, rhs: Rhs)          -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+
+ndops::auto! { @ndmut        with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: &AutoCt<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut @shift with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: Rhs),          (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+
+ndops::auto! { @stdun with @default <Value, N> (*value: &AutoCt<Value>) -> AutoCt<N>, (Value) (N) (&value.0) }
+
+ndops::auto! { @stdbin        with @default <Lhs, Rhs, N> (*lhs: &AutoCt<Lhs>, *rhs: &AutoCt<Rhs>) -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin @shift with @default <Lhs, Rhs, N> (*lhs: &AutoCt<Lhs>, rhs: Rhs)           -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
+
+ndops::auto! { @stdmut        with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, *rhs: &AutoCt<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut @shift with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: Rhs),           (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 #[ndfwd::def(self.0 with &'num N: arch::BytesLen)]
 #[ndfwd::def(self.0 with &'num N: arch::BytesFn)]
@@ -1604,25 +1603,6 @@ impl<N: Min> Min for Relaxed<N> {
 impl<N: Max> Max for Relaxed<N> {
     const MAX: Self = Relaxed(N::MAX);
 }
-
-ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
-ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
-
-ndops::auto! { @ndun with @default <Value, N> (value: &AutoCt<Value>) -> AutoCt<N>, (Value) (N) (&value.0) }
-
-ndops::auto! { @ndbin        with @default <Lhs, Rhs, N> (lhs: &AutoCt<Lhs>, rhs: &AutoCt<Rhs>) -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin @shift with @default <Lhs, Rhs, N> (lhs: &AutoCt<Lhs>, rhs: Rhs)          -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
-
-ndops::auto! { @ndmut        with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: &AutoCt<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @ndmut @shift with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: Rhs),          (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-
-ndops::auto! { @stdun with @default <Value, N> (*value: &AutoCt<Value>) -> AutoCt<N>, (Value) (N) (&value.0) }
-
-ndops::auto! { @stdbin        with @default <Lhs, Rhs, N> (*lhs: &AutoCt<Lhs>, *rhs: &AutoCt<Rhs>) -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
-ndops::auto! { @stdbin @shift with @default <Lhs, Rhs, N> (*lhs: &AutoCt<Lhs>, rhs: Rhs)           -> AutoCt<N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
-
-ndops::auto! { @stdmut        with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, *rhs: &AutoCt<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @stdmut @shift with @default <Lhs, Rhs> (lhs: &mut AutoCt<Lhs>, rhs: Rhs),           (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> BytesLen for Width<N, BITS> {
     const BITS: usize = BITS;
