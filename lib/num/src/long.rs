@@ -19,7 +19,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt, NdGcd, NdPow, NdRand,
-    Num, NumFn, NumSigned, NumUnsigned, One, RelCt, SelectCt, Sign, Zero,
+    NegxCt, Num, NumFn, NumSigned, NumUnsigned, One, PosxCt, RelCt, SelectCt, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
     long::{
         radix::*,
@@ -6449,6 +6449,20 @@ impl<const L: usize> SelectCt for Unsigned<L> {
         let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
 
         lhs & lhs_mask | rhs & rhs_mask
+    }
+}
+
+impl<const L: usize> PosxCt for Signed<L> {
+    #[inline(never)]
+    fn posx_ct(&self) -> Self {
+        uops::dirx(&self.0, Dir::POS).with(Self)
+    }
+}
+
+impl<const L: usize> NegxCt for Signed<L> {
+    #[inline(never)]
+    fn negx_ct(&self) -> Self {
+        uops::dirx(&self.0, Dir::NEG).with(Self)
     }
 }
 
