@@ -1867,8 +1867,8 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
         ) [
-            (lhs.is_one_ct(),  MaskCt::MAX * (lhs == 1)   as MaskCt),
             (lhs.is_zero_ct(), MaskCt::MAX * (lhs == 0)   as MaskCt),
+            (lhs.is_one_ct(),  MaskCt::MAX * (lhs == 1)   as MaskCt),
             (lhs.is_pos_ct(),  MaskCt::MAX * (lhs >  0)   as MaskCt),
             (lhs.is_neg_ct(),  MaskCt::MAX * (lhs <  0)   as MaskCt),
             (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
@@ -1888,8 +1888,8 @@ mod tests {
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
         ) [
-            (lhs.is_one_ct(),  MaskCt::MAX * (lhs == 1)   as MaskCt),
             (lhs.is_zero_ct(), MaskCt::MAX * (lhs == 0)   as MaskCt),
+            (lhs.is_one_ct(),  MaskCt::MAX * (lhs == 1)   as MaskCt),
             (lhs.is_pos_ct(),  MaskCt::MAX * (lhs >  0)   as MaskCt),
             (lhs.is_neg_ct(),  MaskCt::MAX * (lhs <  0)   as MaskCt),
             (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),

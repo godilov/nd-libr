@@ -19,7 +19,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt, NdGcd, NdPow, NdRand,
-    NegxCt, Num, NumFn, NumSigned, NumUnsigned, One, PosxCt, RelCt, SelectCt, Sign, Zero,
+    NegxCt, Num, NumFn, NumSigned, NumUnsigned, One, PosxCt, PowCt, RelCt, SelectCt, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
     long::{
         radix::*,
@@ -6346,126 +6346,6 @@ impl<const L: usize> IntoDigitsIter for Unsigned<L> {
     }
 }
 
-impl<const L: usize> EqCt for Signed<L> {
-    #[inline(never)]
-    fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_ct!(self.0.iter(), other.0.iter())
-    }
-}
-
-impl<const L: usize> EqCt for Unsigned<L> {
-    #[inline(never)]
-    fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_ct!(self.0.iter(), other.0.iter())
-    }
-}
-
-impl<const L: usize> EqCt for Bytes<L> {
-    #[inline(never)]
-    fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_ct!(self.0.iter(), other.0.iter())
-    }
-}
-
-impl<const L: usize> LtCt for Signed<L> {
-    #[inline(never)]
-    fn lt_ct(&self, other: &Self) -> MaskCt {
-        let lhs_sign = uops::sign_ct(&self.0);
-        let rhs_sign = uops::sign_ct(&other.0);
-
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
-
-        let sign_lt = lhs_sign.lt_ct(&rhs_sign);
-        let sign_eq = lhs_sign.eq_ct(&rhs_sign);
-        let cmp_lt = cmp.eq_ct(&-1);
-
-        sign_lt | sign_eq & cmp_lt
-    }
-}
-
-impl<const L: usize> GtCt for Signed<L> {
-    #[inline(never)]
-    fn gt_ct(&self, other: &Self) -> MaskCt {
-        let lhs_sign = uops::sign_ct(&self.0);
-        let rhs_sign = uops::sign_ct(&other.0);
-
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
-
-        let sign_gt = lhs_sign.gt_ct(&rhs_sign);
-        let sign_eq = lhs_sign.eq_ct(&rhs_sign);
-        let cmp_gt = cmp.eq_ct(&1);
-
-        sign_gt | sign_eq & cmp_gt
-    }
-}
-
-impl<const L: usize> LtCt for Unsigned<L> {
-    #[inline(never)]
-    fn lt_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
-
-        cmp.eq_ct(&-1) & MaskCt::MAX
-    }
-}
-
-impl<const L: usize> GtCt for Unsigned<L> {
-    #[inline(never)]
-    fn gt_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
-
-        cmp.eq_ct(&1) & MaskCt::MAX
-    }
-}
-
-impl<const L: usize> LeCt for Signed<L> {}
-impl<const L: usize> GeCt for Signed<L> {}
-
-impl<const L: usize> LeCt for Unsigned<L> {}
-impl<const L: usize> GeCt for Unsigned<L> {}
-
-impl<const L: usize> CmpCt for Signed<L> {}
-impl<const L: usize> CmpCt for Unsigned<L> {}
-
-impl<const L: usize> MinCt for Signed<L> {}
-impl<const L: usize> MaxCt for Signed<L> {}
-
-impl<const L: usize> MinCt for Unsigned<L> {}
-impl<const L: usize> MaxCt for Unsigned<L> {}
-
-impl<const L: usize> SelectCt for Signed<L> {
-    #[inline(never)]
-    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
-        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
-
-        lhs & lhs_mask | rhs & rhs_mask
-    }
-}
-
-impl<const L: usize> SelectCt for Unsigned<L> {
-    #[inline(never)]
-    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
-        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
-
-        lhs & lhs_mask | rhs & rhs_mask
-    }
-}
-
-impl<const L: usize> PosxCt for Signed<L> {
-    #[inline(never)]
-    fn posx_ct(&self) -> Self {
-        uops::dirx(&self.0, Dir::POS).with(Self)
-    }
-}
-
-impl<const L: usize> NegxCt for Signed<L> {
-    #[inline(never)]
-    fn negx_ct(&self) -> Self {
-        uops::dirx(&self.0, Dir::NEG).with(Self)
-    }
-}
-
 impl<'words, const L: usize, W: Word> ExactSizeIterator for DigitsIter<'words, L, W> {}
 impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
     type Item = W;
@@ -6941,6 +6821,129 @@ impl<const L: usize> Max for Signed<L> {
 impl<const L: usize> Max for Unsigned<L> {
     const MAX: Self = Self([MAX; L]);
 }
+
+impl<const L: usize> EqCt for Signed<L> {
+    #[inline(never)]
+    fn eq_ct(&self, other: &Self) -> MaskCt {
+        eq_ct!(self.0.iter(), other.0.iter())
+    }
+}
+
+impl<const L: usize> EqCt for Unsigned<L> {
+    #[inline(never)]
+    fn eq_ct(&self, other: &Self) -> MaskCt {
+        eq_ct!(self.0.iter(), other.0.iter())
+    }
+}
+
+impl<const L: usize> EqCt for Bytes<L> {
+    #[inline(never)]
+    fn eq_ct(&self, other: &Self) -> MaskCt {
+        eq_ct!(self.0.iter(), other.0.iter())
+    }
+}
+
+impl<const L: usize> LtCt for Signed<L> {
+    #[inline(never)]
+    fn lt_ct(&self, other: &Self) -> MaskCt {
+        let lhs_sign = uops::sign_ct(&self.0);
+        let rhs_sign = uops::sign_ct(&other.0);
+
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+
+        let sign_lt = lhs_sign.lt_ct(&rhs_sign);
+        let sign_eq = lhs_sign.eq_ct(&rhs_sign);
+        let cmp_lt = cmp.eq_ct(&-1);
+
+        sign_lt | sign_eq & cmp_lt
+    }
+}
+
+impl<const L: usize> GtCt for Signed<L> {
+    #[inline(never)]
+    fn gt_ct(&self, other: &Self) -> MaskCt {
+        let lhs_sign = uops::sign_ct(&self.0);
+        let rhs_sign = uops::sign_ct(&other.0);
+
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+
+        let sign_gt = lhs_sign.gt_ct(&rhs_sign);
+        let sign_eq = lhs_sign.eq_ct(&rhs_sign);
+        let cmp_gt = cmp.eq_ct(&1);
+
+        sign_gt | sign_eq & cmp_gt
+    }
+}
+
+impl<const L: usize> LtCt for Unsigned<L> {
+    #[inline(never)]
+    fn lt_ct(&self, other: &Self) -> MaskCt {
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+
+        cmp.eq_ct(&-1) & MaskCt::MAX
+    }
+}
+
+impl<const L: usize> GtCt for Unsigned<L> {
+    #[inline(never)]
+    fn gt_ct(&self, other: &Self) -> MaskCt {
+        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+
+        cmp.eq_ct(&1) & MaskCt::MAX
+    }
+}
+
+impl<const L: usize> LeCt for Signed<L> {}
+impl<const L: usize> GeCt for Signed<L> {}
+
+impl<const L: usize> LeCt for Unsigned<L> {}
+impl<const L: usize> GeCt for Unsigned<L> {}
+
+impl<const L: usize> CmpCt for Signed<L> {}
+impl<const L: usize> CmpCt for Unsigned<L> {}
+
+impl<const L: usize> MinCt for Signed<L> {}
+impl<const L: usize> MaxCt for Signed<L> {}
+
+impl<const L: usize> MinCt for Unsigned<L> {}
+impl<const L: usize> MaxCt for Unsigned<L> {}
+
+impl<const L: usize> PosxCt for Signed<L> {
+    #[inline(never)]
+    fn posx_ct(&self) -> Self {
+        uops::dirx(&self.0, Dir::POS).with(Self)
+    }
+}
+
+impl<const L: usize> NegxCt for Signed<L> {
+    #[inline(never)]
+    fn negx_ct(&self) -> Self {
+        uops::dirx(&self.0, Dir::NEG).with(Self)
+    }
+}
+
+impl<const L: usize> SelectCt for Signed<L> {
+    #[inline(never)]
+    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
+        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
+
+        lhs & lhs_mask | rhs & rhs_mask
+    }
+}
+
+impl<const L: usize> SelectCt for Unsigned<L> {
+    #[inline(never)]
+    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
+        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
+
+        lhs & lhs_mask | rhs & rhs_mask
+    }
+}
+
+impl<const L: usize> PowCt for Signed<L> {}
+impl<const L: usize> PowCt for Unsigned<L> {}
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     let (bytes, bytes_) = bytes.as_chunks::<BYTES>();
