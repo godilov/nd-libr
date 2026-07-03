@@ -45,31 +45,6 @@ macro_rules! bytes {
     };
 }
 
-macro_rules! eq_ct {
-    ($lhs:expr, $rhs:expr) => {{
-        let diff = $lhs.zip($rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
-
-        std::hint::black_box(diff).is_zero_ct() as MaskCt
-    }};
-}
-
-macro_rules! cmp_ct {
-    ($lhs:expr, $rhs:expr) => {{
-        let (lt, gt) =
-            $lhs.zip($rhs)
-                .map(|(a, b)| ((a < b) as i8, (a > b) as i8))
-                .fold((0i8, 0i8), |(lt_, gt_), (lt, gt)| {
-                    let eq = !lt & !gt;
-                    let lt = lt_ & eq | lt;
-                    let gt = gt_ & eq | gt;
-
-                    (lt, gt)
-                });
-
-        std::hint::black_box(gt - lt) as RelCt
-    }};
-}
-
 macro_rules! from_primitive {
     ($long:ident [$($primitive:ty),+ $(,)?]) => {
         $(from_primitive!($long, $primitive);)+
@@ -3827,36 +3802,61 @@ pub mod uops {
         }
     }
 
-    /// Reads sign in const-time.
+    /// Const-time equality.
+    #[inline(never)]
+    pub fn eq_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> MaskCt {
+        let diff = lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
+
+        std::hint::black_box(diff).is_zero_ct() as MaskCt
+    }
+
+    /// Const-time comparison.
+    #[inline(never)]
+    pub fn cmp_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> RelCt {
+        let (lt, gt) =
+            lhs.zip(rhs)
+                .map(|(a, b)| ((a < b) as i8, (a > b) as i8))
+                .fold((0i8, 0i8), |(lt_, gt_), (lt, gt)| {
+                    let eq = !lt & !gt;
+                    let lt = lt_ & eq | lt;
+                    let gt = gt_ & eq | gt;
+
+                    (lt, gt)
+                });
+
+        std::hint::black_box(gt - lt) as RelCt
+    }
+
+    /// Const-time sign.
     #[inline(never)]
     pub fn sign_ct<const L: usize>(words: &[Single; L]) -> RelCt {
-        let zero = zero_ct(words);
-        let neg = neg_ct(words);
+        let zero = is_zero_ct(words);
+        let neg = is_neg_ct(words);
         let pos = !zero & !neg & 1;
 
         neg as RelCt | pos as RelCt
     }
 
-    /// Checks `words > 0` in const-time.
+    /// Const-time positive check.
     #[inline(never)]
-    pub fn pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        let zero = zero_ct(words);
-        let neg = neg_ct(words);
+    pub fn is_pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+        let zero = is_zero_ct(words);
+        let neg = is_neg_ct(words);
 
         !zero & !neg
     }
 
-    /// Checks `words < 0` in const-time.
+    /// Const-time negative check.
     #[inline(never)]
-    pub fn neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+    pub fn is_neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
 
         <MaskCt as Zero>::ZERO.wrapping_sub(neg)
     }
 
-    /// Checks `words == 0` in const-time.
+    /// Const-time zero check.
     #[inline(never)]
-    pub fn zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+    pub fn is_zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
         std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).is_zero_ct()
     }
 }
@@ -6825,21 +6825,21 @@ impl<const L: usize> Max for Unsigned<L> {
 impl<const L: usize> EqCt for Signed<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_ct!(self.0.iter(), other.0.iter())
+        uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
     }
 }
 
 impl<const L: usize> EqCt for Unsigned<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_ct!(self.0.iter(), other.0.iter())
+        uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
     }
 }
 
 impl<const L: usize> EqCt for Bytes<L> {
     #[inline(never)]
     fn eq_ct(&self, other: &Self) -> MaskCt {
-        eq_ct!(self.0.iter(), other.0.iter())
+        uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
     }
 }
 
@@ -6849,7 +6849,7 @@ impl<const L: usize> LtCt for Signed<L> {
         let lhs_sign = uops::sign_ct(&self.0);
         let rhs_sign = uops::sign_ct(&other.0);
 
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+        let cmp = uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied());
 
         let sign_lt = lhs_sign.lt_ct(&rhs_sign);
         let sign_eq = lhs_sign.eq_ct(&rhs_sign);
@@ -6865,7 +6865,7 @@ impl<const L: usize> GtCt for Signed<L> {
         let lhs_sign = uops::sign_ct(&self.0);
         let rhs_sign = uops::sign_ct(&other.0);
 
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+        let cmp = uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied());
 
         let sign_gt = lhs_sign.gt_ct(&rhs_sign);
         let sign_eq = lhs_sign.eq_ct(&rhs_sign);
@@ -6878,7 +6878,7 @@ impl<const L: usize> GtCt for Signed<L> {
 impl<const L: usize> LtCt for Unsigned<L> {
     #[inline(never)]
     fn lt_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+        let cmp = uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied());
 
         cmp.eq_ct(&-1) & MaskCt::MAX
     }
@@ -6887,7 +6887,7 @@ impl<const L: usize> LtCt for Unsigned<L> {
 impl<const L: usize> GtCt for Unsigned<L> {
     #[inline(never)]
     fn gt_ct(&self, other: &Self) -> MaskCt {
-        let cmp = cmp_ct!(self.0.iter(), other.0.iter());
+        let cmp = uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied());
 
         cmp.eq_ct(&1) & MaskCt::MAX
     }

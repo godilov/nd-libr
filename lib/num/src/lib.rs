@@ -1641,6 +1641,7 @@ impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> Width<N, BITS
         self
     }
 
+    #[inline]
     pub(crate) fn normalize(&mut self) -> &mut Self {
         if N::BITS <= BITS {
             return self;
@@ -1666,6 +1667,7 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> Modular<N, M> {
         self
     }
 
+    #[inline]
     pub(crate) fn normalize(&mut self) -> &mut Self {
         N::nd_rem_assign(&mut self.0, &M::MOD);
 
