@@ -1473,7 +1473,7 @@ pub mod uops {
         value
     }
 
-    /// Identity function.
+    /// Identity context function.
     #[inline]
     pub fn id_ctx<Ctx>(_: Single, _: Single, _: Single, _: Single, ctx: Ctx) -> Ctx {
         ctx
