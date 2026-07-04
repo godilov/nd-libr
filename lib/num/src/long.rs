@@ -1473,6 +1473,12 @@ pub mod uops {
         value
     }
 
+    /// Identity const-time function.
+    #[inline]
+    pub fn id_ct<T>(value: T) -> T {
+        std::hint::black_box(value)
+    }
+
     /// Identity context function.
     #[inline]
     pub fn id_ctx<Ctx>(_: Single, _: Single, _: Single, _: Single, ctx: Ctx) -> Ctx {
@@ -3802,39 +3808,22 @@ pub mod uops {
         }
     }
 
-    /// Const-time equality.
+    /// Const-time zero check.
     #[inline(never)]
-    pub fn eq_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> MaskCt {
-        let diff = lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp);
+    pub fn is_zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+        let lhs = id_ct(words.iter().copied());
+        let rhs = id_ct((0..L).map(|_| 0));
 
-        std::hint::black_box(diff).is_zero_ct() as MaskCt
+        id_ct(lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp)).is_zero_ct()
     }
 
-    /// Const-time comparison.
+    /// Const-time one check.
     #[inline(never)]
-    pub fn cmp_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> RelCt {
-        let (lt, gt) =
-            lhs.zip(rhs)
-                .map(|(a, b)| ((a < b) as i8, (a > b) as i8))
-                .fold((0i8, 0i8), |(lt_, gt_), (lt, gt)| {
-                    let eq = !lt & !gt;
-                    let lt = lt_ & eq | lt;
-                    let gt = gt_ & eq | gt;
+    pub fn is_one_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
+        let lhs = id_ct(words.iter().copied());
+        let rhs = id_ct((0..L).map(|idx| [1, 0][(idx > 0) as usize]));
 
-                    (lt, gt)
-                });
-
-        std::hint::black_box(gt - lt) as RelCt
-    }
-
-    /// Const-time sign.
-    #[inline(never)]
-    pub fn sign_ct<const L: usize>(words: &[Single; L]) -> RelCt {
-        let zero = is_zero_ct(words);
-        let neg = is_neg_ct(words);
-        let pos = !zero & !neg & 1;
-
-        neg as RelCt | pos as RelCt
+        id_ct(lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp)).is_zero_ct()
     }
 
     /// Const-time positive check.
@@ -3854,10 +3843,39 @@ pub mod uops {
         <MaskCt as Zero>::ZERO.wrapping_sub(neg)
     }
 
-    /// Const-time zero check.
+    /// Const-time equality.
     #[inline(never)]
-    pub fn is_zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        std::hint::black_box(words.iter().fold(0, |acc, val| acc | val)).is_zero_ct()
+    pub fn eq_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> MaskCt {
+        let lhs = id_ct(lhs);
+        let rhs = id_ct(rhs);
+
+        id_ct(lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp)).is_zero_ct()
+    }
+
+    /// Const-time comparison.
+    #[inline(never)]
+    pub fn cmp_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> RelCt {
+        let (lt, gt) =
+            lhs.zip(rhs)
+                .map(|(a, b)| ((a < b) as i8, (a > b) as i8))
+                .fold((0i8, 0i8), |(lt_, gt_), (lt, gt)| {
+                    let eq = !lt & !gt;
+                    let lt = lt_ & eq | lt;
+                    let gt = gt_ & eq | gt;
+
+                    (lt, gt)
+                });
+
+        id_ct(gt - lt) as RelCt
+    }
+
+    /// Const-time sign.
+    #[inline(never)]
+    pub fn sign_ct<const L: usize>(words: &[Single; L]) -> RelCt {
+        let pos = is_pos_ct(words) as RelCt;
+        let neg = is_neg_ct(words) as RelCt;
+
+        pos & 1 | neg
     }
 }
 
