@@ -1713,6 +1713,16 @@ fn inv_ct(val: MaskCt) -> MaskCt {
     !MaskCt::ZERO.wrapping_sub(val)
 }
 
+#[inline]
+fn eq_ct() {
+    todo!()
+}
+
+#[inline]
+fn cmp_ct() {
+    todo!()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
