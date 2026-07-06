@@ -6744,11 +6744,31 @@ impl<const L: usize> NumFn for Unsigned<L> {
 impl<const L: usize> Num for Signed<L> {
     type Signed = Signed<L>;
     type Unsigned = Unsigned<L>;
+
+    #[inline]
+    fn as_signed(&self) -> Self::Signed {
+        Signed(self.0)
+    }
+
+    #[inline]
+    fn as_unsigned(&self) -> Self::Unsigned {
+        Unsigned(self.0)
+    }
 }
 
 impl<const L: usize> Num for Unsigned<L> {
     type Signed = Signed<L>;
     type Unsigned = Unsigned<L>;
+
+    #[inline]
+    fn as_signed(&self) -> Self::Signed {
+        Signed(self.0)
+    }
+
+    #[inline]
+    fn as_unsigned(&self) -> Self::Unsigned {
+        Unsigned(self.0)
+    }
 }
 
 impl<const L: usize> NumSigned for Signed<L> {}

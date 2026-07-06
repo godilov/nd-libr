@@ -53,6 +53,16 @@ macro_rules! num_impl {
         impl Num for $primitive {
             type Signed = $signed;
             type Unsigned = $unsigned;
+
+            #[inline]
+            fn as_signed(&self) -> Self::Signed {
+                *self as Self::Signed
+            }
+
+            #[inline]
+            fn as_unsigned(&self) -> Self::Unsigned {
+                *self as Self::Unsigned
+            }
         }
 
         impl NdRand for $primitive {}
@@ -444,6 +454,8 @@ pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(N
 pub struct Modular<N: Num + NumUnsigned, M: Modulus<N>>(N, PhantomData<M>);
 
 /// Number direction (positive/negative).
+///
+/// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Dir {
     /// Positive number variant.
@@ -455,6 +467,8 @@ pub enum Dir {
 }
 
 /// Number sign (positive/negative/zero).
+///
+/// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
     /// Zero number variant.
@@ -469,14 +483,20 @@ pub enum Sign {
 }
 
 /// Const-time mask.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub type MaskCt = u8;
 
 /// Const-time relation.
+///
+/// For more info, see [crate-level](crate) documentation.
 pub type RelCt = i8;
 
 /// Creates random number.
 ///
 /// Convenience wrapper over [`NdRand`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[inline]
 pub fn rand<N: NdRand, Rng: rand::Rng>(order: usize, rng: &mut Rng) -> N {
     N::nd_rand(order, rng)
@@ -485,6 +505,8 @@ pub fn rand<N: NdRand, Rng: rand::Rng>(order: usize, rng: &mut Rng) -> N {
 /// Calculates Greatest Common Divisor of two numbers with default semantics.
 ///
 /// Convenience wrapper over [`NdGcd`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[inline]
 pub fn gcd<N: NdGcd>(lhs: N, rhs: N) -> N {
     N::nd_gcd(lhs, rhs)
@@ -493,6 +515,8 @@ pub fn gcd<N: NdGcd>(lhs: N, rhs: N) -> N {
 /// Calculates Greatest Common Divisor Extended of two numbers with default semantics.
 ///
 /// Convenience wrapper over [`NdGcd`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[inline]
 pub fn gcde<N: NdGcd>(lhs: N, rhs: N) -> (N, N, N) {
     N::nd_gcde(lhs, rhs)
@@ -501,6 +525,8 @@ pub fn gcde<N: NdGcd>(lhs: N, rhs: N) -> (N, N, N) {
 /// Calculates Least Common Multiple of two numbers with default semantics.
 ///
 /// Convenience wrapper over [`NdGcd`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[inline]
 pub fn lcm<N: NdGcd>(lhs: N, rhs: N) -> N {
     N::nd_lcm(lhs, rhs)
@@ -509,6 +535,8 @@ pub fn lcm<N: NdGcd>(lhs: N, rhs: N) -> N {
 /// Calculates Greatest Common Divisor of two numbers with checked semantics.
 ///
 /// Convenience wrapper over [`NdGcdChecked`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[inline]
 pub fn gcd_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<N> {
     N::nd_gcd_checked(lhs, rhs)
@@ -517,6 +545,8 @@ pub fn gcd_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<N> {
 /// Calculates Greatest Common Divisor Extended of two numbers with checked semantics.
 ///
 /// Convenience wrapper over [`NdGcdChecked`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[inline]
 pub fn gcde_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<(N, N, N)> {
     N::nd_gcde_checked(lhs, rhs)
@@ -525,6 +555,8 @@ pub fn gcde_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<(N, N, N)> {
 /// Calculates Least Common Multiple of two numbers with checked semantics.
 ///
 /// Convenience wrapper over [`NdGcdChecked`].
+///
+/// For more info, see [crate-level](crate) documentation.
 #[inline]
 pub fn lcm_checked<N: NdGcdChecked>(lhs: N, rhs: N) -> Option<N> {
     N::nd_lcm_checked(lhs, rhs)
@@ -584,6 +616,8 @@ pub trait NumFn:
 }
 
 /// Number with static allocation.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait Num: NumFn + Zero + One + Copy {
     /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
@@ -599,21 +633,33 @@ pub trait Num: NumFn + Zero + One + Copy {
     const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
 
     /// Signed counterpart of the same size.
-    type Signed;
+    type Signed: Num + NumSigned;
 
     /// Unsigned counterpart of the same size.
-    type Unsigned;
+    type Unsigned: Num + NumUnsigned;
+
+    /// Num to `Self::Signed`.
+    fn as_signed(&self) -> Self::Signed;
+
+    /// Num to `Self::Unsigned`.
+    fn as_unsigned(&self) -> Self::Unsigned;
 }
 
 /// Number with dynamic allocation.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumDyn: NumFn {}
 
 /// Number with sign.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumSigned: NumFn + From<i8> {}
 
 /// Number without sign.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumUnsigned: NumFn + From<u8> {
     /// Order of number.
@@ -630,7 +676,14 @@ pub trait NumUnsigned: NumFn + From<u8> {
     fn sqrt(&self) -> Self;
 }
 
+/// Number with const-time functions.
+///
+/// For more info, see [crate-level](crate) documentation.
+pub trait NumCt: Num + EqCt + CmpCt + SignCt {}
+
 /// Random generation functions.
+///
+/// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NdRand: NumFn + BytesFn {
     /// Creates random number.
@@ -984,6 +1037,62 @@ pub trait MaxFn {
     fn max() -> Self;
 }
 
+/// Const-time equality comparison.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait EqCt {
+    /// Const-time equality function.
+    ///
+    /// # Returns
+    ///
+    /// - `MaskCt::MIN` => `lhs != rhs`.
+    /// - `MaskCt::MAX` => `lhs == rhs`.
+    fn eq_ct(&self, other: &Self) -> MaskCt;
+}
+
+/// Const-time comparison.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait CmpCt: EqCt + LtCt + GtCt {
+    /// Const-time comparison function.
+    ///
+    /// # Returns
+    ///
+    /// - `-1` => `lhs < rhs`
+    /// - `0` => `lhs == rhs`.
+    /// - `1` => `lhs > rhs`
+    #[inline]
+    fn cmp_ct(&self, other: &Self) -> RelCt {
+        let lt = self.lt_ct(other) as RelCt;
+        let gt = self.gt_ct(other) as RelCt;
+
+        lt | gt & 1
+    }
+}
+
+/// Const-time sign.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait SignCt: IsZeroCt + IsPosCt + IsNegCt {
+    /// Const-time sign function.
+    ///
+    /// # Returns
+    ///
+    /// - `-1` => `lhs < 0`
+    /// - `0` => `lhs == 0`.
+    /// - `1` => `lhs > 0`
+    #[inline]
+    fn sign_ct(&self) -> RelCt {
+        let pos = self.is_pos_ct() as RelCt;
+        let neg = self.is_neg_ct() as RelCt;
+
+        pos & 1 | neg
+    }
+}
+
 /// Const-time equality with zero comparison.
 ///
 /// For more info, see [crate-level](crate) documentation.
@@ -1038,20 +1147,6 @@ pub trait IsNegCt {
     /// - `MaskCt::MIN` => `lhs >= 0`.
     /// - `MaskCt::MAX` => `lhs < 0`.
     fn is_neg_ct(&self) -> MaskCt;
-}
-
-/// Const-time equality comparison.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait EqCt {
-    /// Const-time equality function.
-    ///
-    /// # Returns
-    ///
-    /// - `MaskCt::MIN` => `lhs != rhs`.
-    /// - `MaskCt::MAX` => `lhs == rhs`.
-    fn eq_ct(&self, other: &Self) -> MaskCt;
 }
 
 /// Const-time less-then comparison.
@@ -1113,48 +1208,6 @@ pub trait GeCt: EqCt + LtCt + GtCt {
     #[inline]
     fn ge_ct(&self, other: &Self) -> MaskCt {
         !self.lt_ct(other)
-    }
-}
-
-/// Const-time sign.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait SignCt: IsZeroCt + IsPosCt + IsNegCt {
-    /// Const-time sign function.
-    ///
-    /// # Returns
-    ///
-    /// - `-1` => `lhs < 0`
-    /// - `0` => `lhs == 0`.
-    /// - `1` => `lhs > 0`
-    #[inline]
-    fn sign_ct(&self) -> RelCt {
-        let pos = self.is_pos_ct() as RelCt;
-        let neg = self.is_neg_ct() as RelCt;
-
-        pos & 1 | neg
-    }
-}
-
-/// Const-time comparison.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait CmpCt: EqCt + LtCt + GtCt {
-    /// Const-time comparison function.
-    ///
-    /// # Returns
-    ///
-    /// - `-1` => `lhs < rhs`
-    /// - `0` => `lhs == rhs`.
-    /// - `1` => `lhs > rhs`
-    #[inline]
-    fn cmp_ct(&self, other: &Self) -> RelCt {
-        let lt = self.lt_ct(other) as RelCt;
-        let gt = self.gt_ct(other) as RelCt;
-
-        lt | gt & 1
     }
 }
 
@@ -1714,12 +1767,12 @@ fn inv_ct(val: MaskCt) -> MaskCt {
 }
 
 #[inline]
-fn eq_ct() {
+fn eq_ct<N: Num + NdOpsWrapping<All = N> + NdOpsAssignWrapping>(lhs: &N, rhs: &N) {
     todo!()
 }
 
 #[inline]
-fn cmp_ct() {
+fn cmp_ct<N: Num + NdOpsWrapping<All = N> + NdOpsAssignWrapping>(lhs: &N, rhs: &N) {
     todo!()
 }
 
