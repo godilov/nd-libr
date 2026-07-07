@@ -679,6 +679,7 @@ pub trait NumUnsigned: NumFn + From<u8> {
 /// Number with const-time functions.
 ///
 /// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
 pub trait NumCt: Num + EqCt + CmpCt + SignCt {}
 
 /// Random generation functions.
