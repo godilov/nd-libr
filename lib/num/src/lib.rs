@@ -446,7 +446,7 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::def(self.0 with N: SelectCt)]
 #[ndfwd::def(self.0 with N: PowCt!)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize>(N);
+pub struct Width<N: Num + NumUnsigned, const BITS: usize>(N);
 
 /// Number with Modulus.
 ///
@@ -632,7 +632,7 @@ pub trait NumFn:
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait Num: NumFn + Zero + One + Copy {
+pub trait Num: NumFn + BytesFn + Zero + One + Copy {
     /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
     #[allow(unused)]
     const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
@@ -713,7 +713,7 @@ pub trait NumUnsignedCt:
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumCt: Num + EqCt + CmpCt + SignCt {}
+pub trait NumCt: Num + EqCt + CmpCt + SignCt + SelectCt {}
 
 /// Random generation functions.
 ///
@@ -1399,7 +1399,7 @@ impl<N: Num, R: Range<N>> From<N> for Ranged<N, R> {
     }
 }
 
-impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> From<N> for Width<N, BITS> {
+impl<N: Num + NumUnsigned, const BITS: usize> From<N> for Width<N, BITS> {
     #[inline]
     fn from(value: N) -> Self {
         Self(value).normalized()
@@ -1768,12 +1768,12 @@ impl<N: Max> Max for Relaxed<N> {
     const MAX: Self = Relaxed(N::MAX);
 }
 
-impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> BytesLen for Width<N, BITS> {
+impl<N: Num + NumUnsigned, const BITS: usize> BytesLen for Width<N, BITS> {
     const BITS: usize = BITS;
     const BYTES: usize = BITS.div_ceil(8);
 }
 
-impl<N: Num + NumUnsigned + BytesLen + BytesFn, const BITS: usize> Width<N, BITS> {
+impl<N: Num + NumUnsigned, const BITS: usize> Width<N, BITS> {
     #[allow(unused)]
     const CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
 
@@ -1856,7 +1856,7 @@ fn inv_ct(val: MaskCt) -> MaskCt {
 }
 
 #[inline]
-fn eq_ct<N: BytesLen + Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> MaskCt {
+fn eq_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> MaskCt {
     let lhs = Relaxed(lhs.as_unsigned());
     let rhs = Relaxed(rhs.as_unsigned());
 
@@ -1870,9 +1870,7 @@ fn eq_ct<N: BytesLen + Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &
 }
 
 #[inline]
-fn cmp_ct<
-    N: BytesLen + Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt> + NdOpsRelaxed<All = N> + NdOpsAssignRelaxed,
->(
+fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt> + NdOpsRelaxed<All = N> + NdOpsAssignRelaxed>(
     lhs: &N,
     rhs: &N,
 ) -> RelCt {
