@@ -1862,8 +1862,8 @@ fn inv_ct(val: MaskCt) -> MaskCt {
 
 #[inline]
 fn eq_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> MaskCt {
-    let lhs = Relaxed(id_ct(lhs.as_unsigned()));
-    let rhs = Relaxed(id_ct(rhs.as_unsigned()));
+    let lhs = Relaxed(lhs.as_unsigned());
+    let rhs = Relaxed(rhs.as_unsigned());
     let shift = N::BITS - 1;
 
     let xor = lhs ^ rhs;
@@ -1877,8 +1877,8 @@ fn eq_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N)
 
 #[inline]
 fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> RelCt {
-    let lhs = Relaxed(id_ct(lhs.as_unsigned()));
-    let rhs = Relaxed(id_ct(rhs.as_unsigned()));
+    let lhs = Relaxed(lhs.as_unsigned());
+    let rhs = Relaxed(rhs.as_unsigned());
     let shift = N::BITS - 1;
 
     let lt = ((lhs - rhs) >> shift).0.as_mask();
@@ -2050,17 +2050,18 @@ mod tests {
             lhs in ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
             rhs in ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
         ) [
+            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
+            (lhs.sign_ct(),    lhs.cmp(&0)   as RelCt),
+
             (lhs.is_zero_ct(), MaskCt::MAX * (lhs == 0)   as MaskCt),
             (lhs.is_one_ct(),  MaskCt::MAX * (lhs == 1)   as MaskCt),
             (lhs.is_pos_ct(),  MaskCt::MAX * (lhs >  0)   as MaskCt),
             (lhs.is_neg_ct(),  MaskCt::MAX * (lhs <  0)   as MaskCt),
-            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.sign_ct(),    lhs.cmp(&0)   as RelCt),
-            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
             (lhs.posx_ct(),    lhs.wrapping_abs()),
@@ -2071,17 +2072,18 @@ mod tests {
             lhs in ndassert::range!(u64, 56, 0).chain([0, 1]),
             rhs in ndassert::range!(u64, 56, 1).chain([0, 1]),
         ) [
+            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
+            (lhs.sign_ct(),    lhs.cmp(&0)   as RelCt),
+
             (lhs.is_zero_ct(), MaskCt::MAX * (lhs == 0)   as MaskCt),
             (lhs.is_one_ct(),  MaskCt::MAX * (lhs == 1)   as MaskCt),
             (lhs.is_pos_ct(),  MaskCt::MAX * (lhs >  0)   as MaskCt),
             (lhs.is_neg_ct(),  MaskCt::MAX * (lhs <  0)   as MaskCt),
-            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
             (lhs.lt_ct(&rhs),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
             (lhs.gt_ct(&rhs),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
             (lhs.le_ct(&rhs),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
             (lhs.ge_ct(&rhs),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.sign_ct(),    lhs.cmp(&0)   as RelCt),
-            (lhs.cmp_ct(&rhs), lhs.cmp(&rhs) as RelCt),
             (lhs.min_ct(&rhs), lhs.min(rhs)),
             (lhs.max_ct(&rhs), lhs.max(rhs)),
         ] }
