@@ -112,6 +112,12 @@ macro_rules! num_impl {
     };
     (@signed $signed:ty, $unsigned:ty $(,)?) => {
         impl NumSigned for $signed {}
+        impl NumSignedCt for $signed {
+            #[inline]
+            fn as_rel(&self) -> RelCt {
+                *self as RelCt
+            }
+        }
 
         impl IsZeroCt for $signed {
             #[inline(never)]
@@ -250,6 +256,13 @@ macro_rules! num_impl {
             #[inline]
             fn sqrt(&self) -> Self {
                 self.isqrt() as $unsigned
+            }
+        }
+
+        impl NumUnsignedCt for $unsigned {
+            #[inline]
+            fn as_mask(&self) -> MaskCt {
+                *self as MaskCt
             }
         }
 
@@ -638,10 +651,10 @@ pub trait Num: NumFn + Zero + One + Copy {
     /// Unsigned counterpart of the same size.
     type Unsigned: Num + NumUnsigned;
 
-    /// Num to `Self::Signed`.
+    /// Num to [`Self::Signed`].
     fn as_signed(&self) -> Self::Signed;
 
-    /// Num to `Self::Unsigned`.
+    /// Num to [`Self::Unsigned`].
     fn as_unsigned(&self) -> Self::Unsigned;
 }
 
@@ -656,6 +669,15 @@ pub trait NumDyn: NumFn {}
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumSigned: NumFn + From<i8> {}
+
+/// Number with const-time functions (signed).
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumSignedCt: Num + NumSigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self> {
+    /// Num to [`RelCt`].
+    fn as_rel(&self) -> RelCt;
+}
 
 /// Number without sign.
 ///
@@ -676,7 +698,18 @@ pub trait NumUnsigned: NumFn + From<u8> {
     fn sqrt(&self) -> Self;
 }
 
-/// Number with const-time functions.
+/// Number with const-time functions (unsigned).
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumUnsignedCt:
+    Num + NumUnsigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self>
+{
+    /// Num to [`MaskCt`].
+    fn as_mask(&self) -> MaskCt;
+}
+
+/// Number with const-time operations.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
@@ -1390,7 +1423,9 @@ ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i
 #[ndfwd::def(self.0 with &'num N: NumFn!)]
 #[ndfwd::def(self.0 with &'num N: Num!)]
 #[ndfwd::def(self.0 with &'num N: NumSigned)]
+#[ndfwd::def(self.0 with &'num N: NumSignedCt)]
 #[ndfwd::def(self.0 with &'num N: NumUnsigned)]
+#[ndfwd::def(self.0 with &'num N: NumUnsignedCt)]
 #[ndfwd::def(self.0 with &'num N: NdRand!)]
 #[ndfwd::def(self.0 with &'num N: NdPow!)]
 #[ndfwd::def(self.0 with &'num N: NdGcd!)]
@@ -1421,7 +1456,9 @@ impl<'num, N> NdForward for Ref<'num, N> {}
 #[ndfwd::def(self.0 with &'num mut N: NumFn!)]
 #[ndfwd::def(self.0 with &'num mut N: Num!)]
 #[ndfwd::def(self.0 with &'num mut N: NumSigned)]
+#[ndfwd::def(self.0 with &'num mut N: NumSignedCt)]
 #[ndfwd::def(self.0 with &'num mut N: NumUnsigned)]
+#[ndfwd::def(self.0 with &'num mut N: NumUnsignedCt)]
 #[ndfwd::def(self.0 with &'num mut N: NdRand!)]
 #[ndfwd::def(self.0 with &'num mut N: NdPow!)]
 #[ndfwd::def(self.0 with &'num mut N: NdGcd!)]
@@ -1444,6 +1481,39 @@ impl<'num, N> NdForward for Ref<'num, N> {}
 #[ndfwd::def(self.0 with &'num mut N: SelectCt)]
 #[ndfwd::def(self.0 with &'num mut N: PowCt!)]
 impl<'num, N> NdForward for Mut<'num, N> {}
+
+#[ndfwd::def(self.0 with N: arch::BytesLen)]
+#[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::AsBytesRef)]
+#[ndfwd::def(self.0 with N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with N: NumFn!)]
+#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: NumSigned)]
+#[ndfwd::def(self.0 with N: NumSignedCt)]
+#[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NumUnsignedCt)]
+#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NdPow!)]
+#[ndfwd::def(self.0 with N: NdGcd!)]
+#[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: IsZeroCt)]
+#[ndfwd::def(self.0 with N: IsOneCt)]
+#[ndfwd::def(self.0 with N: IsPosCt)]
+#[ndfwd::def(self.0 with N: IsNegCt)]
+#[ndfwd::def(self.0 with N: EqCt)]
+#[ndfwd::def(self.0 with N: LtCt)]
+#[ndfwd::def(self.0 with N: GtCt)]
+#[ndfwd::def(self.0 with N: LeCt)]
+#[ndfwd::def(self.0 with N: GeCt)]
+#[ndfwd::def(self.0 with N: SignCt)]
+#[ndfwd::def(self.0 with N: CmpCt)]
+#[ndfwd::def(self.0 with N: MinCt)]
+#[ndfwd::def(self.0 with N: MaxCt)]
+#[ndfwd::def(self.0 with N: PosxCt)]
+#[ndfwd::def(self.0 with N: NegxCt)]
+#[ndfwd::def(self.0 with N: SelectCt)]
+#[ndfwd::def(self.0 with N: PowCt!)]
+impl<N> NdForward for Def<N> {}
 
 #[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
@@ -1576,7 +1646,9 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: NumFn!)]
 #[ndfwd::def(self.0 with N: Num!)]
 #[ndfwd::def(self.0 with N: NumSigned)]
+#[ndfwd::def(self.0 with N: NumSignedCt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
+#[ndfwd::def(self.0 with N: NumUnsignedCt)]
 #[ndfwd::def(self.0 with N: NdRand!)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
@@ -1599,6 +1671,22 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: SelectCt)]
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Relaxed<N> {}
+
+impl<N: Zero> Zero for Def<N> {
+    const ZERO: Self = Def(N::ZERO);
+}
+
+impl<N: One> One for Def<N> {
+    const ONE: Self = Def(N::ONE);
+}
+
+impl<N: Min> Min for Def<N> {
+    const MIN: Self = Def(N::MIN);
+}
+
+impl<N: Max> Max for Def<N> {
+    const MAX: Self = Def(N::MAX);
+}
 
 impl<N: Zero> Zero for Strict<N> {
     const ZERO: Self = Strict(N::ZERO);
@@ -1768,12 +1856,26 @@ fn inv_ct(val: MaskCt) -> MaskCt {
 }
 
 #[inline]
-fn eq_ct<N: Num + NdOpsWrapping<All = N> + NdOpsAssignWrapping>(lhs: &N, rhs: &N) {
-    todo!()
+fn eq_ct<N: BytesLen + Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> MaskCt {
+    let lhs = Relaxed(lhs.as_unsigned());
+    let rhs = Relaxed(rhs.as_unsigned());
+
+    let xor = lhs ^ rhs;
+
+    let pos = xor;
+    let neg = !xor + Relaxed::ONE;
+    let bit = (pos | neg) >> (N::BITS - 1);
+
+    inv_ct(bit.0.as_mask())
 }
 
 #[inline]
-fn cmp_ct<N: Num + NdOpsWrapping<All = N> + NdOpsAssignWrapping>(lhs: &N, rhs: &N) {
+fn cmp_ct<
+    N: BytesLen + Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt> + NdOpsRelaxed<All = N> + NdOpsAssignRelaxed,
+>(
+    lhs: &N,
+    rhs: &N,
+) -> RelCt {
     todo!()
 }
 

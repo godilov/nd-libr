@@ -626,10 +626,10 @@ pub enum Offset {
 /// Bytes length.
 #[ndfwd::decl]
 pub trait BytesLen {
-    /// Effective static allocation len in bits.
+    /// Effective len in bits.
     const BITS: usize;
 
-    /// Effective static allocation len in bytes.
+    /// Effective len in bytes.
     const BYTES: usize;
 }
 
