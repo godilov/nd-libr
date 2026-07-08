@@ -1846,6 +1846,11 @@ impl<Any: Max> MaxFn for Any {
 }
 
 #[inline]
+fn id_ct<T>(value: T) -> T {
+    std::hint::black_box(value)
+}
+
+#[inline]
 fn dir_ct(val: MaskCt) -> MaskCt {
     MaskCt::ZERO.wrapping_sub(val)
 }
@@ -1857,24 +1862,36 @@ fn inv_ct(val: MaskCt) -> MaskCt {
 
 #[inline]
 fn eq_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> MaskCt {
-    let lhs = Relaxed(lhs.as_unsigned());
-    let rhs = Relaxed(rhs.as_unsigned());
+    let lhs = Relaxed(id_ct(lhs.as_unsigned()));
+    let rhs = Relaxed(id_ct(rhs.as_unsigned()));
+    let shift = N::BITS - 1;
 
     let xor = lhs ^ rhs;
 
     let pos = xor;
     let neg = !xor + Relaxed::ONE;
-    let bit = (pos | neg) >> (N::BITS - 1);
+    let bit = (pos | neg) >> shift;
 
     inv_ct(bit.0.as_mask())
 }
 
 #[inline]
-fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt> + NdOpsRelaxed<All = N> + NdOpsAssignRelaxed>(
-    lhs: &N,
-    rhs: &N,
-) -> RelCt {
-    todo!()
+fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> RelCt {
+    let lhs = Relaxed(id_ct(lhs.as_unsigned()));
+    let rhs = Relaxed(id_ct(rhs.as_unsigned()));
+    let shift = N::BITS - 1;
+
+    let lt = ((lhs - rhs) >> shift).0.as_mask();
+    let gt = ((rhs - lhs) >> shift).0.as_mask();
+
+    let lhs_bit = (lhs >> shift).0.as_mask();
+    let rhs_bit = (rhs >> shift).0.as_mask();
+    let xor_bit = lhs_bit ^ rhs_bit;
+
+    let lt_res = xor_bit & rhs_bit | !xor_bit & lt;
+    let gt_res = xor_bit & lhs_bit | !xor_bit & gt;
+
+    gt_res as i8 - lt_res as i8
 }
 
 #[cfg(test)]
