@@ -114,7 +114,7 @@ macro_rules! num_impl {
         impl NumSigned for $signed {}
         impl NumSignedCt for $signed {
             #[inline]
-            fn as_rel(&self) -> RelCt {
+            fn as_rel_ct(&self) -> RelCt {
                 *self as RelCt
             }
         }
@@ -261,7 +261,7 @@ macro_rules! num_impl {
 
         impl NumUnsignedCt for $unsigned {
             #[inline]
-            fn as_mask(&self) -> MaskCt {
+            fn as_mask_ct(&self) -> MaskCt {
                 *self as MaskCt
             }
         }
@@ -676,7 +676,7 @@ pub trait NumSigned: NumFn + From<i8> {}
 #[ndfwd::decl]
 pub trait NumSignedCt: Num + NumSigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self> {
     /// Num to [`RelCt`].
-    fn as_rel(&self) -> RelCt;
+    fn as_rel_ct(&self) -> RelCt;
 }
 
 /// Number without sign.
@@ -706,7 +706,7 @@ pub trait NumUnsignedCt:
     Num + NumUnsigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self>
 {
     /// Num to [`MaskCt`].
-    fn as_mask(&self) -> MaskCt;
+    fn as_mask_ct(&self) -> MaskCt;
 }
 
 /// Number with const-time operations.
@@ -1872,7 +1872,7 @@ fn eq_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N)
     let neg = !xor + Relaxed::ONE;
     let bit = (pos | neg) >> shift;
 
-    inv_ct(bit.0.as_mask())
+    inv_ct(bit.0.as_mask_ct())
 }
 
 #[inline]
@@ -1881,11 +1881,11 @@ fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N
     let rhs = Relaxed(rhs.as_unsigned());
     let shift = N::BITS - 1;
 
-    let lt = ((lhs - rhs) >> shift).0.as_mask();
-    let gt = ((rhs - lhs) >> shift).0.as_mask();
+    let lt = ((lhs - rhs) >> shift).0.as_mask_ct();
+    let gt = ((rhs - lhs) >> shift).0.as_mask_ct();
 
-    let lhs_bit = (lhs >> shift).0.as_mask();
-    let rhs_bit = (rhs >> shift).0.as_mask();
+    let lhs_bit = (lhs >> shift).0.as_mask_ct();
+    let rhs_bit = (rhs >> shift).0.as_mask_ct();
     let xor_bit = lhs_bit ^ rhs_bit;
 
     let lt_res = xor_bit & rhs_bit | !xor_bit & lt;
