@@ -418,7 +418,7 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
 
     let ident = &interface.ident;
-    let macros = format_ident!("NdFwd{}", ident);
+    let macros = format_ident!("__NdFwd{}", ident);
 
     let supertraits = interface.supertraits.iter();
     let gen_params = interface.generics.params.iter();
@@ -571,8 +571,8 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
             .fold(String::new(), |acc, seg| format!("{}{}", &acc, seg.ident));
 
         let forward = get_forward_impl(&path, generics, expr, ty);
-        let module = format_ident!("NdFwd{}Impl{}", &id, &name);
-        let macros = format_ident!("NdFwd{}", &id);
+        let module = format_ident!("__NdFwd{}Impl{}", &id, &name);
+        let macros = format_ident!("__NdFwd{}", &id);
 
         quote! {
             #item
