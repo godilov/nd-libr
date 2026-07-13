@@ -34,12 +34,12 @@ mod kw {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
-pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ForwardDataItem);
-    let fwd = parse_macro_input!(attr as Forward);
+pub fn std(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
+    let ty = parse_macro_input!(ty as FwdType);
+    let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = item.forward_args();
-    let (expr, ty) = fwd.forward_args();
+    let (ident, generics) = ty.args();
+    let (expr_impl, ty_impl) = attr.args();
 
     let gen_params = &generics.params;
     let (_, gen_type, gen_where) = generics.split_for_impl();
@@ -53,29 +53,29 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let as_mut = quote! { #(#params,)* AsMutRet };
 
     let as_ref_where = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty: std::convert::AsRef<AsRefRet> },
-        None => quote! { where #ty: std::convert::AsRef<AsRefRet> },
+        Some(val) => quote! { where #(#val,)* #ty_impl: std::convert::AsRef<AsRefRet> },
+        None => quote! { where #ty_impl: std::convert::AsRef<AsRefRet> },
     };
 
     let as_mut_where = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty: std::convert::AsMut<AsMutRet> },
-        None => quote! { where #ty: std::convert::AsMut<AsMutRet> },
+        Some(val) => quote! { where #(#val,)* #ty_impl: std::convert::AsMut<AsMutRet> },
+        None => quote! { where #ty_impl: std::convert::AsMut<AsMutRet> },
     };
 
     quote! {
-        #item
+        #ty
 
         impl<#as_ref> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref_where {
             #[inline]
             fn as_ref(&self) -> &AsRefRet {
-                #expr.as_ref()
+                #expr_impl.as_ref()
             }
         }
 
         impl<#as_mut> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut_where {
             #[inline]
             fn as_mut(&mut self) -> &mut AsMutRet {
-                #expr.as_mut()
+                #expr_impl.as_mut()
             }
         }
     }
@@ -106,11 +106,11 @@ pub fn std(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ForwardDataItem);
-    let fwd = parse_macro_input!(attr as Forward);
+    let item = parse_macro_input!(item as FwdType);
+    let fwd = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = item.forward_args();
-    let (expr, ty) = fwd.forward_args();
+    let (ident, generics) = item.args();
+    let (expr, ty) = fwd.args();
 
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
@@ -221,11 +221,11 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         }
     }
 
-    let item = parse_macro_input!(item as ForwardDataItem);
-    let fwd = parse_macro_input!(attr as Forward);
+    let item = parse_macro_input!(item as FwdType);
+    let fwd = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = item.forward_args();
-    let (expr, ty) = fwd.forward_args();
+    let (ident, generics) = item.args();
+    let (expr, ty) = fwd.args();
 
     let (_, _, gen_where) = generics.split_for_impl();
 
@@ -327,11 +327,11 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as ForwardDataItem);
-    let fwd = parse_macro_input!(attr as Forward);
+    let item = parse_macro_input!(item as FwdType);
+    let fwd = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = item.forward_args();
-    let (expr, ty) = fwd.forward_args();
+    let (ident, generics) = item.args();
+    let (expr, ty) = fwd.args();
 
     let gen_params = &generics.params;
     let (_, gen_type, gen_where) = generics.split_for_impl();
@@ -415,7 +415,7 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// - [`as_map`]
 #[proc_macro_attribute]
 pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let ForwardDeclItem::Trait(interface) = parse_macro_input!(item as ForwardDeclItem);
+    let FwdDecl::Trait(interface) = parse_macro_input!(item as FwdDecl);
 
     let ident = &interface.ident;
     let macros = format_ident!("__NdFwd{}", ident);
@@ -536,7 +536,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         }};
     }
 
-    fn forward(path: TypePath, generics: &Generics, attr: &ForwardAttr, item: TokenStream) -> TokenStreamStd {
+    fn forward(path: TypePath, generics: &Generics, attr: &FwdDefAttr, item: TokenStream) -> TokenStreamStd {
         let gen_params = &generics.params;
 
         let expr = &attr.fwd.expr;
@@ -596,13 +596,13 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         .into()
     }
 
-    let item = parse_macro_input!(item as ForwardDefItem);
+    let item = parse_macro_input!(item as FwdDef);
 
     match item {
-        ForwardDefItem::Struct(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
-        ForwardDefItem::Enum(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
-        ForwardDefItem::Union(val) => forward!(val, parse_macro_input!(attr as ForwardAttr)),
-        ForwardDefItem::Impl(val) => {
+        FwdDef::Struct(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
+        FwdDef::Enum(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
+        FwdDef::Union(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
+        FwdDef::Impl(val) => {
             let quote = quote! { #val };
             let path = match *val.self_ty {
                 Type::Path(val) => val,
@@ -615,7 +615,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 
             let generics = &val.generics;
 
-            forward(path, generics, &parse_macro_input!(attr as ForwardAttr), quote)
+            forward(path, generics, &parse_macro_input!(attr as FwdDefAttr), quote)
         },
     }
 }
@@ -701,23 +701,23 @@ pub fn as_map(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 }
 
 #[allow(unused)]
-struct Forward {
+struct FwdAttr {
     expr: Expr,
     with: kw::with,
     ty: Type,
 }
 
-enum ForwardDataItem {
+enum FwdType {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
 }
 
-enum ForwardDeclItem {
+enum FwdDecl {
     Trait(ItemTrait),
 }
 
-enum ForwardDefItem {
+enum FwdDef {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
@@ -725,8 +725,8 @@ enum ForwardDefItem {
 }
 
 #[allow(unused)]
-struct ForwardAttr {
-    fwd: Forward,
+struct FwdDefAttr {
+    fwd: FwdAttr,
     colon: Token![:],
     path: Path,
     defaults: Option<Token![!]>,
@@ -734,19 +734,19 @@ struct ForwardAttr {
 }
 
 #[derive(Debug, Clone)]
-enum ForwardExpr {
+enum FwdExpr {
     Raw(TokenStream),
     Ref(TokenStream),
     Mut(TokenStream),
 }
 
 #[derive(Debug, Clone)]
-enum ForwardArg {
+enum FwdArg {
     Raw(TokenStream),
     Alt(TokenStream),
 }
 
-impl Parse for Forward {
+impl Parse for FwdAttr {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             expr: input.parse()?,
@@ -756,7 +756,7 @@ impl Parse for Forward {
     }
 }
 
-impl Parse for ForwardDataItem {
+impl Parse for FwdType {
     fn parse(input: ParseStream) -> Result<Self> {
         let item = input.parse::<Item>()?;
 
@@ -769,13 +769,13 @@ impl Parse for ForwardDataItem {
     }
 }
 
-impl Parse for ForwardDeclItem {
+impl Parse for FwdDecl {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self::Trait(input.parse::<ItemTrait>()?))
     }
 }
 
-impl Parse for ForwardDefItem {
+impl Parse for FwdDef {
     fn parse(input: ParseStream) -> Result<Self> {
         let item = input.parse::<Item>()?;
 
@@ -807,7 +807,7 @@ impl Parse for ForwardDefItem {
     }
 }
 
-impl Parse for ForwardAttr {
+impl Parse for FwdDefAttr {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             fwd: input.parse()?,
@@ -819,68 +819,68 @@ impl Parse for ForwardAttr {
     }
 }
 
-impl ToTokens for ForwardDataItem {
+impl ToTokens for FwdType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            ForwardDataItem::Struct(val) => val.to_tokens(tokens),
-            ForwardDataItem::Enum(val) => val.to_tokens(tokens),
-            ForwardDataItem::Union(val) => val.to_tokens(tokens),
+            FwdType::Struct(val) => val.to_tokens(tokens),
+            FwdType::Enum(val) => val.to_tokens(tokens),
+            FwdType::Union(val) => val.to_tokens(tokens),
         }
     }
 }
 
-impl ToTokens for ForwardDefItem {
+impl ToTokens for FwdDef {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            ForwardDefItem::Struct(val) => val.to_tokens(tokens),
-            ForwardDefItem::Enum(val) => val.to_tokens(tokens),
-            ForwardDefItem::Union(val) => val.to_tokens(tokens),
-            ForwardDefItem::Impl(val) => val.to_tokens(tokens),
+            FwdDef::Struct(val) => val.to_tokens(tokens),
+            FwdDef::Enum(val) => val.to_tokens(tokens),
+            FwdDef::Union(val) => val.to_tokens(tokens),
+            FwdDef::Impl(val) => val.to_tokens(tokens),
         }
     }
 }
 
-impl ToTokens for ForwardExpr {
+impl ToTokens for FwdExpr {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            ForwardExpr::Raw(val) => val.to_tokens(tokens),
-            ForwardExpr::Ref(val) => val.to_tokens(tokens),
-            ForwardExpr::Mut(val) => val.to_tokens(tokens),
+            FwdExpr::Raw(val) => val.to_tokens(tokens),
+            FwdExpr::Ref(val) => val.to_tokens(tokens),
+            FwdExpr::Mut(val) => val.to_tokens(tokens),
         }
     }
 }
 
-impl Forward {
-    fn forward_args(&self) -> (&Expr, &Type) {
+impl FwdAttr {
+    fn args(&self) -> (&Expr, &Type) {
         (&self.expr, &self.ty)
     }
 }
 
-impl ForwardDataItem {
-    fn forward_args(&self) -> (&Ident, &Generics) {
+impl FwdType {
+    fn args(&self) -> (&Ident, &Generics) {
         match self {
-            ForwardDataItem::Struct(val) => (&val.ident, &val.generics),
-            ForwardDataItem::Enum(val) => (&val.ident, &val.generics),
-            ForwardDataItem::Union(val) => (&val.ident, &val.generics),
+            FwdType::Struct(val) => (&val.ident, &val.generics),
+            FwdType::Enum(val) => (&val.ident, &val.generics),
+            FwdType::Union(val) => (&val.ident, &val.generics),
         }
     }
 }
 
-impl ForwardExpr {
+impl FwdExpr {
     fn stream(self) -> TokenStream {
         match self {
-            ForwardExpr::Raw(val) => val,
-            ForwardExpr::Ref(val) => val,
-            ForwardExpr::Mut(val) => val,
+            FwdExpr::Raw(val) => val,
+            FwdExpr::Ref(val) => val,
+            FwdExpr::Mut(val) => val,
         }
     }
 }
 
-impl ForwardArg {
+impl FwdArg {
     fn stream(self) -> TokenStream {
         match self {
-            ForwardArg::Raw(val) => val,
-            ForwardArg::Alt(val) => val,
+            FwdArg::Raw(val) => val,
+            FwdArg::Alt(val) => val,
         }
     }
 }
@@ -1011,7 +1011,7 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
             let ident = format_ident!("arg{}", idx);
             let expr = quote! { #ident };
 
-            let arg = get_forward_argument(ForwardExpr::Raw(expr), &val.ty);
+            let arg = get_forward_argument(FwdExpr::Raw(expr), &val.ty);
 
             Ok(arg?.stream())
         })
@@ -1166,33 +1166,33 @@ fn get_forward_expr(meta: &Meta) -> Result<Expr> {
     }
 }
 
-fn get_forward_argument(expr: ForwardExpr, ty: &Type) -> Result<ForwardArg> {
+fn get_forward_argument(expr: FwdExpr, ty: &Type) -> Result<FwdArg> {
     match ty {
         Type::Path(val) => {
             if val.path.segments.last().is_some_and(|seg| seg.ident == "Self") {
                 return Ok(match expr {
-                    ForwardExpr::Raw(val) => ForwardArg::Alt(quote! { #val.forward() }),
-                    ForwardExpr::Ref(val) => ForwardArg::Alt(quote! { #val.forward_ref() }),
-                    ForwardExpr::Mut(val) => ForwardArg::Alt(quote! { #val.forward_mut() }),
+                    FwdExpr::Raw(val) => FwdArg::Alt(quote! { #val.forward() }),
+                    FwdExpr::Ref(val) => FwdArg::Alt(quote! { #val.forward_ref() }),
+                    FwdExpr::Mut(val) => FwdArg::Alt(quote! { #val.forward_mut() }),
                 });
             }
 
             if val.path.segments.first().is_some_and(|seg| seg.ident == "Self") {
-                return Ok(ForwardArg::Alt(quote! { #expr.into() }));
+                return Ok(FwdArg::Alt(quote! { #expr.into() }));
             }
 
-            Ok(ForwardArg::Raw(expr.stream()))
+            Ok(FwdArg::Raw(expr.stream()))
         },
         Type::Array(val) => match get_forward_argument(expr, &val.elem)? {
-            ForwardArg::Raw(val) => Ok(ForwardArg::Raw(val)),
-            ForwardArg::Alt(val) => Err(Error::new_spanned(
+            FwdArg::Raw(val) => Ok(FwdArg::Raw(val)),
+            FwdArg::Alt(val) => Err(Error::new_spanned(
                 val,
                 "Failed to forward argument, alternating in array is unsupported",
             )),
         },
         Type::Slice(val) => match get_forward_argument(expr, &val.elem)? {
-            ForwardArg::Raw(val) => Ok(ForwardArg::Raw(val)),
-            ForwardArg::Alt(val) => Err(Error::new_spanned(
+            FwdArg::Raw(val) => Ok(FwdArg::Raw(val)),
+            FwdArg::Alt(val) => Err(Error::new_spanned(
                 val,
                 "Failed to forward argument, alternating in slice is unsupported",
             )),
@@ -1202,44 +1202,44 @@ fn get_forward_argument(expr: ForwardExpr, ty: &Type) -> Result<ForwardArg> {
                 .elems
                 .iter()
                 .enumerate()
-                .map(|(idx, elem)| get_forward_argument(ForwardExpr::Raw(quote! { #expr.#idx }), elem))
-                .collect::<Result<Vec<ForwardArg>>>()?;
+                .map(|(idx, elem)| get_forward_argument(FwdExpr::Raw(quote! { #expr.#idx }), elem))
+                .collect::<Result<Vec<FwdArg>>>()?;
 
             if args.iter().all(|arg| match arg {
-                ForwardArg::Raw(_) => true,
-                ForwardArg::Alt(_) => false,
+                FwdArg::Raw(_) => true,
+                FwdArg::Alt(_) => false,
             }) {
-                return Ok(ForwardArg::Raw(expr.stream()));
+                return Ok(FwdArg::Raw(expr.stream()));
             }
 
             let args = args.iter().map(|arg| match arg {
-                ForwardArg::Raw(val) => quote! { #val },
-                ForwardArg::Alt(val) => quote! { #val },
+                FwdArg::Raw(val) => quote! { #val },
+                FwdArg::Alt(val) => quote! { #val },
             });
 
-            Ok(ForwardArg::Alt(quote! { #(#args),* }))
+            Ok(FwdArg::Alt(quote! { #(#args),* }))
         },
-        Type::Group(val) => get_forward_argument(ForwardExpr::Raw(expr.stream()), &val.elem),
-        Type::Paren(val) => get_forward_argument(ForwardExpr::Raw(expr.stream()), &val.elem),
+        Type::Group(val) => get_forward_argument(FwdExpr::Raw(expr.stream()), &val.elem),
+        Type::Paren(val) => get_forward_argument(FwdExpr::Raw(expr.stream()), &val.elem),
         Type::Ptr(val) => get_forward_argument(
             match val.mutability {
-                Some(_) => ForwardExpr::Mut(expr.stream()),
-                None => ForwardExpr::Ref(expr.stream()),
+                Some(_) => FwdExpr::Mut(expr.stream()),
+                None => FwdExpr::Ref(expr.stream()),
             },
             &val.elem,
         ),
         Type::Reference(val) => get_forward_argument(
             match val.mutability {
-                Some(_) => ForwardExpr::Mut(expr.stream()),
-                None => ForwardExpr::Ref(expr.stream()),
+                Some(_) => FwdExpr::Mut(expr.stream()),
+                None => FwdExpr::Ref(expr.stream()),
             },
             &val.elem,
         ),
         Type::Never(val) => Err(Error::new_spanned(val, "Failed to forward argument, never type is unsupported")),
         Type::Macro(val) => Err(Error::new_spanned(val, "Failed to forward argument, macro type is unsupported")),
-        Type::BareFn(_) => Ok(ForwardArg::Raw(expr.stream())),
-        Type::ImplTrait(_) => Ok(ForwardArg::Raw(expr.stream())),
-        Type::TraitObject(_) => Ok(ForwardArg::Raw(expr.stream())),
+        Type::BareFn(_) => Ok(FwdArg::Raw(expr.stream())),
+        Type::ImplTrait(_) => Ok(FwdArg::Raw(expr.stream())),
+        Type::TraitObject(_) => Ok(FwdArg::Raw(expr.stream())),
         Type::Verbatim(val) => Err(Error::new_spanned(val, "Failed to forward argument, verbatim was found")),
         ty => Err(Error::new_spanned(ty, "Failed to forward argument, unknown type was found")),
     }
