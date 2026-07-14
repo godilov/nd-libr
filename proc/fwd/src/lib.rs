@@ -493,7 +493,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
     let def = parse_macro_input!(def as FwdDef);
     let attr = parse_macro_input!(attr as FwdDefAttr);
 
-    let (ident, path, generics) = match def.args() {
+    let (ident, self_ty, generics) = match def.args() {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
@@ -503,27 +503,26 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let gen_params = &generics.params;
-
     let ty = &attr.fwd.ty;
-    let interface = &attr.path;
+    let path = &attr.path;
     let defaults = &attr.defaults;
 
     let sig_predicates = generics.where_clause.as_ref().map(|val| val.predicates.iter());
     let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
 
+    let gen_params = &generics.params;
     let gen_where = match (sig_predicates, attr_predicates) {
-        (Some(sig), Some(attr)) => quote! { #ty: #interface, #(#sig,)* #(#attr,)* },
-        (Some(sig), None) => quote! { #ty: #interface, #(#sig,)* },
-        (None, Some(attr)) => quote! { #ty: #interface, #(#attr,)* },
-        (None, None) => quote! { #ty: #interface, },
+        (Some(sig), Some(attr)) => quote! { #ty: #path, #(#sig,)* #(#attr,)* },
+        (Some(sig), None) => quote! { #ty: #path, #(#sig,)* },
+        (None, Some(attr)) => quote! { #ty: #path, #(#attr,)* },
+        (None, None) => quote! { #ty: #path, },
     };
 
-    let segs = interface.segments.iter().take(interface.segments.len().saturating_sub(1));
-    let id = match interface.segments.last() {
+    let segs = path.segments.iter().take(path.segments.len().saturating_sub(1));
+    let id = match path.segments.last() {
         Some(val) => &val.ident,
         None => {
-            return Error::new_spanned(&interface.segments, "Failed to forward definition, path is empty")
+            return Error::new_spanned(&path.segments, "Failed to forward definition, path is empty")
                 .into_compile_error()
                 .into();
         },
@@ -540,7 +539,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
         mod #module {
             #forwards
 
-            #macros!(#defaults #path, #ty, (#gen_params), (#gen_where));
+            #macros!(#defaults #self_ty, #ty, (#gen_params), (#gen_where));
 
             use super::*;
 
@@ -548,7 +547,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
             use #(#segs::)*#macros;
 
             #[allow(unused_imports)]
-            use #interface;
+            use #path;
         }
     }
     .into()
