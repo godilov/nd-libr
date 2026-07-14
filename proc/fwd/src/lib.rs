@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta, Path,
-    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, TypePath, WhereClause,
+    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
 };
@@ -78,7 +78,7 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let attr = parse_macro_input!(attr as FwdAttr);
 
     let (ident, generics) = ty.args();
-    let (expr_impl, ty_impl) = attr.args();
+    let (_, ty_impl) = attr.args();
 
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
@@ -104,8 +104,7 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where #ty_impl: std::cmp::Eq },
     };
 
-    let path = parse_quote! { #ident #gen_type };
-    let forward_impl = get_forward_impl(&path, generics, expr_impl, ty_impl);
+    let forwards = ty.fwds(&attr);
 
     quote! {
         #ty
@@ -115,7 +114,7 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
         impl #gen_impl std::cmp::Ord for #ident #gen_type #ord {
             #[inline]
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                #forward_impl
+                #forwards
 
                 self.forward_ref().cmp(other.forward_ref())
             }
@@ -124,7 +123,7 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
         impl #gen_impl std::cmp::PartialEq for #ident #gen_type #partial_eq {
             #[inline]
             fn eq(&self, other: &Self) -> bool {
-                #forward_impl
+                #forwards
 
                 self.forward_ref().eq(other.forward_ref())
             }
@@ -133,7 +132,7 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
         impl #gen_impl std::cmp::PartialOrd for #ident #gen_type #partial_ord {
             #[inline]
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                #forward_impl
+                #forwards
 
                 self.forward_ref().partial_cmp(other.forward_ref())
             }
@@ -491,101 +490,68 @@ pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
 /// - [`as_map`]
 #[proc_macro_attribute]
 pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
-    macro_rules! forward {
-        ($def:expr, $attr:expr) => {{
-            let def = $def;
-            let attr = $attr;
-            let quote = quote! { #def };
-
-            let ident = &def.ident;
-            let (_, gen_type, _) = &def.generics.split_for_impl();
-
-            forward(parse_quote! { #ident #gen_type }, &def.generics, &attr, quote)
-        }};
-    }
-
-    fn forward(path: TypePath, generics: &Generics, attr: &FwdDefAttr, def: TokenStream) -> TokenStreamStd {
-        let gen_params = &generics.params;
-
-        let expr = &attr.fwd.expr;
-        let ty = &attr.fwd.ty;
-        let interface = &attr.path;
-        let defaults = &attr.defaults;
-
-        let sig_predicates = generics.where_clause.as_ref().map(|val| val.predicates.iter());
-        let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
-
-        let gen_where = match (sig_predicates, attr_predicates) {
-            (Some(sig), Some(attr)) => quote! { #ty: #interface, #(#sig,)* #(#attr,)* },
-            (Some(sig), None) => quote! { #ty: #interface, #(#sig,)* },
-            (None, Some(attr)) => quote! { #ty: #interface, #(#attr,)* },
-            (None, None) => quote! { #ty: #interface, },
-        };
-
-        let segs = interface.segments.iter().take(interface.segments.len().saturating_sub(1));
-        let id = match interface.segments.last() {
-            Some(val) => &val.ident,
-            None => {
-                return Error::new_spanned(&interface.segments, "Failed to forward definition, path is empty")
-                    .into_compile_error()
-                    .into();
-            },
-        };
-
-        let name = path
-            .path
-            .segments
-            .iter()
-            .fold(String::new(), |acc, seg| format!("{}{}", &acc, seg.ident));
-
-        let forward = get_forward_impl(&path, generics, expr, ty);
-        let module = format_ident!("__NdFwd{}Impl{}", &id, &name);
-        let macros = format_ident!("__NdFwd{}", &id);
-
-        quote! {
-            #def
-
-            #[doc(hidden)]
-            #[allow(non_snake_case)]
-            mod #module {
-                #forward
-
-                #macros!(#defaults #path, #ty, (#gen_params), (#gen_where));
-
-                use super::*;
-
-                #[allow(unused_imports)]
-                use #(#segs::)*#macros;
-
-                #[allow(unused_imports)]
-                use #interface;
-            }
-        }
-        .into()
-    }
-
     let def = parse_macro_input!(def as FwdDef);
+    let attr = parse_macro_input!(attr as FwdDefAttr);
 
-    match def {
-        FwdDef::Struct(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
-        FwdDef::Enum(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
-        FwdDef::Union(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
-        FwdDef::Impl(val) => {
-            let quote = quote! { #val };
-            let path = match *val.self_ty {
-                Type::Path(val) => val,
-                ty => {
-                    return Error::new_spanned(ty, "Failed to forward definition, expected path for impl type")
-                        .into_compile_error()
-                        .into();
-                },
-            };
+    let (ident, path, generics) = match def.args() {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
 
-            let generics = &val.generics;
+    let forwards = match def.fwds(&attr.fwd) {
+        Ok(val) => val,
+        Err(err) => return err.into_compile_error().into(),
+    };
 
-            forward(path, generics, &parse_macro_input!(attr as FwdDefAttr), quote)
+    let gen_params = &generics.params;
+
+    let ty = &attr.fwd.ty;
+    let interface = &attr.path;
+    let defaults = &attr.defaults;
+
+    let sig_predicates = generics.where_clause.as_ref().map(|val| val.predicates.iter());
+    let attr_predicates = attr.conditions.as_ref().map(|val| val.predicates.iter());
+
+    let gen_where = match (sig_predicates, attr_predicates) {
+        (Some(sig), Some(attr)) => quote! { #ty: #interface, #(#sig,)* #(#attr,)* },
+        (Some(sig), None) => quote! { #ty: #interface, #(#sig,)* },
+        (None, Some(attr)) => quote! { #ty: #interface, #(#attr,)* },
+        (None, None) => quote! { #ty: #interface, },
+    };
+
+    let segs = interface.segments.iter().take(interface.segments.len().saturating_sub(1));
+    let id = match interface.segments.last() {
+        Some(val) => &val.ident,
+        None => {
+            return Error::new_spanned(&interface.segments, "Failed to forward definition, path is empty")
+                .into_compile_error()
+                .into();
         },
+    };
+
+    let module = format_ident!("__NdFwd{}Impl{}", &id, &ident);
+    let macros = format_ident!("__NdFwd{}", &id);
+
+    quote! {
+        #def
+
+        #[doc(hidden)]
+        #[allow(non_snake_case)]
+        mod #module {
+            #forwards
+
+            #macros!(#defaults #path, #ty, (#gen_params), (#gen_where));
+
+            use super::*;
+
+            #[allow(unused_imports)]
+            use #(#segs::)*#macros;
+
+            #[allow(unused_imports)]
+            use #interface;
+        }
     }
+    .into()
 }
 
 /// Alters expression for [`decl`].
@@ -789,6 +755,12 @@ impl Parse for FwdDefAttr {
     }
 }
 
+impl ToTokens for Fwds {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.0.to_tokens(tokens);
+    }
+}
+
 impl ToTokens for FwdType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
@@ -867,9 +839,9 @@ impl FwdAttr {
 impl FwdType {
     fn args(&self) -> (&Ident, &Generics) {
         match self {
-            FwdType::Struct(val) => (&val.ident, &val.generics),
-            FwdType::Enum(val) => (&val.ident, &val.generics),
-            FwdType::Union(val) => (&val.ident, &val.generics),
+            FwdType::Struct(ItemStruct { ident, generics, .. }) => (ident, generics),
+            FwdType::Enum(ItemEnum { ident, generics, .. }) => (ident, generics),
+            FwdType::Union(ItemUnion { ident, generics, .. }) => (ident, generics),
         }
     }
 
@@ -926,25 +898,39 @@ impl FwdType {
 }
 
 impl FwdDef {
-    fn fwds(&self, attr: &FwdAttr) -> Result<Fwds> {
-        fn ty<'generics>(ident: &Ident, generics: &'generics Generics) -> (TokenStream, &'generics Generics) {
+    fn args(&self) -> Result<(Ident, TokenStream, &Generics)> {
+        fn ty(ident: &Ident, generics: &Generics) -> TokenStream {
             let (_, gen_type, _) = generics.split_for_impl();
 
-            (quote! { #ident #gen_type }, generics)
+            quote! { #ident #gen_type }
         }
 
-        let (ty, generics) = match self {
-            FwdDef::Struct(ItemStruct { ident, generics, .. }) => Ok(ty(ident, generics)),
-            FwdDef::Enum(ItemEnum { ident, generics, .. }) => Ok(ty(ident, generics)),
-            FwdDef::Union(ItemUnion { ident, generics, .. }) => Ok(ty(ident, generics)),
+        match self {
+            FwdDef::Struct(ItemStruct { ident, generics, .. }) => Ok((ident.clone(), ty(ident, generics), generics)),
+            FwdDef::Enum(ItemEnum { ident, generics, .. }) => Ok((ident.clone(), ty(ident, generics), generics)),
+            FwdDef::Union(ItemUnion { ident, generics, .. }) => Ok((ident.clone(), ty(ident, generics), generics)),
             FwdDef::Impl(ItemImpl { self_ty, generics, .. }) => match self_ty.as_ref() {
-                Type::Path(val) => Ok((quote! { #val }, generics)),
+                Type::Path(val) => Ok((
+                    format_ident!(
+                        "{}",
+                        val.path
+                            .segments
+                            .iter()
+                            .fold(String::new(), |acc, seg| format!("{}{}", &acc, seg.ident))
+                    ),
+                    quote! { #val },
+                    generics,
+                )),
                 ty => Err(Error::new_spanned(
                     ty,
                     "Failed to forward definition, expected path for impl type",
                 )),
             },
-        }?;
+        }
+    }
+
+    fn fwds(&self, attr: &FwdAttr) -> Result<Fwds> {
+        let (_, ty, generics) = self.args()?;
 
         Ok(Fwds::from_raw(ty, generics, attr))
     }
@@ -965,41 +951,6 @@ impl FwdArg {
         match self {
             FwdArg::Raw(val) => val,
             FwdArg::Alt(val) => val,
-        }
-    }
-}
-
-fn get_forward_impl(path: &TypePath, generics: &Generics, expr: &Expr, ty: &Type) -> TokenStream {
-    let (gen_impl, _, gen_where) = generics.split_for_impl();
-
-    quote! {
-        trait Forward {
-            type Type;
-
-            fn forward(self) -> Self::Type;
-
-            fn forward_ref(&self) -> &Self::Type;
-
-            fn forward_mut(&mut self) -> &mut Self::Type;
-        }
-
-        impl #gen_impl Forward for #path #gen_where {
-            type Type = #ty;
-
-            #[inline]
-            fn forward(self) -> Self::Type {
-                #expr
-            }
-
-            #[inline]
-            fn forward_ref(&self) -> &Self::Type {
-                &#expr
-            }
-
-            #[inline]
-            fn forward_mut(&mut self) -> &mut Self::Type {
-                &mut #expr
-            }
         }
     }
 }
