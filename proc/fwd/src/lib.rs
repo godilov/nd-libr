@@ -67,7 +67,7 @@ pub fn all(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Zero-boilerplate ref/mut traits forwarding for **struct**, **enum** and **union**.
+/// Zero-boilerplate standard traits forwarding for **struct**, **enum** and **union**.
 ///
 /// Forwards [`AsRef`], [`AsMut`] to specified expression.
 ///
@@ -411,12 +411,9 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
         mod #module {
             #forwards
 
-            #macros!(#defaults #self_ty, #ty, (#gen_params), (#gen_where));
+            #(#segs::)*#macros!(#defaults #self_ty, #ty, (#gen_params), (#gen_where));
 
             use super::*;
-
-            #[allow(unused_imports)]
-            use #(#segs::)*#macros;
 
             #[allow(unused_imports)]
             use #path;
@@ -623,7 +620,7 @@ impl Parse for FwdDef {
                         val,
                         "Failed to find correct NdForward impl marker: ! is not allowed",
                     )),
-                    None => match path.is_ident(&format_ident!("NdForward")) {
+                    None => match path.segments.last().is_some_and(|seg| seg.ident == "NdForward") {
                         true => Ok(Self::Impl(val)),
                         false => Err(Error::new_spanned(
                             path,
