@@ -668,6 +668,8 @@ pub fn as_map(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+struct Fwds(TokenStream);
+
 #[allow(unused)]
 struct FwdAttr {
     expr: Expr,
@@ -818,6 +820,44 @@ impl ToTokens for FwdExpr {
     }
 }
 
+impl Fwds {
+    fn from_raw(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Fwds {
+        let (expr, ty) = attr.args();
+        let (gen_impl, _, gen_where) = generics.split_for_impl();
+
+        Fwds(quote! {
+            trait Forward {
+                type Type;
+
+                fn forward(self) -> Self::Type;
+
+                fn forward_ref(&self) -> &Self::Type;
+
+                fn forward_mut(&mut self) -> &mut Self::Type;
+            }
+
+            impl #gen_impl Forward for #self_ty #gen_where {
+                type Type = #ty;
+
+                #[inline]
+                fn forward(self) -> Self::Type {
+                    #expr
+                }
+
+                #[inline]
+                fn forward_ref(&self) -> &Self::Type {
+                    &#expr
+                }
+
+                #[inline]
+                fn forward_mut(&mut self) -> &mut Self::Type {
+                    &mut #expr
+                }
+            }
+        })
+    }
+}
+
 impl FwdAttr {
     fn args(&self) -> (&Expr, &Type) {
         (&self.expr, &self.ty)
@@ -831,6 +871,13 @@ impl FwdType {
             FwdType::Enum(val) => (&val.ident, &val.generics),
             FwdType::Union(val) => (&val.ident, &val.generics),
         }
+    }
+
+    fn fwds(&self, attr: &FwdAttr) -> Fwds {
+        let (ident, generics) = self.args();
+        let (_, gen_type, _) = generics.split_for_impl();
+
+        Fwds::from_raw(quote! { #ident #gen_type }, generics, attr)
     }
 
     fn as_ref(&self, attr: &FwdAttr) -> TokenStream {
@@ -875,6 +922,31 @@ impl FwdType {
                 }
             }
         }
+    }
+}
+
+impl FwdDef {
+    fn fwds(&self, attr: &FwdAttr) -> Result<Fwds> {
+        fn ty<'generics>(ident: &Ident, generics: &'generics Generics) -> (TokenStream, &'generics Generics) {
+            let (_, gen_type, _) = generics.split_for_impl();
+
+            (quote! { #ident #gen_type }, generics)
+        }
+
+        let (ty, generics) = match self {
+            FwdDef::Struct(ItemStruct { ident, generics, .. }) => Ok(ty(ident, generics)),
+            FwdDef::Enum(ItemEnum { ident, generics, .. }) => Ok(ty(ident, generics)),
+            FwdDef::Union(ItemUnion { ident, generics, .. }) => Ok(ty(ident, generics)),
+            FwdDef::Impl(ItemImpl { self_ty, generics, .. }) => match self_ty.as_ref() {
+                Type::Path(val) => Ok((quote! { #val }, generics)),
+                ty => Err(Error::new_spanned(
+                    ty,
+                    "Failed to forward definition, expected path for impl type",
+                )),
+            },
+        }?;
+
+        Ok(Fwds::from_raw(ty, generics, attr))
     }
 }
 
