@@ -105,42 +105,42 @@ pub fn std(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
-pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as FwdType);
-    let fwd = parse_macro_input!(attr as FwdAttr);
+pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
+    let ty = parse_macro_input!(ty as FwdType);
+    let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = item.args();
-    let (expr, ty) = fwd.args();
+    let (ident, generics) = ty.args();
+    let (expr_impl, ty_impl) = attr.args();
 
     let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
     let predicates = gen_where.map(|val| val.predicates.iter());
 
     let partial_ord = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty: std::cmp::PartialOrd },
-        None => quote! { where #ty: std::cmp::PartialOrd },
+        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::PartialOrd },
+        None => quote! { where #ty_impl: std::cmp::PartialOrd },
     };
 
     let partial_eq = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty: std::cmp::PartialEq },
-        None => quote! { where #ty: std::cmp::PartialEq },
+        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::PartialEq },
+        None => quote! { where #ty_impl: std::cmp::PartialEq },
     };
 
     let ord = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty: std::cmp::Ord },
-        None => quote! { where #ty: std::cmp::Ord },
+        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::Ord },
+        None => quote! { where #ty_impl: std::cmp::Ord },
     };
 
     let eq = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty: std::cmp::Eq },
-        None => quote! { where #ty: std::cmp::Eq },
+        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::Eq },
+        None => quote! { where #ty_impl: std::cmp::Eq },
     };
 
     let path = parse_quote! { #ident #gen_type };
-    let forward_impl = get_forward_impl(&path, generics, expr, ty);
+    let forward_impl = get_forward_impl(&path, generics, expr_impl, ty_impl);
 
     quote! {
-        #item
+        #ty
 
         impl #gen_impl std::cmp::Eq for #ident #gen_type #eq {}
 
@@ -201,7 +201,7 @@ pub fn cmp(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
-pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn fmt(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     fn fmt_impl(
         ident: &Ident,
         generics: &Generics,
@@ -221,11 +221,11 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         }
     }
 
-    let item = parse_macro_input!(item as FwdType);
-    let fwd = parse_macro_input!(attr as FwdAttr);
+    let ty = parse_macro_input!(ty as FwdType);
+    let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = item.args();
-    let (expr, ty) = fwd.args();
+    let (ident, generics) = ty.args();
+    let (expr_impl, ty_impl) = attr.args();
 
     let (_, _, gen_where) = generics.split_for_impl();
 
@@ -234,60 +234,60 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let display = fmt_impl(
         ident,
         generics,
-        expr,
+        expr_impl,
         quote! { std::fmt::Display },
         match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty: std::fmt::Display },
-            None => quote! { where #ty: std::fmt::Display },
+            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::Display },
+            None => quote! { where #ty_impl: std::fmt::Display },
         },
     );
 
     let binary = fmt_impl(
         ident,
         generics,
-        expr,
+        expr_impl,
         quote! { std::fmt::Binary },
         match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty: std::fmt::Binary },
-            None => quote! { where #ty: std::fmt::Binary },
+            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::Binary },
+            None => quote! { where #ty_impl: std::fmt::Binary },
         },
     );
 
     let octal = fmt_impl(
         ident,
         generics,
-        expr,
+        expr_impl,
         quote! { std::fmt::Octal },
         match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty: std::fmt::Octal },
-            None => quote! { where #ty: std::fmt::Octal },
+            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::Octal },
+            None => quote! { where #ty_impl: std::fmt::Octal },
         },
     );
 
     let lhex = fmt_impl(
         ident,
         generics,
-        expr,
+        expr_impl,
         quote! { std::fmt::LowerHex },
         match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty: std::fmt::LowerHex },
-            None => quote! { where #ty: std::fmt::LowerHex },
+            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::LowerHex },
+            None => quote! { where #ty_impl: std::fmt::LowerHex },
         },
     );
 
     let uhex = fmt_impl(
         ident,
         generics,
-        expr,
+        expr_impl,
         quote! { std::fmt::UpperHex },
         match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty: std::fmt::UpperHex },
-            None => quote! { where #ty: std::fmt::UpperHex },
+            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::UpperHex },
+            None => quote! { where #ty_impl: std::fmt::UpperHex },
         },
     );
 
     quote! {
-        #item
+        #ty
         #display
         #binary
         #octal
@@ -326,12 +326,12 @@ pub fn fmt(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
-pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let item = parse_macro_input!(item as FwdType);
-    let fwd = parse_macro_input!(attr as FwdAttr);
+pub fn iter(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
+    let ty = parse_macro_input!(ty as FwdType);
+    let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = item.args();
-    let (expr, ty) = fwd.args();
+    let (ident, generics) = ty.args();
+    let (expr_impl, ty_impl) = attr.args();
 
     let gen_params = &generics.params;
     let (_, gen_type, gen_where) = generics.split_for_impl();
@@ -340,62 +340,62 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let predicates = gen_where.map(|val| val.predicates.iter());
 
     let from_iter = match predicates.clone() {
-        Some(val) => quote! { where Self: From<#ty>, #(#val,)* #ty: std::iter::FromIterator<Elem> },
-        None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
+        Some(val) => quote! { where Self: From<#ty_impl>, #(#val,)* #ty_impl: std::iter::FromIterator<Elem> },
+        None => quote! { where Self: From<#ty_impl>, #ty_impl: std::iter::FromIterator<Elem> },
     };
 
     let into_iter = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty: std::iter::IntoIterator },
-        None => quote! { where #ty: std::iter::IntoIterator },
+        Some(val) => quote! { where #(#val,)* #ty_impl: std::iter::IntoIterator },
+        None => quote! { where #ty_impl: std::iter::IntoIterator },
     };
 
     let into_iter_ref = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* &'reference #ty: std::iter::IntoIterator },
-        None => quote! { where &'reference #ty: std::iter::IntoIterator },
+        Some(val) => quote! { where #(#val,)* &'reference #ty_impl: std::iter::IntoIterator },
+        None => quote! { where &'reference #ty_impl: std::iter::IntoIterator },
     };
 
     let into_iter_mut = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* &'reference mut #ty: std::iter::IntoIterator },
-        None => quote! { where &'reference mut #ty: std::iter::IntoIterator },
+        Some(val) => quote! { where #(#val,)* &'reference mut #ty_impl: std::iter::IntoIterator },
+        None => quote! { where &'reference mut #ty_impl: std::iter::IntoIterator },
     };
 
     quote! {
-        #item
+        #ty
 
         impl<#(#params,)* Elem> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
             #[inline]
             fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
-                <#ty>::from_iter(iter).into()
+                <#ty_impl>::from_iter(iter).into()
             }
         }
 
         impl<#gen_params> std::iter::IntoIterator for #ident #gen_type #into_iter {
-            type Item = <#ty as std::iter::IntoIterator>::Item;
-            type IntoIter = <#ty as std::iter::IntoIterator>::IntoIter;
+            type Item = <#ty_impl as std::iter::IntoIterator>::Item;
+            type IntoIter = <#ty_impl as std::iter::IntoIterator>::IntoIter;
 
             #[inline]
             fn into_iter(self) -> Self::IntoIter {
-                #expr.into_iter()
+                #expr_impl.into_iter()
             }
         }
 
         impl<'reference, #gen_params> std::iter::IntoIterator for &'reference #ident #gen_type #into_iter_ref {
-            type Item = <&'reference #ty as std::iter::IntoIterator>::Item;
-            type IntoIter = <&'reference #ty as std::iter::IntoIterator>::IntoIter;
+            type Item = <&'reference #ty_impl as std::iter::IntoIterator>::Item;
+            type IntoIter = <&'reference #ty_impl as std::iter::IntoIterator>::IntoIter;
 
             #[inline]
             fn into_iter(self) -> Self::IntoIter {
-                (&#expr).into_iter()
+                (&#expr_impl).into_iter()
             }
         }
 
         impl<'reference, #gen_params> std::iter::IntoIterator for &'reference mut #ident #gen_type #into_iter_mut {
-            type Item = <&'reference mut #ty as std::iter::IntoIterator>::Item;
-            type IntoIter = <&'reference mut #ty as std::iter::IntoIterator>::IntoIter;
+            type Item = <&'reference mut #ty_impl as std::iter::IntoIterator>::Item;
+            type IntoIter = <&'reference mut #ty_impl as std::iter::IntoIterator>::IntoIter;
 
             #[inline]
             fn into_iter(self) -> Self::IntoIter {
-                (&mut #expr).into_iter()
+                (&mut #expr_impl).into_iter()
             }
         }
     }
@@ -414,15 +414,15 @@ pub fn iter(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// - [`as_expr`]
 /// - [`as_map`]
 #[proc_macro_attribute]
-pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
-    let FwdDecl::Trait(interface) = parse_macro_input!(item as FwdDecl);
+pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
+    let FwdDecl::Trait(decl) = parse_macro_input!(decl as FwdDecl);
 
-    let ident = &interface.ident;
+    let ident = &decl.ident;
     let macros = format_ident!("__NdFwd{}", ident);
 
-    let supertraits = interface.supertraits.iter();
-    let gen_params = interface.generics.params.iter();
-    let (_, gen_type, gen_where) = interface.generics.split_for_impl();
+    let supertraits = decl.supertraits.iter();
+    let gen_params = decl.generics.params.iter();
+    let (_, gen_type, gen_where) = decl.generics.split_for_impl();
 
     let gen_params = quote! { #(#gen_params,)* };
 
@@ -431,13 +431,13 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where Self: #(#supertraits)+*, },
     };
 
-    let forwards = interface
+    let forwards = decl
         .items
         .iter()
         .filter_map(|item| match item {
-            TraitItem::Type(val) => Some(Ok(get_forward_type(&interface, val))),
-            TraitItem::Const(val) => Some(Ok(get_forward_const(&interface, val))),
-            TraitItem::Fn(val) => Some(get_forward_fn(&interface, val)),
+            TraitItem::Type(val) => Some(Ok(get_forward_type(&decl, val))),
+            TraitItem::Const(val) => Some(Ok(get_forward_const(&decl, val))),
+            TraitItem::Fn(val) => Some(get_forward_fn(&decl, val)),
             _ => None,
         })
         .collect::<Result<Vec<(&Ident, bool, TokenStream)>>>();
@@ -451,7 +451,7 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     let defaults = forwards.iter().filter(|(_, flag, _)| !flag).map(|(_, _, stream)| stream);
 
     quote! {
-        #interface
+        #decl
 
         #[doc(hidden)]
         #[allow(unused_macros)]
@@ -522,21 +522,21 @@ pub fn decl(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
 /// - [`as_expr`]
 /// - [`as_map`]
 #[proc_macro_attribute]
-pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
+pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
     macro_rules! forward {
-        ($item:expr, $attr:expr) => {{
-            let item = $item;
+        ($def:expr, $attr:expr) => {{
+            let def = $def;
             let attr = $attr;
-            let quote = quote! { #item };
+            let quote = quote! { #def };
 
-            let ident = &item.ident;
-            let (_, gen_type, _) = &item.generics.split_for_impl();
+            let ident = &def.ident;
+            let (_, gen_type, _) = &def.generics.split_for_impl();
 
-            forward(parse_quote! { #ident #gen_type }, &item.generics, &attr, quote)
+            forward(parse_quote! { #ident #gen_type }, &def.generics, &attr, quote)
         }};
     }
 
-    fn forward(path: TypePath, generics: &Generics, attr: &FwdDefAttr, item: TokenStream) -> TokenStreamStd {
+    fn forward(path: TypePath, generics: &Generics, attr: &FwdDefAttr, def: TokenStream) -> TokenStreamStd {
         let gen_params = &generics.params;
 
         let expr = &attr.fwd.expr;
@@ -575,7 +575,7 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         let macros = format_ident!("__NdFwd{}", &id);
 
         quote! {
-            #item
+            #def
 
             #[doc(hidden)]
             #[allow(non_snake_case)]
@@ -596,9 +596,9 @@ pub fn def(attr: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
         .into()
     }
 
-    let item = parse_macro_input!(item as FwdDef);
+    let def = parse_macro_input!(def as FwdDef);
 
-    match item {
+    match def {
         FwdDef::Struct(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
         FwdDef::Enum(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
         FwdDef::Union(val) => forward!(val, parse_macro_input!(attr as FwdDefAttr)),
