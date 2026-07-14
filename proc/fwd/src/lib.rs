@@ -38,46 +38,14 @@ pub fn std(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = ty.args();
-    let (expr_impl, ty_impl) = attr.args();
-
-    let gen_params = &generics.params;
-    let (_, gen_type, gen_where) = generics.split_for_impl();
-
-    let predicates = gen_where.map(|val| val.predicates.iter());
-
-    let params = gen_params.iter();
-    let as_ref = quote! { #(#params,)* AsRefRet };
-
-    let params = gen_params.iter();
-    let as_mut = quote! { #(#params,)* AsMutRet };
-
-    let as_ref_where = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty_impl: std::convert::AsRef<AsRefRet> },
-        None => quote! { where #ty_impl: std::convert::AsRef<AsRefRet> },
-    };
-
-    let as_mut_where = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty_impl: std::convert::AsMut<AsMutRet> },
-        None => quote! { where #ty_impl: std::convert::AsMut<AsMutRet> },
-    };
+    let as_ref = ty.as_ref(&attr);
+    let as_mut = ty.as_mut(&attr);
 
     quote! {
         #ty
 
-        impl<#as_ref> std::convert::AsRef<AsRefRet> for #ident #gen_type #as_ref_where {
-            #[inline]
-            fn as_ref(&self) -> &AsRefRet {
-                #expr_impl.as_ref()
-            }
-        }
-
-        impl<#as_mut> std::convert::AsMut<AsMutRet> for #ident #gen_type #as_mut_where {
-            #[inline]
-            fn as_mut(&mut self) -> &mut AsMutRet {
-                #expr_impl.as_mut()
-            }
-        }
+        #as_ref
+        #as_mut
     }
     .into()
 }
@@ -862,6 +830,54 @@ impl FwdType {
             FwdType::Struct(val) => (&val.ident, &val.generics),
             FwdType::Enum(val) => (&val.ident, &val.generics),
             FwdType::Union(val) => (&val.ident, &val.generics),
+        }
+    }
+
+    fn as_ref(&self, attr: &FwdAttr) -> TokenStream {
+        let (ident, generics) = self.args();
+        let (expr_impl, ty_impl) = attr.args();
+
+        let gen_params = &generics.params;
+        let (_, gen_type, gen_where) = generics.split_for_impl();
+
+        let params = gen_params.iter();
+
+        let conditions = match gen_where.map(|val| val.predicates.iter()) {
+            Some(val) => quote! { where #(#val,)* #ty_impl: std::convert::AsRef<AsRefRet> },
+            None => quote! { where #ty_impl: std::convert::AsRef<AsRefRet> },
+        };
+
+        quote! {
+            impl<#(#params,)* AsRefRet> std::convert::AsRef<AsRefRet> for #ident #gen_type #conditions {
+                #[inline]
+                fn as_ref(&self) -> &AsRefRet {
+                    #expr_impl.as_ref()
+                }
+            }
+        }
+    }
+
+    fn as_mut(&self, attr: &FwdAttr) -> TokenStream {
+        let (ident, generics) = self.args();
+        let (expr_impl, ty_impl) = attr.args();
+
+        let gen_params = &generics.params;
+        let (_, gen_type, gen_where) = generics.split_for_impl();
+
+        let params = gen_params.iter();
+
+        let conditions = match gen_where.map(|val| val.predicates.iter()) {
+            Some(val) => quote! { where #(#val,)* #ty_impl: std::convert::AsMut<AsMutRet> },
+            None => quote! { where #ty_impl: std::convert::AsMut<AsMutRet> },
+        };
+
+        quote! {
+            impl<#(#params,)* AsMutRet> std::convert::AsMut<AsMutRet> for #ident #gen_type #conditions {
+                #[inline]
+                fn as_mut(&mut self) -> &mut AsMutRet {
+                    #expr_impl.as_mut()
+                }
+            }
         }
     }
 }
