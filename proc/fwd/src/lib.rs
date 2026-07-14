@@ -14,7 +14,60 @@ mod kw {
     syn::custom_keyword!(with);
 }
 
-/// Zero-boilerplate standard traits forwarding for **struct**, **enum** and **union**.
+/// Zero-boilerplate all standard traits forwarding for **struct**, **enum** and **union**.
+///
+/// Forwards all standard traits to specified expression.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::all(<expr> with <type>)]
+/// struct Any(<type>);
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// #[ndfwd::all(self.0 with N)]
+/// struct Num<N>(N);
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro_attribute]
+pub fn all(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
+    let ty = parse_macro_input!(ty as FwdType);
+    let attr = parse_macro_input!(attr as FwdAttr);
+
+    let forwards = ty.fwds(&attr);
+
+    let std_impls = [FwdStd::Ref, FwdStd::Mut];
+    let cmp_impls = [FwdCmp::Eq, FwdCmp::EqPartial, FwdCmp::Ord, FwdCmp::OrdPartial];
+    let fmt_impls = [
+        FwdFmt::Display,
+        FwdFmt::Binary,
+        FwdFmt::Octal,
+        FwdFmt::HexLower,
+        FwdFmt::HexUpper,
+    ];
+    let iter_impls = [FwdIter::From, FwdIter::Into, FwdIter::IntoRef, FwdIter::IntoMut];
+
+    let std_impls = std_impls.into_iter().map(|std| ty.std(&attr, &forwards, std));
+    let cmp_impls = cmp_impls.into_iter().map(|cmp| ty.cmp(&attr, &forwards, cmp));
+    let fmt_impls = fmt_impls.into_iter().map(|fmt| ty.fmt(&attr, &forwards, fmt));
+    let iter_impls = iter_impls.into_iter().map(|iter| ty.iter(&attr, &forwards, iter));
+
+    quote! {
+        #ty
+
+        #(#std_impls)*
+        #(#cmp_impls)*
+        #(#fmt_impls)*
+        #(#iter_impls)*
+    }
+    .into()
+}
+
+/// Zero-boilerplate ref/mut traits forwarding for **struct**, **enum** and **union**.
 ///
 /// Forwards [`AsRef`], [`AsMut`] to specified expression.
 ///
@@ -38,14 +91,15 @@ pub fn std(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let as_ref = ty.as_ref(&attr);
-    let as_mut = ty.as_mut(&attr);
+    let forwards = ty.fwds(&attr);
+
+    let impls = [FwdStd::Ref, FwdStd::Mut];
+    let impls = impls.into_iter().map(|std| ty.std(&attr, &forwards, std));
 
     quote! {
         #ty
 
-        #as_ref
-        #as_mut
+        #(#impls)*
     }
     .into()
 }
@@ -77,66 +131,15 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = ty.args();
-    let (_, ty_impl) = attr.args();
-
-    let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
-
-    let predicates = gen_where.map(|val| val.predicates.iter());
-
-    let partial_ord = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::PartialOrd },
-        None => quote! { where #ty_impl: std::cmp::PartialOrd },
-    };
-
-    let partial_eq = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::PartialEq },
-        None => quote! { where #ty_impl: std::cmp::PartialEq },
-    };
-
-    let ord = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::Ord },
-        None => quote! { where #ty_impl: std::cmp::Ord },
-    };
-
-    let eq = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty_impl: std::cmp::Eq },
-        None => quote! { where #ty_impl: std::cmp::Eq },
-    };
-
     let forwards = ty.fwds(&attr);
+
+    let impls = [FwdCmp::Eq, FwdCmp::EqPartial, FwdCmp::Ord, FwdCmp::OrdPartial];
+    let impls = impls.into_iter().map(|cmp| ty.cmp(&attr, &forwards, cmp));
 
     quote! {
         #ty
 
-        impl #gen_impl std::cmp::Eq for #ident #gen_type #eq {}
-
-        impl #gen_impl std::cmp::Ord for #ident #gen_type #ord {
-            #[inline]
-            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                #forwards
-
-                self.forward_ref().cmp(other.forward_ref())
-            }
-        }
-
-        impl #gen_impl std::cmp::PartialEq for #ident #gen_type #partial_eq {
-            #[inline]
-            fn eq(&self, other: &Self) -> bool {
-                #forwards
-
-                self.forward_ref().eq(other.forward_ref())
-            }
-        }
-
-        impl #gen_impl std::cmp::PartialOrd for #ident #gen_type #partial_ord {
-            #[inline]
-            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                #forwards
-
-                self.forward_ref().partial_cmp(other.forward_ref())
-            }
-        }
+        #(#impls)*
     }
     .into()
 }
@@ -169,97 +172,25 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
 /// For more info, see [crate-level](crate) documentation.
 #[proc_macro_attribute]
 pub fn fmt(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
-    fn fmt_impl(
-        ident: &Ident,
-        generics: &Generics,
-        expr: &Expr,
-        display: TokenStream,
-        display_where: TokenStream,
-    ) -> TokenStream {
-        let (gen_impl, gen_type, _) = generics.split_for_impl();
-
-        quote! {
-            impl #gen_impl #display for #ident #gen_type #display_where {
-                #[inline]
-                fn fmt(&self,f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    #expr.fmt(f)
-                }
-            }
-        }
-    }
-
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = ty.args();
-    let (expr_impl, ty_impl) = attr.args();
+    let forwards = ty.fwds(&attr);
 
-    let (_, _, gen_where) = generics.split_for_impl();
+    let impls = [
+        FwdFmt::Display,
+        FwdFmt::Binary,
+        FwdFmt::Octal,
+        FwdFmt::HexLower,
+        FwdFmt::HexUpper,
+    ];
 
-    let predicates = gen_where.map(|val| val.predicates.iter());
-
-    let display = fmt_impl(
-        ident,
-        generics,
-        expr_impl,
-        quote! { std::fmt::Display },
-        match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::Display },
-            None => quote! { where #ty_impl: std::fmt::Display },
-        },
-    );
-
-    let binary = fmt_impl(
-        ident,
-        generics,
-        expr_impl,
-        quote! { std::fmt::Binary },
-        match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::Binary },
-            None => quote! { where #ty_impl: std::fmt::Binary },
-        },
-    );
-
-    let octal = fmt_impl(
-        ident,
-        generics,
-        expr_impl,
-        quote! { std::fmt::Octal },
-        match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::Octal },
-            None => quote! { where #ty_impl: std::fmt::Octal },
-        },
-    );
-
-    let lhex = fmt_impl(
-        ident,
-        generics,
-        expr_impl,
-        quote! { std::fmt::LowerHex },
-        match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::LowerHex },
-            None => quote! { where #ty_impl: std::fmt::LowerHex },
-        },
-    );
-
-    let uhex = fmt_impl(
-        ident,
-        generics,
-        expr_impl,
-        quote! { std::fmt::UpperHex },
-        match predicates.clone() {
-            Some(val) => quote! { where #(#val,)* #ty_impl: std::fmt::UpperHex },
-            None => quote! { where #ty_impl: std::fmt::UpperHex },
-        },
-    );
+    let impls = impls.into_iter().map(|fmt| ty.fmt(&attr, &forwards, fmt));
 
     quote! {
         #ty
-        #display
-        #binary
-        #octal
-        #lhex
-        #uhex
+
+        #(#impls)*
     }
     .into()
 }
@@ -297,74 +228,15 @@ pub fn iter(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let (ident, generics) = ty.args();
-    let (expr_impl, ty_impl) = attr.args();
+    let forwards = ty.fwds(&attr);
 
-    let gen_params = &generics.params;
-    let (_, gen_type, gen_where) = generics.split_for_impl();
-
-    let params = gen_params.iter();
-    let predicates = gen_where.map(|val| val.predicates.iter());
-
-    let from_iter = match predicates.clone() {
-        Some(val) => quote! { where Self: From<#ty_impl>, #(#val,)* #ty_impl: std::iter::FromIterator<Elem> },
-        None => quote! { where Self: From<#ty_impl>, #ty_impl: std::iter::FromIterator<Elem> },
-    };
-
-    let into_iter = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* #ty_impl: std::iter::IntoIterator },
-        None => quote! { where #ty_impl: std::iter::IntoIterator },
-    };
-
-    let into_iter_ref = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* &'reference #ty_impl: std::iter::IntoIterator },
-        None => quote! { where &'reference #ty_impl: std::iter::IntoIterator },
-    };
-
-    let into_iter_mut = match predicates.clone() {
-        Some(val) => quote! { where #(#val,)* &'reference mut #ty_impl: std::iter::IntoIterator },
-        None => quote! { where &'reference mut #ty_impl: std::iter::IntoIterator },
-    };
+    let impls = [FwdIter::From, FwdIter::Into, FwdIter::IntoRef, FwdIter::IntoMut];
+    let impls = impls.into_iter().map(|iter| ty.iter(&attr, &forwards, iter));
 
     quote! {
         #ty
 
-        impl<#(#params,)* Elem> std::iter::FromIterator<Elem> for #ident #gen_type #from_iter {
-            #[inline]
-            fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
-                <#ty_impl>::from_iter(iter).into()
-            }
-        }
-
-        impl<#gen_params> std::iter::IntoIterator for #ident #gen_type #into_iter {
-            type Item = <#ty_impl as std::iter::IntoIterator>::Item;
-            type IntoIter = <#ty_impl as std::iter::IntoIterator>::IntoIter;
-
-            #[inline]
-            fn into_iter(self) -> Self::IntoIter {
-                #expr_impl.into_iter()
-            }
-        }
-
-        impl<'reference, #gen_params> std::iter::IntoIterator for &'reference #ident #gen_type #into_iter_ref {
-            type Item = <&'reference #ty_impl as std::iter::IntoIterator>::Item;
-            type IntoIter = <&'reference #ty_impl as std::iter::IntoIterator>::IntoIter;
-
-            #[inline]
-            fn into_iter(self) -> Self::IntoIter {
-                (&#expr_impl).into_iter()
-            }
-        }
-
-        impl<'reference, #gen_params> std::iter::IntoIterator for &'reference mut #ident #gen_type #into_iter_mut {
-            type Item = <&'reference mut #ty_impl as std::iter::IntoIterator>::Item;
-            type IntoIter = <&'reference mut #ty_impl as std::iter::IntoIterator>::IntoIter;
-
-            #[inline]
-            fn into_iter(self) -> Self::IntoIter {
-                (&mut #expr_impl).into_iter()
-            }
-        }
+        #(#impls)*
     }
     .into()
 }
@@ -633,6 +505,33 @@ pub fn as_map(_: TokenStreamStd, item: TokenStreamStd) -> TokenStreamStd {
     item
 }
 
+enum FwdStd {
+    Ref,
+    Mut,
+}
+
+enum FwdCmp {
+    Eq,
+    EqPartial,
+    Ord,
+    OrdPartial,
+}
+
+enum FwdFmt {
+    Display,
+    Binary,
+    Octal,
+    HexLower,
+    HexUpper,
+}
+
+enum FwdIter {
+    From,
+    Into,
+    IntoRef,
+    IntoMut,
+}
+
 struct Fwds(TokenStream);
 
 #[allow(unused)]
@@ -851,47 +750,224 @@ impl FwdType {
         Fwds::from_raw(quote! { #ident #gen_type }, generics, attr)
     }
 
-    fn as_ref(&self, attr: &FwdAttr) -> TokenStream {
+    fn std(&self, attr: &FwdAttr, _: &Fwds, std: FwdStd) -> TokenStream {
         let (ident, generics) = self.args();
         let (expr, ty) = attr.args();
 
         let gen_params = generics.params.iter();
         let (_, gen_type, gen_where) = generics.split_for_impl();
 
+        match std {
+            FwdStd::Ref => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::convert::AsRef<AsRefRet> },
+                    None => quote! { where #ty: std::convert::AsRef<AsRefRet> },
+                };
+
+                quote! {
+                    impl<#(#gen_params,)* AsRefRet> std::convert::AsRef<AsRefRet> for #ident #gen_type #conditions {
+                        #[inline]
+                        fn as_ref(&self) -> &AsRefRet {
+                            #expr.as_ref()
+                        }
+                    }
+                }
+            },
+            FwdStd::Mut => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::convert::AsMut<AsMutRet> },
+                    None => quote! { where #ty: std::convert::AsMut<AsMutRet> },
+                };
+
+                quote! {
+                    impl<#(#gen_params,)* AsMutRet> std::convert::AsMut<AsMutRet> for #ident #gen_type #conditions {
+                        #[inline]
+                        fn as_mut(&mut self) -> &mut AsMutRet {
+                            #expr.as_mut()
+                        }
+                    }
+                }
+            },
+        }
+    }
+
+    fn cmp(&self, attr: &FwdAttr, fwds: &Fwds, cmp: FwdCmp) -> TokenStream {
+        let (ident, generics) = self.args();
+        let (_, ty) = attr.args();
+
+        let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
+
+        match cmp {
+            FwdCmp::Eq => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::cmp::Eq },
+                    None => quote! { where #ty: std::cmp::Eq },
+                };
+
+                quote! {
+                    impl #gen_impl std::cmp::Eq for #ident #gen_type #conditions {}
+                }
+            },
+            FwdCmp::EqPartial => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::cmp::PartialEq },
+                    None => quote! { where #ty: std::cmp::PartialEq },
+                };
+
+                quote! {
+                    impl #gen_impl std::cmp::PartialEq for #ident #gen_type #conditions {
+                        #[inline]
+                        fn eq(&self, other: &Self) -> bool {
+                            #fwds
+
+                            self.forward_ref().eq(other.forward_ref())
+                        }
+                    }
+                }
+            },
+            FwdCmp::Ord => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::cmp::Ord },
+                    None => quote! { where #ty: std::cmp::Ord },
+                };
+
+                quote! {
+                    impl #gen_impl std::cmp::Ord for #ident #gen_type #conditions {
+                        #[inline]
+                        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                            #fwds
+
+                            self.forward_ref().cmp(other.forward_ref())
+                        }
+                    }
+                }
+            },
+            FwdCmp::OrdPartial => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::cmp::PartialOrd },
+                    None => quote! { where #ty: std::cmp::PartialOrd },
+                };
+
+                quote! {
+                    impl #gen_impl std::cmp::PartialOrd for #ident #gen_type #conditions {
+                        #[inline]
+                        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                            #fwds
+
+                            self.forward_ref().partial_cmp(other.forward_ref())
+                        }
+                    }
+                }
+            },
+        }
+    }
+
+    fn fmt(&self, attr: &FwdAttr, _: &Fwds, fmt: FwdFmt) -> TokenStream {
+        let (ident, generics) = self.args();
+        let (expr, ty) = attr.args();
+
+        let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
+
+        let display = match fmt {
+            FwdFmt::Display => quote! { std::fmt::Display },
+            FwdFmt::Binary => quote! { std::fmt::Binary },
+            FwdFmt::Octal => quote! { std::fmt::Octal },
+            FwdFmt::HexLower => quote! { std::fmt::LowerHex },
+            FwdFmt::HexUpper => quote! { std::fmt::UpperHex },
+        };
+
         let conditions = match gen_where.map(|val| val.predicates.iter()) {
-            Some(val) => quote! { where #(#val,)* #ty: std::convert::AsRef<AsRefRet> },
-            None => quote! { where #ty: std::convert::AsRef<AsRefRet> },
+            Some(val) => quote! { where #(#val,)* #ty: #display },
+            None => quote! { where #ty: #display },
         };
 
         quote! {
-            impl<#(#gen_params,)* AsRefRet> std::convert::AsRef<AsRefRet> for #ident #gen_type #conditions {
+            impl #gen_impl #display for #ident #gen_type #conditions {
                 #[inline]
-                fn as_ref(&self) -> &AsRefRet {
-                    #expr.as_ref()
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    #expr.fmt(f)
                 }
             }
         }
     }
 
-    fn as_mut(&self, attr: &FwdAttr) -> TokenStream {
+    fn iter(&self, attr: &FwdAttr, _: &Fwds, iter: FwdIter) -> TokenStream {
         let (ident, generics) = self.args();
         let (expr, ty) = attr.args();
 
         let gen_params = generics.params.iter();
         let (_, gen_type, gen_where) = generics.split_for_impl();
 
-        let conditions = match gen_where.map(|val| val.predicates.iter()) {
-            Some(val) => quote! { where #(#val,)* #ty: std::convert::AsMut<AsMutRet> },
-            None => quote! { where #ty: std::convert::AsMut<AsMutRet> },
-        };
+        match iter {
+            FwdIter::From => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where Self: From<#ty>, #(#val,)* #ty: std::iter::FromIterator<Elem> },
+                    None => quote! { where Self: From<#ty>, #ty: std::iter::FromIterator<Elem> },
+                };
 
-        quote! {
-            impl<#(#gen_params,)* AsMutRet> std::convert::AsMut<AsMutRet> for #ident #gen_type #conditions {
-                #[inline]
-                fn as_mut(&mut self) -> &mut AsMutRet {
-                    #expr.as_mut()
+                quote! {
+                    impl<#(#gen_params,)* Elem> std::iter::FromIterator<Elem> for #ident #gen_type #conditions {
+                        #[inline]
+                        fn from_iter<Iter: IntoIterator<Item = Elem>>(iter: Iter) -> Self {
+                            <#ty>::from_iter(iter).into()
+                        }
+                    }
                 }
-            }
+            },
+            FwdIter::Into => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::iter::IntoIterator },
+                    None => quote! { where #ty: std::iter::IntoIterator },
+                };
+
+                quote! {
+                    impl<#(#gen_params,)*> std::iter::IntoIterator for #ident #gen_type #conditions {
+                        type Item = <#ty as std::iter::IntoIterator>::Item;
+                        type IntoIter = <#ty as std::iter::IntoIterator>::IntoIter;
+
+                        #[inline]
+                        fn into_iter(self) -> Self::IntoIter {
+                            #expr.into_iter()
+                        }
+                    }
+                }
+            },
+            FwdIter::IntoRef => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* &'reference #ty: std::iter::IntoIterator },
+                    None => quote! { where &'reference #ty: std::iter::IntoIterator },
+                };
+
+                quote! {
+                    impl<'reference, #(#gen_params,)*> std::iter::IntoIterator for &'reference #ident #gen_type #conditions {
+                        type Item = <&'reference #ty as std::iter::IntoIterator>::Item;
+                        type IntoIter = <&'reference #ty as std::iter::IntoIterator>::IntoIter;
+
+                        #[inline]
+                        fn into_iter(self) -> Self::IntoIter {
+                            (&#expr).into_iter()
+                        }
+                    }
+                }
+            },
+            FwdIter::IntoMut => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* &'reference mut #ty: std::iter::IntoIterator },
+                    None => quote! { where &'reference mut #ty: std::iter::IntoIterator },
+                };
+
+                quote! {
+                    impl<'reference, #(#gen_params,)*> std::iter::IntoIterator for &'reference mut #ident #gen_type #conditions {
+                        type Item = <&'reference mut #ty as std::iter::IntoIterator>::Item;
+                        type IntoIter = <&'reference mut #ty as std::iter::IntoIterator>::IntoIter;
+
+                        #[inline]
+                        fn into_iter(self) -> Self::IntoIter {
+                            (&mut #expr).into_iter()
+                        }
+                    }
+                }
+            },
         }
     }
 }
