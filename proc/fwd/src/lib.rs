@@ -274,20 +274,20 @@ pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
         .items
         .iter()
         .filter_map(|item| match item {
-            TraitItem::Type(val) => Some(Ok(get_forward_type(&decl, val))),
-            TraitItem::Const(val) => Some(Ok(get_forward_const(&decl, val))),
+            TraitItem::Type(val) => Some(Ok((false, get_forward_type(&decl, val)))),
+            TraitItem::Const(val) => Some(Ok((false, get_forward_const(&decl, val)))),
             TraitItem::Fn(val) => Some(get_forward_fn(&decl, val)),
             _ => None,
         })
-        .collect::<Result<Vec<(&Ident, bool, TokenStream)>>>();
+        .collect::<Result<Vec<(bool, TokenStream)>>>();
 
     let forwards = match forwards {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let all = forwards.iter().map(|(_, _, stream)| stream);
-    let defaults = forwards.iter().filter(|(_, flag, _)| !flag).map(|(_, _, stream)| stream);
+    let all = forwards.iter().map(|(_, stream)| stream);
+    let defaults = forwards.iter().filter(|(flag, _)| !flag).map(|(_, stream)| stream);
 
     quote! {
         #decl
@@ -530,6 +530,9 @@ enum FwdIter {
 }
 
 struct Fwds(TokenStream);
+struct FwdsDeclTypes(TokenStream);
+struct FwdsDeclConsts(TokenStream);
+struct FwdsDeclFuncs(TokenStream);
 
 #[allow(unused)]
 struct FwdAttr {
@@ -656,6 +659,24 @@ impl ToTokens for Fwds {
     }
 }
 
+impl ToTokens for FwdsDeclTypes {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.0.to_tokens(tokens);
+    }
+}
+
+impl ToTokens for FwdsDeclConsts {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.0.to_tokens(tokens);
+    }
+}
+
+impl ToTokens for FwdsDeclFuncs {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.0.to_tokens(tokens);
+    }
+}
+
 impl ToTokens for FwdType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
@@ -688,7 +709,7 @@ impl ToTokens for FwdExpr {
 }
 
 impl Fwds {
-    fn from_raw(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Fwds {
+    fn from_raw(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Self {
         let (expr, ty) = attr.args();
         let (gen_impl, _, gen_where) = generics.split_for_impl();
 
@@ -722,6 +743,67 @@ impl Fwds {
                 }
             }
         })
+    }
+}
+
+impl FwdsDeclTypes {
+    fn from_decl(decl: &FwdDecl) -> Self {
+        let FwdDecl::Trait(decl) = decl;
+
+        let impls = decl.items.iter().filter_map(|item| match item {
+            TraitItem::Type(val) => {
+                let attrs = &val.attrs;
+                let ident = &val.ident;
+
+                let (gen_impl, gen_type, _) = val.generics.split_for_impl();
+
+                let id = &decl.ident;
+                let (_, gen_type_id, _) = decl.generics.split_for_impl();
+
+                Some(quote! {
+                    #(#attrs)*
+                    type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
+                })
+            },
+            _ => None,
+        });
+
+        Self(quote! {
+            #(#impls)*
+        })
+    }
+}
+
+impl FwdsDeclConsts {
+    fn from_decl(decl: &FwdDecl) -> Self {
+        let FwdDecl::Trait(decl) = decl;
+
+        let impls = decl.items.iter().filter_map(|item| match item {
+            TraitItem::Const(val) => {
+                let attrs = &val.attrs;
+                let ident = &val.ident;
+                let ty = &val.ty;
+
+                let id = &decl.ident;
+                let (_, gen_type_id, _) = decl.generics.split_for_impl();
+
+                Some(quote! {
+                    #(#attrs)*
+                    const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
+                })
+            },
+            _ => None,
+        });
+
+        Self(quote! {
+            #(#impls)*
+        })
+    }
+}
+
+impl FwdsDeclFuncs {
+    fn from_decl(decl: &FwdDecl) -> Result<(Self, Self)> {
+        todo!()
     }
 }
 
@@ -1027,7 +1109,7 @@ impl FwdArg {
     }
 }
 
-fn get_forward_type<'item>(interface: &ItemTrait, item: &'item TraitItemType) -> (&'item Ident, bool, TokenStream) {
+fn get_forward_type(interface: &ItemTrait, item: &TraitItemType) -> TokenStream {
     let attrs = &item.attrs;
     let ident = &item.ident;
 
@@ -1036,17 +1118,13 @@ fn get_forward_type<'item>(interface: &ItemTrait, item: &'item TraitItemType) ->
     let id = &interface.ident;
     let (_, gen_type_id, _) = interface.generics.split_for_impl();
 
-    (
-        ident,
-        false,
-        quote! {
-            #(#attrs)*
-            type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
-        },
-    )
+    quote! {
+        #(#attrs)*
+        type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
+    }
 }
 
-fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) -> (&'item Ident, bool, TokenStream) {
+fn get_forward_const(interface: &ItemTrait, item: &TraitItemConst) -> TokenStream {
     let attrs = &item.attrs;
     let ident = &item.ident;
     let ty = &item.ty;
@@ -1054,17 +1132,13 @@ fn get_forward_const<'item>(interface: &ItemTrait, item: &'item TraitItemConst) 
     let id = &interface.ident;
     let (_, gen_type_id, _) = interface.generics.split_for_impl();
 
-    (
-        ident,
-        false,
-        quote! {
-            #(#attrs)*
-            const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
-        },
-    )
+    quote! {
+        #(#attrs)*
+        const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
+    }
 }
 
-fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'item Ident, bool, TokenStream)> {
+fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStream)> {
     let TraitItemFn {
         attrs,
         sig,
@@ -1252,7 +1326,6 @@ fn get_forward_fn<'item>(_: &ItemTrait, item: &'item TraitItemFn) -> Result<(&'i
     };
 
     Ok((
-        ident,
         default.is_some(),
         quote! {
             #[allow(unused_mut)]
