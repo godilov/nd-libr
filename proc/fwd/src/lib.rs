@@ -1211,87 +1211,38 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
     let attrs = attrs.iter().filter(|attr| *attr.path() != inline_path);
 
     let expr = match recv {
-        Some(val) if val.reference.is_some() && val.mutability.is_some() => {
+        Some(val) => {
+            let fwd = match (val.reference.is_some(), val.mutability.is_some()) {
+                (true, true) => quote! { self.forward_mut().#ident(#(#definitions),*) },
+                (true, false) => quote! { self.forward_ref().#ident(#(#definitions),*) },
+                _ => quote! { self.forward().#ident(#(#definitions),*) },
+            };
+
             if as_into {
                 quote! {
-                    self.forward_mut().#ident(#(#definitions),*).into()
+                    #fwd.into()
                 }
             } else if as_self {
                 quote! {
-                    self.forward_mut().#ident(#(#definitions),*);
+                    #fwd;
+
                     self
                 }
             } else if let Some(as_expr) = as_expr {
                 let expr = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
-                    (#expr)(self.forward_mut().#ident(#(#definitions),*))
+                    (#expr)(#fwd)
                 }
             } else if let Some(as_map) = as_map {
                 let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    self.forward_mut().#ident(#(#definitions),*).map(#expr)
+                    #fwd.map(#expr)
                 }
             } else {
                 quote! {
-                    self.forward_mut().#ident(#(#definitions),*)
-                }
-            }
-        },
-        Some(val) if val.reference.is_some() => {
-            if as_into {
-                quote! {
-                    self.forward_ref().#ident(#(#definitions),*).into()
-                }
-            } else if as_self {
-                quote! {
-                    self.forward_ref().#ident(#(#definitions),*);
-                    self
-                }
-            } else if let Some(as_expr) = as_expr {
-                let expr = get_forward_expr(&as_expr.meta)?;
-
-                quote! {
-                    (#expr)(self.forward_ref().#ident(#(#definitions),*))
-                }
-            } else if let Some(as_map) = as_map {
-                let expr = get_forward_expr(&as_map.meta)?;
-
-                quote! {
-                    self.forward_ref().#ident(#(#definitions),*).map(#expr)
-                }
-            } else {
-                quote! {
-                    self.forward_ref().#ident(#(#definitions),*)
-                }
-            }
-        },
-        Some(_) => {
-            if as_into {
-                quote! {
-                    self.forward().#ident(#(#definitions),*).into()
-                }
-            } else if as_self {
-                quote! {
-                    self.forward().#ident(#(#definitions),*);
-                    self
-                }
-            } else if let Some(as_expr) = as_expr {
-                let expr = get_forward_expr(&as_expr.meta)?;
-
-                quote! {
-                    (#expr)(self.forward().#ident(#(#definitions),*))
-                }
-            } else if let Some(as_map) = as_map {
-                let expr = get_forward_expr(&as_map.meta)?;
-
-                quote! {
-                    self.forward().#ident(#(#definitions),*).map(#expr)
-                }
-            } else {
-                quote! {
-                    self.forward().#ident(#(#definitions),*)
+                    #fwd
                 }
             }
         },
