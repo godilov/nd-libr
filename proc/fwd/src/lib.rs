@@ -530,9 +530,9 @@ enum FwdIter {
 }
 
 struct Fwds(TokenStream);
-struct FwdsDeclTypes(TokenStream);
-struct FwdsDeclConsts(TokenStream);
-struct FwdsDeclFuncs(TokenStream);
+struct FwdsDeclTypes;
+struct FwdsDeclConsts;
+struct FwdsDeclFuncs;
 
 #[allow(unused)]
 struct FwdAttr {
@@ -659,24 +659,6 @@ impl ToTokens for Fwds {
     }
 }
 
-impl ToTokens for FwdsDeclTypes {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.0.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for FwdsDeclConsts {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.0.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for FwdsDeclFuncs {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.0.to_tokens(tokens);
-    }
-}
-
 impl ToTokens for FwdType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
@@ -747,10 +729,10 @@ impl Fwds {
 }
 
 impl FwdsDeclTypes {
-    fn from_decl(decl: &FwdDecl) -> Self {
+    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
         let FwdDecl::Trait(decl) = decl;
 
-        let impls = decl.items.iter().filter_map(|item| match item {
+        decl.items.iter().filter_map(|item| match item {
             TraitItem::Type(val) => {
                 let attrs = &val.attrs;
                 let ident = &val.ident;
@@ -766,19 +748,15 @@ impl FwdsDeclTypes {
                 })
             },
             _ => None,
-        });
-
-        Self(quote! {
-            #(#impls)*
         })
     }
 }
 
 impl FwdsDeclConsts {
-    fn from_decl(decl: &FwdDecl) -> Self {
+    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
         let FwdDecl::Trait(decl) = decl;
 
-        let impls = decl.items.iter().filter_map(|item| match item {
+        decl.items.iter().filter_map(|item| match item {
             TraitItem::Const(val) => {
                 let attrs = &val.attrs;
                 let ident = &val.ident;
@@ -793,16 +771,12 @@ impl FwdsDeclConsts {
                 })
             },
             _ => None,
-        });
-
-        Self(quote! {
-            #(#impls)*
         })
     }
 }
 
 impl FwdsDeclFuncs {
-    fn from_decl(decl: &FwdDecl) -> Result<(Self, Self)> {
+    fn from_decl(decl: &FwdDecl) -> Result<(TokenStream, TokenStream)> {
         todo!()
     }
 }
@@ -1165,7 +1139,7 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
         FnArg::Typed(_) => None,
     });
 
-    let declarations = inputs
+    let args = inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1181,7 +1155,7 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
             quote! { #(#attrs)* #ident: #ty }
         });
 
-    let definitions = inputs
+    let args_fwd = inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1190,9 +1164,8 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
         .enumerate()
         .map(|(idx, val)| {
             let ident = format_ident!("arg{}", idx);
-            let expr = quote! { #ident };
 
-            let arg = get_forward_argument(FwdExpr::Raw(expr), &val.ty);
+            let arg = get_forward_argument(FwdExpr::Raw(quote! { #ident }), &val.ty);
 
             Ok(arg?.stream())
         })
@@ -1213,9 +1186,9 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
     let expr = match recv {
         Some(val) => {
             let fwd = match (val.reference.is_some(), val.mutability.is_some()) {
-                (true, true) => quote! { self.forward_mut().#ident(#(#definitions),*) },
-                (true, false) => quote! { self.forward_ref().#ident(#(#definitions),*) },
-                _ => quote! { self.forward().#ident(#(#definitions),*) },
+                (true, true) => quote! { self.forward_mut().#ident(#(#args_fwd),*) },
+                (true, false) => quote! { self.forward_ref().#ident(#(#args_fwd),*) },
+                _ => quote! { self.forward().#ident(#(#args_fwd),*) },
             };
 
             if as_into {
@@ -1249,23 +1222,23 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
         None => {
             if as_into {
                 quote! {
-                    <$ty>::#ident(#(#definitions),*).into()
+                    <$ty>::#ident(#(#args_fwd),*).into()
                 }
             } else if let Some(as_expr) = as_expr {
                 let expr = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
-                    (#expr)(<$ty>::#ident(#(#definitions),*))
+                    (#expr)(<$ty>::#ident(#(#args_fwd),*))
                 }
             } else if let Some(as_map) = as_map {
                 let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    <$ty>::#ident(#(#definitions),*).map(#expr)
+                    <$ty>::#ident(#(#args_fwd),*).map(#expr)
                 }
             } else {
                 quote! {
-                    <$ty>::#ident(#(#definitions),*)
+                    <$ty>::#ident(#(#args_fwd),*)
                 }
             }
         },
@@ -1282,7 +1255,7 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
             #[allow(unused_mut)]
             #[inline]
             #(#attrs)*
-            #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#declarations),*) #output {
+            #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#args),*) #output {
                 #expr
             }
         },
