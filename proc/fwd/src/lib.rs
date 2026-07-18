@@ -4,10 +4,11 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Attribute, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta,
-    Path, Result, Token, TraitItem, TraitItemFn, Type, WhereClause,
+    Attribute, Error, Expr, FnArg, Generics, Ident, ImplItemConst, ImplItemType, Item, ItemEnum, ItemImpl, ItemStruct,
+    ItemTrait, ItemUnion, Meta, Path, Result, Token, TraitItem, TraitItemFn, Type, WhereClause, braced,
     parse::{Parse, ParseStream},
     parse_macro_input,
+    token::Brace,
 };
 
 mod kw {
@@ -546,9 +547,7 @@ enum FwdDecl {
     Trait(ItemTrait),
 }
 
-struct FwdDeclAttr {}
-
-enum FwdDeclFnAttr {
+enum FwdDeclAttr {
     Default,
     AsInto,
     AsSelf,
@@ -592,6 +591,12 @@ struct FwdDefAttr {
     path: Path,
     defaults: Option<Token![!]>,
     conditions: Option<WhereClause>,
+    items: Vec<FwdDefAttrItem>,
+}
+
+enum FwdDefAttrItem {
+    Type(ImplItemType),
+    Const(ImplItemConst),
 }
 
 impl Parse for FwdAttr {
@@ -657,13 +662,49 @@ impl Parse for FwdDef {
 
 impl Parse for FwdDefAttr {
     fn parse(input: ParseStream) -> Result<Self> {
+        let fwd = input.parse()?;
+        let colon = input.parse()?;
+        let path = input.parse()?;
+        let defaults = input.parse()?;
+        let conditions = input.parse()?;
+
+        let items = if input.peek(Brace) {
+            let content;
+            let _ = braced!(content in input);
+
+            let mut items = Vec::new();
+
+            while !content.is_empty() {
+                items.push(content.parse()?);
+            }
+
+            items
+        } else {
+            Vec::new()
+        };
+
         Ok(Self {
-            fwd: input.parse()?,
-            colon: input.parse()?,
-            path: input.parse()?,
-            defaults: input.parse()?,
-            conditions: input.parse()?,
+            fwd,
+            colon,
+            path,
+            defaults,
+            conditions,
+            items,
         })
+    }
+}
+
+impl Parse for FwdDefAttrItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Token![type]) {
+            input.parse().map(Self::Type)
+        } else if lookahead.peek(Token![const]) {
+            input.parse().map(Self::Const)
+        } else {
+            Err(lookahead.error())
+        }
     }
 }
 
@@ -1001,7 +1042,7 @@ impl FwdDecl {
     }
 }
 
-impl FwdDeclFnAttr {
+impl FwdDeclAttr {
     fn from_attrs<'attr, Attrs: Clone + Iterator<Item = &'attr Attribute>>(attrs: Attrs) -> Result<Self> {
         fn expr(attr: &Attribute) -> Result<Expr> {
             match &attr.meta {
@@ -1144,12 +1185,12 @@ impl FwdDeclFn {
                 None => quote! { <$ty>::#ident(#(#args_expr),*) },
             };
 
-            let expr = match FwdDeclFnAttr::from_attrs(attrs.iter())? {
-                FwdDeclFnAttr::Default => quote! { #forward },
-                FwdDeclFnAttr::AsInto => quote! { #forward.into() },
-                FwdDeclFnAttr::AsSelf => quote! { #forward; self },
-                FwdDeclFnAttr::AsExpr(expr) => quote! { (#expr)(#forward) },
-                FwdDeclFnAttr::AsMap(expr) => quote! { #forward.map(#expr) },
+            let expr = match FwdDeclAttr::from_attrs(attrs.iter())? {
+                FwdDeclAttr::Default => quote! { #forward },
+                FwdDeclAttr::AsInto => quote! { #forward.into() },
+                FwdDeclAttr::AsSelf => quote! { #forward; self },
+                FwdDeclAttr::AsExpr(expr) => quote! { (#expr)(#forward) },
+                FwdDeclAttr::AsMap(expr) => quote! { #forward.map(#expr) },
             };
 
             let attrs = attrs.iter().filter(|attr| !attr.path().is_ident("inline"));
