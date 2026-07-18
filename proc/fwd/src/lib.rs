@@ -406,6 +406,28 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
     let macros = format_ident!("__NdFwd{}", &id);
     let macros = quote! { #(#segs::)*#macros! };
 
+    let types_fwd = attr.items.iter().filter_map(|item| match item {
+        FwdDefAttrItem::Type(val) => Some(val),
+        _ => None,
+    });
+
+    let consts_fwd = attr.items.iter().filter_map(|item| match item {
+        FwdDefAttrItem::Type(val) => Some(val),
+        _ => None,
+    });
+
+    let types_fwd = match types_fwd.clone().any(|_| true) {
+        true => quote! { #(#types_fwd)* },
+        false => quote! { #macros(@type #self_ty, #ty, (#gen_params), (#gen_where)); },
+    };
+
+    let consts_fwd = match consts_fwd.clone().any(|_| true) {
+        true => quote! { #(#consts_fwd)* },
+        false => quote! { #macros(@const #self_ty, #ty, (#gen_params), (#gen_where)); },
+    };
+
+    let fns_fwd = quote! {#macros(@fn #defaults #self_ty, #ty, (#gen_params), (#gen_where));};
+
     quote! {
         #def
 
@@ -415,9 +437,9 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
             #forwards
 
             #macros(@impl #self_ty, #ty, (#gen_params), (#gen_where) {
-                #macros(@type #self_ty, #ty, (#gen_params), (#gen_where));
-                #macros(@const #self_ty, #ty, (#gen_params), (#gen_where));
-                #macros(@fn #defaults #self_ty, #ty, (#gen_params), (#gen_where));
+                #consts_fwd
+                #types_fwd
+                #fns_fwd
             });
 
             use super::*;
