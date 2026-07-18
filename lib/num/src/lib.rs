@@ -1006,6 +1006,7 @@ pub trait Modulus<N: Num>: Default + Debug + Clone + Copy {
 /// Zero with static allocation.
 ///
 /// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
 pub trait Zero {
     /// Zero value.
     const ZERO: Self;
@@ -1014,6 +1015,7 @@ pub trait Zero {
 /// One with static allocation.
 ///
 /// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
 pub trait One {
     /// One value.
     const ONE: Self;
@@ -1022,6 +1024,7 @@ pub trait One {
 /// Minimum with static allocation.
 ///
 /// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
 pub trait Min {
     /// Minimum value.
     const MIN: Self;
@@ -1030,6 +1033,7 @@ pub trait Min {
 /// Maximum with static allocation.
 ///
 /// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
 pub trait Max {
     /// Maximum value.
     const MAX: Self;
@@ -1497,6 +1501,10 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: Zero { const ZERO: Self = Self(N::ZERO); })]
+#[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
+#[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
+#[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
 #[ndfwd::def(self.0 with N: IsZeroCt)]
 #[ndfwd::def(self.0 with N: IsOneCt)]
 #[ndfwd::def(self.0 with N: IsPosCt)]
@@ -1527,6 +1535,10 @@ impl<N> NdForward for Def<N> {}
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: Zero { const ZERO: Self = Self(N::ZERO); })]
+#[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
+#[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
+#[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
 #[ndfwd::def(self.0 with N: IsZeroCt)]
 #[ndfwd::def(self.0 with N: IsOneCt)]
 #[ndfwd::def(self.0 with N: IsPosCt)]
@@ -1557,6 +1569,10 @@ impl<N> NdForward for Strict<N> {}
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: Zero { const ZERO: Self = Self(N::ZERO); })]
+#[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
+#[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
+#[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
 #[ndfwd::def(self.0 with N: IsZeroCt)]
 #[ndfwd::def(self.0 with N: IsOneCt)]
 #[ndfwd::def(self.0 with N: IsPosCt)]
@@ -1587,6 +1603,10 @@ impl<N> NdForward for Wrapping<N> {}
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: Zero { const ZERO: Self = Self(N::ZERO); })]
+#[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
+#[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
+#[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
 #[ndfwd::def(self.0 with N: IsZeroCt)]
 #[ndfwd::def(self.0 with N: IsOneCt)]
 #[ndfwd::def(self.0 with N: IsPosCt)]
@@ -1617,6 +1637,10 @@ impl<N> NdForward for Saturating<N> {}
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: Zero { const ZERO: Self = Self(N::ZERO); })]
+#[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
+#[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
+#[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
 #[ndfwd::def(self.0 with N: IsZeroCt)]
 #[ndfwd::def(self.0 with N: IsOneCt)]
 #[ndfwd::def(self.0 with N: IsPosCt)]
@@ -1649,6 +1673,10 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
+#[ndfwd::def(self.0 with N: Zero { const ZERO: Self = Self(N::ZERO); })]
+#[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
+#[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
+#[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
 #[ndfwd::def(self.0 with N: IsZeroCt)]
 #[ndfwd::def(self.0 with N: IsOneCt)]
 #[ndfwd::def(self.0 with N: IsPosCt)]
@@ -1667,102 +1695,6 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: SelectCt)]
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Relaxed<N> {}
-
-impl<N: Zero> Zero for Def<N> {
-    const ZERO: Self = Def(N::ZERO);
-}
-
-impl<N: One> One for Def<N> {
-    const ONE: Self = Def(N::ONE);
-}
-
-impl<N: Min> Min for Def<N> {
-    const MIN: Self = Def(N::MIN);
-}
-
-impl<N: Max> Max for Def<N> {
-    const MAX: Self = Def(N::MAX);
-}
-
-impl<N: Zero> Zero for Strict<N> {
-    const ZERO: Self = Strict(N::ZERO);
-}
-
-impl<N: One> One for Strict<N> {
-    const ONE: Self = Strict(N::ONE);
-}
-
-impl<N: Min> Min for Strict<N> {
-    const MIN: Self = Strict(N::MIN);
-}
-
-impl<N: Max> Max for Strict<N> {
-    const MAX: Self = Strict(N::MAX);
-}
-
-impl<N: Zero> Zero for Wrapping<N> {
-    const ZERO: Self = Wrapping(N::ZERO);
-}
-
-impl<N: One> One for Wrapping<N> {
-    const ONE: Self = Wrapping(N::ONE);
-}
-
-impl<N: Min> Min for Wrapping<N> {
-    const MIN: Self = Wrapping(N::MIN);
-}
-
-impl<N: Max> Max for Wrapping<N> {
-    const MAX: Self = Wrapping(N::MAX);
-}
-
-impl<N: Zero> Zero for Saturating<N> {
-    const ZERO: Self = Saturating(N::ZERO);
-}
-
-impl<N: One> One for Saturating<N> {
-    const ONE: Self = Saturating(N::ONE);
-}
-
-impl<N: Min> Min for Saturating<N> {
-    const MIN: Self = Saturating(N::MIN);
-}
-
-impl<N: Max> Max for Saturating<N> {
-    const MAX: Self = Saturating(N::MAX);
-}
-
-impl<N: Zero> Zero for Unbounded<N> {
-    const ZERO: Self = Unbounded(N::ZERO);
-}
-
-impl<N: One> One for Unbounded<N> {
-    const ONE: Self = Unbounded(N::ONE);
-}
-
-impl<N: Min> Min for Unbounded<N> {
-    const MIN: Self = Unbounded(N::MIN);
-}
-
-impl<N: Max> Max for Unbounded<N> {
-    const MAX: Self = Unbounded(N::MAX);
-}
-
-impl<N: Zero> Zero for Relaxed<N> {
-    const ZERO: Self = Relaxed(N::ZERO);
-}
-
-impl<N: One> One for Relaxed<N> {
-    const ONE: Self = Relaxed(N::ONE);
-}
-
-impl<N: Min> Min for Relaxed<N> {
-    const MIN: Self = Relaxed(N::MIN);
-}
-
-impl<N: Max> Max for Relaxed<N> {
-    const MAX: Self = Relaxed(N::MAX);
-}
 
 impl<N: Num + NumUnsigned, const BITS: usize> Width<N, BITS> {
     #[allow(unused)]
