@@ -1095,26 +1095,17 @@ impl FwdDeclConsts {
 impl FwdDeclFuncs {
     fn from_decl(decl: &FwdDecl) -> Result<(Vec<TokenStream>, Vec<TokenStream>)> {
         fn forward(item: &TraitItemFn) -> Result<TokenStream> {
-            let TraitItemFn {
-                attrs,
-                sig,
-                default: _,
-                semi_token: _,
-            } = &item;
+            let attrs = &item.attrs;
+            let sig = &item.sig;
 
-            let Signature {
-                constness,
-                asyncness,
-                unsafety,
-                abi,
-                fn_token: _,
-                ident,
-                generics,
-                paren_token: _,
-                inputs,
-                variadic: _,
-                output,
-            } = sig;
+            let constness = &sig.constness;
+            let asyncness = &sig.asyncness;
+            let unsafety = &sig.unsafety;
+            let abi = &sig.abi;
+            let ident = &sig.ident;
+            let generics = &sig.generics;
+            let inputs = &sig.inputs;
+            let output = &sig.output;
 
             let recv = inputs.iter().find_map(|arg| match arg {
                 FnArg::Receiver(val) => Some(val),
@@ -1168,8 +1159,7 @@ impl FwdDeclFuncs {
                 FwdDeclAttr::AsMap(expr) => quote! { #forward.map(#expr) },
             };
 
-            let attr_inline: Path = parse_quote! { inline };
-            let attrs = attrs.iter().filter(|attr| attr.path() != &attr_inline);
+            let attrs = attrs.iter().filter(|attr| attr.path().is_ident("inline"));
 
             let recv = match recv {
                 Some(val) => quote! { #val, },
