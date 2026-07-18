@@ -20,7 +20,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt, NdGcd, NdPow, NdRand,
     NegxCt, Num, NumFn, NumSigned, NumUnsigned, One, PosxCt, PowCt, RelCt, SelectCt, Sign, Zero,
-    arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, BytesLen, Offset, word::*},
+    arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, Offset, word::*},
     long::{
         radix::*,
         uops::{Expr, ExprMut},
@@ -6432,22 +6432,10 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     }
 }
 
-impl<const L: usize> BytesLen for Signed<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
-}
-
-impl<const L: usize> BytesLen for Unsigned<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
-}
-
-impl<const L: usize> BytesLen for Bytes<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
-}
-
 impl<const L: usize> BytesFn for Signed<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+
     #[inline]
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
@@ -6498,6 +6486,9 @@ impl<const L: usize> BytesFn for Signed<L> {
 }
 
 impl<const L: usize> BytesFn for Unsigned<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+
     #[inline]
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {
@@ -6548,6 +6539,9 @@ impl<const L: usize> BytesFn for Unsigned<L> {
 }
 
 impl<const L: usize> BytesFn for Bytes<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+
     #[inline]
     fn read(&self, offset: Offset) -> Single {
         let offset = match offset {

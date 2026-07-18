@@ -109,12 +109,10 @@ macro_rules! bytes_impl {
         $(bytes_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl BytesLen for $primitive {
+        impl BytesFn for $primitive {
             const BITS: usize = Self::BITS as usize;
             const BYTES: usize = Self::BITS as usize / 8;
-        }
 
-        impl BytesFn for $primitive {
             #[inline]
             fn read(&self, offset: Offset) -> Single {
                 let offset = match offset {
@@ -434,7 +432,6 @@ pub struct AsWordsIter<'bytes, W: Word> {
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
@@ -485,7 +482,6 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
@@ -529,7 +525,6 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
@@ -573,7 +568,6 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesLen)]
 #[ndfwd::def(self.0 with T: BytesFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
@@ -623,23 +617,19 @@ pub enum Offset {
     Right(usize),
 }
 
-/// Bytes length.
-#[ndfwd::decl]
-pub trait BytesLen {
-    /// Effective len in bits.
-    const BITS: usize;
-
-    /// Effective len in bytes.
-    const BYTES: usize;
-}
-
 /// Bytes functions.
 ///
 /// Allows reading/writing in raw binary representation.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait BytesFn: Sized + Default + BytesLen + AsBytesRef + AsBytesMut {
+pub trait BytesFn: Sized + Default + AsBytesRef + AsBytesMut {
+    /// Effective len in bits.
+    const BITS: usize;
+
+    /// Effective len in bytes.
+    const BYTES: usize;
+
     /// Reads 64-bits of underlying value at specified Offset in bits.
     fn read(&self, offset: Offset) -> Single;
 

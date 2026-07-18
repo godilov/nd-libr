@@ -4,7 +4,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
-use crate::arch::{AsBytesMut, AsBytesRef, BytesFn, BytesLen, Offset, word::Single};
+use crate::arch::{AsBytesMut, AsBytesRef, BytesFn, Offset, word::Single};
 
 pub mod arch;
 pub mod long;
@@ -418,7 +418,10 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::BytesFn {
+    const BITS: usize = BITS;
+    const BYTES: usize = BITS.div_ceil(8);
+})]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
@@ -1417,7 +1420,6 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
 ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
 
-#[ndfwd::def(self.0 with &'num N: arch::BytesLen)]
 #[ndfwd::def(self.0 with &'num N: arch::BytesFn)]
 #[ndfwd::def(self.0 with &'num N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with &'num N: arch::AsBytesMut)]
@@ -1450,7 +1452,6 @@ ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i
 #[ndfwd::def(self.0 with &'num N: PowCt!)]
 impl<'num, N> NdForward for Ref<'num, N> {}
 
-#[ndfwd::def(self.0 with &'num mut N: arch::BytesLen)]
 #[ndfwd::def(self.0 with &'num mut N: arch::BytesFn)]
 #[ndfwd::def(self.0 with &'num mut N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with &'num mut N: arch::AsBytesMut)]
@@ -1483,7 +1484,6 @@ impl<'num, N> NdForward for Ref<'num, N> {}
 #[ndfwd::def(self.0 with &'num mut N: PowCt!)]
 impl<'num, N> NdForward for Mut<'num, N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
@@ -1516,7 +1516,6 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Def<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
@@ -1547,7 +1546,6 @@ impl<N> NdForward for Def<N> {}
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Strict<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
@@ -1578,7 +1576,6 @@ impl<N> NdForward for Strict<N> {}
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Wrapping<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
@@ -1609,7 +1606,6 @@ impl<N> NdForward for Wrapping<N> {}
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Saturating<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
@@ -1640,7 +1636,6 @@ impl<N> NdForward for Saturating<N> {}
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Unbounded<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesLen)]
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
@@ -1767,11 +1762,6 @@ impl<N: Min> Min for Relaxed<N> {
 
 impl<N: Max> Max for Relaxed<N> {
     const MAX: Self = Relaxed(N::MAX);
-}
-
-impl<N: Num + NumUnsigned, const BITS: usize> BytesLen for Width<N, BITS> {
-    const BITS: usize = BITS;
-    const BYTES: usize = BITS.div_ceil(8);
 }
 
 impl<N: Num + NumUnsigned, const BITS: usize> Width<N, BITS> {

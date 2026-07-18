@@ -412,7 +412,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
     });
 
     let consts_fwd = attr.items.iter().filter_map(|item| match item {
-        FwdDefAttrItem::Type(val) => Some(val),
+        FwdDefAttrItem::Const(val) => Some(val),
         _ => None,
     });
 
@@ -1067,7 +1067,7 @@ impl FwdType {
 impl FwdDecl {
     fn item(&self) -> &ItemTrait {
         match self {
-            FwdDecl::Trait(val) => &val,
+            FwdDecl::Trait(val) => val,
         }
     }
 }
