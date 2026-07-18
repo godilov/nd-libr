@@ -511,6 +511,7 @@ pub type RelCt = i8;
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[inline]
+#[cfg(feature = "rand")]
 pub fn rand<N: NdRand, Rng: rand::Rng>(order: usize, rng: &mut Rng) -> N {
     N::nd_rand(order, rng)
 }
