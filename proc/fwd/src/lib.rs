@@ -530,9 +530,6 @@ enum FwdIter {
 }
 
 struct Fwds(TokenStream);
-struct FwdsDeclTypes;
-struct FwdsDeclConsts;
-struct FwdsDeclFuncs;
 
 #[allow(unused)]
 struct FwdAttr {
@@ -549,6 +546,28 @@ enum FwdType {
 
 enum FwdDecl {
     Trait(ItemTrait),
+}
+
+struct FwdDeclTypes;
+struct FwdDeclConsts;
+struct FwdDeclFuncs;
+
+#[derive(Debug, Clone, Copy)]
+enum FwdDeclArgKind {
+    Raw,
+    Ref,
+    Mut,
+}
+
+struct FwdDeclArg<'ty> {
+    expr: TokenStream,
+    ty: &'ty Type,
+    kind: FwdDeclArgKind,
+}
+
+enum FwdDeclArgExpr {
+    Raw(TokenStream),
+    Alt(TokenStream),
 }
 
 enum FwdDef {
@@ -725,59 +744,6 @@ impl Fwds {
                 }
             }
         })
-    }
-}
-
-impl FwdsDeclTypes {
-    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
-        let FwdDecl::Trait(decl) = decl;
-
-        decl.items.iter().filter_map(|item| match item {
-            TraitItem::Type(val) => {
-                let attrs = &val.attrs;
-                let ident = &val.ident;
-
-                let (gen_impl, gen_type, _) = val.generics.split_for_impl();
-
-                let id = &decl.ident;
-                let (_, gen_type_id, _) = decl.generics.split_for_impl();
-
-                Some(quote! {
-                    #(#attrs)*
-                    type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
-                })
-            },
-            _ => None,
-        })
-    }
-}
-
-impl FwdsDeclConsts {
-    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
-        let FwdDecl::Trait(decl) = decl;
-
-        decl.items.iter().filter_map(|item| match item {
-            TraitItem::Const(val) => {
-                let attrs = &val.attrs;
-                let ident = &val.ident;
-                let ty = &val.ty;
-
-                let id = &decl.ident;
-                let (_, gen_type_id, _) = decl.generics.split_for_impl();
-
-                Some(quote! {
-                    #(#attrs)*
-                    const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
-                })
-            },
-            _ => None,
-        })
-    }
-}
-
-impl FwdsDeclFuncs {
-    fn from_decl(decl: &FwdDecl) -> Result<(TokenStream, TokenStream)> {
-        todo!()
     }
 }
 
@@ -1025,6 +991,157 @@ impl FwdType {
     }
 }
 
+impl FwdDeclTypes {
+    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
+        let FwdDecl::Trait(decl) = decl;
+
+        decl.items.iter().filter_map(|item| match item {
+            TraitItem::Type(val) => {
+                let attrs = &val.attrs;
+                let ident = &val.ident;
+
+                let (gen_impl, gen_type, _) = val.generics.split_for_impl();
+
+                let id = &decl.ident;
+                let (_, gen_type_id, _) = decl.generics.split_for_impl();
+
+                Some(quote! {
+                    #(#attrs)*
+                    type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
+                })
+            },
+            _ => None,
+        })
+    }
+}
+
+impl FwdDeclConsts {
+    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
+        let FwdDecl::Trait(decl) = decl;
+
+        decl.items.iter().filter_map(|item| match item {
+            TraitItem::Const(val) => {
+                let attrs = &val.attrs;
+                let ident = &val.ident;
+                let ty = &val.ty;
+
+                let id = &decl.ident;
+                let (_, gen_type_id, _) = decl.generics.split_for_impl();
+
+                Some(quote! {
+                    #(#attrs)*
+                    const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
+                })
+            },
+            _ => None,
+        })
+    }
+}
+
+impl FwdDeclFuncs {
+    fn from_decl(decl: &FwdDecl) -> Result<(TokenStream, TokenStream)> {
+        todo!()
+    }
+}
+
+impl FwdDeclArgExpr {
+    fn from_arg(arg: FwdDeclArg) -> Result<Self> {
+        let FwdDeclArg { expr, ty, kind } = arg;
+
+        match ty {
+            Type::Path(val) => {
+                if val.path.segments.last().is_some_and(|seg| seg.ident == "Self") {
+                    return Ok(match kind {
+                        FwdDeclArgKind::Raw => Self::Alt(quote! { #expr.forward() }),
+                        FwdDeclArgKind::Ref => Self::Alt(quote! { #expr.forward_ref() }),
+                        FwdDeclArgKind::Mut => Self::Alt(quote! { #expr.forward_mut() }),
+                    });
+                }
+
+                if val.path.segments.first().is_some_and(|seg| seg.ident == "Self") {
+                    return Ok(Self::Alt(quote! { #expr.into() }));
+                }
+
+                Ok(Self::Raw(expr))
+            },
+            Type::Array(val) => match Self::from_arg(FwdDeclArg { expr, ty: &val.elem, kind })? {
+                Self::Raw(val) => Ok(Self::Raw(val)),
+                Self::Alt(val) => Err(Error::new_spanned(
+                    val,
+                    "Failed to forward argument, alternating in array is unsupported",
+                )),
+            },
+            Type::Slice(val) => match Self::from_arg(FwdDeclArg { expr, ty: &val.elem, kind })? {
+                Self::Raw(val) => Ok(Self::Raw(val)),
+                Self::Alt(val) => Err(Error::new_spanned(
+                    val,
+                    "Failed to forward argument, alternating in slice is unsupported",
+                )),
+            },
+            Type::Tuple(val) => {
+                let args = val
+                    .elems
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, elem)| FwdDeclArg {
+                        expr: quote! { #expr.#idx },
+                        ty: elem,
+                        kind,
+                    })
+                    .map(Self::from_arg)
+                    .collect::<Result<Vec<Self>>>()?;
+
+                if args.iter().all(|arg| match arg {
+                    Self::Raw(_) => true,
+                    Self::Alt(_) => false,
+                }) {
+                    return Ok(Self::Raw(expr));
+                }
+
+                let args = args.iter().map(|arg| match arg {
+                    Self::Raw(val) => quote! { #val },
+                    Self::Alt(val) => quote! { #val },
+                });
+
+                Ok(Self::Alt(quote! { #(#args),* }))
+            },
+            Type::Group(val) => Self::from_arg(FwdDeclArg { expr, ty: &val.elem, kind }),
+            Type::Paren(val) => Self::from_arg(FwdDeclArg { expr, ty: &val.elem, kind }),
+            Type::Ptr(val) => Self::from_arg(match val.mutability {
+                Some(_) => FwdDeclArg {
+                    expr,
+                    ty: &val.elem,
+                    kind: FwdDeclArgKind::Mut,
+                },
+                None => FwdDeclArg {
+                    expr,
+                    ty: &val.elem,
+                    kind: FwdDeclArgKind::Ref,
+                },
+            }),
+            Type::Reference(val) => Self::from_arg(match val.mutability {
+                Some(_) => FwdDeclArg {
+                    expr,
+                    ty: &val.elem,
+                    kind: FwdDeclArgKind::Mut,
+                },
+                None => FwdDeclArg {
+                    expr,
+                    ty: &val.elem,
+                    kind: FwdDeclArgKind::Ref,
+                },
+            }),
+            Type::Never(val) => Err(Error::new_spanned(val, "Failed to forward argument, never type is unsupported")),
+            Type::Macro(val) => Err(Error::new_spanned(val, "Failed to forward argument, macro type is unsupported")),
+            Type::BareFn(_) => Ok(Self::Raw(expr)),
+            Type::ImplTrait(_) => Ok(Self::Raw(expr)),
+            Type::TraitObject(_) => Ok(Self::Raw(expr)),
+            Type::Verbatim(val) => Err(Error::new_spanned(val, "Failed to forward argument, verbatim was found")),
+            ty => Err(Error::new_spanned(ty, "Failed to forward argument, unknown type was found")),
+        }
+    }
+}
+
 impl FwdDef {
     fn args(&self) -> Result<(Ident, TokenStream, &Generics)> {
         fn ty(ident: &Ident, generics: &Generics) -> TokenStream {
@@ -1155,7 +1272,7 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
             quote! { #(#attrs)* #ident: #ty }
         });
 
-    let args_fwd = inputs
+    let args_expr = inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
@@ -1186,9 +1303,9 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
     let expr = match recv {
         Some(val) => {
             let fwd = match (val.reference.is_some(), val.mutability.is_some()) {
-                (true, true) => quote! { self.forward_mut().#ident(#(#args_fwd),*) },
-                (true, false) => quote! { self.forward_ref().#ident(#(#args_fwd),*) },
-                _ => quote! { self.forward().#ident(#(#args_fwd),*) },
+                (true, true) => quote! { self.forward_mut().#ident(#(#args_expr),*) },
+                (true, false) => quote! { self.forward_ref().#ident(#(#args_expr),*) },
+                _ => quote! { self.forward().#ident(#(#args_expr),*) },
             };
 
             if as_into {
@@ -1222,23 +1339,23 @@ fn get_forward_fn(_: &ItemTrait, item: &TraitItemFn) -> Result<(bool, TokenStrea
         None => {
             if as_into {
                 quote! {
-                    <$ty>::#ident(#(#args_fwd),*).into()
+                    <$ty>::#ident(#(#args_expr),*).into()
                 }
             } else if let Some(as_expr) = as_expr {
                 let expr = get_forward_expr(&as_expr.meta)?;
 
                 quote! {
-                    (#expr)(<$ty>::#ident(#(#args_fwd),*))
+                    (#expr)(<$ty>::#ident(#(#args_expr),*))
                 }
             } else if let Some(as_map) = as_map {
                 let expr = get_forward_expr(&as_map.meta)?;
 
                 quote! {
-                    <$ty>::#ident(#(#args_fwd),*).map(#expr)
+                    <$ty>::#ident(#(#args_expr),*).map(#expr)
                 }
             } else {
                 quote! {
-                    <$ty>::#ident(#(#args_fwd),*)
+                    <$ty>::#ident(#(#args_expr),*)
                 }
             }
         },
