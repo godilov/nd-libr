@@ -279,8 +279,7 @@ pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let types_fwd = quote! { #(#types_fwd)* };
-    let consts_fwd = quote! { #(#consts_fwd)* };
+    let pattern = quote! { $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*) };
 
     quote! {
         #decl
@@ -288,22 +287,26 @@ pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(unused_macros)]
         macro_rules! #macros {
-            ($self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
+            (@impl #pattern { $($tokens:tt)* }) => {
                 impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
-                    #types_fwd
-                    #consts_fwd
-
-                    #(#fn_fwd)*
+                    $($tokens)*
                 }
             };
 
-            (! $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*)) => {
-                impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
-                    #types_fwd
-                    #consts_fwd
+            (@type #pattern) => {
+                #(#types_fwd)*
+            };
 
-                    #(#fn_fwd_)*
-                }
+            (@const #pattern) => {
+                #(#consts_fwd)*
+            };
+
+            (@fn #pattern) => {
+                #(#fn_fwd)*
+            };
+
+            (@fn! #pattern) => {
+                #(#fn_fwd_)*
             };
         }
 
@@ -401,6 +404,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
 
     let module = format_ident!("__NdFwd{}Impl{}", &id, &ident);
     let macros = format_ident!("__NdFwd{}", &id);
+    let macros = quote! { #(#segs::)*#macros! };
 
     quote! {
         #def
@@ -410,7 +414,11 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
         mod #module {
             #forwards
 
-            #(#segs::)*#macros!(#defaults #self_ty, #ty, (#gen_params), (#gen_where));
+            #macros(@impl #self_ty, #ty, (#gen_params), (#gen_where) {
+                #macros(@type #self_ty, #ty, (#gen_params), (#gen_where));
+                #macros(@const #self_ty, #ty, (#gen_params), (#gen_where));
+                #macros(@fn #defaults #self_ty, #ty, (#gen_params), (#gen_where));
+            });
 
             use super::*;
 
