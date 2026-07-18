@@ -4,8 +4,8 @@ use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
-    Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta, Path,
-    Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
+    Attribute, Error, Expr, FnArg, Generics, Ident, Item, ItemEnum, ItemImpl, ItemStruct, ItemTrait, ItemUnion, Meta,
+    Path, Result, Signature, Token, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, Type, WhereClause,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
 };
@@ -548,6 +548,14 @@ enum FwdDecl {
     Trait(ItemTrait),
 }
 
+enum FwdDeclAttr {
+    Default,
+    AsInto,
+    AsSelf,
+    AsExpr(Expr),
+    AsMap(Expr),
+}
+
 struct FwdDeclTypes;
 struct FwdDeclConsts;
 struct FwdDeclFuncs;
@@ -695,6 +703,15 @@ impl ToTokens for FwdDef {
             FwdDef::Enum(val) => val.to_tokens(tokens),
             FwdDef::Union(val) => val.to_tokens(tokens),
             FwdDef::Impl(val) => val.to_tokens(tokens),
+        }
+    }
+}
+
+impl ToTokens for FwdDeclArgExpr {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            FwdDeclArgExpr::Raw(val) => val.to_tokens(tokens),
+            FwdDeclArgExpr::Alt(val) => val.to_tokens(tokens),
         }
     }
 }
@@ -991,12 +1008,49 @@ impl FwdType {
     }
 }
 
+impl FwdDeclAttr {
+    fn from_attrs<'attr, Attrs: Clone + Iterator<Item = &'attr Attribute>>(attrs: Attrs) -> Result<Self> {
+        fn expr(attr: &Attribute) -> Result<Expr> {
+            match &attr.meta {
+                Meta::List(val) => syn::parse2::<Expr>(val.tokens.clone()),
+                Meta::Path(val) => Err(Error::new_spanned(val, "Failed to forward as expression, expected expression")),
+                Meta::NameValue(val) => {
+                    Err(Error::new_spanned(val, "Failed to forward as expression, expected expression"))
+                },
+            }
+        }
+
+        fn check(attr: &Attribute, path: &[&str]) -> bool {
+            let segments = &attr.path().segments;
+
+            segments.len() == path.len() && segments.iter().map(|seg| &seg.ident).zip(path).all(|(lhs, rhs)| lhs == rhs)
+        }
+
+        let as_into = ["ndfwd", "as_into"];
+        let as_self = ["ndfwd", "as_self"];
+        let as_expr = ["ndfwd", "as_expr"];
+        let as_map = ["ndfwd", "as_map"];
+
+        if attrs.clone().find(|attr| check(attr, &as_into)).is_some() {
+            Ok(Self::AsInto)
+        } else if attrs.clone().find(|attr| check(attr, &as_self)).is_some() {
+            Ok(Self::AsSelf)
+        } else if let Some(attr) = attrs.clone().find(|attr| check(attr, &as_expr)) {
+            Ok(Self::AsExpr(expr(attr)?))
+        } else if let Some(attr) = attrs.clone().find(|attr| check(attr, &as_map)) {
+            Ok(Self::AsMap(expr(attr)?))
+        } else {
+            Ok(Self::Default)
+        }
+    }
+}
+
 impl FwdDeclTypes {
     fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
         let FwdDecl::Trait(decl) = decl;
 
         decl.items.iter().filter_map(|item| match item {
-            TraitItem::Type(val) => {
+            TraitItem::Type(val) => Some({
                 let attrs = &val.attrs;
                 let ident = &val.ident;
 
@@ -1005,11 +1059,11 @@ impl FwdDeclTypes {
                 let id = &decl.ident;
                 let (_, gen_type_id, _) = decl.generics.split_for_impl();
 
-                Some(quote! {
+                quote! {
                     #(#attrs)*
                     type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
-                })
-            },
+                }
+            }),
             _ => None,
         })
     }
@@ -1020,7 +1074,7 @@ impl FwdDeclConsts {
         let FwdDecl::Trait(decl) = decl;
 
         decl.items.iter().filter_map(|item| match item {
-            TraitItem::Const(val) => {
+            TraitItem::Const(val) => Some({
                 let attrs = &val.attrs;
                 let ident = &val.ident;
                 let ty = &val.ty;
@@ -1028,19 +1082,130 @@ impl FwdDeclConsts {
                 let id = &decl.ident;
                 let (_, gen_type_id, _) = decl.generics.split_for_impl();
 
-                Some(quote! {
+                quote! {
                     #(#attrs)*
                     const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
-                })
-            },
+                }
+            }),
             _ => None,
         })
     }
 }
 
 impl FwdDeclFuncs {
-    fn from_decl(decl: &FwdDecl) -> Result<(TokenStream, TokenStream)> {
-        todo!()
+    fn from_decl(decl: &FwdDecl) -> Result<(Vec<TokenStream>, Vec<TokenStream>)> {
+        fn forward(item: &TraitItemFn) -> Result<TokenStream> {
+            let TraitItemFn {
+                attrs,
+                sig,
+                default: _,
+                semi_token: _,
+            } = &item;
+
+            let Signature {
+                constness,
+                asyncness,
+                unsafety,
+                abi,
+                fn_token: _,
+                ident,
+                generics,
+                paren_token: _,
+                inputs,
+                variadic: _,
+                output,
+            } = sig;
+
+            let recv = inputs.iter().find_map(|arg| match arg {
+                FnArg::Receiver(val) => Some(val),
+                FnArg::Typed(_) => None,
+            });
+
+            let inputs = inputs
+                .iter()
+                .filter_map(|arg| match arg {
+                    FnArg::Receiver(_) => None,
+                    FnArg::Typed(val) => Some(val),
+                })
+                .enumerate();
+
+            let args = inputs.clone().map(|(idx, val)| {
+                let ident = format_ident!("arg{}", idx);
+
+                let attrs = &val.attrs;
+                let ty = &val.ty;
+
+                quote! { #(#attrs)* #ident: #ty }
+            });
+
+            let args_expr = inputs
+                .clone()
+                .map(|(idx, val)| {
+                    let ident = format_ident!("arg{}", idx);
+
+                    FwdDeclArgExpr::from_arg(FwdDeclArg {
+                        expr: quote! { #ident },
+                        ty: &val.ty,
+                        kind: FwdDeclArgKind::Raw,
+                    })
+                })
+                .collect::<Result<Vec<FwdDeclArgExpr>>>()?;
+
+            let forward = match recv {
+                Some(val) => match (val.reference.is_some(), val.mutability.is_some()) {
+                    (true, true) => quote! { self.forward_mut().#ident(#(#args_expr),*) },
+                    (true, false) => quote! { self.forward_ref().#ident(#(#args_expr),*) },
+                    _ => quote! { self.forward().#ident(#(#args_expr),*) },
+                },
+                None => quote! { <$ty>::#ident(#(#args_expr),*) },
+            };
+
+            let expr = match FwdDeclAttr::from_attrs(attrs.iter())? {
+                FwdDeclAttr::Default => quote! { #forward },
+                FwdDeclAttr::AsInto => quote! { #forward.into() },
+                FwdDeclAttr::AsSelf => quote! { #forward; self },
+                FwdDeclAttr::AsExpr(expr) => quote! { (#expr)(#forward) },
+                FwdDeclAttr::AsMap(expr) => quote! { #forward.map(#expr) },
+            };
+
+            let attr_inline: Path = parse_quote! { inline };
+            let attrs = attrs.iter().filter(|attr| attr.path() != &attr_inline);
+
+            let recv = match recv {
+                Some(val) => quote! { #val, },
+                None => quote! {},
+            };
+
+            Ok(quote! {
+                #[allow(unused_mut)]
+                #[inline]
+                #(#attrs)*
+                #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#args),*) #output {
+                    #expr
+                }
+            })
+        }
+
+        let FwdDecl::Trait(decl) = decl;
+
+        let forwards = decl
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                TraitItem::Fn(val) => Some(forward(val).map(|res| (res, val.default.is_some()))),
+                _ => None,
+            })
+            .collect::<Result<Vec<(TokenStream, bool)>>>()?;
+
+        Ok((
+            forwards.iter().cloned().map(|(stream, _)| stream).collect(),
+            forwards
+                .iter()
+                .filter(|(_, default)| !default)
+                .cloned()
+                .map(|(stream, _)| stream)
+                .collect(),
+        ))
     }
 }
 
