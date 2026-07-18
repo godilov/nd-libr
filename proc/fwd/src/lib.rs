@@ -273,7 +273,7 @@ pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
 
     let types_fwd = FwdDeclTypes::from_decl(&decl);
     let consts_fwd = FwdDeclConsts::from_decl(&decl);
-    let (fn_fwd, fn_fwd_) = match FwdDeclFuncs::from_decl(&decl) {
+    let (fn_fwd, fn_fwd_) = match FwdDeclFn::from_decl(&decl) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
@@ -546,7 +546,9 @@ enum FwdDecl {
     Trait(ItemTrait),
 }
 
-enum FwdDeclAttr {
+struct FwdDeclAttr {}
+
+enum FwdDeclFnAttr {
     Default,
     AsInto,
     AsSelf,
@@ -556,7 +558,7 @@ enum FwdDeclAttr {
 
 struct FwdDeclTypes;
 struct FwdDeclConsts;
-struct FwdDeclFuncs;
+struct FwdDeclFn;
 
 #[derive(Debug, Clone, Copy)]
 enum FwdDeclArgKind {
@@ -999,7 +1001,7 @@ impl FwdDecl {
     }
 }
 
-impl FwdDeclAttr {
+impl FwdDeclFnAttr {
     fn from_attrs<'attr, Attrs: Clone + Iterator<Item = &'attr Attribute>>(attrs: Attrs) -> Result<Self> {
         fn expr(attr: &Attribute) -> Result<Expr> {
             match &attr.meta {
@@ -1083,7 +1085,7 @@ impl FwdDeclConsts {
     }
 }
 
-impl FwdDeclFuncs {
+impl FwdDeclFn {
     fn from_decl(decl: &FwdDecl) -> Result<(Vec<TokenStream>, Vec<TokenStream>)> {
         fn forward(item: &TraitItemFn) -> Result<TokenStream> {
             let attrs = &item.attrs;
@@ -1142,12 +1144,12 @@ impl FwdDeclFuncs {
                 None => quote! { <$ty>::#ident(#(#args_expr),*) },
             };
 
-            let expr = match FwdDeclAttr::from_attrs(attrs.iter())? {
-                FwdDeclAttr::Default => quote! { #forward },
-                FwdDeclAttr::AsInto => quote! { #forward.into() },
-                FwdDeclAttr::AsSelf => quote! { #forward; self },
-                FwdDeclAttr::AsExpr(expr) => quote! { (#expr)(#forward) },
-                FwdDeclAttr::AsMap(expr) => quote! { #forward.map(#expr) },
+            let expr = match FwdDeclFnAttr::from_attrs(attrs.iter())? {
+                FwdDeclFnAttr::Default => quote! { #forward },
+                FwdDeclFnAttr::AsInto => quote! { #forward.into() },
+                FwdDeclFnAttr::AsSelf => quote! { #forward; self },
+                FwdDeclFnAttr::AsExpr(expr) => quote! { (#expr)(#forward) },
+                FwdDeclFnAttr::AsMap(expr) => quote! { #forward.map(#expr) },
             };
 
             let attrs = attrs.iter().filter(|attr| !attr.path().is_ident("inline"));

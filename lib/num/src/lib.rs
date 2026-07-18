@@ -1846,11 +1846,6 @@ impl<Any: Max> MaxFn for Any {
 }
 
 #[inline]
-fn id_ct<T>(value: T) -> T {
-    std::hint::black_box(value)
-}
-
-#[inline]
 fn dir_ct(val: MaskCt) -> MaskCt {
     MaskCt::ZERO.wrapping_sub(val)
 }
@@ -1876,7 +1871,7 @@ fn eq_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N)
 }
 
 #[inline]
-fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> RelCt {
+fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let lhs = Relaxed(lhs.as_unsigned());
     let rhs = Relaxed(rhs.as_unsigned());
     let shift = N::BITS - 1;
@@ -1891,7 +1886,7 @@ fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N
     let lt_res = xor_bit & rhs_bit | !xor_bit & lt;
     let gt_res = xor_bit & lhs_bit | !xor_bit & gt;
 
-    gt_res as i8 - lt_res as i8
+    (gt_res, lt_res)
 }
 
 #[cfg(test)]
