@@ -604,6 +604,13 @@ pub struct Aligned64<T>(pub T);
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned128<T>(pub T);
 
+/// Aligned to 4096-KiB type.
+///
+/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+#[repr(align(4194304))]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct AlignedX<T>(pub T);
+
 /// Offset for reading/writing binary mask.
 ///
 /// - `Offset::Left(val)` specifies `val`-bits offset from `0`.
