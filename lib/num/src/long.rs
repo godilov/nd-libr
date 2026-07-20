@@ -4960,6 +4960,21 @@ pub struct BytesRef<'words, const L: usize>(pub &'words [Single; L]);
 #[derive(Debug, PartialEq, Eq)]
 pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
+/// Evaluation standard implementation.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+pub struct EvalStd;
+
+/// Evaluation dynamic implementation.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+pub struct EvalDyn;
+
+/// Evaluation const-time implementation.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+pub struct EvalCt;
+
 /// Digits iterator by `exp`.
 ///
 /// For more info, see [`ToDigitsIter`] documentation.
@@ -5093,6 +5108,23 @@ pub struct RadixImpl<W: Word> {
     ///
     /// Radix is arbitrary.
     pub radix: W,
+}
+
+/// Evaluation implementation.
+///
+/// # Related
+///
+/// - [`EvalStd`] - standard evaluation.
+/// - [`EvalDyn`] - dynamic evaluation.
+/// - [`EvalCt`] - const-time evaluation.
+///
+/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+pub trait Eval {
+    /// Flag in equality operations.
+    type Flag;
+
+    /// Order in comparison operations.
+    type Order;
 }
 
 /// `From`/`To`/`Into` digits conversion implementation trait.
