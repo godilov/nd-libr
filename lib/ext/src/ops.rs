@@ -5,6 +5,8 @@ use std::ops::{
     Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
+use crate::convert::NdxFrom;
+
 macro_rules! nd_ops_impl {
     (@signed [$($primitive:ty),+ $(,)?]) => {
         $(nd_ops_impl!(@signed $primitive);)+
@@ -128,6 +130,13 @@ macro_rules! nd_ops_impl {
             <<= @unbounded *lhs = lhs.unbounded_shl(rhs as u32),
             >>= @unbounded *lhs = lhs.unbounded_shr(rhs as u32),
         ] }
+
+        impl NdxFrom<$primitive, ()> for $primitive {
+            #[inline]
+            fn ndx_from(value: $primitive, _: ()) -> Self {
+                value
+            }
+        }
     };
 }
 
@@ -1557,10 +1566,24 @@ impl<N> From<N> for Def<N> {
     }
 }
 
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Def<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
 impl<N> From<N> for Strict<N> {
     #[inline]
     fn from(value: N) -> Self {
         Self(value)
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Strict<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
     }
 }
 
@@ -1571,10 +1594,24 @@ impl<N> From<N> for Wrapping<N> {
     }
 }
 
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Wrapping<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
 impl<N> From<N> for Saturating<N> {
     #[inline]
     fn from(value: N) -> Self {
         Self(value)
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Saturating<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
     }
 }
 
@@ -1585,10 +1622,24 @@ impl<N> From<N> for Unbounded<N> {
     }
 }
 
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Unbounded<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
 impl<N> From<N> for Relaxed<N> {
     #[inline]
     fn from(value: N) -> Self {
         Self(value)
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Relaxed<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
     }
 }
 
