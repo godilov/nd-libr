@@ -73,7 +73,7 @@ impl Primes {
     ///
     /// Uses full-search.
     #[inline]
-    pub fn by_count<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
+    pub fn by_count<Prime: Primality + From<u8>>(count: usize) -> impl Iterator<Item = Prime> {
         PrimesFullIter {
             next: Prime::from(2),
             primes: Vec::with_capacity(count.as_count_check_estimate()),
@@ -86,7 +86,7 @@ impl Primes {
     ///
     /// Uses full-search.
     #[inline]
-    pub fn by_limit<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
+    pub fn by_limit<Prime: Primality + From<u8>>(limit: Prime) -> impl Iterator<Item = Prime> {
         PrimesFullIter {
             next: Prime::from(2),
             primes: Vec::with_capacity(limit.as_limit_check_estimate()),
@@ -99,7 +99,7 @@ impl Primes {
     ///
     /// Uses fast-search.
     #[inline]
-    pub fn by_count_fast<Prime: Primality>(count: usize) -> impl Iterator<Item = Prime> {
+    pub fn by_count_fast<Prime: Primality + From<u8>>(count: usize) -> impl Iterator<Item = Prime> {
         PrimesFastIter {
             next: Prime::from(2),
             count: count.as_count_estimate(),
@@ -111,7 +111,7 @@ impl Primes {
     ///
     /// Uses fast-search.
     #[inline]
-    pub fn by_limit_fast<Prime: Primality>(limit: Prime) -> impl Iterator<Item = Prime> {
+    pub fn by_limit_fast<Prime: Primality + From<u8>>(limit: Prime) -> impl Iterator<Item = Prime> {
         PrimesFastIter {
             next: Prime::from(2),
             count: limit.as_limit_estimate(),
@@ -252,7 +252,7 @@ prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 12));
 #[cfg(target_pointer_width = "32")]
 prime_impl!((u8, 1), (u16, 2), (u32, 5), (u64, 12), (u128, 20), (usize, 5));
 
-impl<Prime: Primality> Iterator for PrimesFullIter<Prime> {
+impl<Prime: Primality + From<u8>> Iterator for PrimesFullIter<Prime> {
     type Item = Prime;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -298,7 +298,7 @@ impl<Prime: Primality> Iterator for PrimesFullIter<Prime> {
     }
 }
 
-impl<Prime: Primality> Iterator for PrimesFastIter<Prime> {
+impl<Prime: Primality + From<u8>> Iterator for PrimesFastIter<Prime> {
     type Item = Prime;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -334,8 +334,8 @@ impl<Prime: Primality> Iterator for PrimesFastIter<Prime> {
     }
 }
 
-impl<Prime: Primality> ExactSizeIterator for PrimesFullIter<Prime> {}
-impl<Prime: Primality> ExactSizeIterator for PrimesFastIter<Prime> {}
+impl<Prime: Primality + From<u8>> ExactSizeIterator for PrimesFullIter<Prime> {}
+impl<Prime: Primality + From<u8>> ExactSizeIterator for PrimesFastIter<Prime> {}
 
 impl<Any: Send + Primality> PrimalityRand for Any {}
 

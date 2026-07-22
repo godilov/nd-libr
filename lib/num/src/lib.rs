@@ -672,7 +672,7 @@ pub trait NumDyn: NumFn {}
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumSigned: NumFn + From<i8> {}
+pub trait NumSigned: NumFn {}
 
 /// Number with const-time functions (signed).
 ///
@@ -687,7 +687,7 @@ pub trait NumSignedCt: Num + NumSigned + NdOpsRelaxed<All = Self> + NdOpsAssignR
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumUnsigned: NumFn + From<u8> {
+pub trait NumUnsigned: NumFn {
     /// Order of number.
     ///
     /// Represents position of the most significant bit.
