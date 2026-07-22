@@ -2,7 +2,7 @@
 
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndext::ops::*;
+use ndext::{convert::NdxFrom, ops::*};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 use crate::{arch::word::*, *};
@@ -607,7 +607,16 @@ pub struct Aligned128<T>(pub T);
 /// Aligned to 4096-KiB type.
 ///
 /// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
-#[repr(align(4194304))]
+#[ndfwd::std(self.0 with T)]
+#[ndfwd::cmp(self.0 with T)]
+#[ndfwd::fmt(self.0 with T)]
+#[ndfwd::iter(self.0 with T)]
+#[ndfwd::def(self.0 with T: BytesFn)]
+#[ndfwd::def(self.0 with T: AsBytesRef)]
+#[ndfwd::def(self.0 with T: AsBytesMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef)]
+#[ndfwd::def(self.0 with T: AsWordsMut)]
+#[repr(align(4096))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
 
@@ -798,6 +807,48 @@ impl<T> From<T> for Aligned128<T> {
     #[inline]
     fn from(value: T) -> Self {
         Self(value)
+    }
+}
+
+impl<T> From<T> for AlignedX<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Aligned<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Aligned32<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Aligned64<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Aligned128<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
     }
 }
 
