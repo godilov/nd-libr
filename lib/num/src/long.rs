@@ -4960,20 +4960,20 @@ pub struct BytesRef<'words, const L: usize>(pub &'words [Single; L]);
 #[derive(Debug, PartialEq, Eq)]
 pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
-/// Evaluation standard implementation.
+/// Micro operations with standard implementation.
 ///
 /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub struct EvalStd;
+pub struct UopsStd;
 
-/// Evaluation dynamic implementation.
+/// Micro operations with dynamic implementation.
 ///
 /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub struct EvalDyn;
+pub struct UopsDyn;
 
-/// Evaluation const-time implementation.
+/// Micro operations with const-time implementation.
 ///
 /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub struct EvalCt;
+pub struct UopsCt;
 
 /// Digits iterator by `exp`.
 ///
@@ -5110,16 +5110,16 @@ pub struct RadixImpl<W: Word> {
     pub radix: W,
 }
 
-/// Evaluation implementation.
+/// Micro operations.
 ///
 /// # Related
 ///
-/// - [`EvalStd`] - standard evaluation.
-/// - [`EvalDyn`] - dynamic evaluation.
-/// - [`EvalCt`] - const-time evaluation.
+/// - [`UopsStd`] - standard impl.
+/// - [`UopsDyn`] - dynamic impl.
+/// - [`UopsCt`] - const-time impl.
 ///
 /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub trait Eval {
+pub trait Uops {
     /// Flag in equality operations.
     type Flag;
 
