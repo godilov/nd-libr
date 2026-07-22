@@ -10,7 +10,7 @@ use std::{
 };
 
 use ndext::{
-    convert::{NdFrom, NdFromStr, NdTryFrom},
+    convert::{NdFrom, NdFromStr, NdTryFrom, NdxFrom},
     iter::{IteratorExt, NdTryFromIterator},
     ops::*,
 };
@@ -5460,6 +5460,24 @@ impl<const L: usize, W: Word, Words: Clone + Iterator<Item = W> + DoubleEndedIte
     #[inline]
     fn nd_try_from_iter(iter: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
         from_digits_radix_iter(iter, ctx.radix).map(Self)
+    }
+}
+
+impl<const L: usize> NdxFrom<Signed<L>, ()> for Signed<L> {
+    fn ndx_from(value: Signed<L>, _: ()) -> Self {
+        value
+    }
+}
+
+impl<const L: usize> NdxFrom<Unsigned<L>, ()> for Unsigned<L> {
+    fn ndx_from(value: Unsigned<L>, _: ()) -> Self {
+        value
+    }
+}
+
+impl<const L: usize> NdxFrom<Bytes<L>, ()> for Bytes<L> {
+    fn ndx_from(value: Bytes<L>, _: ()) -> Self {
+        value
     }
 }
 
