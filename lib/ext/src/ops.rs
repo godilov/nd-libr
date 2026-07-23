@@ -185,7 +185,7 @@ pub struct Mut<'num, N>(pub &'num mut N);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Def<N>(pub N);
 
 /// Number with strict operations semantics.

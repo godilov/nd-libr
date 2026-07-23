@@ -656,9 +656,11 @@ pub trait Num: NumFn + BytesFn + Zero + One + Copy {
     type Unsigned: Num + NumUnsigned;
 
     /// Num to [`Self::Signed`].
+    #[ndfwd::as_into]
     fn as_signed(&self) -> Self::Signed;
 
     /// Num to [`Self::Unsigned`].
+    #[ndfwd::as_into]
     fn as_unsigned(&self) -> Self::Unsigned;
 }
 
@@ -1492,7 +1494,10 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: Num! {
+    type Signed = Def<N::Signed>;
+    type Unsigned = Def<N::Unsigned>;
+})]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumSignedCt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
@@ -1528,7 +1533,12 @@ impl<N> NdForward for Def<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: Num! where
+    N::Signed: NdOpsStrict<All = N::Signed> + NdOpsAssignStrict,
+    N::Unsigned: NdOpsStrict<All = N::Unsigned> + NdOpsAssignStrict, {
+    type Signed = Strict<N::Signed>;
+    type Unsigned = Strict<N::Unsigned>;
+})]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NdRand!)]
@@ -1562,7 +1572,12 @@ impl<N> NdForward for Strict<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: Num! where
+    N::Signed: NdOpsWrapping<All = N::Signed> + NdOpsAssignWrapping,
+    N::Unsigned: NdOpsWrapping<All = N::Unsigned> + NdOpsAssignWrapping, {
+    type Signed = Wrapping<N::Signed>;
+    type Unsigned = Wrapping<N::Unsigned>;
+})]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NdRand!)]
@@ -1596,7 +1611,12 @@ impl<N> NdForward for Wrapping<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: Num! where
+    N::Signed: NdOpsSaturating<All = N::Signed> + NdOpsAssignSaturating,
+    N::Unsigned: NdOpsSaturating<All = N::Unsigned> + NdOpsAssignSaturating, {
+    type Signed = Saturating<N::Signed>;
+    type Unsigned = Saturating<N::Unsigned>;
+})]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NdRand!)]
@@ -1630,7 +1650,12 @@ impl<N> NdForward for Saturating<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: Num! where
+    N::Signed: NdOpsUnbounded<All = N::Signed> + NdOpsAssignUnbounded,
+    N::Unsigned: NdOpsUnbounded<All = N::Unsigned> + NdOpsAssignUnbounded, {
+    type Signed = Unbounded<N::Signed>;
+    type Unsigned = Unbounded<N::Unsigned>;
+})]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NdRand!)]
@@ -1664,7 +1689,12 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn!)]
-#[ndfwd::def(self.0 with N: Num!)]
+#[ndfwd::def(self.0 with N: Num! where
+    N::Signed: NdOpsRelaxed<All = N::Signed> + NdOpsAssignRelaxed,
+    N::Unsigned: NdOpsRelaxed<All = N::Unsigned> + NdOpsAssignRelaxed, {
+    type Signed = Relaxed<N::Signed>;
+    type Unsigned = Relaxed<N::Unsigned>;
+})]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumSignedCt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
