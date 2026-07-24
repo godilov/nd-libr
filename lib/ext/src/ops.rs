@@ -1445,7 +1445,7 @@ pub trait NdOpsOverflowing<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
 /// Aggregate trait for all **non-assign** binary unbounded operations in [`crate::ops`].
 ///
 /// Auto-implemented for all types with required operations.
-pub trait NdOpsUnbounded<Lhs = Self, Rhs = Self>:
+pub trait NdOpsUnbounded<Lhs = Self, Rhs = usize>:
     NdShlUnbounded<Lhs, Rhs, Type = Self::All> + NdShrUnbounded<Lhs, Rhs, Type = Self::All>
 {
     /// Operations shared resulting type.
@@ -1494,8 +1494,8 @@ pub trait NdOpsAssignStrict<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
     + NdMulAssignStrict<Lhs, Rhs>
     + NdDivAssignStrict<Lhs, Rhs>
     + NdRemAssignStrict<Lhs, Rhs>
-    + NdShlAssignStrict<Lhs, Rhs>
-    + NdShrAssignStrict<Lhs, Rhs>
+    + NdShlAssignStrict<Lhs, ShiftRhs>
+    + NdShrAssignStrict<Lhs, ShiftRhs>
 {
 }
 
@@ -1526,7 +1526,7 @@ pub trait NdOpsAssignSaturating<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
 /// Aggregate trait for all **assign** binary unbounded operations in [`crate::ops`].
 ///
 /// Auto-implemented for all types with required operations.
-pub trait NdOpsAssignUnbounded<Lhs = Self, Rhs = Self, ShiftRhs = usize>:
+pub trait NdOpsAssignUnbounded<Lhs = Self, Rhs = usize>:
     NdShlAssignUnbounded<Lhs, Rhs> + NdShrAssignUnbounded<Lhs, Rhs>
 {
 }
@@ -1881,14 +1881,14 @@ impl<Any, Lhs, Rhs, ShiftRhs> NdOpsAssign<Lhs, Rhs, ShiftRhs> for Any where
 {
 }
 
-impl<Any, Lhs, Rhs> NdOpsAssignStrict<Lhs, Rhs> for Any where
+impl<Any, Lhs, Rhs, ShiftRhs> NdOpsAssignStrict<Lhs, Rhs, ShiftRhs> for Any where
     Any: NdAddAssignStrict<Lhs, Rhs>
         + NdSubAssignStrict<Lhs, Rhs>
         + NdMulAssignStrict<Lhs, Rhs>
         + NdDivAssignStrict<Lhs, Rhs>
         + NdRemAssignStrict<Lhs, Rhs>
-        + NdShlAssignStrict<Lhs, Rhs>
-        + NdShrAssignStrict<Lhs, Rhs>
+        + NdShlAssignStrict<Lhs, ShiftRhs>
+        + NdShrAssignStrict<Lhs, ShiftRhs>
 {
 }
 

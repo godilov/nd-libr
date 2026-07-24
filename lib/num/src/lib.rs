@@ -650,10 +650,10 @@ pub trait Num: NumFn + BytesFn + Zero + One + Copy {
     const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
 
     /// Signed counterpart of the same size.
-    type Signed: Num + NumSigned;
+    type Signed: Copy + NumSigned + NumFn + BytesFn + Zero + One;
 
     /// Unsigned counterpart of the same size.
-    type Unsigned: Num + NumUnsigned;
+    type Unsigned: Copy + NumUnsigned + NumFn + BytesFn + Zero + One;
 
     /// Num to [`Self::Signed`].
     #[ndfwd::as_into]
