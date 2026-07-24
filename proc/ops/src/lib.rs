@@ -3531,6 +3531,12 @@ impl OpsAssignModeAuto {
                         /= with @strict where [#lhs_ty: #prefix::NdDivAssignStrict<#lhs_ty, #rhs_ty>],
                         %= with @strict where [#lhs_ty: #prefix::NdRemAssignStrict<#lhs_ty, #rhs_ty>],
 
+                        += @strict where [#lhs_ty: #prefix::NdAddAssignStrict<#lhs_ty, #rhs_ty>],
+                        -= @strict where [#lhs_ty: #prefix::NdSubAssignStrict<#lhs_ty, #rhs_ty>],
+                        *= @strict where [#lhs_ty: #prefix::NdMulAssignStrict<#lhs_ty, #rhs_ty>],
+                        /= @strict where [#lhs_ty: #prefix::NdDivAssignStrict<#lhs_ty, #rhs_ty>],
+                        %= @strict where [#lhs_ty: #prefix::NdRemAssignStrict<#lhs_ty, #rhs_ty>],
+
                         #quote
                     },
                     OpsAssignModeWith::Wrapping(_, _) => parse_quote! {
@@ -3540,6 +3546,12 @@ impl OpsAssignModeAuto {
                         /= with @wrapping where [#lhs_ty: #prefix::NdDivAssignWrapping<#lhs_ty, #rhs_ty>],
                         %= with @wrapping where [#lhs_ty: #prefix::NdRemAssignWrapping<#lhs_ty, #rhs_ty>],
 
+                        += @wrapping where [#lhs_ty: #prefix::NdAddAssignWrapping<#lhs_ty, #rhs_ty>],
+                        -= @wrapping where [#lhs_ty: #prefix::NdSubAssignWrapping<#lhs_ty, #rhs_ty>],
+                        *= @wrapping where [#lhs_ty: #prefix::NdMulAssignWrapping<#lhs_ty, #rhs_ty>],
+                        /= @wrapping where [#lhs_ty: #prefix::NdDivAssignWrapping<#lhs_ty, #rhs_ty>],
+                        %= @wrapping where [#lhs_ty: #prefix::NdRemAssignWrapping<#lhs_ty, #rhs_ty>],
+
                         #quote
                     },
                     OpsAssignModeWith::Saturating(_, _) => parse_quote! {
@@ -3548,6 +3560,12 @@ impl OpsAssignModeAuto {
                         *= with @saturating where [#lhs_ty: #prefix::NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
                         /= with @saturating where [#lhs_ty: #prefix::NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
                         %= with @saturating where [#lhs_ty: #prefix::NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
+
+                        += @saturating where [#lhs_ty: #prefix::NdAddAssignSaturating<#lhs_ty, #rhs_ty>],
+                        -= @saturating where [#lhs_ty: #prefix::NdSubAssignSaturating<#lhs_ty, #rhs_ty>],
+                        *= @saturating where [#lhs_ty: #prefix::NdMulAssignSaturating<#lhs_ty, #rhs_ty>],
+                        /= @saturating where [#lhs_ty: #prefix::NdDivAssignSaturating<#lhs_ty, #rhs_ty>],
+                        %= @saturating where [#lhs_ty: #prefix::NdRemAssignSaturating<#lhs_ty, #rhs_ty>],
 
                         #quote
                     },
@@ -3565,10 +3583,16 @@ impl OpsAssignModeAuto {
                 OpsAssignShiftModeWith::Strict(_, _) => parse_quote! {
                     <<= with @strict where [#lhs_ty: #prefix::NdShlAssignStrict<#lhs_ty, #rhs_ty>],
                     >>= with @strict where [#lhs_ty: #prefix::NdShrAssignStrict<#lhs_ty, #rhs_ty>],
+
+                    <<= @strict where [#lhs_ty: #prefix::NdShlAssignStrict<#lhs_ty, #rhs_ty>],
+                    >>= @strict where [#lhs_ty: #prefix::NdShrAssignStrict<#lhs_ty, #rhs_ty>],
                 },
                 OpsAssignShiftModeWith::Unbounded(_, _) => parse_quote! {
                     <<= with @unbounded where [#lhs_ty: #prefix::NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
                     >>= with @unbounded where [#lhs_ty: #prefix::NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
+
+                    <<= @unbounded where [#lhs_ty: #prefix::NdShlAssignUnbounded<#lhs_ty, #rhs_ty>],
+                    >>= @unbounded where [#lhs_ty: #prefix::NdShrAssignUnbounded<#lhs_ty, #rhs_ty>],
                 },
             },
         }
@@ -3710,6 +3734,12 @@ impl OpsBinaryModeAuto {
                         / with @strict where [#lhs_ty: #prefix::NdDivStrict<#lhs_ty, #rhs_ty, Type = #ty>],
                         % with @strict where [#lhs_ty: #prefix::NdRemStrict<#lhs_ty, #rhs_ty, Type = #ty>],
 
+                        + @strict where [#lhs_ty: #prefix::NdAddStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - @strict where [#lhs_ty: #prefix::NdSubStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * @strict where [#lhs_ty: #prefix::NdMulStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / @strict where [#lhs_ty: #prefix::NdDivStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % @strict where [#lhs_ty: #prefix::NdRemStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+
                         #quote
                     },
                     OpsBinaryModeWith::Wrapping(_, _) => parse_quote! {
@@ -3719,6 +3749,12 @@ impl OpsBinaryModeAuto {
                         / with @wrapping where [#lhs_ty: #prefix::NdDivWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
                         % with @wrapping where [#lhs_ty: #prefix::NdRemWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
 
+                        + @wrapping where [#lhs_ty: #prefix::NdAddWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - @wrapping where [#lhs_ty: #prefix::NdSubWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * @wrapping where [#lhs_ty: #prefix::NdMulWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / @wrapping where [#lhs_ty: #prefix::NdDivWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % @wrapping where [#lhs_ty: #prefix::NdRemWrapping<#lhs_ty, #rhs_ty, Type = #ty>],
+
                         #quote
                     },
                     OpsBinaryModeWith::Saturating(_, _) => parse_quote! {
@@ -3727,6 +3763,12 @@ impl OpsBinaryModeAuto {
                         * with @saturating where [#lhs_ty: #prefix::NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
                         / with @saturating where [#lhs_ty: #prefix::NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
                         % with @saturating where [#lhs_ty: #prefix::NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+
+                        + @saturating where [#lhs_ty: #prefix::NdAddSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        - @saturating where [#lhs_ty: #prefix::NdSubSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        * @saturating where [#lhs_ty: #prefix::NdMulSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        / @saturating where [#lhs_ty: #prefix::NdDivSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
+                        % @saturating where [#lhs_ty: #prefix::NdRemSaturating<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
@@ -3755,11 +3797,17 @@ impl OpsBinaryModeAuto {
                         << with @strict where [#lhs_ty: #prefix::NdShlStrict<#lhs_ty, #rhs_ty, Type = #ty>],
                         >> with @strict where [#lhs_ty: #prefix::NdShrStrict<#lhs_ty, #rhs_ty, Type = #ty>],
 
+                        << @strict where [#lhs_ty: #prefix::NdShlStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+                        >> @strict where [#lhs_ty: #prefix::NdShrStrict<#lhs_ty, #rhs_ty, Type = #ty>],
+
                         #quote
                     },
                     OpsBinaryShiftModeWith::Unbounded(_, _) => parse_quote! {
                         << with @unbounded where [#lhs_ty: #prefix::NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
                         >> with @unbounded where [#lhs_ty: #prefix::NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+
+                        << @unbounded where [#lhs_ty: #prefix::NdShlUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
+                        >> @unbounded where [#lhs_ty: #prefix::NdShrUnbounded<#lhs_ty, #rhs_ty, Type = #ty>],
 
                         #quote
                     },
@@ -3852,6 +3900,10 @@ impl OpsUnaryModeAuto {
                         posx with @strict where [#value_ty: #prefix::NdPosxStrict<#value_ty, Type = #ty>],
                         negx with @strict where [#value_ty: #prefix::NdNegxStrict<#value_ty, Type = #ty>],
 
+                        -    @strict where [#value_ty: #prefix::NdNegStrict <#value_ty, Type = #ty>],
+                        posx @strict where [#value_ty: #prefix::NdPosxStrict<#value_ty, Type = #ty>],
+                        negx @strict where [#value_ty: #prefix::NdNegxStrict<#value_ty, Type = #ty>],
+
                         #quote
                     },
                     OpsUnaryModeWith::Wrapping(_, _) => parse_quote! {
@@ -3861,6 +3913,10 @@ impl OpsUnaryModeAuto {
                         posx with @wrapping where [#value_ty: #prefix::NdPosxWrapping<#value_ty, Type = #ty>],
                         negx with @wrapping where [#value_ty: #prefix::NdNegxWrapping<#value_ty, Type = #ty>],
 
+                        -    @wrapping where [#value_ty: #prefix::NdNegWrapping <#value_ty, Type = #ty>],
+                        posx @wrapping where [#value_ty: #prefix::NdPosxWrapping<#value_ty, Type = #ty>],
+                        negx @wrapping where [#value_ty: #prefix::NdNegxWrapping<#value_ty, Type = #ty>],
+
                         #quote
                     },
                     OpsUnaryModeWith::Saturating(_, _) => parse_quote! {
@@ -3869,6 +3925,10 @@ impl OpsUnaryModeAuto {
                         -    with @saturating where [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
                         posx with @saturating where [#value_ty: #prefix::NdPosxSaturating<#value_ty, Type = #ty>],
                         negx with @saturating where [#value_ty: #prefix::NdNegxSaturating<#value_ty, Type = #ty>],
+
+                        -    @saturating where [#value_ty: #prefix::NdNegSaturating <#value_ty, Type = #ty>],
+                        posx @saturating where [#value_ty: #prefix::NdPosxSaturating<#value_ty, Type = #ty>],
+                        negx @saturating where [#value_ty: #prefix::NdNegxSaturating<#value_ty, Type = #ty>],
 
                         #quote
                     },
