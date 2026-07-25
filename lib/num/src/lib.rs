@@ -676,15 +676,6 @@ pub trait NumDyn: NumFn {}
 #[ndfwd::decl]
 pub trait NumSigned: NumFn {}
 
-/// Number with const-time functions (signed).
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait NumSignedCt: Num + NumSigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self> {
-    /// Num to [`RelCt`].
-    fn as_rel_ct(&self) -> RelCt;
-}
-
 /// Number without sign.
 ///
 /// For more info, see [crate-level](crate) documentation.
@@ -704,12 +695,23 @@ pub trait NumUnsigned: NumFn {
     fn sqrt(&self) -> Self;
 }
 
+/// Number with const-time functions (signed).
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumSignedCt:
+    Copy + NumFn + NumSigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self>
+{
+    /// Num to [`RelCt`].
+    fn as_rel_ct(&self) -> RelCt;
+}
+
 /// Number with const-time functions (unsigned).
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumUnsignedCt:
-    Num + NumUnsigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self>
+    Copy + NumFn + NumUnsigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self>
 {
     /// Num to [`MaskCt`].
     fn as_mask_ct(&self) -> MaskCt;
@@ -1820,7 +1822,7 @@ fn eq_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N)
     let neg = !xor + Relaxed::ONE;
     let bit = (pos | neg) >> shift;
 
-    inv_ct(bit.0.as_mask_ct())
+    inv_ct(bit.as_mask_ct())
 }
 
 #[inline]
@@ -1829,11 +1831,11 @@ fn cmp_ct<N: Num<Signed: NumSignedCt, Unsigned: NumUnsignedCt>>(lhs: &N, rhs: &N
     let rhs = Relaxed(rhs.as_unsigned());
     let shift = N::BITS - 1;
 
-    let lt = ((lhs - rhs) >> shift).0.as_mask_ct();
-    let gt = ((rhs - lhs) >> shift).0.as_mask_ct();
+    let lt = ((lhs - rhs) >> shift).as_mask_ct();
+    let gt = ((rhs - lhs) >> shift).as_mask_ct();
 
-    let lhs_bit = (lhs >> shift).0.as_mask_ct();
-    let rhs_bit = (rhs >> shift).0.as_mask_ct();
+    let lhs_bit = (lhs >> shift).as_mask_ct();
+    let rhs_bit = (rhs >> shift).as_mask_ct();
     let xor_bit = lhs_bit ^ rhs_bit;
 
     let lt_res = xor_bit & rhs_bit | !xor_bit & lt;
