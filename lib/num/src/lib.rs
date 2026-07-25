@@ -238,12 +238,12 @@ macro_rules! num_impl {
 
             #[inline]
             fn log(&self) -> Self {
-                self.ilog2() as $unsigned
+                self.ilog2() as Self
             }
 
             #[inline]
             fn sqrt(&self) -> Self {
-                self.isqrt() as $unsigned
+                self.isqrt() as Self
             }
         }
 
@@ -1777,9 +1777,9 @@ pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
 
 #[inline]
 pub(crate) fn select_ct<N: NumExtCt>(lhs: &N, rhs: &N, mask: MaskCt) -> N {
-    let lhs = Relaxed(*lhs);
-    let rhs = Relaxed(*rhs);
-    let res = lhs.with_mask_ct(mask) | rhs.with_mask_ct(!mask);
+    let lhs = lhs.with_mask_ct(mask);
+    let rhs = rhs.with_mask_ct(!mask);
+    let res = Relaxed(lhs) | Relaxed(rhs);
 
     res.0
 }

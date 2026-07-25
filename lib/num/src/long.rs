@@ -19,7 +19,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt, NdGcd, NdPow, NdRand,
-    NegxCt, Num, NumExt, NumFn, NumSigned, NumUnsigned, One, PosxCt, PowCt, RelCt, SelectCt, Sign, Zero,
+    NegxCt, Num, NumCt, NumExt, NumFn, NumSigned, NumUnsigned, One, PosxCt, PowCt, RelCt, SelectCt, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, Offset, word::*},
     long::{
         radix::*,
@@ -1471,12 +1471,6 @@ pub mod uops {
     #[inline]
     pub fn id<T>(value: T) -> T {
         value
-    }
-
-    /// Identity const-time function.
-    #[inline]
-    pub fn id_ct<T>(value: T) -> T {
-        std::hint::black_box(value)
     }
 
     /// Identity context function.
@@ -3323,6 +3317,42 @@ pub mod uops {
         }
     }
 
+    impl<
+        const L: usize,
+        Lhs: Iterator<Item = Single>,
+        Rhs: Iterator<Item = Single>,
+        F: 'static + Fn(Single, Single) -> Single + Copy,
+    > Expr<[Single; L]> for BitIter<Lhs, Rhs, F>
+    {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.iter().collect_arr()
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            (self.iter().collect_arr(), false)
+        }
+    }
+
+    impl<
+        'words,
+        Lhs: Iterator<Item = &'words mut Single>,
+        Rhs: Iterator<Item = Single>,
+        F: 'static + Fn(Single, Single) -> Single + Copy,
+    > Expr<()> for BitIter<Lhs, Rhs, F>
+    {
+        #[inline]
+        fn eval(self) {
+            self.iter_mut().for_each(|_| ())
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ((), bool) {
+            (self.iter_mut().for_each(|_| ()), false)
+        }
+    }
+
     impl<const L: usize, F: 'static + Fn(Single, Single) -> Single + Copy> Expr<[Single; L]>
         for Bit<&[Single; L], &[Single; L], F>
     {
@@ -3780,21 +3810,21 @@ pub mod uops {
         res
     }
 
-    /// Reads direction.
-    #[inline]
-    pub fn dir<const L: usize>(words: &[Single; L]) -> Dir {
-        match words[L - 1] >> (BITS - 1) {
-            0 => Dir::POS,
-            _ => Dir::NEG,
-        }
-    }
-
     /// Reads extension.
     #[inline]
     pub fn ext<const L: usize>(words: &[Single; L]) -> Single {
         match words[L - 1] >> (BITS - 1) {
             0 => 0,
             _ => MAX,
+        }
+    }
+
+    /// Reads direction.
+    #[inline]
+    pub fn dir<const L: usize>(words: &[Single; L]) -> Dir {
+        match words[L - 1] >> (BITS - 1) {
+            0 => Dir::POS,
+            _ => Dir::NEG,
         }
     }
 
@@ -3810,74 +3840,25 @@ pub mod uops {
         }
     }
 
-    /// Const-time zero check.
-    #[inline(never)]
-    pub fn is_zero_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        let lhs = id_ct(words.iter().copied());
-        let rhs = id_ct((0..L).map(|_| 0));
-
-        id_ct(lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp)).is_zero_ct()
+    #[inline]
+    pub(crate) fn eq_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> MaskCt {
+        crate::eq_ct(&lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp), &0)
     }
 
-    /// Const-time one check.
-    #[inline(never)]
-    pub fn is_one_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        let lhs = id_ct(words.iter().copied());
-        let rhs = id_ct((0..L).map(|idx| [1, 0][(idx > 0) as usize]));
+    #[inline]
+    pub(crate) fn cmp_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: Rhs,
+    ) -> (MaskCt, MaskCt) {
+        lhs.zip(rhs)
+            .map(|(a, b)| crate::cmp_ct(&a, &b))
+            .fold((0, 0), |(lt_, gt_), (lt, gt)| {
+                let eq = !lt & !gt;
+                let lt = lt_ & eq | lt;
+                let gt = gt_ & eq | gt;
 
-        id_ct(lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp)).is_zero_ct()
-    }
-
-    /// Const-time positive check.
-    #[inline(never)]
-    pub fn is_pos_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        let zero = is_zero_ct(words);
-        let neg = is_neg_ct(words);
-
-        !zero & !neg
-    }
-
-    /// Const-time negative check.
-    #[inline(never)]
-    pub fn is_neg_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        let neg = (words[L - 1] >> (BITS - 1)) as MaskCt;
-
-        <MaskCt as Zero>::ZERO.wrapping_sub(neg)
-    }
-
-    /// Const-time equality.
-    #[inline(never)]
-    pub fn eq_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> MaskCt {
-        let lhs = id_ct(lhs);
-        let rhs = id_ct(rhs);
-
-        id_ct(lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp)).is_zero_ct()
-    }
-
-    /// Const-time comparison.
-    #[inline(never)]
-    pub fn cmp_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> RelCt {
-        let (lt, gt) =
-            lhs.zip(rhs)
-                .map(|(a, b)| ((a < b) as i8, (a > b) as i8))
-                .fold((0i8, 0i8), |(lt_, gt_), (lt, gt)| {
-                    let eq = !lt & !gt;
-                    let lt = lt_ & eq | lt;
-                    let gt = gt_ & eq | gt;
-
-                    (lt, gt)
-                });
-
-        id_ct(gt - lt) as RelCt
-    }
-
-    /// Const-time sign.
-    #[inline(never)]
-    pub fn sign_ct<const L: usize>(words: &[Single; L]) -> RelCt {
-        let pos = is_pos_ct(words) as RelCt;
-        let neg = is_neg_ct(words) as RelCt;
-
-        pos & 1 | neg
+                (lt, gt)
+            })
     }
 }
 
@@ -6849,6 +6830,34 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 }
 
+impl<const L: usize> NumCt for Signed<L> {
+    const SIGNED: MaskCt = MaskCt::MAX;
+    const UNSIGNED: MaskCt = MaskCt::MIN;
+
+    fn with_mask_ct(&self, mask: MaskCt) -> Self {
+        let mask = Single::from_ne_bytes([mask; BYTES]);
+
+        let lhs = self.0.iter().copied();
+        let rhs = (0..L).map(|_| mask);
+
+        uops::bitand_iter(lhs, rhs).with(Self)
+    }
+}
+
+impl<const L: usize> NumCt for Unsigned<L> {
+    const SIGNED: MaskCt = MaskCt::MIN;
+    const UNSIGNED: MaskCt = MaskCt::MAX;
+
+    fn with_mask_ct(&self, mask: MaskCt) -> Self {
+        let mask = Single::from_ne_bytes([mask; BYTES]);
+
+        let lhs = self.0.iter().copied();
+        let rhs = (0..L).map(|_| mask);
+
+        uops::bitand_iter(lhs, rhs).with(Self)
+    }
+}
+
 impl<const L: usize> NdRand for Signed<L> {}
 impl<const L: usize> NdRand for Unsigned<L> {}
 
@@ -6910,27 +6919,27 @@ impl<const L: usize> Max for Unsigned<L> {
     const MAX: Self = Self([MAX; L]);
 }
 
-// impl<const L: usize> EqCt for Signed<L> {
-//     #[inline(never)]
-//     fn eq_ct(&self, other: &Self) -> MaskCt {
-//         uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
-//     }
-// }
-//
-// impl<const L: usize> EqCt for Unsigned<L> {
-//     #[inline(never)]
-//     fn eq_ct(&self, other: &Self) -> MaskCt {
-//         uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
-//     }
-// }
-//
-// impl<const L: usize> EqCt for Bytes<L> {
-//     #[inline(never)]
-//     fn eq_ct(&self, other: &Self) -> MaskCt {
-//         uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
-//     }
-// }
-//
+impl<const L: usize> EqCt for Signed<L> {
+    #[inline(never)]
+    fn eq_ct(&self, other: &Self) -> MaskCt {
+        uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
+    }
+}
+
+impl<const L: usize> EqCt for Unsigned<L> {
+    #[inline(never)]
+    fn eq_ct(&self, other: &Self) -> MaskCt {
+        uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
+    }
+}
+
+impl<const L: usize> EqCt for Bytes<L> {
+    #[inline(never)]
+    fn eq_ct(&self, other: &Self) -> MaskCt {
+        uops::eq_ct(self.0.iter().copied(), other.0.iter().copied())
+    }
+}
+
 // impl<const L: usize> LtCt for Signed<L> {
 //     #[inline(never)]
 //     fn lt_ct(&self, other: &Self) -> MaskCt {
@@ -6995,43 +7004,43 @@ impl<const L: usize> Max for Unsigned<L> {
 //
 // impl<const L: usize> MinCt for Unsigned<L> {}
 // impl<const L: usize> MaxCt for Unsigned<L> {}
-//
-// impl<const L: usize> PosxCt for Signed<L> {
-//     #[inline(never)]
-//     fn posx_ct(&self) -> Self {
-//         uops::dirx(&self.0, Dir::POS).with(Self)
-//     }
-// }
-//
-// impl<const L: usize> NegxCt for Signed<L> {
-//     #[inline(never)]
-//     fn negx_ct(&self) -> Self {
-//         uops::dirx(&self.0, Dir::NEG).with(Self)
-//     }
-// }
-//
-// impl<const L: usize> SelectCt for Signed<L> {
-//     #[inline(never)]
-//     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-//         let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
-//         let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
-//
-//         lhs & lhs_mask | rhs & rhs_mask
-//     }
-// }
-//
-// impl<const L: usize> SelectCt for Unsigned<L> {
-//     #[inline(never)]
-//     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-//         let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
-//         let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
-//
-//         lhs & lhs_mask | rhs & rhs_mask
-//     }
-// }
-//
-// impl<const L: usize> PowCt for Signed<L> {}
-// impl<const L: usize> PowCt for Unsigned<L> {}
+
+impl<const L: usize> PosxCt for Signed<L> {
+    #[inline(never)]
+    fn posx_ct(&self) -> Self {
+        uops::dirx(&self.0, Dir::POS).with(Self)
+    }
+}
+
+impl<const L: usize> NegxCt for Signed<L> {
+    #[inline(never)]
+    fn negx_ct(&self) -> Self {
+        uops::dirx(&self.0, Dir::NEG).with(Self)
+    }
+}
+
+impl<const L: usize> SelectCt for Signed<L> {
+    #[inline(never)]
+    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
+        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
+
+        lhs & lhs_mask | rhs & rhs_mask
+    }
+}
+
+impl<const L: usize> SelectCt for Unsigned<L> {
+    #[inline(never)]
+    fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
+        let lhs_mask = Self([Single::from_ne_bytes([mask; BYTES]); L]);
+        let rhs_mask = Self([Single::from_ne_bytes([!mask; BYTES]); L]);
+
+        lhs & lhs_mask | rhs & rhs_mask
+    }
+}
+
+impl<const L: usize> PowCt for Signed<L> {}
+impl<const L: usize> PowCt for Unsigned<L> {}
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     let (bytes, bytes_) = bytes.as_chunks::<BYTES>();
