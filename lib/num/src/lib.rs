@@ -70,16 +70,16 @@ macro_rules! num_impl {
         impl NumCt for $primitive {
             const SIGNED: MaskCt = $signed_ct;
             const UNSIGNED: MaskCt = $unsigned_ct;
-        }
 
-        impl NumExtCt for $primitive {
             #[inline]
-            fn with_mask(&self, mask: MaskCt) -> Self {
+            fn with_mask_ct(&self, mask: MaskCt) -> Self {
                 let mask = Self::from_ne_bytes([mask; (Self::BYTES) as usize]);
 
                 self & mask
             }
         }
+
+        impl NumExtCt for $primitive {}
 
         impl NdRand for $primitive {}
 
@@ -620,17 +620,17 @@ pub trait NumCt:
     /// - `MaskCt::MAX` => Unsigned
     /// - `MaskCt::MIN` => Signed
     const UNSIGNED: MaskCt;
+
+    /// Mask value.
+    #[ndfwd::as_into]
+    fn with_mask_ct(&self, mask: MaskCt) -> Self;
 }
 
 /// Number with signed/unsigned const-time extensions.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumExtCt: NumCt + NumExt<Signed: NumSignedCt, Unsigned: NumUnsignedCt> {
-    /// Masked value.
-    #[ndfwd::as_into]
-    fn with_mask(&self, mask: MaskCt) -> Self;
-}
+pub trait NumExtCt: NumCt + NumExt<Signed: NumSignedCt, Unsigned: NumUnsignedCt> {}
 
 /// Number with const-time functions (signed).
 ///
@@ -1766,8 +1766,8 @@ pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let rhs_bit = (rhs >> shift).as_mask_ct();
     let xor_bit = lhs_bit ^ rhs_bit;
 
-    let lhs = lhs_bit.with_mask(N::SIGNED) | rhs_bit.with_mask(N::UNSIGNED);
-    let rhs = rhs_bit.with_mask(N::SIGNED) | lhs_bit.with_mask(N::UNSIGNED);
+    let lhs = lhs_bit.with_mask_ct(N::SIGNED) | rhs_bit.with_mask_ct(N::UNSIGNED);
+    let rhs = rhs_bit.with_mask_ct(N::SIGNED) | lhs_bit.with_mask_ct(N::UNSIGNED);
 
     let lt_res = xor_bit & lhs | !xor_bit & lt;
     let gt_res = xor_bit & rhs | !xor_bit & gt;
@@ -1779,7 +1779,7 @@ pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
 pub(crate) fn select_ct<N: NumExtCt>(lhs: &N, rhs: &N, mask: MaskCt) -> N {
     let lhs = Relaxed(*lhs);
     let rhs = Relaxed(*rhs);
-    let res = lhs.with_mask(mask) | rhs.with_mask(!mask);
+    let res = lhs.with_mask_ct(mask) | rhs.with_mask_ct(!mask);
 
     res.0
 }
