@@ -11,7 +11,7 @@ use ndext::{
     ops::{Mut, Ref, Relaxed},
 };
 use ndnum::{
-    Dir, Num,
+    Dir, NumAlt,
     arch::{Aligned, word::Single},
     long::{
         ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter,
@@ -20,8 +20,8 @@ use ndnum::{
 };
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
-type Isize = <Single as Num>::Signed;
-type Usize = <Single as Num>::Unsigned;
+type Isize = <Single as NumAlt>::Signed;
+type Usize = <Single as NumAlt>::Unsigned;
 
 type Slong = ndnum::long::Signed<64>;
 type Ulong = ndnum::long::Unsigned<64>;
