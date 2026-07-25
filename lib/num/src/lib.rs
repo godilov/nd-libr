@@ -592,9 +592,7 @@ trait NdForward {}
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumFn:
-    Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign + ZeroFn + OneFn
-{
+pub trait NumFn: Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign {
     /// Checks number is odd.
     fn is_odd(&self) -> bool;
 
@@ -680,7 +678,7 @@ pub trait NumAlt: Num {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumDyn: NumFn {}
+pub trait NumDyn: Clone + BytesFn + NumFn + ZeroFn + OneFn {}
 
 /// Number with sign.
 ///
@@ -779,7 +777,7 @@ pub trait NdRand: NumFn + BytesFn {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NdPow: NumFn {
+pub trait NdPow: NumFn + ZeroFn + OneFn {
     /// Calculates `self ^ exp`.
     ///
     /// # Panics
@@ -843,7 +841,7 @@ pub trait NdPow: NumFn {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NdGcd: NumFn {
+pub trait NdGcd: NumFn + ZeroFn + OneFn {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Panics
@@ -927,7 +925,7 @@ pub trait NdGcd: NumFn {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NdGcdChecked: NumFn + NdOpsChecked<All = Self> {
+pub trait NdGcdChecked: NumFn + ZeroFn + OneFn + NdOpsChecked<All = Self> {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Returns
