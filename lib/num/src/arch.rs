@@ -441,7 +441,7 @@ pub struct AsWordsIter<'bytes, W: Word> {
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumAlt)]
+#[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
 #[ndfwd::def(self.0 with T: crate::NdRand)]
@@ -492,7 +492,7 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumAlt)]
+#[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
 #[ndfwd::def(self.0 with T: crate::NdRand)]
@@ -536,7 +536,7 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumAlt)]
+#[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
 #[ndfwd::def(self.0 with T: crate::NdRand)]
@@ -580,7 +580,7 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
-#[ndfwd::def(self.0 with T: crate::NumAlt)]
+#[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
 #[ndfwd::def(self.0 with T: crate::NdRand)]
@@ -668,7 +668,7 @@ pub trait BytesFn: Sized + Default + AsBytesRef + AsBytesMut {
     /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
     #[inline]
     #[ndfwd::as_into]
-    fn into_bitor(mut self, mask: Single, offset: Offset) -> Self {
+    fn with_bitor(mut self, mask: Single, offset: Offset) -> Self {
         self.write_bitor(mask, offset);
         self
     }
@@ -676,7 +676,7 @@ pub trait BytesFn: Sized + Default + AsBytesRef + AsBytesMut {
     /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
     #[inline]
     #[ndfwd::as_into]
-    fn into_bitand(mut self, mask: Single, offset: Offset) -> Self {
+    fn with_bitand(mut self, mask: Single, offset: Offset) -> Self {
         self.write_bitand(mask, offset);
         self
     }
@@ -684,7 +684,7 @@ pub trait BytesFn: Sized + Default + AsBytesRef + AsBytesMut {
     /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
     #[inline]
     #[ndfwd::as_into]
-    fn into_bitxor(mut self, mask: Single, offset: Offset) -> Self {
+    fn with_bitxor(mut self, mask: Single, offset: Offset) -> Self {
         self.write_bitxor(mask, offset);
         self
     }

@@ -52,7 +52,7 @@ macro_rules! num_impl {
 
         impl Num for $primitive {}
 
-        impl NumAlt for $primitive {
+        impl NumExt for $primitive {
             type Signed = $signed;
             type Unsigned = $unsigned;
 
@@ -67,7 +67,16 @@ macro_rules! num_impl {
             }
         }
 
-        impl NumAltCt for $primitive {}
+        impl NumCt for $primitive {}
+
+        impl NumExtCt for $primitive {
+            #[inline]
+            fn with_mask(&self, mask: MaskCt) -> Self {
+                let mask = Self::from_ne_bytes([mask; (Self::BYTES) as usize]);
+
+                self & mask
+            }
+        }
 
         impl NdRand for $primitive {}
 
@@ -116,6 +125,7 @@ macro_rules! num_impl {
     };
     (@signed $signed:ty, $unsigned:ty $(,)?) => {
         impl NumSigned for $signed {}
+
         impl NumSignedCt for $signed {
             #[inline]
             fn as_rel_ct(&self) -> RelCt {
@@ -430,7 +440,7 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt)]
+#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NdRand)]
 #[ndfwd::def(self.0 with N: NdPow!)]
@@ -467,7 +477,7 @@ pub struct Width<N: Num + NumUnsigned, const BITS: usize>(N);
 #[ndfwd::iter(self.0 with N)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt)]
+#[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
@@ -642,11 +652,17 @@ pub trait NumFn: Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + N
 #[ndfwd::decl]
 pub trait Num: Copy + BytesFn + NumFn + Zero + One {}
 
-/// Number with signed/unsigned alts.
+/// Number with dynamic allocation.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumAlt: Num {
+pub trait NumDyn: Clone + BytesFn + NumFn + ZeroFn + OneFn {}
+
+/// Number with signed/unsigned extensions.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumExt: Num {
     /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
     #[allow(unused)]
     const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
@@ -674,12 +690,6 @@ pub trait NumAlt: Num {
     fn as_unsigned(&self) -> Self::Unsigned;
 }
 
-/// Number with dynamic allocation.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait NumDyn: Clone + BytesFn + NumFn + ZeroFn + OneFn {}
-
 /// Number with sign.
 ///
 /// For more info, see [crate-level](crate) documentation.
@@ -705,17 +715,36 @@ pub trait NumUnsigned: NumFn {
     fn sqrt(&self) -> Self;
 }
 
-/// Number with signed/unsigned const-time alts.
+/// Number with const-time operations.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumAltCt: Num + NumAlt<Signed: NumSignedCt, Unsigned: NumUnsignedCt> {}
+pub trait NumCt:
+    Num
+    + NdOpsRelaxed<All = Self>
+    + NdOpsAssignRelaxed
+    + NdBitOr<Type = Self>
+    + NdBitAnd<Type = Self>
+    + NdBitXor<Type = Self>
+    + NdNot<Type = Self>
+{
+}
+
+/// Number with signed/unsigned const-time extensions.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumExtCt: NumCt + NumExt<Signed: NumSignedCt, Unsigned: NumUnsignedCt> {
+    /// Masked value.
+    #[ndfwd::as_into]
+    fn with_mask(&self, mask: MaskCt) -> Self;
+}
 
 /// Number with const-time functions (signed).
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumSignedCt: Num + NumSigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self> {
+pub trait NumSignedCt: NumCt + NumSigned {
     /// Num to [`RelCt`].
     fn as_rel_ct(&self) -> RelCt;
 }
@@ -724,18 +753,10 @@ pub trait NumSignedCt: Num + NumSigned + NdOpsRelaxed<All = Self> + NdOpsAssignR
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumUnsignedCt:
-    Num + NumUnsigned + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed + NdNot<Type = Self>
-{
+pub trait NumUnsignedCt: NumCt + NumUnsigned {
     /// Num to [`MaskCt`].
     fn as_mask_ct(&self) -> MaskCt;
 }
-
-/// Number with const-time operations.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait NumCt: Num + EqCt + CmpCt + SignCt + SelectCt {}
 
 /// Random generation functions.
 ///
@@ -1501,7 +1522,7 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt {
+#[ndfwd::def(self.0 with N: NumExt {
     type Signed = Def<N::Signed>;
     type Unsigned = Def<N::Unsigned>;
 })]
@@ -1509,7 +1530,8 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 #[ndfwd::def(self.0 with N: NumSignedCt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NumUnsignedCt)]
-#[ndfwd::def(self.0 with N: NumAltCt)]
+#[ndfwd::def(self.0 with N: NumCt)]
+#[ndfwd::def(self.0 with N: NumExtCt)]
 #[ndfwd::def(self.0 with N: NdRand!)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
@@ -1542,7 +1564,7 @@ impl<N> NdForward for Def<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt where
+#[ndfwd::def(self.0 with N: NumExt where
     N::Signed: NdOpsStrict<All = N::Signed> + NdOpsAssignStrict,
     N::Unsigned: NdOpsStrict<All = N::Unsigned> + NdOpsAssignStrict, {
     type Signed = Strict<N::Signed>;
@@ -1582,7 +1604,7 @@ impl<N> NdForward for Strict<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt where
+#[ndfwd::def(self.0 with N: NumExt where
     N::Signed: NdOpsWrapping<All = N::Signed> + NdOpsAssignWrapping,
     N::Unsigned: NdOpsWrapping<All = N::Unsigned> + NdOpsAssignWrapping, {
     type Signed = Wrapping<N::Signed>;
@@ -1622,7 +1644,7 @@ impl<N> NdForward for Wrapping<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt where
+#[ndfwd::def(self.0 with N: NumExt where
     N::Signed: NdOpsSaturating<All = N::Signed> + NdOpsAssignSaturating,
     N::Unsigned: NdOpsSaturating<All = N::Unsigned> + NdOpsAssignSaturating, {
     type Signed = Saturating<N::Signed>;
@@ -1662,7 +1684,7 @@ impl<N> NdForward for Saturating<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt where
+#[ndfwd::def(self.0 with N: NumExt where
     N::Signed: NdOpsUnbounded<All = N::Signed> + NdOpsAssignUnbounded,
     N::Unsigned: NdOpsUnbounded<All = N::Unsigned> + NdOpsAssignUnbounded, {
     type Signed = Unbounded<N::Signed>;
@@ -1702,7 +1724,7 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
-#[ndfwd::def(self.0 with N: NumAlt where
+#[ndfwd::def(self.0 with N: NumExt where
     N::Signed: NdOpsRelaxed<All = N::Signed> + NdOpsAssignRelaxed,
     N::Unsigned: NdOpsRelaxed<All = N::Unsigned> + NdOpsAssignRelaxed, {
     type Signed = Relaxed<N::Signed>;
@@ -1712,7 +1734,8 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: NumSignedCt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NumUnsignedCt)]
-#[ndfwd::def(self.0 with N: NumAltCt)]
+#[ndfwd::def(self.0 with N: NumCt)]
+#[ndfwd::def(self.0 with N: NumExtCt)]
 #[ndfwd::def(self.0 with N: NdRand!)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
@@ -1813,17 +1836,17 @@ impl<Any: Max> MaxFn for Any {
 }
 
 #[inline]
-fn dir_ct(val: MaskCt) -> MaskCt {
+pub(crate) fn dir_ct(val: MaskCt) -> MaskCt {
     MaskCt::ZERO.wrapping_sub(val)
 }
 
 #[inline]
-fn inv_ct(val: MaskCt) -> MaskCt {
+pub(crate) fn inv_ct(val: MaskCt) -> MaskCt {
     !MaskCt::ZERO.wrapping_sub(val)
 }
 
 #[inline]
-fn eq_ct<N: NumAltCt>(lhs: &N, rhs: &N) -> MaskCt {
+pub(crate) fn eq_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> MaskCt {
     let lhs = Relaxed(lhs.as_unsigned());
     let rhs = Relaxed(rhs.as_unsigned());
     let shift = N::BITS - 1;
@@ -1838,7 +1861,7 @@ fn eq_ct<N: NumAltCt>(lhs: &N, rhs: &N) -> MaskCt {
 }
 
 #[inline]
-fn cmp_ct<N: NumAltCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
+pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let lhs = Relaxed(lhs.as_unsigned());
     let rhs = Relaxed(rhs.as_unsigned());
     let shift = N::BITS - 1;
@@ -1854,6 +1877,15 @@ fn cmp_ct<N: NumAltCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let gt_res = xor_bit & lhs_bit | !xor_bit & gt;
 
     (gt_res, lt_res)
+}
+
+#[inline]
+pub(crate) fn select_ct<N: NumExtCt>(lhs: &N, rhs: &N, mask: MaskCt) -> N {
+    let lhs = Relaxed(*lhs);
+    let rhs = Relaxed(*rhs);
+    let res = lhs.with_mask(mask) | rhs.with_mask(!mask);
+
+    res.0
 }
 
 #[cfg(test)]

@@ -19,7 +19,7 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt, NdGcd, NdPow, NdRand,
-    NegxCt, Num, NumAlt, NumFn, NumSigned, NumUnsigned, One, PosxCt, PowCt, RelCt, SelectCt, Sign, Zero,
+    NegxCt, Num, NumExt, NumFn, NumSigned, NumUnsigned, One, PosxCt, PowCt, RelCt, SelectCt, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, Offset, word::*},
     long::{
         radix::*,
@@ -396,99 +396,99 @@ macro_rules! nd_ops_primitive_native_impl {
     };
     (@signed $primitive:ty $(,)?) => {
         ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, &rhs: &$primitive) -> Signed<L> for [Signed<L>, $primitive], [
-            + uops::add(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().default(Signed),
-            - uops::sub(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().default(Signed),
-            * algo::mul(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().default(Signed),
-            / algo::div(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().default(Signed::from),
-            % algo::rem(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().default(Signed::from),
+            + uops::add(&lhs.0, rhs as <Single as NumExt>::Signed).signed().default(Signed),
+            - uops::sub(&lhs.0, rhs as <Single as NumExt>::Signed).signed().default(Signed),
+            * algo::mul(&lhs.0, rhs as <Single as NumExt>::Signed).signed().default(Signed),
+            / algo::div(&lhs.0, rhs as <Single as NumExt>::Signed).signed().default(Signed::from),
+            % algo::rem(&lhs.0, rhs as <Single as NumExt>::Signed).signed().default(Signed::from),
 
-            | uops::bitor(&lhs.0, rhs as <Single as NumAlt>::Signed).eval(),
-            & uops::bitand(&lhs.0, rhs as <Single as NumAlt>::Signed).eval(),
-            ^ uops::bitxor(&lhs.0, rhs as <Single as NumAlt>::Signed).eval(),
+            | uops::bitor(&lhs.0, rhs as <Single as NumExt>::Signed).eval(),
+            & uops::bitand(&lhs.0, rhs as <Single as NumExt>::Signed).eval(),
+            ^ uops::bitxor(&lhs.0, rhs as <Single as NumExt>::Signed).eval(),
 
-            + @checked uops::add(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().checked(Signed),
-            - @checked uops::sub(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().checked(Signed),
-            * @checked algo::mul(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().checked(Signed),
-            / @checked algo::div(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().checked(Signed::from),
-            % @checked algo::rem(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().checked(Signed::from),
+            + @checked uops::add(&lhs.0, rhs as <Single as NumExt>::Signed).signed().checked(Signed),
+            - @checked uops::sub(&lhs.0, rhs as <Single as NumExt>::Signed).signed().checked(Signed),
+            * @checked algo::mul(&lhs.0, rhs as <Single as NumExt>::Signed).signed().checked(Signed),
+            / @checked algo::div(&lhs.0, rhs as <Single as NumExt>::Signed).signed().checked(Signed::from),
+            % @checked algo::rem(&lhs.0, rhs as <Single as NumExt>::Signed).signed().checked(Signed::from),
 
-            + @strict uops::add(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict(Signed),
-            - @strict uops::sub(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict(Signed),
-            * @strict algo::mul(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict(Signed),
-            / @strict algo::div(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict(Signed::from),
-            % @strict algo::rem(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict(Signed::from),
+            + @strict uops::add(&lhs.0, rhs as <Single as NumExt>::Signed).signed().strict(Signed),
+            - @strict uops::sub(&lhs.0, rhs as <Single as NumExt>::Signed).signed().strict(Signed),
+            * @strict algo::mul(&lhs.0, rhs as <Single as NumExt>::Signed).signed().strict(Signed),
+            / @strict algo::div(&lhs.0, rhs as <Single as NumExt>::Signed).signed().strict(Signed::from),
+            % @strict algo::rem(&lhs.0, rhs as <Single as NumExt>::Signed).signed().strict(Signed::from),
 
-            + @wrapping uops::add(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().with(Signed),
-            - @wrapping uops::sub(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().with(Signed),
-            * @wrapping algo::mul(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().with(Signed),
-            / @wrapping algo::div(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().with(Signed::from),
-            % @wrapping algo::rem(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().with(Signed::from),
+            + @wrapping uops::add(&lhs.0, rhs as <Single as NumExt>::Signed).signed().with(Signed),
+            - @wrapping uops::sub(&lhs.0, rhs as <Single as NumExt>::Signed).signed().with(Signed),
+            * @wrapping algo::mul(&lhs.0, rhs as <Single as NumExt>::Signed).signed().with(Signed),
+            / @wrapping algo::div(&lhs.0, rhs as <Single as NumExt>::Signed).signed().with(Signed::from),
+            % @wrapping algo::rem(&lhs.0, rhs as <Single as NumExt>::Signed).signed().with(Signed::from),
 
-            + @saturating uops::add(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
-            - @saturating uops::sub(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
-            * @saturating algo::mul(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
-            / @saturating algo::div(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().saturating(Signed::from, &Signed::MAX),
-            % @saturating algo::rem(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().saturating(Signed::from, &Signed::ZERO),
+            + @saturating uops::add(&lhs.0, rhs as <Single as NumExt>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+            - @saturating uops::sub(&lhs.0, rhs as <Single as NumExt>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() == Dir::POS) as usize]),
+            * @saturating algo::mul(&lhs.0, rhs as <Single as NumExt>::Signed).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(lhs.dir() * Dir::from(rhs) == Dir::POS) as usize]),
+            / @saturating algo::div(&lhs.0, rhs as <Single as NumExt>::Signed).signed().saturating(Signed::from, &Signed::MAX),
+            % @saturating algo::rem(&lhs.0, rhs as <Single as NumExt>::Signed).signed().saturating(Signed::from, &Signed::ZERO),
 
-            + @overflowing uops::add(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().overflowing(Signed),
-            - @overflowing uops::sub(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().overflowing(Signed),
-            * @overflowing algo::mul(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().overflowing(Signed),
-            / @overflowing algo::div(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().overflowing(Signed::from),
-            % @overflowing algo::rem(&lhs.0, rhs as <Single as NumAlt>::Signed).signed().overflowing(Signed::from),
+            + @overflowing uops::add(&lhs.0, rhs as <Single as NumExt>::Signed).signed().overflowing(Signed),
+            - @overflowing uops::sub(&lhs.0, rhs as <Single as NumExt>::Signed).signed().overflowing(Signed),
+            * @overflowing algo::mul(&lhs.0, rhs as <Single as NumExt>::Signed).signed().overflowing(Signed),
+            / @overflowing algo::div(&lhs.0, rhs as <Single as NumExt>::Signed).signed().overflowing(Signed::from),
+            % @overflowing algo::rem(&lhs.0, rhs as <Single as NumExt>::Signed).signed().overflowing(Signed::from),
         ] }
 
         ndops::def! { @ndbin <const L: usize> (&lhs: &$primitive, rhs: &Signed<L>) -> Signed<L> for [Signed<L>, $primitive], [
-            + uops::add(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().default(Signed),
-            - uops::sub(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().default(Signed),
-            * algo::mul(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().default(Signed),
+            + uops::add(lhs as <Single as NumExt>::Signed, &rhs.0).signed().default(Signed),
+            - uops::sub(lhs as <Single as NumExt>::Signed, &rhs.0).signed().default(Signed),
+            * algo::mul(lhs as <Single as NumExt>::Signed, &rhs.0).signed().default(Signed),
 
-            | uops::bitor(&rhs.0, lhs as <Single as NumAlt>::Signed).eval(),
-            & uops::bitand(&rhs.0, lhs as <Single as NumAlt>::Signed).eval(),
-            ^ uops::bitxor(&rhs.0, lhs as <Single as NumAlt>::Signed).eval(),
+            | uops::bitor(&rhs.0, lhs as <Single as NumExt>::Signed).eval(),
+            & uops::bitand(&rhs.0, lhs as <Single as NumExt>::Signed).eval(),
+            ^ uops::bitxor(&rhs.0, lhs as <Single as NumExt>::Signed).eval(),
 
-            + @checked uops::add(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().checked(Signed),
-            - @checked uops::sub(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().checked(Signed),
-            * @checked algo::mul(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().checked(Signed),
+            + @checked uops::add(lhs as <Single as NumExt>::Signed, &rhs.0).signed().checked(Signed),
+            - @checked uops::sub(lhs as <Single as NumExt>::Signed, &rhs.0).signed().checked(Signed),
+            * @checked algo::mul(lhs as <Single as NumExt>::Signed, &rhs.0).signed().checked(Signed),
 
-            + @strict uops::add(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().strict(Signed),
-            - @strict uops::sub(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().strict(Signed),
-            * @strict algo::mul(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().strict(Signed),
+            + @strict uops::add(lhs as <Single as NumExt>::Signed, &rhs.0).signed().strict(Signed),
+            - @strict uops::sub(lhs as <Single as NumExt>::Signed, &rhs.0).signed().strict(Signed),
+            * @strict algo::mul(lhs as <Single as NumExt>::Signed, &rhs.0).signed().strict(Signed),
 
-            + @wrapping uops::add(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().with(Signed),
-            - @wrapping uops::sub(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().with(Signed),
-            * @wrapping algo::mul(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().with(Signed),
+            + @wrapping uops::add(lhs as <Single as NumExt>::Signed, &rhs.0).signed().with(Signed),
+            - @wrapping uops::sub(lhs as <Single as NumExt>::Signed, &rhs.0).signed().with(Signed),
+            * @wrapping algo::mul(lhs as <Single as NumExt>::Signed, &rhs.0).signed().with(Signed),
 
-            + @saturating uops::add(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
-            - @saturating uops::sub(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
-            * @saturating algo::mul(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) * rhs.dir() == Dir::POS) as usize]),
+            + @saturating uops::add(lhs as <Single as NumExt>::Signed, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            - @saturating uops::sub(lhs as <Single as NumExt>::Signed, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) == Dir::POS) as usize]),
+            * @saturating algo::mul(lhs as <Single as NumExt>::Signed, &rhs.0).signed().saturating(Signed, [&Signed::MIN, &Signed::MAX][(Dir::from(lhs) * rhs.dir() == Dir::POS) as usize]),
 
-            + @overflowing uops::add(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().overflowing(Signed),
-            - @overflowing uops::sub(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().overflowing(Signed),
-            * @overflowing algo::mul(lhs as <Single as NumAlt>::Signed, &rhs.0).signed().overflowing(Signed),
+            + @overflowing uops::add(lhs as <Single as NumExt>::Signed, &rhs.0).signed().overflowing(Signed),
+            - @overflowing uops::sub(lhs as <Single as NumExt>::Signed, &rhs.0).signed().overflowing(Signed),
+            * @overflowing algo::mul(lhs as <Single as NumExt>::Signed, &rhs.0).signed().overflowing(Signed),
         ] }
 
         ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, &rhs: &$primitive), [
-            += uops::add(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().default_mut(),
-            -= uops::sub(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().default_mut(),
-            *= algo::mul(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().default_mut(),
-            /= algo::div(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().default_mut(),
-            %= algo::rem(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().default_mut(),
+            += uops::add(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().default_mut(),
+            -= uops::sub(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().default_mut(),
+            *= algo::mul(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().default_mut(),
+            /= algo::div(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().default_mut(),
+            %= algo::rem(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().default_mut(),
 
-            |= uops::bitor(&mut lhs.0, rhs as <Single as NumAlt>::Signed).eval_mut(),
-            &= uops::bitand(&mut lhs.0, rhs as <Single as NumAlt>::Signed).eval_mut(),
-            ^= uops::bitxor(&mut lhs.0, rhs as <Single as NumAlt>::Signed).eval_mut(),
+            |= uops::bitor(&mut lhs.0, rhs as <Single as NumExt>::Signed).eval_mut(),
+            &= uops::bitand(&mut lhs.0, rhs as <Single as NumExt>::Signed).eval_mut(),
+            ^= uops::bitxor(&mut lhs.0, rhs as <Single as NumExt>::Signed).eval_mut(),
 
-            += @strict uops::add(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict_mut(),
-            -= @strict uops::sub(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict_mut(),
-            *= @strict algo::mul(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict_mut(),
-            /= @strict algo::div(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict_mut(),
-            %= @strict algo::rem(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().strict_mut(),
+            += @strict uops::add(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().strict_mut(),
+            -= @strict uops::sub(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().strict_mut(),
+            *= @strict algo::mul(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().strict_mut(),
+            /= @strict algo::div(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().strict_mut(),
+            %= @strict algo::rem(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().strict_mut(),
 
-            += @wrapping uops::add(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().eval_mut(),
-            -= @wrapping uops::sub(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().eval_mut(),
-            *= @wrapping algo::mul(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().eval_mut(),
-            /= @wrapping algo::div(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().eval_mut(),
-            %= @wrapping algo::rem(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().eval_mut(),
+            += @wrapping uops::add(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().eval_mut(),
+            -= @wrapping uops::sub(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().eval_mut(),
+            *= @wrapping algo::mul(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().eval_mut(),
+            /= @wrapping algo::div(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().eval_mut(),
+            %= @wrapping algo::rem(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().eval_mut(),
 
             += @saturating {
                 let dir = lhs.dir();
@@ -506,8 +506,8 @@ macro_rules! nd_ops_primitive_native_impl {
                 algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().saturating_mut([&Signed::MIN.0, &Signed::MAX.0][(dir == Dir::POS) as usize])
             },
 
-            /= @saturating algo::div(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().saturating_mut(&Signed::MAX.0),
-            %= @saturating algo::rem(&mut lhs.0, rhs as <Single as NumAlt>::Signed).signed().saturating_mut(&Signed::ZERO.0),
+            /= @saturating algo::div(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().saturating_mut(&Signed::MAX.0),
+            %= @saturating algo::rem(&mut lhs.0, rhs as <Single as NumExt>::Signed).signed().saturating_mut(&Signed::ZERO.0),
         ] }
     };
     (@unsigned $primitive:ty $(,)?) => {
@@ -2133,7 +2133,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Add<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Add<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter(
@@ -2161,7 +2161,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Add<<Single as NumAlt>::Signed, &[Single; L], SignedImpl> {
+    impl<const L: usize> Add<<Single as NumExt>::Signed, &[Single; L], SignedImpl> {
         /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter(
@@ -2181,7 +2181,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Add<&mut [Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Add<&mut [Single; L], <Single as NumExt>::Signed, SignedImpl> {
         /// Iterator for [`Add`] expression.
         #[inline]
         pub fn iter_mut(
@@ -2367,7 +2367,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Sub<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Sub<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter(
@@ -2395,7 +2395,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Sub<<Single as NumAlt>::Signed, &[Single; L], SignedImpl> {
+    impl<const L: usize> Sub<<Single as NumExt>::Signed, &[Single; L], SignedImpl> {
         /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter(
@@ -2423,7 +2423,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Sub<&mut [Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Sub<&mut [Single; L], <Single as NumExt>::Signed, SignedImpl> {
         /// Iterator for [`Sub`] expression.
         #[inline]
         pub fn iter_mut(
@@ -2591,7 +2591,7 @@ pub mod uops {
     }
 
     impl<const L: usize, F: 'static + Fn(Single, Single) -> Single + Copy>
-        Bit<&[Single; L], <Single as NumAlt>::Signed, F>
+        Bit<&[Single; L], <Single as NumExt>::Signed, F>
     {
         /// Iterator for [`Bit`] expression.
         #[inline]
@@ -2612,7 +2612,7 @@ pub mod uops {
     }
 
     impl<const L: usize, F: 'static + Fn(Single, Single) -> Single + Copy>
-        Bit<&mut [Single; L], <Single as NumAlt>::Signed, F>
+        Bit<&mut [Single; L], <Single as NumExt>::Signed, F>
     {
         /// Iterator for [`Bit`] expression.
         #[inline]
@@ -2999,7 +2999,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Add<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Expr<[Single; L]> for Add<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
             Add {
@@ -3024,7 +3024,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Add<<Single as NumAlt>::Signed, &[Single; L], SignedImpl> {
+    impl<const L: usize> Expr<[Single; L]> for Add<<Single as NumExt>::Signed, &[Single; L], SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
             Add {
@@ -3050,7 +3050,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]>
-        for Add<&'words mut [Single; L], <Single as NumAlt>::Signed, SignedImpl>
+        for Add<&'words mut [Single; L], <Single as NumExt>::Signed, SignedImpl>
     {
         #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
@@ -3215,7 +3215,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Sub<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Expr<[Single; L]> for Sub<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
             Sub {
@@ -3240,7 +3240,7 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Sub<<Single as NumAlt>::Signed, &[Single; L], SignedImpl> {
+    impl<const L: usize> Expr<[Single; L]> for Sub<<Single as NumExt>::Signed, &[Single; L], SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
             Sub {
@@ -3266,7 +3266,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]>
-        for Sub<&'words mut [Single; L], <Single as NumAlt>::Signed, SignedImpl>
+        for Sub<&'words mut [Single; L], <Single as NumExt>::Signed, SignedImpl>
     {
         #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
@@ -3388,7 +3388,7 @@ pub mod uops {
     }
 
     impl<const L: usize, F: 'static + Fn(Single, Single) -> Single + Copy> Expr<[Single; L]>
-        for Bit<&[Single; L], <Single as NumAlt>::Signed, F>
+        for Bit<&[Single; L], <Single as NumExt>::Signed, F>
     {
         #[inline]
         fn eval(self) -> [Single; L] {
@@ -3402,7 +3402,7 @@ pub mod uops {
     }
 
     impl<'words, const L: usize, F: 'static + Fn(Single, Single) -> Single + Copy> ExprMut<'words, [Single; L]>
-        for Bit<&'words mut [Single; L], <Single as NumAlt>::Signed, F>
+        for Bit<&'words mut [Single; L], <Single as NumExt>::Signed, F>
     {
         #[inline]
         fn eval_mut(mut self) -> &'words mut [Single; L] {
@@ -4007,7 +4007,7 @@ pub mod algo {
         }
     }
 
-    impl<const L: usize> Div<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Div<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         /// Checks overflow.
         #[inline]
         pub fn overflows(&self) -> bool {
@@ -4150,7 +4150,7 @@ pub mod algo {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Expr<[Single; L]> for Mul<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
             let lhs = self.lhs;
@@ -4214,7 +4214,7 @@ pub mod algo {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Mul<<Single as NumAlt>::Signed, &[Single; L], SignedImpl> {
+    impl<const L: usize> Expr<[Single; L]> for Mul<<Single as NumExt>::Signed, &[Single; L], SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
             Mul {
@@ -4313,7 +4313,7 @@ pub mod algo {
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]>
-        for Mul<&'words mut [Single; L], <Single as NumAlt>::Signed, SignedImpl>
+        for Mul<&'words mut [Single; L], <Single as NumExt>::Signed, SignedImpl>
     {
         #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
@@ -4508,7 +4508,7 @@ pub mod algo {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Div<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Expr<[Single; L]> for Div<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         #[inline]
         fn eval(self) -> [Single; L] {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
@@ -4565,9 +4565,9 @@ pub mod algo {
         }
     }
 
-    impl<const L: usize> Expr<<Single as NumAlt>::Signed> for Rem<&[Single; L], <Single as NumAlt>::Signed, SignedImpl> {
+    impl<const L: usize> Expr<<Single as NumExt>::Signed> for Rem<&[Single; L], <Single as NumExt>::Signed, SignedImpl> {
         #[inline]
-        fn eval(self) -> <Single as NumAlt>::Signed {
+        fn eval(self) -> <Single as NumExt>::Signed {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
             let lhs_dir = uops::dir(self.lhs);
 
@@ -4578,13 +4578,13 @@ pub mod algo {
                 rhs,
                 imp: UnsignedImpl,
             }
-            .eval() as <Single as NumAlt>::Signed;
+            .eval() as <Single as NumExt>::Signed;
 
             [res, res.wrapping_neg()][(lhs_dir == Dir::NEG) as usize]
         }
 
         #[inline]
-        fn eval_ext(self) -> (<Single as NumAlt>::Signed, bool) {
+        fn eval_ext(self) -> (<Single as NumExt>::Signed, bool) {
             let overflow = Div {
                 lhs: self.lhs,
                 rhs: self.rhs,
@@ -4729,7 +4729,7 @@ pub mod algo {
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]>
-        for Div<&'words mut [Single; L], <Single as NumAlt>::Signed, SignedImpl>
+        for Div<&'words mut [Single; L], <Single as NumExt>::Signed, SignedImpl>
     {
         #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
@@ -4783,7 +4783,7 @@ pub mod algo {
     }
 
     impl<'words, const L: usize> ExprMut<'words, [Single; L]>
-        for Rem<&'words mut [Single; L], <Single as NumAlt>::Signed, SignedImpl>
+        for Rem<&'words mut [Single; L], <Single as NumExt>::Signed, SignedImpl>
     {
         #[inline]
         fn eval_mut(self) -> &'words mut [Single; L] {
@@ -6789,7 +6789,7 @@ impl<const L: usize> NumFn for Unsigned<L> {
 
 impl<const L: usize> Num for Signed<L> {}
 
-impl<const L: usize> NumAlt for Signed<L> {
+impl<const L: usize> NumExt for Signed<L> {
     type Signed = Signed<L>;
     type Unsigned = Unsigned<L>;
 
@@ -6806,7 +6806,7 @@ impl<const L: usize> NumAlt for Signed<L> {
 
 impl<const L: usize> Num for Unsigned<L> {}
 
-impl<const L: usize> NumAlt for Unsigned<L> {
+impl<const L: usize> NumExt for Unsigned<L> {
     type Signed = Signed<L>;
     type Unsigned = Unsigned<L>;
 
