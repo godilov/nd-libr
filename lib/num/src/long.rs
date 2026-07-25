@@ -19,7 +19,8 @@ use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt, NdGcd, NdPow, NdRand,
-    NegxCt, Num, NumCt, NumExt, NumFn, NumSigned, NumUnsigned, One, PosxCt, PowCt, RelCt, SelectCt, Sign, Zero,
+    NegxCt, Num, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned, NumUnsignedCt, One, PosxCt,
+    PowCt, RelCt, SelectCt, Sign, Zero,
     arch::{AsBytesMut, AsBytesRef, AsWordsIterator, AsWordsMut, AsWordsRef, Offset, word::*},
     long::{
         radix::*,
@@ -6769,6 +6770,7 @@ impl<const L: usize> NumFn for Unsigned<L> {
 }
 
 impl<const L: usize> Num for Signed<L> {}
+impl<const L: usize> Num for Unsigned<L> {}
 
 impl<const L: usize> NumExt for Signed<L> {
     type Signed = Signed<L>;
@@ -6784,8 +6786,6 @@ impl<const L: usize> NumExt for Signed<L> {
         Unsigned(self.0)
     }
 }
-
-impl<const L: usize> Num for Unsigned<L> {}
 
 impl<const L: usize> NumExt for Unsigned<L> {
     type Signed = Signed<L>;
@@ -6855,6 +6855,21 @@ impl<const L: usize> NumCt for Unsigned<L> {
         let rhs = (0..L).map(|_| mask);
 
         uops::bitand_iter(lhs, rhs).with(Self)
+    }
+}
+
+impl<const L: usize> NumExtCt for Signed<L> {}
+impl<const L: usize> NumExtCt for Unsigned<L> {}
+
+impl<const L: usize> NumSignedCt for Signed<L> {
+    fn as_rel_ct(&self) -> RelCt {
+        self.0[0] as RelCt
+    }
+}
+
+impl<const L: usize> NumUnsignedCt for Unsigned<L> {
+    fn as_mask_ct(&self) -> MaskCt {
+        self.0[0] as MaskCt
     }
 }
 
