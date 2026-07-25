@@ -12,14 +12,14 @@ pub mod prime;
 
 macro_rules! num_impl {
     (@signed [$($signed:ty > $unsigned:ty),+] $(,)?) => {
-        $(num_impl!(@impl $signed, $signed, $unsigned);)+
+        $(num_impl!(@impl $signed, $signed, $unsigned, MaskCt::MAX, MaskCt::MIN);)+
         $(num_impl!(@signed $signed, $unsigned);)+
     };
     (@unsigned [$($unsigned:ty > $signed:ty),+] $(,)?) => {
-        $(num_impl!(@impl $unsigned, $signed, $unsigned);)+
+        $(num_impl!(@impl $unsigned, $signed, $unsigned, MaskCt::MIN, MaskCt::MAX);)+
         $(num_impl!(@unsigned $unsigned, $signed);)+
     };
-    (@impl $primitive:ty, $signed:ty, $unsigned:ty $(,)?) => {
+    (@impl $primitive:ty, $signed:ty, $unsigned:ty, $signed_ct:expr, $unsigned_ct:expr $(,)?) => {
         impl NumFn for $primitive {
             #[inline]
             fn is_odd(&self) -> bool {
@@ -67,7 +67,10 @@ macro_rules! num_impl {
             }
         }
 
-        impl NumCt for $primitive {}
+        impl NumCt for $primitive {
+            const SIGNED: MaskCt = $signed_ct;
+            const UNSIGNED: MaskCt = $unsigned_ct;
+        }
 
         impl NumExtCt for $primitive {
             #[inline]
@@ -102,22 +105,101 @@ macro_rules! num_impl {
             const MAX: Self = Self::MAX;
         }
 
-        impl LeCt for $primitive {}
-        impl GeCt for $primitive {}
+        impl EqCt for $primitive {
+            #[inline(never)]
+            fn eq_ct(&self, other: &Self) -> MaskCt {
+                eq_ct(self, other)
+            }
+        }
 
-        impl SignCt for $primitive {}
-        impl CmpCt for $primitive {}
+        impl CmpCt for $primitive {
+            #[inline(never)]
+            fn cmp_ct(&self, other: &Self) -> RelCt {
+                rel_ct(cmp_ct(self, other))
+            }
+        }
 
-        impl MinCt for $primitive {}
-        impl MaxCt for $primitive {}
+        impl SignCt for $primitive {
+            #[inline(never)]
+            fn sign_ct(&self) -> RelCt {
+                rel_ct(cmp_ct(self, &0))
+            }
+        }
+
+        impl IsZeroCt for $primitive {
+            #[inline(never)]
+            fn is_zero_ct(&self) -> MaskCt {
+                eq_ct(self, &0)
+            }
+        }
+
+        impl IsOneCt for $primitive {
+            #[inline(never)]
+            fn is_one_ct(&self) -> MaskCt {
+                eq_ct(self, &1)
+            }
+        }
+
+        impl IsPosCt for $primitive {
+            #[inline(never)]
+            fn is_pos_ct(&self) -> MaskCt {
+                gt_ct(cmp_ct(self, &0))
+            }
+        }
+
+        impl IsNegCt for $primitive {
+            #[inline(never)]
+            fn is_neg_ct(&self) -> MaskCt {
+                lt_ct(cmp_ct(self, &0))
+            }
+        }
+
+        impl LtCt for $primitive {
+            #[inline(never)]
+            fn lt_ct(&self, other: &Self) -> MaskCt {
+                lt_ct(cmp_ct(self, other))
+            }
+        }
+
+        impl GtCt for $primitive {
+            #[inline(never)]
+            fn gt_ct(&self, other: &Self) -> MaskCt {
+                gt_ct(cmp_ct(self, other))
+            }
+        }
+
+        impl LeCt for $primitive {
+            #[inline(never)]
+            fn le_ct(&self, other: &Self) -> MaskCt {
+                le_ct(cmp_ct(self, other))
+            }
+        }
+
+        impl GeCt for $primitive {
+            #[inline(never)]
+            fn ge_ct(&self, other: &Self) -> MaskCt {
+                ge_ct(cmp_ct(self, other))
+            }
+        }
+
+        impl MinCt for $primitive {
+            #[inline(never)]
+            fn min_ct(&self, other: &Self) -> Self {
+                select_ct(self, other, lt_ct(cmp_ct(self, other)))
+            }
+        }
+
+        impl MaxCt for $primitive {
+            #[inline(never)]
+            fn max_ct(&self, other: &Self) -> Self {
+                select_ct(self, other, gt_ct(cmp_ct(self, other)))
+            }
+        }
 
         impl SelectCt for $primitive {
             #[inline(never)]
             fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-                let lhs_mask = Self::from_ne_bytes([mask; (Self::BYTES) as usize]);
-                let rhs_mask = Self::from_ne_bytes([!mask; (Self::BYTES) as usize]);
-
-                lhs & lhs_mask | rhs & rhs_mask
+                select_ct(lhs, rhs, mask)
             }
         }
 
@@ -133,125 +215,17 @@ macro_rules! num_impl {
             }
         }
 
-        impl IsZeroCt for $signed {
-            #[inline(never)]
-            fn is_zero_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-
-                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
-                let any = any as MaskCt;
-
-                inv_ct(any)
-            }
-        }
-
-        impl IsOneCt for $signed {
-            #[inline(never)]
-            fn is_one_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-                let val = val ^ 1;
-
-                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
-                let any = any as MaskCt;
-
-                inv_ct(any)
-            }
-        }
-
-        impl IsPosCt for $signed {
-            #[inline(never)]
-            fn is_pos_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-
-                let neg = val >> (Self::BITS - 1);
-                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
-
-                let neg = neg as MaskCt;
-                let any = any as MaskCt;
-
-                inv_ct(neg) & dir_ct(any)
-            }
-        }
-
-        impl IsNegCt for $signed {
-            #[inline(never)]
-            fn is_neg_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-
-                let neg = val >> (Self::BITS - 1);
-                let neg = neg as MaskCt;
-
-                dir_ct(neg)
-            }
-        }
-
-        impl EqCt for $signed {
-            #[inline(never)]
-            fn eq_ct(&self, other: &Self) -> MaskCt {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let any = lhs ^ rhs;
-                let any = (any | any.wrapping_neg()) >> (Self::BITS - 1);
-                let any = any as MaskCt;
-
-                inv_ct(any)
-            }
-        }
-
-        impl LtCt for $signed {
-            #[inline(never)]
-            fn lt_ct(&self, other: &Self) -> MaskCt {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let lt = (lhs.wrapping_sub(rhs) >> (Self::BITS - 1)) as MaskCt;
-
-                let lhs_neg = (lhs >> (Self::BITS - 1)) as MaskCt;
-                let rhs_neg = (rhs >> (Self::BITS - 1)) as MaskCt;
-
-                let xor = lhs_neg ^ rhs_neg;
-                let res = xor & lhs_neg | !xor & lt;
-
-                dir_ct(res)
-            }
-        }
-
-        impl GtCt for $signed {
-            #[inline(never)]
-            fn gt_ct(&self, other: &Self) -> MaskCt {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let gt = (rhs.wrapping_sub(lhs) >> (Self::BITS - 1)) as MaskCt;
-
-                let lhs_neg = (lhs >> (Self::BITS - 1)) as MaskCt;
-                let rhs_neg = (rhs >> (Self::BITS - 1)) as MaskCt;
-
-                let xor = lhs_neg ^ rhs_neg;
-                let res = xor & rhs_neg | !xor & gt;
-
-                dir_ct(res)
-            }
-        }
-
         impl PosxCt for $signed {
-            #[inline]
+            #[inline(never)]
             fn posx_ct(&self) -> Self {
-                let pos = *self;
-                let neg = (!self).wrapping_add(1);
-
-                SelectCt::select_ct(&pos, &neg, self.is_pos_ct())
+                select_ct(self, &self.wrapping_neg(), gt_ct(cmp_ct(self, &0)))
             }
         }
 
         impl NegxCt for $signed {
-            #[inline]
+            #[inline(never)]
             fn negx_ct(&self) -> Self {
-                let pos = *self;
-                let neg = (!self).wrapping_add(1);
-
-                SelectCt::select_ct(&pos, &neg, self.is_neg_ct())
+                select_ct(self, &self.wrapping_neg(), lt_ct(cmp_ct(self, &0)))
             }
         }
     };
@@ -277,99 +251,6 @@ macro_rules! num_impl {
             #[inline]
             fn as_mask_ct(&self) -> MaskCt {
                 *self as MaskCt
-            }
-        }
-
-        impl IsZeroCt for $unsigned {
-            #[inline(never)]
-            fn is_zero_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-
-                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
-                let any = any as MaskCt;
-
-                inv_ct(any)
-            }
-        }
-
-        impl IsOneCt for $unsigned {
-            #[inline(never)]
-            fn is_one_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-
-                let any = ((val ^ 1) | (val ^ 1).wrapping_neg()) >> (Self::BITS - 1);
-                let any = any as MaskCt;
-
-                inv_ct(any)
-            }
-        }
-
-        impl IsPosCt for $unsigned {
-            #[inline(never)]
-            fn is_pos_ct(&self) -> MaskCt {
-                let val = *self as $unsigned;
-
-                let any = (val | val.wrapping_neg()) >> (Self::BITS - 1);
-                let any = any as MaskCt;
-
-                dir_ct(any)
-            }
-        }
-
-        impl IsNegCt for $unsigned {
-            #[inline(never)]
-            fn is_neg_ct(&self) -> MaskCt {
-                MaskCt::ZERO
-            }
-        }
-
-        impl EqCt for $unsigned {
-            #[inline(never)]
-            fn eq_ct(&self, other: &Self) -> MaskCt {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let any = lhs ^ rhs;
-                let any = (any | any.wrapping_neg()) >> (Self::BITS - 1);
-                let any = any as MaskCt;
-
-                inv_ct(any)
-            }
-        }
-
-        impl LtCt for $unsigned {
-            #[inline(never)]
-            fn lt_ct(&self, other: &Self) -> MaskCt {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let lt = (lhs.wrapping_sub(rhs) >> (Self::BITS - 1)) as MaskCt;
-
-                let lhs_bit = (lhs >> (Self::BITS - 1)) as MaskCt;
-                let rhs_bit = (rhs >> (Self::BITS - 1)) as MaskCt;
-
-                let xor = lhs_bit ^ rhs_bit;
-                let res = xor & rhs_bit | !xor & lt;
-
-                dir_ct(res)
-            }
-        }
-
-        impl GtCt for $unsigned {
-            #[inline(never)]
-            fn gt_ct(&self, other: &Self) -> MaskCt {
-                let lhs = *self as $unsigned;
-                let rhs = *other as $unsigned;
-
-                let gt = (rhs.wrapping_sub(lhs) >> (Self::BITS - 1)) as MaskCt;
-
-                let lhs_bit = (lhs >> (Self::BITS - 1)) as MaskCt;
-                let rhs_bit = (rhs >> (Self::BITS - 1)) as MaskCt;
-
-                let xor = lhs_bit ^ rhs_bit;
-                let res = xor & lhs_bit | !xor & gt;
-
-                dir_ct(res)
             }
         }
     };
@@ -728,6 +609,17 @@ pub trait NumCt:
     + NdBitXor<Type = Self>
     + NdNot<Type = Self>
 {
+    /// Is Signed type mask.
+    ///
+    /// - `MaskCt::MAX` => Signed
+    /// - `MaskCt::MIN` => Unsigned
+    const SIGNED: MaskCt;
+
+    /// Is Unsigned type mask.
+    ///
+    /// - `MaskCt::MAX` => Unsigned
+    /// - `MaskCt::MIN` => Signed
+    const UNSIGNED: MaskCt;
 }
 
 /// Number with signed/unsigned const-time extensions.
@@ -1136,7 +1028,7 @@ pub trait EqCt {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait CmpCt: EqCt + LtCt + GtCt {
+pub trait CmpCt {
     /// Const-time comparison function.
     ///
     /// # Returns
@@ -1144,20 +1036,14 @@ pub trait CmpCt: EqCt + LtCt + GtCt {
     /// - `-1` => `lhs < rhs`
     /// - `0` => `lhs == rhs`.
     /// - `1` => `lhs > rhs`
-    #[inline]
-    fn cmp_ct(&self, other: &Self) -> RelCt {
-        let lt = self.lt_ct(other) as RelCt;
-        let gt = self.gt_ct(other) as RelCt;
-
-        lt | gt & 1
-    }
+    fn cmp_ct(&self, other: &Self) -> RelCt;
 }
 
 /// Const-time sign.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait SignCt: IsZeroCt + IsPosCt + IsNegCt {
+pub trait SignCt {
     /// Const-time sign function.
     ///
     /// # Returns
@@ -1165,13 +1051,7 @@ pub trait SignCt: IsZeroCt + IsPosCt + IsNegCt {
     /// - `-1` => `lhs < 0`
     /// - `0` => `lhs == 0`.
     /// - `1` => `lhs > 0`
-    #[inline]
-    fn sign_ct(&self) -> RelCt {
-        let pos = self.is_pos_ct() as RelCt;
-        let neg = self.is_neg_ct() as RelCt;
-
-        pos & 1 | neg
-    }
+    fn sign_ct(&self) -> RelCt;
 }
 
 /// Const-time equality with zero comparison.
@@ -1262,47 +1142,38 @@ pub trait GtCt {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait LeCt: EqCt + LtCt + GtCt {
+pub trait LeCt {
     /// Const-time less-or-equal-then function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `lhs > rhs`.
     /// - `MaskCt::MAX` => `lhs <= rhs`.
-    #[inline]
-    fn le_ct(&self, other: &Self) -> MaskCt {
-        !self.gt_ct(other)
-    }
+    fn le_ct(&self, other: &Self) -> MaskCt;
 }
 
 /// Const-time greater-or-equal-then comparison.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait GeCt: EqCt + LtCt + GtCt {
+pub trait GeCt {
     /// Const-time greater-or-equal-then function.
     ///
     /// # Returns
     ///
     /// - `MaskCt::MIN` => `lhs < rhs`.
     /// - `MaskCt::MAX` => `lhs >= rhs`.
-    #[inline]
-    fn ge_ct(&self, other: &Self) -> MaskCt {
-        !self.lt_ct(other)
-    }
+    fn ge_ct(&self, other: &Self) -> MaskCt;
 }
 
 /// Const-time minimum value.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait MinCt: Copy + EqCt + LtCt + GtCt + SelectCt {
+pub trait MinCt {
     /// Const-time minimum function.
-    #[inline]
     #[ndfwd::as_into]
-    fn min_ct(&self, other: &Self) -> Self {
-        SelectCt::select_ct(self, other, self.lt_ct(other))
-    }
+    fn min_ct(&self, other: &Self) -> Self;
 }
 
 /// Const-time maximum value.
@@ -1311,11 +1182,8 @@ pub trait MinCt: Copy + EqCt + LtCt + GtCt + SelectCt {
 #[ndfwd::decl]
 pub trait MaxCt: Copy + EqCt + LtCt + GtCt + SelectCt {
     /// Const-time maximum function.
-    #[inline]
     #[ndfwd::as_into]
-    fn max_ct(&self, other: &Self) -> Self {
-        SelectCt::select_ct(self, other, self.gt_ct(other))
-    }
+    fn max_ct(&self, other: &Self) -> Self;
 }
 
 /// Const-time positive absolute value.
@@ -1846,6 +1714,31 @@ pub(crate) fn inv_ct(val: MaskCt) -> MaskCt {
 }
 
 #[inline]
+pub(crate) fn rel_ct((lt, gt): (MaskCt, MaskCt)) -> RelCt {
+    gt as RelCt - lt as RelCt
+}
+
+#[inline]
+pub(crate) fn lt_ct((lt, _): (MaskCt, MaskCt)) -> MaskCt {
+    dir_ct(lt)
+}
+
+#[inline]
+pub(crate) fn gt_ct((_, gt): (MaskCt, MaskCt)) -> MaskCt {
+    dir_ct(gt)
+}
+
+#[inline]
+pub(crate) fn le_ct((_, gt): (MaskCt, MaskCt)) -> MaskCt {
+    inv_ct(gt)
+}
+
+#[inline]
+pub(crate) fn ge_ct((lt, _): (MaskCt, MaskCt)) -> MaskCt {
+    inv_ct(lt)
+}
+
+#[inline]
 pub(crate) fn eq_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> MaskCt {
     let lhs = Relaxed(lhs.as_unsigned());
     let rhs = Relaxed(rhs.as_unsigned());
@@ -1873,10 +1766,13 @@ pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let rhs_bit = (rhs >> shift).as_mask_ct();
     let xor_bit = lhs_bit ^ rhs_bit;
 
-    let lt_res = xor_bit & rhs_bit | !xor_bit & lt;
-    let gt_res = xor_bit & lhs_bit | !xor_bit & gt;
+    let lhs = lhs_bit.with_mask(N::SIGNED) | rhs_bit.with_mask(N::UNSIGNED);
+    let rhs = rhs_bit.with_mask(N::SIGNED) | lhs_bit.with_mask(N::UNSIGNED);
 
-    (gt_res, lt_res)
+    let lt_res = xor_bit & lhs | !xor_bit & lt;
+    let gt_res = xor_bit & rhs | !xor_bit & gt;
+
+    (lt_res, gt_res)
 }
 
 #[inline]
