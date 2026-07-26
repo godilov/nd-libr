@@ -36,13 +36,13 @@ pub trait IteratorExt: Iterator {
     ///
     /// let mut iter = (0..3).into_iter();
     ///
-    /// let arr = iter.collect_arr() as [i32; 4];
+    /// let arr = iter.collectx() as [i32; 4];
     ///
     /// assert_eq!(arr, [0, 1, 2, 0]);
     /// assert_eq!(iter.next(), None);
     /// ```
     #[inline]
-    fn collect_arr<const N: usize>(&mut self) -> [Self::Item; N]
+    fn collectx<const N: usize>(&mut self) -> [Self::Item; N]
     where
         Self::Item: Default + Copy,
     {
