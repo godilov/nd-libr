@@ -1371,6 +1371,38 @@ pub mod uops {
         pub default: Single,
     }
 
+    /// Micro operations with standard implementation.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub struct Uops;
+
+    /// Micro operations with const-time implementation.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub struct UopsCt;
+
+    /// Micro operations with dynamic implementation.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub struct UopsDyn;
+
+    /// Micro operations.
+    ///
+    /// # Related
+    ///
+    /// - [`Uops`] - standard impl.
+    /// - [`UopsCt`] - const-time impl.
+    /// - [`UopsDyn`] - dynamic impl.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub trait UopsImpl {
+        /// Flag in equality operations.
+        type Flag;
+
+        /// Order in comparison operations.
+        type Order;
+    }
+
     /// Expression.
     pub trait Expr<Words: Copy>: Sized {
         /// Evaluates expression as default.
@@ -3858,8 +3890,6 @@ pub mod uops {
         lhs_ext: MaskCt,
         rhs_ext: MaskCt,
     ) -> (MaskCt, MaskCt) {
-        let xor_ext = lhs_ext ^ rhs_ext;
-
         let (lt, gt) = lhs
             .zip(rhs)
             .map(|(a, b)| crate::cmp_ct(&a, &b))
@@ -3871,6 +3901,7 @@ pub mod uops {
                 (lt, gt)
             });
 
+        let xor_ext = lhs_ext ^ rhs_ext;
         let lt_res = xor_ext & lhs_ext | !xor_ext & lt;
         let gt_res = xor_ext & rhs_ext | !xor_ext & gt;
 
@@ -4973,21 +5004,6 @@ pub struct BytesRef<'words, const L: usize>(pub &'words [Single; L]);
 #[derive(Debug, PartialEq, Eq)]
 pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
-/// Micro operations with standard implementation.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub struct UopsStd;
-
-/// Micro operations with dynamic implementation.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub struct UopsDyn;
-
-/// Micro operations with const-time implementation.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub struct UopsCt;
-
 /// Digits iterator by `exp`.
 ///
 /// For more info, see [`ToDigitsIter`] documentation.
@@ -5121,23 +5137,6 @@ pub struct RadixImpl<W: Word> {
     ///
     /// Radix is arbitrary.
     pub radix: W,
-}
-
-/// Micro operations.
-///
-/// # Related
-///
-/// - [`UopsStd`] - standard impl.
-/// - [`UopsDyn`] - dynamic impl.
-/// - [`UopsCt`] - const-time impl.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub trait Uops {
-    /// Flag in equality operations.
-    type Flag;
-
-    /// Order in comparison operations.
-    type Order;
 }
 
 /// `From`/`To`/`Into` digits conversion implementation trait.
