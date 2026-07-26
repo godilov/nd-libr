@@ -1704,12 +1704,12 @@ impl<Any: Max> MaxFn for Any {
 }
 
 #[inline]
-pub(crate) fn dir_ct(val: MaskCt) -> MaskCt {
+pub(crate) fn pos_ct(val: MaskCt) -> MaskCt {
     MaskCt::ZERO.wrapping_sub(val)
 }
 
 #[inline]
-pub(crate) fn inv_ct(val: MaskCt) -> MaskCt {
+pub(crate) fn neg_ct(val: MaskCt) -> MaskCt {
     !MaskCt::ZERO.wrapping_sub(val)
 }
 
@@ -1720,22 +1720,22 @@ pub(crate) fn rel_ct((lt, gt): (MaskCt, MaskCt)) -> RelCt {
 
 #[inline]
 pub(crate) fn lt_ct((lt, _): (MaskCt, MaskCt)) -> MaskCt {
-    dir_ct(lt)
+    pos_ct(lt)
 }
 
 #[inline]
 pub(crate) fn gt_ct((_, gt): (MaskCt, MaskCt)) -> MaskCt {
-    dir_ct(gt)
+    pos_ct(gt)
 }
 
 #[inline]
 pub(crate) fn le_ct((_, gt): (MaskCt, MaskCt)) -> MaskCt {
-    inv_ct(gt)
+    neg_ct(gt)
 }
 
 #[inline]
 pub(crate) fn ge_ct((lt, _): (MaskCt, MaskCt)) -> MaskCt {
-    inv_ct(lt)
+    neg_ct(lt)
 }
 
 #[inline]
@@ -1750,7 +1750,7 @@ pub(crate) fn eq_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> MaskCt {
     let neg = !xor + Relaxed::ONE;
     let bit = (pos | neg) >> shift;
 
-    inv_ct(bit.as_mask_ct())
+    neg_ct(bit.as_mask_ct())
 }
 
 #[inline]
