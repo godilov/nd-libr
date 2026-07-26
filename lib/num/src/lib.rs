@@ -1715,27 +1715,27 @@ pub(crate) fn neg_ct(val: MaskCt) -> MaskCt {
 
 #[inline]
 pub(crate) fn rel_ct((lt, gt): (MaskCt, MaskCt)) -> RelCt {
-    gt as RelCt - lt as RelCt
+    (lt | gt & 1) as RelCt
 }
 
 #[inline]
 pub(crate) fn lt_ct((lt, _): (MaskCt, MaskCt)) -> MaskCt {
-    pos_ct(lt)
+    lt
 }
 
 #[inline]
 pub(crate) fn gt_ct((_, gt): (MaskCt, MaskCt)) -> MaskCt {
-    pos_ct(gt)
+    gt
 }
 
 #[inline]
 pub(crate) fn le_ct((_, gt): (MaskCt, MaskCt)) -> MaskCt {
-    neg_ct(gt)
+    !gt
 }
 
 #[inline]
 pub(crate) fn ge_ct((lt, _): (MaskCt, MaskCt)) -> MaskCt {
-    neg_ct(lt)
+    !lt
 }
 
 #[inline]
@@ -1769,8 +1769,8 @@ pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let lhs = lhs_bit.with_mask_ct(N::SIGNED) | rhs_bit.with_mask_ct(N::UNSIGNED);
     let rhs = rhs_bit.with_mask_ct(N::SIGNED) | lhs_bit.with_mask_ct(N::UNSIGNED);
 
-    let lt_res = xor_bit & lhs | !xor_bit & lt;
-    let gt_res = xor_bit & rhs | !xor_bit & gt;
+    let lt_res = pos_ct(xor_bit & lhs | !xor_bit & lt);
+    let gt_res = pos_ct(xor_bit & rhs | !xor_bit & gt);
 
     (lt_res, gt_res)
 }

@@ -3855,8 +3855,13 @@ pub mod uops {
     pub(crate) fn cmp_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
+        lhs_ext: MaskCt,
+        rhs_ext: MaskCt,
     ) -> (MaskCt, MaskCt) {
-        lhs.zip(rhs)
+        let xor_ext = lhs_ext ^ rhs_ext;
+
+        let (lt, gt) = lhs
+            .zip(rhs)
             .map(|(a, b)| crate::cmp_ct(&a, &b))
             .fold((0, 0), |(lt_, gt_), (lt, gt)| {
                 let eq = !lt & !gt;
@@ -3864,7 +3869,12 @@ pub mod uops {
                 let gt = gt_ & eq | gt;
 
                 (lt, gt)
-            })
+            });
+
+        let lt_res = xor_ext & lhs_ext | !xor_ext & lt;
+        let gt_res = xor_ext & rhs_ext | !xor_ext & gt;
+
+        (lt_res, gt_res)
     }
 
     #[inline]
@@ -6968,17 +6978,58 @@ impl<const L: usize> EqCt for Bytes<L> {
     }
 }
 
+impl<const L: usize> CmpCt for Signed<L> {
+    #[inline(never)]
+    fn cmp_ct(&self, other: &Self) -> RelCt {
+        crate::rel_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            uops::ext_ct(&self.0),
+            uops::ext_ct(&other.0),
+        ))
+    }
+}
+
 impl<const L: usize> CmpCt for Unsigned<L> {
     #[inline(never)]
     fn cmp_ct(&self, other: &Self) -> RelCt {
-        crate::rel_ct(uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied()))
+        crate::rel_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> SignCt for Signed<L> {
+    #[inline(never)]
+    fn sign_ct(&self) -> RelCt {
+        crate::rel_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            (0..L).map(|_| 0),
+            uops::ext_ct(&self.0),
+            MaskCt::MIN,
+        ))
     }
 }
 
 impl<const L: usize> SignCt for Unsigned<L> {
     #[inline(never)]
     fn sign_ct(&self) -> RelCt {
-        crate::rel_ct(uops::cmp_ct(self.0.iter().copied(), (0..L).map(|_| 0)))
+        crate::rel_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            (0..L).map(|_| 0),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> IsZeroCt for Signed<L> {
+    #[inline(never)]
+    fn is_zero_ct(&self) -> MaskCt {
+        uops::eq_ct(self.0.iter().copied(), (0..L).map(|_| 0))
     }
 }
 
@@ -6989,6 +7040,13 @@ impl<const L: usize> IsZeroCt for Unsigned<L> {
     }
 }
 
+impl<const L: usize> IsOneCt for Signed<L> {
+    #[inline(never)]
+    fn is_one_ct(&self) -> MaskCt {
+        uops::eq_ct(self.0.iter().copied(), (0..L).map(|idx| [1, 0][(idx > 0) as usize]))
+    }
+}
+
 impl<const L: usize> IsOneCt for Unsigned<L> {
     #[inline(never)]
     fn is_one_ct(&self) -> MaskCt {
@@ -6996,52 +7054,193 @@ impl<const L: usize> IsOneCt for Unsigned<L> {
     }
 }
 
+impl<const L: usize> IsPosCt for Signed<L> {
+    #[inline(never)]
+    fn is_pos_ct(&self) -> MaskCt {
+        crate::gt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            (0..L).map(|_| 0),
+            uops::ext_ct(&self.0),
+            MaskCt::MIN,
+        ))
+    }
+}
+
 impl<const L: usize> IsPosCt for Unsigned<L> {
     #[inline(never)]
     fn is_pos_ct(&self) -> MaskCt {
-        crate::gt_ct(uops::cmp_ct(self.0.iter().copied(), (0..L).map(|_| 0)))
+        crate::gt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            (0..L).map(|_| 0),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> IsNegCt for Signed<L> {
+    #[inline(never)]
+    fn is_neg_ct(&self) -> MaskCt {
+        crate::lt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            (0..L).map(|_| 0),
+            uops::ext_ct(&self.0),
+            MaskCt::MIN,
+        ))
     }
 }
 
 impl<const L: usize> IsNegCt for Unsigned<L> {
     #[inline(never)]
     fn is_neg_ct(&self) -> MaskCt {
-        crate::lt_ct(uops::cmp_ct(self.0.iter().copied(), (0..L).map(|_| 0)))
+        crate::lt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            (0..L).map(|_| 0),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> LtCt for Signed<L> {
+    #[inline(never)]
+    fn lt_ct(&self, other: &Self) -> MaskCt {
+        crate::lt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            uops::ext_ct(&self.0),
+            uops::ext_ct(&other.0),
+        ))
     }
 }
 
 impl<const L: usize> LtCt for Unsigned<L> {
     #[inline(never)]
     fn lt_ct(&self, other: &Self) -> MaskCt {
-        crate::lt_ct(uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied()))
+        crate::lt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> GtCt for Signed<L> {
+    #[inline(never)]
+    fn gt_ct(&self, other: &Self) -> MaskCt {
+        crate::gt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            uops::ext_ct(&self.0),
+            uops::ext_ct(&other.0),
+        ))
     }
 }
 
 impl<const L: usize> GtCt for Unsigned<L> {
     #[inline(never)]
     fn gt_ct(&self, other: &Self) -> MaskCt {
-        crate::gt_ct(uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied()))
+        crate::gt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> LeCt for Signed<L> {
+    #[inline(never)]
+    fn le_ct(&self, other: &Self) -> MaskCt {
+        crate::le_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            uops::ext_ct(&self.0),
+            uops::ext_ct(&other.0),
+        ))
     }
 }
 
 impl<const L: usize> LeCt for Unsigned<L> {
     #[inline(never)]
     fn le_ct(&self, other: &Self) -> MaskCt {
-        crate::le_ct(uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied()))
+        crate::le_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> GeCt for Signed<L> {
+    #[inline(never)]
+    fn ge_ct(&self, other: &Self) -> MaskCt {
+        crate::ge_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            uops::ext_ct(&self.0),
+            uops::ext_ct(&other.0),
+        ))
     }
 }
 
 impl<const L: usize> GeCt for Unsigned<L> {
     #[inline(never)]
     fn ge_ct(&self, other: &Self) -> MaskCt {
-        crate::ge_ct(uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied()))
+        crate::ge_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ))
+    }
+}
+
+impl<const L: usize> MinCt for Signed<L> {
+    #[inline(never)]
+    fn min_ct(&self, other: &Self) -> Self {
+        let mask = crate::lt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            uops::ext_ct(&self.0),
+            uops::ext_ct(&other.0),
+        ));
+
+        let lhs = uops::words_ct(&self.0, mask).iter();
+        let rhs = uops::words_ct(&other.0, !mask).iter();
+
+        uops::bitor_iter(lhs, rhs).with(Self)
     }
 }
 
 impl<const L: usize> MinCt for Unsigned<L> {
     #[inline(never)]
     fn min_ct(&self, other: &Self) -> Self {
-        let mask = crate::lt_ct(uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied()));
+        let mask = crate::lt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ));
+
+        let lhs = uops::words_ct(&self.0, mask).iter();
+        let rhs = uops::words_ct(&other.0, !mask).iter();
+
+        uops::bitor_iter(lhs, rhs).with(Self)
+    }
+}
+
+impl<const L: usize> MaxCt for Signed<L> {
+    #[inline(never)]
+    fn max_ct(&self, other: &Self) -> Self {
+        let mask = crate::gt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            uops::ext_ct(&self.0),
+            uops::ext_ct(&other.0),
+        ));
 
         let lhs = uops::words_ct(&self.0, mask).iter();
         let rhs = uops::words_ct(&other.0, !mask).iter();
@@ -7053,7 +7252,12 @@ impl<const L: usize> MinCt for Unsigned<L> {
 impl<const L: usize> MaxCt for Unsigned<L> {
     #[inline(never)]
     fn max_ct(&self, other: &Self) -> Self {
-        let mask = crate::gt_ct(uops::cmp_ct(self.0.iter().copied(), other.0.iter().copied()));
+        let mask = crate::gt_ct(uops::cmp_ct(
+            self.0.iter().copied(),
+            other.0.iter().copied(),
+            MaskCt::MIN,
+            MaskCt::MIN,
+        ));
 
         let lhs = uops::words_ct(&self.0, mask).iter();
         let rhs = uops::words_ct(&other.0, !mask).iter();
@@ -8394,27 +8598,27 @@ mod tests {
         #![allow(clippy::absurd_extreme_comparisons)]
         #![allow(unused_comparisons)]
 
-        // ndassert::check! { @eq (
-        //     lhs in ndassert::range!(i64, 56, 0),
-        //     rhs in ndassert::range!(i64, 56, 1),
-        //     lhs_long as S64::from(lhs),
-        //     rhs_long as S64::from(rhs),
-        // ) [
-        //     (lhs_long.eq_ct(&rhs_long),  MaskCt::MAX * (lhs == rhs) as MaskCt),
-        //     (lhs_long.cmp_ct(&rhs_long), lhs.cmp(&rhs) as RelCt),
-        //     (lhs_long.sign_ct(),         lhs.cmp(&0)   as RelCt),
-        //
-        //     (lhs_long.is_zero_ct(),      MaskCt::MAX * (lhs == 0)   as MaskCt),
-        //     (lhs_long.is_one_ct(),       MaskCt::MAX * (lhs == 1)   as MaskCt),
-        //     (lhs_long.is_pos_ct(),       MaskCt::MAX * (lhs >  0)   as MaskCt),
-        //     (lhs_long.is_neg_ct(),       MaskCt::MAX * (lhs <  0)   as MaskCt),
-        //     (lhs_long.lt_ct(&rhs_long),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
-        //     (lhs_long.gt_ct(&rhs_long),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
-        //     (lhs_long.le_ct(&rhs_long),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
-        //     (lhs_long.ge_ct(&rhs_long),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
-        //     (lhs_long.min_ct(&rhs_long), U64::from(lhs.min(rhs))),
-        //     (lhs_long.max_ct(&rhs_long), U64::from(lhs.max(rhs))),
-        // ] }
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0),
+            rhs in ndassert::range!(i64, 56, 1),
+            lhs_long as S64::from(lhs),
+            rhs_long as S64::from(rhs),
+        ) [
+            (lhs_long.eq_ct(&rhs_long),  MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (lhs_long.cmp_ct(&rhs_long), lhs.cmp(&rhs) as RelCt),
+            (lhs_long.sign_ct(),         lhs.cmp(&0)   as RelCt),
+
+            (lhs_long.is_zero_ct(),      MaskCt::MAX * (lhs == 0)   as MaskCt),
+            (lhs_long.is_one_ct(),       MaskCt::MAX * (lhs == 1)   as MaskCt),
+            (lhs_long.is_pos_ct(),       MaskCt::MAX * (lhs >  0)   as MaskCt),
+            (lhs_long.is_neg_ct(),       MaskCt::MAX * (lhs <  0)   as MaskCt),
+            (lhs_long.lt_ct(&rhs_long),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (lhs_long.gt_ct(&rhs_long),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (lhs_long.le_ct(&rhs_long),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (lhs_long.ge_ct(&rhs_long),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (lhs_long.min_ct(&rhs_long), S64::from(lhs.min(rhs))),
+            (lhs_long.max_ct(&rhs_long), S64::from(lhs.max(rhs))),
+        ] }
 
         ndassert::check! { @eq (
             lhs in ndassert::range!(u64, 56, 0),
