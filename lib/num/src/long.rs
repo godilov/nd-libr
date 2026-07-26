@@ -8321,41 +8321,48 @@ mod tests {
 
     #[test]
     fn to_str() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 52)) [
-            (format!("{:}",   S64::from(val)), format!("{:}",   val)),
-            (format!("{:b}",  S64::from(val)), format!("{:b}",  val)),
-            (format!("{:o}",  S64::from(val)), format!("{:o}",  val)),
-            (format!("{:x}",  S64::from(val)), format!("{:x}",  val)),
-            (format!("{:X}",  S64::from(val)), format!("{:X}",  val)),
-            (format!("{:#}",  S64::from(val)), format!("{:#}",  val)),
-            (format!("{:#b}", S64::from(val)), format!("{:#b}", val)),
-            (format!("{:#o}", S64::from(val)), format!("{:#o}", val)),
-            (format!("{:#x}", S64::from(val)), format!("{:#x}", val)),
-            (format!("{:#X}", S64::from(val)), format!("{:#X}", val)),
+        ndassert::check! { @eq (
+            val in ndassert::range!(i64, 52),
+            pos as S64::from(val),
+            neg as S64::from(val.wrapping_neg()),
+        ) [
+            (format!("{:}",   pos), format!("{:}",   val)),
+            (format!("{:b}",  pos), format!("{:b}",  val)),
+            (format!("{:o}",  pos), format!("{:o}",  val)),
+            (format!("{:x}",  pos), format!("{:x}",  val)),
+            (format!("{:X}",  pos), format!("{:X}",  val)),
+            (format!("{:#}",  pos), format!("{:#}",  val)),
+            (format!("{:#b}", pos), format!("{:#b}", val)),
+            (format!("{:#o}", pos), format!("{:#o}", val)),
+            (format!("{:#x}", pos), format!("{:#x}", val)),
+            (format!("{:#X}", pos), format!("{:#X}", val)),
 
-            (format!("{:}",   S64::from(val.wrapping_neg())), format!("{:}",   val.wrapping_neg())),
-            (format!("{:b}",  S64::from(val.wrapping_neg())), format!("{:b}",  val.wrapping_neg())),
-            (format!("{:o}",  S64::from(val.wrapping_neg())), format!("{:o}",  val.wrapping_neg())),
-            (format!("{:x}",  S64::from(val.wrapping_neg())), format!("{:x}",  val.wrapping_neg())),
-            (format!("{:X}",  S64::from(val.wrapping_neg())), format!("{:X}",  val.wrapping_neg())),
-            (format!("{:#}",  S64::from(val.wrapping_neg())), format!("{:#}",  val.wrapping_neg())),
-            (format!("{:#b}", S64::from(val.wrapping_neg())), format!("{:#b}", val.wrapping_neg())),
-            (format!("{:#o}", S64::from(val.wrapping_neg())), format!("{:#o}", val.wrapping_neg())),
-            (format!("{:#x}", S64::from(val.wrapping_neg())), format!("{:#x}", val.wrapping_neg())),
-            (format!("{:#X}", S64::from(val.wrapping_neg())), format!("{:#X}", val.wrapping_neg())),
+            (format!("{:}",   neg), format!("{:}",   val.wrapping_neg())),
+            (format!("{:b}",  neg), format!("{:b}",  val.wrapping_neg())),
+            (format!("{:o}",  neg), format!("{:o}",  val.wrapping_neg())),
+            (format!("{:x}",  neg), format!("{:x}",  val.wrapping_neg())),
+            (format!("{:X}",  neg), format!("{:X}",  val.wrapping_neg())),
+            (format!("{:#}",  neg), format!("{:#}",  val.wrapping_neg())),
+            (format!("{:#b}", neg), format!("{:#b}", val.wrapping_neg())),
+            (format!("{:#o}", neg), format!("{:#o}", val.wrapping_neg())),
+            (format!("{:#x}", neg), format!("{:#x}", val.wrapping_neg())),
+            (format!("{:#X}", neg), format!("{:#X}", val.wrapping_neg())),
         ] }
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 52)) [
-            (format!("{:}",   U64::from(val)), format!("{:}",   val)),
-            (format!("{:b}",  U64::from(val)), format!("{:b}",  val)),
-            (format!("{:o}",  U64::from(val)), format!("{:o}",  val)),
-            (format!("{:x}",  U64::from(val)), format!("{:x}",  val)),
-            (format!("{:X}",  U64::from(val)), format!("{:X}",  val)),
-            (format!("{:#}",  U64::from(val)), format!("{:#}",  val)),
-            (format!("{:#b}", U64::from(val)), format!("{:#b}", val)),
-            (format!("{:#o}", U64::from(val)), format!("{:#o}", val)),
-            (format!("{:#x}", U64::from(val)), format!("{:#x}", val)),
-            (format!("{:#X}", U64::from(val)), format!("{:#X}", val)),
+        ndassert::check! { @eq (
+            val in ndassert::range!(u64, 52),
+            long as U64::from(val),
+        ) [
+            (format!("{:}",   long), format!("{:}",   val)),
+            (format!("{:b}",  long), format!("{:b}",  val)),
+            (format!("{:o}",  long), format!("{:o}",  val)),
+            (format!("{:x}",  long), format!("{:x}",  val)),
+            (format!("{:X}",  long), format!("{:X}",  val)),
+            (format!("{:#}",  long), format!("{:#}",  val)),
+            (format!("{:#b}", long), format!("{:#b}", val)),
+            (format!("{:#o}", long), format!("{:#o}", val)),
+            (format!("{:#x}", long), format!("{:#x}", val)),
+            (format!("{:#X}", long), format!("{:#X}", val)),
         ] }
     }
 
