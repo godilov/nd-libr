@@ -1374,28 +1374,28 @@ pub mod uops {
     /// Micro operations with standard implementation.
     ///
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub struct Uops;
-
-    /// Micro operations with const-time implementation.
-    ///
-    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub struct UopsCt;
+    pub struct UopsStd;
 
     /// Micro operations with dynamic implementation.
     ///
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
     pub struct UopsDyn;
 
+    /// Micro operations with const-time implementation.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub struct UopsCt;
+
     /// Micro operations.
     ///
     /// # Related
     ///
-    /// - [`Uops`] - standard impl.
-    /// - [`UopsCt`] - const-time impl.
+    /// - [`UopsStd`] - standard impl.
     /// - [`UopsDyn`] - dynamic impl.
+    /// - [`UopsCt`] - const-time impl.
     ///
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub trait UopsImpl {
+    pub trait Uops {
         /// Flag in equality operations.
         type Flag;
 
