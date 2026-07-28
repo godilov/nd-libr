@@ -1922,7 +1922,7 @@ pub mod uops {
             let words = self.words.iter().copied();
 
             NegIter { words }.iter().ctx((0, true), |word, _, _, _, (idx, flag)| {
-                (idx + 1, flag && Signed::<L>::MIN.0[idx] == !word)
+                (idx + 1, flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == !word)
             })
         }
     }
@@ -1942,7 +1942,7 @@ pub mod uops {
             let words = self.words.iter_mut();
 
             NegIter { words }.iter_mut().ctx((0, true), |word, _, _, _, (idx, flag)| {
-                (idx + 1, flag && Signed::<L>::MIN.0[idx] == !word)
+                (idx + 1, flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == !word)
             })
         }
     }
@@ -1971,7 +1971,10 @@ pub mod uops {
                 acc,
                 ctx: (0, true),
                 ctx_func: move |word, _, _, _, (idx, flag)| {
-                    (idx + 1, flag && Signed::<L>::MIN.0[idx] == word ^ xor && dirx == Dir::POS)
+                    (
+                        idx + 1,
+                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                    )
                 },
             }
         }
@@ -2005,7 +2008,10 @@ pub mod uops {
                 acc,
                 ctx: (0, true),
                 ctx_func: move |word, _, _, _, (idx, flag)| {
-                    (idx + 1, flag && Signed::<L>::MIN.0[idx] == word ^ xor && dirx == Dir::POS)
+                    (
+                        idx + 1,
+                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                    )
                 },
             }
         }
