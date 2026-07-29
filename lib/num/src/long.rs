@@ -1175,7 +1175,7 @@ pub mod uops {
 
     /// Expression iterator mutable for uops.
     ///
-    /// Yields `lhs * mul + rhs + acc`.
+    /// Yields `lhs * mul + rhs + acc` inplace.
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct ExprIterMut<
         'words,
