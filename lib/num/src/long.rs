@@ -1218,44 +1218,9 @@ pub mod uops {
         pub words: Words,
     }
 
-    /// Positive iterator expression.
+    /// Direction iterator expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct PosIter<Words> {
-        /// Words of expression.
-        pub words: Words,
-    }
-
-    /// Negative iterator expression.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct NegIter<Words> {
-        /// Words of expression.
-        pub words: Words,
-    }
-
-    /// Not value expression.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Not<Words> {
-        /// Words of expression.
-        pub words: Words,
-    }
-
-    /// Positive value expression.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Pos<Words> {
-        /// Words of expression.
-        pub words: Words,
-    }
-
-    /// Negative value expression.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Neg<Words> {
-        /// Words of expression.
-        pub words: Words,
-    }
-
-    /// Dir absolute value expression.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Dirx<Words> {
+    pub struct DirvIter<Words> {
         /// Words of expression.
         pub words: Words,
 
@@ -1281,6 +1246,46 @@ pub mod uops {
 
         /// Rhs in `lhs - rhs`, `lhs -= rhs`.
         pub rhs: Rhs,
+    }
+
+    /// Bit-wise iterator expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct BitIter<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
+        /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        pub lhs: Lhs,
+
+        /// Rhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        pub rhs: Rhs,
+
+        /// Bit-wise operation.
+        pub func: F,
+    }
+
+    /// Not value expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct Not<Words> {
+        /// Words of expression.
+        pub words: Words,
+    }
+
+    /// Direction value expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct Dirv<Words> {
+        /// Words of expression.
+        pub words: Words,
+
+        /// Direction of expression.
+        pub dir: Dir,
+    }
+
+    /// Direction value (absolute) expression.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct Dirx<Words> {
+        /// Words of expression.
+        pub words: Words,
+
+        /// Direction of expression.
+        pub dir: Dir,
     }
 
     /// Add expression.
@@ -1317,19 +1322,6 @@ pub mod uops {
 
         /// Rhs in `lhs * rhs`, `lhs *= rhs`.
         pub rhs: Rhs,
-    }
-
-    /// Bit-wise iterator expression.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct BitIter<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
-        /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
-        pub lhs: Lhs,
-
-        /// Rhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
-        pub rhs: Rhs,
-
-        /// Bit-wise operation.
-        pub func: F,
     }
 
     /// Bit-wise expression.
@@ -1760,8 +1752,8 @@ pub mod uops {
         }
     }
 
-    impl<Words: Iterator<Item = Single>> PosIter<Words> {
-        /// Iterator for [`PosIter`] expression.
+    impl<Words: Iterator<Item = Single>> DirvIter<Words> {
+        /// Iterator for [`DirIter`] expression.
         #[inline]
         pub fn iter(
             self,
@@ -1771,248 +1763,49 @@ pub mod uops {
             (),
             impl Copy + Fn(Single, Single, Single, Single, ()),
         > {
-            ExprIter {
-                lhs: self.words,
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-                ctx: (),
-                ctx_func: id_ctx,
-            }
-        }
-    }
-
-    impl<'words, Words: Iterator<Item = &'words mut Single>> PosIter<Words> {
-        /// Iterator for [`PosIter`] expression.
-        #[inline]
-        pub fn iter_mut(
-            self,
-        ) -> ExprIterMut<
-            'words,
-            impl Iterator<Item = &'words mut Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            ExprIterMut {
-                lhs: self.words,
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-                ctx: (),
-                ctx_func: id_ctx,
-            }
-        }
-    }
-
-    impl<Words: Iterator<Item = Single>> NegIter<Words> {
-        /// Iterator for [`NegIter`] expression.
-        #[inline]
-        pub fn iter(
-            self,
-        ) -> ExprIter<
-            impl Iterator<Item = Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            ExprIter {
-                lhs: self.words.map(|word| !word),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 1,
-                ctx: (),
-                ctx_func: id_ctx,
-            }
-        }
-    }
-
-    impl<'words, Words: Iterator<Item = &'words mut Single>> NegIter<Words> {
-        /// Iterator for [`NegIter`] expression.
-        #[inline]
-        pub fn iter_mut(
-            self,
-        ) -> ExprIterMut<
-            'words,
-            impl Iterator<Item = &'words mut Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            ExprIterMut {
-                lhs: self.words.map(|word| {
-                    *word = !*word;
-                    word
-                }),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 1,
-                ctx: (),
-                ctx_func: id_ctx,
-            }
-        }
-    }
-
-    impl<const L: usize> Not<&[Single; L]> {
-        /// Iterator for [`Not`] expression.
-        #[inline]
-        pub fn iter(self) -> impl Iterator<Item = Single> {
-            let words = self.words.iter().copied();
-
-            NotIter { words }.iter()
-        }
-    }
-
-    impl<const L: usize> Not<&mut [Single; L]> {
-        /// Iterator for [`Not`] expression.
-        #[inline]
-        pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Single> {
-            let words = self.words.iter_mut();
-
-            NotIter { words }.iter_mut()
-        }
-    }
-
-    impl<const L: usize> Pos<&[Single; L]> {
-        /// Iterator for [`Pos`] expression.
-        #[inline]
-        pub fn iter(
-            self,
-        ) -> ExprIter<
-            impl Iterator<Item = Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            let words = self.words.iter().copied();
-
-            PosIter { words }.iter()
-        }
-    }
-
-    impl<const L: usize> Pos<&mut [Single; L]> {
-        /// Iterator for [`Pos`] expression.
-        #[inline]
-        pub fn iter_mut(
-            &mut self,
-        ) -> ExprIterMut<
-            '_,
-            impl Iterator<Item = &mut Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            let words = self.words.iter_mut();
-
-            PosIter { words }.iter_mut()
-        }
-    }
-
-    impl<const L: usize> Neg<&[Single; L]> {
-        /// Iterator for [`Neg`] expression.
-        #[inline]
-        pub fn iter(
-            self,
-        ) -> ExprIter<
-            impl Iterator<Item = Single>,
-            impl Iterator<Item = Single>,
-            (usize, bool),
-            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
-        > {
-            let words = self.words.iter().copied();
-
-            NegIter { words }.iter().ctx((0, true), |word, _, _, _, (idx, flag)| {
-                (idx + 1, flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == !word)
-            })
-        }
-    }
-
-    impl<const L: usize> Neg<&mut [Single; L]> {
-        /// Iterator for [`Neg`] expression.
-        #[inline]
-        pub fn iter_mut(
-            &mut self,
-        ) -> ExprIterMut<
-            '_,
-            impl Iterator<Item = &mut Single>,
-            impl Iterator<Item = Single>,
-            (usize, bool),
-            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
-        > {
-            let words = self.words.iter_mut();
-
-            NegIter { words }.iter_mut().ctx((0, true), |word, _, _, _, (idx, flag)| {
-                (idx + 1, flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == !word)
-            })
-        }
-    }
-
-    impl<const L: usize> Dirx<&[Single; L]> {
-        /// Iterator for [`Dirx`] expression.
-        #[inline]
-        pub fn iter(
-            self,
-        ) -> ExprIter<
-            impl Iterator<Item = Single>,
-            impl Iterator<Item = Single>,
-            (usize, bool),
-            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
-        > {
-            let dirx = self.dir;
-            let (xor, acc) = match dir(self.words) == self.dir {
-                false => (MAX, 1),
-                true => (0, 0),
+            let (xor, acc) = match self.dir {
+                Dir::POS => (0, 0),
+                Dir::NEG => (MAX, 1),
             };
 
             ExprIter {
-                lhs: self.words.iter().copied().map(move |word| word ^ xor),
+                lhs: self.words.map(move |word| word ^ xor),
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc,
-                ctx: (0, true),
-                ctx_func: move |word, _, _, _, (idx, flag)| {
-                    (
-                        idx + 1,
-                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
-                    )
-                },
+                ctx: (),
+                ctx_func: id_ctx,
             }
         }
     }
 
-    impl<const L: usize> Dirx<&mut [Single; L]> {
-        /// Iterator for [`Dirx`] expression.
+    impl<'words, Words: Iterator<Item = &'words mut Single>> DirvIter<Words> {
+        /// Iterator for [`DirIter`] expression.
         #[inline]
         pub fn iter_mut(
-            &mut self,
+            self,
         ) -> ExprIterMut<
-            '_,
-            impl Iterator<Item = &mut Single>,
+            'words,
+            impl Iterator<Item = &'words mut Single>,
             impl Iterator<Item = Single>,
-            (usize, bool),
-            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
+            (),
+            impl Copy + Fn(Single, Single, Single, Single, ()),
         > {
-            let dirx = self.dir;
-            let (xor, acc) = match dir(self.words) == self.dir {
-                false => (MAX, 1),
-                true => (0, 0),
+            let (xor, acc) = match self.dir {
+                Dir::POS => (0, 0),
+                Dir::NEG => (MAX, 1),
             };
 
             ExprIterMut {
-                lhs: self.words.iter_mut().map(move |word| {
+                lhs: self.words.map(move |word| {
                     *word ^= xor;
                     word
                 }),
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc,
-                ctx: (0, true),
-                ctx_func: move |word, _, _, _, (idx, flag)| {
-                    (
-                        idx + 1,
-                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
-                    )
-                },
+                ctx: (),
+                ctx_func: id_ctx,
             }
         }
     }
@@ -2058,6 +1851,235 @@ pub mod uops {
                 acc: 0,
                 ctx: (),
                 ctx_func: id_ctx,
+            }
+        }
+    }
+
+    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
+        /// Iterator for [`SubIter`] expression.
+        #[inline]
+        pub fn iter(
+            self,
+        ) -> ExprIter<
+            impl Iterator<Item = Single>,
+            impl Iterator<Item = Single>,
+            (),
+            impl Copy + Fn(Single, Single, Single, Single, ()),
+        > {
+            ExprIter {
+                lhs: self.lhs,
+                rhs: self.rhs.map(|word| !word),
+                mul: 1,
+                acc: 1,
+                ctx: (),
+                ctx_func: id_ctx,
+            }
+        }
+    }
+
+    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
+        /// Iterator for [`SubIter`] expression.
+        #[inline]
+        pub fn iter_mut(
+            self,
+        ) -> ExprIterMut<
+            'words,
+            impl Iterator<Item = &'words mut Single>,
+            impl Iterator<Item = Single>,
+            (),
+            impl Copy + Fn(Single, Single, Single, Single, ()),
+        > {
+            ExprIterMut {
+                lhs: self.lhs,
+                rhs: self.rhs.map(|word| !word),
+                mul: 1,
+                acc: 1,
+                ctx: (),
+                ctx_func: id_ctx,
+            }
+        }
+    }
+
+    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>, F: 'static + Fn(Single, Single) -> Single + Copy>
+        BitIter<Lhs, Rhs, F>
+    {
+        /// Iterator for [`BitIter`] expression.
+        #[inline]
+        pub fn iter(self) -> impl Iterator<Item = Single> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.zip(rhs).map(move |(lhs, rhs)| func(lhs, rhs))
+        }
+    }
+
+    impl<
+        'words,
+        Lhs: Iterator<Item = &'words mut Single>,
+        Rhs: Iterator<Item = Single>,
+        F: 'static + Fn(Single, Single) -> Single + Copy,
+    > BitIter<Lhs, Rhs, F>
+    {
+        /// Iterator for [`BitIter`] expression.
+        #[inline]
+        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
+            let lhs = self.lhs;
+            let rhs = self.rhs;
+            let func = self.func;
+
+            lhs.zip(rhs).map(move |(ptr, val)| {
+                *ptr = func(*ptr, val);
+                ptr
+            })
+        }
+    }
+
+    impl<const L: usize> Not<&[Single; L]> {
+        /// Iterator for [`Not`] expression.
+        #[inline]
+        pub fn iter(self) -> impl Iterator<Item = Single> {
+            let words = self.words.iter().copied();
+
+            NotIter { words }.iter()
+        }
+    }
+
+    impl<const L: usize> Not<&mut [Single; L]> {
+        /// Iterator for [`Not`] expression.
+        #[inline]
+        pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Single> {
+            let words = self.words.iter_mut();
+
+            NotIter { words }.iter_mut()
+        }
+    }
+
+    impl<const L: usize> Dirv<&[Single; L]> {
+        /// Iterator for [`Dirv`] expression.
+        #[inline]
+        pub fn iter(
+            self,
+        ) -> ExprIter<
+            impl Iterator<Item = Single>,
+            impl Iterator<Item = Single>,
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
+        > {
+            let words = self.words.iter().copied();
+            let dir = self.dir;
+            let xor = match self.dir {
+                Dir::POS => 0,
+                Dir::NEG => MAX,
+            };
+
+            DirvIter { words, dir }
+                .iter()
+                .ctx((0, true), move |word, _, _, _, (idx, flag)| {
+                    (
+                        idx + 1,
+                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
+                    )
+                })
+        }
+    }
+
+    impl<const L: usize> Dirv<&mut [Single; L]> {
+        /// Iterator for [`Dirv`] expression.
+        #[inline]
+        pub fn iter_mut(
+            &mut self,
+        ) -> ExprIterMut<
+            '_,
+            impl Iterator<Item = &mut Single>,
+            impl Iterator<Item = Single>,
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
+        > {
+            let words = self.words.iter_mut();
+            let dir = self.dir;
+            let xor = match self.dir {
+                Dir::POS => 0,
+                Dir::NEG => MAX,
+            };
+
+            DirvIter { words, dir }
+                .iter_mut()
+                .ctx((0, true), move |word, _, _, _, (idx, flag)| {
+                    (
+                        idx + 1,
+                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
+                    )
+                })
+        }
+    }
+
+    impl<const L: usize> Dirx<&[Single; L]> {
+        /// Iterator for [`Dirx`] expression.
+        #[inline]
+        pub fn iter(
+            self,
+        ) -> ExprIter<
+            impl Iterator<Item = Single>,
+            impl Iterator<Item = Single>,
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
+        > {
+            let dirx = self.dir;
+            let (xor, acc) = match dir(self.words) == self.dir {
+                true => (0, 0),
+                false => (MAX, 1),
+            };
+
+            ExprIter {
+                lhs: self.words.iter().copied().map(move |word| word ^ xor),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc,
+                ctx: (0, true),
+                ctx_func: move |word, _, _, _, (idx, flag)| {
+                    (
+                        idx + 1,
+                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                    )
+                },
+            }
+        }
+    }
+
+    impl<const L: usize> Dirx<&mut [Single; L]> {
+        /// Iterator for [`Dirx`] expression.
+        #[inline]
+        pub fn iter_mut(
+            &mut self,
+        ) -> ExprIterMut<
+            '_,
+            impl Iterator<Item = &mut Single>,
+            impl Iterator<Item = Single>,
+            (usize, bool),
+            impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
+        > {
+            let dirx = self.dir;
+            let (xor, acc) = match dir(self.words) == self.dir {
+                true => (0, 0),
+                false => (MAX, 1),
+            };
+
+            ExprIterMut {
+                lhs: self.words.iter_mut().map(move |word| {
+                    *word ^= xor;
+                    word
+                }),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc,
+                ctx: (0, true),
+                ctx_func: move |word, _, _, _, (idx, flag)| {
+                    (
+                        idx + 1,
+                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                    )
+                },
             }
         }
     }
@@ -2239,51 +2261,6 @@ pub mod uops {
                 acc: 0,
                 ctx: false,
                 ctx_func: move |_, _, _, word, _| eq && dirx != dir(&[word]),
-            }
-        }
-    }
-
-    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
-        /// Iterator for [`SubIter`] expression.
-        #[inline]
-        pub fn iter(
-            self,
-        ) -> ExprIter<
-            impl Iterator<Item = Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            ExprIter {
-                lhs: self.lhs,
-                rhs: self.rhs.map(|word| !word),
-                mul: 1,
-                acc: 1,
-                ctx: (),
-                ctx_func: id_ctx,
-            }
-        }
-    }
-
-    impl<'words, Lhs: Iterator<Item = &'words mut Single>, Rhs: Iterator<Item = Single>> SubIter<Lhs, Rhs> {
-        /// Iterator for [`SubIter`] expression.
-        #[inline]
-        pub fn iter_mut(
-            self,
-        ) -> ExprIterMut<
-            'words,
-            impl Iterator<Item = &'words mut Single>,
-            impl Iterator<Item = Single>,
-            (),
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            ExprIterMut {
-                lhs: self.lhs,
-                rhs: self.rhs.map(|word| !word),
-                mul: 1,
-                acc: 1,
-                ctx: (),
-                ctx_func: id_ctx,
             }
         }
     }
@@ -2530,41 +2507,6 @@ pub mod uops {
         }
     }
 
-    impl<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>, F: 'static + Fn(Single, Single) -> Single + Copy>
-        BitIter<Lhs, Rhs, F>
-    {
-        /// Iterator for [`BitIter`] expression.
-        #[inline]
-        pub fn iter(self) -> impl Iterator<Item = Single> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-            let func = self.func;
-
-            lhs.zip(rhs).map(move |(lhs, rhs)| func(lhs, rhs))
-        }
-    }
-
-    impl<
-        'words,
-        Lhs: Iterator<Item = &'words mut Single>,
-        Rhs: Iterator<Item = Single>,
-        F: 'static + Fn(Single, Single) -> Single + Copy,
-    > BitIter<Lhs, Rhs, F>
-    {
-        /// Iterator for [`BitIter`] expression.
-        #[inline]
-        pub fn iter_mut(self) -> impl Iterator<Item = &'words mut Single> {
-            let lhs = self.lhs;
-            let rhs = self.rhs;
-            let func = self.func;
-
-            lhs.zip(rhs).map(move |(ptr, val)| {
-                *ptr = func(*ptr, val);
-                ptr
-            })
-        }
-    }
-
     impl<const L: usize, F: 'static + Fn(Single, Single) -> Single + Copy> Bit<&[Single; L], &[Single; L], F> {
         /// Iterator for [`Bit`] expression.
         #[inline]
@@ -2737,118 +2679,6 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Expr<[Single; L]> for Not<&[Single; L]> {
-        #[inline]
-        fn eval(self) -> [Single; L] {
-            self.iter().collectx()
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ([Single; L], bool) {
-            (self.iter().collectx(), false)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Not<&'words mut [Single; L]> {
-        #[inline]
-        fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().for_each(|_| ());
-
-            self.words
-        }
-
-        #[inline]
-        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            self.iter_mut().for_each(|_| ());
-
-            (self.words, false)
-        }
-    }
-
-    impl<const L: usize> Expr<[Single; L]> for Pos<&[Single; L]> {
-        #[inline]
-        fn eval(self) -> [Single; L] {
-            self.iter().raw().eval()
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext(|_| false)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Pos<&'words mut [Single; L]> {
-        #[inline]
-        fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval_mut();
-
-            self.words
-        }
-
-        #[inline]
-        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext_mut(|_| false);
-
-            (self.words, overflow)
-        }
-    }
-
-    impl<const L: usize> Expr<[Single; L]> for Neg<&[Single; L]> {
-        #[inline]
-        fn eval(self) -> [Single; L] {
-            self.iter().raw().eval()
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext(|(_, flag)| flag)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Neg<&'words mut [Single; L]> {
-        #[inline]
-        fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval_mut();
-
-            self.words
-        }
-
-        #[inline]
-        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext_mut(|(_, flag)| flag);
-
-            (self.words, overflow)
-        }
-    }
-
-    impl<const L: usize> Expr<[Single; L]> for Dirx<&[Single; L]> {
-        #[inline]
-        fn eval(self) -> [Single; L] {
-            self.iter().raw().eval()
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ([Single; L], bool) {
-            self.iter().eval_ext(|(_, flag)| flag)
-        }
-    }
-
-    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Dirx<&'words mut [Single; L]> {
-        #[inline]
-        fn eval_mut(mut self) -> &'words mut [Single; L] {
-            self.iter_mut().raw().eval_mut();
-
-            self.words
-        }
-
-        #[inline]
-        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
-            let (_, overflow) = self.iter_mut().eval_ext_mut(|(_, flag)| flag);
-
-            (self.words, overflow)
-        }
-    }
-
     impl<const L: usize, Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>> Expr<[Single; L]>
         for AddIter<Lhs, Rhs>
     {
@@ -2898,6 +2728,126 @@ pub mod uops {
         #[inline]
         fn eval_ext(self) -> ((), bool) {
             self.iter_mut().eval_ext_mut(|_| false)
+        }
+    }
+
+    impl<
+        const L: usize,
+        Lhs: Iterator<Item = Single>,
+        Rhs: Iterator<Item = Single>,
+        F: 'static + Fn(Single, Single) -> Single + Copy,
+    > Expr<[Single; L]> for BitIter<Lhs, Rhs, F>
+    {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.iter().collectx()
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            (self.iter().collectx(), false)
+        }
+    }
+
+    impl<
+        'words,
+        Lhs: Iterator<Item = &'words mut Single>,
+        Rhs: Iterator<Item = Single>,
+        F: 'static + Fn(Single, Single) -> Single + Copy,
+    > Expr<()> for BitIter<Lhs, Rhs, F>
+    {
+        #[inline]
+        fn eval(self) {
+            self.iter_mut().for_each(|_| ())
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ((), bool) {
+            (self.iter_mut().for_each(|_| ()), false)
+        }
+    }
+
+    impl<const L: usize> Expr<[Single; L]> for Not<&[Single; L]> {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.iter().collectx()
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            (self.iter().collectx(), false)
+        }
+    }
+
+    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Not<&'words mut [Single; L]> {
+        #[inline]
+        fn eval_mut(mut self) -> &'words mut [Single; L] {
+            self.iter_mut().for_each(|_| ());
+
+            self.words
+        }
+
+        #[inline]
+        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
+            self.iter_mut().for_each(|_| ());
+
+            (self.words, false)
+        }
+    }
+
+    impl<const L: usize> Expr<[Single; L]> for Dirv<&[Single; L]> {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.iter().raw().eval()
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext(|(_, flag)| flag)
+        }
+    }
+
+    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Dirv<&'words mut [Single; L]> {
+        #[inline]
+        fn eval_mut(mut self) -> &'words mut [Single; L] {
+            self.iter_mut().raw().eval_mut();
+
+            self.words
+        }
+
+        #[inline]
+        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
+            let (_, overflow) = self.iter_mut().eval_ext_mut(|(_, flag)| flag);
+
+            (self.words, overflow)
+        }
+    }
+
+    impl<const L: usize> Expr<[Single; L]> for Dirx<&[Single; L]> {
+        #[inline]
+        fn eval(self) -> [Single; L] {
+            self.iter().raw().eval()
+        }
+
+        #[inline]
+        fn eval_ext(self) -> ([Single; L], bool) {
+            self.iter().eval_ext(|(_, flag)| flag)
+        }
+    }
+
+    impl<'words, const L: usize> ExprMut<'words, [Single; L]> for Dirx<&'words mut [Single; L]> {
+        #[inline]
+        fn eval_mut(mut self) -> &'words mut [Single; L] {
+            self.iter_mut().raw().eval_mut();
+
+            self.words
+        }
+
+        #[inline]
+        fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
+            let (_, overflow) = self.iter_mut().eval_ext_mut(|(_, flag)| flag);
+
+            (self.words, overflow)
         }
     }
 
@@ -3356,42 +3306,6 @@ pub mod uops {
         }
     }
 
-    impl<
-        const L: usize,
-        Lhs: Iterator<Item = Single>,
-        Rhs: Iterator<Item = Single>,
-        F: 'static + Fn(Single, Single) -> Single + Copy,
-    > Expr<[Single; L]> for BitIter<Lhs, Rhs, F>
-    {
-        #[inline]
-        fn eval(self) -> [Single; L] {
-            self.iter().collectx()
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ([Single; L], bool) {
-            (self.iter().collectx(), false)
-        }
-    }
-
-    impl<
-        'words,
-        Lhs: Iterator<Item = &'words mut Single>,
-        Rhs: Iterator<Item = Single>,
-        F: 'static + Fn(Single, Single) -> Single + Copy,
-    > Expr<()> for BitIter<Lhs, Rhs, F>
-    {
-        #[inline]
-        fn eval(self) {
-            self.iter_mut().for_each(|_| ())
-        }
-
-        #[inline]
-        fn eval_ext(self) -> ((), bool) {
-            (self.iter_mut().for_each(|_| ()), false)
-        }
-    }
-
     impl<const L: usize, F: 'static + Fn(Single, Single) -> Single + Copy> Expr<[Single; L]>
         for Bit<&[Single; L], &[Single; L], F>
     {
@@ -3642,48 +3556,24 @@ pub mod uops {
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
-    pub fn pos_iter<Words>(words: Words) -> PosIter<Words> {
-        PosIter { words }
+    pub fn pos_iter<Words>(words: Words) -> DirvIter<Words> {
+        DirvIter { words, dir: Dir::POS }
     }
 
     /// Negative iterator expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
-    pub fn neg_iter<Words>(words: Words) -> NegIter<Words> {
-        NegIter { words }
+    pub fn neg_iter<Words>(words: Words) -> DirvIter<Words> {
+        DirvIter { words, dir: Dir::NEG }
     }
 
-    /// Not expression.
+    /// Direction iterator expression.
     ///
     /// Evaluated via [`Expr`] methods.
     #[inline]
-    pub fn not<Words>(words: Words) -> Not<Words> {
-        Not { words }
-    }
-
-    /// Positive expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn pos<Words>(words: Words) -> Pos<Words> {
-        Pos { words }
-    }
-
-    /// Negative expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn neg<Words>(words: Words) -> Neg<Words> {
-        Neg { words }
-    }
-
-    /// Dir absolute value expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn dirx<Words>(words: Words, dir: Dir) -> Dirx<Words> {
-        Dirx { words, dir }
+    pub fn dirv_iter<Words>(words: Words, dir: Dir) -> DirvIter<Words> {
+        DirvIter { words, dir }
     }
 
     /// Add iterators expression.
@@ -3700,30 +3590,6 @@ pub mod uops {
     #[inline]
     pub fn sub_iter<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> SubIter<Lhs, Rhs> {
         SubIter { lhs, rhs }
-    }
-
-    /// Add expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn add<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Add<Lhs, Rhs, UnsignedImpl> {
-        Add { lhs, rhs, imp: UnsignedImpl }
-    }
-
-    /// Sub expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn sub<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Sub<Lhs, Rhs, UnsignedImpl> {
-        Sub { lhs, rhs, imp: UnsignedImpl }
-    }
-
-    /// Mul expression.
-    ///
-    /// Evaluated via [`Expr`] methods.
-    #[inline]
-    pub fn mul<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Mul<Lhs, Rhs> {
-        Mul { lhs, rhs }
     }
 
     /// BitOr iterator expression.
@@ -3769,6 +3635,70 @@ pub mod uops {
             rhs,
             func: |lhs: Single, rhs: Single| lhs ^ rhs,
         }
+    }
+
+    /// Not value expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn not<Words>(words: Words) -> Not<Words> {
+        Not { words }
+    }
+
+    /// Positive value expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn pos<Words>(words: Words) -> Dirv<Words> {
+        Dirv { words, dir: Dir::POS }
+    }
+
+    /// Negative value expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn neg<Words>(words: Words) -> Dirv<Words> {
+        Dirv { words, dir: Dir::NEG }
+    }
+
+    /// Direction value expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn dirv<Words>(words: Words, dir: Dir) -> Dirv<Words> {
+        Dirv { words, dir }
+    }
+
+    /// Direction value (absolute) expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn dirx<Words>(words: Words, dir: Dir) -> Dirx<Words> {
+        Dirx { words, dir }
+    }
+
+    /// Add expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn add<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Add<Lhs, Rhs, UnsignedImpl> {
+        Add { lhs, rhs, imp: UnsignedImpl }
+    }
+
+    /// Sub expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn sub<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Sub<Lhs, Rhs, UnsignedImpl> {
+        Sub { lhs, rhs, imp: UnsignedImpl }
+    }
+
+    /// Mul expression.
+    ///
+    /// Evaluated via [`Expr`] methods.
+    #[inline]
+    pub fn mul<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> Mul<Lhs, Rhs> {
+        Mul { lhs, rhs }
     }
 
     /// BitOr expression.
@@ -9159,6 +9089,8 @@ mod tests {
             (uops::pos(&bytes).eval(), pos.to_le_bytes()),
             (uops::neg(&bytes).eval(), neg.to_le_bytes()),
 
+            (uops::dirv(&bytes, Dir::POS).eval(), pos.to_le_bytes()),
+            (uops::dirv(&bytes, Dir::NEG).eval(), neg.to_le_bytes()),
             (uops::dirx(&bytes, Dir::POS).eval(), [pos, neg][(neg > 0) as usize].to_le_bytes()),
             (uops::dirx(&bytes, Dir::NEG).eval(), [pos, neg][(pos > 0) as usize].to_le_bytes()),
         ] }
@@ -9226,6 +9158,8 @@ mod tests {
             ({ let mut bytes = bytes; uops::pos(&mut bytes).eval_mut(); bytes }, pos.to_le_bytes()),
             ({ let mut bytes = bytes; uops::neg(&mut bytes).eval_mut(); bytes }, neg.to_le_bytes()),
 
+            ({ let mut bytes = bytes; uops::dirv(&mut bytes, Dir::POS).eval_mut(); bytes }, pos.to_le_bytes()),
+            ({ let mut bytes = bytes; uops::dirv(&mut bytes, Dir::NEG).eval_mut(); bytes }, neg.to_le_bytes()),
             ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::POS).eval_mut(); bytes }, [pos, neg][(neg > 0) as usize].to_le_bytes()),
             ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::NEG).eval_mut(); bytes }, [pos, neg][(pos > 0) as usize].to_le_bytes()),
         ] }
