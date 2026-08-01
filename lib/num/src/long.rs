@@ -1753,7 +1753,7 @@ pub mod uops {
     }
 
     impl<Words: Iterator<Item = Single>> DirvIter<Words> {
-        /// Iterator for [`DirIter`] expression.
+        /// Iterator for [`DirvIter`] expression.
         #[inline]
         pub fn iter(
             self,
@@ -1780,7 +1780,7 @@ pub mod uops {
     }
 
     impl<'words, Words: Iterator<Item = &'words mut Single>> DirvIter<Words> {
-        /// Iterator for [`DirIter`] expression.
+        /// Iterator for [`DirvIter`] expression.
         #[inline]
         pub fn iter_mut(
             self,
