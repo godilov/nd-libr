@@ -545,16 +545,13 @@ pub trait NumDyn: Clone + BytesFn + NumFn + ZeroFn + OneFn {}
 #[ndfwd::decl]
 pub trait NumExt: Num {
     /// Checks `size_of::<Self>() == size_of::<Self::Signed>`.
-    #[allow(unused)]
-    const CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
+    const _CHECK_SIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Signed>());
 
     /// Checks `size_of::<Self>() == size_of::<Self::Unsigned>`.
-    #[allow(unused)]
-    const CHECK_UNSIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Unsigned>());
+    const _CHECK_UNSIGNED: () = assert!(std::mem::size_of::<Self>() == std::mem::size_of::<Self::Unsigned>());
 
     /// Checks `size_of::<Self::Signed>() == size_of::<Self::Unsigned>`.
-    #[allow(unused)]
-    const CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
+    const _CHECK_ASSOCIATED: () = assert!(std::mem::size_of::<Self::Signed>() == std::mem::size_of::<Self::Unsigned>());
 
     /// Signed counterpart of the same size.
     type Signed: Num + NumSigned;
@@ -1632,8 +1629,7 @@ impl<N> NdForward for Unbounded<N> {}
 impl<N> NdForward for Relaxed<N> {}
 
 impl<N: Num + NumUnsigned, const BITS: usize> Width<N, BITS> {
-    #[allow(unused)]
-    const CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
+    const _CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
 
     #[inline]
     pub(crate) fn normalized(mut self) -> Self {

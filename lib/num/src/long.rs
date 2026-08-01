@@ -6160,8 +6160,7 @@ ndops::def! { @stdmut <const L: usize> (lhs: &mut Bytes<L>, rhs: usize), [
 ] }
 
 impl<const L: usize> Signed<L> {
-    #[allow(unused)]
-    const CHECK: () = assert!(0 < L);
+    const _CHECK: () = assert!(0 < L);
 
     from_primitive_const!([
         (from_i8, i8),
@@ -6208,8 +6207,7 @@ impl<const L: usize> Signed<L> {
 }
 
 impl<const L: usize> Unsigned<L> {
-    #[allow(unused)]
-    const CHECK: () = assert!(0 < L);
+    const _CHECK: () = assert!(0 < L);
 
     from_primitive_const!([
         (from_u8, u8),
@@ -6253,8 +6251,7 @@ impl<const L: usize> Unsigned<L> {
 }
 
 impl<const L: usize> Bytes<L> {
-    #[allow(unused)]
-    const CHECK: () = assert!(0 < L);
+    const _CHECK: () = assert!(0 < L);
 
     from_primitive_const!([
         (from_u8, u8),
