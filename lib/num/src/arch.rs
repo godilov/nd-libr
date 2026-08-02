@@ -173,8 +173,8 @@ macro_rules! bytes_impl {
             }
         }
 
-        impl AsBytesIterator for $primitive {}
-        impl AsWordsIterator for $primitive {}
+        impl BytesIterator for $primitive {}
+        impl WordsIterator for $primitive {}
     };
 }
 
@@ -376,12 +376,14 @@ pub mod word {
     }
 }
 
-/// Infinite iterator of words.
+/// Iterator of words (infinite).
+///
+/// For more info, see [crate-level](crate) documentation.
 #[derive(Clone)]
-pub struct AsWordsIter<'bytes, W: Word> {
+pub struct WordsIter<'bytes, W: Word> {
     idx: usize,
     bytes: &'bytes [u8],
-    default: W,
+    ext: W,
 }
 
 /// Aligned to approximate architecture cacheline size type.
@@ -702,87 +704,113 @@ pub trait BytesFn: Sized + Default + AsBytesRef + AsBytesMut {
     }
 }
 
-/// As ref-slice of bytes.
+/// As bytes slice (reference).
 #[ndfwd::decl]
 pub trait AsBytesRef {
-    /// As ref-slice of bytes.
+    /// As ref-slice of words.
     fn as_bytes_ref(&self) -> &[u8];
 }
 
-/// As mut-slice of bytes.
+/// As bytes slice (mutable).
 #[ndfwd::decl]
 pub trait AsBytesMut {
-    /// As mut-slice of bytes.
+    /// As mut-slice of words.
     fn as_bytes_mut(&mut self) -> &mut [u8];
 }
 
-/// As ref-slice of words.
+/// As words slice (reference, multi-type).
 #[ndfwd::decl]
 pub trait AsWordsRef {
     /// As ref-slice of words.
     fn as_words_ref<W: Word>(&self) -> &[W];
 }
 
-/// As mut-slice of words.
+/// As words slice (mutable, multi-type).
 #[ndfwd::decl]
 pub trait AsWordsMut {
     /// As mut-slice of words.
     fn as_words_mut<W: Word>(&mut self) -> &mut [W];
 }
 
+/// As words slice (reference, single-type).
+#[ndfwd::decl]
+pub trait AsWordsRefWith<W: Word> {
+    /// As ref-slice of bytes.
+    fn as_words_ref_with(&self) -> &[W];
+}
+
+/// As words slice (mutable, single-type).
+#[ndfwd::decl]
+pub trait AsWordsMutWith<W: Word> {
+    /// As mut-slice of bytes.
+    fn as_words_mut_with(&mut self) -> &mut [W];
+}
+
 /// As bytes iterator.
 #[ndfwd::decl]
-pub trait AsBytesIterator {
+pub trait BytesIterator {
     /// Iterates over self in bytes.
     #[inline]
-    fn iter_bytes(&self) -> impl Iterator<Item = u8> + Clone
+    fn iter_bytes(&self) -> WordsIter<'_, u8>
     where
         Self: AsBytesRef,
     {
-        self.iter_bytes_default(0)
+        self.iter_bytes_ext(0)
     }
 
     /// Iterates over self in bytes.
     ///
-    /// Allows default argument for byte-extension.
+    /// Allows argument for byte-extension.
     #[inline]
-    fn iter_bytes_default(&self, default: u8) -> impl Iterator<Item = u8> + Clone
+    fn iter_bytes_ext(&self, ext: u8) -> WordsIter<'_, u8>
     where
         Self: AsBytesRef,
     {
-        AsWordsIter {
+        WordsIter {
             idx: 0,
             bytes: self.as_bytes_ref(),
-            default,
+            ext,
         }
     }
 }
 
 /// As words iterator.
 #[ndfwd::decl]
-pub trait AsWordsIterator {
+pub trait WordsIterator {
     /// Iterates over self in words.
     #[inline]
-    fn iter_words<W: Word>(&self) -> impl Iterator<Item = W> + Clone
+    fn iter_words<W: Word>(&self) -> WordsIter<'_, W>
     where
         Self: AsBytesRef,
     {
-        self.iter_words_default(W::ZERO)
+        self.iter_words_ext(W::ZERO)
     }
 
     /// Iterates over self in words.
     ///
-    /// Allows default argument for word-extension.
+    /// Allows argument for word-extension.
     #[inline]
-    fn iter_words_default<W: Word>(&self, default: W) -> impl Iterator<Item = W> + Clone
+    fn iter_words_ext<W: Word>(&self, ext: W) -> WordsIter<'_, W>
     where
         Self: AsBytesRef,
     {
-        AsWordsIter {
+        WordsIter {
             idx: 0,
             bytes: self.as_bytes_ref(),
-            default,
+            ext,
         }
+    }
+}
+
+impl<Any: AsWordsRef, W: Word> AsWordsRefWith<W> for Any {
+    fn as_words_ref_with(&self) -> &[W] {
+        self.as_words_ref()
+    }
+}
+
+impl<Any: AsWordsMut, W: Word> AsWordsMutWith<W> for Any {
+    fn as_words_mut_with(&mut self) -> &mut [W] {
+        self.as_words_mut()
     }
 }
 
@@ -856,7 +884,7 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     }
 }
 
-impl<'bytes, W: Word> Iterator for AsWordsIter<'bytes, W> {
+impl<'bytes, W: Word> Iterator for WordsIter<'bytes, W> {
     type Item = W;
 
     #[inline]
@@ -867,7 +895,7 @@ impl<'bytes, W: Word> Iterator for AsWordsIter<'bytes, W> {
         let l = idx.min(len);
         let r = (idx + W::BYTES).min(len);
 
-        let mut res = self.default;
+        let mut res = self.ext;
 
         AsBytesMut::as_bytes_mut(&mut res)[0..(r - l)].copy_from_slice(&self.bytes[l..r]);
 
