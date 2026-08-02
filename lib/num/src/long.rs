@@ -6583,14 +6583,14 @@ impl<const L: usize> BytesFn for Bytes<L> {
 impl<const L: usize> AsBytesRef for Signed<L> {
     #[inline]
     fn as_bytes_ref(&self) -> &[u8] {
-        self.0.as_bytes()
+        transmute_ref!(&self.0[..]) as &[u8]
     }
 }
 
 impl<const L: usize> AsBytesMut for Signed<L> {
     #[inline]
     fn as_bytes_mut(&mut self) -> &mut [u8] {
-        self.0.as_mut_bytes()
+        transmute_mut!(&mut self.0[..]) as &mut [u8]
     }
 }
 
@@ -6611,14 +6611,14 @@ impl<const L: usize> AsWordsMut for Signed<L> {
 impl<const L: usize> AsBytesRef for Unsigned<L> {
     #[inline]
     fn as_bytes_ref(&self) -> &[u8] {
-        self.0.as_bytes()
+        transmute_ref!(&self.0[..]) as &[u8]
     }
 }
 
 impl<const L: usize> AsBytesMut for Unsigned<L> {
     #[inline]
     fn as_bytes_mut(&mut self) -> &mut [u8] {
-        self.0.as_mut_bytes()
+        transmute_mut!(&mut self.0[..]) as &mut [u8]
     }
 }
 
@@ -6639,14 +6639,14 @@ impl<const L: usize> AsWordsMut for Unsigned<L> {
 impl<const L: usize> AsBytesRef for Bytes<L> {
     #[inline]
     fn as_bytes_ref(&self) -> &[u8] {
-        self.0.as_bytes()
+        transmute_ref!(&self.0[..]) as &[u8]
     }
 }
 
 impl<const L: usize> AsBytesMut for Bytes<L> {
     #[inline]
     fn as_bytes_mut(&mut self) -> &mut [u8] {
-        self.0.as_mut_bytes()
+        transmute_mut!(&mut self.0[..]) as &mut [u8]
     }
 }
 

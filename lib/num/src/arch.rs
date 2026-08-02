@@ -803,12 +803,14 @@ pub trait WordsIterator {
 }
 
 impl<Any: AsWordsRef, W: Word> AsWordsRefWith<W> for Any {
+    #[inline]
     fn as_words_ref_with(&self) -> &[W] {
         self.as_words_ref()
     }
 }
 
 impl<Any: AsWordsMut, W: Word> AsWordsMutWith<W> for Any {
+    #[inline]
     fn as_words_mut_with(&mut self) -> &mut [W] {
         self.as_words_mut()
     }
