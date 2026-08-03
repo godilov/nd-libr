@@ -439,8 +439,6 @@ pub struct WordsIter<'bytes, W: Word> {
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: AsWordsRefWith<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMutWith<W>)]
 #[ndfwd::def(self.0 with T: crate::ZeroFn)]
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -492,8 +490,6 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: AsWordsRefWith<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMutWith<W>)]
 #[ndfwd::def(self.0 with T: crate::ZeroFn)]
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -538,8 +534,6 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: AsWordsRefWith<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMutWith<W>)]
 #[ndfwd::def(self.0 with T: crate::ZeroFn)]
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -584,8 +578,6 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: AsWordsRefWith<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMutWith<W>)]
 #[ndfwd::def(self.0 with T: crate::ZeroFn)]
 #[ndfwd::def(self.0 with T: crate::OneFn)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
@@ -630,8 +622,6 @@ pub struct Aligned128<T>(pub T);
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: AsWordsRefWith<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMutWith<W>)]
 #[repr(align(4096))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
@@ -740,20 +730,6 @@ pub trait AsWordsRef {
 pub trait AsWordsMut {
     /// As mut-slice of words.
     fn as_words_mut<W: Word>(&mut self) -> &mut [W];
-}
-
-/// As words slice (reference, single-type).
-#[ndfwd::decl]
-pub trait AsWordsRefWith<W: Word> {
-    /// As ref-slice of bytes.
-    fn as_words_ref_with(&self) -> &[W];
-}
-
-/// As words slice (mutable, single-type).
-#[ndfwd::decl]
-pub trait AsWordsMutWith<W: Word> {
-    /// As mut-slice of bytes.
-    fn as_words_mut_with(&mut self) -> &mut [W];
 }
 
 /// As bytes iterator.
