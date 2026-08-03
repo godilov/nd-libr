@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     Attribute, Error, Expr, FnArg, Generics, Ident, ImplItemConst, ImplItemType, Item, ItemEnum, ItemImpl, ItemStruct,
-    ItemTrait, ItemUnion, Meta, Path, Result, Token, TraitItem, TraitItemFn, Type, WhereClause, braced,
+    ItemTrait, ItemUnion, Meta, Path, PathArguments, Result, Token, TraitItem, TraitItemFn, Type, WhereClause, braced,
     parse::{Parse, ParseStream},
     parse_macro_input,
     token::Brace,
@@ -379,6 +379,15 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
 
     let ty = &attr.fwd.ty;
     let path = &attr.path;
+    let path_ = {
+        let mut res = path.clone();
+
+        if let Some(val) = res.segments.last_mut() {
+            val.arguments = PathArguments::None
+        };
+
+        res
+    };
     let defaults = &attr.defaults;
 
     let sig_predicates = generics.where_clause.as_ref().map(|val| val.predicates.iter());
@@ -445,7 +454,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
             use super::*;
 
             #[allow(unused_imports)]
-            use #path;
+            use #path_;
         }
     }
     .into()
