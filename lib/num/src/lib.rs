@@ -1643,15 +1643,6 @@ impl<N: Num + NumUnsigned, const BITS: usize> Width<N, BITS> {
             return self;
         }
 
-        let bits = N::BITS - BITS;
-        let div = bits / Single::BITS as usize;
-        let rem = bits % Single::BITS as usize;
-
-        for idx in 0..div {
-            self.write_bitand(0, Offset::Right((idx + 1) * BITS));
-        }
-
-        self.write_bitand(Single::MAX.unbounded_shr(rem as u32), Offset::Right((div + 1) * BITS));
         self
     }
 }

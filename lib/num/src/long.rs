@@ -21,7 +21,7 @@ use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsNegCt, IsOneCt, IsPosCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min,
     MinCt, NdGcd, NdPow, NdRand, NegxCt, Num, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
-    arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, Offset, WordsIterator, word::*},
+    arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, Offset, WordsExtIterator, word::*},
     long::{
         radix::*,
         uops::{Expr, ExprMut},
@@ -163,8 +163,8 @@ macro_rules! nd_ops_primitive_impl {
             / @strict algo::div(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
             % @strict algo::rem(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_ext([0, MAX][(rhs < 0) as usize])).with(Signed),
-            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_ext([0, MAX][(rhs < 0) as usize])).with(Signed),
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_ext().ext([0, MAX][(rhs < 0) as usize])).with(Signed),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_ext().ext([0, MAX][(rhs < 0) as usize])).with(Signed),
 
             * @wrapping algo::mul(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             / @wrapping algo::div(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
@@ -200,8 +200,8 @@ macro_rules! nd_ops_primitive_impl {
             - @strict uops::sub(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
             * @strict algo::mul(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(lhs.iter_words_ext([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
-            - @wrapping uops::sub_iter(lhs.iter_words_ext([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
+            + @wrapping uops::add_iter(lhs.iter_words_ext().ext([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
+            - @wrapping uops::sub_iter(lhs.iter_words_ext().ext([0, MAX][(lhs < 0) as usize]), rhs.0.iter().copied()).with(Signed),
 
             * @wrapping algo::mul(&Signed::from(lhs).0, &rhs.0).signed().with(Signed),
 
@@ -231,8 +231,8 @@ macro_rules! nd_ops_primitive_impl {
             /= @strict algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
 
-            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_ext([0, MAX][(rhs < 0) as usize])).with(|_| ()),
-            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_ext([0, MAX][(rhs < 0) as usize])).with(|_| ()),
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_ext().ext([0, MAX][(rhs < 0) as usize])).with(|_| ()),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_ext().ext([0, MAX][(rhs < 0) as usize])).with(|_| ()),
 
             *= @wrapping algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
@@ -282,8 +282,8 @@ macro_rules! nd_ops_primitive_impl {
             / @strict algo::div(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
             % @strict algo::rem(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
 
-            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.iter_words()).with(Unsigned),
-            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words()).with(Unsigned),
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.iter_words_ext()).with(Unsigned),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.iter_words_ext()).with(Unsigned),
 
             * @wrapping algo::mul(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
             / @wrapping algo::div(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
@@ -319,8 +319,8 @@ macro_rules! nd_ops_primitive_impl {
             - @strict uops::sub(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
             * @strict algo::mul(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
 
-            + @wrapping uops::add_iter(lhs.iter_words(), rhs.0.iter().copied()).with(Unsigned),
-            - @wrapping uops::sub_iter(lhs.iter_words(), rhs.0.iter().copied()).with(Unsigned),
+            + @wrapping uops::add_iter(lhs.iter_words_ext(), rhs.0.iter().copied()).with(Unsigned),
+            - @wrapping uops::sub_iter(lhs.iter_words_ext(), rhs.0.iter().copied()).with(Unsigned),
 
             * @wrapping algo::mul(&Unsigned::from(lhs).0, &rhs.0).with(Unsigned),
 
@@ -350,8 +350,8 @@ macro_rules! nd_ops_primitive_impl {
             /= @strict algo::div(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
 
-            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.iter_words()).eval(),
-            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words()).eval(),
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.iter_words_ext()).eval(),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.iter_words_ext()).eval(),
 
             *= @wrapping algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
