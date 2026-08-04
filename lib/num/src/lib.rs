@@ -4,7 +4,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
-use crate::arch::{AsBytesMut, AsBytesRef, BytesFn};
+use crate::arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, BytesFn, word::Word};
 
 pub mod arch;
 pub mod long;
@@ -73,7 +73,7 @@ macro_rules! num_impl {
 
             #[inline]
             fn with_mask_ct(&self, mask: MaskCt) -> Self {
-                let mask = Self::from_ne_bytes([mask; Self::BYTES as usize]);
+                let mask = Self::from_ne_bytes([mask; <Self as BytesFn>::BYTES as usize]);
 
                 self & mask
             }
@@ -1329,8 +1329,11 @@ ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i
 ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
 
 #[ndfwd::def(self.0 with &'num N: arch::BytesFn)]
+#[ndfwd::def(self.0 with &'num N: arch::WordsFn)]
 #[ndfwd::def(self.0 with &'num N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with &'num N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with &'num N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with &'num N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with &'num N: NumFn)]
 #[ndfwd::def(self.0 with &'num N: NdRand!)]
 #[ndfwd::def(self.0 with &'num N: NdPow!)]
@@ -1356,8 +1359,11 @@ ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i
 impl<'num, N> NdForward for Ref<'num, N> {}
 
 #[ndfwd::def(self.0 with &'num mut N: arch::BytesFn)]
+#[ndfwd::def(self.0 with &'num mut N: arch::WordsFn)]
 #[ndfwd::def(self.0 with &'num mut N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with &'num mut N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with &'num mut N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with &'num mut N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with &'num mut N: NumFn)]
 #[ndfwd::def(self.0 with &'num mut N: NdRand!)]
 #[ndfwd::def(self.0 with &'num mut N: NdPow!)]
@@ -1383,8 +1389,11 @@ impl<'num, N> NdForward for Ref<'num, N> {}
 impl<'num, N> NdForward for Mut<'num, N> {}
 
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt {
@@ -1425,8 +1434,11 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 impl<N> NdForward for Def<N> {}
 
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1465,8 +1477,11 @@ impl<N> NdForward for Def<N> {}
 impl<N> NdForward for Strict<N> {}
 
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1505,8 +1520,11 @@ impl<N> NdForward for Strict<N> {}
 impl<N> NdForward for Wrapping<N> {}
 
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1545,8 +1563,11 @@ impl<N> NdForward for Wrapping<N> {}
 impl<N> NdForward for Saturating<N> {}
 
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1585,8 +1606,11 @@ impl<N> NdForward for Saturating<N> {}
 impl<N> NdForward for Unbounded<N> {}
 
 #[ndfwd::def(self.0 with N: arch::BytesFn)]
+#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
+#[ndfwd::def(self.0 with N: arch::AsWordsRef)]
+#[ndfwd::def(self.0 with N: arch::AsWordsMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1692,12 +1716,12 @@ impl<Any: Max> MaxFn for Any {
 
 #[inline]
 pub(crate) fn pos_ct(val: MaskCt) -> MaskCt {
-    MaskCt::ZERO.wrapping_sub(val)
+    <MaskCt as Zero>::ZERO.wrapping_sub(val)
 }
 
 #[inline]
 pub(crate) fn neg_ct(val: MaskCt) -> MaskCt {
-    !MaskCt::ZERO.wrapping_sub(val)
+    !<MaskCt as Zero>::ZERO.wrapping_sub(val)
 }
 
 #[inline]
