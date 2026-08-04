@@ -21,7 +21,7 @@ use crate::{
     BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsNegCt, IsOneCt, IsPosCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min,
     MinCt, NdGcd, NdPow, NdRand, NegxCt, Num, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
-    arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, Offset, WordsExtIterator, word::*},
+    arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, WordsExtIterator, word::*},
     long::{
         radix::*,
         uops::{Expr, ExprMut},
@@ -728,34 +728,6 @@ macro_rules! ops_primitive_impl {
             ^= <Bytes<L> as NdBitXorAssign<Bytes<L>, $primitive>>::nd_bitxor_assign(lhs, &rhs),
         ] }
     };
-}
-
-macro_rules! write_bitop_impl {
-    ($words:expr, $mask:expr, $offset:expr, $op:tt $(, $($mod:tt)*)?) => {{
-        let mask = $mask;
-        let offset = $offset;
-
-        let bits = u64::BITS as usize;
-
-        #[allow(unused_mut)]
-        let mut res = $words;
-
-        for idx in 0..bits.div_ceil(BITS) {
-            let shift = idx * BITS;
-            let mask = ((mask >> shift) as Single) $($($mod)*)?;
-
-            let shl = offset % BITS;
-            let shr = BITS - shl;
-
-            if let Some(elem) = res.get_mut((offset + shift) / BITS) {
-                *elem $op mask.unbounded_shl(shl as u32) $($($mod)*)?;
-            }
-
-            if let Some(elem) = res.get_mut((offset + shift) / BITS + 1) {
-                *elem $op mask.unbounded_shr(shr as u32) $($($mod)*)?;
-            }
-        }
-    }};
 }
 
 macro_rules! length {
@@ -6424,160 +6396,16 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
 impl<const L: usize> BytesFn for Signed<L> {
     const BITS: usize = (L * BITS);
     const BYTES: usize = (L * BYTES);
-
-    #[inline]
-    fn read(&self, offset: Offset) -> Single {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        uops::read(&self.0, offset)
-    }
-
-    #[inline]
-    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, |=);
-
-        self
-    }
-
-    #[inline]
-    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        use std::ops::Not;
-
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, &=, .not());
-
-        self
-    }
-
-    #[inline]
-    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, ^=);
-
-        self
-    }
 }
 
 impl<const L: usize> BytesFn for Unsigned<L> {
     const BITS: usize = (L * BITS);
     const BYTES: usize = (L * BYTES);
-
-    #[inline]
-    fn read(&self, offset: Offset) -> Single {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        uops::read(&self.0, offset)
-    }
-
-    #[inline]
-    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, |=);
-
-        self
-    }
-
-    #[inline]
-    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        use std::ops::Not;
-
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, &=, .not());
-
-        self
-    }
-
-    #[inline]
-    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, ^=);
-
-        self
-    }
 }
 
 impl<const L: usize> BytesFn for Bytes<L> {
     const BITS: usize = (L * BITS);
     const BYTES: usize = (L * BYTES);
-
-    #[inline]
-    fn read(&self, offset: Offset) -> Single {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        uops::read(&self.0, offset)
-    }
-
-    #[inline]
-    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, |=);
-
-        self
-    }
-
-    #[inline]
-    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        use std::ops::Not;
-
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, &=, .not());
-
-        self
-    }
-
-    #[inline]
-    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-        let offset = match offset {
-            Offset::Left(val) => val,
-            Offset::Right(val) => (L * BITS).saturating_sub(val),
-        };
-
-        write_bitop_impl!(&mut self.0, mask, offset, ^=);
-
-        self
-    }
 }
 
 impl<const L: usize> AsBytesRef for Signed<L> {

@@ -4,7 +4,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
-use crate::arch::{AsBytesMut, AsBytesRef, BytesFn, Offset, word::Single};
+use crate::arch::{AsBytesMut, AsBytesRef, BytesFn};
 
 pub mod arch;
 pub mod long;

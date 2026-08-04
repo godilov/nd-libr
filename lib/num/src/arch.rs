@@ -112,51 +112,6 @@ macro_rules! bytes_impl {
         impl BytesFn for $primitive {
             const BITS: usize = Self::BITS as usize;
             const BYTES: usize = Self::BITS as usize / 8;
-
-            #[inline]
-            fn read(&self, offset: Offset) -> Single {
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                self.unbounded_shr(offset) as Single
-            }
-
-            #[inline]
-            fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                *self |= (mask as Self).unbounded_shl(offset);
-                self
-            }
-
-            #[inline]
-            fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self {
-                use std::ops::Not;
-
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                *self &= (mask.not() as Self).unbounded_shl(offset).not();
-                self
-            }
-
-            #[inline]
-            fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self {
-                let offset = match offset {
-                    Offset::Left(val) => val as u32,
-                    Offset::Right(val) => Self::BITS.saturating_sub(val as u32),
-                };
-
-                *self ^= (mask as Self).unbounded_shl(offset);
-                self
-            }
         }
 
         impl AsBytesRef for $primitive {
@@ -625,85 +580,23 @@ pub struct WordsExtIter<'bytes, W: Word> {
     ext: W,
 }
 
-/// Offset for reading/writing binary mask.
-///
-/// - `Offset::Left(val)` specifies `val`-bits offset from `0`.
-/// - `Offset::Right(val)` specifies `val`-bits offset from `N = size_of::<Self>()`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Offset {
-    /// Offset in left direction of usize bits.
-    Left(usize),
-
-    /// Offset in right direction of usize bits.
-    Right(usize),
-}
-
 /// Bytes functions.
-///
-/// Allows reading/writing in raw bytes representation.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait BytesFn: Sized + Default + AsBytesRef + AsBytesMut {
+pub trait BytesFn: AsBytesRef + AsBytesMut {
     /// Effective len in bits.
     const BITS: usize;
 
     /// Effective len in bytes.
     const BYTES: usize;
-
-    /// Reads 64-bits of underlying value at specified Offset in bits.
-    fn read(&self, offset: Offset) -> Single;
-
-    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_self]
-    fn write_bitor(&mut self, mask: Single, offset: Offset) -> &mut Self;
-
-    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_self]
-    fn write_bitand(&mut self, mask: Single, offset: Offset) -> &mut Self;
-
-    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
-    #[ndfwd::as_self]
-    fn write_bitxor(&mut self, mask: Single, offset: Offset) -> &mut Self;
-
-    /// Writes 64-bits as bitor operation to underlying value at specified Offset in bits.
-    #[inline]
-    #[ndfwd::as_into]
-    fn with_bitor(mut self, mask: Single, offset: Offset) -> Self {
-        self.write_bitor(mask, offset);
-        self
-    }
-
-    /// Writes 64-bits as bitand operation to underlying value at specified Offset in bits.
-    #[inline]
-    #[ndfwd::as_into]
-    fn with_bitand(mut self, mask: Single, offset: Offset) -> Self {
-        self.write_bitand(mask, offset);
-        self
-    }
-
-    /// Writes 64-bits as bitxor operation to underlying value at specified Offset in bits.
-    #[inline]
-    #[ndfwd::as_into]
-    fn with_bitxor(mut self, mask: Single, offset: Offset) -> Self {
-        self.write_bitxor(mask, offset);
-        self
-    }
 }
 
 /// Words functions.
 ///
-/// Allows reading/writing in raw words representation.
-///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait WordsFn: Sized + Default + AsWordsRef + AsWordsMut {
-    /// Effective len in bits.
-    const BITS: usize;
-
-    /// Effective len in bytes.
-    const BYTES: usize;
-}
+pub trait WordsFn: BytesFn + AsWordsRef + AsWordsMut {}
 
 /// As bytes slice (reference).
 #[ndfwd::decl]
