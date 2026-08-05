@@ -152,6 +152,19 @@ macro_rules! nd_opsx_impl {
     };
 }
 
+/// Number with default operations semantics.
+///
+/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::std(self.0 with N)]
+#[ndfwd::cmp(self.0 with N)]
+#[ndfwd::fmt(self.0 with N)]
+#[ndfwd::iter(self.0 with N)]
+#[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
+pub struct Def<N>(pub N);
+
 /// Number with ops by immutable reference.
 ///
 /// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
@@ -162,6 +175,7 @@ macro_rules! nd_opsx_impl {
 #[ndfwd::fmt(self.0 with &'num N)]
 #[ndfwd::iter(self.0 with &'num N)]
 #[derive(Debug, Clone, Copy)]
+#[repr(transparent)]
 pub struct Ref<'num, N>(pub &'num N);
 
 /// Number with ops by mutable reference.
@@ -174,19 +188,8 @@ pub struct Ref<'num, N>(pub &'num N);
 #[ndfwd::fmt(self.0 with &'num mut N)]
 #[ndfwd::iter(self.0 with &'num mut N)]
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct Mut<'num, N>(pub &'num mut N);
-
-/// Number with default operations semantics.
-///
-/// Implements (conditionally) all standard Rust traits and operations if underlying type supports it.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::std(self.0 with N)]
-#[ndfwd::cmp(self.0 with N)]
-#[ndfwd::fmt(self.0 with N)]
-#[ndfwd::iter(self.0 with N)]
-#[derive(Debug, Default, Clone, Copy)]
-pub struct Def<N>(pub N);
 
 /// Number with strict operations semantics.
 ///
@@ -198,6 +201,7 @@ pub struct Def<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
 pub struct Strict<N>(pub N);
 
 /// Number with wrapping operations semantics.
@@ -210,6 +214,7 @@ pub struct Strict<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
 pub struct Wrapping<N>(pub N);
 
 /// Number with saturating operations semantics.
@@ -222,6 +227,7 @@ pub struct Wrapping<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
 pub struct Saturating<N>(pub N);
 
 /// Number with unbounded operations semantics.
@@ -234,6 +240,7 @@ pub struct Saturating<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
 pub struct Unbounded<N>(pub N);
 
 /// Number with wrapping + unbounded operations semantics.
@@ -246,6 +253,7 @@ pub struct Unbounded<N>(pub N);
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
 #[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
 pub struct Relaxed<N>(pub N);
 
 /// `Nd-kind` extension for [`std::ops::Not`].
