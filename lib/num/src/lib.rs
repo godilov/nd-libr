@@ -474,7 +474,7 @@ trait NdForward {}
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumFn: Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign {
+pub trait NumFn: Sized + PartialEq + Eq + PartialOrd + Ord + NdOps<All = Self> + NdOpsAssign {
     /// Checks number is odd.
     fn is_odd(&self) -> bool;
 
@@ -522,13 +522,13 @@ pub trait NumFn: Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + N
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait Num: Copy + Zero + One + NumFn {}
+pub trait Num: Default + Copy + Zero + One + NumFn {}
 
 /// Number with dynamic allocation.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumDyn: Clone + ZeroFn + OneFn + NumFn {}
+pub trait NumDyn: Default + Clone + ZeroFn + OneFn + NumFn {}
 
 /// Number with signed/unsigned extensions.
 ///
@@ -654,7 +654,7 @@ pub trait NumUnsignedCt: NumCt + NumUnsigned {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NdPow: NumFn + ZeroFn + OneFn {
+pub trait NdPow: Default + Clone + ZeroFn + OneFn + NumFn {
     /// Calculates `self ^ exp`.
     ///
     /// # Panics
@@ -717,7 +717,7 @@ pub trait NdPow: NumFn + ZeroFn + OneFn {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NdGcd: NumFn + ZeroFn + OneFn {
+pub trait NdGcd: Default + Clone + ZeroFn + OneFn + NumFn {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Panics
@@ -801,7 +801,7 @@ pub trait NdGcd: NumFn + ZeroFn + OneFn {
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NdGcdChecked: NumFn + ZeroFn + OneFn + NdOpsChecked<All = Self> {
+pub trait NdGcdChecked: Default + Clone + ZeroFn + OneFn + NumFn + NdOpsChecked<All = Self> {
     /// Calculates Greatest Common Divisor of two numbers.
     ///
     /// # Returns
@@ -1798,13 +1798,31 @@ mod tests {
     }
 
     #[test]
-    fn ranged() {}
+    fn pow_ct() {
+        const EXP: u64 = ndassert::prime!(8);
+        const MOD: u64 = ndassert::prime!(32);
 
-    #[test]
-    fn width() {}
+        for value in ndassert::range!(u32, 24).map(|x| x as u64) {
+            let mut acc = Relaxed(1u64);
 
-    #[test]
-    fn modular() {}
+            for exp in 0..EXP {
+                assert_eq!(acc, Relaxed(value).pow_ct(Relaxed(exp)));
+
+                acc *= Relaxed(value);
+            }
+        }
+
+        for value in ndassert::range!(u32, 24).map(|x| x as u64) {
+            let mut acc = Relaxed(1u64);
+
+            for exp in 0..EXP {
+                assert_eq!(acc, Relaxed(value).powrem_ct(Relaxed(exp), &Relaxed(MOD)));
+
+                acc *= Relaxed(value);
+                acc %= Relaxed(MOD);
+            }
+        }
+    }
 
     #[test]
     fn cmp_ct() {
@@ -1855,29 +1873,11 @@ mod tests {
     }
 
     #[test]
-    fn pow_ct() {
-        const EXP: u64 = ndassert::prime!(8);
-        const MOD: u64 = ndassert::prime!(32);
+    fn ranged() {}
 
-        for value in ndassert::range!(u32, 24).map(|x| x as u64) {
-            let mut acc = Relaxed(1u64);
+    #[test]
+    fn width() {}
 
-            for exp in 0..EXP {
-                assert_eq!(acc, Relaxed(value).pow_ct(Relaxed(exp)));
-
-                acc *= Relaxed(value);
-            }
-        }
-
-        for value in ndassert::range!(u32, 24).map(|x| x as u64) {
-            let mut acc = Relaxed(1u64);
-
-            for exp in 0..EXP {
-                assert_eq!(acc, Relaxed(value).powrem_ct(Relaxed(exp), &Relaxed(MOD)));
-
-                acc *= Relaxed(value);
-                acc %= Relaxed(MOD);
-            }
-        }
-    }
+    #[test]
+    fn modular() {}
 }
