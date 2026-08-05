@@ -18,10 +18,10 @@ use thiserror::Error;
 use zerocopy::{IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{
-    BytesFn, CmpCt, Dir, EqCt, GeCt, GtCt, IsNegCt, IsOneCt, IsPosCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min,
-    MinCt, NdGcd, NdPow, NdRand, NegxCt, Num, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
+    CmpCt, Dir, EqCt, GeCt, GtCt, IsNegCt, IsOneCt, IsPosCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt,
+    NdGcd, NdPow, NegxCt, Num, NumBinary, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
-    arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, WordsExtIterator, WordsFn, word::*},
+    arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, Rand, WordsExtIterator, word::*},
     long::{
         radix::*,
         uops::{Expr, ExprMut},
@@ -6393,25 +6393,6 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     }
 }
 
-impl<const L: usize> BytesFn for Signed<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
-}
-
-impl<const L: usize> BytesFn for Unsigned<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
-}
-
-impl<const L: usize> BytesFn for Bytes<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
-}
-
-impl<const L: usize> WordsFn for Signed<L> {}
-impl<const L: usize> WordsFn for Unsigned<L> {}
-impl<const L: usize> WordsFn for Bytes<L> {}
-
 impl<const L: usize> AsBytesRef for Signed<L> {
     #[inline]
     fn as_bytes_ref(&self) -> &[u8] {
@@ -6495,6 +6476,10 @@ impl<const L: usize> AsWordsMut for Bytes<L> {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
+
+impl<const L: usize> Rand for Signed<L> {}
+impl<const L: usize> Rand for Unsigned<L> {}
+impl<const L: usize> Rand for Bytes<L> {}
 
 impl<const L: usize> NumFn for Signed<L> {
     #[inline]
@@ -6617,6 +6602,16 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
     }
 }
 
+impl<const L: usize> NumBinary for Signed<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+}
+
+impl<const L: usize> NumBinary for Unsigned<L> {
+    const BITS: usize = (L * BITS);
+    const BYTES: usize = (L * BYTES);
+}
+
 impl<const L: usize> NumCt for Signed<L> {
     const SIGNED: MaskCt = MaskCt::MAX;
     const UNSIGNED: MaskCt = MaskCt::MIN;
@@ -6653,9 +6648,6 @@ impl<const L: usize> NumUnsignedCt for Unsigned<L> {
         self.0[0] as MaskCt
     }
 }
-
-impl<const L: usize> NdRand for Signed<L> {}
-impl<const L: usize> NdRand for Unsigned<L> {}
 
 impl<const L: usize> NdPow for Signed<L> {}
 impl<const L: usize> NdPow for Unsigned<L> {}

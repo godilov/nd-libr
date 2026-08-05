@@ -4,7 +4,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
-use crate::arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, BytesFn, word::Word};
+use crate::arch::{AsBytesMut, AsBytesRef, word::Word};
 
 pub mod arch;
 pub mod long;
@@ -67,21 +67,24 @@ macro_rules! num_impl {
             }
         }
 
+        impl NumBinary for $primitive {
+            const BITS: usize = Self::BITS as usize;
+            const BYTES: usize = Self::BITS as usize / 8;
+        }
+
         impl NumCt for $primitive {
             const SIGNED: MaskCt = $signed_ct;
             const UNSIGNED: MaskCt = $unsigned_ct;
 
             #[inline]
             fn with_mask_ct(&self, mask: MaskCt) -> Self {
-                let mask = Self::from_ne_bytes([mask; <Self as BytesFn>::BYTES as usize]);
+                let mask = Self::from_ne_bytes([mask; (Self::BITS / 8) as usize]);
 
                 self & mask
             }
         }
 
         impl NumExtCt for $primitive {}
-
-        impl NdRand for $primitive {}
 
         impl NdPow for $primitive {}
 
@@ -313,17 +316,16 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
-#[ndfwd::def(self.0 with N: arch::BytesFn {
-    const BITS: usize = BITS;
-    const BYTES: usize = BITS.div_ceil(8);
-})]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
-#[ndfwd::def(self.0 with N: NdRand)]
+#[ndfwd::def(self.0 with N: NumBinary {
+    const BITS: usize = BITS;
+    const BYTES: usize = BITS.div_ceil(8);
+})]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
@@ -345,7 +347,7 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::def(self.0 with N: SelectCt)]
 #[ndfwd::def(self.0 with N: PowCt!)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumUnsigned, const BITS: usize>(N);
+pub struct Width<N: Num + NumUnsigned + NumBinary, const BITS: usize>(N);
 
 /// Number with Modulus.
 ///
@@ -404,17 +406,6 @@ pub type MaskCt = u8;
 ///
 /// For more info, see [crate-level](crate) documentation.
 pub type RelCt = i8;
-
-/// Creates random number.
-///
-/// Convenience wrapper over [`NdRand`].
-///
-/// For more info, see [crate-level](crate) documentation.
-#[inline]
-#[cfg(feature = "rand")]
-pub fn rand<N: NdRand, Rng: rand::Rng>(order: usize, rng: &mut Rng) -> N {
-    N::nd_rand(order, rng)
-}
 
 /// Calculates Greatest Common Divisor of two numbers with default semantics.
 ///
@@ -531,13 +522,13 @@ pub trait NumFn: Sized + Default + Clone + PartialEq + Eq + PartialOrd + Ord + N
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait Num: Copy + BytesFn + NumFn + Zero + One {}
+pub trait Num: Copy + Zero + One + NumFn {}
 
 /// Number with dynamic allocation.
 ///
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
-pub trait NumDyn: Clone + BytesFn + NumFn + ZeroFn + OneFn {}
+pub trait NumDyn: Clone + ZeroFn + OneFn + NumFn {}
 
 /// Number with signed/unsigned extensions.
 ///
@@ -591,6 +582,18 @@ pub trait NumUnsigned: NumFn {
     /// Square root of number.
     #[ndfwd::as_into]
     fn sqrt(&self) -> Self;
+}
+
+/// Number with binary representation.
+///
+/// For more info, see [crate-level](crate) documentation.
+#[ndfwd::decl]
+pub trait NumBinary: NumFn {
+    /// Length in bits.
+    const BITS: usize;
+
+    /// Length in bytes.
+    const BYTES: usize;
 }
 
 /// Number with const-time operations.
@@ -647,42 +650,6 @@ pub trait NumUnsignedCt: NumCt + NumUnsigned {
     fn as_mask_ct(&self) -> MaskCt;
 }
 
-/// Random generation functions.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait NdRand: NumFn + BytesFn {
-    /// Creates random number.
-    ///
-    /// Order represents position of the most significant bit.
-    #[cfg(feature = "rand")]
-    #[ndfwd::as_into]
-    fn nd_rand<Rng: rand::Rng>(order: usize, rng: &mut Rng) -> Self {
-        if order == 0 {
-            return Self::default();
-        }
-
-        let order = order.min(Self::BYTES);
-        let len = order.div_ceil(u8::BITS as usize);
-        let idx = order.div_ceil(u8::BITS as usize) - 1;
-
-        let shift = order % u8::BITS as usize;
-        let mask = u8::MAX.unbounded_shr(u8::BITS - shift as u32);
-        let bit = 1u8 << shift;
-
-        let mut res = Self::default();
-
-        let bytes = &mut res.as_bytes_mut()[..len];
-
-        rng.fill_bytes(bytes);
-
-        bytes[idx] &= mask;
-        bytes[idx] |= bit;
-
-        res
-    }
-}
-
 /// Power functions.
 ///
 /// For more info, see [crate-level](crate) documentation.
@@ -734,7 +701,7 @@ pub trait NdPow: NumFn + ZeroFn + OneFn {
         while exp != zero {
             if exp.is_odd() {
                 res *= &acc;
-                res &= &rem;
+                res %= &rem;
             }
 
             acc *= &acc.clone();
@@ -1310,7 +1277,7 @@ impl<N: Num, R: Range<N>> From<N> for Ranged<N, R> {
     }
 }
 
-impl<N: Num + NumUnsigned, const BITS: usize> From<N> for Width<N, BITS> {
+impl<N: Num + NumUnsigned + NumBinary, const BITS: usize> From<N> for Width<N, BITS> {
     #[inline]
     fn from(value: N) -> Self {
         Self(value).normalized()
@@ -1327,12 +1294,11 @@ impl<N: Num + NumUnsigned, M: Modulus<N>> From<N> for Modular<N, M> {
 ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i8)] }
 ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
 
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: arch::AsWordsRef)]
 #[ndfwd::def(self.0 with N: arch::AsWordsMut)]
+#[ndfwd::def(self.0 with N: arch::Rand)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt {
@@ -1343,9 +1309,9 @@ ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i
 #[ndfwd::def(self.0 with N: NumSignedCt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NumUnsignedCt)]
+#[ndfwd::def(self.0 with N: NumBinary)]
 #[ndfwd::def(self.0 with N: NumCt)]
 #[ndfwd::def(self.0 with N: NumExtCt)]
-#[ndfwd::def(self.0 with N: NdRand!)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
@@ -1404,12 +1370,11 @@ impl<'num, N> NdForward for Ref<'num, N> {}
 #[ndfwd::def(self.0 with &'num mut N: SelectCt)]
 impl<'num, N> NdForward for Mut<'num, N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: arch::AsWordsRef)]
 #[ndfwd::def(self.0 with N: arch::AsWordsMut)]
+#[ndfwd::def(self.0 with N: arch::Rand)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1420,7 +1385,7 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 })]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
-#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NumBinary)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
@@ -1428,31 +1393,13 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 #[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
 #[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
 #[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
-#[ndfwd::def(self.0 with N: IsZeroCt)]
-#[ndfwd::def(self.0 with N: IsOneCt)]
-#[ndfwd::def(self.0 with N: IsPosCt)]
-#[ndfwd::def(self.0 with N: IsNegCt)]
-#[ndfwd::def(self.0 with N: EqCt)]
-#[ndfwd::def(self.0 with N: LtCt)]
-#[ndfwd::def(self.0 with N: GtCt)]
-#[ndfwd::def(self.0 with N: LeCt)]
-#[ndfwd::def(self.0 with N: GeCt)]
-#[ndfwd::def(self.0 with N: SignCt)]
-#[ndfwd::def(self.0 with N: CmpCt)]
-#[ndfwd::def(self.0 with N: MinCt)]
-#[ndfwd::def(self.0 with N: MaxCt)]
-#[ndfwd::def(self.0 with N: PosxCt)]
-#[ndfwd::def(self.0 with N: NegxCt)]
-#[ndfwd::def(self.0 with N: SelectCt)]
-#[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Strict<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: arch::AsWordsRef)]
 #[ndfwd::def(self.0 with N: arch::AsWordsMut)]
+#[ndfwd::def(self.0 with N: arch::Rand)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1463,7 +1410,7 @@ impl<N> NdForward for Strict<N> {}
 })]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
-#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NumBinary)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
@@ -1471,31 +1418,13 @@ impl<N> NdForward for Strict<N> {}
 #[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
 #[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
 #[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
-#[ndfwd::def(self.0 with N: IsZeroCt)]
-#[ndfwd::def(self.0 with N: IsOneCt)]
-#[ndfwd::def(self.0 with N: IsPosCt)]
-#[ndfwd::def(self.0 with N: IsNegCt)]
-#[ndfwd::def(self.0 with N: EqCt)]
-#[ndfwd::def(self.0 with N: LtCt)]
-#[ndfwd::def(self.0 with N: GtCt)]
-#[ndfwd::def(self.0 with N: LeCt)]
-#[ndfwd::def(self.0 with N: GeCt)]
-#[ndfwd::def(self.0 with N: SignCt)]
-#[ndfwd::def(self.0 with N: CmpCt)]
-#[ndfwd::def(self.0 with N: MinCt)]
-#[ndfwd::def(self.0 with N: MaxCt)]
-#[ndfwd::def(self.0 with N: PosxCt)]
-#[ndfwd::def(self.0 with N: NegxCt)]
-#[ndfwd::def(self.0 with N: SelectCt)]
-#[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Wrapping<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: arch::AsWordsRef)]
 #[ndfwd::def(self.0 with N: arch::AsWordsMut)]
+#[ndfwd::def(self.0 with N: arch::Rand)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1506,7 +1435,7 @@ impl<N> NdForward for Wrapping<N> {}
 })]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
-#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NumBinary)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
@@ -1514,31 +1443,13 @@ impl<N> NdForward for Wrapping<N> {}
 #[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
 #[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
 #[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
-#[ndfwd::def(self.0 with N: IsZeroCt)]
-#[ndfwd::def(self.0 with N: IsOneCt)]
-#[ndfwd::def(self.0 with N: IsPosCt)]
-#[ndfwd::def(self.0 with N: IsNegCt)]
-#[ndfwd::def(self.0 with N: EqCt)]
-#[ndfwd::def(self.0 with N: LtCt)]
-#[ndfwd::def(self.0 with N: GtCt)]
-#[ndfwd::def(self.0 with N: LeCt)]
-#[ndfwd::def(self.0 with N: GeCt)]
-#[ndfwd::def(self.0 with N: SignCt)]
-#[ndfwd::def(self.0 with N: CmpCt)]
-#[ndfwd::def(self.0 with N: MinCt)]
-#[ndfwd::def(self.0 with N: MaxCt)]
-#[ndfwd::def(self.0 with N: PosxCt)]
-#[ndfwd::def(self.0 with N: NegxCt)]
-#[ndfwd::def(self.0 with N: SelectCt)]
-#[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Saturating<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: arch::AsWordsRef)]
 #[ndfwd::def(self.0 with N: arch::AsWordsMut)]
+#[ndfwd::def(self.0 with N: arch::Rand)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1549,7 +1460,7 @@ impl<N> NdForward for Saturating<N> {}
 })]
 #[ndfwd::def(self.0 with N: NumSigned)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
-#[ndfwd::def(self.0 with N: NdRand!)]
+#[ndfwd::def(self.0 with N: NumBinary)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
@@ -1557,31 +1468,13 @@ impl<N> NdForward for Saturating<N> {}
 #[ndfwd::def(self.0 with N: One { const ONE: Self = Self(N::ONE); })]
 #[ndfwd::def(self.0 with N: Min { const MIN: Self = Self(N::MIN); })]
 #[ndfwd::def(self.0 with N: Max { const MAX: Self = Self(N::MAX); })]
-#[ndfwd::def(self.0 with N: IsZeroCt)]
-#[ndfwd::def(self.0 with N: IsOneCt)]
-#[ndfwd::def(self.0 with N: IsPosCt)]
-#[ndfwd::def(self.0 with N: IsNegCt)]
-#[ndfwd::def(self.0 with N: EqCt)]
-#[ndfwd::def(self.0 with N: LtCt)]
-#[ndfwd::def(self.0 with N: GtCt)]
-#[ndfwd::def(self.0 with N: LeCt)]
-#[ndfwd::def(self.0 with N: GeCt)]
-#[ndfwd::def(self.0 with N: SignCt)]
-#[ndfwd::def(self.0 with N: CmpCt)]
-#[ndfwd::def(self.0 with N: MinCt)]
-#[ndfwd::def(self.0 with N: MaxCt)]
-#[ndfwd::def(self.0 with N: PosxCt)]
-#[ndfwd::def(self.0 with N: NegxCt)]
-#[ndfwd::def(self.0 with N: SelectCt)]
-#[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Unbounded<N> {}
 
-#[ndfwd::def(self.0 with N: arch::BytesFn)]
-#[ndfwd::def(self.0 with N: arch::WordsFn)]
 #[ndfwd::def(self.0 with N: arch::AsBytesRef)]
 #[ndfwd::def(self.0 with N: arch::AsBytesMut)]
 #[ndfwd::def(self.0 with N: arch::AsWordsRef)]
 #[ndfwd::def(self.0 with N: arch::AsWordsMut)]
+#[ndfwd::def(self.0 with N: arch::Rand)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt where
@@ -1594,9 +1487,9 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: NumSignedCt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NumUnsignedCt)]
+#[ndfwd::def(self.0 with N: NumBinary)]
 #[ndfwd::def(self.0 with N: NumCt)]
 #[ndfwd::def(self.0 with N: NumExtCt)]
-#[ndfwd::def(self.0 with N: NdRand!)]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
 #[ndfwd::def(self.0 with N: NdGcdChecked!)]
@@ -1623,7 +1516,7 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Relaxed<N> {}
 
-impl<N: Num + NumUnsigned, const BITS: usize> Width<N, BITS> {
+impl<N: Num + NumUnsigned + NumBinary, const BITS: usize> Width<N, BITS> {
     const _CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
 
     #[inline]
@@ -1724,7 +1617,7 @@ pub(crate) fn ge_ct((lt, _): (MaskCt, MaskCt)) -> MaskCt {
 pub(crate) fn eq_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> MaskCt {
     let lhs = Relaxed(lhs.as_unsigned());
     let rhs = Relaxed(rhs.as_unsigned());
-    let shift = N::BITS - 1;
+    let shift = 8 * std::mem::size_of::<N>() - 1;
 
     let xor = lhs ^ rhs;
 
@@ -1739,7 +1632,7 @@ pub(crate) fn eq_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> MaskCt {
 pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let lhs = Relaxed(lhs.as_unsigned());
     let rhs = Relaxed(rhs.as_unsigned());
-    let shift = N::BITS - 1;
+    let shift = 8 * std::mem::size_of::<N>() - 1;
 
     let lt = ((lhs - rhs) >> shift).as_mask_ct();
     let gt = ((rhs - lhs) >> shift).as_mask_ct();
@@ -1967,23 +1860,23 @@ mod tests {
         const MOD: u64 = ndassert::prime!(32);
 
         for value in ndassert::range!(u32, 24).map(|x| x as u64) {
-            let mut acc = Wrapping(1u64);
+            let mut acc = Relaxed(1u64);
 
             for exp in 0..EXP {
-                assert_eq!(acc, Wrapping(value).pow_ct(Wrapping(exp)));
+                assert_eq!(acc, Relaxed(value).pow_ct(Relaxed(exp)));
 
-                acc *= Wrapping(value);
+                acc *= Relaxed(value);
             }
         }
 
         for value in ndassert::range!(u32, 24).map(|x| x as u64) {
-            let mut acc = Wrapping(1u64);
+            let mut acc = Relaxed(1u64);
 
             for exp in 0..EXP {
-                assert_eq!(acc, Wrapping(value).powrem_ct(Wrapping(exp), &Wrapping(MOD)));
+                assert_eq!(acc, Relaxed(value).powrem_ct(Relaxed(exp), &Relaxed(MOD)));
 
-                acc *= Wrapping(value);
-                acc %= Wrapping(MOD);
+                acc *= Relaxed(value);
+                acc %= Relaxed(MOD);
             }
         }
     }

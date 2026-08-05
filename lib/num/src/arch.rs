@@ -109,11 +109,6 @@ macro_rules! bytes_impl {
         $(bytes_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl BytesFn for $primitive {
-            const BITS: usize = Self::BITS as usize;
-            const BYTES: usize = Self::BITS as usize / 8;
-        }
-
         impl AsBytesRef for $primitive {
             #[inline]
             fn as_bytes_ref(&self) -> &[u8] {
@@ -129,6 +124,8 @@ macro_rules! bytes_impl {
         }
 
         impl WordsExtIterator for $primitive {}
+
+        impl Rand for $primitive {}
     };
 }
 
@@ -378,23 +375,28 @@ pub mod word {
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesFn)]
-#[ndfwd::def(self.0 with T: WordsFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: crate::ZeroFn)]
-#[ndfwd::def(self.0 with T: crate::OneFn)]
+#[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumSignedCt)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
-#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NumUnsignedCt)]
+#[ndfwd::def(self.0 with T: crate::NumBinary)]
+#[ndfwd::def(self.0 with T: crate::NumCt)]
+#[ndfwd::def(self.0 with T: crate::NumExtCt)]
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Zero { const ZERO: Self = Self(T::ZERO); })]
+#[ndfwd::def(self.0 with T: crate::One { const ONE: Self = Self(T::ONE); })]
+#[ndfwd::def(self.0 with T: crate::Min { const MIN: Self = Self(T::MIN); })]
+#[ndfwd::def(self.0 with T: crate::Max { const MAX: Self = Self(T::MAX); })]
 #[ndfwd::def(self.0 with T: crate::IsZeroCt)]
 #[ndfwd::def(self.0 with T: crate::IsOneCt)]
 #[ndfwd::def(self.0 with T: crate::IsPosCt)]
@@ -430,23 +432,28 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesFn)]
-#[ndfwd::def(self.0 with T: WordsFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: crate::ZeroFn)]
-#[ndfwd::def(self.0 with T: crate::OneFn)]
+#[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumSignedCt)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
-#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NumUnsignedCt)]
+#[ndfwd::def(self.0 with T: crate::NumBinary)]
+#[ndfwd::def(self.0 with T: crate::NumCt)]
+#[ndfwd::def(self.0 with T: crate::NumExtCt)]
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Zero { const ZERO: Self = Self(T::ZERO); })]
+#[ndfwd::def(self.0 with T: crate::One { const ONE: Self = Self(T::ONE); })]
+#[ndfwd::def(self.0 with T: crate::Min { const MIN: Self = Self(T::MIN); })]
+#[ndfwd::def(self.0 with T: crate::Max { const MAX: Self = Self(T::MAX); })]
 #[ndfwd::def(self.0 with T: crate::IsZeroCt)]
 #[ndfwd::def(self.0 with T: crate::IsOneCt)]
 #[ndfwd::def(self.0 with T: crate::IsPosCt)]
@@ -475,23 +482,28 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesFn)]
-#[ndfwd::def(self.0 with T: WordsFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: crate::ZeroFn)]
-#[ndfwd::def(self.0 with T: crate::OneFn)]
+#[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumSignedCt)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
-#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NumUnsignedCt)]
+#[ndfwd::def(self.0 with T: crate::NumBinary)]
+#[ndfwd::def(self.0 with T: crate::NumCt)]
+#[ndfwd::def(self.0 with T: crate::NumExtCt)]
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Zero { const ZERO: Self = Self(T::ZERO); })]
+#[ndfwd::def(self.0 with T: crate::One { const ONE: Self = Self(T::ONE); })]
+#[ndfwd::def(self.0 with T: crate::Min { const MIN: Self = Self(T::MIN); })]
+#[ndfwd::def(self.0 with T: crate::Max { const MAX: Self = Self(T::MAX); })]
 #[ndfwd::def(self.0 with T: crate::IsZeroCt)]
 #[ndfwd::def(self.0 with T: crate::IsOneCt)]
 #[ndfwd::def(self.0 with T: crate::IsPosCt)]
@@ -520,23 +532,28 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesFn)]
-#[ndfwd::def(self.0 with T: WordsFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
-#[ndfwd::def(self.0 with T: crate::ZeroFn)]
-#[ndfwd::def(self.0 with T: crate::OneFn)]
+#[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
 #[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumSignedCt)]
 #[ndfwd::def(self.0 with T: crate::NumUnsigned)]
-#[ndfwd::def(self.0 with T: crate::NdRand)]
+#[ndfwd::def(self.0 with T: crate::NumUnsignedCt)]
+#[ndfwd::def(self.0 with T: crate::NumBinary)]
+#[ndfwd::def(self.0 with T: crate::NumCt)]
+#[ndfwd::def(self.0 with T: crate::NumExtCt)]
 #[ndfwd::def(self.0 with T: crate::NdPow)]
 #[ndfwd::def(self.0 with T: crate::NdGcd)]
 #[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Zero { const ZERO: Self = Self(T::ZERO); })]
+#[ndfwd::def(self.0 with T: crate::One { const ONE: Self = Self(T::ONE); })]
+#[ndfwd::def(self.0 with T: crate::Min { const MIN: Self = Self(T::MIN); })]
+#[ndfwd::def(self.0 with T: crate::Max { const MAX: Self = Self(T::MAX); })]
 #[ndfwd::def(self.0 with T: crate::IsZeroCt)]
 #[ndfwd::def(self.0 with T: crate::IsOneCt)]
 #[ndfwd::def(self.0 with T: crate::IsPosCt)]
@@ -565,12 +582,11 @@ pub struct Aligned128<T>(pub T);
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: BytesFn)]
-#[ndfwd::def(self.0 with T: WordsFn)]
 #[ndfwd::def(self.0 with T: AsBytesRef)]
 #[ndfwd::def(self.0 with T: AsBytesMut)]
 #[ndfwd::def(self.0 with T: AsWordsRef)]
 #[ndfwd::def(self.0 with T: AsWordsMut)]
+#[ndfwd::def(self.0 with T: Rand)]
 #[repr(align(4096))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
@@ -584,24 +600,6 @@ pub struct WordsExtIter<'bytes, W: Word> {
     bytes: &'bytes [u8],
     ext: W,
 }
-
-/// Bytes functions.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait BytesFn: AsBytesRef + AsBytesMut {
-    /// Effective len in bits.
-    const BITS: usize;
-
-    /// Effective len in bytes.
-    const BYTES: usize;
-}
-
-/// Words functions.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[ndfwd::decl]
-pub trait WordsFn: BytesFn + AsWordsRef + AsWordsMut {}
 
 /// As bytes slice (reference).
 #[ndfwd::decl]
@@ -645,6 +643,52 @@ pub trait WordsExtIterator {
             bytes: self.as_bytes_ref(),
             ext: W::ZERO,
         }
+    }
+}
+
+/// Random.
+#[ndfwd::decl]
+pub trait Rand: Sized + Default + AsBytesRef + AsBytesMut {
+    /// Creates random bytes.
+    #[inline]
+    #[cfg(feature = "rand")]
+    #[ndfwd::as_into]
+    fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
+        let mut res = Self::default();
+
+        rng.fill_bytes(res.as_bytes_mut());
+
+        res
+    }
+
+    /// Creates random bytes with length.
+    ///
+    /// Order represents position of the most significant bit.
+    #[inline]
+    #[cfg(feature = "rand")]
+    #[ndfwd::as_into]
+    fn rand_ext<Rng: rand::Rng>(rng: &mut Rng, len: usize) -> Self {
+        if len == 0 {
+            return Self::default();
+        }
+
+        let len = len.min(std::mem::size_of::<Self>());
+        let idx = len.div_ceil(u8::BITS as usize) - 1;
+
+        let shift = len % u8::BITS as usize;
+        let mask = u8::MAX.unbounded_shr(u8::BITS - shift as u32);
+        let bit = 1u8 << shift;
+
+        let mut res = Self::default();
+
+        let bytes = &mut res.as_bytes_mut()[..idx + 1];
+
+        rng.fill_bytes(bytes);
+
+        bytes[idx] &= mask;
+        bytes[idx] |= bit;
+
+        res
     }
 }
 
