@@ -695,25 +695,24 @@ pub trait NdPow: NumFn + ZeroFn + OneFn {
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     #[inline]
     #[ndfwd::as_into]
-    fn nd_pow(self, mut exp: Self) -> Self {
-        let zero = Self::zero();
-        let one = Self::one();
+    fn nd_pow(self, exp: Self) -> Self {
+        let zero = Def(Self::zero());
+        let one = Def(Self::one());
 
-        let mut acc = self;
+        let mut acc = Def(self);
+        let mut exp = Def(exp);
         let mut res = one;
 
         while exp != zero {
             if exp.is_odd() {
-                Self::nd_mul_assign(&mut res, &acc);
+                res *= &acc;
             }
 
-            let tmp = acc.clone();
-
-            Self::nd_mul_assign(&mut acc, &tmp);
-            Self::nd_shr_assign(&mut exp, 1);
+            acc *= &acc.clone();
+            exp >>= 1;
         }
 
-        res
+        res.0
     }
 
     /// Calculates `self ^ exp % rem`.
@@ -723,27 +722,27 @@ pub trait NdPow: NumFn + ZeroFn + OneFn {
     /// May panic if [`NdOps`] or [`NdOpsAssign`] implementation panics.
     #[inline]
     #[ndfwd::as_into]
-    fn nd_powrem(self, mut exp: Self, rem: &Self) -> Self {
-        let zero = Self::zero();
-        let one = Self::one();
+    fn nd_powrem(self, exp: Self, rem: &Self) -> Self {
+        let zero = Def(Self::zero());
+        let one = Def(Self::one());
+        let rem = Ref(rem);
 
-        let mut acc = self;
+        let mut acc = Def(self);
+        let mut exp = Def(exp);
         let mut res = one;
 
         while exp != zero {
             if exp.is_odd() {
-                Self::nd_mul_assign(&mut res, &acc);
-                Self::nd_rem_assign(&mut res, rem);
+                res *= &acc;
+                res &= &rem;
             }
 
-            let tmp = acc.clone();
-
-            Self::nd_mul_assign(&mut acc, &tmp);
-            Self::nd_rem_assign(&mut acc, rem);
-            Self::nd_shr_assign(&mut exp, 1);
+            acc *= &acc.clone();
+            acc %= &rem;
+            exp >>= 1;
         }
 
-        res
+        res.0
     }
 }
 

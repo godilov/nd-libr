@@ -1659,6 +1659,7 @@ ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Ref<'num, Lhs>, rh
 ndops::auto! { @ndbin @shift crate <'num, Lhs, Rhs, N> (lhs: &Mut<'num, Lhs>, rhs: Rhs)             -> N for Mut<'num, N>, (Lhs) (Rhs) (N) (&lhs.0) (rhs) }
 
 ndops::auto! { @ndbin with @default    crate <Lhs, Rhs, N> (lhs:        &Def<Lhs>, rhs:        &Def<Rhs>) ->        Def<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin with @default    crate <Lhs, Rhs, N> (lhs:        &Def<Lhs>, rhs:    &Ref<'_, Rhs>) ->        Def<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @ndbin with @strict     crate <Lhs, Rhs, N> (lhs:     &Strict<Lhs>, rhs:     &Strict<Rhs>) ->     Strict<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @ndbin with @wrapping   crate <Lhs, Rhs, N> (lhs:   &Wrapping<Lhs>, rhs:   &Wrapping<Rhs>) ->   Wrapping<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @ndbin with @saturating crate <Lhs, Rhs, N> (lhs: &Saturating<Lhs>, rhs: &Saturating<Rhs>) -> Saturating<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
@@ -1676,6 +1677,7 @@ ndops::auto! { @ndmut        crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, r
 ndops::auto! { @ndmut @shift crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs)             for Mut<'num, Lhs>, (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 ndops::auto! { @ndmut with @default    crate <Lhs, Rhs> (lhs:        &mut Def<Lhs>, rhs:        &Def<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut with @default    crate <Lhs, Rhs> (lhs:        &mut Def<Lhs>, rhs:    &Ref<'_, Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @ndmut with @strict     crate <Lhs, Rhs> (lhs:     &mut Strict<Lhs>, rhs:     &Strict<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @ndmut with @wrapping   crate <Lhs, Rhs> (lhs:   &mut Wrapping<Lhs>, rhs:   &Wrapping<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @ndmut with @saturating crate <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, rhs: &Saturating<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
@@ -1703,6 +1705,7 @@ ndops::auto! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Ref<'num, Lhs>, *rhs: &
 ndops::auto! { @stdbin crate <'num, Lhs, Rhs, N> (*lhs: &Mut<'num, Lhs>, *rhs: &Ref<'num, Rhs>) -> N, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 
 ndops::auto! { @stdbin with @default    crate <Lhs, Rhs, N> (*lhs:        &Def<Lhs>, *rhs:        &Def<Rhs>) ->        Def<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin with @default    crate <Lhs, Rhs, N> (*lhs:        &Def<Lhs>, *rhs:    &Ref<'_, Rhs>) ->        Def<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @stdbin with @strict     crate <Lhs, Rhs, N> (*lhs:     &Strict<Lhs>, *rhs:     &Strict<Rhs>) ->     Strict<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @stdbin with @wrapping   crate <Lhs, Rhs, N> (*lhs:   &Wrapping<Lhs>, *rhs:   &Wrapping<Rhs>) ->   Wrapping<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
 ndops::auto! { @stdbin with @saturating crate <Lhs, Rhs, N> (*lhs: &Saturating<Lhs>, *rhs: &Saturating<Rhs>) -> Saturating<N>, (Lhs) (Rhs) (N) (&lhs.0) (&rhs.0) }
@@ -1723,6 +1726,7 @@ ndops::auto! { @stdmut        crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, 
 ndops::auto! { @stdmut @shift crate <'num, Lhs, Rhs> (lhs: &mut Mut<'num, Lhs>, rhs: Rhs),              (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 ndops::auto! { @stdmut with @default    crate <Lhs, Rhs> (lhs:        &mut Def<Lhs>, *rhs:        &Def<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut with @default    crate <Lhs, Rhs> (lhs:        &mut Def<Lhs>, *rhs:    &Ref<'_, Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @stdmut with @strict     crate <Lhs, Rhs> (lhs:     &mut Strict<Lhs>, *rhs:     &Strict<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @stdmut with @wrapping   crate <Lhs, Rhs> (lhs:   &mut Wrapping<Lhs>, *rhs:   &Wrapping<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @stdmut with @saturating crate <Lhs, Rhs> (lhs: &mut Saturating<Lhs>, *rhs: &Saturating<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
