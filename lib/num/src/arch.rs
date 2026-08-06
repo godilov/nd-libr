@@ -3,7 +3,7 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
 use ndext::{convert::NdxFrom, ops::*};
-use zerocopy::{FromBytes, Immutable, IntoBytes};
+use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
 use crate::{arch::word::*, *};
 
@@ -42,6 +42,9 @@ macro_rules! word_def {
 macro_rules! word_impl {
     ([$($primitive:ty),+ $(,)?]) => {
         $(word_impl!($primitive);)+
+    };
+    (@ext [$($primitive:ty),+ $(,)?]) => {
+        $(word_impl!(@ext $primitive);)+
     };
     ($primitive:ty $(,)?) => {
 #[rustfmt::skip]
@@ -90,15 +93,13 @@ macro_rules! word_impl {
             fn is_pow2(self) -> bool {
                 (self & (self - 1) == 0) && self != 0
             }
-
-            #[cfg(feature = "rand")]
+        }
+    };
+    (@ext $primitive:ty $(,)?) => {
+        impl WordExt for $primitive {
             #[inline]
-            fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
-                let mut bytes = [0; <Self as Word>::BYTES];
-
-                rng.fill_bytes(&mut bytes);
-
-                Self::from_ne_bytes(bytes)
+            fn as_words<W: Word>(&self) -> &[W] {
+                transmute_ref!(self)
             }
         }
     };
@@ -123,8 +124,6 @@ macro_rules! bytes_impl {
             }
         }
 
-        impl WordsExtIterator for $primitive {}
-
         impl Rand for $primitive {}
     };
 }
@@ -147,6 +146,7 @@ pub mod word {
         pub(crate) const OCT_WIDTH: u8 = 21;
 
         word_impl!([u8, u16, u32, u64, usize]);
+        word_impl!(@ext [u128]);
     });
 
     #[cfg(all(target_pointer_width = "32", not(test)))]
@@ -158,6 +158,7 @@ pub mod word {
         pub(crate) const OCT_WIDTH: u8 = 10;
 
         word_impl!([u8, u16, u32, usize]);
+        word_impl!(@ext [u64, u128]);
     });
 
     #[cfg(test)]
@@ -169,6 +170,7 @@ pub mod word {
         pub(crate) const OCT_WIDTH: u8 = 2;
 
         word_impl!([u8]);
+        word_impl!(@ext [u16, u32, u64, u128, usize]);
     });
 
     /// Maximum CPU-word unsigned value.
@@ -238,7 +240,7 @@ pub mod word {
     ///
     /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     #[rustfmt::skip]
-    pub trait Word: Clone + Copy
+    pub trait Word: Sized + Clone + Copy
         + PartialEq + Eq
         + PartialOrd + Ord
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
@@ -320,10 +322,24 @@ pub mod word {
 
         /// Checks if Word-like value is power of 2.
         fn is_pow2(self) -> bool;
+    }
 
-        /// Random Word-like value.
-        #[cfg(feature = "rand")]
-        fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self;
+    /// Word-extension primitive.
+    ///
+    /// - On **64-bit** tragets, implemented for: [`u128`].
+    /// - On **32-bit** tragets, implemented for: [`u128`], [`u64`].
+    ///
+    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
+    #[rustfmt::skip]
+    pub trait WordExt: Clone + Copy
+        + PartialEq + Eq
+        + PartialOrd + Ord
+        + Debug + Display + Binary + Octal + LowerHex + UpperHex
+        + AsBytesRef + AsBytesMut
+        + FromBytes + IntoBytes + Immutable
+    {
+        /// Word-extension primitive to words.
+        fn as_words<W: Word>(&self) -> &[W];
     }
 }
 
@@ -591,16 +607,6 @@ pub struct Aligned128<T>(pub T);
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
 
-/// Iterator of words (infinite).
-///
-/// For more info, see [crate-level](crate) documentation.
-#[derive(Clone)]
-pub struct WordsExtIter<'bytes, W: Word> {
-    idx: usize,
-    bytes: &'bytes [u8],
-    ext: W,
-}
-
 /// As bytes slice (reference).
 #[ndfwd::decl]
 pub trait AsBytesRef {
@@ -629,23 +635,6 @@ pub trait AsWordsMut: AsBytesMut {
     fn as_words_mut<W: Word>(&mut self) -> &mut [W];
 }
 
-/// As words iterator.
-#[ndfwd::decl]
-pub trait WordsExtIterator {
-    /// Iterates over self in words.
-    #[inline]
-    fn iter_words_ext<W: Word>(&self) -> WordsExtIter<'_, W>
-    where
-        Self: AsBytesRef,
-    {
-        WordsExtIter {
-            idx: 0,
-            bytes: self.as_bytes_ref(),
-            ext: W::ZERO,
-        }
-    }
-}
-
 /// Random.
 #[ndfwd::decl]
 pub trait Rand: Sized + Default + AsBytesRef + AsBytesMut {
@@ -662,8 +651,6 @@ pub trait Rand: Sized + Default + AsBytesRef + AsBytesMut {
     }
 
     /// Creates random bytes with length.
-    ///
-    /// Order represents position of the most significant bit.
     #[inline]
     #[cfg(feature = "rand")]
     #[ndfwd::as_into]
@@ -759,49 +746,6 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     #[inline]
     fn ndx_from(value: U, _: ()) -> Self {
         Self(V::ndx_from(value, ()))
-    }
-}
-
-impl<'bytes, W: Word> Iterator for WordsExtIter<'bytes, W> {
-    type Item = W;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let idx = self.idx;
-        let len = self.bytes.len();
-
-        let l = idx.min(len);
-        let r = (idx + W::BYTES).min(len);
-
-        let mut res = self.ext;
-
-        AsBytesMut::as_bytes_mut(&mut res)[0..(r - l)].copy_from_slice(&self.bytes[l..r]);
-
-        self.idx += W::BYTES;
-
-        Some(res)
-    }
-}
-
-impl<'bytes, W: Word> WordsExtIter<'bytes, W> {
-    /// Applies `idx` value.
-    #[inline]
-    pub fn idx(self, idx: usize) -> Self {
-        Self {
-            idx,
-            bytes: self.bytes,
-            ext: self.ext,
-        }
-    }
-
-    /// Applies `ext` value.
-    #[inline]
-    pub fn ext(self, ext: W) -> Self {
-        Self {
-            idx: self.idx,
-            bytes: self.bytes,
-            ext,
-        }
     }
 }
 
