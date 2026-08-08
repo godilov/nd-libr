@@ -139,36 +139,18 @@ pub mod word {
 
     #[cfg(all(target_pointer_width = "64", not(test)))]
     word_def!((u64, u128), {
-        pub(crate) const DEC_RADIX: Double = 10_000_000_000_000_000_000;
-        pub(crate) const DEC_WIDTH: u8 = 19;
-
-        pub(crate) const OCT_RADIX: Double = 1 << 63;
-        pub(crate) const OCT_WIDTH: u8 = 21;
-
         word_impl!([u8, u16, u32, u64, usize]);
         word_impl!(@ext [u128]);
     });
 
     #[cfg(all(target_pointer_width = "32", not(test)))]
     word_def!((u32, u64), {
-        pub(crate) const DEC_RADIX: Double = 1_000_000_000;
-        pub(crate) const DEC_WIDTH: u8 = 9;
-
-        pub(crate) const OCT_RADIX: Double = 1 << 30;
-        pub(crate) const OCT_WIDTH: u8 = 10;
-
         word_impl!([u8, u16, u32, usize]);
         word_impl!(@ext [u64, u128]);
     });
 
     #[cfg(test)]
     word_def!((u8, u16), {
-        pub(crate) const DEC_RADIX: Double = 100;
-        pub(crate) const DEC_WIDTH: u8 = 2;
-
-        pub(crate) const OCT_RADIX: Double = 1 << 6;
-        pub(crate) const OCT_WIDTH: u8 = 2;
-
         word_impl!([u8]);
         word_impl!(@ext [u16, u32, u64, u128, usize]);
     });

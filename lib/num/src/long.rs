@@ -1013,10 +1013,10 @@ pub mod radix {
         ]);
 
         /// Dec radix of a single word to iterate when building a string.
-        pub const RADIX: Double = DEC_RADIX;
+        pub const RADIX: Double = (10 as Double).pow(Self::WIDTH as u32);
 
         /// Dec width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = DEC_WIDTH;
+        pub const WIDTH: u8 = RADIX.ilog10() as u8;
 
         /// Dec radix value.
         pub const BASE: u8 = 10;
@@ -1037,14 +1037,14 @@ pub mod radix {
             (b'0' as usize, 0), (b'1' as usize, 1),
         ]);
 
-        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = BITS as u8;
+        /// Exponent of a radix.
+        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
 
         /// Bin radix of a single word to iterate when building a string.
-        pub const RADIX: Double = RADIX;
+        pub const RADIX: Double = (1 as Double) << Self::EXP;
 
         /// Bin width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = BITS as u8;
+        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
 
         /// Bin radix value.
         pub const BASE: u8 = 2;
@@ -1071,14 +1071,14 @@ pub mod radix {
             (b'6' as usize, 6), (b'7' as usize, 7),
         ]);
 
-        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = (BITS - BITS % 3) as u8;
+        /// Exponent of a radix.
+        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
 
         /// Oct radix of a single word to iterate when building a string.
-        pub const RADIX: Double = OCT_RADIX;
+        pub const RADIX: Double = (1 as Double) << Self::EXP;
 
         /// Oct width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = OCT_WIDTH;
+        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
 
         /// Oct radix value.
         pub const BASE: u8 = 8;
@@ -1116,14 +1116,14 @@ pub mod radix {
             (b'e' as usize, 14), (b'f' as usize, 15),
         ]);
 
-        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = BITS as u8;
+        /// Exponent of a radix.
+        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
 
         /// Hex radix of a single word to iterate when building a string.
-        pub const RADIX: Double = RADIX;
+        pub const RADIX: Double = (1 as Double) << Self::EXP;
 
         /// Hex width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = BITS as u8 / 4;
+        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
 
         /// Hex radix value.
         pub const BASE: u8 = 16;
@@ -1206,19 +1206,19 @@ pub mod radix {
             (b'-' as usize, 62), (b'_' as usize, 63),
         ]);
 
-        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = BITS as u8;
+        /// Exponent of a radix.
+        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
 
-        /// Hex radix of a single word to iterate when building a string.
+        /// X64 radix of a single word to iterate when building a string.
         pub const RADIX: Double = RADIX;
 
-        /// Hex width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = BITS as u8 / 6;
+        /// X64 width of a single word at `RADIX` when building a string.
+        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
 
-        /// Hex radix value.
+        /// X64 radix value.
         pub const BASE: u8 = 64;
 
-        /// Hex radix prefix in a string.
+        /// X64 radix prefix in a string.
         pub const PREFIX: &str = "";
     }
 
