@@ -5083,6 +5083,17 @@ pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 ///
 /// For more info, see [`ToDigitsIter`] documentation.
 #[derive(Debug, Clone)]
+pub struct DigitsxIter<'words, W: Word> {
+    words: &'words [W],
+    idx: usize,
+    exp: usize,
+    len: usize,
+}
+
+/// Digits iterator by `exp`.
+///
+/// For more info, see [`ToDigitsIter`] documentation.
+#[derive(Debug, Clone)]
 pub struct DigitsIter<'words, const L: usize, W: Word> {
     words: &'words [Single; L],
     bits: usize,
@@ -6008,8 +6019,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L>
     << @unbounded uops::shl(&lhs.0, rhs).signed().with(Signed),
     >> @unbounded uops::shr(&lhs.0, rhs).signed().with(Signed),
 
-    << @overflowing (uops::shl(&lhs.0, rhs % (L * BITS)).signed().with(Signed), rhs >= BITS * L),
-    >> @overflowing (uops::shr(&lhs.0, rhs % (L * BITS)).signed().with(Signed), rhs >= BITS * L),
+    << @overflowing (uops::shl(&lhs.0, rhs % (BITS * L)).signed().with(Signed), rhs >= BITS * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % (BITS * L)).signed().with(Signed), rhs >= BITS * L),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
@@ -6067,8 +6078,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigne
     << @unbounded uops::shl(&lhs.0, rhs).with(Unsigned),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Unsigned),
 
-    << @overflowing (uops::shl(&lhs.0, rhs % (L * BITS)).with(Unsigned), rhs >= BITS * L),
-    >> @overflowing (uops::shr(&lhs.0, rhs % (L * BITS)).with(Unsigned), rhs >= BITS * L),
+    << @overflowing (uops::shl(&lhs.0, rhs % (BITS * L)).with(Unsigned), rhs >= BITS * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % (BITS * L)).with(Unsigned), rhs >= BITS * L),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
@@ -6090,8 +6101,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> f
     << @unbounded uops::shl(&lhs.0, rhs).with(Bytes),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Bytes),
 
-    << @overflowing (uops::shl(&lhs.0, rhs % (L * BITS)).with(Bytes), rhs >= BITS * L),
-    >> @overflowing (uops::shr(&lhs.0, rhs % (L * BITS)).with(Bytes), rhs >= BITS * L),
+    << @overflowing (uops::shl(&lhs.0, rhs % (BITS * L)).with(Bytes), rhs >= BITS * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % (BITS * L)).with(Bytes), rhs >= BITS * L),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
@@ -6498,10 +6509,54 @@ impl<const L: usize> IntoDigitsIter for Unsigned<L> {
     }
 }
 
+impl<'words, W: Word> ExactSizeIterator for DigitsxIter<'words, W> {}
+impl<'words, W: Word> Iterator for DigitsxIter<'words, W> {
+    type Item = W;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let zero = Relaxed(W::ZERO);
+        let one = Relaxed(W::ONE);
+
+        let words = self.words;
+        let idx = self.idx;
+        let exp = self.exp;
+        let len = self.len;
+
+        if idx >= len {
+            return None;
+        }
+
+        let offset = idx * exp;
+        let mask = (one << exp) - one;
+
+        let shl = offset % W::BITS;
+        let shr = W::BITS - shl;
+
+        let idxs = [offset / W::BITS, (offset + exp) / W::BITS];
+        let vals = [
+            Relaxed(*words.get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
+            Relaxed(*words.get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
+        ];
+
+        let res = vals[0] >> shl | vals[1] << shr;
+
+        self.idx += 1;
+
+        Some(res.0)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len, Some(self.len))
+    }
+}
+
 impl<'words, const L: usize, W: Word> ExactSizeIterator for DigitsIter<'words, L, W> {}
 impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
     type Item = W;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.idx == self.cnt {
             if self.acc == 0 {
@@ -6530,6 +6585,7 @@ impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
         Some(W::from_double(val & self.mask))
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
@@ -6539,6 +6595,7 @@ impl<const L: usize, W: Word> ExactSizeIterator for DigitsRadixIter<L, W> {}
 impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     type Item = W;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let radix = self.radix.as_double();
 
@@ -6776,13 +6833,13 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 }
 
 impl<const L: usize> NumBinary for Signed<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
+    const BITS: usize = (BITS * L);
+    const BYTES: usize = (BYTES * L);
 }
 
 impl<const L: usize> NumBinary for Unsigned<L> {
-    const BITS: usize = (L * BITS);
-    const BYTES: usize = (L * BYTES);
+    const BITS: usize = (BITS * L);
+    const BYTES: usize = (BYTES * L);
 }
 
 impl<const L: usize> NumCt for Signed<L> {

@@ -228,6 +228,8 @@ pub mod word {
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
         + AsBytesRef + AsBytesMut
         + FromBytes + IntoBytes + Immutable
+        + NdOps<All = Self> + NdOpsAssign 
+        + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed
     {
         /// Bits per Word-like primitive.
         ///
