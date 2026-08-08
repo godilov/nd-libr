@@ -988,14 +988,20 @@ pub mod radix {
 
     /// Arbitrary Radix.
     pub struct Radix {
-        /// Radix prefix in string.
-        pub prefix: &'static str,
+        /// Radix encode table (digit -> ascii).
+        pub encode: &'static Aligned<[u8; 256]>,
+
+        /// Radix decode table (ascii -> digit).
+        pub decode: &'static Aligned<[u8; 256]>,
 
         /// Radix of a single word to iterate when building a string.
         pub value: Double,
 
         /// Width of a single word at `RADIX` when building a string.
         pub width: u8,
+
+        /// Radix prefix in string.
+        pub prefix: &'static str,
     }
 
     #[rustfmt::skip]
@@ -1091,11 +1097,11 @@ pub mod radix {
     impl Hex {
         /// Hex encode table (digit -> ascii).
         pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
-            (0,  b'0'),  (1, b'1'),
-            (2,  b'2'),  (3, b'3'),
-            (4,  b'4'),  (5, b'5'),
-            (6,  b'6'),  (7, b'7'),
-            (8,  b'8'),  (9, b'9'),
+            ( 0, b'0'), ( 1, b'1'),
+            ( 2, b'2'), ( 3, b'3'),
+            ( 4, b'4'), ( 5, b'5'),
+            ( 6, b'6'), ( 7, b'7'),
+            ( 8, b'8'), ( 9, b'9'),
             (10, b'A'), (11, b'B'),
             (12, b'C'), (13, b'D'),
             (14, b'E'), (15, b'F'),
@@ -1136,11 +1142,11 @@ pub mod radix {
     impl X64 {
         /// X64 encode table (digit -> ascii).
         pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
-            (0,  b'A'), (1,  b'B'),
-            (2,  b'C'), (3,  b'D'),
-            (4,  b'E'), (5,  b'F'),
-            (6,  b'G'), (7,  b'H'),
-            (8,  b'I'), (9,  b'J'),
+            ( 0, b'A'), ( 1, b'B'),
+            ( 2, b'C'), ( 3, b'D'),
+            ( 4, b'E'), ( 5, b'F'),
+            ( 6, b'G'), ( 7, b'H'),
+            ( 8, b'I'), ( 9, b'J'),
             (10, b'K'), (11, b'L'),
             (12, b'M'), (13, b'N'),
             (14, b'O'), (15, b'P'),
@@ -1172,11 +1178,11 @@ pub mod radix {
 
         /// X64 decode table (ascii -> digit).
         pub const DECODE: Aligned<[u8; 256]> = array(255, &[
-            (b'A' as usize, 0 ), (b'B' as usize, 1 ),
-            (b'C' as usize, 2 ), (b'D' as usize, 3 ),
-            (b'E' as usize, 4 ), (b'F' as usize, 5 ),
-            (b'G' as usize, 6 ), (b'H' as usize, 7 ),
-            (b'I' as usize, 8 ), (b'J' as usize, 9 ),
+            (b'A' as usize,  0), (b'B' as usize,  1),
+            (b'C' as usize,  2), (b'D' as usize,  3),
+            (b'E' as usize,  4), (b'F' as usize,  5),
+            (b'G' as usize,  6), (b'H' as usize,  7),
+            (b'I' as usize,  8), (b'J' as usize,  9),
             (b'K' as usize, 10), (b'L' as usize, 11),
             (b'M' as usize, 12), (b'N' as usize, 13),
             (b'O' as usize, 14), (b'P' as usize, 15),
@@ -1226,9 +1232,11 @@ pub mod radix {
         #[inline]
         fn from(_: Dec) -> Self {
             Self {
-                prefix: Dec::PREFIX,
+                encode: &Dec::ENCODE,
+                decode: &Dec::DECODE,
                 value: Dec::RADIX,
                 width: Dec::WIDTH,
+                prefix: Dec::PREFIX,
             }
         }
     }
@@ -1237,9 +1245,11 @@ pub mod radix {
         #[inline]
         fn from(_: Bin) -> Self {
             Self {
-                prefix: Bin::PREFIX,
+                encode: &Bin::ENCODE,
+                decode: &Bin::DECODE,
                 value: Bin::RADIX,
                 width: Bin::WIDTH,
+                prefix: Bin::PREFIX,
             }
         }
     }
@@ -1248,9 +1258,11 @@ pub mod radix {
         #[inline]
         fn from(_: Oct) -> Self {
             Self {
-                prefix: Oct::PREFIX,
+                encode: &Oct::ENCODE,
+                decode: &Oct::DECODE,
                 value: Oct::RADIX,
                 width: Oct::WIDTH,
+                prefix: Oct::PREFIX,
             }
         }
     }
@@ -1259,9 +1271,24 @@ pub mod radix {
         #[inline]
         fn from(_: Hex) -> Self {
             Self {
-                prefix: Hex::PREFIX,
+                encode: &Hex::ENCODE,
+                decode: &Hex::DECODE,
                 value: Hex::RADIX,
                 width: Hex::WIDTH,
+                prefix: Hex::PREFIX,
+            }
+        }
+    }
+
+    impl From<X64> for Radix {
+        #[inline]
+        fn from(_: X64) -> Self {
+            Self {
+                encode: &X64::ENCODE,
+                decode: &X64::DECODE,
+                value: X64::RADIX,
+                width: X64::WIDTH,
+                prefix: X64::PREFIX,
             }
         }
     }
