@@ -50,11 +50,13 @@ pub fn all(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
         FwdFmt::HexLower,
         FwdFmt::HexUpper,
     ];
+    let idx_impls = [FwdIdx::Ref, FwdIdx::Mut];
     let iter_impls = [FwdIter::From, FwdIter::Into, FwdIter::IntoRef, FwdIter::IntoMut];
 
     let std_impls = std_impls.into_iter().map(|std| ty.std(&attr, &forwards, std));
     let cmp_impls = cmp_impls.into_iter().map(|cmp| ty.cmp(&attr, &forwards, cmp));
     let fmt_impls = fmt_impls.into_iter().map(|fmt| ty.fmt(&attr, &forwards, fmt));
+    let idx_impls = idx_impls.into_iter().map(|idx| ty.idx(&attr, &forwards, idx));
     let iter_impls = iter_impls.into_iter().map(|iter| ty.iter(&attr, &forwards, iter));
 
     quote! {
@@ -63,6 +65,7 @@ pub fn all(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
         #(#std_impls)*
         #(#cmp_impls)*
         #(#fmt_impls)*
+        #(#idx_impls)*
         #(#iter_impls)*
     }
     .into()
@@ -187,6 +190,43 @@ pub fn fmt(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     ];
 
     let impls = impls.into_iter().map(|fmt| ty.fmt(&attr, &forwards, fmt));
+
+    quote! {
+        #ty
+
+        #(#impls)*
+    }
+    .into()
+}
+
+/// Zero-boilerplate index traits forwarding for **struct**, **enum** and **union**.
+///
+/// Forwards [`std::ops::Index`], [`std::ops::IndexMut`] to specified expression.
+///
+/// # Syntax
+///
+/// ```text
+/// #[ndfwd::idx(<expr> with <type>)]
+/// struct Any(<type>);
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// #[ndfwd::idx(self.0 with [u64; 3])]
+/// struct Vec3([u64; 3]);
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro_attribute]
+pub fn idx(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
+    let ty = parse_macro_input!(ty as FwdType);
+    let attr = parse_macro_input!(attr as FwdAttr);
+
+    let forwards = ty.fwds(&attr);
+
+    let impls = [FwdIdx::Ref, FwdIdx::Mut];
+    let impls = impls.into_iter().map(|idx| ty.idx(&attr, &forwards, idx));
 
     quote! {
         #ty
@@ -558,6 +598,11 @@ enum FwdFmt {
     Octal,
     HexLower,
     HexUpper,
+}
+
+enum FwdIdx {
+    Ref,
+    Mut,
 }
 
 enum FwdIter {
@@ -989,6 +1034,49 @@ impl FwdType {
                     #expr.fmt(f)
                 }
             }
+        }
+    }
+
+    fn idx(&self, attr: &FwdAttr, _: &Fwds, idx: FwdIdx) -> TokenStream {
+        let (ident, generics) = self.args();
+        let (expr, ty) = attr.args();
+
+        let gen_params = generics.params.iter();
+        let (_, gen_type, gen_where) = generics.split_for_impl();
+
+        match idx {
+            FwdIdx::Ref => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::ops::Index<Idx> },
+                    None => quote! { where #ty: std::ops::Index<Idx> },
+                };
+
+                quote! {
+                    impl<#(#gen_params,)* Idx> std::ops::Index<Idx> for #ident #gen_type #conditions {
+                        type Output = <#ty as std::ops::Index<Idx>>::Output;
+
+                        #[inline]
+                        fn index(&self, index: Idx) -> &Self::Output {
+                            #expr.index(index)
+                        }
+                    }
+                }
+            },
+            FwdIdx::Mut => {
+                let conditions = match gen_where.map(|val| val.predicates.iter()) {
+                    Some(val) => quote! { where #(#val,)* #ty: std::ops::Index<Idx>, #ty: std::ops::IndexMut<Idx> },
+                    None => quote! { where #ty: std::ops::Index<Idx>, #ty: std::ops::IndexMut<Idx> },
+                };
+
+                quote! {
+                    impl<#(#gen_params,)* Idx> std::ops::IndexMut<Idx> for #ident #gen_type #conditions {
+                        #[inline]
+                        fn index_mut(&mut self, index: Idx) -> &mut Self::Output {
+                            #expr.index_mut(index)
+                        }
+                    }
+                }
+            },
         }
     }
 
