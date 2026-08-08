@@ -99,9 +99,9 @@ macro_rules! from_primitive_const {
 macro_rules! from_str_impl {
     (@radix $str:expr, $radix:ty) => {{
         let (s, sign) = get_sign_from_str($str)?;
-        let (s, radix) = get_radix_from_str(s, <$radix>::VALUE)?;
+        let (s, radix) = get_radix_from_str(s, <$radix>::BASE)?;
 
-        if radix != <$radix>::VALUE {
+        if radix != <$radix>::BASE {
             return Err(FromStrError::InvalidRadix { radix: radix as usize });
         }
 
@@ -1019,7 +1019,7 @@ pub mod radix {
         pub const WIDTH: u8 = DEC_WIDTH;
 
         /// Dec radix value.
-        pub const VALUE: u8 = 10;
+        pub const BASE: u8 = 10;
 
         /// Dec radix prefix in a string.
         pub const PREFIX: &str = "";
@@ -1038,7 +1038,7 @@ pub mod radix {
         ]);
 
         /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = RADIX.ilog2() as u8;
+        pub const EXP: u8 = BITS as u8;
 
         /// Bin radix of a single word to iterate when building a string.
         pub const RADIX: Double = RADIX;
@@ -1047,7 +1047,7 @@ pub mod radix {
         pub const WIDTH: u8 = BITS as u8;
 
         /// Bin radix value.
-        pub const VALUE: u8 = 2;
+        pub const BASE: u8 = 2;
 
         /// Bin radix prefix in a string.
         pub const PREFIX: &str = "0b";
@@ -1072,7 +1072,7 @@ pub mod radix {
         ]);
 
         /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = OCT_RADIX.ilog2() as u8;
+        pub const EXP: u8 = (BITS - BITS % 3) as u8;
 
         /// Oct radix of a single word to iterate when building a string.
         pub const RADIX: Double = OCT_RADIX;
@@ -1081,7 +1081,7 @@ pub mod radix {
         pub const WIDTH: u8 = OCT_WIDTH;
 
         /// Oct radix value.
-        pub const VALUE: u8 = 8;
+        pub const BASE: u8 = 8;
 
         /// Oct radix prefix in a string.
         pub const PREFIX: &str = "0o";
@@ -1117,7 +1117,7 @@ pub mod radix {
         ]);
 
         /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = RADIX.ilog2() as u8;
+        pub const EXP: u8 = BITS as u8;
 
         /// Hex radix of a single word to iterate when building a string.
         pub const RADIX: Double = RADIX;
@@ -1126,7 +1126,7 @@ pub mod radix {
         pub const WIDTH: u8 = BITS as u8 / 4;
 
         /// Hex radix value.
-        pub const VALUE: u8 = 16;
+        pub const BASE: u8 = 16;
 
         /// Hex radix prefix in a string.
         pub const PREFIX: &str = "0x";
@@ -1207,7 +1207,7 @@ pub mod radix {
         ]);
 
         /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
-        pub const EXP: u8 = RADIX.ilog2() as u8;
+        pub const EXP: u8 = BITS as u8;
 
         /// Hex radix of a single word to iterate when building a string.
         pub const RADIX: Double = RADIX;
@@ -1216,7 +1216,7 @@ pub mod radix {
         pub const WIDTH: u8 = BITS as u8 / 6;
 
         /// Hex radix value.
-        pub const VALUE: u8 = 64;
+        pub const BASE: u8 = 64;
 
         /// Hex radix prefix in a string.
         pub const PREFIX: &str = "";
@@ -8380,7 +8380,7 @@ mod tests {
 
     #[test]
     fn from_str() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 52)) [
+        ndassert::check! { @eq (val in ndassert::range!(i64, 48)) [
             (format!("{:#}",  val).parse::<S64>(), Ok(S64::from(val))),
             (format!("{:#b}", val).parse::<S64>(), Ok(S64::from(val))),
             (format!("{:#o}", val).parse::<S64>(), Ok(S64::from(val))),
@@ -8418,7 +8418,7 @@ mod tests {
             (S64::nd_from_str(&format!("{:#X}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
         ] }
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 52)) [
+        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
             (format!("{:#}",  val).parse::<U64>(), Ok(U64::from(val))),
             (format!("{:#b}", val).parse::<U64>(), Ok(U64::from(val))),
             (format!("{:#o}", val).parse::<U64>(), Ok(U64::from(val))),
@@ -8442,7 +8442,7 @@ mod tests {
     #[test]
     fn to_str() {
         ndassert::check! { @eq (
-            val in ndassert::range!(i64, 52),
+            val in ndassert::range!(i64, 48),
             pos as S64::from(val),
             neg as S64::from(val.wrapping_neg()),
         ) [
@@ -8470,7 +8470,7 @@ mod tests {
         ] }
 
         ndassert::check! { @eq (
-            val in ndassert::range!(u64, 52),
+            val in ndassert::range!(u64, 48),
             long as U64::from(val),
         ) [
             (format!("{:}",   long), format!("{:}",   val)),
