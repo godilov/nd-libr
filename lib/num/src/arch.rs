@@ -621,14 +621,14 @@ pub trait AsBytesMut {
     fn as_bytes_mut(&mut self) -> &mut [u8];
 }
 
-/// As words slice (reference, multi-type).
+/// As words slice (reference).
 #[ndfwd::decl]
 pub trait AsWordsRef: AsBytesRef {
     /// As ref-slice of words.
     fn as_words_ref<W: Word>(&self) -> &[W];
 }
 
-/// As words slice (mutable, multi-type).
+/// As words slice (mutable).
 #[ndfwd::decl]
 pub trait AsWordsMut: AsBytesMut {
     /// As mut-slice of words.

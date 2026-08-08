@@ -967,6 +967,8 @@ pub mod radix {
     //!
     //! **Radix related definitions**
 
+    use crate::arch::Aligned;
+
     use super::*;
 
     /// Dec Radix.
@@ -981,85 +983,243 @@ pub mod radix {
     /// Hex Radix.
     pub struct Hex;
 
+    /// X64 Radix.
+    pub struct X64;
+
     /// Arbitrary Radix.
     pub struct Radix {
         /// Radix prefix in string.
         pub prefix: &'static str,
 
-        /// Radix of a single entry to iterate when building a string.
+        /// Radix of a single word to iterate when building a string.
         pub value: Double,
 
-        /// Width of a single entry at `RADIX` when building a string.
+        /// Width of a single word at `RADIX` when building a string.
         pub width: u8,
     }
 
     #[rustfmt::skip]
     impl Dec {
-        /// Dec radix prefix in a string.
-        pub const PREFIX: &str = "";
+        /// Dec encode table (digit -> ascii).
+        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[]);
 
-        /// Dec radix of a single entry to iterate when building a string.
+        /// Dec decode table (ascii -> digit).
+        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+            (b'0' as usize, 0), (b'1' as usize, 1),
+            (b'2' as usize, 2), (b'3' as usize, 3),
+            (b'4' as usize, 4), (b'5' as usize, 5),
+            (b'6' as usize, 6), (b'7' as usize, 7),
+            (b'8' as usize, 8), (b'9' as usize, 9),
+        ]);
+
+        /// Dec radix of a single word to iterate when building a string.
         pub const RADIX: Double = DEC_RADIX;
 
-        /// Dec width of a single entry at `RADIX` when building a string.
+        /// Dec width of a single word at `RADIX` when building a string.
         pub const WIDTH: u8 = DEC_WIDTH;
 
-        /// Dec radix value base.
+        /// Dec radix value.
         pub const VALUE: u8 = 10;
+
+        /// Dec radix prefix in a string.
+        pub const PREFIX: &str = "";
     }
 
     #[rustfmt::skip]
     impl Bin {
+        /// Bin encode table (digit -> ascii).
+        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+            (0, b'0'), (1, b'1'),
+        ]);
+
+        /// Bin decode table (ascii -> digit).
+        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+            (b'0' as usize, 0), (b'1' as usize, 1),
+        ]);
+
         /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
         pub const EXP: u8 = RADIX.ilog2() as u8;
 
-        /// Bin radix prefix in a string.
-        pub const PREFIX: &str = "0b";
-
-        /// Bin radix of a single entry to iterate when building a string.
+        /// Bin radix of a single word to iterate when building a string.
         pub const RADIX: Double = RADIX;
 
-        /// Bin width of a single entry at `RADIX` when building a string.
+        /// Bin width of a single word at `RADIX` when building a string.
         pub const WIDTH: u8 = BITS as u8;
 
-        /// Bin radix value base.
+        /// Bin radix value.
         pub const VALUE: u8 = 2;
+
+        /// Bin radix prefix in a string.
+        pub const PREFIX: &str = "0b";
     }
 
     #[rustfmt::skip]
     impl Oct {
+        /// Oct encode table (digit -> ascii).
+        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+            (0, b'0'), (1, b'1'),
+            (2, b'2'), (3, b'3'),
+            (4, b'4'), (5, b'5'),
+            (6, b'6'), (7, b'7'),
+        ]);
+
+        /// Oct decode table (ascii -> digit).
+        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+            (b'0' as usize, 0), (b'1' as usize, 1),
+            (b'2' as usize, 2), (b'3' as usize, 3),
+            (b'4' as usize, 4), (b'5' as usize, 5),
+            (b'6' as usize, 6), (b'7' as usize, 7),
+        ]);
+
         /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
         pub const EXP: u8 = OCT_RADIX.ilog2() as u8;
 
-        /// Oct radix prefix in a string.
-        pub const PREFIX: &str = "0o";
-
-        /// Oct radix of a single entry to iterate when building a string.
+        /// Oct radix of a single word to iterate when building a string.
         pub const RADIX: Double = OCT_RADIX;
 
-        /// Oct width of a single entry at `RADIX` when building a string.
+        /// Oct width of a single word at `RADIX` when building a string.
         pub const WIDTH: u8 = OCT_WIDTH;
 
-        /// Oct radix value base.
+        /// Oct radix value.
         pub const VALUE: u8 = 8;
+
+        /// Oct radix prefix in a string.
+        pub const PREFIX: &str = "0o";
     }
 
     #[rustfmt::skip]
     impl Hex {
+        /// Hex encode table (digit -> ascii).
+        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+            (0,  b'0'),  (1, b'1'),
+            (2,  b'2'),  (3, b'3'),
+            (4,  b'4'),  (5, b'5'),
+            (6,  b'6'),  (7, b'7'),
+            (8,  b'8'),  (9, b'9'),
+            (10, b'A'), (11, b'B'),
+            (12, b'C'), (13, b'D'),
+            (14, b'E'), (15, b'F'),
+        ]);
+
+        /// Hex decode table (ascii -> digit).
+        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+            (b'0' as usize,  0), (b'1' as usize,  1),
+            (b'2' as usize,  2), (b'3' as usize,  3),
+            (b'4' as usize,  4), (b'5' as usize,  5),
+            (b'6' as usize,  6), (b'7' as usize,  7),
+            (b'8' as usize,  8), (b'9' as usize,  9),
+            (b'A' as usize, 10), (b'B' as usize, 11),
+            (b'C' as usize, 12), (b'D' as usize, 13),
+            (b'E' as usize, 14), (b'F' as usize, 15),
+            (b'a' as usize, 10), (b'b' as usize, 11),
+            (b'c' as usize, 12), (b'd' as usize, 13),
+            (b'e' as usize, 14), (b'f' as usize, 15),
+        ]);
+
         /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
         pub const EXP: u8 = RADIX.ilog2() as u8;
 
-        /// Hex radix prefix in a string.
-        pub const PREFIX: &str = "0x";
-
-        /// Hex radix of a single entry to iterate when building a string.
+        /// Hex radix of a single word to iterate when building a string.
         pub const RADIX: Double = RADIX;
 
-        /// Hex width of a single entry at `RADIX` when building a string.
+        /// Hex width of a single word at `RADIX` when building a string.
         pub const WIDTH: u8 = BITS as u8 / 4;
 
-        /// Hex radix value base.
+        /// Hex radix value.
         pub const VALUE: u8 = 16;
+
+        /// Hex radix prefix in a string.
+        pub const PREFIX: &str = "0x";
+    }
+
+    #[rustfmt::skip]
+    impl X64 {
+        /// X64 encode table (digit -> ascii).
+        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+            (0,  b'A'), (1,  b'B'),
+            (2,  b'C'), (3,  b'D'),
+            (4,  b'E'), (5,  b'F'),
+            (6,  b'G'), (7,  b'H'),
+            (8,  b'I'), (9,  b'J'),
+            (10, b'K'), (11, b'L'),
+            (12, b'M'), (13, b'N'),
+            (14, b'O'), (15, b'P'),
+            (16, b'Q'), (17, b'R'),
+            (18, b'S'), (19, b'T'),
+            (20, b'U'), (21, b'V'),
+            (22, b'W'), (23, b'X'),
+            (24, b'Y'), (25, b'Z'),
+            (26, b'a'), (27, b'b'),
+            (28, b'c'), (29, b'd'),
+            (30, b'e'), (31, b'f'),
+            (32, b'g'), (33, b'h'),
+            (34, b'i'), (35, b'j'),
+            (36, b'k'), (37, b'l'),
+            (38, b'm'), (39, b'n'),
+            (40, b'o'), (41, b'p'),
+            (42, b'q'), (43, b'r'),
+            (44, b's'), (45, b't'),
+            (46, b'u'), (47, b'v'),
+            (48, b'w'), (49, b'x'),
+            (50, b'y'), (51, b'z'),
+            (52, b'0'), (53, b'1'),
+            (54, b'2'), (55, b'3'),
+            (56, b'4'), (57, b'5'),
+            (58, b'6'), (59, b'7'),
+            (60, b'8'), (61, b'9'),
+            (62, b'-'), (63, b'_'),
+        ]);
+
+        /// X64 decode table (ascii -> digit).
+        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+            (b'A' as usize, 0 ), (b'B' as usize, 1 ),
+            (b'C' as usize, 2 ), (b'D' as usize, 3 ),
+            (b'E' as usize, 4 ), (b'F' as usize, 5 ),
+            (b'G' as usize, 6 ), (b'H' as usize, 7 ),
+            (b'I' as usize, 8 ), (b'J' as usize, 9 ),
+            (b'K' as usize, 10), (b'L' as usize, 11),
+            (b'M' as usize, 12), (b'N' as usize, 13),
+            (b'O' as usize, 14), (b'P' as usize, 15),
+            (b'Q' as usize, 16), (b'R' as usize, 17),
+            (b'S' as usize, 18), (b'T' as usize, 19),
+            (b'U' as usize, 20), (b'V' as usize, 21),
+            (b'W' as usize, 22), (b'X' as usize, 23),
+            (b'Y' as usize, 24), (b'Z' as usize, 25),
+            (b'a' as usize, 26), (b'b' as usize, 27),
+            (b'c' as usize, 28), (b'd' as usize, 29),
+            (b'e' as usize, 30), (b'f' as usize, 31),
+            (b'g' as usize, 32), (b'h' as usize, 33),
+            (b'i' as usize, 34), (b'j' as usize, 35),
+            (b'k' as usize, 36), (b'l' as usize, 37),
+            (b'm' as usize, 38), (b'n' as usize, 39),
+            (b'o' as usize, 40), (b'p' as usize, 41),
+            (b'q' as usize, 42), (b'r' as usize, 43),
+            (b's' as usize, 44), (b't' as usize, 45),
+            (b'u' as usize, 46), (b'v' as usize, 47),
+            (b'w' as usize, 48), (b'x' as usize, 49),
+            (b'y' as usize, 50), (b'z' as usize, 51),
+            (b'0' as usize, 52), (b'1' as usize, 53),
+            (b'2' as usize, 54), (b'3' as usize, 55),
+            (b'4' as usize, 56), (b'5' as usize, 57),
+            (b'6' as usize, 58), (b'7' as usize, 59),
+            (b'8' as usize, 60), (b'9' as usize, 61),
+            (b'-' as usize, 62), (b'_' as usize, 63),
+        ]);
+
+        /// Exponent of a radix, i.e. `RADIX = 1 << EXP`.
+        pub const EXP: u8 = RADIX.ilog2() as u8;
+
+        /// Hex radix of a single word to iterate when building a string.
+        pub const RADIX: Double = RADIX;
+
+        /// Hex width of a single word at `RADIX` when building a string.
+        pub const WIDTH: u8 = BITS as u8 / 6;
+
+        /// Hex radix value.
+        pub const VALUE: u8 = 64;
+
+        /// Hex radix prefix in a string.
+        pub const PREFIX: &str = "";
     }
 
     impl From<Dec> for Radix {
@@ -1104,6 +1264,21 @@ pub mod radix {
                 width: Hex::WIDTH,
             }
         }
+    }
+
+    #[inline]
+    const fn array<T: Copy>(default: T, slice: &[(usize, T)]) -> Aligned<[T; 256]> {
+        let mut idx = 0;
+        let mut res = [default; 256];
+
+        while idx < slice.len() {
+            let (i, x) = slice[idx];
+
+            res[i] = x;
+            idx += 1;
+        }
+
+        Aligned(res)
     }
 }
 
@@ -7537,8 +7712,8 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Res
 
     let mut buf = vec![b'0'; len * width];
 
-    for (i, &word) in words[..len].iter().enumerate() {
-        let offset = (len - i - 1) * width;
+    for (idx, &word) in words[..len].iter().enumerate() {
+        let offset = (len - idx - 1) * width;
 
         func(Cursor::new(&mut buf[offset..]), word.as_usize(), width)?;
     }
@@ -7578,8 +7753,8 @@ where
 
     let mut buf = vec![b'0'; len * width];
 
-    for (i, word) in words.enumerate() {
-        let offset = (len - i - 1) * width;
+    for (idx, word) in words.enumerate() {
+        let offset = (len - idx - 1) * width;
 
         func(Cursor::new(&mut buf[offset..]), word.as_usize(), width)?;
     }
