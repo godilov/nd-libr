@@ -1210,7 +1210,7 @@ pub mod radix {
         pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
 
         /// X64 radix of a single word to iterate when building a string.
-        pub const RADIX: Double = RADIX;
+        pub const RADIX: Double = (1 as Double) << Self::EXP;
 
         /// X64 width of a single word at `RADIX` when building a string.
         pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
