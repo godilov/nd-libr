@@ -1029,6 +1029,15 @@ pub mod radix {
 
         /// Dec radix prefix in a string.
         pub const PREFIX: &str = "";
+
+        /// Dec radix struct.
+        pub const RX: Radix = Radix {
+            encode: &Self::ENCODE,
+            decode: &Self::DECODE,
+            value: Self::RADIX,
+            width: Self::WIDTH,
+            prefix: Self::PREFIX,
+        };
     }
 
     #[rustfmt::skip]
@@ -1057,6 +1066,15 @@ pub mod radix {
 
         /// Bin radix prefix in a string.
         pub const PREFIX: &str = "0b";
+
+        /// Bin radix struct.
+        pub const RX: Radix = Radix {
+            encode: &Self::ENCODE,
+            decode: &Self::DECODE,
+            value: Self::RADIX,
+            width: Self::WIDTH,
+            prefix: Self::PREFIX,
+        };
     }
 
     #[rustfmt::skip]
@@ -1091,6 +1109,15 @@ pub mod radix {
 
         /// Oct radix prefix in a string.
         pub const PREFIX: &str = "0o";
+
+        /// Oct radix struct.
+        pub const RX: Radix = Radix {
+            encode: &Self::ENCODE,
+            decode: &Self::DECODE,
+            value: Self::RADIX,
+            width: Self::WIDTH,
+            prefix: Self::PREFIX,
+        };
     }
 
     #[rustfmt::skip]
@@ -1136,6 +1163,15 @@ pub mod radix {
 
         /// Hex radix prefix in a string.
         pub const PREFIX: &str = "0x";
+
+        /// Hex radix struct.
+        pub const RX: Radix = Radix {
+            encode: &Self::ENCODE,
+            decode: &Self::DECODE,
+            value: Self::RADIX,
+            width: Self::WIDTH,
+            prefix: Self::PREFIX,
+        };
     }
 
     #[rustfmt::skip]
@@ -1226,71 +1262,15 @@ pub mod radix {
 
         /// X64 radix prefix in a string.
         pub const PREFIX: &str = "";
-    }
 
-    impl From<Dec> for Radix {
-        #[inline]
-        fn from(_: Dec) -> Self {
-            Self {
-                encode: &Dec::ENCODE,
-                decode: &Dec::DECODE,
-                value: Dec::RADIX,
-                width: Dec::WIDTH,
-                prefix: Dec::PREFIX,
-            }
-        }
-    }
-
-    impl From<Bin> for Radix {
-        #[inline]
-        fn from(_: Bin) -> Self {
-            Self {
-                encode: &Bin::ENCODE,
-                decode: &Bin::DECODE,
-                value: Bin::RADIX,
-                width: Bin::WIDTH,
-                prefix: Bin::PREFIX,
-            }
-        }
-    }
-
-    impl From<Oct> for Radix {
-        #[inline]
-        fn from(_: Oct) -> Self {
-            Self {
-                encode: &Oct::ENCODE,
-                decode: &Oct::DECODE,
-                value: Oct::RADIX,
-                width: Oct::WIDTH,
-                prefix: Oct::PREFIX,
-            }
-        }
-    }
-
-    impl From<Hex> for Radix {
-        #[inline]
-        fn from(_: Hex) -> Self {
-            Self {
-                encode: &Hex::ENCODE,
-                decode: &Hex::DECODE,
-                value: Hex::RADIX,
-                width: Hex::WIDTH,
-                prefix: Hex::PREFIX,
-            }
-        }
-    }
-
-    impl From<X64> for Radix {
-        #[inline]
-        fn from(_: X64) -> Self {
-            Self {
-                encode: &X64::ENCODE,
-                decode: &X64::DECODE,
-                value: X64::RADIX,
-                width: X64::WIDTH,
-                prefix: X64::PREFIX,
-            }
-        }
+        /// X64 radix struct.
+        pub const RX: Radix = Radix {
+            encode: &Self::ENCODE,
+            decode: &Self::DECODE,
+            value: Self::RADIX,
+            width: Self::WIDTH,
+            prefix: Self::PREFIX,
+        };
     }
 
     #[inline]
@@ -5818,7 +5798,7 @@ impl<const L: usize> Display for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Dec.into(), self.sign(), write_dec)
+        write_iter(f, iter, &Dec::RX, self.sign(), write_dec)
     }
 }
 
@@ -5830,35 +5810,35 @@ impl<const L: usize> Display for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Dec.into(), self.sign(), write_dec)
+        write_iter(f, iter, &Dec::RX, self.sign(), write_dec)
     }
 }
 
 impl<const L: usize> Display for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
+        write(f, &self.0, &Bin::RX, get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
+        write(f, &self.0, &Bin::RX, get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
 impl<const L: usize> Binary for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Bin.into(), get_sign(&self.0, Sign::POS), write_bin)
+        write(f, &self.0, &Bin::RX, get_sign(&self.0, Sign::POS), write_bin)
     }
 }
 
@@ -5870,7 +5850,7 @@ impl<const L: usize> Octal for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
+        write_iter(f, iter, &Oct::RX, get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
@@ -5882,7 +5862,7 @@ impl<const L: usize> Octal for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
+        write_iter(f, iter, &Oct::RX, get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
@@ -5894,49 +5874,49 @@ impl<const L: usize> Octal for Bytes<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, Oct.into(), get_sign(&self.0, Sign::POS), write_oct)
+        write_iter(f, iter, &Oct::RX, get_sign(&self.0, Sign::POS), write_oct)
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> LowerHex for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_lhex)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
 impl<const L: usize> UpperHex for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, Hex.into(), get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
     }
 }
 
@@ -7720,7 +7700,7 @@ fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::
 fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     words: &[Single; L],
-    radix: Radix,
+    radix: &Radix,
     sign: Sign,
     func: F,
 ) -> std::fmt::Result {
@@ -7758,7 +7738,7 @@ fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Res
 fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
     fmt: &mut Formatter<'_>,
     words: Words,
-    radix: Radix,
+    radix: &Radix,
     sign: Sign,
     func: F,
 ) -> std::fmt::Result
