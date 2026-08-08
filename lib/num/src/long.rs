@@ -5,7 +5,6 @@ use std::{
     cmp::Ordering,
     fmt::{Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
     io::{Cursor, Write},
-    marker::PhantomData,
     str::FromStr,
 };
 
@@ -5083,27 +5082,11 @@ pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 ///
 /// For more info, see [`ToDigitsIter`] documentation.
 #[derive(Debug, Clone)]
-pub struct DigitsxIter<'words, W: Word> {
+pub struct DigitsIter<'words, W: Word> {
     words: &'words [W],
     idx: usize,
     exp: usize,
     len: usize,
-}
-
-/// Digits iterator by `exp`.
-///
-/// For more info, see [`ToDigitsIter`] documentation.
-#[derive(Debug, Clone)]
-pub struct DigitsIter<'words, const L: usize, W: Word> {
-    words: &'words [Single; L],
-    bits: usize,
-    mask: Double,
-    cnt: usize,
-    len: usize,
-    acc: Double,
-    shl: usize,
-    idx: usize,
-    _phantom: PhantomData<W>,
 }
 
 /// Digits iterator by `radix`.
@@ -5244,7 +5227,7 @@ pub trait ToDigits<'words>: Sized {
 /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
 pub trait ToDigitsIter<'words>: Sized {
     /// Conversion iterator.
-    type Iter<W: Word>: Clone + Iterator<Item = W> + ExactSizeIterator
+    type Iter<W: Word + 'words>: Clone + Iterator<Item = W> + ExactSizeIterator
     where
         Self: 'words;
 
@@ -6451,7 +6434,7 @@ impl<'words, const L: usize> ToDigits<'words> for Bytes<L> {
 }
 
 impl<'words, const L: usize> ToDigitsIter<'words> for Signed<L> {
-    type Iter<W: Word> = DigitsIter<'words, L, W>;
+    type Iter<W: Word + 'words> = DigitsIter<'words, W>;
 
     #[inline]
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
@@ -6460,7 +6443,7 @@ impl<'words, const L: usize> ToDigitsIter<'words> for Signed<L> {
 }
 
 impl<'words, const L: usize> ToDigitsIter<'words> for Unsigned<L> {
-    type Iter<W: Word> = DigitsIter<'words, L, W>;
+    type Iter<W: Word + 'words> = DigitsIter<'words, W>;
 
     #[inline]
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
@@ -6469,7 +6452,7 @@ impl<'words, const L: usize> ToDigitsIter<'words> for Unsigned<L> {
 }
 
 impl<'words, const L: usize> ToDigitsIter<'words> for Bytes<L> {
-    type Iter<W: Word> = DigitsIter<'words, L, W>;
+    type Iter<W: Word + 'words> = DigitsIter<'words, W>;
 
     #[inline]
     fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
@@ -6509,8 +6492,8 @@ impl<const L: usize> IntoDigitsIter for Unsigned<L> {
     }
 }
 
-impl<'words, W: Word> ExactSizeIterator for DigitsxIter<'words, W> {}
-impl<'words, W: Word> Iterator for DigitsxIter<'words, W> {
+impl<'words, W: Word> ExactSizeIterator for DigitsIter<'words, W> {}
+impl<'words, W: Word> Iterator for DigitsIter<'words, W> {
     type Item = W;
 
     #[inline]
@@ -6544,45 +6527,6 @@ impl<'words, W: Word> Iterator for DigitsxIter<'words, W> {
         self.idx += 1;
 
         Some(res.0)
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
-}
-
-impl<'words, const L: usize, W: Word> ExactSizeIterator for DigitsIter<'words, L, W> {}
-impl<'words, const L: usize, W: Word> Iterator for DigitsIter<'words, L, W> {
-    type Item = W;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.idx == self.cnt {
-            if self.acc == 0 {
-                return None;
-            }
-
-            let val = self.acc;
-
-            self.acc >>= self.bits;
-            self.shl = self.shl.saturating_sub(self.bits);
-
-            return Some(W::from_double(val & self.mask));
-        }
-
-        if self.shl < self.bits {
-            self.acc |= (self.words[self.idx] as Double) << self.shl;
-            self.shl += BITS;
-            self.idx += 1;
-        }
-
-        let val = self.acc;
-
-        self.acc >>= self.bits;
-        self.shl -= self.bits;
-
-        Some(W::from_double(val & self.mask))
     }
 
     #[inline]
@@ -7612,24 +7556,16 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec
     Ok(res)
 }
 
-fn to_digits_iter<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<DigitsIter<'_, L, W>, ToDigitsError> {
+fn to_digits_iter<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<DigitsIter<'_, W>, ToDigitsError> {
     to_digits_validate(exp)?;
 
-    let bits = exp.as_usize();
-    let mask = (1 << bits) - 1;
-    let cnt = length!(words);
-    let len = (cnt * BITS + bits - 1) / bits;
+    let exp = exp.as_usize();
 
     Ok(DigitsIter {
-        words,
-        bits,
-        mask,
-        cnt,
-        len,
-        acc: 0,
-        shl: 0,
+        words: transmute_ref!(words),
         idx: 0,
-        _phantom: PhantomData,
+        exp,
+        len: (BITS * L + exp - 1) / exp,
     })
 }
 
