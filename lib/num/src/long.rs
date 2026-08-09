@@ -5792,7 +5792,7 @@ impl<const L: usize> Display for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, &Dec::RX, self.sign(), write_dec)
+        write_dec(f, iter, self.sign(), &Dec::RX)
     }
 }
 
@@ -5804,7 +5804,7 @@ impl<const L: usize> Display for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, &Dec::RX, self.sign(), write_dec)
+        write_dec(f, iter, self.sign(), &Dec::RX)
     }
 }
 
@@ -7622,16 +7622,6 @@ fn into_digits_iter<const L: usize, W: Word>(
 }
 
 #[inline]
-fn write_dec(mut cursor: Cursor<&mut [u8]>, word: usize, width: usize) -> std::fmt::Result {
-    match cursor.write_fmt(format_args!("{word:0width$}")) {
-        Ok(()) => (),
-        Err(_) => return Err(std::fmt::Error),
-    }
-
-    Ok(())
-}
-
-#[inline]
 fn write_bin(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
     let buf = cursor.into_inner();
 
@@ -7687,6 +7677,41 @@ fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::
     }
 
     Ok(())
+}
+
+#[inline]
+fn write_dec<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
+    fmt: &mut Formatter<'_>,
+    words: Words,
+    sign: Sign,
+    radix: &Radix,
+) -> std::fmt::Result {
+    let len = words.len();
+    let width = radix.width as usize;
+
+    let sign = match sign {
+        Sign::ZERO => return write!(fmt, "0"),
+        Sign::NEG => "-",
+        Sign::POS => "",
+    };
+
+    let mut buf = vec![b'0'; len * width];
+
+    for (idx, word) in words.enumerate() {
+        let offset = (len - idx - 1) * width;
+
+        Cursor::new(&mut buf[offset..])
+            .write_fmt(format_args!("{word:0width$}"))
+            .map_err(|_| std::fmt::Error)?;
+    }
+
+    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
+    let str = match str::from_utf8(&buf[offset..]) {
+        Ok(val) => val,
+        Err(_) => unreachable!(),
+    };
+
+    write!(fmt, "{}{}", sign, str)
 }
 
 #[inline]
