@@ -27,37 +27,9 @@ pub trait NdTryFromIterator<Iter: Iterator, Ctx>: Sized {
 ///
 /// For more info, see [module-level](crate::iter) and [crate-level](crate) documentation.
 pub trait IteratorExt: Iterator {
-    /// Collects iterator with static array.
-    ///
-    /// Consumes at most `N` amount of elements.
-    ///
-    /// ```rust
-    /// # use ndext::iter::IteratorExt;
-    ///
-    /// let mut iter = (0..3).into_iter();
-    ///
-    /// let arr = iter.collectx() as [i32; 4];
-    ///
-    /// assert_eq!(arr, [0, 1, 2, 0]);
-    /// assert_eq!(iter.next(), None);
-    /// ```
-    #[inline]
-    fn collectx<const N: usize>(&mut self) -> [Self::Item; N]
-    where
-        Self::Item: Default + Copy,
-    {
-        let mut res = [Self::Item::default(); N];
-
-        for (idx, val) in self.take(N).enumerate() {
-            res[idx] = val;
-        }
-
-        res
-    }
-
     /// Collects iterator with pre-allocated destination collection taken and returned by value.
     ///
-    /// Consumes at most `dst.len()` amount of elements.
+    /// Consumes at most `collection.len()` amount of elements.
     ///
     /// ```rust
     /// # use ndext::iter::IteratorExt;
@@ -71,15 +43,6 @@ pub trait IteratorExt: Iterator {
     /// assert_eq!(val, [0, 1, 2, 0]);
     /// assert_eq!(iter.next(), None);
     /// ```
-    #[inline]
-    fn collect_with<const N: usize>(&mut self, mut arr: [Self::Item; N]) -> [Self::Item; N] {
-        arr.iter_mut().zip(self).for_each(|(ptr, val)| *ptr = val);
-        arr
-    }
-
-    /// Collects iterator with pre-allocated destination collection taken and returned by reference.
-    ///
-    /// Consumes at most `dst.len()` amount of elements.
     ///
     /// ```rust
     /// # use ndext::iter::IteratorExt;
@@ -88,16 +51,24 @@ pub trait IteratorExt: Iterator {
     ///
     /// let mut dst = [0; 4];
     ///
-    /// let val = iter.collect_with_mut(&mut dst);
+    /// let val = iter.collect_with(&mut dst);
     ///
     /// assert_eq!(val, &[0, 1, 2, 0]);
     /// assert_eq!(dst, [0, 1, 2, 0]);
     /// assert_eq!(iter.next(), None);
     /// ```
     #[inline]
-    fn collect_with_mut<'dst, const N: usize>(&mut self, arr: &'dst mut [Self::Item; N]) -> &'dst mut [Self::Item; N] {
-        arr.iter_mut().zip(self).for_each(|(ptr, val)| *ptr = val);
-        arr
+    fn collect_with<Collection: AsRef<[Self::Item]> + AsMut<[Self::Item]>>(
+        &mut self,
+        mut collection: Collection,
+    ) -> Collection {
+        let ptr = collection.as_mut();
+
+        for (idx, val) in self.take(ptr.len()).enumerate() {
+            ptr[idx] = val;
+        }
+
+        collection
     }
 }
 

@@ -1805,13 +1805,13 @@ pub mod uops {
         /// Evaluates expression.
         #[inline]
         pub fn eval<const L: usize>(mut self) -> [Single; L] {
-            self.collectx()
+            self.collect_with([0; L])
         }
 
         /// Evaluates expression with context.
         #[inline]
         pub fn eval_ext<const L: usize, F: Fn(Ctx) -> bool>(mut self, func: F) -> ([Single; L], bool) {
-            let res = self.collectx();
+            let res = self.collect_with([0; L]);
 
             (res, func(self.ctx))
         }
@@ -2914,12 +2914,12 @@ pub mod uops {
     {
         #[inline]
         fn eval(self) -> [Single; L] {
-            self.iter().collectx()
+            self.iter().collect_with([0; L])
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.iter().collectx(), false)
+            (self.iter().collect_with([0; L]), false)
         }
     }
 
@@ -2944,12 +2944,12 @@ pub mod uops {
     impl<const L: usize> Expr<[Single; L]> for Not<&[Single; L]> {
         #[inline]
         fn eval(self) -> [Single; L] {
-            self.iter().collectx()
+            self.iter().collect_with([0; L])
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.iter().collectx(), false)
+            (self.iter().collect_with([0; L]), false)
         }
     }
 
@@ -3485,12 +3485,12 @@ pub mod uops {
     {
         #[inline]
         fn eval(self) -> [Single; L] {
-            self.iter().collectx()
+            self.iter().collect_with([0; L])
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.iter().collectx(), false)
+            (self.iter().collect_with([0; L]), false)
         }
     }
 
@@ -3517,12 +3517,12 @@ pub mod uops {
     {
         #[inline]
         fn eval(self) -> [Single; L] {
-            self.iter().collectx()
+            self.iter().collect_with([0; L])
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.iter().collectx(), false)
+            (self.iter().collect_with([0; L]), false)
         }
     }
 
@@ -3549,12 +3549,12 @@ pub mod uops {
     {
         #[inline]
         fn eval(self) -> [Single; L] {
-            self.iter().collectx()
+            self.iter().collect_with([0; L])
         }
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            (self.iter().collectx(), false)
+            (self.iter().collect_with([0; L]), false)
         }
     }
 
@@ -3595,7 +3595,9 @@ pub mod uops {
             let shr = BITS - shl;
 
             let mut acc = default;
-            let mut res = repeat_n(default, offset).chain(words[..L - offset].iter().copied()).collectx();
+            let mut res = repeat_n(default, offset)
+                .chain(words[..L - offset].iter().copied())
+                .collect_with([0; L]);
 
             for ptr in res[offset..].iter_mut() {
                 let val = *ptr;
@@ -3632,7 +3634,7 @@ pub mod uops {
 
             *self.words = repeat_n(default, offset)
                 .chain(self.words[..L - offset].iter().copied())
-                .collectx();
+                .collect_with([0; L]);
 
             for ptr in self.words[offset..].iter_mut() {
                 let val = *ptr;
@@ -3667,7 +3669,11 @@ pub mod uops {
             let shl = BITS - shr;
 
             let mut acc = default;
-            let mut res = words[offset..].iter().copied().chain(repeat_n(default, offset)).collectx();
+            let mut res = words[offset..]
+                .iter()
+                .copied()
+                .chain(repeat_n(default, offset))
+                .collect_with([0; L]);
 
             for ptr in res[..L - offset].iter_mut().rev() {
                 let val = *ptr;
@@ -3702,7 +3708,11 @@ pub mod uops {
 
             let mut acc = default;
 
-            *self.words = self.words[offset..].iter().copied().chain(repeat_n(default, offset)).collectx();
+            *self.words = self.words[offset..]
+                .iter()
+                .copied()
+                .chain(repeat_n(default, offset))
+                .collect_with([0; L]);
 
             for ptr in self.words[..L - offset].iter_mut().rev() {
                 let val = *ptr;
