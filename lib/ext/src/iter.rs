@@ -72,9 +72,9 @@ pub trait IteratorExt: Iterator {
     /// assert_eq!(iter.next(), None);
     /// ```
     #[inline]
-    fn collect_with<const N: usize>(&mut self, mut dst: [Self::Item; N]) -> [Self::Item; N] {
-        dst.iter_mut().zip(self).for_each(|(dst, src)| *dst = src);
-        dst
+    fn collect_with<const N: usize>(&mut self, mut arr: [Self::Item; N]) -> [Self::Item; N] {
+        arr.iter_mut().zip(self).for_each(|(ptr, val)| *ptr = val);
+        arr
     }
 
     /// Collects iterator with pre-allocated destination collection taken and returned by reference.
@@ -95,9 +95,9 @@ pub trait IteratorExt: Iterator {
     /// assert_eq!(iter.next(), None);
     /// ```
     #[inline]
-    fn collect_with_mut<'dst, const N: usize>(&mut self, dst: &'dst mut [Self::Item; N]) -> &'dst mut [Self::Item; N] {
-        dst.iter_mut().zip(self).for_each(|(dst, src)| *dst = src);
-        dst
+    fn collect_with_mut<'dst, const N: usize>(&mut self, arr: &'dst mut [Self::Item; N]) -> &'dst mut [Self::Item; N] {
+        arr.iter_mut().zip(self).for_each(|(ptr, val)| *ptr = val);
+        arr
     }
 }
 

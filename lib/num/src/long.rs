@@ -993,8 +993,8 @@ pub mod radix {
         /// Radix decode table (ascii -> digit).
         pub decode: &'static Aligned<[u8; 256]>,
 
-        /// Radix of a single word to iterate when building a string.
-        pub value: Double,
+        /// Exp of a single word at `RADIX` when building a string.
+        pub exp: u8,
 
         /// Width of a single word at `RADIX` when building a string.
         pub width: u8,
@@ -1033,7 +1033,7 @@ pub mod radix {
         pub const RX: Radix = Radix {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
-            value: Self::RADIX,
+            exp: 0,
             width: Self::WIDTH,
             prefix: Self::PREFIX,
         };
@@ -1070,7 +1070,7 @@ pub mod radix {
         pub const RX: Radix = Radix {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
-            value: Self::RADIX,
+            exp: Self::EXP,
             width: Self::WIDTH,
             prefix: Self::PREFIX,
         };
@@ -1113,7 +1113,7 @@ pub mod radix {
         pub const RX: Radix = Radix {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
-            value: Self::RADIX,
+            exp: Self::EXP,
             width: Self::WIDTH,
             prefix: Self::PREFIX,
         };
@@ -1131,6 +1131,18 @@ pub mod radix {
             (10, b'A'), (11, b'B'),
             (12, b'C'), (13, b'D'),
             (14, b'E'), (15, b'F'),
+        ]);
+
+        /// Hex encode table (digit -> ascii).
+        pub const ENCODE_LOWER: Aligned<[u8; 256]> = array(0, &[
+            ( 0, b'0'), ( 1, b'1'),
+            ( 2, b'2'), ( 3, b'3'),
+            ( 4, b'4'), ( 5, b'5'),
+            ( 6, b'6'), ( 7, b'7'),
+            ( 8, b'8'), ( 9, b'9'),
+            (10, b'a'), (11, b'b'),
+            (12, b'c'), (13, b'd'),
+            (14, b'e'), (15, b'f'),
         ]);
 
         /// Hex decode table (ascii -> digit).
@@ -1167,7 +1179,16 @@ pub mod radix {
         pub const RX: Radix = Radix {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
-            value: Self::RADIX,
+            exp: Self::EXP,
+            width: Self::WIDTH,
+            prefix: Self::PREFIX,
+        };
+
+        /// Hex radix struct.
+        pub const RX_LOWER: Radix = Radix {
+            encode: &Self::ENCODE_LOWER,
+            decode: &Self::DECODE,
+            exp: Self::EXP,
             width: Self::WIDTH,
             prefix: Self::PREFIX,
         };
@@ -1266,7 +1287,7 @@ pub mod radix {
         pub const RX: Radix = Radix {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
-            value: Self::RADIX,
+            exp: Self::EXP,
             width: Self::WIDTH,
             prefix: Self::PREFIX,
         };
@@ -5811,28 +5832,28 @@ impl<const L: usize> Display for Unsigned<L> {
 impl<const L: usize> Display for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, self.0.iter().copied(), &Hex::RX)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Bin::RX, get_sign(&self.0, Sign::POS), write_bin)
+        write(f, self.0.iter().copied(), &Bin::RX)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Bin::RX, get_sign(&self.0, Sign::POS), write_bin)
+        write(f, self.0.iter().copied(), &Bin::RX)
     }
 }
 
 impl<const L: usize> Binary for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Bin::RX, get_sign(&self.0, Sign::POS), write_bin)
+        write(f, self.0.iter().copied(), &Bin::RX)
     }
 }
 
@@ -5844,7 +5865,7 @@ impl<const L: usize> Octal for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, &Oct::RX, get_sign(&self.0, Sign::POS), write_oct)
+        write(f, iter, &Oct::RX)
     }
 }
 
@@ -5856,7 +5877,7 @@ impl<const L: usize> Octal for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, &Oct::RX, get_sign(&self.0, Sign::POS), write_oct)
+        write(f, iter, &Oct::RX)
     }
 }
 
@@ -5868,49 +5889,49 @@ impl<const L: usize> Octal for Bytes<L> {
             Err(_) => unreachable!(),
         };
 
-        write_iter(f, iter, &Oct::RX, get_sign(&self.0, Sign::POS), write_oct)
+        write(f, iter, &Oct::RX)
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, self.0.iter().copied(), &Hex::RX_LOWER)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, self.0.iter().copied(), &Hex::RX_LOWER)
     }
 }
 
 impl<const L: usize> LowerHex for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_lhex)
+        write(f, self.0.iter().copied(), &Hex::RX_LOWER)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, self.0.iter().copied(), &Hex::RX)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, self.0.iter().copied(), &Hex::RX)
     }
 }
 
 impl<const L: usize> UpperHex for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, &self.0, &Hex::RX, get_sign(&self.0, Sign::POS), write_uhex)
+        write(f, self.0.iter().copied(), &Hex::RX)
     }
 }
 
@@ -7622,61 +7643,54 @@ fn into_digits_iter<const L: usize, W: Word>(
 }
 
 #[inline]
-fn write_bin(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
-    let buf = cursor.into_inner();
+fn write<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
+    fmt: &mut Formatter<'_>,
+    words: Words,
+    radix: &Radix,
+) -> std::fmt::Result {
+    let one = Relaxed(W::ONE);
 
-    #[allow(clippy::unnecessary_cast)]
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = b'0' + (word % 2) as u8;
-        word /= 2;
+    let len = words.len();
+    let exp = radix.exp as usize;
+    let width = radix.width as usize;
+    let encode = radix.encode;
+
+    let shift = exp / width;
+    let mask = (one << shift) - one;
+
+    let prefix = match fmt.alternate() {
+        true => radix.prefix,
+        false => "",
+    };
+
+    let mut buf = vec![b'0'; len * width];
+
+    for (idx, word) in words.map(Relaxed).enumerate() {
+        let offset = (len - idx - 1) * width;
+
+        let bytes = (0..width)
+            .map(|idx| (word >> (idx * shift)) & mask)
+            .map(|idx| encode[idx.0.as_usize()]);
+
+        buf[offset..][..width]
+            .iter_mut()
+            .rev()
+            .zip(bytes)
+            .for_each(|(ptr, val)| *ptr = val);
     }
 
-    Ok(())
-}
+    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
+    let str = match str::from_utf8(&buf[offset..]) {
+        Ok(val) => val,
+        Err(_) => unreachable!(),
+    };
 
-#[inline]
-fn write_oct(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
-    let buf = cursor.into_inner();
+    let str = match str.is_empty() {
+        false => str,
+        true => "0",
+    };
 
-    #[allow(clippy::unnecessary_cast)]
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = b'0' + (word % 8) as u8;
-        word /= 8;
-    }
-
-    Ok(())
-}
-
-#[inline]
-fn write_lhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
-    const HEX: [u8; 16] = [
-        b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
-    ];
-
-    let buf = cursor.into_inner();
-
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = HEX[word % 16];
-        word /= 16;
-    }
-
-    Ok(())
-}
-
-#[inline]
-fn write_uhex(cursor: Cursor<&mut [u8]>, mut word: usize, width: usize) -> std::fmt::Result {
-    const HEX: [u8; 16] = [
-        b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F',
-    ];
-
-    let buf = cursor.into_inner();
-
-    for byte in buf[..width].iter_mut().rev() {
-        *byte = HEX[word % 16];
-        word /= 16;
-    }
-
-    Ok(())
+    write!(fmt, "{}{}", prefix, str)
 }
 
 #[inline]
@@ -7712,85 +7726,6 @@ fn write_dec<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
     };
 
     write!(fmt, "{}{}", sign, str)
-}
-
-#[inline]
-fn write<const L: usize, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
-    fmt: &mut Formatter<'_>,
-    words: &[Single; L],
-    radix: &Radix,
-    sign: Sign,
-    func: F,
-) -> std::fmt::Result {
-    let prefix = if fmt.alternate() { radix.prefix } else { "" };
-    let width = radix.width as usize;
-
-    let sign = match sign {
-        Sign::ZERO => {
-            return write!(fmt, "{}0", prefix);
-        },
-        Sign::NEG => "-",
-        Sign::POS => "",
-    };
-
-    let len = length!(words);
-
-    let mut buf = vec![b'0'; len * width];
-
-    for (idx, &word) in words[..len].iter().enumerate() {
-        let offset = (len - idx - 1) * width;
-
-        func(Cursor::new(&mut buf[offset..]), word.as_usize(), width)?;
-    }
-
-    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
-    let str = match str::from_utf8(&buf[offset..]) {
-        Ok(val) => val,
-        Err(_) => unreachable!(),
-    };
-
-    write!(fmt, "{}{}{}", sign, prefix, str)
-}
-
-#[inline]
-fn write_iter<W: Word, Words, F: Fn(Cursor<&mut [u8]>, usize, usize) -> std::fmt::Result>(
-    fmt: &mut Formatter<'_>,
-    words: Words,
-    radix: &Radix,
-    sign: Sign,
-    func: F,
-) -> std::fmt::Result
-where
-    Words: Clone + Iterator<Item = W> + ExactSizeIterator,
-{
-    let prefix = if fmt.alternate() { radix.prefix } else { "" };
-    let width = radix.width as usize;
-
-    let sign = match sign {
-        Sign::ZERO => {
-            return write!(fmt, "{}0", prefix);
-        },
-        Sign::NEG => "-",
-        Sign::POS => "",
-    };
-
-    let len = words.len();
-
-    let mut buf = vec![b'0'; len * width];
-
-    for (idx, word) in words.enumerate() {
-        let offset = (len - idx - 1) * width;
-
-        func(Cursor::new(&mut buf[offset..]), word.as_usize(), width)?;
-    }
-
-    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
-    let str = match str::from_utf8(&buf[offset..]) {
-        Ok(val) => val,
-        Err(_) => unreachable!(),
-    };
-
-    write!(fmt, "{}{}{}", sign, prefix, str)
 }
 
 #[inline]
@@ -7832,11 +7767,6 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
         b'A'..=b'F' => Some(byte - b'A' + 10),
         _ => None,
     }
-}
-
-#[inline]
-fn get_sign<const L: usize, W: Word>(words: &[W; L], sign: Sign) -> Sign {
-    if words != &[W::ZERO; L] { sign } else { Sign::ZERO }
 }
 
 #[cfg(test)]
