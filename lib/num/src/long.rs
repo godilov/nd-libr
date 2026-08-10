@@ -985,8 +985,8 @@ pub mod radix {
     /// X64 Radix.
     pub struct X64;
 
-    /// Arbitrary Radix.
-    pub struct Radix {
+    /// Radix configuration.
+    pub struct Cfg {
         /// Radix encode table (digit -> ascii).
         pub encode: &'static Aligned<[u8; 256]>,
 
@@ -1006,10 +1006,10 @@ pub mod radix {
     #[rustfmt::skip]
     impl Dec {
         /// Dec encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[]);
+        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[]);
 
         /// Dec decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize, 0), (b'1' as usize, 1),
             (b'2' as usize, 2), (b'3' as usize, 3),
             (b'4' as usize, 4), (b'5' as usize, 5),
@@ -1030,7 +1030,7 @@ pub mod radix {
         pub const PREFIX: &str = "";
 
         /// Dec radix struct.
-        pub const RX: Radix = Radix {
+        pub const CFG: Cfg = Cfg {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
             exp: 0,
@@ -1042,12 +1042,12 @@ pub mod radix {
     #[rustfmt::skip]
     impl Bin {
         /// Bin encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             (0, b'0'), (1, b'1'),
         ]);
 
         /// Bin decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize, 0), (b'1' as usize, 1),
         ]);
 
@@ -1067,7 +1067,7 @@ pub mod radix {
         pub const PREFIX: &str = "0b";
 
         /// Bin radix struct.
-        pub const RX: Radix = Radix {
+        pub const CFG: Cfg = Cfg {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
             exp: Self::EXP,
@@ -1079,7 +1079,7 @@ pub mod radix {
     #[rustfmt::skip]
     impl Oct {
         /// Oct encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             (0, b'0'), (1, b'1'),
             (2, b'2'), (3, b'3'),
             (4, b'4'), (5, b'5'),
@@ -1087,7 +1087,7 @@ pub mod radix {
         ]);
 
         /// Oct decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize, 0), (b'1' as usize, 1),
             (b'2' as usize, 2), (b'3' as usize, 3),
             (b'4' as usize, 4), (b'5' as usize, 5),
@@ -1110,7 +1110,7 @@ pub mod radix {
         pub const PREFIX: &str = "0o";
 
         /// Oct radix struct.
-        pub const RX: Radix = Radix {
+        pub const CFG: Cfg = Cfg {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
             exp: Self::EXP,
@@ -1122,7 +1122,7 @@ pub mod radix {
     #[rustfmt::skip]
     impl Hex {
         /// Hex encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             ( 0, b'0'), ( 1, b'1'),
             ( 2, b'2'), ( 3, b'3'),
             ( 4, b'4'), ( 5, b'5'),
@@ -1134,7 +1134,7 @@ pub mod radix {
         ]);
 
         /// Hex encode table (digit -> ascii).
-        pub const ENCODE_LOWER: Aligned<[u8; 256]> = array(0, &[
+        pub const ENCODE_LOWER: Aligned<[u8; 256]> = ascii(0, &[
             ( 0, b'0'), ( 1, b'1'),
             ( 2, b'2'), ( 3, b'3'),
             ( 4, b'4'), ( 5, b'5'),
@@ -1146,7 +1146,7 @@ pub mod radix {
         ]);
 
         /// Hex decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize,  0), (b'1' as usize,  1),
             (b'2' as usize,  2), (b'3' as usize,  3),
             (b'4' as usize,  4), (b'5' as usize,  5),
@@ -1176,7 +1176,7 @@ pub mod radix {
         pub const PREFIX: &str = "0x";
 
         /// Hex radix struct.
-        pub const RX: Radix = Radix {
+        pub const CFG: Cfg = Cfg {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
             exp: Self::EXP,
@@ -1185,7 +1185,7 @@ pub mod radix {
         };
 
         /// Hex radix struct.
-        pub const RX_LOWER: Radix = Radix {
+        pub const CFG_LOWER: Cfg = Cfg {
             encode: &Self::ENCODE_LOWER,
             decode: &Self::DECODE,
             exp: Self::EXP,
@@ -1197,7 +1197,7 @@ pub mod radix {
     #[rustfmt::skip]
     impl X64 {
         /// X64 encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = array(0, &[
+        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             ( 0, b'A'), ( 1, b'B'),
             ( 2, b'C'), ( 3, b'D'),
             ( 4, b'E'), ( 5, b'F'),
@@ -1233,7 +1233,7 @@ pub mod radix {
         ]);
 
         /// X64 decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = array(255, &[
+        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'A' as usize,  0), (b'B' as usize,  1),
             (b'C' as usize,  2), (b'D' as usize,  3),
             (b'E' as usize,  4), (b'F' as usize,  5),
@@ -1284,7 +1284,7 @@ pub mod radix {
         pub const PREFIX: &str = "";
 
         /// X64 radix struct.
-        pub const RX: Radix = Radix {
+        pub const RX: Cfg = Cfg {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
             exp: Self::EXP,
@@ -1294,7 +1294,7 @@ pub mod radix {
     }
 
     #[inline]
-    const fn array<T: Copy>(default: T, slice: &[(usize, T)]) -> Aligned<[T; 256]> {
+    const fn ascii<T: Copy>(default: T, slice: &[(usize, T)]) -> Aligned<[T; 256]> {
         let mut idx = 0;
         let mut res = [default; 256];
 
@@ -5115,8 +5115,8 @@ pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 #[derive(Debug, Clone)]
 pub struct DigitsIter<'words, W: Word> {
     words: &'words [W],
-    idx: usize,
     exp: usize,
+    idx: usize,
     len: usize,
 }
 
@@ -5823,7 +5823,7 @@ impl<const L: usize> Display for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_dec(f, iter, self.sign(), &Dec::RX)
+        write_dec(f, iter, self.sign(), &Dec::CFG)
     }
 }
 
@@ -5835,35 +5835,35 @@ impl<const L: usize> Display for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write_dec(f, iter, self.sign(), &Dec::RX)
+        write_dec(f, iter, self.sign(), &Dec::CFG)
     }
 }
 
 impl<const L: usize> Display for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::RX)
+        write(f, self.0.iter().copied(), &Hex::CFG)
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Bin::RX)
+        write(f, self.0.iter().copied(), &Bin::CFG)
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Bin::RX)
+        write(f, self.0.iter().copied(), &Bin::CFG)
     }
 }
 
 impl<const L: usize> Binary for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Bin::RX)
+        write(f, self.0.iter().copied(), &Bin::CFG)
     }
 }
 
@@ -5875,7 +5875,7 @@ impl<const L: usize> Octal for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write(f, iter, &Oct::RX)
+        write(f, iter, &Oct::CFG)
     }
 }
 
@@ -5887,7 +5887,7 @@ impl<const L: usize> Octal for Unsigned<L> {
             Err(_) => unreachable!(),
         };
 
-        write(f, iter, &Oct::RX)
+        write(f, iter, &Oct::CFG)
     }
 }
 
@@ -5899,49 +5899,49 @@ impl<const L: usize> Octal for Bytes<L> {
             Err(_) => unreachable!(),
         };
 
-        write(f, iter, &Oct::RX)
+        write(f, iter, &Oct::CFG)
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::RX_LOWER)
+        write(f, self.0.iter().copied(), &Hex::CFG_LOWER)
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::RX_LOWER)
+        write(f, self.0.iter().copied(), &Hex::CFG_LOWER)
     }
 }
 
 impl<const L: usize> LowerHex for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::RX_LOWER)
+        write(f, self.0.iter().copied(), &Hex::CFG_LOWER)
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::RX)
+        write(f, self.0.iter().copied(), &Hex::CFG)
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::RX)
+        write(f, self.0.iter().copied(), &Hex::CFG)
     }
 }
 
 impl<const L: usize> UpperHex for Bytes<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::RX)
+        write(f, self.0.iter().copied(), &Hex::CFG)
     }
 }
 
@@ -6533,8 +6533,8 @@ impl<'words, W: Word> Iterator for DigitsIter<'words, W> {
         let one = Relaxed(W::ONE);
 
         let words = self.words;
-        let idx = self.idx;
         let exp = self.exp;
+        let idx = self.idx;
         let len = self.len;
 
         if idx >= len {
@@ -7594,8 +7594,8 @@ fn to_digits_iter<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Resul
 
     Ok(DigitsIter {
         words: transmute_ref!(words),
-        idx: 0,
         exp,
+        idx: 0,
         len: (BITS * L + exp - 1) / exp,
     })
 }
@@ -7656,20 +7656,20 @@ fn into_digits_iter<const L: usize, W: Word>(
 fn write<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
     fmt: &mut Formatter<'_>,
     words: Words,
-    radix: &Radix,
+    cfg: &Cfg,
 ) -> std::fmt::Result {
     let one = Relaxed(W::ONE);
 
     let len = words.len();
-    let exp = radix.exp as usize;
-    let width = radix.width as usize;
-    let encode = radix.encode;
+    let exp = cfg.exp as usize;
+    let width = cfg.width as usize;
+    let encode = cfg.encode;
 
     let shift = exp / width;
     let mask = (one << shift) - one;
 
     let prefix = match fmt.alternate() {
-        true => radix.prefix,
+        true => cfg.prefix,
         false => "",
     };
 
@@ -7708,10 +7708,10 @@ fn write_dec<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
     fmt: &mut Formatter<'_>,
     words: Words,
     sign: Sign,
-    radix: &Radix,
+    cfg: &Cfg,
 ) -> std::fmt::Result {
     let len = words.len();
-    let width = radix.width as usize;
+    let width = cfg.width as usize;
 
     let sign = match sign {
         Sign::ZERO => return write!(fmt, "0"),
