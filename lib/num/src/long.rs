@@ -20,7 +20,7 @@ use crate::{
     CmpCt, Dir, EqCt, GeCt, GtCt, IsNegCt, IsOneCt, IsPosCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt,
     NdGcd, NdPow, NegxCt, Num, NumBinary, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
-    arch::{AsBytesMut, AsBytesRef, AsWordsMut, AsWordsRef, Rand, word::*},
+    arch::{AsWordsMut, AsWordsRef, Rand, word::*},
     long::{
         radix::*,
         uops::{Expr, ExprMut},
@@ -6598,86 +6598,41 @@ impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
     }
 }
 
-impl<const L: usize> AsBytesRef for Signed<L> {
+impl<const L: usize, W: Word> AsWordsRef<W> for Signed<L> {
     #[inline]
-    fn as_bytes_ref(&self) -> &[u8] {
-        transmute_ref!(&self.0[..]) as &[u8]
-    }
-}
-
-impl<const L: usize> AsBytesRef for Unsigned<L> {
-    #[inline]
-    fn as_bytes_ref(&self) -> &[u8] {
-        transmute_ref!(&self.0[..]) as &[u8]
-    }
-}
-
-impl<const L: usize> AsBytesRef for Bytes<L> {
-    #[inline]
-    fn as_bytes_ref(&self) -> &[u8] {
-        transmute_ref!(&self.0[..]) as &[u8]
-    }
-}
-
-impl<const L: usize> AsBytesMut for Signed<L> {
-    #[inline]
-    fn as_bytes_mut(&mut self) -> &mut [u8] {
-        transmute_mut!(&mut self.0[..]) as &mut [u8]
-    }
-}
-
-impl<const L: usize> AsBytesMut for Unsigned<L> {
-    #[inline]
-    fn as_bytes_mut(&mut self) -> &mut [u8] {
-        transmute_mut!(&mut self.0[..]) as &mut [u8]
-    }
-}
-
-impl<const L: usize> AsBytesMut for Bytes<L> {
-    #[inline]
-    fn as_bytes_mut(&mut self) -> &mut [u8] {
-        transmute_mut!(&mut self.0[..]) as &mut [u8]
-    }
-}
-
-impl<const L: usize> AsWordsRef for Signed<L> {
-    #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W] {
+    fn as_words_ref(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 }
 
-impl<const L: usize> AsWordsRef for Unsigned<L> {
+impl<const L: usize, W: Word> AsWordsRef<W> for Unsigned<L> {
     #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W] {
+    fn as_words_ref(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 }
 
-impl<const L: usize> AsWordsRef for Bytes<L> {
+impl<const L: usize, W: Word> AsWordsRef<W> for Bytes<L> {
     #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W] {
+    fn as_words_ref(&self) -> &[W] {
         transmute_ref!(&self.0[..]) as &[W]
     }
 }
 
-impl<const L: usize> AsWordsMut for Signed<L> {
-    #[inline]
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
+impl<const L: usize, W: Word> AsWordsMut<W> for Signed<L> {
+    fn as_words_mut(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 
-impl<const L: usize> AsWordsMut for Unsigned<L> {
-    #[inline]
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
+impl<const L: usize, W: Word> AsWordsMut<W> for Unsigned<L> {
+    fn as_words_mut(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 
-impl<const L: usize> AsWordsMut for Bytes<L> {
-    #[inline]
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W] {
+impl<const L: usize, W: Word> AsWordsMut<W> for Bytes<L> {
+    fn as_words_mut(&mut self) -> &mut [W] {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }

@@ -110,16 +110,16 @@ macro_rules! bytes_impl {
         $(bytes_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl AsBytesRef for $primitive {
+        impl AsWordsRef<u8> for $primitive {
             #[inline]
-            fn as_bytes_ref(&self) -> &[u8] {
+            fn as_words_ref(&self) -> &[u8] {
                 self.as_bytes()
             }
         }
 
-        impl AsBytesMut for $primitive {
+        impl AsWordsMut<u8> for $primitive {
             #[inline]
-            fn as_bytes_mut(&mut self) -> &mut [u8] {
+            fn as_words_mut(&mut self) -> &mut [u8] {
                 self.as_mut_bytes()
             }
         }
@@ -226,7 +226,7 @@ pub mod word {
         + PartialEq + Eq
         + PartialOrd + Ord
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
-        + AsBytesRef + AsBytesMut
+        + AsWordsRef<u8> + AsWordsMut<u8>
         + FromBytes + IntoBytes + Immutable
         + NdOps<All = Self> + NdOpsAssign 
         + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed
@@ -319,7 +319,7 @@ pub mod word {
         + PartialEq + Eq
         + PartialOrd + Ord
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
-        + AsBytesRef + AsBytesMut
+        + AsWordsRef<u8> + AsWordsMut<u8>
         + FromBytes + IntoBytes + Immutable
     {
         /// Word-extension primitive to words.
@@ -376,10 +376,8 @@ pub mod word {
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsBytesRef)]
-#[ndfwd::def(self.0 with T: AsBytesMut)]
-#[ndfwd::def(self.0 with T: AsWordsRef)]
-#[ndfwd::def(self.0 with T: AsWordsMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
+#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
@@ -434,10 +432,8 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsBytesRef)]
-#[ndfwd::def(self.0 with T: AsBytesMut)]
-#[ndfwd::def(self.0 with T: AsWordsRef)]
-#[ndfwd::def(self.0 with T: AsWordsMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
+#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
@@ -485,10 +481,8 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsBytesRef)]
-#[ndfwd::def(self.0 with T: AsBytesMut)]
-#[ndfwd::def(self.0 with T: AsWordsRef)]
-#[ndfwd::def(self.0 with T: AsWordsMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
+#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
@@ -536,10 +530,8 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsBytesRef)]
-#[ndfwd::def(self.0 with T: AsBytesMut)]
-#[ndfwd::def(self.0 with T: AsWordsRef)]
-#[ndfwd::def(self.0 with T: AsWordsMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
+#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
@@ -587,46 +579,30 @@ pub struct Aligned128<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsBytesRef)]
-#[ndfwd::def(self.0 with T: AsBytesMut)]
-#[ndfwd::def(self.0 with T: AsWordsRef)]
-#[ndfwd::def(self.0 with T: AsWordsMut)]
+#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
+#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[repr(align(4096))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
 
-/// As bytes slice (reference).
-#[ndfwd::decl]
-pub trait AsBytesRef {
-    /// As ref-slice of words.
-    fn as_bytes_ref(&self) -> &[u8];
-}
-
-/// As bytes slice (mutable).
-#[ndfwd::decl]
-pub trait AsBytesMut {
-    /// As mut-slice of words.
-    fn as_bytes_mut(&mut self) -> &mut [u8];
-}
-
 /// As words slice (reference).
 #[ndfwd::decl]
-pub trait AsWordsRef: AsBytesRef {
+pub trait AsWordsRef<W: Word> {
     /// As ref-slice of words.
-    fn as_words_ref<W: Word>(&self) -> &[W];
+    fn as_words_ref(&self) -> &[W];
 }
 
 /// As words slice (mutable).
 #[ndfwd::decl]
-pub trait AsWordsMut: AsBytesMut {
+pub trait AsWordsMut<W: Word> {
     /// As mut-slice of words.
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W];
+    fn as_words_mut(&mut self) -> &mut [W];
 }
 
 /// Random.
 #[ndfwd::decl]
-pub trait Rand: Sized + Default + AsBytesRef + AsBytesMut {
+pub trait Rand: Sized + Default + AsWordsRef<u8> + AsWordsMut<u8> {
     /// Creates random bytes.
     #[inline]
     #[cfg(feature = "rand")]
@@ -634,7 +610,7 @@ pub trait Rand: Sized + Default + AsBytesRef + AsBytesMut {
     fn rand<Rng: rand::Rng>(rng: &mut Rng) -> Self {
         let mut res = Self::default();
 
-        rng.fill_bytes(res.as_bytes_mut());
+        rng.fill_bytes(res.as_words_mut());
 
         res
     }
@@ -657,7 +633,7 @@ pub trait Rand: Sized + Default + AsBytesRef + AsBytesMut {
 
         let mut res = Self::default();
 
-        let bytes = &mut res.as_bytes_mut()[..idx + 1];
+        let bytes = &mut res.as_words_mut()[..idx + 1];
 
         rng.fill_bytes(bytes);
 
