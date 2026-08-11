@@ -1284,7 +1284,7 @@ pub mod radix {
         pub const PREFIX: &str = "";
 
         /// X64 radix struct.
-        pub const RX: Cfg = Cfg {
+        pub const CFG: Cfg = Cfg {
             encode: &Self::ENCODE,
             decode: &Self::DECODE,
             exp: Self::EXP,

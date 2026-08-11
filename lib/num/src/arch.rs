@@ -327,6 +327,206 @@ pub mod word {
     }
 }
 
+pub mod codec {
+    //! # Codec
+    //!
+    //! **Codec (encode/decode) related definitions**
+    //!
+    //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
+
+    use super::*;
+
+    /// Bin codec.
+    pub struct Bin;
+
+    /// Oct codec.
+    pub struct Oct;
+
+    /// Hex codec.
+    pub struct Hex;
+
+    /// X64 codec.
+    pub struct X64;
+
+    /// Codec.
+    pub trait Codec<W: Word> {
+        /// Codec ASCII alphabet.
+        const ALPHABET: &[u8];
+
+        /// Encode table.
+        const ENCODE: Aligned<[u8; 256]>;
+
+        /// Decode table.
+        const DECODE: Aligned<[u8; 256]>;
+
+        /// Encode length.
+        ///
+        /// Max number of bits to be encoded from `W::BITS`.
+        const ENCODE_LEN: u8 = (W::BITS - W::BITS % Self::ALPHABET.len().ilog2() as usize) as u8;
+
+        /// Decode length.
+        ///
+        /// Max number of chars to be decoded into `W::BITS`.
+        const DECODE_LEN: u8 = (W::BITS / Self::ALPHABET.len().ilog2() as usize) as u8;
+    }
+
+    pub trait Encode {}
+
+    pub trait Decode {}
+
+    #[rustfmt::skip]
+    impl<W: Word> Codec<W> for Bin {
+        const ALPHABET: &[u8] = "01".as_bytes();
+
+        const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
+            (0, b'0'), (1, b'1'),
+        ]);
+
+        const DECODE: Aligned<[u8; 256]> = ascii(255, &[
+            (b'0' as usize, 0), (b'1' as usize, 1),
+        ]);
+    }
+
+    #[rustfmt::skip]
+    impl<W: Word> Codec<W> for Oct {
+        const ALPHABET: &[u8] = "01234567".as_bytes();
+
+        const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
+            (0, b'0'), (1, b'1'),
+            (2, b'2'), (3, b'3'),
+            (4, b'4'), (5, b'5'),
+            (6, b'6'), (7, b'7'),
+        ]);
+
+        const DECODE: Aligned<[u8; 256]> = ascii(255, &[
+            (b'0' as usize, 0), (b'1' as usize, 1),
+            (b'2' as usize, 2), (b'3' as usize, 3),
+            (b'4' as usize, 4), (b'5' as usize, 5),
+            (b'6' as usize, 6), (b'7' as usize, 7),
+        ]);
+    }
+
+    #[rustfmt::skip]
+    impl<W: Word> Codec<W> for Hex {
+        const ALPHABET: &[u8] = "0123456789ABCDEF".as_bytes();
+
+        const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
+            ( 0, b'0'), ( 1, b'1'),
+            ( 2, b'2'), ( 3, b'3'),
+            ( 4, b'4'), ( 5, b'5'),
+            ( 6, b'6'), ( 7, b'7'),
+            ( 8, b'8'), ( 9, b'9'),
+            (10, b'A'), (11, b'B'),
+            (12, b'C'), (13, b'D'),
+            (14, b'E'), (15, b'F'),
+        ]);
+
+        const DECODE: Aligned<[u8; 256]> = ascii(255, &[
+            (b'0' as usize,  0), (b'1' as usize,  1),
+            (b'2' as usize,  2), (b'3' as usize,  3),
+            (b'4' as usize,  4), (b'5' as usize,  5),
+            (b'6' as usize,  6), (b'7' as usize,  7),
+            (b'8' as usize,  8), (b'9' as usize,  9),
+            (b'A' as usize, 10), (b'B' as usize, 11),
+            (b'C' as usize, 12), (b'D' as usize, 13),
+            (b'E' as usize, 14), (b'F' as usize, 15),
+            (b'a' as usize, 10), (b'b' as usize, 11),
+            (b'c' as usize, 12), (b'd' as usize, 13),
+            (b'e' as usize, 14), (b'f' as usize, 15),
+        ]);
+    }
+
+    #[rustfmt::skip]
+    impl<W: Word> Codec<W> for X64 {
+        const ALPHABET: &[u8] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".as_bytes();
+
+        const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
+            ( 0, b'A'), ( 1, b'B'),
+            ( 2, b'C'), ( 3, b'D'),
+            ( 4, b'E'), ( 5, b'F'),
+            ( 6, b'G'), ( 7, b'H'),
+            ( 8, b'I'), ( 9, b'J'),
+            (10, b'K'), (11, b'L'),
+            (12, b'M'), (13, b'N'),
+            (14, b'O'), (15, b'P'),
+            (16, b'Q'), (17, b'R'),
+            (18, b'S'), (19, b'T'),
+            (20, b'U'), (21, b'V'),
+            (22, b'W'), (23, b'X'),
+            (24, b'Y'), (25, b'Z'),
+            (26, b'a'), (27, b'b'),
+            (28, b'c'), (29, b'd'),
+            (30, b'e'), (31, b'f'),
+            (32, b'g'), (33, b'h'),
+            (34, b'i'), (35, b'j'),
+            (36, b'k'), (37, b'l'),
+            (38, b'm'), (39, b'n'),
+            (40, b'o'), (41, b'p'),
+            (42, b'q'), (43, b'r'),
+            (44, b's'), (45, b't'),
+            (46, b'u'), (47, b'v'),
+            (48, b'w'), (49, b'x'),
+            (50, b'y'), (51, b'z'),
+            (52, b'0'), (53, b'1'),
+            (54, b'2'), (55, b'3'),
+            (56, b'4'), (57, b'5'),
+            (58, b'6'), (59, b'7'),
+            (60, b'8'), (61, b'9'),
+            (62, b'-'), (63, b'_'),
+        ]);
+
+        const DECODE: Aligned<[u8; 256]> = ascii(255, &[
+            (b'A' as usize,  0), (b'B' as usize,  1),
+            (b'C' as usize,  2), (b'D' as usize,  3),
+            (b'E' as usize,  4), (b'F' as usize,  5),
+            (b'G' as usize,  6), (b'H' as usize,  7),
+            (b'I' as usize,  8), (b'J' as usize,  9),
+            (b'K' as usize, 10), (b'L' as usize, 11),
+            (b'M' as usize, 12), (b'N' as usize, 13),
+            (b'O' as usize, 14), (b'P' as usize, 15),
+            (b'Q' as usize, 16), (b'R' as usize, 17),
+            (b'S' as usize, 18), (b'T' as usize, 19),
+            (b'U' as usize, 20), (b'V' as usize, 21),
+            (b'W' as usize, 22), (b'X' as usize, 23),
+            (b'Y' as usize, 24), (b'Z' as usize, 25),
+            (b'a' as usize, 26), (b'b' as usize, 27),
+            (b'c' as usize, 28), (b'd' as usize, 29),
+            (b'e' as usize, 30), (b'f' as usize, 31),
+            (b'g' as usize, 32), (b'h' as usize, 33),
+            (b'i' as usize, 34), (b'j' as usize, 35),
+            (b'k' as usize, 36), (b'l' as usize, 37),
+            (b'm' as usize, 38), (b'n' as usize, 39),
+            (b'o' as usize, 40), (b'p' as usize, 41),
+            (b'q' as usize, 42), (b'r' as usize, 43),
+            (b's' as usize, 44), (b't' as usize, 45),
+            (b'u' as usize, 46), (b'v' as usize, 47),
+            (b'w' as usize, 48), (b'x' as usize, 49),
+            (b'y' as usize, 50), (b'z' as usize, 51),
+            (b'0' as usize, 52), (b'1' as usize, 53),
+            (b'2' as usize, 54), (b'3' as usize, 55),
+            (b'4' as usize, 56), (b'5' as usize, 57),
+            (b'6' as usize, 58), (b'7' as usize, 59),
+            (b'8' as usize, 60), (b'9' as usize, 61),
+            (b'-' as usize, 62), (b'_' as usize, 63),
+        ]);
+    }
+
+    #[inline]
+    const fn ascii<T: Copy>(default: T, slice: &[(usize, T)]) -> Aligned<[T; 256]> {
+        let mut idx = 0;
+        let mut res = [default; 256];
+
+        while idx < slice.len() {
+            let (i, x) = slice[idx];
+
+            res[i] = x;
+            idx += 1;
+        }
+
+        Aligned(res)
+    }
+}
+
 /// Aligned to approximate architecture cacheline size type.
 ///
 /// Implements (conditionally) all standard Rust traits and operations of
