@@ -348,6 +348,20 @@ pub mod codec {
     /// X64 codec.
     pub struct X64;
 
+    /// Reads in `exp` bits length.
+    pub struct ReadIter<'words, W: Word> {
+        words: &'words [W],
+        exp: usize,
+        idx: usize,
+    }
+
+    /// Writes in `exp` bits length.
+    pub struct WriteIter<'words, W: Word> {
+        words: &'words [W],
+        exp: usize,
+        idx: usize,
+    }
+
     /// Codec.
     pub trait Codec {
         /// Codec ASCII alphabet.
@@ -360,10 +374,16 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]>;
 
         /// Encodes from words.
-        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8>;
+        #[inline]
+        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
+            [].into_iter()
+        }
 
         /// Decodes into words.
-        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words;
+        #[inline]
+        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
+            words
+        }
     }
 
     #[rustfmt::skip]
@@ -377,14 +397,6 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize, 0), (b'1' as usize, 1),
         ]);
-
-        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            todo!()
-        }
     }
 
     #[rustfmt::skip]
@@ -404,14 +416,6 @@ pub mod codec {
             (b'4' as usize, 4), (b'5' as usize, 5),
             (b'6' as usize, 6), (b'7' as usize, 7),
         ]);
-
-        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            todo!()
-        }
     }
 
     #[rustfmt::skip]
@@ -442,14 +446,6 @@ pub mod codec {
             (b'c' as usize, 12), (b'd' as usize, 13),
             (b'e' as usize, 14), (b'f' as usize, 15),
         ]);
-
-        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            todo!()
-        }
     }
 
     #[rustfmt::skip]
@@ -525,14 +521,6 @@ pub mod codec {
             (b'8' as usize, 60), (b'9' as usize, 61),
             (b'-' as usize, 62), (b'_' as usize, 63),
         ]);
-
-        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            todo!()
-        }
     }
 
     #[inline]
