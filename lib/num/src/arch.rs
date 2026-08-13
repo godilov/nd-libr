@@ -373,6 +373,9 @@ pub mod codec {
         /// Decode table.
         const DECODE: Aligned<[u8; 256]>;
 
+        /// Check `Self::ALPHABET` length is power of 2.
+        const _CHECK: () = assert!(Self::ALPHABET.len() & (Self::ALPHABET.len() - 1) == 0);
+
         /// Encodes from words.
         #[inline]
         fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
