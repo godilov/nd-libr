@@ -349,7 +349,7 @@ pub mod codec {
     pub struct X64;
 
     /// Codec.
-    pub trait Codec<W: Word> {
+    pub trait Codec {
         /// Codec ASCII alphabet.
         const ALPHABET: &[u8];
 
@@ -359,31 +359,15 @@ pub mod codec {
         /// Decode table.
         const DECODE: Aligned<[u8; 256]>;
 
-        /// Encode length.
-        ///
-        /// Max number of bits to be encoded from `W::BITS`.
-        const ENCODE_LEN: u8 = (W::BITS - W::BITS % Self::ALPHABET.len().ilog2() as usize) as u8;
+        /// Encodes from words.
+        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8>;
 
-        /// Decode length.
-        ///
-        /// Max number of chars to be decoded into `W::BITS`.
-        const DECODE_LEN: u8 = (W::BITS / Self::ALPHABET.len().ilog2() as usize) as u8;
-    }
-
-    /// Encode.
-    pub trait Encode<W: Word>: AsWordsRef<W> {
-        /// Encodes self into iterator of ASCII chars.
-        fn encode<C: Codec<W>>(&self, codec: C) -> impl Iterator<Item = u8>;
-    }
-
-    /// Decode.
-    pub trait Decode<W: Word>: AsWordsMut<W> {
-        /// Decodes iterator of ASCII chars into self.
-        fn decode<C: Codec<W>>(self, codec: C, iter: impl Iterator<Item = u8>) -> Self;
+        /// Decodes into words.
+        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words;
     }
 
     #[rustfmt::skip]
-    impl<W: Word> Codec<W> for Bin {
+    impl Codec for Bin {
         const ALPHABET: &[u8] = "01".as_bytes();
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
@@ -393,10 +377,18 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize, 0), (b'1' as usize, 1),
         ]);
+
+        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
+            [].into_iter()
+        }
+
+        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
+            todo!()
+        }
     }
 
     #[rustfmt::skip]
-    impl<W: Word> Codec<W> for Oct {
+    impl Codec for Oct {
         const ALPHABET: &[u8] = "01234567".as_bytes();
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
@@ -412,10 +404,18 @@ pub mod codec {
             (b'4' as usize, 4), (b'5' as usize, 5),
             (b'6' as usize, 6), (b'7' as usize, 7),
         ]);
+
+        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
+            [].into_iter()
+        }
+
+        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
+            todo!()
+        }
     }
 
     #[rustfmt::skip]
-    impl<W: Word> Codec<W> for Hex {
+    impl Codec for Hex {
         const ALPHABET: &[u8] = "0123456789ABCDEF".as_bytes();
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
@@ -442,10 +442,18 @@ pub mod codec {
             (b'c' as usize, 12), (b'd' as usize, 13),
             (b'e' as usize, 14), (b'f' as usize, 15),
         ]);
+
+        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
+            [].into_iter()
+        }
+
+        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
+            todo!()
+        }
     }
 
     #[rustfmt::skip]
-    impl<W: Word> Codec<W> for X64 {
+    impl Codec for X64 {
         const ALPHABET: &[u8] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".as_bytes();
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
@@ -517,6 +525,14 @@ pub mod codec {
             (b'8' as usize, 60), (b'9' as usize, 61),
             (b'-' as usize, 62), (b'_' as usize, 63),
         ]);
+
+        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
+            [].into_iter()
+        }
+
+        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
+            todo!()
+        }
     }
 
     #[inline]
@@ -919,6 +935,18 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     #[inline]
     fn ndx_from(value: U, _: ()) -> Self {
         Self(V::ndx_from(value, ()))
+    }
+}
+
+impl<Any: AsWordsRef<W>, W: Word> AsWordsRef<W> for &Any {
+    fn as_words_ref(&self) -> &[W] {
+        Any::as_words_ref(self)
+    }
+}
+
+impl<Any: AsWordsMut<W>, W: Word> AsWordsMut<W> for &mut Any {
+    fn as_words_mut(&mut self) -> &mut [W] {
+        Any::as_words_mut(self)
     }
 }
 
