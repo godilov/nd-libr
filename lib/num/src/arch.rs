@@ -370,9 +370,17 @@ pub mod codec {
         const DECODE_LEN: u8 = (W::BITS / Self::ALPHABET.len().ilog2() as usize) as u8;
     }
 
-    pub trait Encode {}
+    /// Encode.
+    pub trait Encode<W: Word>: AsWordsRef<W> {
+        /// Encodes self into iterator of ASCII chars.
+        fn encode<C: Codec<W>>(&self, codec: C) -> impl Iterator<Item = u8>;
+    }
 
-    pub trait Decode {}
+    /// Decode.
+    pub trait Decode<W: Word>: AsWordsMut<W> {
+        /// Decodes iterator of ASCII chars into self.
+        fn decode<C: Codec<W>>(self, codec: C, iter: impl Iterator<Item = u8>) -> Self;
+    }
 
     #[rustfmt::skip]
     impl<W: Word> Codec<W> for Bin {
