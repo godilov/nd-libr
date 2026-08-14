@@ -353,6 +353,7 @@ pub mod codec {
         words: &'words [W],
         exp: usize,
         idx: usize,
+        len: usize,
     }
 
     /// Writes in `exp` bits length.
@@ -360,6 +361,7 @@ pub mod codec {
         words: &'words [W],
         exp: usize,
         idx: usize,
+        len: usize,
     }
 
     /// Codec.
@@ -374,7 +376,11 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]>;
 
         /// Check `Self::ALPHABET` length is power of 2.
-        const _CHECK: () = assert!(Self::ALPHABET.len() & (Self::ALPHABET.len() - 1) == 0);
+        const _CHECK: () = {
+            let len = Self::ALPHABET.len();
+
+            assert!(len & (len - 1) == 0);
+        };
 
         /// Encodes from words.
         #[inline]
@@ -386,6 +392,77 @@ pub mod codec {
         #[inline]
         fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
             words
+        }
+    }
+
+    impl<'words, W: Word> Iterator for ReadIter<'words, W> {
+        type Item = W;
+
+        #[inline]
+        fn next(&mut self) -> Option<Self::Item> {
+            let zero = Relaxed(W::ZERO);
+            let one = Relaxed(W::ONE);
+
+            let words = self.words;
+            let exp = self.exp;
+            let idx = self.idx;
+
+            let offset = idx * exp;
+            let mask = (one << exp) - one;
+
+            let shl = offset % W::BITS;
+            let shr = W::BITS - shl;
+
+            let idxs = [offset / W::BITS, (offset + exp) / W::BITS];
+            let vals = [
+                Relaxed(*words.get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
+                Relaxed(*words.get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
+            ];
+
+            let res = vals[0] >> shl | vals[1] << shr;
+
+            self.idx += 1;
+
+            Some(res.0)
+        }
+
+        #[inline]
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            (self.len - self.idx, None)
+        }
+    }
+
+    impl<'words, W: Word> Iterator for WriteIter<'words, W> {
+        type Item = W;
+
+        #[inline]
+        fn next(&mut self) -> Option<Self::Item> {
+            let zero = Relaxed(W::ZERO);
+            let one = Relaxed(W::ONE);
+
+            let words = self.words;
+            let exp = self.exp;
+            let idx = self.idx;
+
+            let offset = W::BITS * idx;
+            let mask = (one << exp) - one;
+
+            let delta = offset / exp;
+            let shift = offset % exp;
+
+            let res = (0..W::BITS.div_ceil(exp))
+                .map(|idx| (Relaxed(*words.get(idx + delta).unwrap_or(&zero.0)) >> shift) << (idx * exp))
+                .map(|val| val & mask)
+                .fold(zero, |acc, x| acc | x);
+
+            self.idx += 1;
+
+            Some(res.0)
+        }
+
+        #[inline]
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            (self.len - self.idx, None)
         }
     }
 

@@ -3940,11 +3940,9 @@ pub mod uops {
     /// Iterates words.
     #[inline]
     pub fn iter<W: Word>(words: &[W], ext: W, len: usize) -> impl Iterator<Item = W> {
-        (0..len).map(move |idx| {
-            let len = words.len();
-            let word = words[idx.min(len - 1)];
-
-            [word, ext][(idx >= len) as usize]
+        (0..len).map(move |idx| match idx < words.len() {
+            true => words[idx],
+            false => ext,
         })
     }
 
@@ -6562,7 +6560,9 @@ impl<'words, W: Word> Iterator for DigitsIter<'words, W> {
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
+        let len = self.len - self.idx;
+
+        (len, Some(len))
     }
 }
 
