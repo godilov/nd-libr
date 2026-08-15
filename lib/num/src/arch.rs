@@ -383,16 +383,16 @@ pub mod codec {
         };
 
         /// Encodes from words.
-        #[inline]
-        fn encode<W: Word, Words: AsWordsRef<W>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
+        fn encode_bytes<Words: AsWordsRef<u8>>(words: Words) -> impl Iterator<Item = u8>;
 
         /// Decodes into words.
-        #[inline]
-        fn decode<W: Word, Words: AsWordsMut<W>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            words
-        }
+        fn decode_bytes<Words: AsWordsMut<u8>>(words: Words, iter: impl Iterator<Item = u8>) -> Words;
+
+        /// Encodes from words.
+        fn encode<Words: AsWordsRef<Single>>(words: Words) -> impl Iterator<Item = u8>;
+
+        /// Decodes into words.
+        fn decode<Words: AsWordsMut<Single>>(words: Words, iter: impl Iterator<Item = u8>) -> Words;
     }
 
     impl<'words, W: Word> Iterator for ReadIter<'words, W> {
@@ -444,7 +444,7 @@ pub mod codec {
             let exp = self.exp;
             let idx = self.idx;
 
-            let offset = W::BITS * idx;
+            let offset = idx * W::BITS;
             let mask = (one << exp) - one;
 
             let delta = offset / exp;
@@ -618,6 +618,12 @@ pub mod codec {
         Aligned(res)
     }
 }
+
+/// Simd definitions.
+///
+/// For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Simd;
 
 /// Aligned to approximate architecture cacheline size type.
 ///
@@ -863,6 +869,103 @@ pub struct Aligned64<T>(pub T);
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Aligned128<T>(pub T);
 
+/// Aligned to architecture SIMD length type.
+///
+/// Implements (conditionally) all standard Rust traits and operations of
+/// `Std-kind` and `Nd-kind` if underlying type supports it.
+///
+/// | Architecture | Feature     | Alignment |
+/// | ------------ | ----------- | --------- |
+/// | **x86-64**   | **SSE**     | 16 bytes  |
+/// | **x86-64**   | **AVX**     | 16 bytes  |
+/// | **x86-64**   | **AVX2**    | 32 bytes  |
+/// | **x86-64**   | **AVX512**  | 64 bytes  |
+/// | **ARM**      | **Neon**    | 16 bytes  |
+/// | **WASM**     | **SIMD128** | 16 bytes  |
+/// | **Any**      | None        | 16 bytes  |
+///
+/// For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
+#[rustfmt::skip]
+#[ndfwd::std(self.0 with T)]
+#[ndfwd::cmp(self.0 with T)]
+#[ndfwd::fmt(self.0 with T)]
+#[ndfwd::idx(self.0 with T)]
+#[ndfwd::iter(self.0 with T)]
+#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
+#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
+#[ndfwd::def(self.0 with T: Rand)]
+#[ndfwd::def(self.0 with T: crate::NumFn)]
+#[ndfwd::def(self.0 with T: crate::Num)]
+#[ndfwd::def(self.0 with T: crate::NumExt)]
+#[ndfwd::def(self.0 with T: crate::NumSigned)]
+#[ndfwd::def(self.0 with T: crate::NumSignedCt)]
+#[ndfwd::def(self.0 with T: crate::NumUnsigned)]
+#[ndfwd::def(self.0 with T: crate::NumUnsignedCt)]
+#[ndfwd::def(self.0 with T: crate::NumBinary)]
+#[ndfwd::def(self.0 with T: crate::NumCt)]
+#[ndfwd::def(self.0 with T: crate::NumExtCt)]
+#[ndfwd::def(self.0 with T: crate::NdPow)]
+#[ndfwd::def(self.0 with T: crate::NdGcd)]
+#[ndfwd::def(self.0 with T: crate::NdGcdChecked)]
+#[ndfwd::def(self.0 with T: crate::Zero { const ZERO: Self = Self(T::ZERO); })]
+#[ndfwd::def(self.0 with T: crate::One { const ONE: Self = Self(T::ONE); })]
+#[ndfwd::def(self.0 with T: crate::Min { const MIN: Self = Self(T::MIN); })]
+#[ndfwd::def(self.0 with T: crate::Max { const MAX: Self = Self(T::MAX); })]
+#[ndfwd::def(self.0 with T: crate::IsZeroCt)]
+#[ndfwd::def(self.0 with T: crate::IsOneCt)]
+#[ndfwd::def(self.0 with T: crate::IsPosCt)]
+#[ndfwd::def(self.0 with T: crate::IsNegCt)]
+#[ndfwd::def(self.0 with T: crate::EqCt)]
+#[ndfwd::def(self.0 with T: crate::LtCt)]
+#[ndfwd::def(self.0 with T: crate::GtCt)]
+#[ndfwd::def(self.0 with T: crate::LeCt)]
+#[ndfwd::def(self.0 with T: crate::GeCt)]
+#[ndfwd::def(self.0 with T: crate::SignCt)]
+#[ndfwd::def(self.0 with T: crate::CmpCt)]
+#[ndfwd::def(self.0 with T: crate::MinCt)]
+#[ndfwd::def(self.0 with T: crate::MaxCt)]
+#[ndfwd::def(self.0 with T: crate::PosxCt)]
+#[ndfwd::def(self.0 with T: crate::NegxCt)]
+#[ndfwd::def(self.0 with T: crate::SelectCt)]
+#[ndfwd::def(self.0 with T: crate::PowCt)]
+#[cfg_attr(all(any(
+    target_feature = "sse",
+    target_feature = "avx",
+    target_feature = "neon",
+    target_feature = "simd128",
+), not(any(
+    target_feature = "avx2",
+    target_feature = "avx512f",
+))), repr(align(16)))]
+#[cfg_attr(all(any(
+    target_feature = "avx2",
+), not(any(
+    target_feature = "sse",
+    target_feature = "avx",
+    target_feature = "avx512f",
+    target_feature = "neon",
+    target_feature = "simd128",
+))), repr(align(32)))]
+#[cfg_attr(all(any(
+    target_feature = "avx512f",
+), not(any(
+    target_feature = "sse",
+    target_feature = "avx",
+    target_feature = "avx2",
+    target_feature = "neon",
+    target_feature = "simd128",
+))), repr(align(64)))]
+#[cfg_attr(not(any(
+    target_feature = "sse",
+    target_feature = "avx",
+    target_feature = "avx2",
+    target_feature = "avx512f",
+    target_feature = "neon",
+    target_feature = "simd128",
+)), repr(align(16)))]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct AlignedSimd<T>(pub T);
+
 /// Aligned to 4096-KiB type.
 ///
 /// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
@@ -936,6 +1039,18 @@ pub trait Rand: Sized + Default + AsWordsRef<u8> + AsWordsMut<u8> {
     }
 }
 
+impl Simd {
+    /// Simd registers length.
+    pub const fn len() -> usize {
+        std::mem::align_of::<AlignedSimd<()>>()
+    }
+
+    /// Simd array length.
+    pub const fn len_with<T>() -> usize {
+        std::mem::align_of::<AlignedSimd<()>>() / std::mem::size_of::<T>()
+    }
+}
+
 impl<T> From<T> for Aligned<T> {
     #[inline]
     fn from(value: T) -> Self {
@@ -958,6 +1073,13 @@ impl<T> From<T> for Aligned64<T> {
 }
 
 impl<T> From<T> for Aligned128<T> {
+    #[inline]
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> From<T> for AlignedSimd<T> {
     #[inline]
     fn from(value: T) -> Self {
         Self(value)
@@ -999,6 +1121,13 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for Aligned128<V> {
     }
 }
 
+impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedSimd<V> {
+    #[inline]
+    fn ndx_from(value: U, _: ()) -> Self {
+        Self(V::ndx_from(value, ()))
+    }
+}
+
 impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     #[inline]
     fn ndx_from(value: U, _: ()) -> Self {
@@ -1018,55 +1147,65 @@ impl<Any: AsWordsMut<W>, W: Word> AsWordsMut<W> for &mut Any {
     }
 }
 
-ndops::auto! { @ndun <Value, T> (value: &Aligned<Value>)    -> Aligned<T>,    (Value) (T) (&value.0) }
-ndops::auto! { @ndun <Value, T> (value: &Aligned32<Value>)  -> Aligned32<T>,  (Value) (T) (&value.0) }
-ndops::auto! { @ndun <Value, T> (value: &Aligned64<Value>)  -> Aligned64<T>,  (Value) (T) (&value.0) }
-ndops::auto! { @ndun <Value, T> (value: &Aligned128<Value>) -> Aligned128<T>, (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned<Value>)     -> Aligned<T>,     (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned32<Value>)   -> Aligned32<T>,   (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned64<Value>)   -> Aligned64<T>,   (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned128<Value>)  -> Aligned128<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &AlignedSimd<Value>) -> AlignedSimd<T>, (Value) (T) (&value.0) }
 
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,    rhs: &Aligned<Rhs>)    -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,  rhs: &Aligned32<Rhs>)  -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,  rhs: &Aligned64<Rhs>)  -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>, rhs: &Aligned128<Rhs>) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,     rhs: &Aligned<Rhs>)     -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,   rhs: &Aligned32<Rhs>)   -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,   rhs: &Aligned64<Rhs>)   -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>,  rhs: &Aligned128<Rhs>)  -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &AlignedSimd<Lhs>, rhs: &AlignedSimd<Rhs>) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
 
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,    rhs: Rhs) -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,  rhs: Rhs) -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,  rhs: Rhs) -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>, rhs: Rhs) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,    rhs: Rhs)  -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,  rhs: Rhs)  -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,  rhs: Rhs)  -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>, rhs: Rhs)  -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &AlignedSimd<Lhs>, rhs: Rhs) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
 
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    rhs: &Aligned<Rhs>),    (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  rhs: &Aligned32<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  rhs: &Aligned64<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, rhs: &Aligned128<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     rhs: &Aligned<Rhs>),     (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   rhs: &Aligned32<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   rhs: &Aligned64<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  rhs: &Aligned128<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, rhs: &AlignedSimd<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
-ndops::auto! { @stdun <Value, T> (*value: &Aligned<Value>)    -> Aligned<T>,    (Value) (T) (&value.0) }
-ndops::auto! { @stdun <Value, T> (*value: &Aligned32<Value>)  -> Aligned32<T>,  (Value) (T) (&value.0) }
-ndops::auto! { @stdun <Value, T> (*value: &Aligned64<Value>)  -> Aligned64<T>,  (Value) (T) (&value.0) }
-ndops::auto! { @stdun <Value, T> (*value: &Aligned128<Value>) -> Aligned128<T>, (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned<Value>)     -> Aligned<T>,     (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned32<Value>)   -> Aligned32<T>,   (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned64<Value>)   -> Aligned64<T>,   (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned128<Value>)  -> Aligned128<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &AlignedSimd<Value>) -> AlignedSimd<T>, (Value) (T) (&value.0) }
 
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,    *rhs: &Aligned<Rhs>)    -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,  *rhs: &Aligned32<Rhs>)  -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,  *rhs: &Aligned64<Rhs>)  -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>, *rhs: &Aligned128<Rhs>) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,     *rhs: &Aligned<Rhs>)     -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,   *rhs: &Aligned32<Rhs>)   -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,   *rhs: &Aligned64<Rhs>)   -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>,  *rhs: &Aligned128<Rhs>)  -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &AlignedSimd<Lhs>, *rhs: &AlignedSimd<Rhs>) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
 
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,    rhs: Rhs) -> Aligned<T>,    (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,  rhs: Rhs) -> Aligned32<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,  rhs: Rhs) -> Aligned64<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>, rhs: Rhs) -> Aligned128<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,     rhs: Rhs) -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,   rhs: Rhs) -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,   rhs: Rhs) -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>,  rhs: Rhs) -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &AlignedSimd<Lhs>, rhs: Rhs) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
 
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    *rhs: &Aligned<Rhs>),    (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  *rhs: &Aligned32<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  *rhs: &Aligned64<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, *rhs: &Aligned128<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     *rhs: &Aligned<Rhs>),     (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   *rhs: &Aligned32<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   *rhs: &Aligned64<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  *rhs: &Aligned128<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, *rhs: &AlignedSimd<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,    rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 bytes_impl!([i8, i16, i32, i64, i128, isize]);
 bytes_impl!([u8, u16, u32, u64, u128, usize]);
