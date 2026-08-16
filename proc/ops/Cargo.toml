@@ -20,8 +20,8 @@ quote       = { workspace = true }
 syn         = { workspace = true, features = ["full", "extra-traits", "fold"] }
 
 [dev-dependencies]
-ndext    = { workspace = true }
 ndassert = { workspace = true }
+ndext    = { workspace = true }
 
 [lints]
 workspace = true

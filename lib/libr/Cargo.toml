@@ -11,20 +11,6 @@ keywords.workspace   = true
 readme.workspace     = true
 description          = "Nd Rust Library"
 
-[dependencies]
-ndassert = { workspace = true, optional = true }
-ndfwd    = { workspace = true, optional = true }
-ndops    = { workspace = true, optional = true }
-ndcrypto = { workspace = true, optional = true }
-ndext    = { workspace = true, optional = true }
-ndmem    = { workspace = true, optional = true }
-ndnum    = { workspace = true, optional = true }
-
-[dev-dependencies]
-
-[lints]
-workspace = true
-
 [features]
 default = []
 all     = ["assert", "fwd", "ops", "crypto", "ext", "mem", "num"]
@@ -35,3 +21,18 @@ crypto  = ["dep:ndcrypto"]
 ext     = ["dep:ndext"]
 mem     = ["dep:ndmem"]
 num     = ["dep:ndnum"]
+
+[dependencies]
+ndassert = { workspace = true, optional = true }
+ndfwd    = { workspace = true, optional = true }
+ndops    = { workspace = true, optional = true }
+
+ndcrypto = { workspace = true, optional = true }
+ndext    = { workspace = true, optional = true }
+ndmem    = { workspace = true, optional = true }
+ndnum    = { workspace = true, optional = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

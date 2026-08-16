@@ -11,6 +11,15 @@ keywords.workspace   = true
 readme.workspace     = true
 description          = "Nd Numbers Library"
 
+[features]
+default = []
+all     = ["std", "dyn", "rand", "rayon"]
+std     = []
+dyn     = ["std"]
+rand    = ["dep:rand"]
+rayon   = ["dep:rayon"]
+asm     = []
+
 [dependencies]
 rand      = { workspace = true, optional = true }
 rayon     = { workspace = true, optional = true }
@@ -20,12 +29,13 @@ zerocopy  = { workspace = true }
 ndasm = { workspace = true }
 ndfwd = { workspace = true }
 ndops = { workspace = true }
+
 ndext = { workspace = true }
 
 [dev-dependencies]
-rand      = { workspace = true }
 anyhow    = { workspace = true }
 criterion = { workspace = true }
+rand      = { workspace = true }
 
 ndassert = { workspace = true }
 
@@ -35,12 +45,3 @@ workspace = true
 [[bench]]
 name    = "long"
 harness = false
-
-[features]
-default = []
-all     = ["std", "dyn", "rand", "rayon"]
-std     = []
-dyn     = ["std"]
-rand    = ["dep:rand"]
-rayon   = ["dep:rayon"]
-asm     = []
