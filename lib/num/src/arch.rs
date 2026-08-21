@@ -359,6 +359,57 @@ pub mod codec {
         /// Decode ASCII table.
         const DECODE: Aligned<[u8; 256]>;
 
+        /// Reads words in Codec configuration.
+        #[inline]
+        fn read<W: Word>(words: &[W]) -> impl Iterator<Item = W> {
+            let zero = Relaxed(W::ZERO);
+            let one = Relaxed(W::ONE);
+
+            let len = (W::BITS * words.len()).div_ceil(Self::LEN);
+            let exp = W::BITS - W::BITS % Self::LEN;
+            let mask = (one << exp) - one;
+
+            (0..len).map(move |idx| {
+                let offset = idx * exp;
+
+                let shl = offset % W::BITS;
+                let shr = W::BITS - shl;
+
+                let idxs = [offset / W::BITS, (offset + exp) / W::BITS];
+                let vals = [
+                    Relaxed(*words.get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
+                    Relaxed(*words.get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
+                ];
+
+                (vals[0] >> shl | vals[1] << shr).0
+            })
+        }
+
+        /// Writes words in Codec configuration.
+        #[inline]
+        fn write<W: Word>(words: &[W]) -> impl Iterator<Item = W> {
+            let zero = Relaxed(W::ZERO);
+            let one = Relaxed(W::ONE);
+
+            let len = (Self::LEN * words.len()).div_ceil(W::BITS);
+            let exp = W::BITS - W::BITS % Self::LEN;
+            let span = W::BITS.div_ceil(exp);
+            let mask = (one << exp) - one;
+
+            (0..len).map(move |idx| {
+                let offset = idx * W::BITS;
+
+                let delta = offset / exp;
+                let shift = offset % exp;
+
+                (0..span)
+                    .map(|idx| (Relaxed(*words.get(idx + delta).unwrap_or(&zero.0)) >> shift) << (idx * exp))
+                    .map(|val| val & mask)
+                    .fold(zero, |acc, x| acc | x)
+                    .0
+            })
+        }
+
         /// Encodes from words.
         fn encode_bytes<Bytes: AsWordsRef<u8>>(bytes: Bytes) -> impl Iterator<Item = u8>;
 
@@ -370,57 +421,6 @@ pub mod codec {
 
         /// Decodes into words.
         fn decode_words<Words: AsWordsMut<Single>>(words: Words, iter: impl Iterator<Item = u8>) -> Words;
-    }
-
-    /// Reads words in Codec configuration.
-    #[inline]
-    pub fn read<W: Word, C: Codec>(words: &[W], _: C) -> impl Iterator<Item = W> {
-        let zero = Relaxed(W::ZERO);
-        let one = Relaxed(W::ONE);
-
-        let len = (W::BITS * words.len()).div_ceil(C::LEN);
-        let exp = W::BITS - W::BITS % C::LEN;
-        let mask = (one << exp) - one;
-
-        (0..len).map(move |idx| {
-            let offset = idx * exp;
-
-            let shl = offset % W::BITS;
-            let shr = W::BITS - shl;
-
-            let idxs = [offset / W::BITS, (offset + exp) / W::BITS];
-            let vals = [
-                Relaxed(*words.get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
-                Relaxed(*words.get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
-            ];
-
-            (vals[0] >> shl | vals[1] << shr).0
-        })
-    }
-
-    /// Writes words in Codec configuration.
-    #[inline]
-    pub fn write<W: Word, C: Codec>(words: &[W], _: C) -> impl Iterator<Item = W> {
-        let zero = Relaxed(W::ZERO);
-        let one = Relaxed(W::ONE);
-
-        let len = (C::LEN * words.len()).div_ceil(W::BITS);
-        let exp = W::BITS - W::BITS % C::LEN;
-        let span = W::BITS.div_ceil(exp);
-        let mask = (one << exp) - one;
-
-        (0..len).map(move |idx| {
-            let offset = idx * W::BITS;
-
-            let delta = offset / exp;
-            let shift = offset % exp;
-
-            (0..span)
-                .map(|idx| (Relaxed(*words.get(idx + delta).unwrap_or(&zero.0)) >> shift) << (idx * exp))
-                .map(|val| val & mask)
-                .fold(zero, |acc, x| acc | x)
-                .0
-        })
     }
 
     #[rustfmt::skip]
