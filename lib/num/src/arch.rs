@@ -2,7 +2,7 @@
 
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndext::{convert::NdxFrom, iter::*, ops::*};
+use ndext::{convert::NdxFrom, ops::*};
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
 use crate::{arch::word::*, *};
@@ -340,22 +340,43 @@ pub mod codec {
 
     use super::*;
 
+    #[macro_export]
+    macro_rules! array {
+        ($word:ty, $codec:path, $len:expr) => {
+            [0 as $word; $crate::arch::codec::len::<$word, $codec>($len)]
+        };
+    }
+
+    pub use array;
+    use thiserror::Error;
+
     /// Bin codec.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Bin;
 
     /// Oct codec.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Oct;
 
     /// Hex codec.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Hex;
 
     /// X64 codec.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct X64;
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum Error {
+        /// Found invalid entry.
+        #[error("Found invalid entry")]
+        InvalidEntry,
+    }
+
     /// Codec.
-    pub trait Codec {
-        /// Codec ASCII alphabet length.
-        const LEN: usize;
+    pub trait Codec: Debug + Default + Clone + Copy + PartialEq + Eq {
+        /// Codec ASCII alphabet bit-length.
+        const BITS: usize;
 
         /// Encode ASCII table.
         const ENCODE: Aligned<[u8; 256]>;
@@ -364,28 +385,26 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]>;
 
         /// Checks `Self::LEN`.
-        const _CHECK: () = assert!(Self::LEN <= u8::BITS as usize);
+        const _CHECK: () = assert!(Self::BITS <= u8::BITS as usize);
 
         /// Encodes words in Codec configuration.
         #[inline]
         fn encode<W: Word, Words: AsWordsRef<W>>(words: &Words) -> impl Iterator<Item = u8> {
-            let zero = Relaxed(W::ZERO);
             let one = Relaxed(W::ONE);
 
-            let len = words.as_words_ref().len();
-            let len = (W::BITS * len).div_ceil(Self::LEN);
-            let mask = (one << Self::LEN) - one;
+            let len = (W::BITS * words.as_words_ref().len()).div_ceil(Self::BITS);
+            let mask = (one << Self::BITS) - one;
 
             (0..len).map(move |idx| {
-                let offset = idx * Self::LEN;
+                let offset = idx * Self::BITS;
 
                 let shl = offset % W::BITS;
                 let shr = W::BITS - shl;
 
-                let idxs = [offset / W::BITS, (offset + Self::LEN) / W::BITS];
+                let idxs = [offset / W::BITS, (offset + Self::BITS) / W::BITS];
                 let vals = [
-                    Relaxed(*words.as_words_ref().get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
-                    Relaxed(*words.as_words_ref().get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
+                    Relaxed(*words.as_words_ref().get(idxs[0]).unwrap_or(&W::ZERO)) & (mask << shl),
+                    Relaxed(*words.as_words_ref().get(idxs[1]).unwrap_or(&W::ZERO)) & (mask >> shr),
                 ];
 
                 let idx = (vals[0] >> shl | vals[1] << shr).0.as_usize();
@@ -399,19 +418,20 @@ pub mod codec {
         fn decode<W: Word, Words: AsWordsMut<W>>(mut words: Words, iter: impl Iterator<Item = u8>) -> Words {
             let one = Relaxed(W::ONE);
 
-            let mask = (one << Self::LEN) - one;
+            let len = (W::BITS * words.as_words_ref().len()).div_ceil(Self::BITS);
+            let mask = (one << Self::BITS) - one;
 
-            for (idx, byte) in iter.enumerate() {
-                let val = Self::DECODE[byte as usize];
-                let val = W::from_single(val as Single);
-
-                let offset = idx * Self::LEN;
+            for (idx, byte) in iter.map(|byte| Self::DECODE[byte as usize]).take(len).enumerate() {
+                let offset = idx * Self::BITS;
 
                 let shl = offset % W::BITS;
                 let shr = W::BITS - shl;
 
-                let idxs = [offset / W::BITS, (offset + Self::LEN) / W::BITS];
-                let vals = [Relaxed(val) & (mask << shl), Relaxed(val) & (mask >> shr)];
+                let idxs = [offset / W::BITS, (offset + Self::BITS) / W::BITS];
+                let vals = [
+                    Relaxed(W::from_single(byte as Single)) & (mask << shl),
+                    Relaxed(W::from_single(byte as Single)) & (mask >> shr),
+                ];
 
                 words.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
                 words.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
@@ -419,11 +439,27 @@ pub mod codec {
 
             words
         }
+
+        /// Decodes words in Codec configuration with check.
+        #[inline]
+        fn try_decode<W: Word, Words: AsWordsMut<W>>(
+            words: Words,
+            iter: impl Iterator<Item = u8>,
+        ) -> Result<Words, Error> {
+            let mut flag = 0u8;
+
+            let words = Self::decode(words, iter.inspect(|&byte| flag |= Self::DECODE[byte as usize]));
+
+            match flag {
+                u8::MAX => Err(Error::InvalidEntry),
+                _ => Ok(words),
+            }
+        }
     }
 
     #[rustfmt::skip]
     impl Codec for Bin {
-        const LEN: usize = 2;
+        const BITS: usize = 2;
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             (0, b'0'), (1, b'1'),
@@ -436,7 +472,7 @@ pub mod codec {
 
     #[rustfmt::skip]
     impl Codec for Oct {
-        const LEN: usize = 3;
+        const BITS: usize = 3;
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             (0, b'0'), (1, b'1'),
@@ -455,7 +491,7 @@ pub mod codec {
 
     #[rustfmt::skip]
     impl Codec for Hex {
-        const LEN: usize = 4;
+        const BITS: usize = 4;
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             ( 0, b'0'), ( 1, b'1'),
@@ -485,7 +521,7 @@ pub mod codec {
 
     #[rustfmt::skip]
     impl Codec for X64 {
-        const LEN: usize = 6;
+        const BITS: usize = 6;
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             ( 0, b'A'), ( 1, b'B'),
@@ -556,6 +592,11 @@ pub mod codec {
             (b'8' as usize, 60), (b'9' as usize, 61),
             (b'-' as usize, 62), (b'_' as usize, 63),
         ]);
+    }
+
+    #[inline]
+    pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
+        (C::BITS * len).div_ceil(W::BITS)
     }
 
     #[inline]
