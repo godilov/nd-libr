@@ -1268,6 +1268,8 @@ impl FwdDeclFn {
             let inputs = &sig.inputs;
             let output = &sig.output;
 
+            let (_, gen_type, _) = generics.split_for_impl();
+
             let recv = inputs.iter().find_map(|arg| match arg {
                 FnArg::Receiver(val) => Some(val),
                 FnArg::Typed(_) => None,
@@ -1303,13 +1305,18 @@ impl FwdDeclFn {
                 })
                 .collect::<Result<Vec<FwdDeclArgExpr>>>()?;
 
+            let func = match generics.params.len() {
+                0 => quote! { #ident },
+                _ => quote! { #ident::#gen_type },
+            };
+
             let forward = match recv {
                 Some(val) => match (val.reference.is_some(), val.mutability.is_some()) {
-                    (true, true) => quote! { self.forward_mut().#ident(#(#args_expr),*) },
-                    (true, false) => quote! { self.forward_ref().#ident(#(#args_expr),*) },
-                    _ => quote! { self.forward().#ident(#(#args_expr),*) },
+                    (true, true) => quote! { self.forward_mut().#func(#(#args_expr),*) },
+                    (true, false) => quote! { self.forward_ref().#func(#(#args_expr),*) },
+                    _ => quote! { self.forward().#func(#(#args_expr),*) },
                 },
-                None => quote! { <$ty>::#ident(#(#args_expr),*) },
+                None => quote! { <$ty>::#func(#(#args_expr),*) },
             };
 
             let expr = match FwdDeclAttr::from_attrs(attrs.iter())? {

@@ -6,7 +6,7 @@ use ndext::{convert::NdxFrom, ops::*};
 use thiserror::Error;
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
-use crate::{arch::word::*, *};
+use crate::{arch::codec::*, arch::word::*, *};
 
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
@@ -126,6 +126,9 @@ macro_rules! bytes_impl {
         }
 
         impl Rand for $primitive {}
+
+        impl Encode<u8> for $primitive {}
+        impl Decode<u8> for $primitive {}
     };
 }
 
@@ -461,6 +464,25 @@ pub mod codec {
         }
     }
 
+    /// Encode functions.
+    #[ndfwd::decl]
+    pub trait Encode<W: Word>: Sized + AsWordsRef<W> {
+        /// Encodes from self.
+        fn encoded<C: Codec>(&self) -> impl Iterator<Item = u8> {
+            C::encode(self)
+        }
+    }
+
+    /// Decode functions.
+    #[ndfwd::decl]
+    pub trait Decode<W: Word>: Sized + AsWordsMut<W> {
+        /// Decodes into self.
+        #[ndfwd::as_into]
+        fn decoded<C: Codec>(self, iter: impl Iterator<Item = u8>) -> Self {
+            C::decode(self, iter)
+        }
+    }
+
     #[rustfmt::skip]
     impl Codec for Bin {
         const BITS: usize = 1;
@@ -678,6 +700,8 @@ pub struct Simd;
 #[ndfwd::def(self.0 with T: AsWordsRef<W>)]
 #[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
+#[ndfwd::def(self.0 with T: codec::Encode<W>)]
+#[ndfwd::def(self.0 with T: codec::Decode<W>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -734,6 +758,8 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsRef<W>)]
 #[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
+#[ndfwd::def(self.0 with T: codec::Encode<W>)]
+#[ndfwd::def(self.0 with T: codec::Decode<W>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -783,6 +809,8 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsRef<W>)]
 #[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
+#[ndfwd::def(self.0 with T: codec::Encode<W>)]
+#[ndfwd::def(self.0 with T: codec::Decode<W>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -832,6 +860,8 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsRef<W>)]
 #[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
+#[ndfwd::def(self.0 with T: codec::Encode<W>)]
+#[ndfwd::def(self.0 with T: codec::Decode<W>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -895,6 +925,8 @@ pub struct Aligned128<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsRef<W>)]
 #[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
+#[ndfwd::def(self.0 with T: codec::Encode<W>)]
+#[ndfwd::def(self.0 with T: codec::Decode<W>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -978,6 +1010,8 @@ pub struct AlignedSimd<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsRef<W>)]
 #[ndfwd::def(self.0 with T: AsWordsMut<W>)]
 #[ndfwd::def(self.0 with T: Rand)]
+#[ndfwd::def(self.0 with T: codec::Encode<W>)]
+#[ndfwd::def(self.0 with T: codec::Decode<W>)]
 #[repr(align(4096))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
@@ -1508,9 +1542,17 @@ mod tests {
         ndassert::check! { (
             val in ndassert::range!(u64, 48, 0),
         ) [
-            (Bin::encode(&val).zip(format!("{:b}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
-            (Oct::encode(&val).zip(format!("{:o}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
-            (Hex::encode(&val).zip(format!("{:X}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+            (val.encoded::<Bin>().zip(format!("{:b}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+            (val.encoded::<Oct>().zip(format!("{:o}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+            (val.encoded::<Hex>().zip(format!("{:X}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+        ] }
+
+        ndassert::check! { (
+            val in ndassert::range!(u64, 48, 0),
+        ) [
+            (Aligned(val).encoded::<Bin>().zip(format!("{:b}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+            (Aligned(val).encoded::<Oct>().zip(format!("{:o}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+            (Aligned(val).encoded::<Hex>().zip(format!("{:X}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
         ] }
     }
 
@@ -1519,10 +1561,19 @@ mod tests {
         ndassert::check! { @eq (
             val in ndassert::range!(u64, 48, 0),
         ) [
-            (Bin::decode(0u64, Bin::encode(&val)), val),
-            (Oct::decode(0u64, Oct::encode(&val)), val),
-            (Hex::decode(0u64, Hex::encode(&val)), val),
-            (X64::decode(0u64, X64::encode(&val)), val),
+            (0u64.decoded::<Bin>(val.encoded::<Bin>()), val),
+            (0u64.decoded::<Oct>(val.encoded::<Oct>()), val),
+            (0u64.decoded::<Hex>(val.encoded::<Hex>()), val),
+            (0u64.decoded::<X64>(val.encoded::<X64>()), val),
+        ] }
+
+        ndassert::check! { @eq (
+            val in ndassert::range!(u64, 48, 0),
+        ) [
+            (Aligned(0u64).decoded::<Bin>(val.encoded::<Bin>()), Aligned(val)),
+            (Aligned(0u64).decoded::<Oct>(val.encoded::<Oct>()), Aligned(val)),
+            (Aligned(0u64).decoded::<Hex>(val.encoded::<Hex>()), Aligned(val)),
+            (Aligned(0u64).decoded::<X64>(val.encoded::<X64>()), Aligned(val)),
         ] }
     }
 }
