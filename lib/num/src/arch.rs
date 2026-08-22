@@ -2,7 +2,7 @@
 
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndext::{convert::NdxFrom, ops::*};
+use ndext::{convert::NdxFrom, iter::*, ops::*};
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
 use crate::{arch::word::*, *};
@@ -135,6 +135,8 @@ pub mod word {
     //!
     //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
 
+    use std::ops::*;
+
     use super::*;
 
     #[cfg(all(target_pointer_width = "64", not(test)))]
@@ -228,7 +230,9 @@ pub mod word {
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
         + AsWordsRef<u8> + AsWordsMut<u8>
         + FromBytes + IntoBytes + Immutable
-        + NdOps<All = Self> + NdOpsAssign 
+        + BitOr<Self> + BitAnd<Self> + BitXor<Self>
+        + BitOrAssign + BitAndAssign + BitXorAssign
+        + NdOps<All = Self> + NdOpsAssign
         + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed
     {
         /// Bits per Word-like primitive.
@@ -359,68 +363,62 @@ pub mod codec {
         /// Decode ASCII table.
         const DECODE: Aligned<[u8; 256]>;
 
-        /// Reads words in Codec configuration.
+        /// Checks `Self::LEN`.
+        const _CHECK: () = assert!(Self::LEN <= u8::BITS as usize);
+
+        /// Encodes words in Codec configuration.
         #[inline]
-        fn read<W: Word>(words: &[W]) -> impl Iterator<Item = W> {
+        fn encode<W: Word, Words: AsWordsRef<W>>(words: &Words) -> impl Iterator<Item = u8> {
             let zero = Relaxed(W::ZERO);
             let one = Relaxed(W::ONE);
 
-            let len = (W::BITS * words.len()).div_ceil(Self::LEN);
-            let exp = W::BITS - W::BITS % Self::LEN;
-            let mask = (one << exp) - one;
+            let len = words.as_words_ref().len();
+            let len = (W::BITS * len).div_ceil(Self::LEN);
+            let mask = (one << Self::LEN) - one;
 
             (0..len).map(move |idx| {
-                let offset = idx * exp;
+                let offset = idx * Self::LEN;
 
                 let shl = offset % W::BITS;
                 let shr = W::BITS - shl;
 
-                let idxs = [offset / W::BITS, (offset + exp) / W::BITS];
+                let idxs = [offset / W::BITS, (offset + Self::LEN) / W::BITS];
                 let vals = [
-                    Relaxed(*words.get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
-                    Relaxed(*words.get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
+                    Relaxed(*words.as_words_ref().get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
+                    Relaxed(*words.as_words_ref().get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
                 ];
 
-                (vals[0] >> shl | vals[1] << shr).0
+                let idx = (vals[0] >> shl | vals[1] << shr).0.as_usize();
+
+                Self::ENCODE[idx]
             })
         }
 
-        /// Writes words in Codec configuration.
+        /// Decodes words in Codec configuration.
         #[inline]
-        fn write<W: Word>(words: &[W]) -> impl Iterator<Item = W> {
-            let zero = Relaxed(W::ZERO);
+        fn decode<W: Word, Words: AsWordsMut<W>>(mut words: Words, iter: impl Iterator<Item = u8>) -> Words {
             let one = Relaxed(W::ONE);
 
-            let len = (Self::LEN * words.len()).div_ceil(W::BITS);
-            let exp = W::BITS - W::BITS % Self::LEN;
-            let span = W::BITS.div_ceil(exp);
-            let mask = (one << exp) - one;
+            let mask = (one << Self::LEN) - one;
 
-            (0..len).map(move |idx| {
-                let offset = idx * W::BITS;
+            for (idx, byte) in iter.enumerate() {
+                let val = Self::DECODE[byte as usize];
+                let val = W::from_single(val as Single);
 
-                let delta = offset / exp;
-                let shift = offset % exp;
+                let offset = idx * Self::LEN;
 
-                (0..span)
-                    .map(|idx| (Relaxed(*words.get(idx + delta).unwrap_or(&zero.0)) >> shift) << (idx * exp))
-                    .map(|val| val & mask)
-                    .fold(zero, |acc, x| acc | x)
-                    .0
-            })
+                let shl = offset % W::BITS;
+                let shr = W::BITS - shl;
+
+                let idxs = [offset / W::BITS, (offset + Self::LEN) / W::BITS];
+                let vals = [Relaxed(val) & (mask << shl), Relaxed(val) & (mask >> shr)];
+
+                words.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
+                words.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
+            }
+
+            words
         }
-
-        /// Encodes from words.
-        fn encode_bytes<Bytes: AsWordsRef<u8>>(bytes: Bytes) -> impl Iterator<Item = u8>;
-
-        /// Decodes into words.
-        fn decode_bytes<Bytes: AsWordsMut<u8>>(bytes: Bytes, iter: impl Iterator<Item = u8>) -> Bytes;
-
-        /// Encodes from words.
-        fn encode_words<Words: AsWordsRef<Single>>(words: Words) -> impl Iterator<Item = u8>;
-
-        /// Decodes into words.
-        fn decode_words<Words: AsWordsMut<Single>>(words: Words, iter: impl Iterator<Item = u8>) -> Words;
     }
 
     #[rustfmt::skip]
@@ -434,22 +432,6 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize, 0), (b'1' as usize, 1),
         ]);
-
-        fn encode_bytes<Bytes: AsWordsRef<u8>>(bytes: Bytes) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_bytes<Bytes: AsWordsMut<u8>>(bytes: Bytes, iter: impl Iterator<Item = u8>) -> Bytes {
-            bytes
-        }
-
-        fn encode_words<Words: AsWordsRef<Single>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_words<Words: AsWordsMut<Single>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            words
-        }
     }
 
     #[rustfmt::skip]
@@ -469,22 +451,6 @@ pub mod codec {
             (b'4' as usize, 4), (b'5' as usize, 5),
             (b'6' as usize, 6), (b'7' as usize, 7),
         ]);
-
-        fn encode_bytes<Bytes: AsWordsRef<u8>>(bytes: Bytes) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_bytes<Bytes: AsWordsMut<u8>>(bytes: Bytes, iter: impl Iterator<Item = u8>) -> Bytes {
-            bytes
-        }
-
-        fn encode_words<Words: AsWordsRef<Single>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_words<Words: AsWordsMut<Single>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            words
-        }
     }
 
     #[rustfmt::skip]
@@ -515,22 +481,6 @@ pub mod codec {
             (b'c' as usize, 12), (b'd' as usize, 13),
             (b'e' as usize, 14), (b'f' as usize, 15),
         ]);
-
-        fn encode_bytes<Bytes: AsWordsRef<u8>>(bytes: Bytes) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_bytes<Bytes: AsWordsMut<u8>>(bytes: Bytes, iter: impl Iterator<Item = u8>) -> Bytes {
-            bytes
-        }
-
-        fn encode_words<Words: AsWordsRef<Single>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_words<Words: AsWordsMut<Single>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            words
-        }
     }
 
     #[rustfmt::skip]
@@ -606,22 +556,6 @@ pub mod codec {
             (b'8' as usize, 60), (b'9' as usize, 61),
             (b'-' as usize, 62), (b'_' as usize, 63),
         ]);
-
-        fn encode_bytes<Bytes: AsWordsRef<u8>>(bytes: Bytes) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_bytes<Bytes: AsWordsMut<u8>>(bytes: Bytes, iter: impl Iterator<Item = u8>) -> Bytes {
-            bytes
-        }
-
-        fn encode_words<Words: AsWordsRef<Single>>(words: Words) -> impl Iterator<Item = u8> {
-            [].into_iter()
-        }
-
-        fn decode_words<Words: AsWordsMut<Single>>(words: Words, iter: impl Iterator<Item = u8>) -> Words {
-            words
-        }
     }
 
     #[inline]
@@ -1011,7 +945,7 @@ pub trait AsWordsRef<W: Word> {
 
 /// As words slice (mutable).
 #[ndfwd::decl]
-pub trait AsWordsMut<W: Word> {
+pub trait AsWordsMut<W: Word>: AsWordsRef<W> {
     /// As mut-slice of words.
     fn as_words_mut(&mut self) -> &mut [W];
 }
