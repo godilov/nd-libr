@@ -3,6 +3,7 @@
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
 use ndext::{convert::NdxFrom, ops::*};
+use thiserror::Error;
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
 use crate::{arch::word::*, *};
@@ -348,7 +349,6 @@ pub mod codec {
     }
 
     pub use array;
-    use thiserror::Error;
 
     /// Bin codec.
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -416,6 +416,8 @@ pub mod codec {
         /// Decodes words in Codec configuration.
         #[inline]
         fn decode<W: Word, Words: AsWordsMut<W>>(mut words: Words, iter: impl Iterator<Item = u8>) -> Words {
+            #![allow(clippy::option_map_unit_fn)]
+
             let one = Relaxed(W::ONE);
 
             let len = (W::BITS * words.as_words_ref().len()).div_ceil(Self::BITS);
@@ -1137,7 +1139,13 @@ impl<Any: AsWordsRef<W>, W: Word> AsWordsRef<W> for &Any {
     }
 }
 
-impl<Any: AsWordsMut<W>, W: Word> AsWordsMut<W> for &mut Any {
+impl<Any: AsWordsRef<W>, W: Word> AsWordsRef<W> for &mut Any {
+    fn as_words_ref(&self) -> &[W] {
+        Any::as_words_ref(self)
+    }
+}
+
+impl<Any: AsWordsMut<W> + AsWordsRef<W>, W: Word> AsWordsMut<W> for &mut Any {
     fn as_words_mut(&mut self) -> &mut [W] {
         Any::as_words_mut(self)
     }
