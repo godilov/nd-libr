@@ -341,6 +341,7 @@ pub mod codec {
 
     use super::*;
 
+    /// Array.
     #[macro_export]
     macro_rules! array {
         ($word:ty, $codec:path, $len:expr) => {
@@ -366,6 +367,7 @@ pub mod codec {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct X64;
 
+    /// Codec error.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
     pub enum Error {
         /// Found invalid entry.
@@ -431,8 +433,8 @@ pub mod codec {
 
                 let idxs = [offset / W::BITS, (offset + Self::BITS) / W::BITS];
                 let vals = [
-                    Relaxed(W::from_single(byte as Single)) & (mask << shl),
-                    Relaxed(W::from_single(byte as Single)) & (mask >> shr),
+                    (Relaxed(W::from_single(byte as Single)) << shl) & (mask << shl),
+                    (Relaxed(W::from_single(byte as Single)) >> shr) & (mask >> shr),
                 ];
 
                 words.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
@@ -461,7 +463,7 @@ pub mod codec {
 
     #[rustfmt::skip]
     impl Codec for Bin {
-        const BITS: usize = 2;
+        const BITS: usize = 1;
 
         const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
             (0, b'0'), (1, b'1'),
@@ -596,6 +598,7 @@ pub mod codec {
         ]);
     }
 
+    /// Calculates length for decoded array.
     #[inline]
     pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
         (C::BITS * len).div_ceil(W::BITS)
@@ -1216,7 +1219,7 @@ bytes_impl!([u8, u16, u32, u64, u128, usize]);
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{codec::*, *};
     use crate::long::alias::{S64, U64};
 
     #[test]
@@ -1245,6 +1248,54 @@ mod tests {
         ) [
             (Aligned(lhs).eq (&Aligned(rhs)), lhs.eq (&rhs)),
             (Aligned(lhs).cmp(&Aligned(rhs)), lhs.cmp(&rhs)),
+        ] }
+    }
+
+    #[test]
+    fn cmp_ct() {
+        #![allow(clippy::absurd_extreme_comparisons)]
+        #![allow(unused_comparisons)]
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(i64, 56, 0).map(Aligned),
+            rhs in ndassert::range!(i64, 56, 1).map(Aligned),
+        ) [
+            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (lhs.cmp_ct(&rhs), lhs.0.cmp(&rhs.0) as RelCt),
+            (lhs.sign_ct(),    lhs.0.cmp(&0)     as RelCt),
+
+            (lhs.is_zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (lhs.is_one_ct(),  MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (lhs.is_pos_ct(),  MaskCt::MAX * (lhs.0 >  0) as MaskCt),
+            (lhs.is_neg_ct(),  MaskCt::MAX * (lhs.0 <  0) as MaskCt),
+            (lhs.lt_ct(&rhs),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (lhs.gt_ct(&rhs),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (lhs.le_ct(&rhs),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (lhs.ge_ct(&rhs),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (lhs.min_ct(&rhs), Aligned(lhs.0.min(rhs.0))),
+            (lhs.max_ct(&rhs), Aligned(lhs.0.max(rhs.0))),
+            (lhs.posx_ct(),    Aligned(lhs.0.wrapping_abs())),
+            (lhs.negx_ct(),    Aligned(lhs.0.wrapping_abs().wrapping_neg())),
+        ] }
+
+        ndassert::check! { @eq (
+            lhs in ndassert::range!(u64, 56, 0).map(Aligned),
+            rhs in ndassert::range!(u64, 56, 1).map(Aligned),
+        ) [
+            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
+            (lhs.cmp_ct(&rhs), lhs.0.cmp(&rhs.0) as RelCt),
+            (lhs.sign_ct(),    lhs.0.cmp(&0)     as RelCt),
+
+            (lhs.is_zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
+            (lhs.is_one_ct(),  MaskCt::MAX * (lhs.0 == 1) as MaskCt),
+            (lhs.is_pos_ct(),  MaskCt::MAX * (lhs.0 >  0) as MaskCt),
+            (lhs.is_neg_ct(),  MaskCt::MAX * (lhs.0 <  0) as MaskCt),
+            (lhs.lt_ct(&rhs),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
+            (lhs.gt_ct(&rhs),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
+            (lhs.le_ct(&rhs),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
+            (lhs.ge_ct(&rhs),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
+            (lhs.min_ct(&rhs), Aligned(lhs.0.min(rhs.0))),
+            (lhs.max_ct(&rhs), Aligned(lhs.0.max(rhs.0))),
         ] }
     }
 
@@ -1453,50 +1504,25 @@ mod tests {
     }
 
     #[test]
-    fn cmp_ct() {
-        #![allow(clippy::absurd_extreme_comparisons)]
-        #![allow(unused_comparisons)]
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0).map(Aligned),
-            rhs in ndassert::range!(i64, 56, 1).map(Aligned),
+    fn encode() {
+        ndassert::check! { (
+            val in ndassert::range!(u64, 48, 0),
         ) [
-            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (lhs.cmp_ct(&rhs), lhs.0.cmp(&rhs.0) as RelCt),
-            (lhs.sign_ct(),    lhs.0.cmp(&0)     as RelCt),
-
-            (lhs.is_zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
-            (lhs.is_one_ct(),  MaskCt::MAX * (lhs.0 == 1) as MaskCt),
-            (lhs.is_pos_ct(),  MaskCt::MAX * (lhs.0 >  0) as MaskCt),
-            (lhs.is_neg_ct(),  MaskCt::MAX * (lhs.0 <  0) as MaskCt),
-            (lhs.lt_ct(&rhs),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (lhs.gt_ct(&rhs),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (lhs.le_ct(&rhs),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (lhs.ge_ct(&rhs),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.min_ct(&rhs), Aligned(lhs.0.min(rhs.0))),
-            (lhs.max_ct(&rhs), Aligned(lhs.0.max(rhs.0))),
-            (lhs.posx_ct(),    Aligned(lhs.0.wrapping_abs())),
-            (lhs.negx_ct(),    Aligned(lhs.0.wrapping_abs().wrapping_neg())),
+            (Bin::encode(&val).zip(format!("{:b}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+            (Oct::encode(&val).zip(format!("{:o}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+            (Hex::encode(&val).zip(format!("{:X}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
         ] }
+    }
 
+    #[test]
+    fn decode() {
         ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0).map(Aligned),
-            rhs in ndassert::range!(u64, 56, 1).map(Aligned),
+            val in ndassert::range!(u64, 48, 0),
         ) [
-            (lhs.eq_ct(&rhs),  MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (lhs.cmp_ct(&rhs), lhs.0.cmp(&rhs.0) as RelCt),
-            (lhs.sign_ct(),    lhs.0.cmp(&0)     as RelCt),
-
-            (lhs.is_zero_ct(), MaskCt::MAX * (lhs.0 == 0) as MaskCt),
-            (lhs.is_one_ct(),  MaskCt::MAX * (lhs.0 == 1) as MaskCt),
-            (lhs.is_pos_ct(),  MaskCt::MAX * (lhs.0 >  0) as MaskCt),
-            (lhs.is_neg_ct(),  MaskCt::MAX * (lhs.0 <  0) as MaskCt),
-            (lhs.lt_ct(&rhs),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (lhs.gt_ct(&rhs),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (lhs.le_ct(&rhs),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (lhs.ge_ct(&rhs),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs.min_ct(&rhs), Aligned(lhs.0.min(rhs.0))),
-            (lhs.max_ct(&rhs), Aligned(lhs.0.max(rhs.0))),
+            (Bin::decode(0u64, Bin::encode(&val)), val),
+            (Oct::decode(0u64, Oct::encode(&val)), val),
+            (Hex::decode(0u64, Hex::encode(&val)), val),
+            (X64::decode(0u64, X64::encode(&val)), val),
         ] }
     }
 }
