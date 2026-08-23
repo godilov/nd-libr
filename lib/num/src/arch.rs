@@ -1570,10 +1570,10 @@ mod tests {
         ndassert::check! { @eq (
             val in ndassert::range!(u64, 48, 0),
         ) [
-            (Aligned(0u64).decoded::<Bin>(val.encoded::<Bin>()), Aligned(val)),
-            (Aligned(0u64).decoded::<Oct>(val.encoded::<Oct>()), Aligned(val)),
-            (Aligned(0u64).decoded::<Hex>(val.encoded::<Hex>()), Aligned(val)),
-            (Aligned(0u64).decoded::<X64>(val.encoded::<X64>()), Aligned(val)),
+            (Aligned(0u64).decoded::<Bin>(Aligned(val).encoded::<Bin>()), Aligned(val)),
+            (Aligned(0u64).decoded::<Oct>(Aligned(val).encoded::<Oct>()), Aligned(val)),
+            (Aligned(0u64).decoded::<Hex>(Aligned(val).encoded::<Hex>()), Aligned(val)),
+            (Aligned(0u64).decoded::<X64>(Aligned(val).encoded::<X64>()), Aligned(val)),
         ] }
     }
 }

@@ -6719,7 +6719,7 @@ impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
     #[inline]
     fn order(&self) -> usize {
-        let len = length(&self.0);
+        let len = length(self.0.iter().copied());
 
         match len {
             0 => 0,
@@ -6729,7 +6729,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 
     #[inline]
     fn log(&self) -> Self {
-        let len = length(&self.0);
+        let len = length(self.0.iter().copied());
 
         match len {
             0 => Self::ZERO,
@@ -7518,7 +7518,7 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec
         }
     }
 
-    res.truncate(length(&res));
+    res.truncate(length(res.iter().copied()));
 
     Ok(res)
 }
@@ -7570,7 +7570,7 @@ fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Res
         idx += 1;
     }
 
-    res.truncate(length(&res));
+    res.truncate(length(res.iter().copied()));
 
     Ok(res)
 }
@@ -7582,7 +7582,7 @@ fn into_digits_iter<const L: usize, W: Word>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = length(&words);
+    let cnt = length(words.iter().copied());
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsRadixIter { words, radix, len })
@@ -7715,10 +7715,10 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
     }
 }
 
-fn length<W: Word>(words: &[W]) -> usize {
+fn length<W: Word, Words: Iterator<Item = W>>(words: Words) -> usize {
     let mut res = 0;
 
-    for (i, word) in words.iter().copied().enumerate() {
+    for (i, word) in words.enumerate() {
         res = if word > W::ZERO { i + 1 } else { res };
     }
 
