@@ -737,11 +737,7 @@ macro_rules! length {
         let mut res = 0;
 
         for (i, word) in $words.iter().enumerate().rev() {
-            if word != $zero {
-                res = i + 1;
-
-                break;
-            }
+            res = if word > $zero { i + 1 } else { res };
         }
 
         res
