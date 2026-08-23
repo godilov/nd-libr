@@ -1253,7 +1253,7 @@ bytes_impl!([u8, u16, u32, u64, u128, usize]);
 
 #[cfg(test)]
 mod tests {
-    use super::{codec::*, *};
+    use super::*;
     use crate::long::alias::{S64, U64};
 
     #[test]

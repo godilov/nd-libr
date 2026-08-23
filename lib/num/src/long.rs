@@ -729,21 +729,6 @@ macro_rules! ops_primitive_impl {
     };
 }
 
-macro_rules! length {
-    ($words:expr) => {
-        length!($words, &0)
-    };
-    ($words:expr, $zero:expr) => {{
-        let mut res = 0;
-
-        for (i, word) in $words.iter().enumerate().rev() {
-            res = if word > $zero { i + 1 } else { res };
-        }
-
-        res
-    }};
-}
-
 pub mod alias {
     //! # Alias
     //!
@@ -6734,7 +6719,7 @@ impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
     #[inline]
     fn order(&self) -> usize {
-        let len = length!(&self.0);
+        let len = length(&self.0);
 
         match len {
             0 => 0,
@@ -6744,7 +6729,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 
     #[inline]
     fn log(&self) -> Self {
-        let len = length!(&self.0);
+        let len = length(&self.0);
 
         match len {
             0 => Self::ZERO,
@@ -7533,7 +7518,7 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec
         }
     }
 
-    res.truncate(length!(&res, &W::ZERO));
+    res.truncate(length(&res));
 
     Ok(res)
 }
@@ -7585,7 +7570,7 @@ fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Res
         idx += 1;
     }
 
-    res.truncate(length!(&res, &W::ZERO));
+    res.truncate(length(&res));
 
     Ok(res)
 }
@@ -7597,7 +7582,7 @@ fn into_digits_iter<const L: usize, W: Word>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = length!(&words);
+    let cnt = length(&words);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsRadixIter { words, radix, len })
@@ -7728,6 +7713,16 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
         b'A'..=b'F' => Some(byte - b'A' + 10),
         _ => None,
     }
+}
+
+fn length<W: Word>(words: &[W]) -> usize {
+    let mut res = 0;
+
+    for (i, word) in words.iter().copied().enumerate() {
+        res = if word > W::ZERO { i + 1 } else { res };
+    }
+
+    res
 }
 
 #[cfg(test)]
