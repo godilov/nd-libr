@@ -15,7 +15,7 @@ macro_rules! aligned_impl {
     ($aligned:ident, $primitive:ty $(,)?) => {
         impl $aligned<$primitive> {
             /// Aligned array length.
-            const LEN: usize = std::mem::align_of::<$aligned<()>>().div_ceil(<$primitive>::BITS as usize);
+            const LEN: usize = std::mem::align_of::<$aligned<()>>().div_ceil(<$primitive>::BITS as usize / 8);
 
             /// Aligned array.
             #[inline]
@@ -666,7 +666,7 @@ pub mod codec {
 
             let str = match str::from_utf8(&bytes[..len]) {
                 Ok(val) => val,
-                Err(_) => unreachable!(),
+                Err(_) => return Err(std::fmt::Error),
             };
 
             fmt.write_str(str)?;
@@ -1043,7 +1043,7 @@ pub struct Aligned128<T>(pub T);
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedSimd<T>(pub T);
 
-/// Aligned to 4096-KiB type.
+/// Aligned to 4096-bytes type.
 ///
 /// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with T)]
