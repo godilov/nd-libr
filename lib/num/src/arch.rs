@@ -8,6 +8,14 @@ use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
 use crate::{arch::codec::*, arch::word::*, *};
 
+/// Simd array.
+#[macro_export]
+macro_rules! simd {
+    ($ty:ty) => {
+        [0 as $ty; Simd::len_with::<$ty>()]
+    };
+}
+
 macro_rules! word_def {
     (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
         /// Single CPU-word unsigned primitive.
@@ -394,7 +402,9 @@ pub mod codec {
 
         /// Encodes words in Codec configuration.
         #[inline]
-        fn encode<W: Word, Words: AsWordsRef<W>>(words: &Words) -> impl Iterator<Item = u8> {
+        fn encode<W: Word, Words: AsWordsRef<W>>(
+            words: &Words,
+        ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
             let one = Relaxed(W::ONE);
 
             let len = (W::BITS * words.as_words_ref().len()).div_ceil(Self::BITS);
@@ -420,7 +430,10 @@ pub mod codec {
 
         /// Decodes words in Codec configuration.
         #[inline]
-        fn decode<W: Word, Words: AsWordsMut<W>>(mut words: Words, iter: impl Iterator<Item = u8>) -> Words {
+        fn decode<W: Word, Words: AsWordsMut<W>>(
+            mut words: Words,
+            iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
+        ) -> Words {
             #![allow(clippy::option_map_unit_fn)]
 
             let one = Relaxed(W::ONE);
@@ -451,7 +464,7 @@ pub mod codec {
         #[inline]
         fn try_decode<W: Word, Words: AsWordsMut<W>>(
             words: Words,
-            iter: impl Iterator<Item = u8>,
+            iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
         ) -> Result<Words, Error> {
             let mut flag = 0u8;
 
@@ -468,7 +481,7 @@ pub mod codec {
     #[ndfwd::decl]
     pub trait Encode<W: Word>: Sized + AsWordsRef<W> {
         /// Encodes from self.
-        fn encoded<C: Codec>(&self) -> impl Iterator<Item = u8> {
+        fn encoded<C: Codec>(&self) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
             C::encode(self)
         }
     }
@@ -478,7 +491,7 @@ pub mod codec {
     pub trait Decode<W: Word>: Sized + AsWordsMut<W> {
         /// Decodes into self.
         #[ndfwd::as_into]
-        fn decoded<C: Codec>(self, iter: impl Iterator<Item = u8>) -> Self {
+        fn decoded<C: Codec>(self, iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator) -> Self {
             C::decode(self, iter)
         }
     }
@@ -973,8 +986,6 @@ pub struct Aligned128<T>(pub T);
 #[cfg_attr(all(any(
     target_feature = "avx2",
 ), not(any(
-    target_feature = "sse",
-    target_feature = "avx",
     target_feature = "avx512f",
     target_feature = "neon",
     target_feature = "simd128",
@@ -982,9 +993,6 @@ pub struct Aligned128<T>(pub T);
 #[cfg_attr(all(any(
     target_feature = "avx512f",
 ), not(any(
-    target_feature = "sse",
-    target_feature = "avx",
-    target_feature = "avx2",
     target_feature = "neon",
     target_feature = "simd128",
 ))), repr(align(64)))]
@@ -1082,7 +1090,7 @@ impl Simd {
 
     /// Simd array length.
     pub const fn len_with<T>() -> usize {
-        std::mem::align_of::<AlignedSimd<()>>() / std::mem::size_of::<T>()
+        std::mem::align_of::<AlignedSimd<()>>().div_ceil(std::mem::size_of::<T>())
     }
 }
 

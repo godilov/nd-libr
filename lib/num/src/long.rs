@@ -7589,6 +7589,11 @@ fn into_digits_iter<const L: usize, W: Word>(
 }
 
 #[inline]
+fn write_ascii<Ascii: ExactSizeIterator<Item = u8>>(fmt: &mut Formatter<'_>, ascii: Ascii) -> std::fmt::Result {
+    Ok(())
+}
+
+#[inline]
 fn write<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
     fmt: &mut Formatter<'_>,
     words: Words,
