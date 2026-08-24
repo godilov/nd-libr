@@ -8,11 +8,21 @@ use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
 use crate::{arch::codec::*, arch::word::*, *};
 
-/// Simd array.
-#[macro_export]
-macro_rules! simd {
-    ($ty:ty) => {
-        [0 as $ty; Simd::len_with::<$ty>()]
+macro_rules! aligned_impl {
+    ($aligned:ident [$($primitive:ty),+ $(,)?]) => {
+        $(aligned_impl!($aligned, $primitive);)+
+    };
+    ($aligned:ident, $primitive:ty $(,)?) => {
+        impl $aligned<$primitive> {
+            /// Aligned array length.
+            const LEN: usize = std::mem::align_of::<$aligned<()>>().div_ceil(<$primitive>::BITS as usize);
+
+            /// Aligned array.
+            #[inline]
+            pub fn array() -> $aligned<[$primitive; Self::LEN]> {
+                $aligned::from([0; Self::LEN])
+            }
+        }
     };
 }
 
@@ -25,7 +35,7 @@ macro_rules! word_def {
         /// ```rust
         /// # use std::mem::size_of;
         /// # use ndnum::arch::word::*;
-        /// assert_eq!(size_of::<Single>(), size_of::<usize>());
+        /// assert_eq!(size_of::<Single>(), 1 * size_of::<usize>());
         /// ```
         ///
         /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
@@ -56,7 +66,6 @@ macro_rules! word_impl {
         $(word_impl!(@ext $primitive);)+
     };
     ($primitive:ty $(,)?) => {
-#[rustfmt::skip]
         impl Word for $primitive {
             const BITS: usize = Self::BITS as usize;
             const BYTES: usize = Self::BITS as usize / 8;
@@ -350,6 +359,8 @@ pub mod codec {
     //!
     //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
 
+    use std::fmt::Formatter;
+
     use super::*;
 
     /// Array.
@@ -633,6 +644,12 @@ pub mod codec {
         ]);
     }
 
+    /// Writes ASCII iterator into Formatter.
+    #[inline]
+    fn write<Ascii: ExactSizeIterator<Item = u8>>(fmt: &mut Formatter<'_>, ascii: Ascii) -> std::fmt::Result {
+        Ok(())
+    }
+
     /// Calculates length for decoded array.
     #[inline]
     pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
@@ -654,12 +671,6 @@ pub mod codec {
         Aligned(res)
     }
 }
-
-/// Simd definitions.
-///
-/// For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct Simd;
 
 /// Aligned to approximate architecture cacheline size type.
 ///
@@ -1082,18 +1093,6 @@ pub trait Rand: Sized + Default + AsWordsRef<u8> + AsWordsMut<u8> {
     }
 }
 
-impl Simd {
-    /// Simd registers length.
-    pub const fn len() -> usize {
-        std::mem::align_of::<AlignedSimd<()>>()
-    }
-
-    /// Simd array length.
-    pub const fn len_with<T>() -> usize {
-        std::mem::align_of::<AlignedSimd<()>>().div_ceil(std::mem::size_of::<T>())
-    }
-}
-
 impl<T> From<T> for Aligned<T> {
     #[inline]
     fn from(value: T) -> Self {
@@ -1255,6 +1254,19 @@ ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   rhs: Rhs),
 ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+
+aligned_impl!(Aligned     [i8, i16, i32, i64, i128, isize]);
+aligned_impl!(Aligned     [u8, u16, u32, u64, u128, usize]);
+aligned_impl!(Aligned32   [i8, i16, i32, i64, i128, isize]);
+aligned_impl!(Aligned32   [u8, u16, u32, u64, u128, usize]);
+aligned_impl!(Aligned64   [i8, i16, i32, i64, i128, isize]);
+aligned_impl!(Aligned64   [u8, u16, u32, u64, u128, usize]);
+aligned_impl!(Aligned128  [i8, i16, i32, i64, i128, isize]);
+aligned_impl!(Aligned128  [u8, u16, u32, u64, u128, usize]);
+aligned_impl!(AlignedSimd [i8, i16, i32, i64, i128, isize]);
+aligned_impl!(AlignedSimd [u8, u16, u32, u64, u128, usize]);
+aligned_impl!(AlignedX    [i8, i16, i32, i64, i128, isize]);
+aligned_impl!(AlignedX    [u8, u16, u32, u64, u128, usize]);
 
 bytes_impl!([i8, i16, i32, i64, i128, isize]);
 bytes_impl!([u8, u16, u32, u64, u128, usize]);
