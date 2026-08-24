@@ -399,6 +399,14 @@ pub mod codec {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct X64;
 
+    /// Encoded definitions.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Encoded;
+
+    /// Decoded definitions.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Decoded;
+
     /// Codec error.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
     pub enum Error {
@@ -427,8 +435,8 @@ pub mod codec {
             words: &Words,
         ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
             let one = Relaxed(W::ONE);
+            let len = Encoded::len::<W, Self>(words.as_words_ref().len());
 
-            let len = (W::BITS * words.as_words_ref().len()).div_ceil(Self::BITS);
             let mask = (one << Self::BITS) - one;
 
             (0..len).map(move |idx| {
@@ -458,8 +466,8 @@ pub mod codec {
             #![allow(clippy::option_map_unit_fn)]
 
             let one = Relaxed(W::ONE);
+            let len = Encoded::len::<W, Self>(words.as_words_ref().len());
 
-            let len = (W::BITS * words.as_words_ref().len()).div_ceil(Self::BITS);
             let mask = (one << Self::BITS) - one;
 
             for (idx, byte) in iter.map(|byte| Self::DECODE[byte as usize]).take(len).enumerate() {
@@ -514,6 +522,22 @@ pub mod codec {
         #[ndfwd::as_into]
         fn decoded<C: Codec>(self, iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator) -> Self {
             C::decode(self, iter)
+        }
+    }
+
+    impl Encoded {
+        /// Length for encoded array.
+        #[inline]
+        pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
+            (W::BITS * len).div_ceil(C::BITS)
+        }
+    }
+
+    impl Decoded {
+        /// Length for decoded array.
+        #[inline]
+        pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
+            (C::BITS * len).div_ceil(W::BITS)
         }
     }
 
@@ -673,12 +697,6 @@ pub mod codec {
         }
 
         Ok(())
-    }
-
-    /// Calculates length for decoded array.
-    #[inline]
-    pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
-        (C::BITS * len).div_ceil(W::BITS)
     }
 
     #[inline]
