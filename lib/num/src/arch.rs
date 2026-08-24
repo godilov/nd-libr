@@ -2,7 +2,7 @@
 
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndext::{convert::NdxFrom, ops::*};
+use ndext::{convert::NdxFrom, iter::*, ops::*};
 use thiserror::Error;
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
@@ -21,6 +21,16 @@ macro_rules! aligned_impl {
             #[inline]
             pub fn array() -> $aligned<[$primitive; Self::LEN]> {
                 $aligned::from([0; Self::LEN])
+            }
+        }
+
+        impl<const L: usize> $aligned<[$primitive; L]> {
+            #![allow(clippy::len_without_is_empty)]
+
+            /// Aligned array length.
+            #[inline]
+            pub fn len(&self) -> usize {
+                self.0.len()
             }
         }
     };
@@ -646,7 +656,22 @@ pub mod codec {
 
     /// Writes ASCII iterator into Formatter.
     #[inline]
-    fn write<Ascii: ExactSizeIterator<Item = u8>>(fmt: &mut Formatter<'_>, ascii: Ascii) -> std::fmt::Result {
+    pub fn write<Ascii: ExactSizeIterator<Item = u8>>(fmt: &mut Formatter<'_>, mut ascii: Ascii) -> std::fmt::Result {
+        let lenx = AlignedX::<u8>::array().len();
+
+        for _ in 0..ascii.len().div_ceil(lenx) {
+            let len = ascii.len().min(lenx);
+
+            let bytes = ascii.collect_with(AlignedX::<u8>::array());
+
+            let str = match str::from_utf8(&bytes[..len]) {
+                Ok(val) => val,
+                Err(_) => unreachable!(),
+            };
+
+            fmt.write_str(str)?;
+        }
+
         Ok(())
     }
 

@@ -911,7 +911,7 @@ impl FwdType {
                 };
 
                 quote! {
-                    impl<#(#gen_params,)* AsRefRet> std::convert::AsRef<AsRefRet> for #ident #gen_type #conditions {
+                    impl<#(#gen_params,)* AsRefRet: ?Sized> std::convert::AsRef<AsRefRet> for #ident #gen_type #conditions {
                         #[inline]
                         fn as_ref(&self) -> &AsRefRet {
                             #expr.as_ref()
@@ -926,7 +926,7 @@ impl FwdType {
                 };
 
                 quote! {
-                    impl<#(#gen_params,)* AsMutRet> std::convert::AsMut<AsMutRet> for #ident #gen_type #conditions {
+                    impl<#(#gen_params,)* AsMutRet: ?Sized> std::convert::AsMut<AsMutRet> for #ident #gen_type #conditions {
                         #[inline]
                         fn as_mut(&mut self) -> &mut AsMutRet {
                             #expr.as_mut()
