@@ -20,7 +20,11 @@ use crate::{
     CmpCt, Dir, EqCt, GeCt, GtCt, IsNegCt, IsOneCt, IsPosCt, IsZeroCt, LeCt, LtCt, MaskCt, Max, MaxCt, Min, MinCt,
     NdGcd, NdPow, NegxCt, Num, NumBinary, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
-    arch::{AsWordsMut, AsWordsRef, Rand, word::*},
+    arch::{
+        AsWordsMut, AsWordsRef, Rand, codec,
+        codec::{Codec, Decode, Encode},
+        word::*,
+    },
     long::{
         radix::*,
         uops::{Expr, ExprMut},
@@ -5793,7 +5797,7 @@ impl<const L: usize> PartialOrd for Unsigned<L> {
 
 impl<const L: usize> Display for Signed<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match uops::dirx(&self.0, Dir::POS)
             .with(Signed)
             .into_digits_iter(RadixImpl { radix: Dec::RADIX as Single })
@@ -5802,125 +5806,175 @@ impl<const L: usize> Display for Signed<L> {
             Err(_) => unreachable!(),
         };
 
-        write_dec(f, iter, self.sign(), &Dec::CFG)
+        write_dec(fmt, iter, self.sign(), &Dec::CFG)
     }
 }
 
 impl<const L: usize> Display for Unsigned<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         let iter = match self.into_digits_iter(RadixImpl { radix: Dec::RADIX as Single }) {
             Ok(val) => val,
             Err(_) => unreachable!(),
         };
 
-        write_dec(f, iter, self.sign(), &Dec::CFG)
+        write_dec(fmt, iter, self.sign(), &Dec::CFG)
     }
 }
 
 impl<const L: usize> Display for Bytes<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            codec::Hex::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> Binary for Signed<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Bin::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Bin>(self),
+            Encode::<u8>::encoded::<codec::Bin>(self),
+            codec::Bin::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> Binary for Unsigned<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Bin::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Bin>(self),
+            Encode::<u8>::encoded::<codec::Bin>(self),
+            codec::Bin::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> Binary for Bytes<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Bin::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Bin>(self),
+            Encode::<u8>::encoded::<codec::Bin>(self),
+            codec::Bin::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> Octal for Signed<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match self.to_digits_iter(ExpImpl { exp: Oct::EXP as Single }) {
-            Ok(val) => val,
-            Err(_) => unreachable!(),
-        };
-
-        write(f, iter, &Oct::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Oct>(self),
+            Encode::<u8>::encoded::<codec::Oct>(self),
+            codec::Oct::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> Octal for Unsigned<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match self.to_digits_iter(ExpImpl { exp: Oct::EXP as Single }) {
-            Ok(val) => val,
-            Err(_) => unreachable!(),
-        };
-
-        write(f, iter, &Oct::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Oct>(self),
+            Encode::<u8>::encoded::<codec::Oct>(self),
+            codec::Oct::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> Octal for Bytes<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match self.to_digits_iter(ExpImpl { exp: Oct::EXP as Single }) {
-            Ok(val) => val,
-            Err(_) => unreachable!(),
-        };
-
-        write(f, iter, &Oct::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Oct>(self),
+            Encode::<u8>::encoded::<codec::Oct>(self),
+            codec::Oct::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> LowerHex for Signed<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::CFG_LOWER)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            codec::Hex::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> LowerHex for Unsigned<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::CFG_LOWER)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            codec::Hex::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> LowerHex for Bytes<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::CFG_LOWER)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            codec::Hex::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> UpperHex for Signed<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            codec::Hex::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> UpperHex for Unsigned<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            codec::Hex::PREFIX,
+        )
     }
 }
 
 impl<const L: usize> UpperHex for Bytes<L> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write(f, self.0.iter().copied(), &Hex::CFG)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        write(
+            fmt,
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            Encode::<u8>::encoded::<codec::Hex>(self),
+            codec::Hex::PREFIX,
+        )
     }
 }
 
@@ -6622,6 +6676,14 @@ impl<const L: usize> Rand for Signed<L> {}
 impl<const L: usize> Rand for Unsigned<L> {}
 impl<const L: usize> Rand for Bytes<L> {}
 
+impl<const L: usize, W: Word> Encode<W> for Signed<L> {}
+impl<const L: usize, W: Word> Encode<W> for Unsigned<L> {}
+impl<const L: usize, W: Word> Encode<W> for Bytes<L> {}
+
+impl<const L: usize, W: Word> Decode<W> for Signed<L> {}
+impl<const L: usize, W: Word> Decode<W> for Unsigned<L> {}
+impl<const L: usize, W: Word> Decode<W> for Bytes<L> {}
+
 impl<const L: usize> NumFn for Signed<L> {
     #[inline]
     fn is_odd(&self) -> bool {
@@ -6719,7 +6781,7 @@ impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
     #[inline]
     fn order(&self) -> usize {
-        let len = length(self.0.iter().copied());
+        let len = length(self.0.iter().copied(), 0);
 
         match len {
             0 => 0,
@@ -6729,7 +6791,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 
     #[inline]
     fn log(&self) -> Self {
-        let len = length(self.0.iter().copied());
+        let len = length(self.0.iter().copied(), 0);
 
         match len {
             0 => Self::ZERO,
@@ -7518,7 +7580,7 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec
         }
     }
 
-    res.truncate(length(res.iter().copied()));
+    res.truncate(length(res.iter().copied(), W::ZERO));
 
     Ok(res)
 }
@@ -7570,7 +7632,7 @@ fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Res
         idx += 1;
     }
 
-    res.truncate(length(res.iter().copied()));
+    res.truncate(length(res.iter().copied(), W::ZERO));
 
     Ok(res)
 }
@@ -7582,61 +7644,30 @@ fn into_digits_iter<const L: usize, W: Word>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = length(words.iter().copied());
+    let cnt = length(words.iter().copied(), 0);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsRadixIter { words, radix, len })
 }
 
 #[inline]
-fn write<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
+fn write<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
     fmt: &mut Formatter<'_>,
-    words: Words,
-    cfg: &Cfg,
+    ascii_len: Ascii,
+    ascii_fmt: Ascii,
+    prefix: &'static str,
 ) -> std::fmt::Result {
-    let one = Relaxed(W::ONE);
-
-    let len = words.len();
-    let exp = cfg.exp as usize;
-    let width = cfg.width as usize;
-    let encode = cfg.encode;
-
-    let shift = exp / width;
-    let mask = (one << shift) - one;
-
-    let prefix = match fmt.alternate() {
-        true => cfg.prefix,
-        false => "",
-    };
-
-    let mut buf = vec![b'0'; len * width];
-
-    for (idx, word) in words.map(Relaxed).enumerate() {
-        let offset = (len - idx - 1) * width;
-
-        let bytes = (0..width)
-            .map(|idx| (word >> (idx * shift)) & mask)
-            .map(|idx| encode[idx.0.as_usize()]);
-
-        buf[offset..][..width]
-            .iter_mut()
-            .rev()
-            .zip(bytes)
-            .for_each(|(ptr, val)| *ptr = val);
+    if fmt.alternate() {
+        fmt.write_str(prefix)?;
     }
 
-    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
-    let str = match str::from_utf8(&buf[offset..]) {
-        Ok(val) => val,
-        Err(_) => unreachable!(),
-    };
+    let len = length(ascii_len, b'0');
 
-    let str = match str.is_empty() {
-        false => str,
-        true => "0",
-    };
+    if len == 0 {
+        return fmt.write_str("0");
+    }
 
-    write!(fmt, "{}{}", prefix, str)
+    codec::write(fmt, ascii_fmt.take(len).rev())
 }
 
 #[inline]
@@ -7715,11 +7746,11 @@ fn get_digit_from_byte(byte: u8) -> Option<u8> {
     }
 }
 
-fn length<W: Word, Words: Iterator<Item = W>>(words: Words) -> usize {
+fn length<W: Word, Words: Iterator<Item = W>>(words: Words, elem: W) -> usize {
     let mut res = 0;
 
     for (i, word) in words.enumerate() {
-        res = if word > W::ZERO { i + 1 } else { res };
+        res = if word == elem { res } else { i + 1 };
     }
 
     res

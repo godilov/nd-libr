@@ -426,6 +426,9 @@ pub mod codec {
         /// Decode ASCII table.
         const DECODE: Aligned<[u8; 256]>;
 
+        /// Codec prefix.
+        const PREFIX: &'static str;
+
         /// Checks `Self::LEN`.
         const _CHECK: () = assert!(Self::BITS <= u8::BITS as usize);
 
@@ -552,6 +555,8 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]> = ascii(255, &[
             (b'0' as usize, 0), (b'1' as usize, 1),
         ]);
+
+        const PREFIX: &'static str = "0b";
     }
 
     #[rustfmt::skip]
@@ -571,6 +576,8 @@ pub mod codec {
             (b'4' as usize, 4), (b'5' as usize, 5),
             (b'6' as usize, 6), (b'7' as usize, 7),
         ]);
+
+        const PREFIX: &'static str = "0o";
     }
 
     #[rustfmt::skip]
@@ -601,6 +608,8 @@ pub mod codec {
             (b'c' as usize, 12), (b'd' as usize, 13),
             (b'e' as usize, 14), (b'f' as usize, 15),
         ]);
+
+        const PREFIX: &'static str = "0x";
     }
 
     #[rustfmt::skip]
@@ -676,6 +685,8 @@ pub mod codec {
             (b'8' as usize, 60), (b'9' as usize, 61),
             (b'-' as usize, 62), (b'_' as usize, 63),
         ]);
+
+        const PREFIX: &'static str = "";
     }
 
     /// Writes ASCII iterator into Formatter.
@@ -697,6 +708,54 @@ pub mod codec {
         }
 
         Ok(())
+    }
+
+    /// ASCII identity iterator.
+    #[inline]
+    pub fn ident<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
+        ascii: Ascii,
+    ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
+        ascii
+    }
+
+    /// ASCII uppercase iterator.
+    #[inline]
+    pub fn uppercase<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
+        ascii: Ascii,
+    ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
+        const ASCII: Aligned<[u8; 256]> = {
+            let mut res = [0; 256];
+            let mut idx = 0usize;
+
+            while idx < 256 {
+                res[idx] = (idx as u8 as char).to_ascii_uppercase() as u8;
+                idx += 1;
+            }
+
+            Aligned(res)
+        };
+
+        ascii.map(|byte| ASCII[byte as usize])
+    }
+
+    /// ASCII lowercase iterator.
+    #[inline]
+    pub fn lowercase<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
+        ascii: Ascii,
+    ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
+        const ASCII: Aligned<[u8; 256]> = {
+            let mut res = [0; 256];
+            let mut idx = 0usize;
+
+            while idx < 256 {
+                res[idx] = (idx as u8 as char).to_ascii_lowercase() as u8;
+                idx += 1;
+            }
+
+            Aligned(res)
+        };
+
+        ascii.map(|byte| ASCII[byte as usize])
     }
 
     #[inline]
