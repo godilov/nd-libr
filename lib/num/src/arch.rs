@@ -383,6 +383,10 @@ pub mod codec {
 
     pub use array;
 
+    /// Dec.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Dec;
+
     /// Bin codec.
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Bin;
@@ -542,6 +546,24 @@ pub mod codec {
         pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
             (C::BITS * len).div_ceil(W::BITS)
         }
+    }
+
+    #[rustfmt::skip]
+    impl Dec {
+        /// Decode ASCII table.
+        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
+            (b'0' as usize, 0), (b'1' as usize, 1),
+            (b'2' as usize, 2), (b'3' as usize, 3),
+            (b'4' as usize, 4), (b'5' as usize, 5),
+            (b'6' as usize, 6), (b'7' as usize, 7),
+            (b'8' as usize, 8), (b'9' as usize, 9),
+        ]);
+
+        /// Radix.
+        pub const RADIX: Double = (10 as Double).pow(Self::LEN as u32);
+
+        /// Length.
+        pub const LEN: u8 = RADIX.ilog10() as u8;
     }
 
     #[rustfmt::skip]
