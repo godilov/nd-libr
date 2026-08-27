@@ -70,6 +70,19 @@ pub trait IteratorExt: Iterator {
 
         collection
     }
+
+    /// Iterator length.
+    #[inline]
+    fn length(self, elem: Self::Item) -> usize
+    where
+        Self: Sized,
+        Self::Item: PartialEq + Eq,
+    {
+        self.enumerate().fold(0, |acc, (idx, val)| match val == elem {
+            false => idx + 1,
+            true => acc,
+        })
+    }
 }
 
 impl<Iter: Iterator> IteratorExt for Iter {}

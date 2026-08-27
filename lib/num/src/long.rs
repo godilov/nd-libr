@@ -99,39 +99,6 @@ macro_rules! from_primitive_const {
     };
 }
 
-macro_rules! from_str_impl {
-    (@radix $str:expr, $radix:ty) => {{
-        let (s, sign) = get_sign_from_str($str)?;
-        let (s, radix) = get_radix_from_str(s, <$radix>::BASE)?;
-
-        if radix != <$radix>::BASE {
-            return Err(FromStrError::InvalidRadix { radix: radix as usize });
-        }
-
-        match radix.is_pow2() {
-            false => from_str_radix(s, radix, sign),
-            true => from_str(s, radix.order() as u8, sign),
-        }
-    }};
-    (@long $str:expr) => {{
-        let (s, sign) = get_sign_from_str($str)?;
-        let (s, radix) = get_radix_from_str(s, 10)?;
-
-        match radix.is_pow2() {
-            false => from_str_radix(s, radix, sign),
-            true => from_str(s, radix.order() as u8, sign),
-        }
-    }};
-    (@bytes $str:expr) => {{
-        let (s, radix) = get_radix_from_str($str, 16)?;
-
-        match radix.is_pow2() {
-            false => Err(FromStrError::InvalidRadix { radix: radix as usize }),
-            true => from_str(s, radix.order() as u8, Sign::POS),
-        }
-    }};
-}
-
 macro_rules! nd_ops_primitive_impl {
     (@signed [$($primitive:ty),+ $(,)?]) => {
         $(nd_ops_primitive_impl!(@signed $primitive);)+
@@ -944,354 +911,6 @@ pub mod alias {
 
     /// Bytes long of at least 16384-bits length.
     pub type B16384 = bytes!(16384);
-}
-
-pub mod radix {
-    //! # Radix
-    //!
-    //! **Radix related definitions**
-
-    use crate::arch::Aligned;
-
-    use super::*;
-
-    /// Dec Radix.
-    pub struct Dec;
-
-    /// Bin Radix.
-    pub struct Bin;
-
-    /// Oct Radix.
-    pub struct Oct;
-
-    /// Hex Radix.
-    pub struct Hex;
-
-    /// X64 Radix.
-    pub struct X64;
-
-    /// Radix configuration.
-    pub struct Cfg {
-        /// Radix encode table (digit -> ascii).
-        pub encode: &'static Aligned<[u8; 256]>,
-
-        /// Radix decode table (ascii -> digit).
-        pub decode: &'static Aligned<[u8; 256]>,
-
-        /// Exp of a single word at `RADIX` when building a string.
-        pub exp: u8,
-
-        /// Width of a single word at `RADIX` when building a string.
-        pub width: u8,
-
-        /// Radix prefix in string.
-        pub prefix: &'static str,
-    }
-
-    #[rustfmt::skip]
-    impl Dec {
-        /// Dec encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[]);
-
-        /// Dec decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
-            (b'0' as usize, 0), (b'1' as usize, 1),
-            (b'2' as usize, 2), (b'3' as usize, 3),
-            (b'4' as usize, 4), (b'5' as usize, 5),
-            (b'6' as usize, 6), (b'7' as usize, 7),
-            (b'8' as usize, 8), (b'9' as usize, 9),
-        ]);
-
-        /// Dec radix of a single word to iterate when building a string.
-        pub const RADIX: Double = (10 as Double).pow(Self::WIDTH as u32);
-
-        /// Dec width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = RADIX.ilog10() as u8;
-
-        /// Dec radix value.
-        pub const BASE: u8 = 10;
-
-        /// Dec radix prefix in a string.
-        pub const PREFIX: &str = "";
-
-        /// Dec radix struct.
-        pub const CFG: Cfg = Cfg {
-            encode: &Self::ENCODE,
-            decode: &Self::DECODE,
-            exp: 0,
-            width: Self::WIDTH,
-            prefix: Self::PREFIX,
-        };
-    }
-
-    #[rustfmt::skip]
-    impl Bin {
-        /// Bin encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
-            (0, b'0'), (1, b'1'),
-        ]);
-
-        /// Bin decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
-            (b'0' as usize, 0), (b'1' as usize, 1),
-        ]);
-
-        /// Exponent of a radix.
-        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
-
-        /// Bin radix of a single word to iterate when building a string.
-        pub const RADIX: Double = (1 as Double) << Self::EXP;
-
-        /// Bin width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
-
-        /// Bin radix value.
-        pub const BASE: u8 = 2;
-
-        /// Bin radix prefix in a string.
-        pub const PREFIX: &str = "0b";
-
-        /// Bin radix struct.
-        pub const CFG: Cfg = Cfg {
-            encode: &Self::ENCODE,
-            decode: &Self::DECODE,
-            exp: Self::EXP,
-            width: Self::WIDTH,
-            prefix: Self::PREFIX,
-        };
-    }
-
-    #[rustfmt::skip]
-    impl Oct {
-        /// Oct encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
-            (0, b'0'), (1, b'1'),
-            (2, b'2'), (3, b'3'),
-            (4, b'4'), (5, b'5'),
-            (6, b'6'), (7, b'7'),
-        ]);
-
-        /// Oct decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
-            (b'0' as usize, 0), (b'1' as usize, 1),
-            (b'2' as usize, 2), (b'3' as usize, 3),
-            (b'4' as usize, 4), (b'5' as usize, 5),
-            (b'6' as usize, 6), (b'7' as usize, 7),
-        ]);
-
-        /// Exponent of a radix.
-        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
-
-        /// Oct radix of a single word to iterate when building a string.
-        pub const RADIX: Double = (1 as Double) << Self::EXP;
-
-        /// Oct width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
-
-        /// Oct radix value.
-        pub const BASE: u8 = 8;
-
-        /// Oct radix prefix in a string.
-        pub const PREFIX: &str = "0o";
-
-        /// Oct radix struct.
-        pub const CFG: Cfg = Cfg {
-            encode: &Self::ENCODE,
-            decode: &Self::DECODE,
-            exp: Self::EXP,
-            width: Self::WIDTH,
-            prefix: Self::PREFIX,
-        };
-    }
-
-    #[rustfmt::skip]
-    impl Hex {
-        /// Hex encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
-            ( 0, b'0'), ( 1, b'1'),
-            ( 2, b'2'), ( 3, b'3'),
-            ( 4, b'4'), ( 5, b'5'),
-            ( 6, b'6'), ( 7, b'7'),
-            ( 8, b'8'), ( 9, b'9'),
-            (10, b'A'), (11, b'B'),
-            (12, b'C'), (13, b'D'),
-            (14, b'E'), (15, b'F'),
-        ]);
-
-        /// Hex encode table (digit -> ascii).
-        pub const ENCODE_LOWER: Aligned<[u8; 256]> = ascii(0, &[
-            ( 0, b'0'), ( 1, b'1'),
-            ( 2, b'2'), ( 3, b'3'),
-            ( 4, b'4'), ( 5, b'5'),
-            ( 6, b'6'), ( 7, b'7'),
-            ( 8, b'8'), ( 9, b'9'),
-            (10, b'a'), (11, b'b'),
-            (12, b'c'), (13, b'd'),
-            (14, b'e'), (15, b'f'),
-        ]);
-
-        /// Hex decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
-            (b'0' as usize,  0), (b'1' as usize,  1),
-            (b'2' as usize,  2), (b'3' as usize,  3),
-            (b'4' as usize,  4), (b'5' as usize,  5),
-            (b'6' as usize,  6), (b'7' as usize,  7),
-            (b'8' as usize,  8), (b'9' as usize,  9),
-            (b'A' as usize, 10), (b'B' as usize, 11),
-            (b'C' as usize, 12), (b'D' as usize, 13),
-            (b'E' as usize, 14), (b'F' as usize, 15),
-            (b'a' as usize, 10), (b'b' as usize, 11),
-            (b'c' as usize, 12), (b'd' as usize, 13),
-            (b'e' as usize, 14), (b'f' as usize, 15),
-        ]);
-
-        /// Exponent of a radix.
-        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
-
-        /// Hex radix of a single word to iterate when building a string.
-        pub const RADIX: Double = (1 as Double) << Self::EXP;
-
-        /// Hex width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
-
-        /// Hex radix value.
-        pub const BASE: u8 = 16;
-
-        /// Hex radix prefix in a string.
-        pub const PREFIX: &str = "0x";
-
-        /// Hex radix struct.
-        pub const CFG: Cfg = Cfg {
-            encode: &Self::ENCODE,
-            decode: &Self::DECODE,
-            exp: Self::EXP,
-            width: Self::WIDTH,
-            prefix: Self::PREFIX,
-        };
-
-        /// Hex radix struct.
-        pub const CFG_LOWER: Cfg = Cfg {
-            encode: &Self::ENCODE_LOWER,
-            decode: &Self::DECODE,
-            exp: Self::EXP,
-            width: Self::WIDTH,
-            prefix: Self::PREFIX,
-        };
-    }
-
-    #[rustfmt::skip]
-    impl X64 {
-        /// X64 encode table (digit -> ascii).
-        pub const ENCODE: Aligned<[u8; 256]> = ascii(0, &[
-            ( 0, b'A'), ( 1, b'B'),
-            ( 2, b'C'), ( 3, b'D'),
-            ( 4, b'E'), ( 5, b'F'),
-            ( 6, b'G'), ( 7, b'H'),
-            ( 8, b'I'), ( 9, b'J'),
-            (10, b'K'), (11, b'L'),
-            (12, b'M'), (13, b'N'),
-            (14, b'O'), (15, b'P'),
-            (16, b'Q'), (17, b'R'),
-            (18, b'S'), (19, b'T'),
-            (20, b'U'), (21, b'V'),
-            (22, b'W'), (23, b'X'),
-            (24, b'Y'), (25, b'Z'),
-            (26, b'a'), (27, b'b'),
-            (28, b'c'), (29, b'd'),
-            (30, b'e'), (31, b'f'),
-            (32, b'g'), (33, b'h'),
-            (34, b'i'), (35, b'j'),
-            (36, b'k'), (37, b'l'),
-            (38, b'm'), (39, b'n'),
-            (40, b'o'), (41, b'p'),
-            (42, b'q'), (43, b'r'),
-            (44, b's'), (45, b't'),
-            (46, b'u'), (47, b'v'),
-            (48, b'w'), (49, b'x'),
-            (50, b'y'), (51, b'z'),
-            (52, b'0'), (53, b'1'),
-            (54, b'2'), (55, b'3'),
-            (56, b'4'), (57, b'5'),
-            (58, b'6'), (59, b'7'),
-            (60, b'8'), (61, b'9'),
-            (62, b'-'), (63, b'_'),
-        ]);
-
-        /// X64 decode table (ascii -> digit).
-        pub const DECODE: Aligned<[u8; 256]> = ascii(255, &[
-            (b'A' as usize,  0), (b'B' as usize,  1),
-            (b'C' as usize,  2), (b'D' as usize,  3),
-            (b'E' as usize,  4), (b'F' as usize,  5),
-            (b'G' as usize,  6), (b'H' as usize,  7),
-            (b'I' as usize,  8), (b'J' as usize,  9),
-            (b'K' as usize, 10), (b'L' as usize, 11),
-            (b'M' as usize, 12), (b'N' as usize, 13),
-            (b'O' as usize, 14), (b'P' as usize, 15),
-            (b'Q' as usize, 16), (b'R' as usize, 17),
-            (b'S' as usize, 18), (b'T' as usize, 19),
-            (b'U' as usize, 20), (b'V' as usize, 21),
-            (b'W' as usize, 22), (b'X' as usize, 23),
-            (b'Y' as usize, 24), (b'Z' as usize, 25),
-            (b'a' as usize, 26), (b'b' as usize, 27),
-            (b'c' as usize, 28), (b'd' as usize, 29),
-            (b'e' as usize, 30), (b'f' as usize, 31),
-            (b'g' as usize, 32), (b'h' as usize, 33),
-            (b'i' as usize, 34), (b'j' as usize, 35),
-            (b'k' as usize, 36), (b'l' as usize, 37),
-            (b'm' as usize, 38), (b'n' as usize, 39),
-            (b'o' as usize, 40), (b'p' as usize, 41),
-            (b'q' as usize, 42), (b'r' as usize, 43),
-            (b's' as usize, 44), (b't' as usize, 45),
-            (b'u' as usize, 46), (b'v' as usize, 47),
-            (b'w' as usize, 48), (b'x' as usize, 49),
-            (b'y' as usize, 50), (b'z' as usize, 51),
-            (b'0' as usize, 52), (b'1' as usize, 53),
-            (b'2' as usize, 54), (b'3' as usize, 55),
-            (b'4' as usize, 56), (b'5' as usize, 57),
-            (b'6' as usize, 58), (b'7' as usize, 59),
-            (b'8' as usize, 60), (b'9' as usize, 61),
-            (b'-' as usize, 62), (b'_' as usize, 63),
-        ]);
-
-        /// Exponent of a radix.
-        pub const EXP: u8 = (Single::BITS - Single::BITS % Self::BASE.ilog2()) as u8;
-
-        /// X64 radix of a single word to iterate when building a string.
-        pub const RADIX: Double = (1 as Double) << Self::EXP;
-
-        /// X64 width of a single word at `RADIX` when building a string.
-        pub const WIDTH: u8 = Self::EXP / Self::BASE.ilog2() as u8;
-
-        /// X64 radix value.
-        pub const BASE: u8 = 64;
-
-        /// X64 radix prefix in a string.
-        pub const PREFIX: &str = "";
-
-        /// X64 radix struct.
-        pub const CFG: Cfg = Cfg {
-            encode: &Self::ENCODE,
-            decode: &Self::DECODE,
-            exp: Self::EXP,
-            width: Self::WIDTH,
-            prefix: Self::PREFIX,
-        };
-    }
-
-    #[inline]
-    const fn ascii<T: Copy>(default: T, slice: &[(usize, T)]) -> Aligned<[T; 256]> {
-        let mut idx = 0;
-        let mut res = [default; 256];
-
-        while idx < slice.len() {
-            let (i, x) = slice[idx];
-
-            res[i] = x;
-            idx += 1;
-        }
-
-        Aligned(res)
-    }
 }
 
 pub mod uops {
@@ -4969,6 +4588,171 @@ pub mod algo {
     }
 }
 
+pub mod radix {
+    //! # Radix
+    //!
+    //! **Radix related definitions**
+
+    use super::*;
+
+    /// Dec radix.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Dec;
+
+    /// Bin radix.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Bin;
+
+    /// Oct radix.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Oct;
+
+    /// Hex radix.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Hex;
+
+    /// X64 radix.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct X64;
+
+    /// Radix.
+    pub enum Radix<'str> {
+        /// Dec radix.
+        Dec(Dir, &'str str, codec::Dec),
+
+        /// Bin radix.
+        Bin(Dir, &'str str, codec::Bin),
+
+        /// Oct radix.
+        Oct(Dir, &'str str, codec::Oct),
+
+        /// Hex radix.
+        Hex(Dir, &'str str, codec::Hex),
+
+        /// X64 radix.
+        X64(Dir, &'str str, codec::X64),
+    }
+
+    /// Error.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum Error {
+        /// Found invalid direction.
+        #[error("Found invalid direction")]
+        InvalidDir,
+        /// Found invalid payload.
+        #[error("Found invalid payload")]
+        InvalidPayload,
+    }
+
+    impl From<codec::Error> for Error {
+        #[inline]
+        fn from(_: codec::Error) -> Self {
+            Error::InvalidPayload
+        }
+    }
+
+    impl<'str> TryFrom<&'str str> for Radix<'str> {
+        type Error = Error;
+
+        #[inline]
+        fn try_from(str: &'str str) -> Result<Self, Self::Error> {
+            let (str, dir) = match &str[..1] {
+                "" => Err(Error::InvalidDir),
+                "+" => Ok((&str[1..], Dir::POS)),
+                "-" => Ok((&str[1..], Dir::NEG)),
+                _ => Ok((str, Dir::POS)),
+            }?;
+
+            match &str[..2] {
+                "0x" | "0X" if !str[2..].is_empty() => Ok(Self::Hex(dir, &str[2..], codec::Hex)),
+                "0o" | "0O" if !str[2..].is_empty() => Ok(Self::Oct(dir, &str[2..], codec::Oct)),
+                "0b" | "0B" if !str[2..].is_empty() => Ok(Self::Bin(dir, &str[2..], codec::Bin)),
+                "0x" | "0X" | "0o" | "0O" | "0b" | "0B" | "" => Err(Error::InvalidPayload),
+                _ => Ok(Self::Dec(dir, str, codec::Dec)),
+            }
+        }
+    }
+
+    impl Radix<'_> {
+        #[inline]
+        pub fn parse<W: Word, Words: AsWordsMut<W>>(&self, words: Words) -> Words {
+            match self {
+                Radix::Dec(_, _, _) => words,
+                Radix::Bin(_, str, _) => codec::Bin::decode(words, str.bytes().rev()),
+                Radix::Oct(_, str, _) => codec::Oct::decode(words, str.bytes().rev()),
+                Radix::Hex(_, str, _) => codec::Hex::decode(words, str.bytes().rev()),
+                Radix::X64(_, str, _) => codec::X64::decode(words, str.bytes().rev()),
+            }
+        }
+
+        #[inline]
+        pub fn try_parse<W: Word, Words: AsWordsMut<W>>(&self, words: Words) -> Result<Words, Error> {
+            Ok(match self {
+                Radix::Dec(_, _, _) => words,
+                Radix::Bin(_, str, _) => codec::Bin::try_decode(words, str.bytes().rev())?,
+                Radix::Oct(_, str, _) => codec::Oct::try_decode(words, str.bytes().rev())?,
+                Radix::Hex(_, str, _) => codec::Hex::try_decode(words, str.bytes().rev())?,
+                Radix::X64(_, str, _) => codec::X64::try_decode(words, str.bytes().rev())?,
+            })
+        }
+    }
+
+    #[inline]
+    pub(crate) fn write<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
+        fmt: &mut Formatter<'_>,
+        ascii_len: Ascii,
+        ascii_fmt: Ascii,
+        prefix: &'static str,
+    ) -> std::fmt::Result {
+        if fmt.alternate() {
+            fmt.write_str(prefix)?;
+        }
+
+        let len = ascii_len.length(b'0').max(1);
+
+        codec::write(fmt, ascii_fmt.take(len).rev())
+    }
+
+    #[inline]
+    pub(crate) fn write_dec<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
+        fmt: &mut Formatter<'_>,
+        words: Words,
+        dir: Dir,
+        digits: usize,
+    ) -> std::fmt::Result {
+        let len = words.len();
+
+        let mut buf = vec![b'0'; len * digits];
+
+        for (idx, word) in words.enumerate() {
+            let offset = (len - idx - 1) * digits;
+
+            Cursor::new(&mut buf[offset..])
+                .write_fmt(format_args!("{word:0digits$}"))
+                .map_err(|_| std::fmt::Error)?;
+        }
+
+        let offset = buf.len() - buf.iter().copied().rev().length(b'0');
+
+        if offset == buf.len() {
+            return fmt.write_str("0");
+        }
+
+        write!(
+            fmt,
+            "{}{}",
+            match dir {
+                Dir::NEG => "-",
+                Dir::POS => "",
+            },
+            match str::from_utf8(&buf[offset..]) {
+                Ok(val) => val,
+                Err(_) => return Err(std::fmt::Error),
+            }
+        )
+    }
+}
+
 #[cfg(all(target_pointer_width = "64", not(test)))]
 mod _impl {
     use super::*;
@@ -5155,28 +4939,6 @@ pub enum FromDigitsError {
         digit: usize,
         /// Radix value.
         radix: usize,
-    },
-}
-
-/// Error type for failable long conversion from string.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum FromStrError {
-    /// Found empty during parsing from string.
-    #[error("Found empty during parsing from string")]
-    InvalidLength,
-    /// Found invalid radix.
-    #[error("Found invalid radix '{radix}'")]
-    InvalidRadix {
-        /// Radix value.
-        radix: usize,
-    },
-    /// Found invalid char.
-    #[error("Found invalid char '{char}' during parsing from string of radix '{radix}'")]
-    InvalidSymbol {
-        /// Char value.
-        char: char,
-        /// Radix value.
-        radix: u8,
     },
 }
 
@@ -5576,6 +5338,33 @@ impl<const L: usize> NdxFrom<Bytes<L>, ()> for Bytes<L> {
     }
 }
 
+impl<const L: usize> FromStr for Signed<L> {
+    type Err = radix::Error;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Radix::try_from(s)?.try_parse::<u8, Self>(Self([0; L]))
+    }
+}
+
+impl<const L: usize> FromStr for Unsigned<L> {
+    type Err = radix::Error;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Radix::try_from(s)?.try_parse::<u8, Self>(Self([0; L]))
+    }
+}
+
+impl<const L: usize> FromStr for Bytes<L> {
+    type Err = radix::Error;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Radix::try_from(s)?.try_parse::<u8, Self>(Self([0; L]))
+    }
+}
+
 impl<const L: usize> NdFromStr<Dec> for Signed<L> {
     type Err = FromStrError;
 
@@ -5675,33 +5464,6 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
     }
 }
 
-impl<const L: usize> FromStr for Signed<L> {
-    type Err = FromStrError;
-
-    #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        from_str_impl!(@long s).map(Self)
-    }
-}
-
-impl<const L: usize> FromStr for Unsigned<L> {
-    type Err = FromStrError;
-
-    #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        from_str_impl!(@long s).map(Self)
-    }
-}
-
-impl<const L: usize> FromStr for Bytes<L> {
-    type Err = FromStrError;
-
-    #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        from_str_impl!(@bytes s).map(Self)
-    }
-}
-
 impl<const L: usize, W: Word> AsRef<[W]> for Signed<L> {
     #[inline]
     fn as_ref(&self) -> &[W] {
@@ -5798,27 +5560,32 @@ impl<const L: usize> PartialOrd for Unsigned<L> {
 impl<const L: usize> Display for Signed<L> {
     #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match uops::dirx(&self.0, Dir::POS)
-            .with(Signed)
-            .into_digits_iter(RadixImpl { radix: Dec::RADIX as Single })
-        {
+        let radix = RadixImpl {
+            radix: codec::Dec::RADIX as Single,
+        };
+
+        let iter = match uops::dirx(&self.0, Dir::POS).with(Signed).into_digits_iter(radix) {
             Ok(val) => val,
             Err(_) => unreachable!(),
         };
 
-        write_dec(fmt, iter, self.sign(), &Dec::CFG)
+        write_dec(fmt, iter, self.dir(), codec::Dec::DIGITS)
     }
 }
 
 impl<const L: usize> Display for Unsigned<L> {
     #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        let iter = match self.into_digits_iter(RadixImpl { radix: Dec::RADIX as Single }) {
+        let radix = RadixImpl {
+            radix: codec::Dec::RADIX as Single,
+        };
+
+        let iter = match self.into_digits_iter(radix) {
             Ok(val) => val,
             Err(_) => unreachable!(),
         };
 
-        write_dec(fmt, iter, self.sign(), &Dec::CFG)
+        write_dec(fmt, iter, Dir::POS, codec::Dec::DIGITS)
     }
 }
 
@@ -6781,7 +6548,7 @@ impl<const L: usize> NumSigned for Signed<L> {}
 impl<const L: usize> NumUnsigned for Unsigned<L> {
     #[inline]
     fn order(&self) -> usize {
-        let len = length(self.0.iter().copied(), 0);
+        let len = self.0.iter().copied().length(0);
 
         match len {
             0 => 0,
@@ -6791,7 +6558,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 
     #[inline]
     fn log(&self) -> Self {
-        let len = length(self.0.iter().copied(), 0);
+        let len = self.0.iter().copied().length(0);
 
         match len {
             0 => Self::ZERO,
@@ -7370,24 +7137,6 @@ where
     Ok(())
 }
 
-fn from_str_validate(s: &str, radix: u8) -> Result<(), FromStrError> {
-    if let Some(ch) = s.chars().find(|&ch| {
-        let byte = ch as u8;
-
-        match ch {
-            '0'..='9' => byte - b'0' >= radix,
-            'a'..='f' => byte - b'a' + 10 >= radix,
-            'A'..='F' => byte - b'A' + 10 >= radix,
-            '_' => false,
-            _ => false,
-        }
-    }) {
-        return Err(FromStrError::InvalidSymbol { char: ch, radix });
-    }
-
-    Ok(())
-}
-
 fn to_digits_validate<W: Word>(exp: W) -> Result<(), ToDigitsError> {
     let exp = exp.as_usize();
 
@@ -7497,18 +7246,6 @@ where
     Ok(res)
 }
 
-fn from_str<const L: usize>(s: &str, exp: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
-    from_str_validate(s, 1 << exp)?;
-
-    let mut res = from_digits_impl(s.bytes().rev().filter_map(get_digit_from_byte), exp as usize);
-
-    if sign == Sign::NEG {
-        uops::neg(&mut res).eval_mut();
-    }
-
-    Ok(res)
-}
-
 fn from_digits_radix<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<[Single; L], FromDigitsError> {
     if radix.is_pow2() {
         return from_digits(digits, W::from_single(radix.order() as Single));
@@ -7539,22 +7276,6 @@ where
     Ok(res)
 }
 
-fn from_str_radix<const L: usize>(s: &str, radix: u8, sign: Sign) -> Result<[Single; L], FromStrError> {
-    if radix.is_pow2() {
-        return from_str(s, radix.order() as u8, sign);
-    }
-
-    from_str_validate(s, radix)?;
-
-    let mut res = from_digits_radix_impl(s.bytes().filter_map(get_digit_from_byte), radix);
-
-    if sign == Sign::NEG {
-        uops::neg(&mut res).eval_mut();
-    }
-
-    Ok(res)
-}
-
 fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec<W>, ToDigitsError> {
     to_digits_validate(exp)?;
 
@@ -7580,7 +7301,7 @@ fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec
         }
     }
 
-    res.truncate(length(res.iter().copied(), W::ZERO));
+    res.truncate(res.iter().copied().length(W::ZERO));
 
     Ok(res)
 }
@@ -7632,7 +7353,7 @@ fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Res
         idx += 1;
     }
 
-    res.truncate(length(res.iter().copied(), W::ZERO));
+    res.truncate(res.iter().copied().length(W::ZERO));
 
     Ok(res)
 }
@@ -7644,116 +7365,10 @@ fn into_digits_iter<const L: usize, W: Word>(
     into_digits_validate(radix)?;
 
     let bits = radix.order();
-    let cnt = length(words.iter().copied(), 0);
+    let cnt = words.iter().copied().length(0);
     let len = (cnt * BITS + bits - 1) / bits;
 
     Ok(DigitsRadixIter { words, radix, len })
-}
-
-#[inline]
-fn write<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
-    fmt: &mut Formatter<'_>,
-    ascii_len: Ascii,
-    ascii_fmt: Ascii,
-    prefix: &'static str,
-) -> std::fmt::Result {
-    if fmt.alternate() {
-        fmt.write_str(prefix)?;
-    }
-
-    let len = length(ascii_len, b'0');
-
-    if len == 0 {
-        return fmt.write_str("0");
-    }
-
-    codec::write(fmt, ascii_fmt.take(len).rev())
-}
-
-#[inline]
-fn write_dec<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
-    fmt: &mut Formatter<'_>,
-    words: Words,
-    sign: Sign,
-    cfg: &Cfg,
-) -> std::fmt::Result {
-    let len = words.len();
-    let width = cfg.width as usize;
-
-    let sign = match sign {
-        Sign::ZERO => return write!(fmt, "0"),
-        Sign::NEG => "-",
-        Sign::POS => "",
-    };
-
-    let mut buf = vec![b'0'; len * width];
-
-    for (idx, word) in words.enumerate() {
-        let offset = (len - idx - 1) * width;
-
-        Cursor::new(&mut buf[offset..])
-            .write_fmt(format_args!("{word:0width$}"))
-            .map_err(|_| std::fmt::Error)?;
-    }
-
-    let offset = buf.iter().take_while(|&byte| byte == &b'0').count();
-    let str = match str::from_utf8(&buf[offset..]) {
-        Ok(val) => val,
-        Err(_) => unreachable!(),
-    };
-
-    write!(fmt, "{}{}", sign, str)
-}
-
-#[inline]
-fn get_sign_from_str(s: &str) -> Result<(&str, Sign), FromStrError> {
-    if s.is_empty() {
-        return Err(FromStrError::InvalidLength);
-    }
-
-    Ok(match &s[..1] {
-        "+" => (&s[1..], Sign::POS),
-        "-" => (&s[1..], Sign::NEG),
-        _ => (s, Sign::POS),
-    })
-}
-
-#[inline]
-fn get_radix_from_str(s: &str, default: u8) -> Result<(&str, u8), FromStrError> {
-    if s.is_empty() {
-        return Err(FromStrError::InvalidLength);
-    }
-
-    if s.len() < 2 {
-        return Ok((s, default));
-    }
-
-    Ok(match &s[..2] {
-        "0x" | "0X" => (&s[2..], 16),
-        "0o" | "0O" => (&s[2..], 8),
-        "0b" | "0B" => (&s[2..], 2),
-        _ => (s, default),
-    })
-}
-
-#[inline]
-fn get_digit_from_byte(byte: u8) -> Option<u8> {
-    match byte {
-        b'0'..=b'9' => Some(byte - b'0'),
-        b'a'..=b'f' => Some(byte - b'a' + 10),
-        b'A'..=b'F' => Some(byte - b'A' + 10),
-        _ => None,
-    }
-}
-
-fn length<W: Word, Words: Iterator<Item = W>>(words: Words, elem: W) -> usize {
-    let mut res = 0;
-
-    for (i, word) in words.enumerate() {
-        res = if word == elem { res } else { i + 1 };
-    }
-
-    res
 }
 
 #[cfg(test)]

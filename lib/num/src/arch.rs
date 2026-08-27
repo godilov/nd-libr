@@ -559,11 +559,11 @@ pub mod codec {
             (b'8' as usize, 8), (b'9' as usize, 9),
         ]);
 
-        /// Radix.
-        pub const RADIX: Double = (10 as Double).pow(Self::LEN as u32);
+        /// Radix in [`Single`].
+        pub const RADIX: Double = (10 as Double).pow(Self::DIGITS as u32);
 
-        /// Length.
-        pub const LEN: u8 = RADIX.ilog10() as u8;
+        /// Digits in [`Single`].
+        pub const DIGITS: usize = RADIX.ilog10() as usize;
     }
 
     #[rustfmt::skip]
