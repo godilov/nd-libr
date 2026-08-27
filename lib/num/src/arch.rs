@@ -441,59 +441,24 @@ pub mod codec {
         fn encode<W: Word, Words: AsWordsRef<W>>(
             words: &Words,
         ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
-            let one = Relaxed(W::ONE);
-            let len = Encoded::len::<W, Self>(words.as_words_ref().len());
+            let bits = Self::BITS;
 
-            let mask = (one << Self::BITS) - one;
-
-            (0..len).map(move |idx| {
-                let offset = idx * Self::BITS;
-
-                let shl = offset % W::BITS;
-                let shr = W::BITS - shl;
-
-                let idxs = [offset / W::BITS, (offset + Self::BITS) / W::BITS];
-                let vals = [
-                    Relaxed(*words.as_words_ref().get(idxs[0]).unwrap_or(&W::ZERO)) & (mask << shl),
-                    Relaxed(*words.as_words_ref().get(idxs[1]).unwrap_or(&W::ZERO)) & (mask >> shr),
-                ];
-
-                let idx = (vals[0] >> shl | vals[1] << shr).0.as_usize();
-
-                Self::ENCODE[idx]
-            })
+            Encoded::raw(words, bits).map(|idx| Self::ENCODE[idx.as_usize()])
         }
 
         /// Decodes words in Codec configuration.
         #[inline]
         fn decode<W: Word, Words: AsWordsMut<W>>(
-            mut words: Words,
+            words: Words,
             iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
         ) -> Words {
-            #![allow(clippy::option_map_unit_fn)]
+            let bits = Self::BITS;
 
-            let one = Relaxed(W::ONE);
-            let len = Encoded::len::<W, Self>(words.as_words_ref().len());
-
-            let mask = (one << Self::BITS) - one;
-
-            for (idx, byte) in iter.map(|byte| Self::DECODE[byte as usize]).take(len).enumerate() {
-                let offset = idx * Self::BITS;
-
-                let shl = offset % W::BITS;
-                let shr = W::BITS - shl;
-
-                let idxs = [offset / W::BITS, (offset + Self::BITS) / W::BITS];
-                let vals = [
-                    (Relaxed(W::from_single(byte as Single)) << shl) & (mask << shl),
-                    (Relaxed(W::from_single(byte as Single)) >> shr) & (mask >> shr),
-                ];
-
-                words.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
-                words.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
-            }
-
-            words
+            Decoded::raw(
+                words,
+                bits,
+                iter.map(|idx| W::from_single(Self::DECODE[idx as usize] as Single)),
+            )
         }
 
         /// Decodes words in Codec configuration with check.
@@ -535,16 +500,76 @@ pub mod codec {
     impl Encoded {
         /// Length for encoded array.
         #[inline]
-        pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
-            (W::BITS * len).div_ceil(C::BITS)
+        pub const fn len<W: Word>(len: usize, bits: usize) -> usize {
+            (W::BITS * len).div_ceil(bits)
+        }
+
+        /// Encodes words in Codec configuration.
+        #[inline]
+        pub fn raw<W: Word, Words: AsWordsRef<W>>(
+            words: &Words,
+            bits: usize,
+        ) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator {
+            let one = Relaxed(W::ONE);
+            let len = Encoded::len::<W>(words.as_words_ref().len(), bits);
+
+            let mask = (one << bits) - one;
+
+            (0..len).map(move |idx| {
+                let offset = idx * bits;
+
+                let shl = offset % W::BITS;
+                let shr = W::BITS - shl;
+
+                let idxs = [offset / W::BITS, (offset + bits) / W::BITS];
+                let vals = [
+                    Relaxed(*words.as_words_ref().get(idxs[0]).unwrap_or(&W::ZERO)) & (mask << shl),
+                    Relaxed(*words.as_words_ref().get(idxs[1]).unwrap_or(&W::ZERO)) & (mask >> shr),
+                ];
+
+                (vals[0] >> shl | vals[1] << shr).0
+            })
         }
     }
 
     impl Decoded {
         /// Length for decoded array.
         #[inline]
-        pub const fn len<W: Word, C: Codec>(len: usize) -> usize {
-            (C::BITS * len).div_ceil(W::BITS)
+        pub const fn len<W: Word>(len: usize, bits: usize) -> usize {
+            (bits * len).div_ceil(W::BITS)
+        }
+
+        /// Decodes words in Codec configuration.
+        #[inline]
+        fn raw<W: Word, Words: AsWordsMut<W>>(
+            mut words: Words,
+            bits: usize,
+            iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
+        ) -> Words {
+            #![allow(clippy::option_map_unit_fn)]
+
+            let one = Relaxed(W::ONE);
+            let len = Encoded::len::<W>(words.as_words_ref().len(), bits);
+
+            let mask = (one << bits) - one;
+
+            for (idx, word) in iter.take(len).enumerate() {
+                let offset = idx * bits;
+
+                let shl = offset % W::BITS;
+                let shr = W::BITS - shl;
+
+                let idxs = [offset / W::BITS, (offset + bits) / W::BITS];
+                let vals = [
+                    (Relaxed(word) << shl) & (mask << shl),
+                    (Relaxed(word) >> shr) & (mask >> shr),
+                ];
+
+                words.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
+                words.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
+            }
+
+            words
         }
     }
 
