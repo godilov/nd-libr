@@ -7,14 +7,14 @@ use criterion::{
 };
 use ndext::{
     convert::{NdFrom, NdTryFrom},
-    iter::{IteratorExt, NdTryFromIterator},
+    iter::IteratorExt,
     ops::{Mut, Ref, Relaxed},
 };
 use ndnum::{
     Dir, NumExt,
     arch::{Aligned, word::Single},
     long::{
-        ExpImpl, IntoDigits, IntoDigitsIter, RadixImpl, ToDigits, ToDigitsIter,
+        digits::{ExpImpl, IntoDigits, RadixImpl, ToDigits},
         uops::{self, Expr, ExprMut},
     },
 };
@@ -140,26 +140,22 @@ fn long_convert(c: &mut Criterion) {
 fn long_convert_digits_from(c: &mut Criterion) {
     let (mut group, mut rng) = state!(c, "long::convert::digits::from");
 
-    from_digits(&mut group, &mut rng);
-    from_digits_iter(&mut group, &mut rng);
+    from_digits_exp(&mut group, &mut rng);
     from_digits_radix(&mut group, &mut rng);
-    from_digits_radix_iter(&mut group, &mut rng);
 }
 
 fn long_convert_digits_to(c: &mut Criterion) {
     let (mut group, mut rng) = state!(c, "long::convert::digits::to");
 
-    to_digits(&mut group, &mut rng);
-    to_digits_iter_count(&mut group, &mut rng);
-    to_digits_iter_collect(&mut group, &mut rng);
+    to_digits_count(&mut group, &mut rng);
+    to_digits_collect(&mut group, &mut rng);
 }
 
 fn long_convert_digits_into(c: &mut Criterion) {
     let (mut group, mut rng) = state!(c, "long::convert::digits::into");
 
-    into_digits(&mut group, &mut rng);
-    into_digits_iter_count(&mut group, &mut rng);
-    into_digits_iter_collect(&mut group, &mut rng);
+    into_digits_count(&mut group, &mut rng);
+    into_digits_collect(&mut group, &mut rng);
 }
 
 fn long_convert_str(c: &mut Criterion) {
@@ -304,7 +300,7 @@ fn from_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     }
 }
 
-fn from_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
+fn from_digits_exp(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     for shift in [4, 2, 0] {
         let len = BYTES >> shift;
 
@@ -317,37 +313,17 @@ fn from_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         group.bench_with_input(
             BenchmarkId::new("Slong::from_digits", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Slong::nd_try_from(digits, ExpImpl { exp })))),
+            |b, &(digits, exp)| {
+                b.iter(|| black_box(Aligned(Slong::nd_try_from(digits.iter().copied(), ExpImpl { exp }))))
+            },
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::from_digits", 8 * len),
             &(&digits[..len], exp),
-            |b, &(digits, exp)| b.iter(|| black_box(Aligned(Ulong::nd_try_from(digits, ExpImpl { exp })))),
-        );
-    }
-}
-
-fn from_digits_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
-    for shift in [4, 2, 0] {
-        let len = BYTES >> shift;
-
-        let exp = 7u8;
-        let radix = 1u8 << exp;
-        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-
-        group.throughput(Throughput::Bytes(len as u64));
-
-        group.bench_with_input(
-            BenchmarkId::new("Slong::from_digits_iter", 8 * len),
-            &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Slong::nd_try_from_iter(iter.clone(), ExpImpl { exp })))),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("Ulong::from_digits_iter", 8 * len),
-            &(&digits[..len].iter().copied(), exp),
-            |b, &(iter, exp)| b.iter(|| black_box(Aligned(Ulong::nd_try_from_iter(iter.clone(), ExpImpl { exp })))),
+            |b, &(digits, exp)| {
+                b.iter(|| black_box(Aligned(Ulong::nd_try_from(digits.iter().copied(), ExpImpl { exp }))))
+            },
         );
     }
 }
@@ -364,65 +340,22 @@ fn from_digits_radix(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng)
         group.bench_with_input(
             BenchmarkId::new("Slong::from_digits_radix", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Slong::nd_try_from(digits, RadixImpl { radix })))),
+            |b, &(digits, radix)| {
+                b.iter(|| black_box(Aligned(Slong::nd_try_from(digits.iter().copied(), RadixImpl { radix }))))
+            },
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::from_digits_radix", 8 * len),
             &(&digits[..len], radix),
-            |b, &(digits, radix)| b.iter(|| black_box(Aligned(Ulong::nd_try_from(digits, RadixImpl { radix })))),
+            |b, &(digits, radix)| {
+                b.iter(|| black_box(Aligned(Ulong::nd_try_from(digits.iter().copied(), RadixImpl { radix }))))
+            },
         );
     }
 }
 
-fn from_digits_radix_iter(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
-    for shift in [4, 2, 0] {
-        let len = BYTES >> shift;
-
-        let radix = 251u8;
-        let digits = (0..len).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-
-        group.throughput(Throughput::Bytes(len as u64));
-
-        group.bench_with_input(
-            BenchmarkId::new("Slong::from_digits_radix_iter", 8 * len),
-            &(&digits[..len].iter().copied(), radix),
-            |b, &(iter, radix)| b.iter(|| black_box(Slong::nd_try_from_iter(iter.clone(), RadixImpl { radix }))),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("Ulong::from_digits_radix_iter", 8 * len),
-            &(&digits[..len].iter().copied(), radix),
-            |b, &(iter, radix)| b.iter(|| black_box(Ulong::nd_try_from_iter(iter.clone(), RadixImpl { radix }))),
-        );
-    }
-}
-
-fn to_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
-    for exp in [7u8, 4u8, 1u8] {
-        let bytes = rng.random::<[u8; BYTES]>();
-
-        let radix = 1u8 << exp;
-        let signed = Slong::nd_from(&bytes[..], ());
-        let unsigned = Ulong::nd_from(&bytes[..], ());
-
-        group.throughput(Throughput::Bytes(bytes.len() as u64));
-
-        group.bench_with_input(
-            BenchmarkId::new("Slong::to_digits", radix),
-            &(&signed, exp),
-            |b, &(long, exp)| b.iter_with_large_drop(|| black_box(long.to_digits(ExpImpl { exp }))),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("Ulong::to_digits", radix),
-            &(&unsigned, exp),
-            |b, &(long, exp)| b.iter_with_large_drop(|| black_box(long.to_digits(ExpImpl { exp }))),
-        );
-    }
-}
-
-fn to_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
+fn to_digits_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     for exp in [7u8, 4u8, 1u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -435,18 +368,18 @@ fn to_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdR
         group.bench_with_input(
             BenchmarkId::new("Slong::to_digits::count", radix),
             &(&signed, exp),
-            |b, &(long, exp)| b.iter(|| black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.count()))),
+            |b, &(long, exp)| b.iter(|| black_box(long.to_digits(ExpImpl { exp }).count())),
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::to_digits::count", radix),
             &(&unsigned, exp),
-            |b, &(long, exp)| b.iter(|| black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.count()))),
+            |b, &(long, exp)| b.iter(|| black_box(long.to_digits(ExpImpl { exp }).count())),
         );
     }
 }
 
-fn to_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
+fn to_digits_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     for exp in [7u8, 4u8, 1u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -460,9 +393,7 @@ fn to_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
             BenchmarkId::new("Slong::to_digits::collect", radix),
             &(&signed, exp),
             |b, &(long, exp)| {
-                b.iter_with_large_drop(|| {
-                    black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.collect::<Vec<u8>>()))
-                })
+                b.iter_with_large_drop(|| black_box(long.to_digits(ExpImpl { exp }).collect::<Vec<u8>>()))
             },
         );
 
@@ -470,38 +401,13 @@ fn to_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
             BenchmarkId::new("Ulong::to_digits::collect", radix),
             &(&unsigned, exp),
             |b, &(long, exp)| {
-                b.iter_with_large_drop(|| {
-                    black_box(long.to_digits_iter(ExpImpl { exp }).map(|it| it.collect::<Vec<u8>>()))
-                })
+                b.iter_with_large_drop(|| black_box(long.to_digits(ExpImpl { exp }).collect::<Vec<u8>>()))
             },
         );
     }
 }
 
-fn into_digits(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
-    for radix in [255u8, 31u8, 3u8] {
-        let bytes = rng.random::<[u8; BYTES]>();
-
-        let signed = Slong::nd_from(&bytes[..], ());
-        let unsigned = Ulong::nd_from(&bytes[..], ());
-
-        group.throughput(Throughput::Bytes(bytes.len() as u64));
-
-        group.bench_with_input(
-            BenchmarkId::new("Slong::into_digits", radix),
-            &(&signed, radix),
-            |b, &(long, radix)| b.iter_with_large_drop(|| black_box(long.into_digits(RadixImpl { radix }))),
-        );
-
-        group.bench_with_input(
-            BenchmarkId::new("Ulong::into_digits", radix),
-            &(&unsigned, radix),
-            |b, &(long, radix)| b.iter_with_large_drop(|| black_box(long.into_digits(RadixImpl { radix }))),
-        );
-    }
-}
-
-fn into_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
+fn into_digits_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -512,19 +418,19 @@ fn into_digits_iter_count(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut St
 
         group.bench_with_input(
             BenchmarkId::new("Slong::into_digits::count", radix),
-            &(&signed, radix),
-            |b, &(long, radix)| b.iter(|| black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.count()))),
+            &(&signed, radix as Single),
+            |b, &(long, radix)| b.iter(|| black_box(long.into_digits(RadixImpl { radix }).count())),
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::into_digits::count", radix),
-            &(&unsigned, radix),
-            |b, &(long, radix)| b.iter(|| black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.count()))),
+            &(&unsigned, radix as Single),
+            |b, &(long, radix)| b.iter(|| black_box(long.into_digits(RadixImpl { radix }).count())),
         );
     }
 }
 
-fn into_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
+fn into_digits_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
     for radix in [255u8, 31u8, 3u8] {
         let bytes = rng.random::<[u8; BYTES]>();
 
@@ -535,21 +441,17 @@ fn into_digits_iter_collect(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut 
 
         group.bench_with_input(
             BenchmarkId::new("Slong::into_digits::collect", radix),
-            &(&signed, radix),
+            &(&signed, radix as Single),
             |b, &(long, radix)| {
-                b.iter_with_large_drop(|| {
-                    black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.collect::<Vec<u8>>()))
-                })
+                b.iter_with_large_drop(|| black_box(long.into_digits(RadixImpl { radix }).collect::<Vec<Single>>()))
             },
         );
 
         group.bench_with_input(
             BenchmarkId::new("Ulong::into_digits::collect", radix),
-            &(&unsigned, radix),
+            &(&unsigned, radix as Single),
             |b, &(long, radix)| {
-                b.iter_with_large_drop(|| {
-                    black_box(long.into_digits_iter(RadixImpl { radix }).map(|it| it.collect::<Vec<u8>>()))
-                })
+                b.iter_with_large_drop(|| black_box(long.into_digits(RadixImpl { radix }).collect::<Vec<Single>>()))
             },
         );
     }
@@ -563,15 +465,15 @@ fn from_str(group: &mut BenchmarkGroup<'_, WallTime>, rng: &mut StdRng) {
         let signed = Slong::nd_from(&bytes[..len], ());
         let unsigned = Ulong::nd_from(&bytes[..len], ());
 
-        let dec_signed = format!("{:#}", &signed);
-        let bin_signed = format!("{:#b}", &signed);
-        let oct_signed = format!("{:#o}", &signed);
-        let hex_signed = format!("{:#x}", &signed);
+        let dec_signed = format!("{:#}", signed);
+        let bin_signed = format!("{:#b}", signed);
+        let oct_signed = format!("{:#o}", signed);
+        let hex_signed = format!("{:#x}", signed);
 
-        let dec_unsigned = format!("{:#}", &unsigned);
-        let bin_unsigned = format!("{:#b}", &unsigned);
-        let oct_unsigned = format!("{:#o}", &unsigned);
-        let hex_unsigned = format!("{:#x}", &unsigned);
+        let dec_unsigned = format!("{:#}", unsigned);
+        let bin_unsigned = format!("{:#b}", unsigned);
+        let oct_unsigned = format!("{:#o}", unsigned);
+        let hex_unsigned = format!("{:#x}", unsigned);
 
         group.throughput(Throughput::Bytes(dec_signed.len() as u64));
         group.bench_with_input(BenchmarkId::new("Slong::from_str::dec", 8 * len), &dec_signed, |b, str| {

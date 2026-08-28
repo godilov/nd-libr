@@ -2,7 +2,7 @@
 
 use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
-use ndext::{convert::NdxFrom, iter::*, ops::*};
+use ndext::{convert::NdxFrom, iter::*};
 use thiserror::Error;
 use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
 
@@ -443,7 +443,7 @@ pub mod codec {
         ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
             let bits = Self::BITS;
 
-            Encoded::raw(words, bits).map(|idx| Self::ENCODE[idx.as_usize()])
+            Encoded::read(words, bits).map(|idx| Self::ENCODE[idx.as_usize()])
         }
 
         /// Decodes words in Codec configuration.
@@ -454,14 +454,14 @@ pub mod codec {
         ) -> Words {
             let bits = Self::BITS;
 
-            Decoded::raw(
+            Decoded::write(
                 words,
                 bits,
                 iter.map(|idx| W::from_single(Self::DECODE[idx as usize] as Single)),
             )
         }
 
-        /// Decodes words in Codec configuration with check.
+        /// Decodes words in Codec configuration (checked).
         #[inline]
         fn try_decode<W: Word, Words: AsWordsMut<W>>(
             words: Words,
@@ -504,9 +504,9 @@ pub mod codec {
             (W::BITS * len).div_ceil(bits)
         }
 
-        /// Encodes words in Codec configuration.
+        /// Reads from words in bits-len for encoding.
         #[inline]
-        pub fn raw<W: Word, Words: AsWordsRef<W>>(
+        pub fn read<W: Word, Words: AsWordsRef<W>>(
             words: &Words,
             bits: usize,
         ) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator {
@@ -539,9 +539,9 @@ pub mod codec {
             (bits * len).div_ceil(W::BITS)
         }
 
-        /// Decodes words in Codec configuration.
+        /// Writes into words in bits-len for decoding.
         #[inline]
-        fn raw<W: Word, Words: AsWordsMut<W>>(
+        pub fn write<W: Word, Words: AsWordsMut<W>>(
             mut words: Words,
             bits: usize,
             iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
@@ -570,6 +570,24 @@ pub mod codec {
             }
 
             words
+        }
+
+        /// Writes into words in bits-len for decoding (checked).
+        #[inline]
+        pub fn try_write<W: Word, Words: AsWordsMut<W>>(
+            words: Words,
+            bits: usize,
+            iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
+        ) -> Result<Words, Error> {
+            let mut flag = W::ZERO;
+
+            let words = Decoded::write(words, bits, iter.inspect(|&word| flag |= word));
+
+            if (Relaxed(W::ONE) << bits) <= Relaxed(flag) {
+                return Err(Error::InvalidEntry);
+            }
+
+            Ok(words)
         }
     }
 
@@ -774,7 +792,7 @@ pub mod codec {
             let mut res = [0; 256];
             let mut idx = 0usize;
 
-            while idx < 256 {
+            while idx < res.len() {
                 res[idx] = (idx as u8 as char).to_ascii_uppercase() as u8;
                 idx += 1;
             }
@@ -794,7 +812,7 @@ pub mod codec {
             let mut res = [0; 256];
             let mut idx = 0usize;
 
-            while idx < 256 {
+            while idx < res.len() {
                 res[idx] = (idx as u8 as char).to_ascii_lowercase() as u8;
                 idx += 1;
             }

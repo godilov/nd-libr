@@ -1484,7 +1484,7 @@ impl FwdDef {
                         val.path
                             .segments
                             .iter()
-                            .fold(String::new(), |acc, seg| format!("{}{}", &acc, seg.ident))
+                            .fold(String::new(), |acc, seg| format!("{}{}", acc, seg.ident))
                     ),
                     quote! { #val },
                     generics,

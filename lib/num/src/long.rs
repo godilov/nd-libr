@@ -10,7 +10,7 @@ use std::{
 
 use ndext::{
     convert::{NdFrom, NdFromStr, NdTryFrom, NdxFrom},
-    iter::{IteratorExt, NdTryFromIterator},
+    iter::IteratorExt,
     ops::*,
 };
 use thiserror::Error;
@@ -22,10 +22,11 @@ use crate::{
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
     arch::{
         AsWordsMut, AsWordsRef, Rand, codec,
-        codec::{Codec, Decode, Encode},
+        codec::{Codec, Decode, Decoded, Encode, Encoded},
         word::*,
     },
     long::{
+        digits::*,
         radix::*,
         uops::{Expr, ExprMut},
     },
@@ -60,7 +61,7 @@ macro_rules! from_primitive {
                 #![allow(unused_comparisons)]
 
                 let bytes = value.to_le_bytes();
-                let res = from_arr(&bytes, [0, MAX][(value < 0) as usize]);
+                let res = from_array(&bytes, [0, MAX][(value < 0) as usize]);
 
                 Self(res)
             }
@@ -4644,13 +4645,6 @@ pub mod radix {
         InvalidPayload,
     }
 
-    impl From<codec::Error> for Error {
-        #[inline]
-        fn from(_: codec::Error) -> Self {
-            Error::InvalidPayload
-        }
-    }
-
     impl<'str> TryFrom<&'str str> for Radix<'str> {
         type Error = Error;
 
@@ -4674,6 +4668,7 @@ pub mod radix {
     }
 
     impl Radix<'_> {
+        /// Parse into words.
         #[inline]
         pub fn parse<W: Word, Words: AsWordsMut<W>>(&self, words: Words) -> Words {
             match self {
@@ -4685,15 +4680,17 @@ pub mod radix {
             }
         }
 
+        /// Parse into words (checked).
         #[inline]
+        #[rustfmt::skip]
         pub fn try_parse<W: Word, Words: AsWordsMut<W>>(&self, words: Words) -> Result<Words, Error> {
-            Ok(match self {
-                Radix::Dec(_, _, _) => words,
-                Radix::Bin(_, str, _) => codec::Bin::try_decode(words, str.bytes().rev())?,
-                Radix::Oct(_, str, _) => codec::Oct::try_decode(words, str.bytes().rev())?,
-                Radix::Hex(_, str, _) => codec::Hex::try_decode(words, str.bytes().rev())?,
-                Radix::X64(_, str, _) => codec::X64::try_decode(words, str.bytes().rev())?,
-            })
+            match self {
+                Radix::Dec(_, _, _) => Ok(words),
+                Radix::Bin(_, str, _) => codec::Bin::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::Oct(_, str, _) => codec::Oct::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::Hex(_, str, _) => codec::Hex::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::X64(_, str, _) => codec::X64::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+            }
         }
     }
 
@@ -4721,6 +4718,10 @@ pub mod radix {
         digits: usize,
     ) -> std::fmt::Result {
         let len = words.len();
+        let sign = match dir {
+            Dir::NEG => "-",
+            Dir::POS => "",
+        };
 
         let mut buf = vec![b'0'; len * digits];
 
@@ -4738,18 +4739,174 @@ pub mod radix {
             return fmt.write_str("0");
         }
 
-        write!(
-            fmt,
-            "{}{}",
-            match dir {
-                Dir::NEG => "-",
-                Dir::POS => "",
-            },
-            match str::from_utf8(&buf[offset..]) {
-                Ok(val) => val,
-                Err(_) => return Err(std::fmt::Error),
+        let str = match str::from_utf8(&buf[offset..]) {
+            Ok(val) => val,
+            Err(_) => return Err(std::fmt::Error),
+        };
+
+        write!(fmt, "{}{}", sign, str)
+    }
+}
+
+pub mod digits {
+    //! # Digits
+    //!
+    //! **Digits related definitions**
+
+    use super::*;
+
+    /// `From`/`To`/`Into` digits conversion by `exp`.
+    ///
+    /// For more info, see [`ToDigits`] documentation.
+    pub struct ExpImpl<W: Word> {
+        /// Exponent used in conversions.
+        ///
+        /// Radix is `1 << exp`.
+        pub exp: W,
+    }
+
+    /// `From`/`To`/`Into` digits conversion by `radix`.
+    ///
+    /// For more info, see [`IntoDigits`] documentation.
+    pub struct RadixImpl<W: Word> {
+        /// Radix used in conversions.
+        ///
+        /// Radix is arbitrary.
+        pub radix: W,
+    }
+
+    /// Digits iterator.
+    ///
+    /// For more info, see [`IntoDigits`] documentation.
+    #[derive(Debug, Clone)]
+    pub struct DigitsIter<Words: AsWordsMut<Single>> {
+        /// Words.
+        pub words: Words,
+
+        /// Radix.
+        pub radix: Single,
+
+        /// Index.
+        pub idx: usize,
+
+        /// Length.
+        pub len: usize,
+    }
+
+    /// Error type for failable long conversion from digits.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum DigitsError {
+        /// Found invalid payload.
+        #[error("Found invalid payload")]
+        InvalidPayload,
+    }
+
+    /// Error type for failable conversion to digits.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum ExpError {
+        /// Found invalid exp.
+        #[error("Found invalid exp '{exp}'")]
+        InvalidExponent {
+            /// Exponent value.
+            exp: usize,
+        },
+    }
+
+    /// Error type for failable conversion into digits.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum RadixError {
+        /// Found invalid radix.
+        #[error("Found invalid radix '{radix}'")]
+        InvalidRadix {
+            /// Radix value.
+            radix: usize,
+        },
+    }
+
+    /// Conversion to arbitrary digits iterator represented by [`Word`] with `exp`.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub trait ToDigits: Sized {
+        /// Conversion function.
+        fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W>;
+    }
+
+    /// Conversion into arbitrary digits iterator represented by [`Word`] with `radix`.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub trait IntoDigits: Sized {
+        /// Conversion function.
+        fn into_digits(self, ctx: RadixImpl<Single>) -> impl ExactSizeIterator<Item = Single>;
+    }
+
+    impl<W: Word> ExpImpl<W> {
+        /// [`ExpImpl`] from word.
+        pub fn from(exp: W) -> ExpImpl<W> {
+            ExpImpl { exp }
+        }
+
+        /// [`ExpImpl`] from word (checked).
+        pub fn try_from(exp: W) -> Result<ExpImpl<W>, ExpError> {
+            let value = exp.as_usize();
+
+            match value == 0 || value >= W::BITS {
+                false => Ok(ExpImpl { exp }),
+                true => Err(ExpError::InvalidExponent { exp: value }),
             }
-        )
+        }
+    }
+
+    impl<W: Word> RadixImpl<W> {
+        /// [`RadixImpl`] from word.
+        pub fn from(radix: W) -> RadixImpl<W> {
+            RadixImpl { radix }
+        }
+
+        /// [`RadixImpl`] from word (checked).
+        pub fn try_from(radix: W) -> Result<RadixImpl<W>, RadixError> {
+            let value = radix.as_usize();
+
+            match value < 2 {
+                false => Ok(RadixImpl { radix }),
+                true => Err(RadixError::InvalidRadix { radix: value }),
+            }
+        }
+    }
+
+    impl<Words: AsWordsMut<Single>> ExactSizeIterator for DigitsIter<Words> {}
+    impl<Words: AsWordsMut<Single>> Iterator for DigitsIter<Words> {
+        type Item = Single;
+
+        #[inline]
+        fn next(&mut self) -> Option<Self::Item> {
+            let radix = self.radix.as_double();
+
+            let mut any = 0;
+            let mut acc = 0;
+
+            for word in self.words.as_words_mut().iter_mut().rev() {
+                any |= *word;
+                acc = (acc << BITS) | *word as Double;
+
+                *word = (acc / radix) as Single;
+
+                acc %= radix;
+            }
+
+            if any == 0 {
+                return None;
+            }
+
+            self.idx += 1;
+
+            Some(acc as Single)
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            let len = self.len - self.idx;
+
+            (len, Some(len))
+        }
     }
 }
 
@@ -4876,170 +5033,14 @@ pub struct BytesRef<'words, const L: usize>(pub &'words [Single; L]);
 #[derive(Debug, PartialEq, Eq)]
 pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
-/// Digits iterator by `exp`.
-///
-/// For more info, see [`ToDigitsIter`] documentation.
-#[derive(Debug, Clone)]
-pub struct DigitsIter<'words, W: Word> {
-    words: &'words [W],
-    exp: usize,
-    idx: usize,
-    len: usize,
-}
-
-/// Digits iterator by `radix`.
-///
-/// For more info, see [`IntoDigitsIter`] documentation.
-#[derive(Debug, Clone)]
-pub struct DigitsRadixIter<const L: usize, W: Word> {
-    words: [Single; L],
-    radix: W,
-    len: usize,
-}
-
-/// Error type for failable long conversion from array.
+/// Error type for failable conversions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum TryFromArrError {
-    /// Found invalid length during initializing from array.
+pub enum InitError {
+    /// Found invalid length during initializing.
     ///
-    /// Array doesn't fit long by type (without leading-zeroes check).
-    #[error("Found invalid length during initializing from array")]
+    /// Data doesn't fit long by type (without leading-zeroes check).
+    #[error("Found invalid length during initializing")]
     InvalidLength,
-}
-
-/// Error type for failable long conversion from slice.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum TryFromSliceError {
-    /// Found invalid length during initializing from slice
-    ///
-    /// Slice doesn't fit long by type (without leading-zeroes check).
-    #[error("Found invalid length during initializing from slice")]
-    InvalidLength,
-}
-
-/// Error type for failable long conversion from digits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum FromDigitsError {
-    /// Found invalid radix.
-    #[error("Found invalid radix '{radix}'")]
-    InvalidRadix {
-        /// Radix value.
-        radix: usize,
-    },
-    /// Found invalid exp.
-    #[error("Found invalid exp '{exp}'")]
-    InvalidExponent {
-        /// Exponent value.
-        exp: usize,
-    },
-    /// Found invalid digit.
-    #[error("Found invalid digit '{digit}' during parsing from slice of radix '{radix}'")]
-    InvalidDigit {
-        /// Digit value.
-        digit: usize,
-        /// Radix value.
-        radix: usize,
-    },
-}
-
-/// Error type for failable long conversion to digits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum ToDigitsError {
-    /// Found invalid exp.
-    #[error("Found invalid exp '{exp}'")]
-    InvalidExponent {
-        /// Exponent value.
-        exp: usize,
-    },
-}
-
-/// Error type for failable long conversion into digits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum IntoDigitsError {
-    /// Found invalid radix.
-    #[error("Found invalid radix '{radix}'")]
-    InvalidRadix {
-        /// Radix value.
-        radix: usize,
-    },
-}
-
-/// `From`/`To`/`Into` digits conversion by `exp` details.
-///
-/// For more info, see [`ToDigits`], [`ToDigitsIter`] documentation.
-pub struct ExpImpl<W: Word> {
-    /// Exponent used in conversions.
-    ///
-    /// Radix is `1 << exp`.
-    pub exp: W,
-}
-
-/// `From`/`To`/`Into` digits conversion by `radix` details.
-///
-/// For more info, see [`IntoDigits`], [`IntoDigitsIter`] documentation.
-pub struct RadixImpl<W: Word> {
-    /// Radix used in conversions.
-    ///
-    /// Radix is arbitrary.
-    pub radix: W,
-}
-
-/// `From`/`To`/`Into` digits conversion implementation trait.
-///
-/// - [`ExpImpl`] - for conversion by `exp`.
-/// - [`RadixImpl`] - for conversion by `radix`.
-pub trait DigitsImpl<W: Word> {}
-
-/// Conversion to arbitrary digits represented by [`Word`] with `exp`.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub trait ToDigits<'words>: Sized {
-    /// Conversion function.
-    fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError>;
-}
-
-/// Conversion to arbitrary digits iterator represented by [`Word`] with `exp`.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub trait ToDigitsIter<'words>: Sized {
-    /// Conversion iterator.
-    type Iter<W: Word + 'words>: Clone + Iterator<Item = W> + ExactSizeIterator
-    where
-        Self: 'words;
-
-    /// Conversion function.
-    fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError>;
-}
-
-/// Conversion into arbitrary digits represented by [`Word`] with `radix`.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub trait IntoDigits: Sized {
-    /// Conversion function.
-    fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError>;
-}
-
-/// Conversion into arbitrary digits iterator represented by [`Word`] with `radix`.
-///
-/// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-pub trait IntoDigitsIter: Sized {
-    /// Conversion iterator.
-    type Iter<W: Word>: Clone + Iterator<Item = W> + ExactSizeIterator;
-
-    /// Conversion function.
-    fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError>;
-}
-
-impl<W: Word> DigitsImpl<W> for ExpImpl<W> {}
-impl<W: Word> DigitsImpl<W> for RadixImpl<W> {}
-
-impl From<ToDigitsError> for IntoDigitsError {
-    #[inline]
-    fn from(value: ToDigitsError) -> Self {
-        match value {
-            ToDigitsError::InvalidExponent { exp } => Self::InvalidRadix { radix: exp.order() },
-        }
-    }
 }
 
 impl<const L: usize> Default for Signed<L> {
@@ -5112,21 +5113,21 @@ impl<const L: usize> From<[Single; L]> for Bytes<L> {
 impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N], ()> for Signed<L> {
     #[inline]
     fn nd_from(value: &[W; N], _: ()) -> Self {
-        Self(from_arr(value, 0))
+        Self(from_array(value, 0))
     }
 }
 
 impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N], ()> for Unsigned<L> {
     #[inline]
     fn nd_from(value: &[W; N], _: ()) -> Self {
-        Self(from_arr(value, 0))
+        Self(from_array(value, 0))
     }
 }
 
 impl<const L: usize, W: Word, const N: usize> NdFrom<&[W; N], ()> for Bytes<L> {
     #[inline]
     fn nd_from(value: &[W; N], _: ()) -> Self {
-        Self(from_arr(value, 0))
+        Self(from_array(value, 0))
     }
 }
 
@@ -5152,34 +5153,34 @@ impl<const L: usize, W: Word> NdFrom<&[W], ()> for Bytes<L> {
 }
 
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N], ()> for Signed<L> {
-    type Error = TryFromArrError;
+    type Error = InitError;
 
     #[inline]
     fn nd_try_from(value: &[W; N], _: ()) -> Result<Self, Self::Error> {
-        try_from_arr(value, 0).map(Self)
+        try_from_array(value, 0).map(Self)
     }
 }
 
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N], ()> for Unsigned<L> {
-    type Error = TryFromArrError;
+    type Error = InitError;
 
     #[inline]
     fn nd_try_from(value: &[W; N], _: ()) -> Result<Self, Self::Error> {
-        try_from_arr(value, 0).map(Self)
+        try_from_array(value, 0).map(Self)
     }
 }
 
 impl<const L: usize, W: Word, const N: usize> NdTryFrom<&[W; N], ()> for Bytes<L> {
-    type Error = TryFromArrError;
+    type Error = InitError;
 
     #[inline]
     fn nd_try_from(value: &[W; N], _: ()) -> Result<Self, Self::Error> {
-        try_from_arr(value, 0).map(Self)
+        try_from_array(value, 0).map(Self)
     }
 }
 
 impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Signed<L> {
-    type Error = TryFromSliceError;
+    type Error = InitError;
 
     #[inline]
     fn nd_try_from(value: &[W], _: ()) -> Result<Self, Self::Error> {
@@ -5188,7 +5189,7 @@ impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Signed<L> {
 }
 
 impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Unsigned<L> {
-    type Error = TryFromSliceError;
+    type Error = InitError;
 
     #[inline]
     fn nd_try_from(value: &[W], _: ()) -> Result<Self, Self::Error> {
@@ -5197,7 +5198,7 @@ impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Unsigned<L> {
 }
 
 impl<const L: usize, W: Word> NdTryFrom<&[W], ()> for Bytes<L> {
-    type Error = TryFromSliceError;
+    type Error = InitError;
 
     #[inline]
     fn nd_try_from(value: &[W], _: ()) -> Result<Self, Self::Error> {
@@ -5226,97 +5227,47 @@ impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
     }
 }
 
-impl<const L: usize, W: Word> NdTryFrom<&[W], ExpImpl<W>> for Signed<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from(digits: &[W], ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        from_digits(digits, ctx.exp).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word> NdTryFrom<&[W], ExpImpl<W>> for Unsigned<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from(digits: &[W], ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        from_digits(digits, ctx.exp).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word> NdTryFrom<&[W], ExpImpl<W>> for Bytes<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from(digits: &[W], ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        from_digits(digits, ctx.exp).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word, Words: Clone + Iterator<Item = W>> NdTryFromIterator<Words, ExpImpl<W>> for Signed<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from_iter(iter: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        from_digits_iter(iter, ctx.exp).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word, Words: Clone + Iterator<Item = W>> NdTryFromIterator<Words, ExpImpl<W>> for Unsigned<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from_iter(iter: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        from_digits_iter(iter, ctx.exp).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word, Words: Clone + Iterator<Item = W>> NdTryFromIterator<Words, ExpImpl<W>> for Bytes<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from_iter(iter: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        from_digits_iter(iter, ctx.exp).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word> NdTryFrom<&[W], RadixImpl<W>> for Signed<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from(digits: &[W], ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        from_digits_radix(digits, ctx.radix).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word> NdTryFrom<&[W], RadixImpl<W>> for Unsigned<L> {
-    type Error = FromDigitsError;
-
-    #[inline]
-    fn nd_try_from(digits: &[W], ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        from_digits_radix(digits, ctx.radix).map(Self)
-    }
-}
-
-impl<const L: usize, W: Word, Words: Clone + Iterator<Item = W> + DoubleEndedIterator>
-    NdTryFromIterator<Words, RadixImpl<W>> for Signed<L>
+impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Words, ExpImpl<W>> for Signed<L>
 {
-    type Error = FromDigitsError;
+    type Error = DigitsError;
 
     #[inline]
-    fn nd_try_from_iter(iter: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        from_digits_radix_iter(iter, ctx.radix).map(Self)
+    fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
+        Decoded::try_write(Self([0; L]), ctx.exp.as_usize(), words).map_err(|_| DigitsError::InvalidPayload)
     }
 }
 
-impl<const L: usize, W: Word, Words: Clone + Iterator<Item = W> + DoubleEndedIterator>
-    NdTryFromIterator<Words, RadixImpl<W>> for Unsigned<L>
+impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Words, ExpImpl<W>> for Unsigned<L>
 {
-    type Error = FromDigitsError;
+    type Error = DigitsError;
 
     #[inline]
-    fn nd_try_from_iter(iter: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        from_digits_radix_iter(iter, ctx.radix).map(Self)
+    fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
+        Decoded::try_write(Self([0; L]), ctx.exp.as_usize(), words).map_err(|_| DigitsError::InvalidPayload)
+    }
+}
+
+impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Words, RadixImpl<W>> for Signed<L>
+{
+    type Error = DigitsError;
+
+    #[inline]
+    fn nd_try_from(_words: Words, _ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Words, RadixImpl<W>> for Unsigned<L>
+{
+    type Error = DigitsError;
+
+    #[inline]
+    fn nd_try_from(_words: Words, _ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
+        todo!()
     }
 }
 
@@ -5343,7 +5294,7 @@ impl<const L: usize> FromStr for Signed<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Radix::try_from(s)?.try_parse::<u8, Self>(Self([0; L]))
+        Radix::try_from(s)?.try_parse::<u8, Self>(Self::default())
     }
 }
 
@@ -5352,7 +5303,7 @@ impl<const L: usize> FromStr for Unsigned<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Radix::try_from(s)?.try_parse::<u8, Self>(Self([0; L]))
+        Radix::try_from(s)?.try_parse::<u8, Self>(Self::default())
     }
 }
 
@@ -5361,106 +5312,106 @@ impl<const L: usize> FromStr for Bytes<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Radix::try_from(s)?.try_parse::<u8, Self>(Self([0; L]))
+        Radix::try_from(s)?.try_parse::<u8, Self>(Self::default())
     }
 }
 
 impl<const L: usize> NdFromStr<Dec> for Signed<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Dec).map(Self)
+    fn nd_from_str(_s: &str, _: Dec) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 impl<const L: usize> NdFromStr<Dec> for Unsigned<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Dec).map(Self)
+    fn nd_from_str(_s: &str, _: Dec) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 impl<const L: usize> NdFromStr<Bin> for Signed<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Bin).map(Self)
+        codec::Bin::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Bin).map(Self)
+        codec::Bin::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Bin).map(Self)
+        codec::Bin::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Oct> for Signed<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Oct).map(Self)
+        codec::Oct::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Oct).map(Self)
+        codec::Oct::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Oct).map(Self)
+        codec::Oct::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Hex> for Signed<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Hex).map(Self)
+        codec::Hex::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Hex).map(Self)
+        codec::Hex::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
 impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
-    type Err = FromStrError;
+    type Err = radix::Error;
 
     #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        from_str_impl!(@radix s, Hex).map(Self)
+        codec::Hex::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5564,10 +5515,7 @@ impl<const L: usize> Display for Signed<L> {
             radix: codec::Dec::RADIX as Single,
         };
 
-        let iter = match uops::dirx(&self.0, Dir::POS).with(Signed).into_digits_iter(radix) {
-            Ok(val) => val,
-            Err(_) => unreachable!(),
-        };
+        let iter = uops::dirx(&self.0, Dir::POS).with(Signed).into_digits(radix);
 
         write_dec(fmt, iter, self.dir(), codec::Dec::DIGITS)
     }
@@ -5580,10 +5528,7 @@ impl<const L: usize> Display for Unsigned<L> {
             radix: codec::Dec::RADIX as Single,
         };
 
-        let iter = match self.into_digits_iter(radix) {
-            Ok(val) => val,
-            Err(_) => unreachable!(),
-        };
+        let iter = self.into_digits(radix);
 
         write_dec(fmt, iter, Dir::POS, codec::Dec::DIGITS)
     }
@@ -6243,160 +6188,47 @@ impl<const L: usize> Bytes<L> {
     }
 }
 
-impl<'words, const L: usize> ToDigits<'words> for Signed<L> {
+impl<const L: usize> ToDigits for Signed<L> {
     #[inline]
-    fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError> {
-        to_digits(&self.0, arg.exp)
+    fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
+        Encoded::read(self, ctx.exp.as_usize())
     }
 }
 
-impl<'words, const L: usize> ToDigits<'words> for Unsigned<L> {
+impl<const L: usize> ToDigits for Unsigned<L> {
     #[inline]
-    fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError> {
-        to_digits(&self.0, arg.exp)
-    }
-}
-
-impl<'words, const L: usize> ToDigits<'words> for Bytes<L> {
-    #[inline]
-    fn to_digits<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Vec<W>, ToDigitsError> {
-        to_digits(&self.0, arg.exp)
-    }
-}
-
-impl<'words, const L: usize> ToDigitsIter<'words> for Signed<L> {
-    type Iter<W: Word + 'words> = DigitsIter<'words, W>;
-
-    #[inline]
-    fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
-        to_digits_iter(&self.0, arg.exp)
-    }
-}
-
-impl<'words, const L: usize> ToDigitsIter<'words> for Unsigned<L> {
-    type Iter<W: Word + 'words> = DigitsIter<'words, W>;
-
-    #[inline]
-    fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
-        to_digits_iter(&self.0, arg.exp)
-    }
-}
-
-impl<'words, const L: usize> ToDigitsIter<'words> for Bytes<L> {
-    type Iter<W: Word + 'words> = DigitsIter<'words, W>;
-
-    #[inline]
-    fn to_digits_iter<W: Word>(&'words self, arg: ExpImpl<W>) -> Result<Self::Iter<W>, ToDigitsError> {
-        to_digits_iter(&self.0, arg.exp)
+    fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
+        Encoded::read(self, ctx.exp.as_usize())
     }
 }
 
 impl<const L: usize> IntoDigits for Signed<L> {
     #[inline]
-    fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError> {
-        into_digits(self.0, arg.radix)
+    fn into_digits(self, ctx: RadixImpl<Single>) -> impl ExactSizeIterator<Item = Single> {
+        let bits = ctx.radix.order();
+        let len = self.0.iter().copied().length(0);
+
+        DigitsIter {
+            words: self,
+            radix: ctx.radix,
+            idx: 0,
+            len: (len * BITS + bits - 1) / bits,
+        }
     }
 }
 
 impl<const L: usize> IntoDigits for Unsigned<L> {
     #[inline]
-    fn into_digits<W: Word>(self, arg: RadixImpl<W>) -> Result<Vec<W>, IntoDigitsError> {
-        into_digits(self.0, arg.radix)
-    }
-}
+    fn into_digits(self, ctx: RadixImpl<Single>) -> impl ExactSizeIterator<Item = Single> {
+        let bits = ctx.radix.order();
+        let len = self.0.iter().copied().length(0);
 
-impl<const L: usize> IntoDigitsIter for Signed<L> {
-    type Iter<W: Word> = DigitsRadixIter<L, W>;
-
-    #[inline]
-    fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError> {
-        into_digits_iter(self.0, arg.radix)
-    }
-}
-
-impl<const L: usize> IntoDigitsIter for Unsigned<L> {
-    type Iter<W: Word> = DigitsRadixIter<L, W>;
-
-    #[inline]
-    fn into_digits_iter<W: Word>(self, arg: RadixImpl<W>) -> Result<Self::Iter<W>, IntoDigitsError> {
-        into_digits_iter(self.0, arg.radix)
-    }
-}
-
-impl<'words, W: Word> ExactSizeIterator for DigitsIter<'words, W> {}
-impl<'words, W: Word> Iterator for DigitsIter<'words, W> {
-    type Item = W;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let zero = Relaxed(W::ZERO);
-        let one = Relaxed(W::ONE);
-
-        let words = self.words;
-        let exp = self.exp;
-        let idx = self.idx;
-        let len = self.len;
-
-        if idx >= len {
-            return None;
+        DigitsIter {
+            words: self,
+            radix: ctx.radix,
+            idx: 0,
+            len: (len * BITS + bits - 1) / bits,
         }
-
-        let offset = idx * exp;
-        let mask = (one << exp) - one;
-
-        let shl = offset % W::BITS;
-        let shr = W::BITS - shl;
-
-        let idxs = [offset / W::BITS, (offset + exp) / W::BITS];
-        let vals = [
-            Relaxed(*words.get(idxs[0]).unwrap_or(&zero.0)) & (mask << shl),
-            Relaxed(*words.get(idxs[1]).unwrap_or(&zero.0)) & (mask >> shr),
-        ];
-
-        let res = vals[0] >> shl | vals[1] << shr;
-
-        self.idx += 1;
-
-        Some(res.0)
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.len - self.idx;
-
-        (len, Some(len))
-    }
-}
-
-impl<const L: usize, W: Word> ExactSizeIterator for DigitsRadixIter<L, W> {}
-impl<const L: usize, W: Word> Iterator for DigitsRadixIter<L, W> {
-    type Item = W;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let radix = self.radix.as_double();
-
-        let mut any = 0;
-        let mut acc = 0;
-
-        for word in self.words.iter_mut().rev() {
-            any |= *word;
-            acc = (acc << BITS) | *word as Double;
-
-            *word = (acc / radix) as Single;
-
-            acc %= radix;
-        }
-
-        if any == 0 {
-            return None;
-        }
-
-        Some(W::from_double(acc))
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
     }
 }
 
@@ -7055,26 +6887,26 @@ const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     res
 }
 
-fn try_from_arr<const L: usize, const N: usize, W: Word>(
+fn try_from_array<const L: usize, const N: usize, W: Word>(
     arr: &[W; N],
     default: Single,
-) -> Result<[Single; L], TryFromArrError> {
+) -> Result<[Single; L], InitError> {
     match (N * W::BYTES).cmp(&(L * BYTES)) {
-        Ordering::Less => Ok(from_arr(arr, default)),
-        Ordering::Equal => Ok(from_arr(arr, default)),
-        Ordering::Greater => Err(TryFromArrError::InvalidLength),
+        Ordering::Less => Ok(from_array(arr, default)),
+        Ordering::Equal => Ok(from_array(arr, default)),
+        Ordering::Greater => Err(InitError::InvalidLength),
     }
 }
 
-fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], TryFromSliceError> {
+fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], InitError> {
     match (slice.len() * W::BYTES).cmp(&(L * BYTES)) {
         Ordering::Less => Ok(from_slice(slice)),
         Ordering::Equal => Ok(from_slice(slice)),
-        Ordering::Greater => Err(TryFromSliceError::InvalidLength),
+        Ordering::Greater => Err(InitError::InvalidLength),
     }
 }
 
-fn from_arr<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
+fn from_array<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
     let len = N.min(L * BYTES / W::BYTES);
 
     let mut res = [default; L];
@@ -7118,257 +6950,6 @@ fn from_iter<const L: usize, W: Word, Iter: Iterator<Item = W>>(iter: Iter) -> [
     });
 
     res
-}
-
-fn from_digits_validate<W: Word, Words>(digits: Words, radix: W) -> Result<(), FromDigitsError>
-where
-    Words: Clone + Iterator<Item = W>,
-{
-    let radix = radix.as_usize();
-
-    if radix < 2 {
-        return Err(FromDigitsError::InvalidRadix { radix });
-    }
-
-    if let Some(digit) = digits.map(|digit| digit.as_usize()).find(|&digit| digit >= radix) {
-        return Err(FromDigitsError::InvalidDigit { digit, radix });
-    }
-
-    Ok(())
-}
-
-fn to_digits_validate<W: Word>(exp: W) -> Result<(), ToDigitsError> {
-    let exp = exp.as_usize();
-
-    if exp == 0 || exp >= W::BITS {
-        return Err(ToDigitsError::InvalidExponent { exp });
-    }
-
-    Ok(())
-}
-
-fn into_digits_validate<W: Word>(radix: W) -> Result<(), IntoDigitsError> {
-    let radix = radix.as_usize();
-
-    if radix < 2 {
-        return Err(IntoDigitsError::InvalidRadix { radix });
-    }
-
-    Ok(())
-}
-
-fn from_digits_impl<const L: usize, W: Word, Words>(iter: Words, exp: usize) -> [Single; L]
-where
-    Words: Clone + Iterator<Item = W>,
-{
-    let bits = exp;
-    let mask = (1 << BITS) - 1;
-
-    let mut acc = 0;
-    let mut shl = 0;
-    let mut idx = 0;
-    let mut res = [0; L];
-
-    for digit in iter {
-        acc |= digit.as_double() << shl;
-        shl += bits;
-        res[idx] = (acc & mask) as Single;
-
-        if shl >= BITS {
-            if idx + 1 == L {
-                break;
-            }
-
-            acc >>= BITS;
-            shl -= BITS;
-            idx += 1;
-            res[idx] = (acc & mask) as Single;
-        }
-    }
-
-    res
-}
-
-fn from_digits_radix_impl<const L: usize, W: Word, Words>(iter: Words, radix: W) -> [Single; L]
-where
-    Words: Clone + Iterator<Item = W>,
-{
-    let mut idx = 0;
-    let mut res = [0; L];
-
-    for digit in iter {
-        let mut acc = digit.as_double();
-
-        for ptr in res.iter_mut().take(idx + 1) {
-            acc += *ptr as Double * radix.as_double();
-
-            *ptr = acc as Single;
-
-            acc >>= BITS;
-        }
-
-        if idx < L && res[idx] > 0 {
-            idx += 1;
-        }
-    }
-
-    res
-}
-
-fn from_digits<const L: usize, W: Word>(digits: &[W], exp: W) -> Result<[Single; L], FromDigitsError> {
-    let exp = exp.as_usize();
-
-    if exp == 0 || exp >= W::BITS {
-        return Err(FromDigitsError::InvalidExponent { exp });
-    }
-
-    from_digits_validate(digits.iter().copied(), W::from_single(1 << exp))?;
-
-    let res = from_digits_impl(digits.iter().copied(), exp);
-
-    Ok(res)
-}
-
-fn from_digits_iter<const L: usize, W: Word, Words>(digits: Words, exp: W) -> Result<[Single; L], FromDigitsError>
-where
-    Words: Clone + Iterator<Item = W>,
-{
-    let exp = exp.as_usize();
-
-    if exp == 0 || exp >= W::BITS {
-        return Err(FromDigitsError::InvalidExponent { exp });
-    }
-
-    from_digits_validate(digits.clone(), W::from_single(1 << exp))?;
-
-    let res = from_digits_impl(digits, exp);
-
-    Ok(res)
-}
-
-fn from_digits_radix<const L: usize, W: Word>(digits: &[W], radix: W) -> Result<[Single; L], FromDigitsError> {
-    if radix.is_pow2() {
-        return from_digits(digits, W::from_single(radix.order() as Single));
-    }
-
-    from_digits_validate(digits.iter().copied(), radix)?;
-
-    let res = from_digits_radix_impl(digits.iter().copied().rev(), radix);
-
-    Ok(res)
-}
-
-fn from_digits_radix_iter<const L: usize, W: Word, Words>(
-    digits: Words,
-    radix: W,
-) -> Result<[Single; L], FromDigitsError>
-where
-    Words: Clone + Iterator<Item = W> + DoubleEndedIterator,
-{
-    if radix.is_pow2() {
-        return from_digits_iter(digits, W::from_single(radix.order() as Single));
-    }
-
-    from_digits_validate(digits.clone(), radix)?;
-
-    let res = from_digits_radix_impl(digits.rev(), radix);
-
-    Ok(res)
-}
-
-fn to_digits<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<Vec<W>, ToDigitsError> {
-    to_digits_validate(exp)?;
-
-    let bits = exp.as_usize();
-    let mask = (1 << bits) - 1;
-    let len = (words.len() * BITS + bits - 1) / bits;
-
-    let mut acc = 0;
-    let mut shl = 0;
-    let mut idx = 0;
-    let mut res = vec![W::ZERO; len + 1];
-
-    for &digit in words {
-        acc |= (digit as Double) << shl;
-        shl += BITS;
-        res[idx] = W::from_double(acc & mask);
-
-        while shl >= bits {
-            acc >>= bits;
-            shl -= bits;
-            idx += 1;
-            res[idx] = W::from_double(acc & mask);
-        }
-    }
-
-    res.truncate(res.iter().copied().length(W::ZERO));
-
-    Ok(res)
-}
-
-fn to_digits_iter<const L: usize, W: Word>(words: &[Single; L], exp: W) -> Result<DigitsIter<'_, W>, ToDigitsError> {
-    to_digits_validate(exp)?;
-
-    let exp = exp.as_usize();
-
-    Ok(DigitsIter {
-        words: transmute_ref!(words),
-        exp,
-        idx: 0,
-        len: (BITS * L + exp - 1) / exp,
-    })
-}
-
-fn into_digits<const L: usize, W: Word>(mut words: [Single; L], radix: W) -> Result<Vec<W>, IntoDigitsError> {
-    if radix.is_pow2() {
-        return Ok(to_digits(&words, W::from_single(radix.order() as Single))?);
-    }
-
-    into_digits_validate(radix)?;
-
-    let bits = radix.order();
-    let len = (words.len() * BITS + bits - 1) / bits;
-
-    let mut idx = 0;
-    let mut res = vec![W::ZERO; len + 1];
-
-    loop {
-        let mut any = 0;
-        let mut acc = 0;
-
-        for digit in words.iter_mut().rev() {
-            any |= *digit;
-            acc = (acc << BITS) | *digit as Double;
-
-            *digit = (acc / radix.as_double()) as Single;
-
-            acc %= radix.as_double();
-        }
-
-        if any == 0 {
-            break;
-        }
-
-        res[idx] = W::from_double(acc);
-        idx += 1;
-    }
-
-    res.truncate(res.iter().copied().length(W::ZERO));
-
-    Ok(res)
-}
-
-fn into_digits_iter<const L: usize, W: Word>(
-    words: [Single; L],
-    radix: W,
-) -> Result<DigitsRadixIter<L, W>, IntoDigitsError> {
-    into_digits_validate(radix)?;
-
-    let bits = radix.order();
-    let cnt = words.iter().copied().length(0);
-    let len = (cnt * BITS + bits - 1) / bits;
-
-    Ok(DigitsRadixIter { words, radix, len })
 }
 
 #[cfg(test)]
@@ -7665,8 +7246,8 @@ mod tests {
             (S64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
             (U64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
 
-            (S32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(TryFromArrError::InvalidLength)),
-            (U32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(TryFromArrError::InvalidLength)),
+            (S32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(InitError::InvalidLength)),
+            (U32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(InitError::InvalidLength)),
             (S32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
             (U32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
             (S32::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
@@ -7714,8 +7295,8 @@ mod tests {
             (S64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(S64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
             (U64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(U64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
 
-            (S32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(TryFromSliceError::InvalidLength)),
-            (U32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(TryFromSliceError::InvalidLength)),
+            (S32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(InitError::InvalidLength)),
+            (U32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(InitError::InvalidLength)),
             (S32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
             (U32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
             (S32::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
@@ -7766,38 +7347,6 @@ mod tests {
                 let radix = $radix;
 
                 let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-
-                let bytes = digits
-                    .iter()
-                    .rev()
-                    .fold(0, |acc, &x| acc * radix as u64 + x as u64)
-                    .to_le_bytes();
-
-                let lhs = <$long>::nd_try_from(digits.as_ref(), RadixImpl { radix });
-                let rhs = <$long>::nd_from(&bytes, ());
-
-                (lhs, Ok(rhs))
-            }};
-        }
-
-        let mut rng = ndassert::rand!(StdRng, 60);
-
-        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
-            generate!(S64, i64, &mut rng, radix),
-            generate!(U64, u64, &mut rng, radix),
-        ] }
-    }
-
-    #[test]
-    fn from_digits_iter() {
-        macro_rules! generate {
-            ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
-                const BYTES: usize = <$primitive>::BITS as usize / 8;
-
-                let rng = $rng;
-                let radix = $radix;
-
-                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
                 let iter = digits.iter().copied();
 
                 let bytes = digits
@@ -7806,7 +7355,7 @@ mod tests {
                     .fold(0, |acc, &x| acc * radix as u64 + x as u64)
                     .to_le_bytes();
 
-                let lhs = <$long>::nd_try_from_iter(iter, RadixImpl { radix });
+                let lhs = <$long>::nd_try_from(iter, RadixImpl { radix });
                 let rhs = <$long>::nd_from(&bytes, ());
 
                 (lhs, Ok(rhs))
@@ -7832,42 +7381,12 @@ mod tests {
 
                 let radix = 1u8 << exp;
                 let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+                let iter = digits.iter().copied();
 
-                let res = <$long>::nd_try_from(digits.as_ref(), ExpImpl { exp }).map(|long| {
-                    long.to_digits(ExpImpl { exp })
-                        .map(|digits| digits.iter().copied().collect_with([0; BYTES]))
-                });
+                let res = <$long>::nd_try_from(iter, ExpImpl { exp })
+                    .map(|long| long.to_digits(ExpImpl { exp }).collect_with([0; BYTES]));
 
-                (res, Ok(Ok(digits)))
-            }};
-        }
-
-        let mut rng = ndassert::rand!(StdRng, 60);
-
-        ndassert::check! { @eq (exp in (1..u8::BITS as u8).flat_map(|radix| repeat_n(radix, 1 << 16))) [
-            generate!(S64, i64, &mut rng, exp),
-            generate!(U64, u64, &mut rng, exp),
-        ] }
-    }
-
-    #[test]
-    fn to_digits_iter() {
-        macro_rules! generate {
-            ($long:ty, $primitive:ty, $rng:expr, $exp:expr) => {{
-                const BYTES: usize = <$primitive>::BITS as usize / 8;
-
-                let rng = $rng;
-                let exp = $exp;
-
-                let radix = 1u8 << exp;
-                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-
-                let res = <$long>::nd_try_from(digits.as_ref(), ExpImpl { exp }).map(|long| {
-                    long.to_digits_iter(ExpImpl { exp })
-                        .map(|mut digits| digits.collect_with([0; BYTES]))
-                });
-
-                (res, Ok(Ok(digits)))
+                (res, Ok(digits))
             }};
         }
 
@@ -7889,41 +7408,12 @@ mod tests {
                 let radix = $radix;
 
                 let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+                let iter = digits.iter().copied();
 
-                let res = <$long>::nd_try_from(digits.as_ref(), RadixImpl { radix }).map(|long| {
-                    long.into_digits(RadixImpl { radix })
-                        .map(|digits| digits.iter().copied().collect_with([0; BYTES]))
-                });
+                let res = <$long>::nd_try_from(iter, RadixImpl { radix })
+                    .map(|long| long.into_digits(RadixImpl { radix }).collect_with([0; BYTES]));
 
-                (res, Ok(Ok(digits)))
-            }};
-        }
-
-        let mut rng = ndassert::rand!(StdRng, 60);
-
-        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
-            generate!(S64, i64, &mut rng, radix),
-            generate!(U64, u64, &mut rng, radix),
-        ] }
-    }
-
-    #[test]
-    fn into_digits_iter() {
-        macro_rules! generate {
-            ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
-                const BYTES: usize = <$primitive>::BITS as usize / 8;
-
-                let rng = $rng;
-                let radix = $radix;
-
-                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-
-                let res = <$long>::nd_try_from(digits.as_ref(), RadixImpl { radix }).map(|long| {
-                    long.into_digits_iter(RadixImpl { radix })
-                        .map(|mut digits| digits.collect_with([0; BYTES]))
-                });
-
-                (res, Ok(Ok(digits)))
+                (res, Ok(digits))
             }};
         }
 
