@@ -435,83 +435,22 @@ pub mod codec {
 
         /// Checks `Self::LEN`.
         const _CHECK: () = assert!(Self::BITS <= u8::BITS as usize);
-
-        /// Encodes words in Codec configuration.
-        #[inline]
-        fn encode<W: Word, Words: AsWordsRef<W>>(
-            words: &Words,
-        ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
-            let bits = Self::BITS;
-
-            Encoded::read(words, bits).map(|idx| Self::ENCODE[idx.as_usize()])
-        }
-
-        /// Decodes words in Codec configuration.
-        #[inline]
-        fn decode<W: Word, Words: AsWordsMut<W>>(
-            words: Words,
-            iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
-        ) -> Words {
-            let bits = Self::BITS;
-
-            Decoded::write(
-                words,
-                bits,
-                iter.map(|idx| W::from_single(Self::DECODE[idx as usize] as Single)),
-            )
-        }
-
-        /// Decodes words in Codec configuration (checked).
-        #[inline]
-        fn try_decode<W: Word, Words: AsWordsMut<W>>(
-            words: Words,
-            iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
-        ) -> Result<Words, Error> {
-            let mut flag = 0u8;
-
-            let words = Self::decode(words, iter.inspect(|&byte| flag |= Self::DECODE[byte as usize]));
-
-            match flag {
-                u8::MAX => Err(Error::InvalidEntry),
-                _ => Ok(words),
-            }
-        }
     }
 
     /// Encode functions.
     #[ndfwd::decl]
     pub trait Encode<W: Word>: Sized + AsWordsRef<W> {
         /// Encodes from self.
-        fn encoded<C: Codec>(&self) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
-            C::encode(self)
-        }
-    }
-
-    /// Decode functions.
-    #[ndfwd::decl]
-    pub trait Decode<W: Word>: Sized + AsWordsMut<W> {
-        /// Decodes into self.
-        #[ndfwd::as_into]
-        fn decoded<C: Codec>(self, iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator) -> Self {
-            C::decode(self, iter)
-        }
-    }
-
-    impl Encoded {
-        /// Length for encoded array.
         #[inline]
-        pub const fn len<W: Word>(len: usize, bits: usize) -> usize {
-            (W::BITS * len).div_ceil(bits)
+        fn encoded<C: Codec>(&self) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
+            self.read(C::BITS).map(|idx| C::ENCODE[idx.as_usize()])
         }
 
         /// Reads from words in bits-len for encoding.
         #[inline]
-        pub fn read<W: Word, Words: AsWordsRef<W>>(
-            words: &Words,
-            bits: usize,
-        ) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator {
+        fn read(&self, bits: usize) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator {
             let one = Relaxed(W::ONE);
-            let len = Encoded::len::<W>(words.as_words_ref().len(), bits);
+            let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
 
             let mask = (one << bits) - one;
 
@@ -523,8 +462,8 @@ pub mod codec {
 
                 let idxs = [offset / W::BITS, (offset + bits) / W::BITS];
                 let vals = [
-                    Relaxed(*words.as_words_ref().get(idxs[0]).unwrap_or(&W::ZERO)) & (mask << shl),
-                    Relaxed(*words.as_words_ref().get(idxs[1]).unwrap_or(&W::ZERO)) & (mask >> shr),
+                    Relaxed(*self.as_words_ref().get(idxs[0]).unwrap_or(&W::ZERO)) & (mask << shl),
+                    Relaxed(*self.as_words_ref().get(idxs[1]).unwrap_or(&W::ZERO)) & (mask >> shr),
                 ];
 
                 (vals[0] >> shl | vals[1] << shr).0
@@ -532,27 +471,36 @@ pub mod codec {
         }
     }
 
-    impl Decoded {
-        /// Length for decoded array.
+    /// Decode functions.
+    #[ndfwd::decl]
+    pub trait Decode<W: Word>: Sized + AsWordsMut<W> {
+        /// Decodes into self.
         #[inline]
-        pub const fn len<W: Word>(len: usize, bits: usize) -> usize {
-            (bits * len).div_ceil(W::BITS)
+        #[ndfwd::as_into]
+        fn decoded<C: Codec>(self, iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator) -> Self {
+            self.write(C::BITS, iter.map(|idx| W::from_single(C::DECODE[idx as usize] as Single)))
+        }
+
+        /// Decodes into self (checked).
+        #[inline]
+        #[ndfwd::as_map(Self::from)]
+        fn try_decoded<C: Codec>(
+            self,
+            iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
+        ) -> Result<Self, Error> {
+            self.try_write(C::BITS, iter.map(|idx| W::from_single(C::DECODE[idx as usize] as Single)))
         }
 
         /// Writes into words in bits-len for decoding.
         #[inline]
-        pub fn write<W: Word, Words: AsWordsMut<W>>(
-            mut words: Words,
-            bits: usize,
-            iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
-        ) -> Words {
-            #![allow(clippy::option_map_unit_fn)]
-
+        #[ndfwd::as_into]
+        fn write(mut self, bits: usize, iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator) -> Self {
             let one = Relaxed(W::ONE);
-            let len = Encoded::len::<W>(words.as_words_ref().len(), bits);
+            let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
 
             let mask = (one << bits) - one;
 
+            #[allow(clippy::option_map_unit_fn)]
             for (idx, word) in iter.take(len).enumerate() {
                 let offset = idx * bits;
 
@@ -565,29 +513,46 @@ pub mod codec {
                     (Relaxed(word) >> shr) & (mask >> shr),
                 ];
 
-                words.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
-                words.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
+                self.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
+                self.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
             }
 
-            words
+            self
         }
 
         /// Writes into words in bits-len for decoding (checked).
         #[inline]
-        pub fn try_write<W: Word, Words: AsWordsMut<W>>(
-            words: Words,
+        #[ndfwd::as_map(Self::from)]
+        fn try_write(
+            self,
             bits: usize,
             iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
-        ) -> Result<Words, Error> {
+        ) -> Result<Self, Error> {
             let mut flag = W::ZERO;
 
-            let words = Decoded::write(words, bits, iter.inspect(|&word| flag |= word));
+            let words = Self::write(self, bits, iter.inspect(|&word| flag |= word));
 
             if (Relaxed(W::ONE) << bits) <= Relaxed(flag) {
                 return Err(Error::InvalidEntry);
             }
 
             Ok(words)
+        }
+    }
+
+    impl Encoded {
+        /// Length for encoded array.
+        #[inline]
+        pub const fn len<W: Word>(len: usize, bits: usize) -> usize {
+            (W::BITS * len).div_ceil(bits)
+        }
+    }
+
+    impl Decoded {
+        /// Length for decoded array.
+        #[inline]
+        pub const fn len<W: Word>(len: usize, bits: usize) -> usize {
+            (bits * len).div_ceil(W::BITS)
         }
     }
 
@@ -773,54 +738,6 @@ pub mod codec {
         }
 
         Ok(())
-    }
-
-    /// ASCII identity iterator.
-    #[inline]
-    pub fn ident<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
-        ascii: Ascii,
-    ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
-        ascii
-    }
-
-    /// ASCII uppercase iterator.
-    #[inline]
-    pub fn uppercase<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
-        ascii: Ascii,
-    ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
-        const ASCII: Aligned<[u8; 256]> = {
-            let mut res = [0; 256];
-            let mut idx = 0usize;
-
-            while idx < res.len() {
-                res[idx] = (idx as u8 as char).to_ascii_uppercase() as u8;
-                idx += 1;
-            }
-
-            Aligned(res)
-        };
-
-        ascii.map(|byte| ASCII[byte as usize])
-    }
-
-    /// ASCII lowercase iterator.
-    #[inline]
-    pub fn lowercase<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
-        ascii: Ascii,
-    ) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
-        const ASCII: Aligned<[u8; 256]> = {
-            let mut res = [0; 256];
-            let mut idx = 0usize;
-
-            while idx < res.len() {
-                res[idx] = (idx as u8 as char).to_ascii_lowercase() as u8;
-                idx += 1;
-            }
-
-            Aligned(res)
-        };
-
-        ascii.map(|byte| ASCII[byte as usize])
     }
 
     #[inline]

@@ -60,6 +60,54 @@ pub trait IteratorExt: Iterator {
             true => acc,
         })
     }
+
+    /// ASCII uppercase iterator.
+    #[inline]
+    fn ascii_uppercase(self) -> std::iter::Map<Self, impl FnMut(u8) -> u8>
+    where
+        Self: Sized + Iterator<Item = u8>,
+    {
+        #[repr(align(256))]
+        struct Aligned<T>(T);
+
+        static ASCII: Aligned<[u8; 256]> = Aligned({
+            let mut res = [0; 256];
+            let mut idx = 0;
+
+            while idx < res.len() {
+                res[idx] = (idx as u8 as char).to_ascii_uppercase() as u8;
+                idx += 1;
+            }
+
+            res
+        });
+
+        self.map(|idx| ASCII.0[idx as usize])
+    }
+
+    /// ASCII lowercase iterator.
+    #[inline]
+    fn ascii_lowercase(self) -> std::iter::Map<Self, impl FnMut(u8) -> u8>
+    where
+        Self: Sized + Iterator<Item = u8>,
+    {
+        #[repr(align(256))]
+        struct Aligned<T>(T);
+
+        static ASCII: Aligned<[u8; 256]> = Aligned({
+            let mut res = [0; 256];
+            let mut idx = 0;
+
+            while idx < res.len() {
+                res[idx] = (idx as u8 as char).to_ascii_lowercase() as u8;
+                idx += 1;
+            }
+
+            res
+        });
+
+        self.map(|idx| ASCII.0[idx as usize])
+    }
 }
 
 impl<Iter: Iterator> IteratorExt for Iter {}

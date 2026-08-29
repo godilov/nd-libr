@@ -22,7 +22,7 @@ use crate::{
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
     arch::{
         AsWordsMut, AsWordsRef, Rand, codec,
-        codec::{Codec, Decode, Decoded, Encode, Encoded},
+        codec::{Codec, Decode, Encode},
         word::*,
     },
     long::{
@@ -4670,26 +4670,26 @@ pub mod radix {
     impl Radix<'_> {
         /// Parse into words.
         #[inline]
-        pub fn parse<W: Word, Words: AsWordsMut<W>>(&self, words: Words) -> Words {
+        pub fn parse<W: Word, Words: Encode<W> + Decode<W>>(&self, words: Words) -> Words {
             match self {
                 Radix::Dec(_, _, _) => words,
-                Radix::Bin(_, str, _) => codec::Bin::decode(words, str.bytes().rev()),
-                Radix::Oct(_, str, _) => codec::Oct::decode(words, str.bytes().rev()),
-                Radix::Hex(_, str, _) => codec::Hex::decode(words, str.bytes().rev()),
-                Radix::X64(_, str, _) => codec::X64::decode(words, str.bytes().rev()),
+                Radix::Bin(_, str, _) => words.decoded::<codec::Bin>(str.bytes().rev()),
+                Radix::Oct(_, str, _) => words.decoded::<codec::Oct>(str.bytes().rev()),
+                Radix::Hex(_, str, _) => words.decoded::<codec::Hex>(str.bytes().rev()),
+                Radix::X64(_, str, _) => words.decoded::<codec::X64>(str.bytes().rev()),
             }
         }
 
         /// Parse into words (checked).
         #[inline]
         #[rustfmt::skip]
-        pub fn try_parse<W: Word, Words: AsWordsMut<W>>(&self, words: Words) -> Result<Words, Error> {
+        pub fn try_parse<W: Word, Words: Encode<W> + Decode<W>>(&self, words: Words) -> Result<Words, Error> {
             match self {
                 Radix::Dec(_, _, _) => Ok(words),
-                Radix::Bin(_, str, _) => codec::Bin::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
-                Radix::Oct(_, str, _) => codec::Oct::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
-                Radix::Hex(_, str, _) => codec::Hex::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
-                Radix::X64(_, str, _) => codec::X64::try_decode(words, str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::Bin(_, str, _) => words.try_decoded::<codec::Bin>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::Oct(_, str, _) => words.try_decoded::<codec::Oct>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::Hex(_, str, _) => words.try_decoded::<codec::Hex>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::X64(_, str, _) => words.try_decoded::<codec::X64>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
             }
         }
     }
@@ -5234,7 +5234,9 @@ impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + Doubl
 
     #[inline]
     fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        Decoded::try_write(Self([0; L]), ctx.exp.as_usize(), words).map_err(|_| DigitsError::InvalidPayload)
+        Self::default()
+            .try_write(ctx.exp.as_usize(), words)
+            .map_err(|_| DigitsError::InvalidPayload)
     }
 }
 
@@ -5245,7 +5247,9 @@ impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + Doubl
 
     #[inline]
     fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
-        Decoded::try_write(Self([0; L]), ctx.exp.as_usize(), words).map_err(|_| DigitsError::InvalidPayload)
+        Self::default()
+            .try_write(ctx.exp.as_usize(), words)
+            .map_err(|_| DigitsError::InvalidPayload)
     }
 }
 
@@ -5339,7 +5343,7 @@ impl<const L: usize> NdFromStr<Bin> for Signed<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        codec::Bin::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5348,7 +5352,7 @@ impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        codec::Bin::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5357,7 +5361,7 @@ impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        codec::Bin::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5366,7 +5370,7 @@ impl<const L: usize> NdFromStr<Oct> for Signed<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        codec::Oct::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5375,7 +5379,7 @@ impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        codec::Oct::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5384,7 +5388,7 @@ impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        codec::Oct::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5393,7 +5397,7 @@ impl<const L: usize> NdFromStr<Hex> for Signed<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        codec::Hex::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5402,7 +5406,7 @@ impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        codec::Hex::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5411,7 +5415,7 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
 
     #[inline]
     fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        codec::Hex::try_decode::<u8, Self>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5623,8 +5627,8 @@ impl<const L: usize> LowerHex for Signed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
-            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
+            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
             codec::Hex::PREFIX,
         )
     }
@@ -5635,8 +5639,8 @@ impl<const L: usize> LowerHex for Unsigned<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
-            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
+            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
             codec::Hex::PREFIX,
         )
     }
@@ -5647,8 +5651,8 @@ impl<const L: usize> LowerHex for Bytes<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
-            codec::lowercase(Encode::<u8>::encoded::<codec::Hex>(self)),
+            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
+            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
             codec::Hex::PREFIX,
         )
     }
@@ -6191,14 +6195,14 @@ impl<const L: usize> Bytes<L> {
 impl<const L: usize> ToDigits for Signed<L> {
     #[inline]
     fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        Encoded::read(self, ctx.exp.as_usize())
+        self.read(ctx.exp.as_usize())
     }
 }
 
 impl<const L: usize> ToDigits for Unsigned<L> {
     #[inline]
     fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        Encoded::read(self, ctx.exp.as_usize())
+        self.read(ctx.exp.as_usize())
     }
 }
 
