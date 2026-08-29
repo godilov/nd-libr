@@ -4754,12 +4754,12 @@ pub mod radix {
     }
 
     #[inline]
-    pub(crate) fn write_dec<W: Word, Words: ExactSizeIterator<Item = W>>(
+    pub(crate) fn write_dec<W: Word, Iter: ExactSizeIterator<Item = W>>(
         fmt: &mut Formatter<'_>,
-        words: Words,
+        iter: Iter,
         dir: Dir,
     ) -> std::fmt::Result {
-        let len = words.len();
+        let len = iter.len();
         let sign = match dir {
             Dir::NEG => "-",
             Dir::POS => "",
@@ -4769,7 +4769,7 @@ pub mod radix {
 
         let mut buf = vec![b'0'; len * digits];
 
-        for (idx, word) in words.enumerate() {
+        for (idx, word) in iter.enumerate() {
             let offset = (len - idx - 1) * digits;
 
             Cursor::new(&mut buf[offset..])
@@ -5263,43 +5263,43 @@ impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
     }
 }
 
-impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
-    NdTryFrom<Words, ExpImpl<W>> for Signed<L>
+impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Iter, ExpImpl<W>> for Signed<L>
 {
     type Error = radix::Error;
 
     #[inline]
-    fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
+    fn nd_try_from(iter: Iter, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
         Self::default()
-            .try_write(ctx.exp.as_usize(), words)
+            .try_write(ctx.exp.as_usize(), iter)
             .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
-impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
-    NdTryFrom<Words, ExpImpl<W>> for Unsigned<L>
+impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Iter, ExpImpl<W>> for Unsigned<L>
 {
     type Error = radix::Error;
 
     #[inline]
-    fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
+    fn nd_try_from(iter: Iter, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
         Self::default()
-            .try_write(ctx.exp.as_usize(), words)
+            .try_write(ctx.exp.as_usize(), iter)
             .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
-impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
-    NdTryFrom<Words, RadixImpl<W>> for Signed<L>
+impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Iter, RadixImpl<W>> for Signed<L>
 {
     type Error = radix::Error;
 
     #[inline]
-    fn nd_try_from(words: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
+    fn nd_try_from(iter: Iter, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
         match ctx.radix.is_pow2() {
-            false => Radix::try_parse(Self::default(), ctx.radix, words.rev()),
+            false => Radix::try_parse(Self::default(), ctx.radix, iter.rev()),
             true => Self::nd_try_from(
-                words,
+                iter,
                 ExpImpl {
                     exp: W::from_usize(ctx.radix.order()),
                 },
@@ -5308,17 +5308,17 @@ impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + Doubl
     }
 }
 
-impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
-    NdTryFrom<Words, RadixImpl<W>> for Unsigned<L>
+impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
+    NdTryFrom<Iter, RadixImpl<W>> for Unsigned<L>
 {
     type Error = radix::Error;
 
     #[inline]
-    fn nd_try_from(words: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
+    fn nd_try_from(iter: Iter, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
         match ctx.radix.is_pow2() {
-            false => Radix::try_parse(Self::default(), ctx.radix, words.rev()),
+            false => Radix::try_parse(Self::default(), ctx.radix, iter.rev()),
             true => Self::nd_try_from(
-                words,
+                iter,
                 ExpImpl {
                     exp: W::from_usize(ctx.radix.order()),
                 },
