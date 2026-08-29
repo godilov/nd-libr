@@ -473,7 +473,7 @@ pub mod codec {
 
     /// Decode functions.
     #[ndfwd::decl]
-    pub trait Decode<W: Word>: Sized + AsWordsMut<W> {
+    pub trait Decode<W: Word>: Sized + Debug + AsWordsMut<W> {
         /// Decodes into self.
         #[inline]
         #[ndfwd::as_into]
@@ -528,15 +528,18 @@ pub mod codec {
             bits: usize,
             iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
         ) -> Result<Self, Error> {
-            let mut flag = W::ZERO;
+            let mut flag = false;
 
-            let words = Self::write(self, bits, iter.inspect(|&word| flag |= word));
+            let words = Self::write(
+                self,
+                bits,
+                iter.inspect(|&word| flag |= (Relaxed(W::ONE) << bits) <= Relaxed(word)),
+            );
 
-            if (Relaxed(W::ONE) << bits) <= Relaxed(flag) {
-                return Err(Error::InvalidEntry);
+            match flag {
+                false => Ok(words),
+                true => Err(Error::InvalidEntry),
             }
-
-            Ok(words)
         }
     }
 

@@ -60,7 +60,7 @@ pub trait NdFromStr<Ctx>: Sized {
     type Err;
 
     /// Parse from string and context.
-    fn nd_from_str(s: &str, ctx: Ctx) -> Result<Self, Self::Err>;
+    fn nd_from_str(str: &str, ctx: Ctx) -> Result<Self, Self::Err>;
 }
 
 impl<U, V: From<U>> NdFrom<U, ()> for V {
@@ -83,7 +83,7 @@ impl<T: FromStr> NdFromStr<()> for T {
     type Err = T::Err;
 
     #[inline]
-    fn nd_from_str(s: &str, _: ()) -> Result<Self, Self::Err> {
-        T::from_str(s)
+    fn nd_from_str(str: &str, _: ()) -> Result<Self, Self::Err> {
+        T::from_str(str)
     }
 }

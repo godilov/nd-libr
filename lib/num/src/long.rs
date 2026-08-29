@@ -4617,6 +4617,7 @@ pub mod radix {
     pub struct X64;
 
     /// Radix.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Radix<'str> {
         /// Dec radix.
         Dec(Dir, &'str str, codec::Dec),
@@ -4653,18 +4654,21 @@ pub mod radix {
 
         #[inline]
         fn try_from((str, dirs): (&'str str, &'static [Dir])) -> Result<Self, Self::Error> {
+            if str.is_empty() {
+                return Err(Error::InvalidString);
+            }
+
             let (str, dir) = match &str[..1] {
-                "" => Err(Error::InvalidString),
-                "+" => Ok((&str[1..], Dir::POS)),
-                "-" => Ok((&str[1..], Dir::NEG)),
+                "+" if dirs.contains(&Dir::POS) => Ok((&str[1..], Dir::POS)),
+                "-" if dirs.contains(&Dir::NEG) => Ok((&str[1..], Dir::NEG)),
+                "+" => Err(Error::InvalidDirection),
+                "-" => Err(Error::InvalidDirection),
                 _ => Ok((str, Dir::POS)),
             }?;
 
-            if !dirs.contains(&dir) {
-                return Err(Error::InvalidDirection);
-            }
+            let len = str.len().min(2);
 
-            match &str[..2] {
+            match &str[..len] {
                 "0x" | "0X" if !str[2..].is_empty() => Ok(Self::Hex(dir, &str[2..], codec::Hex)),
                 "0o" | "0O" if !str[2..].is_empty() => Ok(Self::Oct(dir, &str[2..], codec::Oct)),
                 "0b" | "0B" if !str[2..].is_empty() => Ok(Self::Bin(dir, &str[2..], codec::Bin)),
@@ -4703,7 +4707,7 @@ pub mod radix {
 
                     *ptr = W::from_single(acc as Single);
 
-                    acc >>= BITS;
+                    acc >>= W::BITS;
                 }
 
                 let words = words.as_words_ref();
@@ -4722,15 +4726,14 @@ pub mod radix {
             radix: W,
             iter: impl Iterator<Item = W>,
         ) -> Result<Words, Error> {
-            let mut flag = W::ZERO;
+            let mut flag = false;
 
-            let words = Self::parse(words, radix, iter.inspect(|&word| flag |= word));
+            let words = Self::parse(words, radix, iter.inspect(|&word| flag |= radix <= word));
 
-            if radix <= flag {
-                return Err(Error::InvalidPayload);
+            match flag {
+                false => Ok(words),
+                true => Err(Error::InvalidPayload),
             }
-
-            Ok(words)
         }
     }
 
@@ -5293,7 +5296,15 @@ impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + Doubl
 
     #[inline]
     fn nd_try_from(words: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        Radix::try_parse(Self::default(), ctx.radix, words)
+        match ctx.radix.is_pow2() {
+            false => Radix::try_parse(Self::default(), ctx.radix, words.rev()),
+            true => Self::nd_try_from(
+                words,
+                ExpImpl {
+                    exp: W::from_usize(ctx.radix.order()),
+                },
+            ),
+        }
     }
 }
 
@@ -5304,7 +5315,15 @@ impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + Doubl
 
     #[inline]
     fn nd_try_from(words: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        Radix::try_parse(Self::default(), ctx.radix, words)
+        match ctx.radix.is_pow2() {
+            false => Radix::try_parse(Self::default(), ctx.radix, words.rev()),
+            true => Self::nd_try_from(
+                words,
+                ExpImpl {
+                    exp: W::from_usize(ctx.radix.order()),
+                },
+            ),
+        }
     }
 }
 
@@ -5330,17 +5349,21 @@ impl<const L: usize> FromStr for Signed<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let radix = Radix::try_from((s, &[Dir::POS, Dir::NEG][..]))?;
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let radix = Radix::try_from((str, &[Dir::POS, Dir::NEG][..]))?;
 
         match radix {
-            Radix::Dec(_, str, _) => Ok(Radix::try_parse(Self::default(), 10u8, str.bytes().rev())?),
+            Radix::Dec(_, str, _) => Ok(Radix::try_parse(
+                Self::default(),
+                10u8,
+                str.bytes().map(|byte| codec::Dec::DECODE[byte as usize]),
+            )?),
             Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
             Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
             Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
             Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
         }
-        .map(|long| uops::dirx(&long.0, radix.dir()).with(Self))
+        .map(|long| uops::dirv(&long.0, radix.dir()).with(Self))
         .map_err(|_| Error::InvalidPayload)
     }
 }
@@ -5349,17 +5372,20 @@ impl<const L: usize> FromStr for Unsigned<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let radix = Radix::try_from((s, &[Dir::POS][..]))?;
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let radix = Radix::try_from((str, &[][..]))?;
 
         match radix {
-            Radix::Dec(_, str, _) => Ok(Radix::try_parse(Self::default(), 10u8, str.bytes().rev())?),
+            Radix::Dec(_, str, _) => Ok(Radix::try_parse(
+                Self::default(),
+                10u8,
+                str.bytes().map(|byte| codec::Dec::DECODE[byte as usize]),
+            )?),
             Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
             Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
             Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
             Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
         }
-        .map(|res| uops::dirx(&res.0, radix.dir()).with(Self))
         .map_err(|_| Error::InvalidPayload)
     }
 }
@@ -5368,8 +5394,8 @@ impl<const L: usize> FromStr for Bytes<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let radix = Radix::try_from((s, &[Dir::POS][..]))?;
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let radix = Radix::try_from((str, &[][..]))?;
 
         match radix {
             Radix::Dec(_, _, _) => Err(codec::Error::InvalidEntry),
@@ -5378,7 +5404,6 @@ impl<const L: usize> FromStr for Bytes<L> {
             Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
             Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
         }
-        .map(|res| uops::dirx(&res.0, radix.dir()).with(Self))
         .map_err(|_| Error::InvalidPayload)
     }
 }
@@ -5387,15 +5412,16 @@ impl<const L: usize> NdFromStr<Dec> for Signed<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
-        let (s, dir) = match &s[..1] {
+    fn nd_from_str(str: &str, _: Dec) -> Result<Self, Self::Err> {
+        let (str, dir) = match &str[..1] {
             "" => Err(Error::InvalidString),
-            "+" => Ok((&s[1..], Dir::POS)),
-            "-" => Ok((&s[1..], Dir::NEG)),
-            _ => Ok((s, Dir::POS)),
+            "+" => Ok((&str[1..], Dir::POS)),
+            "-" => Ok((&str[1..], Dir::NEG)),
+            _ => Ok((str, Dir::POS)),
         }?;
 
-        Radix::try_parse(Self::default(), 10u8, s.bytes().rev()).map(|res| uops::dirx(&res.0, dir).with(Self))
+        Radix::try_parse(Self::default(), 10u8, str.bytes().map(|byte| codec::Dec::DECODE[byte as usize]))
+            .map(|res| uops::dirv(&res.0, dir).with(Self))
     }
 }
 
@@ -5403,8 +5429,8 @@ impl<const L: usize> NdFromStr<Dec> for Unsigned<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
-        Radix::try_parse(Self::default(), 10u8, s.bytes().rev())
+    fn nd_from_str(str: &str, _: Dec) -> Result<Self, Self::Err> {
+        Radix::try_parse(Self::default(), 10u8, str.bytes().map(|byte| codec::Dec::DECODE[byte as usize]))
     }
 }
 
@@ -5412,8 +5438,10 @@ impl<const L: usize> NdFromStr<Bin> for Signed<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0b").trim_start_matches("0B");
+
+        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5421,8 +5449,10 @@ impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0b").trim_start_matches("0B");
+
+        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5430,8 +5460,10 @@ impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Bin) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0b").trim_start_matches("0B");
+
+        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5439,8 +5471,10 @@ impl<const L: usize> NdFromStr<Oct> for Signed<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0o").trim_start_matches("0O");
+
+        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5448,8 +5482,10 @@ impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0o").trim_start_matches("0O");
+
+        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5457,8 +5493,10 @@ impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Oct) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0o").trim_start_matches("0O");
+
+        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5466,8 +5504,10 @@ impl<const L: usize> NdFromStr<Hex> for Signed<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0x").trim_start_matches("0X");
+
+        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5475,8 +5515,10 @@ impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0x").trim_start_matches("0X");
+
+        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5484,8 +5526,10 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(s: &str, _: Hex) -> Result<Self, Self::Err> {
-        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), s.bytes().rev()).map_err(|_| Error::InvalidPayload)
+    fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
+        let str = str.trim_start_matches("0x").trim_start_matches("0X");
+
+        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
     }
 }
 
