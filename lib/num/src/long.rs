@@ -4637,25 +4637,32 @@ pub mod radix {
     /// Error.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
     pub enum Error {
+        /// Found invalid string.
+        #[error("Found invalid string")]
+        InvalidString,
         /// Found invalid direction.
         #[error("Found invalid direction")]
-        InvalidDir,
+        InvalidDirection,
         /// Found invalid payload.
         #[error("Found invalid payload")]
         InvalidPayload,
     }
 
-    impl<'str> TryFrom<&'str str> for Radix<'str> {
+    impl<'str> TryFrom<(&'str str, &'static [Dir])> for Radix<'str> {
         type Error = Error;
 
         #[inline]
-        fn try_from(str: &'str str) -> Result<Self, Self::Error> {
+        fn try_from((str, dirs): (&'str str, &'static [Dir])) -> Result<Self, Self::Error> {
             let (str, dir) = match &str[..1] {
-                "" => Err(Error::InvalidDir),
+                "" => Err(Error::InvalidString),
                 "+" => Ok((&str[1..], Dir::POS)),
                 "-" => Ok((&str[1..], Dir::NEG)),
                 _ => Ok((str, Dir::POS)),
             }?;
+
+            if !dirs.contains(&dir) {
+                return Err(Error::InvalidDirection);
+            }
 
             match &str[..2] {
                 "0x" | "0X" if !str[2..].is_empty() => Ok(Self::Hex(dir, &str[2..], codec::Hex)),
@@ -4678,6 +4685,52 @@ pub mod radix {
                 Radix::Hex(dir, _, _) => *dir,
                 Radix::X64(dir, _, _) => *dir,
             }
+        }
+
+        /// Parses in arbitrary radix.
+        pub fn parse<W: Word, Words: AsWordsMut<W>>(
+            mut words: Words,
+            radix: W,
+            iter: impl Iterator<Item = W>,
+        ) -> Words {
+            let mut idx = 0;
+
+            for digit in iter {
+                let mut acc = digit.as_double();
+
+                for ptr in words.as_words_mut().iter_mut().take(idx + 1) {
+                    acc += ptr.as_double() * radix.as_double();
+
+                    *ptr = W::from_single(acc as Single);
+
+                    acc >>= BITS;
+                }
+
+                let words = words.as_words_ref();
+
+                if idx < words.len() && words[idx] > W::ZERO {
+                    idx += 1;
+                }
+            }
+
+            words
+        }
+
+        /// Parses in arbitrary radix (checked).
+        pub fn try_parse<W: Word, Words: AsWordsMut<W>>(
+            words: Words,
+            radix: W,
+            iter: impl Iterator<Item = W>,
+        ) -> Result<Words, Error> {
+            let mut flag = W::ZERO;
+
+            let words = Self::parse(words, radix, iter.inspect(|&word| flag |= word));
+
+            if radix <= flag {
+                return Err(Error::InvalidPayload);
+            }
+
+            Ok(words)
         }
     }
 
@@ -4779,14 +4832,6 @@ pub mod digits {
 
         /// Length.
         pub len: usize,
-    }
-
-    /// Error type for failable long conversion from digits.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-    pub enum DigitsError {
-        /// Found invalid payload.
-        #[error("Found invalid payload")]
-        InvalidPayload,
     }
 
     /// Error type for failable conversion to digits.
@@ -5218,48 +5263,48 @@ impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
 impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Words, ExpImpl<W>> for Signed<L>
 {
-    type Error = DigitsError;
+    type Error = radix::Error;
 
     #[inline]
     fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
         Self::default()
             .try_write(ctx.exp.as_usize(), words)
-            .map_err(|_| DigitsError::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
 impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Words, ExpImpl<W>> for Unsigned<L>
 {
-    type Error = DigitsError;
+    type Error = radix::Error;
 
     #[inline]
     fn nd_try_from(words: Words, ctx: ExpImpl<W>) -> Result<Self, Self::Error> {
         Self::default()
             .try_write(ctx.exp.as_usize(), words)
-            .map_err(|_| DigitsError::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
 impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Words, RadixImpl<W>> for Signed<L>
 {
-    type Error = DigitsError;
+    type Error = radix::Error;
 
     #[inline]
-    fn nd_try_from(_words: Words, _ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        todo!()
+    fn nd_try_from(words: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
+        Radix::try_parse(Self::default(), ctx.radix, words)
     }
 }
 
 impl<const L: usize, W: Word, Words: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Words, RadixImpl<W>> for Unsigned<L>
 {
-    type Error = DigitsError;
+    type Error = radix::Error;
 
     #[inline]
-    fn nd_try_from(_words: Words, _ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
-        todo!()
+    fn nd_try_from(words: Words, ctx: RadixImpl<W>) -> Result<Self, Self::Error> {
+        Radix::try_parse(Self::default(), ctx.radix, words)
     }
 }
 
@@ -5286,10 +5331,10 @@ impl<const L: usize> FromStr for Signed<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let radix = Radix::try_from(s)?;
+        let radix = Radix::try_from((s, &[Dir::POS, Dir::NEG][..]))?;
 
         match radix {
-            Radix::Dec(_, _, _) => todo!(),
+            Radix::Dec(_, str, _) => Ok(Radix::try_parse(Self::default(), 10u8, str.bytes().rev())?),
             Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
             Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
             Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
@@ -5305,10 +5350,10 @@ impl<const L: usize> FromStr for Unsigned<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let radix = Radix::try_from(s)?;
+        let radix = Radix::try_from((s, &[Dir::POS][..]))?;
 
         match radix {
-            Radix::Dec(_, _, _) => todo!(),
+            Radix::Dec(_, str, _) => Ok(Radix::try_parse(Self::default(), 10u8, str.bytes().rev())?),
             Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
             Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
             Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
@@ -5324,7 +5369,7 @@ impl<const L: usize> FromStr for Bytes<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let radix = Radix::try_from(s)?;
+        let radix = Radix::try_from((s, &[Dir::POS][..]))?;
 
         match radix {
             Radix::Dec(_, _, _) => Err(codec::Error::InvalidEntry),
@@ -5342,8 +5387,15 @@ impl<const L: usize> NdFromStr<Dec> for Signed<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(_s: &str, _: Dec) -> Result<Self, Self::Err> {
-        todo!()
+    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
+        let (s, dir) = match &s[..1] {
+            "" => Err(Error::InvalidString),
+            "+" => Ok((&s[1..], Dir::POS)),
+            "-" => Ok((&s[1..], Dir::NEG)),
+            _ => Ok((s, Dir::POS)),
+        }?;
+
+        Radix::try_parse(Self::default(), 10u8, s.bytes().rev()).map(|res| uops::dirx(&res.0, dir).with(Self))
     }
 }
 
@@ -5351,8 +5403,8 @@ impl<const L: usize> NdFromStr<Dec> for Unsigned<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(_s: &str, _: Dec) -> Result<Self, Self::Err> {
-        todo!()
+    fn nd_from_str(s: &str, _: Dec) -> Result<Self, Self::Err> {
+        Radix::try_parse(Self::default(), 10u8, s.bytes().rev())
     }
 }
 
