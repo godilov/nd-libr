@@ -4668,28 +4668,15 @@ pub mod radix {
     }
 
     impl Radix<'_> {
-        /// Parse into words.
+        /// Direction.
         #[inline]
-        pub fn parse<W: Word, Words: Encode<W> + Decode<W>>(&self, words: Words) -> Words {
+        pub fn dir(&self) -> Dir {
             match self {
-                Radix::Dec(_, _, _) => todo!(),
-                Radix::Bin(_, str, _) => words.decoded::<codec::Bin>(str.bytes().rev()),
-                Radix::Oct(_, str, _) => words.decoded::<codec::Oct>(str.bytes().rev()),
-                Radix::Hex(_, str, _) => words.decoded::<codec::Hex>(str.bytes().rev()),
-                Radix::X64(_, str, _) => words.decoded::<codec::X64>(str.bytes().rev()),
-            }
-        }
-
-        /// Parse into words (checked).
-        #[inline]
-        #[rustfmt::skip]
-        pub fn try_parse<W: Word, Words: Encode<W> + Decode<W>>(&self, words: Words) -> Result<Words, Error> {
-            match self {
-                Radix::Dec(_, _, _) => todo!(),
-                Radix::Bin(_, str, _) => words.try_decoded::<codec::Bin>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
-                Radix::Oct(_, str, _) => words.try_decoded::<codec::Oct>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
-                Radix::Hex(_, str, _) => words.try_decoded::<codec::Hex>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
-                Radix::X64(_, str, _) => words.try_decoded::<codec::X64>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
+                Radix::Dec(dir, _, _) => *dir,
+                Radix::Bin(dir, _, _) => *dir,
+                Radix::Oct(dir, _, _) => *dir,
+                Radix::Hex(dir, _, _) => *dir,
+                Radix::X64(dir, _, _) => *dir,
             }
         }
     }
@@ -5299,7 +5286,17 @@ impl<const L: usize> FromStr for Signed<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Radix::try_from(s)?.try_parse::<u8, Self>(Self::default())
+        let radix = Radix::try_from(s)?;
+
+        match radix {
+            Radix::Dec(_, _, _) => todo!(),
+            Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
+            Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
+            Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
+            Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
+        }
+        .map(|long| uops::dirx(&long.0, radix.dir()).with(Self))
+        .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5308,7 +5305,17 @@ impl<const L: usize> FromStr for Unsigned<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Radix::try_from(s)?.try_parse::<u8, Self>(Self::default())
+        let radix = Radix::try_from(s)?;
+
+        match radix {
+            Radix::Dec(_, _, _) => todo!(),
+            Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
+            Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
+            Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
+            Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
+        }
+        .map(|res| uops::dirx(&res.0, radix.dir()).with(Self))
+        .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5317,7 +5324,17 @@ impl<const L: usize> FromStr for Bytes<L> {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Radix::try_from(s)?.try_parse::<u8, Self>(Self::default())
+        let radix = Radix::try_from(s)?;
+
+        match radix {
+            Radix::Dec(_, _, _) => Err(codec::Error::InvalidEntry),
+            Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
+            Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
+            Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
+            Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
+        }
+        .map(|res| uops::dirx(&res.0, radix.dir()).with(Self))
+        .map_err(|_| Error::InvalidPayload)
     }
 }
 
