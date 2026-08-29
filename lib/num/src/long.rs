@@ -4672,7 +4672,7 @@ pub mod radix {
         #[inline]
         pub fn parse<W: Word, Words: Encode<W> + Decode<W>>(&self, words: Words) -> Words {
             match self {
-                Radix::Dec(_, _, _) => words,
+                Radix::Dec(_, _, _) => todo!(),
                 Radix::Bin(_, str, _) => words.decoded::<codec::Bin>(str.bytes().rev()),
                 Radix::Oct(_, str, _) => words.decoded::<codec::Oct>(str.bytes().rev()),
                 Radix::Hex(_, str, _) => words.decoded::<codec::Hex>(str.bytes().rev()),
@@ -4685,7 +4685,7 @@ pub mod radix {
         #[rustfmt::skip]
         pub fn try_parse<W: Word, Words: Encode<W> + Decode<W>>(&self, words: Words) -> Result<Words, Error> {
             match self {
-                Radix::Dec(_, _, _) => Ok(words),
+                Radix::Dec(_, _, _) => todo!(),
                 Radix::Bin(_, str, _) => words.try_decoded::<codec::Bin>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
                 Radix::Oct(_, str, _) => words.try_decoded::<codec::Oct>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
                 Radix::Hex(_, str, _) => words.try_decoded::<codec::Hex>(str.bytes().rev()).map_err(|_| Error::InvalidPayload),
@@ -4711,17 +4711,18 @@ pub mod radix {
     }
 
     #[inline]
-    pub(crate) fn write_dec<W: Word, Words: Iterator<Item = W> + ExactSizeIterator>(
+    pub(crate) fn write_dec<W: Word, Words: ExactSizeIterator<Item = W>>(
         fmt: &mut Formatter<'_>,
         words: Words,
         dir: Dir,
-        digits: usize,
     ) -> std::fmt::Result {
         let len = words.len();
         let sign = match dir {
             Dir::NEG => "-",
             Dir::POS => "",
         };
+
+        let digits = codec::Dec::DIGITS;
 
         let mut buf = vec![b'0'; len * digits];
 
@@ -4779,12 +4780,12 @@ pub mod digits {
     ///
     /// For more info, see [`IntoDigits`] documentation.
     #[derive(Debug, Clone)]
-    pub struct DigitsIter<Words: AsWordsMut<Single>> {
+    pub struct DigitsIter<W: Word, Words: AsWordsMut<W>> {
         /// Words.
         pub words: Words,
 
         /// Radix.
-        pub radix: Single,
+        pub radix: W,
 
         /// Index.
         pub idx: usize,
@@ -4836,7 +4837,7 @@ pub mod digits {
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
     pub trait IntoDigits: Sized {
         /// Conversion function.
-        fn into_digits(self, ctx: RadixImpl<Single>) -> impl ExactSizeIterator<Item = Single>;
+        fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W>;
     }
 
     impl<W: Word> ExpImpl<W> {
@@ -4873,9 +4874,9 @@ pub mod digits {
         }
     }
 
-    impl<Words: AsWordsMut<Single>> ExactSizeIterator for DigitsIter<Words> {}
-    impl<Words: AsWordsMut<Single>> Iterator for DigitsIter<Words> {
-        type Item = Single;
+    impl<W: Word, Words: AsWordsMut<W>> ExactSizeIterator for DigitsIter<W, Words> {}
+    impl<W: Word, Words: AsWordsMut<W>> Iterator for DigitsIter<W, Words> {
+        type Item = W;
 
         #[inline]
         fn next(&mut self) -> Option<Self::Item> {
@@ -4885,10 +4886,10 @@ pub mod digits {
             let mut acc = 0;
 
             for word in self.words.as_words_mut().iter_mut().rev() {
-                any |= *word;
-                acc = (acc << BITS) | *word as Double;
+                any |= word.as_single();
+                acc = (acc << W::BITS) | word.as_double();
 
-                *word = (acc / radix) as Single;
+                *word = W::from_single((acc / radix) as Single);
 
                 acc %= radix;
             }
@@ -4899,7 +4900,7 @@ pub mod digits {
 
             self.idx += 1;
 
-            Some(acc as Single)
+            Some(W::from_single(acc as Single))
         }
 
         fn size_hint(&self) -> (usize, Option<usize>) {
@@ -5521,7 +5522,7 @@ impl<const L: usize> Display for Signed<L> {
 
         let iter = uops::dirx(&self.0, Dir::POS).with(Signed).into_digits(radix);
 
-        write_dec(fmt, iter, self.dir(), codec::Dec::DIGITS)
+        write_dec(fmt, iter, self.dir())
     }
 }
 
@@ -5534,7 +5535,7 @@ impl<const L: usize> Display for Unsigned<L> {
 
         let iter = self.into_digits(radix);
 
-        write_dec(fmt, iter, Dir::POS, codec::Dec::DIGITS)
+        write_dec(fmt, iter, Dir::POS)
     }
 }
 
@@ -6208,7 +6209,7 @@ impl<const L: usize> ToDigits for Unsigned<L> {
 
 impl<const L: usize> IntoDigits for Signed<L> {
     #[inline]
-    fn into_digits(self, ctx: RadixImpl<Single>) -> impl ExactSizeIterator<Item = Single> {
+    fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
         let bits = ctx.radix.order();
         let len = self.0.iter().copied().length(0);
 
@@ -6223,7 +6224,7 @@ impl<const L: usize> IntoDigits for Signed<L> {
 
 impl<const L: usize> IntoDigits for Unsigned<L> {
     #[inline]
-    fn into_digits(self, ctx: RadixImpl<Single>) -> impl ExactSizeIterator<Item = Single> {
+    fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
         let bits = ctx.radix.order();
         let len = self.0.iter().copied().length(0);
 
