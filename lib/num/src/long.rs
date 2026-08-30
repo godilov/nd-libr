@@ -26,7 +26,6 @@ use crate::{
         word::*,
     },
     long::{
-        digits::*,
         radix::*,
         uops::{Expr, ExprMut},
     },
@@ -34,19 +33,19 @@ use crate::{
 
 macro_rules! signed {
     ($bits:expr) => {
-        $crate::long::Signed<{ ($bits as usize).div_ceil($crate::arch::word::BITS as usize) }>
+        $crate::long::Signed<{ ($bits as usize).div_ceil($crate::arch::word::Single::BITS as usize) }>
     };
 }
 
 macro_rules! unsigned {
     ($bits:expr) => {
-        $crate::long::Unsigned<{ ($bits as usize).div_ceil($crate::arch::word::BITS as usize) }>
+        $crate::long::Unsigned<{ ($bits as usize).div_ceil($crate::arch::word::Single::BITS as usize) }>
     };
 }
 
 macro_rules! bytes {
     ($bits:expr) => {
-        $crate::long::Bytes<{ ($bits as usize).div_ceil($crate::arch::word::BITS as usize) }>
+        $crate::long::Bytes<{ ($bits as usize).div_ceil($crate::arch::word::Single::BITS as usize) }>
     };
 }
 
@@ -61,7 +60,7 @@ macro_rules! from_primitive {
                 #![allow(unused_comparisons)]
 
                 let bytes = value.to_le_bytes();
-                let res = from_array(&bytes, [0, MAX][(value < 0) as usize]);
+                let res = from_array(&bytes, [0, Single::MAX][(value < 0) as usize]);
 
                 Self(res)
             }
@@ -83,7 +82,7 @@ macro_rules! from_primitive_const {
         pub const fn $fn(value: $primitive) -> Self {
             #![allow(unused_comparisons)]
 
-            let default = if value >= 0 { 0 } else { MAX };
+            let default = if value >= 0 { 0 } else { Single::MAX };
 
             let mut val = value as u128;
             let mut idx = 0;
@@ -92,7 +91,7 @@ macro_rules! from_primitive_const {
             while idx < L && val > 0 {
                 res[idx] = val as Single;
                 idx += 1;
-                val = val.unbounded_shr(BITS as u32);
+                val = val.unbounded_shr(Single::BITS as u32);
             }
 
             Self(res)
@@ -134,8 +133,8 @@ macro_rules! nd_ops_primitive_impl {
             / @strict algo::div(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
             % @strict algo::rem(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, MAX][(rhs < 0) as usize], L)).with(Signed),
-            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, MAX][(rhs < 0) as usize], L)).with(Signed),
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(Signed),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(Signed),
 
             * @wrapping algo::mul(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             / @wrapping algo::div(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
@@ -171,8 +170,8 @@ macro_rules! nd_ops_primitive_impl {
             - @strict uops::sub(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
             * @strict algo::mul(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), [0, MAX][(lhs < 0) as usize], L), rhs.0.iter().copied()).with(Signed),
-            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), [0, MAX][(lhs < 0) as usize], L), rhs.0.iter().copied()).with(Signed),
+            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize], L), rhs.0.iter().copied()).with(Signed),
+            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize], L), rhs.0.iter().copied()).with(Signed),
 
             * @wrapping algo::mul(&Signed::from(lhs).0, &rhs.0).signed().with(Signed),
 
@@ -202,8 +201,8 @@ macro_rules! nd_ops_primitive_impl {
             /= @strict algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
 
-            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, MAX][(rhs < 0) as usize], L)).with(|_| ()),
-            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, MAX][(rhs < 0) as usize], L)).with(|_| ()),
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(|_| ()),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(|_| ()),
 
             *= @wrapping algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
@@ -1544,7 +1543,7 @@ pub mod uops {
         > {
             let (xor, acc) = match self.dir {
                 Dir::POS => (0, 0),
-                Dir::NEG => (MAX, 1),
+                Dir::NEG => (Single::MAX, 1),
             };
 
             ExprIter {
@@ -1572,7 +1571,7 @@ pub mod uops {
         > {
             let (xor, acc) = match self.dir {
                 Dir::POS => (0, 0),
-                Dir::NEG => (MAX, 1),
+                Dir::NEG => (Single::MAX, 1),
             };
 
             ExprIterMut {
@@ -1749,7 +1748,7 @@ pub mod uops {
             let dir = self.dir;
             let xor = match self.dir {
                 Dir::POS => 0,
-                Dir::NEG => MAX,
+                Dir::NEG => Single::MAX,
             };
 
             DirvIter { words, dir }
@@ -1757,7 +1756,7 @@ pub mod uops {
                 .ctx((0, true), move |word, _, _, _, (idx, flag)| {
                     (
                         idx + 1,
-                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
+                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
                     )
                 })
         }
@@ -1779,7 +1778,7 @@ pub mod uops {
             let dir = self.dir;
             let xor = match self.dir {
                 Dir::POS => 0,
-                Dir::NEG => MAX,
+                Dir::NEG => Single::MAX,
             };
 
             DirvIter { words, dir }
@@ -1787,7 +1786,7 @@ pub mod uops {
                 .ctx((0, true), move |word, _, _, _, (idx, flag)| {
                     (
                         idx + 1,
-                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
+                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
                     )
                 })
         }
@@ -1807,7 +1806,7 @@ pub mod uops {
             let dirx = self.dir;
             let (xor, acc) = match dir(self.words) == self.dir {
                 true => (0, 0),
-                false => (MAX, 1),
+                false => (Single::MAX, 1),
             };
 
             ExprIter {
@@ -1819,7 +1818,7 @@ pub mod uops {
                 ctx_func: move |word, _, _, _, (idx, flag)| {
                     (
                         idx + 1,
-                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
                     )
                 },
             }
@@ -1841,7 +1840,7 @@ pub mod uops {
             let dirx = self.dir;
             let (xor, acc) = match dir(self.words) == self.dir {
                 true => (0, 0),
-                false => (MAX, 1),
+                false => (Single::MAX, 1),
             };
 
             ExprIterMut {
@@ -1856,7 +1855,7 @@ pub mod uops {
                 ctx_func: move |word, _, _, _, (idx, flag)| {
                     (
                         idx + 1,
-                        flag && [0, 1 << (BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
                     )
                 },
             }
@@ -2425,7 +2424,7 @@ pub mod uops {
             Self {
                 words: self.words,
                 shift: self.shift,
-                default: [0, MAX][(dir == Dir::NEG) as usize],
+                default: [0, Single::MAX][(dir == Dir::NEG) as usize],
             }
         }
 
@@ -2446,7 +2445,7 @@ pub mod uops {
             Self {
                 words: self.words,
                 shift: self.shift,
-                default: [0, MAX][(dir == Dir::NEG) as usize],
+                default: [0, Single::MAX][(dir == Dir::NEG) as usize],
             }
         }
 
@@ -3195,9 +3194,10 @@ pub mod uops {
             let shift = self.shift;
             let default = self.ext;
 
-            let offset = (shift / BITS).min(L);
-            let shl = shift % BITS;
-            let shr = BITS - shl;
+            let bits = Single::BITS as usize;
+            let offset = (shift / bits).min(L);
+            let shl = shift % bits;
+            let shr = bits - shl;
 
             let mut acc = default;
             let mut res = repeat_n(default, offset)
@@ -3214,7 +3214,7 @@ pub mod uops {
                 *ptr = val_h | val_l;
             }
 
-            (res, shift >= BITS * L)
+            (res, shift >= bits * L)
         }
     }
 
@@ -3231,9 +3231,10 @@ pub mod uops {
             let shift = self.shift;
             let default = self.ext;
 
-            let offset = (shift / BITS).min(L);
-            let shl = shift % BITS;
-            let shr = BITS - shl;
+            let bits = Single::BITS as usize;
+            let offset = (shift / bits).min(L);
+            let shl = shift % bits;
+            let shr = bits - shl;
 
             let mut acc = default;
 
@@ -3251,7 +3252,7 @@ pub mod uops {
                 *ptr = val_h | val_l;
             }
 
-            (self.words, shift >= BITS * L)
+            (self.words, shift >= bits * L)
         }
     }
 
@@ -3269,9 +3270,10 @@ pub mod uops {
             let shift = self.shift;
             let default = self.default;
 
-            let offset = (shift / BITS).min(L);
-            let shr = shift % BITS;
-            let shl = BITS - shr;
+            let bits = Single::BITS as usize;
+            let offset = (shift / bits).min(L);
+            let shr = shift % bits;
+            let shl = bits - shr;
 
             let mut acc = default;
             let mut res = words[offset..]
@@ -3290,7 +3292,7 @@ pub mod uops {
                 *ptr = val_h | val_l;
             }
 
-            (res, shift >= BITS * L)
+            (res, shift >= bits * L)
         }
     }
 
@@ -3307,9 +3309,10 @@ pub mod uops {
             let shift = self.shift;
             let default = self.default;
 
-            let offset = (shift / BITS).min(L);
-            let shr = shift % BITS;
-            let shl = BITS - shr;
+            let bits = Single::BITS as usize;
+            let offset = (shift / bits).min(L);
+            let shr = shift % bits;
+            let shl = bits - shr;
 
             let mut acc = default;
 
@@ -3329,7 +3332,7 @@ pub mod uops {
                 *ptr = val_h | val_l;
             }
 
-            (self.words, shift >= BITS * L)
+            (self.words, shift >= bits * L)
         }
     }
 
@@ -3554,16 +3557,16 @@ pub mod uops {
     /// Reads extension.
     #[inline]
     pub fn ext<const L: usize>(words: &[Single; L]) -> Single {
-        match words[L - 1] >> (BITS - 1) {
+        match words[L - 1] >> (Single::BITS - 1) {
             0 => 0,
-            _ => MAX,
+            _ => Single::MAX,
         }
     }
 
     /// Reads direction.
     #[inline]
     pub fn dir<const L: usize>(words: &[Single; L]) -> Dir {
-        match words[L - 1] >> (BITS - 1) {
+        match words[L - 1] >> (Single::BITS - 1) {
             0 => Dir::POS,
             _ => Dir::NEG,
         }
@@ -3573,7 +3576,7 @@ pub mod uops {
     #[inline]
     pub fn sign<const L: usize>(words: &[Single; L]) -> Sign {
         match words == &[0; L] {
-            false => match words[L - 1] >> (BITS - 1) {
+            false => match words[L - 1] >> (Single::BITS - 1) {
                 0 => Sign::POS,
                 _ => Sign::NEG,
             },
@@ -3583,7 +3586,7 @@ pub mod uops {
 
     #[inline]
     pub(crate) fn ext_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        crate::pos_ct((words[L - 1] >> (BITS - 1)) as MaskCt)
+        crate::pos_ct((words[L - 1] >> (Single::BITS - 1)) as MaskCt)
     }
 
     #[inline]
@@ -3625,7 +3628,7 @@ pub mod uops {
         impl Iterator<Item = Single>,
         impl 'static + Fn(Single, Single) -> Single + Copy,
     > {
-        let mask = Single::from_ne_bytes([mask; BYTES]);
+        let mask = Single::from_ne_bytes([mask; <Single as Word>::BYTES]);
 
         uops::bitand_iter(words.iter().copied(), (0..L).map(move |_| mask))
     }
@@ -3636,8 +3639,10 @@ pub mod algo {
     //!
     //! **Long numbers/bytes algorithms**
 
-    use super::uops::{Expr, ExprMut, SignedImpl, UnsignedImpl};
-    use super::*;
+    use super::{
+        uops::{Expr, ExprMut, SignedImpl, UnsignedImpl},
+        *,
+    };
 
     /// Mul expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -3753,7 +3758,7 @@ pub mod algo {
         /// Checks overflow.
         #[inline]
         pub fn overflows(&self) -> bool {
-            self.rhs == &[0; L] || self.lhs == &Signed::MIN.0 && self.rhs == &[MAX; L]
+            self.rhs == &[0; L] || self.lhs == &Signed::MIN.0 && self.rhs == &[Single::MAX; L]
         }
     }
 
@@ -3878,7 +3883,7 @@ pub mod algo {
                     .last()
                     .unwrap_or(0);
 
-                let mut iter = uops::mul([&[0; L], &[MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
+                let mut iter = uops::mul([&[0; L], &[Single::MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
                     .iter()
                     .acc(iter.acc);
 
@@ -3896,7 +3901,7 @@ pub mod algo {
 
             let dir = uops::dir(&res[0]);
 
-            (res[0], &res[1] != [&[0; L], &[MAX; L]][(dir == Dir::NEG) as usize])
+            (res[0], &res[1] != [&[0; L], &[Single::MAX; L]][(dir == Dir::NEG) as usize])
         }
     }
 
@@ -3942,7 +3947,7 @@ pub mod algo {
                     .last()
                     .unwrap_or(0);
 
-                let mut iter = uops::mul([&[0; L], &[MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
+                let mut iter = uops::mul([&[0; L], &[Single::MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
                     .iter()
                     .acc(iter.acc);
 
@@ -3960,7 +3965,7 @@ pub mod algo {
 
             let dir = uops::dir(&res[0]);
 
-            (res[0], &res[1] != [&[0; L], &[MAX; L]][(dir == Dir::NEG) as usize])
+            (res[0], &res[1] != [&[0; L], &[Single::MAX; L]][(dir == Dir::NEG) as usize])
         }
     }
 
@@ -4142,7 +4147,7 @@ pub mod algo {
             let mut rem = 0 as Double;
 
             for (ptr, val) in div.iter_mut().zip(lhs.iter().copied()).rev() {
-                rem <<= BITS;
+                rem <<= Single::BITS;
                 rem |= val as Double;
 
                 *ptr = search(0, RADIX, |m: Double| m * rhs as Double <= rem).saturating_sub(1) as Single;
@@ -4635,6 +4640,44 @@ pub mod radix {
         X64(Dir, &'str str, codec::X64),
     }
 
+    /// `From`/`To`/`Into` digits conversion by `exp`.
+    ///
+    /// For more info, see [`ToDigits`] documentation.
+    pub struct ExpImpl<W: Word> {
+        /// Exponent used in conversions.
+        ///
+        /// Radix is `1 << exp`.
+        pub exp: W,
+    }
+
+    /// `From`/`To`/`Into` digits conversion by `radix`.
+    ///
+    /// For more info, see [`IntoDigits`] documentation.
+    pub struct RadixImpl<W: Word> {
+        /// Radix used in conversions.
+        ///
+        /// Radix is arbitrary.
+        pub radix: W,
+    }
+
+    /// Digits iterator.
+    ///
+    /// For more info, see [`IntoDigits`] documentation.
+    #[derive(Debug, Clone)]
+    pub struct DigitsIter<W: Word, Words: AsWordsMut<W>> {
+        /// Words.
+        pub words: Words,
+
+        /// Radix.
+        pub radix: W,
+
+        /// Index.
+        pub idx: usize,
+
+        /// Length.
+        pub len: usize,
+    }
+
     /// Error.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
     pub enum Error {
@@ -4647,6 +4690,44 @@ pub mod radix {
         /// Found invalid payload.
         #[error("Found invalid payload")]
         InvalidPayload,
+    }
+
+    /// Error type for failable conversion to digits.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum ExpError {
+        /// Found invalid exp.
+        #[error("Found invalid exp '{exp}'")]
+        InvalidExponent {
+            /// Exponent value.
+            exp: usize,
+        },
+    }
+
+    /// Error type for failable conversion into digits.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum RadixError {
+        /// Found invalid radix.
+        #[error("Found invalid radix '{radix}'")]
+        InvalidRadix {
+            /// Radix value.
+            radix: usize,
+        },
+    }
+
+    /// Conversion to arbitrary digits iterator represented by [`Word`] with `exp`.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub trait ToDigits: Sized {
+        /// Conversion function.
+        fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W>;
+    }
+
+    /// Conversion into arbitrary digits iterator represented by [`Word`] with `radix`.
+    ///
+    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
+    pub trait IntoDigits: Sized {
+        /// Conversion function.
+        fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W>;
     }
 
     impl<'str> TryFrom<(&'str str, &'static [Dir])> for Radix<'str> {
@@ -4737,144 +4818,6 @@ pub mod radix {
         }
     }
 
-    #[inline]
-    pub(crate) fn write<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
-        fmt: &mut Formatter<'_>,
-        ascii_len: Ascii,
-        ascii_fmt: Ascii,
-        prefix: &'static str,
-    ) -> std::fmt::Result {
-        if fmt.alternate() {
-            fmt.write_str(prefix)?;
-        }
-
-        let len = ascii_len.length(b'0').max(1);
-
-        codec::write(fmt, ascii_fmt.take(len).rev())
-    }
-
-    #[inline]
-    pub(crate) fn write_dec<W: Word, Iter: ExactSizeIterator<Item = W>>(
-        fmt: &mut Formatter<'_>,
-        iter: Iter,
-        dir: Dir,
-    ) -> std::fmt::Result {
-        let len = iter.len();
-        let sign = match dir {
-            Dir::NEG => "-",
-            Dir::POS => "",
-        };
-
-        let digits = codec::Dec::DIGITS;
-
-        let mut buf = vec![b'0'; len * digits];
-
-        for (idx, word) in iter.enumerate() {
-            let offset = (len - idx - 1) * digits;
-
-            Cursor::new(&mut buf[offset..])
-                .write_fmt(format_args!("{word:0digits$}"))
-                .map_err(|_| std::fmt::Error)?;
-        }
-
-        let offset = buf.len() - buf.iter().copied().rev().length(b'0');
-
-        if offset == buf.len() {
-            return fmt.write_str("0");
-        }
-
-        let str = match str::from_utf8(&buf[offset..]) {
-            Ok(val) => val,
-            Err(_) => return Err(std::fmt::Error),
-        };
-
-        write!(fmt, "{}{}", sign, str)
-    }
-}
-
-pub mod digits {
-    //! # Digits
-    //!
-    //! **Digits related definitions**
-
-    use super::*;
-
-    /// `From`/`To`/`Into` digits conversion by `exp`.
-    ///
-    /// For more info, see [`ToDigits`] documentation.
-    pub struct ExpImpl<W: Word> {
-        /// Exponent used in conversions.
-        ///
-        /// Radix is `1 << exp`.
-        pub exp: W,
-    }
-
-    /// `From`/`To`/`Into` digits conversion by `radix`.
-    ///
-    /// For more info, see [`IntoDigits`] documentation.
-    pub struct RadixImpl<W: Word> {
-        /// Radix used in conversions.
-        ///
-        /// Radix is arbitrary.
-        pub radix: W,
-    }
-
-    /// Digits iterator.
-    ///
-    /// For more info, see [`IntoDigits`] documentation.
-    #[derive(Debug, Clone)]
-    pub struct DigitsIter<W: Word, Words: AsWordsMut<W>> {
-        /// Words.
-        pub words: Words,
-
-        /// Radix.
-        pub radix: W,
-
-        /// Index.
-        pub idx: usize,
-
-        /// Length.
-        pub len: usize,
-    }
-
-    /// Error type for failable conversion to digits.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-    pub enum ExpError {
-        /// Found invalid exp.
-        #[error("Found invalid exp '{exp}'")]
-        InvalidExponent {
-            /// Exponent value.
-            exp: usize,
-        },
-    }
-
-    /// Error type for failable conversion into digits.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-    pub enum RadixError {
-        /// Found invalid radix.
-        #[error("Found invalid radix '{radix}'")]
-        InvalidRadix {
-            /// Radix value.
-            radix: usize,
-        },
-    }
-
-    /// Conversion to arbitrary digits iterator represented by [`Word`] with `exp`.
-    ///
-    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub trait ToDigits: Sized {
-        /// Conversion function.
-        fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W>;
-    }
-
-    /// Conversion into arbitrary digits iterator represented by [`Word`] with `radix`.
-    ///
-    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub trait IntoDigits: Sized {
-        /// Conversion function.
-        fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W>;
-    }
-
     impl<W: Word> ExpImpl<W> {
         /// [`ExpImpl`] from word.
         pub fn from(exp: W) -> ExpImpl<W> {
@@ -4943,6 +4886,60 @@ pub mod digits {
 
             (len, Some(len))
         }
+    }
+
+    #[inline]
+    pub(crate) fn write<Ascii: ExactSizeIterator<Item = u8> + DoubleEndedIterator>(
+        fmt: &mut Formatter<'_>,
+        ascii_len: Ascii,
+        ascii_fmt: Ascii,
+        prefix: &'static str,
+    ) -> std::fmt::Result {
+        if fmt.alternate() {
+            fmt.write_str(prefix)?;
+        }
+
+        let len = ascii_len.length(b'0').max(1);
+
+        codec::write(fmt, ascii_fmt.take(len).rev())
+    }
+
+    #[inline]
+    pub(crate) fn write_dec<W: Word, Iter: ExactSizeIterator<Item = W>>(
+        fmt: &mut Formatter<'_>,
+        iter: Iter,
+        dir: Dir,
+    ) -> std::fmt::Result {
+        let len = iter.len();
+        let sign = match dir {
+            Dir::NEG => "-",
+            Dir::POS => "",
+        };
+
+        let digits = codec::Dec::DIGITS;
+
+        let mut buf = vec![b'0'; len * digits];
+
+        for (idx, word) in iter.enumerate() {
+            let offset = (len - idx - 1) * digits;
+
+            Cursor::new(&mut buf[offset..])
+                .write_fmt(format_args!("{word:0digits$}"))
+                .map_err(|_| std::fmt::Error)?;
+        }
+
+        let offset = buf.len() - buf.iter().copied().rev().length(b'0');
+
+        if offset == buf.len() {
+            return fmt.write_str("0");
+        }
+
+        let str = match str::from_utf8(&buf[offset..]) {
+            Ok(val) => val,
+            Err(_) => return Err(std::fmt::Error),
+        };
+
+        write!(fmt, "{}{}", sign, str)
     }
 }
 
@@ -5896,8 +5893,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Signed<L>, rhs: usize) -> Signed<L>
     << @unbounded uops::shl(&lhs.0, rhs).signed().with(Signed),
     >> @unbounded uops::shr(&lhs.0, rhs).signed().with(Signed),
 
-    << @overflowing (uops::shl(&lhs.0, rhs % (BITS * L)).signed().with(Signed), rhs >= BITS * L),
-    >> @overflowing (uops::shr(&lhs.0, rhs % (BITS * L)).signed().with(Signed), rhs >= BITS * L),
+    << @overflowing (uops::shl(&lhs.0, rhs % ((Single::BITS as usize) * L)).signed().with(Signed), rhs >= (Single::BITS as usize) * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % ((Single::BITS as usize) * L)).signed().with(Signed), rhs >= (Single::BITS as usize) * L),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: &Unsigned<L>) -> Unsigned<L>, [
@@ -5955,8 +5952,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Unsigned<L>, rhs: usize) -> Unsigne
     << @unbounded uops::shl(&lhs.0, rhs).with(Unsigned),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Unsigned),
 
-    << @overflowing (uops::shl(&lhs.0, rhs % (BITS * L)).with(Unsigned), rhs >= BITS * L),
-    >> @overflowing (uops::shr(&lhs.0, rhs % (BITS * L)).with(Unsigned), rhs >= BITS * L),
+    << @overflowing (uops::shl(&lhs.0, rhs % ((Single::BITS as usize) * L)).with(Unsigned), rhs >= (Single::BITS as usize) * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % ((Single::BITS as usize) * L)).with(Unsigned), rhs >= (Single::BITS as usize) * L),
 ] }
 
 ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: &Bytes<L>) -> Bytes<L>, [
@@ -5978,8 +5975,8 @@ ndops::def! { @ndbin <const L: usize> (lhs: &Bytes<L>, rhs: usize) -> Bytes<L> f
     << @unbounded uops::shl(&lhs.0, rhs).with(Bytes),
     >> @unbounded uops::shr(&lhs.0, rhs).with(Bytes),
 
-    << @overflowing (uops::shl(&lhs.0, rhs % (BITS * L)).with(Bytes), rhs >= BITS * L),
-    >> @overflowing (uops::shr(&lhs.0, rhs % (BITS * L)).with(Bytes), rhs >= BITS * L),
+    << @overflowing (uops::shl(&lhs.0, rhs % ((Single::BITS as usize) * L)).with(Bytes), rhs >= (Single::BITS as usize) * L),
+    >> @overflowing (uops::shr(&lhs.0, rhs % ((Single::BITS as usize) * L)).with(Bytes), rhs >= (Single::BITS as usize) * L),
 ] }
 
 ndops::def! { @ndmut <const L: usize> (lhs: &mut Signed<L>, rhs: &Signed<L>), [
@@ -6330,7 +6327,7 @@ impl<const L: usize> IntoDigits for Signed<L> {
             words: self,
             radix: ctx.radix,
             idx: 0,
-            len: (len * BITS + bits - 1) / bits,
+            len: (len * (Single::BITS as usize) + bits - 1) / bits,
         }
     }
 }
@@ -6345,7 +6342,7 @@ impl<const L: usize> IntoDigits for Unsigned<L> {
             words: self,
             radix: ctx.radix,
             idx: 0,
-            len: (len * BITS + bits - 1) / bits,
+            len: (len * (Single::BITS as usize) + bits - 1) / bits,
         }
     }
 }
@@ -6502,7 +6499,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 
         match len {
             0 => 0,
-            l => (l - 1) * BITS + self.0[l - 1].order(),
+            l => (l - 1) * (Single::BITS as usize) + self.0[l - 1].order(),
         }
     }
 
@@ -6512,7 +6509,7 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 
         match len {
             0 => Self::ZERO,
-            l => Self::from((l - 1) * BITS + self.0[l - 1].order()),
+            l => Self::from((l - 1) * (Single::BITS as usize) + self.0[l - 1].order()),
         }
     }
 
@@ -6523,13 +6520,13 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 }
 
 impl<const L: usize> NumBinary for Signed<L> {
-    const BITS: usize = (BITS * L);
-    const BYTES: usize = (BYTES * L);
+    const BITS: usize = (<Single as Word>::BITS * L);
+    const BYTES: usize = (<Single as Word>::BYTES * L);
 }
 
 impl<const L: usize> NumBinary for Unsigned<L> {
-    const BITS: usize = (BITS * L);
-    const BYTES: usize = (BYTES * L);
+    const BITS: usize = (<Single as Word>::BITS * L);
+    const BYTES: usize = (<Single as Word>::BYTES * L);
 }
 
 impl<const L: usize> NumCt for Signed<L> {
@@ -6585,7 +6582,7 @@ impl<const L: usize> Zero for Unsigned<L> {
 
 impl<const L: usize> One for Signed<L> {
     const ONE: Self = Self({
-        let mut res = [MIN; L];
+        let mut res = [0; L];
 
         res[0] = 1;
         res
@@ -6594,7 +6591,7 @@ impl<const L: usize> One for Signed<L> {
 
 impl<const L: usize> One for Unsigned<L> {
     const ONE: Self = Self({
-        let mut res = [MIN; L];
+        let mut res = [0; L];
 
         res[0] = 1;
         res
@@ -6603,28 +6600,28 @@ impl<const L: usize> One for Unsigned<L> {
 
 impl<const L: usize> Min for Signed<L> {
     const MIN: Self = Self({
-        let mut res = [MIN; L];
+        let mut res = [0; L];
 
-        res[L - 1] = 1 << (BITS - 1);
+        res[L - 1] = 1 << (Single::BITS - 1);
         res
     });
 }
 
 impl<const L: usize> Min for Unsigned<L> {
-    const MIN: Self = Self([MIN; L]);
+    const MIN: Self = Self([0; L]);
 }
 
 impl<const L: usize> Max for Signed<L> {
     const MAX: Self = Self({
-        let mut res = [MAX; L];
+        let mut res = [Single::MAX; L];
 
-        res[L - 1] = MAX >> 1;
+        res[L - 1] = Single::MAX >> 1;
         res
     });
 }
 
 impl<const L: usize> Max for Unsigned<L> {
-    const MAX: Self = Self([MAX; L]);
+    const MAX: Self = Self([Single::MAX; L]);
 }
 
 impl<const L: usize> EqCt for Signed<L> {
@@ -6974,6 +6971,8 @@ impl<const L: usize> PowCt for Signed<L> {}
 impl<const L: usize> PowCt for Unsigned<L> {}
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
+    const BYTES: usize = <Single as Word>::BYTES;
+
     let (bytes, bytes_) = bytes.as_chunks::<BYTES>();
 
     let mut idx = 0;
@@ -6981,9 +6980,9 @@ const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     let mut res = [0; L];
 
     #[allow(clippy::modulo_one)]
-    while idx < bytes.len() && idx < L * BYTES {
-        let offset = idx / BYTES;
-        let shift = idx % BYTES;
+    while idx < bytes.len() && idx < L * <Single as Word>::BYTES {
+        let offset = idx / <Single as Word>::BYTES;
+        let shift = idx % <Single as Word>::BYTES;
         let byte = bytes[offset][shift] as Single;
 
         idx += 1;
@@ -6991,10 +6990,10 @@ const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     }
 
     #[allow(clippy::modulo_one)]
-    while idx_ < bytes_.len() && idx < L * BYTES {
-        let offset = idx / BYTES;
-        let shift = idx % BYTES;
-        let shift_ = idx_ % BYTES;
+    while idx_ < bytes_.len() && idx < L * <Single as Word>::BYTES {
+        let offset = idx / <Single as Word>::BYTES;
+        let shift = idx % <Single as Word>::BYTES;
+        let shift_ = idx_ % <Single as Word>::BYTES;
         let byte = bytes_[shift_] as Single;
 
         idx += 1;
@@ -7009,7 +7008,7 @@ fn try_from_array<const L: usize, const N: usize, W: Word>(
     arr: &[W; N],
     default: Single,
 ) -> Result<[Single; L], InitError> {
-    match (N * W::BYTES).cmp(&(L * BYTES)) {
+    match (N * W::BYTES).cmp(&(L * <Single as Word>::BYTES)) {
         Ordering::Less => Ok(from_array(arr, default)),
         Ordering::Equal => Ok(from_array(arr, default)),
         Ordering::Greater => Err(InitError::InvalidLength),
@@ -7017,7 +7016,7 @@ fn try_from_array<const L: usize, const N: usize, W: Word>(
 }
 
 fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], InitError> {
-    match (slice.len() * W::BYTES).cmp(&(L * BYTES)) {
+    match (slice.len() * W::BYTES).cmp(&(L * <Single as Word>::BYTES)) {
         Ordering::Less => Ok(from_slice(slice)),
         Ordering::Equal => Ok(from_slice(slice)),
         Ordering::Greater => Err(InitError::InvalidLength),
@@ -7025,7 +7024,7 @@ fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], I
 }
 
 fn from_array<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
-    let len = N.min(L * BYTES / W::BYTES);
+    let len = N.min(L * <Single as Word>::BYTES / W::BYTES);
 
     let mut res = [default; L];
 
@@ -7040,7 +7039,7 @@ fn from_array<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Si
 }
 
 fn from_slice<const L: usize, W: Word>(slice: &[W]) -> [Single; L] {
-    let len = slice.len().min(L * BYTES / W::BYTES);
+    let len = slice.len().min(L * <Single as Word>::BYTES / W::BYTES);
 
     let mut res = [0; L];
 
@@ -7072,1298 +7071,1324 @@ fn from_iter<const L: usize, W: Word, Iter: Iterator<Item = W>>(iter: Iter) -> [
 
 #[cfg(test)]
 mod tests {
-    use std::{iter::repeat_n, ops::*, panic::RefUnwindSafe};
+    mod init {
+        use ndext::convert::{NdFrom, NdTryFrom};
 
-    use rand::{RngExt, SeedableRng, rngs::StdRng};
+        use crate::long::{
+            InitError,
+            alias::{S32, S64, U32, U64},
+        };
 
-    use super::*;
+        #[test]
+        fn primitive() {
+            #![allow(clippy::unnecessary_cast)]
 
-    use crate::{
-        CmpCt, GeCt, LeCt, MaxCt, MinCt, Saturating, Strict, Unbounded, Wrapping,
-        long::alias::{S32, S64, U32, U64},
-    };
+            ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+                (S64::from     (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
+                (S64::from_i8  (val as   i8), S64 { 0: (val as   i8 as i64).to_le_bytes() }),
+                (S64::from_i16 (val as  i16), S64 { 0: (val as  i16 as i64).to_le_bytes() }),
+                (S64::from_i32 (val as  i32), S64 { 0: (val as  i32 as i64).to_le_bytes() }),
+                (S64::from_i64 (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
+                (S64::from_i128(val as i128), S64 { 0: (val as i128 as i64).to_le_bytes() }),
 
-    fn ops_impl<
-        Lhs: Zero + Num + Debug + RefUnwindSafe,
-        Rhs: Zero + Num + Debug + RefUnwindSafe,
-        LhsLong: Num
-            + Debug
-            + RefUnwindSafe
-            + Ops<RhsLong, usize, Type = LhsLong>
-            + OpsAssign<RhsLong, usize>
-            + NdOpsChecked<LhsLong, RhsLong, usize, All = LhsLong>
-            + NdOpsOverflowing<LhsLong, RhsLong, usize, All = LhsLong>,
-        RhsLong: Num
-            + Debug
-            + RefUnwindSafe
-            + Add<LhsLong, Output = LhsLong>
-            + Sub<LhsLong, Output = LhsLong>
-            + Mul<LhsLong, Output = LhsLong>
-            + BitOr<LhsLong, Output = LhsLong>
-            + BitAnd<LhsLong, Output = LhsLong>
-            + BitXor<LhsLong, Output = LhsLong>,
-        LhsAlt: Num
-            + Debug
-            + RefUnwindSafe
-            + Ops<RhsAlt, usize, Type = LhsAlt>
-            + OpsAssign<RhsAlt, usize>
-            + NdOpsChecked<LhsAlt, RhsAlt, usize, All = LhsAlt>
-            + NdOpsOverflowing<LhsAlt, RhsAlt, usize, All = LhsAlt>,
-        RhsAlt: Num
-            + Debug
-            + RefUnwindSafe
-            + Add<LhsAlt, Output = LhsAlt>
-            + Sub<LhsAlt, Output = LhsAlt>
-            + Mul<LhsAlt, Output = LhsAlt>
-            + BitOr<LhsAlt, Output = LhsAlt>
-            + BitAnd<LhsAlt, Output = LhsAlt>
-            + BitXor<LhsAlt, Output = LhsAlt>,
-    >(
-        lhs_iter: impl Iterator<Item = Lhs> + Clone,
-        rhs_iter: impl Iterator<Item = Rhs> + Clone,
-        lhs_long_fn: impl Fn(Lhs) -> LhsLong,
-        rhs_long_fn: impl Fn(Rhs) -> RhsLong,
-        lhs_alt_fn: impl Fn(Lhs) -> LhsAlt,
-        rhs_alt_fn: impl Fn(Rhs) -> RhsAlt,
-        func: impl Copy + Fn(LhsAlt) -> LhsLong + RefUnwindSafe,
-    ) {
-        ndassert::check! { @eq (
-            lhs in lhs_iter.clone(),
-            rhs in rhs_iter.clone(),
-            lhs_long as lhs_long_fn(lhs),
-            rhs_long as rhs_long_fn(rhs),
-            lhs_alt as lhs_alt_fn(lhs),
-            rhs_alt as rhs_alt_fn(rhs),
-        ) [
-            ndassert::catch!(lhs_long + rhs_long, func(lhs_alt + rhs_alt)),
-            ndassert::catch!(lhs_long - rhs_long, func(lhs_alt - rhs_alt)),
-            ndassert::catch!(lhs_long * rhs_long, func(lhs_alt * rhs_alt)),
+                (S32::from     (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
+                (S32::from_i8  (val as   i8), S32 { 0: (val as   i8 as i32).to_le_bytes() }),
+                (S32::from_i16 (val as  i16), S32 { 0: (val as  i16 as i32).to_le_bytes() }),
+                (S32::from_i32 (val as  i32), S32 { 0: (val as  i32 as i32).to_le_bytes() }),
+                (S32::from_i64 (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
+                (S32::from_i128(val as i128), S32 { 0: (val as i128 as i32).to_le_bytes() }),
 
-            ndassert::catch!(rhs_long + lhs_long, func(rhs_alt + lhs_alt)),
-            ndassert::catch!(rhs_long - lhs_long, func(rhs_alt - lhs_alt)),
-            ndassert::catch!(rhs_long * lhs_long, func(rhs_alt * lhs_alt)),
+                (S64::from     ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
+                (S64::from_i8  ((val as   i8).wrapping_neg()), S64 { 0: ((val as   i8).wrapping_neg() as i64).to_le_bytes() }),
+                (S64::from_i16 ((val as  i16).wrapping_neg()), S64 { 0: ((val as  i16).wrapping_neg() as i64).to_le_bytes() }),
+                (S64::from_i32 ((val as  i32).wrapping_neg()), S64 { 0: ((val as  i32).wrapping_neg() as i64).to_le_bytes() }),
+                (S64::from_i64 ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
+                (S64::from_i128((val as i128).wrapping_neg()), S64 { 0: ((val as i128).wrapping_neg() as i64).to_le_bytes() }),
 
-            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long / rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
-            ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long % rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
+                (S32::from     ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
+                (S32::from_i8  ((val as   i8).wrapping_neg()), S32 { 0: ((val as   i8).wrapping_neg() as i32).to_le_bytes() }),
+                (S32::from_i16 ((val as  i16).wrapping_neg()), S32 { 0: ((val as  i16).wrapping_neg() as i32).to_le_bytes() }),
+                (S32::from_i32 ((val as  i32).wrapping_neg()), S32 { 0: ((val as  i32).wrapping_neg() as i32).to_le_bytes() }),
+                (S32::from_i64 ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
+                (S32::from_i128((val as i128).wrapping_neg()), S32 { 0: ((val as i128).wrapping_neg() as i32).to_le_bytes() }),
 
-            ndassert::catch!({ let mut val = lhs_long; val += rhs_long; val }, func(lhs_alt + rhs_alt)),
-            ndassert::catch!({ let mut val = lhs_long; val -= rhs_long; val }, func(lhs_alt - rhs_alt)),
-            ndassert::catch!({ let mut val = lhs_long; val *= rhs_long; val }, func(lhs_alt * rhs_alt)),
+                (U64::from     (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
+                (U64::from_u8  (val as   u8), U64 { 0: (val as   u8 as u64).to_le_bytes() }),
+                (U64::from_u16 (val as  u16), U64 { 0: (val as  u16 as u64).to_le_bytes() }),
+                (U64::from_u32 (val as  u32), U64 { 0: (val as  u32 as u64).to_le_bytes() }),
+                (U64::from_u64 (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
+                (U64::from_u128(val as u128), U64 { 0: (val as u128 as u64).to_le_bytes() }),
 
-            ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val /= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
-            ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val %= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
-
-            (LhsLong::nd_add_checked(&lhs_long, &rhs_long), LhsAlt::nd_add_checked(&lhs_alt, &rhs_alt).map(func)),
-            (LhsLong::nd_sub_checked(&lhs_long, &rhs_long), LhsAlt::nd_sub_checked(&lhs_alt, &rhs_alt).map(func)),
-            (LhsLong::nd_mul_checked(&lhs_long, &rhs_long), LhsAlt::nd_mul_checked(&lhs_alt, &rhs_alt).map(func)),
-            (LhsLong::nd_div_checked(&lhs_long, &rhs_long), LhsAlt::nd_div_checked(&lhs_alt, &rhs_alt).map(func)),
-            (LhsLong::nd_rem_checked(&lhs_long, &rhs_long), LhsAlt::nd_rem_checked(&lhs_alt, &rhs_alt).map(func)),
-
-            (LhsLong::nd_add_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_add_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
-            (LhsLong::nd_sub_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_sub_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
-            (LhsLong::nd_mul_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_mul_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
-
-            ((rhs != Rhs::ZERO).then(|| LhsLong::nd_div_overflowing(&lhs_long, &rhs_long)), (rhs != Rhs::ZERO).then(|| { let (val, flag) = LhsAlt::nd_div_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) })),
-            ((rhs != Rhs::ZERO).then(|| LhsLong::nd_rem_overflowing(&lhs_long, &rhs_long)), (rhs != Rhs::ZERO).then(|| { let (val, flag) = LhsAlt::nd_rem_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) })),
-
-            (lhs_long | rhs_long, func(lhs_alt | rhs_alt)),
-            (lhs_long & rhs_long, func(lhs_alt & rhs_alt)),
-            (lhs_long ^ rhs_long, func(lhs_alt ^ rhs_alt)),
-
-            (rhs_long | lhs_long, func(rhs_alt | lhs_alt)),
-            (rhs_long & lhs_long, func(rhs_alt & lhs_alt)),
-            (rhs_long ^ lhs_long, func(rhs_alt ^ lhs_alt)),
-
-            ({ let mut val = lhs_long; val |= rhs_long; val }, func(lhs_alt | rhs_alt)),
-            ({ let mut val = lhs_long; val &= rhs_long; val }, func(lhs_alt & rhs_alt)),
-            ({ let mut val = lhs_long; val ^= rhs_long; val }, func(lhs_alt ^ rhs_alt)),
-        ] }
-    }
-
-    fn ops_shift_impl<
-        Value: Num + Debug + RefUnwindSafe,
-        ValueLong: Num
-            + Debug
-            + RefUnwindSafe
-            + Ops<ValueLong, usize, Type = ValueLong>
-            + OpsAssign<ValueLong, usize>
-            + NdOpsChecked<ValueLong, ValueLong, usize, All = ValueLong>
-            + NdOpsOverflowing<ValueLong, ValueLong, usize, All = ValueLong>,
-        ValueAlt: Num
-            + Debug
-            + RefUnwindSafe
-            + Ops<ValueAlt, usize, Type = ValueAlt>
-            + OpsAssign<ValueAlt, usize>
-            + NdOpsChecked<ValueAlt, ValueAlt, usize, All = ValueAlt>
-            + NdOpsOverflowing<ValueAlt, ValueAlt, usize, All = ValueAlt>,
-    >(
-        value_iter: impl Iterator<Item = Value> + Clone,
-        shift_iter: impl Iterator<Item = usize> + Clone,
-        long_fn: impl Fn(Value) -> ValueLong,
-        alt_fn: impl Fn(Value) -> ValueAlt,
-        func: impl Copy + Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
-    ) {
-        ndassert::check! { @eq (
-            value in value_iter.clone(),
-            shift in shift_iter.clone(),
-            long as long_fn(value),
-            alt as alt_fn(value),
-        ) [
-            ndassert::catch!(long << shift, func(alt << shift)),
-            ndassert::catch!(long >> shift, func(alt >> shift)),
-
-            ndassert::catch!({ let mut val = long; val <<= shift; val }, func(alt << shift)),
-            ndassert::catch!({ let mut val = long; val >>= shift; val }, func(alt >> shift)),
-
-            (ValueLong::nd_shl_checked(&long, shift), ValueAlt::nd_shl_checked(&alt, shift).map(func)),
-            (ValueLong::nd_shr_checked(&long, shift), ValueAlt::nd_shr_checked(&alt, shift).map(func)),
-
-            (ValueLong::nd_shl_overflowing(&long, shift), { let (val, flag) = ValueAlt::nd_shl_overflowing(&alt, shift); (func(val), flag) }),
-            (ValueLong::nd_shr_overflowing(&long, shift), { let (val, flag) = ValueAlt::nd_shr_overflowing(&alt, shift); (func(val), flag) }),
-        ] }
-    }
-
-    fn ops_unary_impl<
-        Value: Num + Debug + RefUnwindSafe,
-        ValueLong: Num
-            + Debug
-            + RefUnwindSafe
-            + Not<Output = ValueLong>
-            + Neg<Output = ValueLong>
-            + NdPosx<Type = ValueLong>
-            + NdNegx<Type = ValueLong>,
-        ValueAlt: Num
-            + Debug
-            + RefUnwindSafe
-            + Not<Output = ValueAlt>
-            + Neg<Output = ValueAlt>
-            + NdPosx<Type = ValueAlt>
-            + NdNegx<Type = ValueAlt>,
-    >(
-        value_iter: impl Iterator<Item = Value> + Clone,
-        long_fn: impl Fn(Value) -> ValueLong,
-        alt_fn: impl Fn(Value) -> ValueAlt,
-        func: impl Copy + Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
-    ) {
-        ndassert::check! { @eq (
-            value in value_iter.clone(),
-            long as long_fn(value),
-            alt as alt_fn(value),
-        ) [
-            (!long, func(!alt)),
-
-            ndassert::catch!(-long, func(-alt)),
-            ndassert::catch!(ValueLong::nd_posx(&long), func(ValueAlt::nd_posx(&alt))),
-            ndassert::catch!(ValueLong::nd_negx(&long), func(ValueAlt::nd_negx(&alt))),
-        ] }
-    }
-
-    #[test]
-    fn from_primitive() {
-        #![allow(clippy::unnecessary_cast)]
-
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (S64::from     (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
-            (S64::from_i8  (val as   i8), S64 { 0: (val as   i8 as i64).to_le_bytes() }),
-            (S64::from_i16 (val as  i16), S64 { 0: (val as  i16 as i64).to_le_bytes() }),
-            (S64::from_i32 (val as  i32), S64 { 0: (val as  i32 as i64).to_le_bytes() }),
-            (S64::from_i64 (val as  i64), S64 { 0: (val as  i64 as i64).to_le_bytes() }),
-            (S64::from_i128(val as i128), S64 { 0: (val as i128 as i64).to_le_bytes() }),
-
-            (S32::from     (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
-            (S32::from_i8  (val as   i8), S32 { 0: (val as   i8 as i32).to_le_bytes() }),
-            (S32::from_i16 (val as  i16), S32 { 0: (val as  i16 as i32).to_le_bytes() }),
-            (S32::from_i32 (val as  i32), S32 { 0: (val as  i32 as i32).to_le_bytes() }),
-            (S32::from_i64 (val as  i64), S32 { 0: (val as  i64 as i32).to_le_bytes() }),
-            (S32::from_i128(val as i128), S32 { 0: (val as i128 as i32).to_le_bytes() }),
-
-            (S64::from     ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
-            (S64::from_i8  ((val as   i8).wrapping_neg()), S64 { 0: ((val as   i8).wrapping_neg() as i64).to_le_bytes() }),
-            (S64::from_i16 ((val as  i16).wrapping_neg()), S64 { 0: ((val as  i16).wrapping_neg() as i64).to_le_bytes() }),
-            (S64::from_i32 ((val as  i32).wrapping_neg()), S64 { 0: ((val as  i32).wrapping_neg() as i64).to_le_bytes() }),
-            (S64::from_i64 ((val as  i64).wrapping_neg()), S64 { 0: ((val as  i64).wrapping_neg() as i64).to_le_bytes() }),
-            (S64::from_i128((val as i128).wrapping_neg()), S64 { 0: ((val as i128).wrapping_neg() as i64).to_le_bytes() }),
-
-            (S32::from     ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
-            (S32::from_i8  ((val as   i8).wrapping_neg()), S32 { 0: ((val as   i8).wrapping_neg() as i32).to_le_bytes() }),
-            (S32::from_i16 ((val as  i16).wrapping_neg()), S32 { 0: ((val as  i16).wrapping_neg() as i32).to_le_bytes() }),
-            (S32::from_i32 ((val as  i32).wrapping_neg()), S32 { 0: ((val as  i32).wrapping_neg() as i32).to_le_bytes() }),
-            (S32::from_i64 ((val as  i64).wrapping_neg()), S32 { 0: ((val as  i64).wrapping_neg() as i32).to_le_bytes() }),
-            (S32::from_i128((val as i128).wrapping_neg()), S32 { 0: ((val as i128).wrapping_neg() as i32).to_le_bytes() }),
-
-            (U64::from     (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
-            (U64::from_u8  (val as   u8), U64 { 0: (val as   u8 as u64).to_le_bytes() }),
-            (U64::from_u16 (val as  u16), U64 { 0: (val as  u16 as u64).to_le_bytes() }),
-            (U64::from_u32 (val as  u32), U64 { 0: (val as  u32 as u64).to_le_bytes() }),
-            (U64::from_u64 (val as  u64), U64 { 0: (val as  u64 as u64).to_le_bytes() }),
-            (U64::from_u128(val as u128), U64 { 0: (val as u128 as u64).to_le_bytes() }),
-
-            (U32::from     (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
-            (U32::from_u8  (val as   u8), U32 { 0: (val as   u8 as u32).to_le_bytes() }),
-            (U32::from_u16 (val as  u16), U32 { 0: (val as  u16 as u32).to_le_bytes() }),
-            (U32::from_u32 (val as  u32), U32 { 0: (val as  u32 as u32).to_le_bytes() }),
-            (U32::from_u64 (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
-            (U32::from_u128(val as u128), U32 { 0: (val as u128 as u32).to_le_bytes() }),
-        ] }
-    }
-
-    #[test]
-    fn from_bytes() {
-        #![allow(clippy::unnecessary_cast)]
-
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (S64::from_bytes(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (U64::from_bytes(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (S64::from_bytes(&(val as u32).to_le_bytes()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (U64::from_bytes(&(val as u32).to_le_bytes()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (S64::from_bytes(&(val as u16).to_le_bytes()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (U64::from_bytes(&(val as u16).to_le_bytes()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (S64::from_bytes(&(val as  u8).to_le_bytes()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (U64::from_bytes(&(val as  u8).to_le_bytes()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
-
-            (S32::from_bytes(&(val as u64).to_le_bytes()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (U32::from_bytes(&(val as u64).to_le_bytes()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (S32::from_bytes(&(val as u32).to_le_bytes()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (U32::from_bytes(&(val as u32).to_le_bytes()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (S32::from_bytes(&(val as u16).to_le_bytes()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (U32::from_bytes(&(val as u16).to_le_bytes()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (S32::from_bytes(&(val as  u8).to_le_bytes()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (U32::from_bytes(&(val as  u8).to_le_bytes()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
-        ] }
-    }
-
-    #[test]
-    fn from_arr() {
-        #![allow(clippy::unnecessary_cast)]
-
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (S64::nd_from(&(val as u64).to_le_bytes(), ()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as u64).to_le_bytes(), ()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (S64::nd_from(&(val as u32).to_le_bytes(), ()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as u32).to_le_bytes(), ()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (S64::nd_from(&(val as u16).to_le_bytes(), ()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as u16).to_le_bytes(), ()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (S64::nd_from(&(val as  u8).to_le_bytes(), ()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (U64::nd_from(&(val as  u8).to_le_bytes(), ()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
-
-            (S32::nd_from(&(val as u64).to_le_bytes(), ()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as u64).to_le_bytes(), ()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (S32::nd_from(&(val as u32).to_le_bytes(), ()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as u32).to_le_bytes(), ()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (S32::nd_from(&(val as u16).to_le_bytes(), ()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as u16).to_le_bytes(), ()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (S32::nd_from(&(val as  u8).to_le_bytes(), ()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (U32::nd_from(&(val as  u8).to_le_bytes(), ()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
-
-            (S64::nd_try_from(&(val as u64).to_le_bytes(), ()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as u64).to_le_bytes(), ()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
-
-            (S32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(InitError::InvalidLength)),
-            (U32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(InitError::InvalidLength)),
-            (S32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
-        ] }
-    }
-
-    #[test]
-    fn from_slice() {
-        #![allow(clippy::unnecessary_cast)]
-
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (S64::nd_from(&val.to_le_bytes()[..8], ()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..8], ()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..4], ()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..4], ()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..2], ()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..2], ()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..1], ()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..1], ()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (S64::nd_from(&val.to_le_bytes()[..0], ()), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
-            (U64::nd_from(&val.to_le_bytes()[..0], ()), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
-
-            (S32::nd_from(&val.to_le_bytes()[..8], ()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..8], ()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..4], ()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..4], ()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..2], ()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..2], ()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..1], ()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..1], ()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (S32::nd_from(&val.to_le_bytes()[..0], ()), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
-            (U32::nd_from(&val.to_le_bytes()[..0], ()), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
-
-            (S64::nd_try_from(&val.to_le_bytes()[..8], ()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..8], ()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
-            (S64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(S64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
-            (U64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(U64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
-
-            (S32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(InitError::InvalidLength)),
-            (U32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(InitError::InvalidLength)),
-            (S32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
-            (S32::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(S32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
-            (U32::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(U32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
-        ] }
-    }
-
-    #[test]
-    fn from_iter() {
-        #![allow(clippy::unnecessary_cast)]
-
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (val.to_le_bytes().iter().copied().take(8).collect::<S64>(), S64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(8).collect::<U64>(), U64 { 0: (val as u64 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(4).collect::<S64>(), S64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(4).collect::<U64>(), U64 { 0: (val as u32 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(2).collect::<S64>(), S64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(2).collect::<U64>(), U64 { 0: (val as u16 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(1).collect::<S64>(), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(1).collect::<U64>(), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(0).collect::<S64>(), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(0).collect::<U64>(), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
-
-            (val.to_le_bytes().iter().copied().take(8).collect::<S32>(), S32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(8).collect::<U32>(), U32 { 0: (val as u64 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(4).collect::<S32>(), S32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(4).collect::<U32>(), U32 { 0: (val as u32 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(2).collect::<S32>(), S32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(2).collect::<U32>(), U32 { 0: (val as u16 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(1).collect::<S32>(), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(1).collect::<U32>(), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(0).collect::<S32>(), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
-            (val.to_le_bytes().iter().copied().take(0).collect::<U32>(), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
-        ] }
-    }
-
-    #[test]
-    fn from_digits() {
-        macro_rules! generate {
-            ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
-                const BYTES: usize = <$primitive>::BITS as usize / 8;
-
-                let rng = $rng;
-                let radix = $radix;
-
-                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-                let iter = digits.iter().copied();
-
-                let bytes = digits
-                    .iter()
-                    .rev()
-                    .fold(0, |acc, &x| acc * radix as u64 + x as u64)
-                    .to_le_bytes();
-
-                let lhs = <$long>::nd_try_from(iter, RadixImpl { radix });
-                let rhs = <$long>::nd_from(&bytes, ());
-
-                (lhs, Ok(rhs))
-            }};
+                (U32::from     (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
+                (U32::from_u8  (val as   u8), U32 { 0: (val as   u8 as u32).to_le_bytes() }),
+                (U32::from_u16 (val as  u16), U32 { 0: (val as  u16 as u32).to_le_bytes() }),
+                (U32::from_u32 (val as  u32), U32 { 0: (val as  u32 as u32).to_le_bytes() }),
+                (U32::from_u64 (val as  u64), U32 { 0: (val as  u64 as u32).to_le_bytes() }),
+                (U32::from_u128(val as u128), U32 { 0: (val as u128 as u32).to_le_bytes() }),
+            ] }
         }
 
-        let mut rng = ndassert::rand!(StdRng, 60);
+        #[test]
+        fn bytes() {
+            #![allow(clippy::unnecessary_cast)]
 
-        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
-            generate!(S64, i64, &mut rng, radix),
-            generate!(U64, u64, &mut rng, radix),
-        ] }
-    }
+            ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+                (S64::from_bytes(&(val as u64).to_le_bytes()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (U64::from_bytes(&(val as u64).to_le_bytes()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (S64::from_bytes(&(val as u32).to_le_bytes()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (U64::from_bytes(&(val as u32).to_le_bytes()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (S64::from_bytes(&(val as u16).to_le_bytes()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (U64::from_bytes(&(val as u16).to_le_bytes()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (S64::from_bytes(&(val as  u8).to_le_bytes()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+                (U64::from_bytes(&(val as  u8).to_le_bytes()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
 
-    #[test]
-    fn to_digits() {
-        macro_rules! generate {
-            ($long:ty, $primitive:ty, $rng:expr, $exp:expr) => {{
-                const BYTES: usize = <$primitive>::BITS as usize / 8;
-
-                let rng = $rng;
-                let exp = $exp;
-
-                let radix = 1u8 << exp;
-                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-                let iter = digits.iter().copied();
-
-                let res = <$long>::nd_try_from(iter, ExpImpl { exp })
-                    .map(|long| long.to_digits(ExpImpl { exp }).collect_with([0; BYTES]));
-
-                (res, Ok(digits))
-            }};
+                (S32::from_bytes(&(val as u64).to_le_bytes()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (U32::from_bytes(&(val as u64).to_le_bytes()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (S32::from_bytes(&(val as u32).to_le_bytes()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (U32::from_bytes(&(val as u32).to_le_bytes()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (S32::from_bytes(&(val as u16).to_le_bytes()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (U32::from_bytes(&(val as u16).to_le_bytes()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (S32::from_bytes(&(val as  u8).to_le_bytes()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+                (U32::from_bytes(&(val as  u8).to_le_bytes()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+            ] }
         }
 
-        let mut rng = ndassert::rand!(StdRng, 60);
+        #[test]
+        fn array() {
+            #![allow(clippy::unnecessary_cast)]
 
-        ndassert::check! { @eq (exp in (1..u8::BITS as u8).flat_map(|radix| repeat_n(radix, 1 << 16))) [
-            generate!(S64, i64, &mut rng, exp),
-            generate!(U64, u64, &mut rng, exp),
-        ] }
-    }
+            ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+                (S64::nd_from(&(val as u64).to_le_bytes(), ()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (U64::nd_from(&(val as u64).to_le_bytes(), ()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (S64::nd_from(&(val as u32).to_le_bytes(), ()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (U64::nd_from(&(val as u32).to_le_bytes(), ()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (S64::nd_from(&(val as u16).to_le_bytes(), ()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (U64::nd_from(&(val as u16).to_le_bytes(), ()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (S64::nd_from(&(val as  u8).to_le_bytes(), ()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+                (U64::nd_from(&(val as  u8).to_le_bytes(), ()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
 
-    #[test]
-    fn into_digits() {
-        macro_rules! generate {
-            ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
-                const BYTES: usize = <$primitive>::BITS as usize / 8;
+                (S32::nd_from(&(val as u64).to_le_bytes(), ()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (U32::nd_from(&(val as u64).to_le_bytes(), ()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (S32::nd_from(&(val as u32).to_le_bytes(), ()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (U32::nd_from(&(val as u32).to_le_bytes(), ()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (S32::nd_from(&(val as u16).to_le_bytes(), ()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (U32::nd_from(&(val as u16).to_le_bytes(), ()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (S32::nd_from(&(val as  u8).to_le_bytes(), ()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+                (U32::nd_from(&(val as  u8).to_le_bytes(), ()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
 
-                let rng = $rng;
-                let radix = $radix;
+                (S64::nd_try_from(&(val as u64).to_le_bytes(), ()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&(val as u64).to_le_bytes(), ()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
+                (S64::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
+                (S64::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
+                (S64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
 
-                let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
-                let iter = digits.iter().copied();
-
-                let res = <$long>::nd_try_from(iter, RadixImpl { radix })
-                    .map(|long| long.into_digits(RadixImpl { radix }).collect_with([0; BYTES]));
-
-                (res, Ok(digits))
-            }};
+                (S32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(InitError::InvalidLength)),
+                (U32::nd_try_from(&(val as u64).to_le_bytes(), ()), Err(InitError::InvalidLength)),
+                (S32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
+                (U32::nd_try_from(&(val as u32).to_le_bytes(), ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
+                (S32::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
+                (U32::nd_try_from(&(val as u16).to_le_bytes(), ()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
+                (S32::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
+                (U32::nd_try_from(&(val as  u8).to_le_bytes(), ()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
+            ] }
         }
 
-        let mut rng = ndassert::rand!(StdRng, 60);
+        #[test]
+        fn slice() {
+            #![allow(clippy::unnecessary_cast)]
 
-        ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
-            generate!(S64, i64, &mut rng, radix),
-            generate!(U64, u64, &mut rng, radix),
-        ] }
+            ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+                (S64::nd_from(&val.to_le_bytes()[..8], ()), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (U64::nd_from(&val.to_le_bytes()[..8], ()), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (S64::nd_from(&val.to_le_bytes()[..4], ()), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (U64::nd_from(&val.to_le_bytes()[..4], ()), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (S64::nd_from(&val.to_le_bytes()[..2], ()), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (U64::nd_from(&val.to_le_bytes()[..2], ()), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (S64::nd_from(&val.to_le_bytes()[..1], ()), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+                (U64::nd_from(&val.to_le_bytes()[..1], ()), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+                (S64::nd_from(&val.to_le_bytes()[..0], ()), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+                (U64::nd_from(&val.to_le_bytes()[..0], ()), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+
+                (S32::nd_from(&val.to_le_bytes()[..8], ()), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (U32::nd_from(&val.to_le_bytes()[..8], ()), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (S32::nd_from(&val.to_le_bytes()[..4], ()), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (U32::nd_from(&val.to_le_bytes()[..4], ()), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (S32::nd_from(&val.to_le_bytes()[..2], ()), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (U32::nd_from(&val.to_le_bytes()[..2], ()), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (S32::nd_from(&val.to_le_bytes()[..1], ()), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+                (U32::nd_from(&val.to_le_bytes()[..1], ()), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+                (S32::nd_from(&val.to_le_bytes()[..0], ()), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+                (U32::nd_from(&val.to_le_bytes()[..0], ()), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+
+                (S64::nd_try_from(&val.to_le_bytes()[..8], ()), Ok(S64 { 0: (val as u64 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&val.to_le_bytes()[..8], ()), Ok(U64 { 0: (val as u64 as u64).to_le_bytes() })),
+                (S64::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(S64 { 0: (val as u32 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(U64 { 0: (val as u32 as u64).to_le_bytes() })),
+                (S64::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(S64 { 0: (val as u16 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(U64 { 0: (val as u16 as u64).to_le_bytes() })),
+                (S64::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(S64 { 0: (val as  u8 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(U64 { 0: (val as  u8 as u64).to_le_bytes() })),
+                (S64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(S64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
+                (U64::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(U64 { 0:   (0 as  u8 as u64).to_le_bytes() })),
+
+                (S32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(InitError::InvalidLength)),
+                (U32::nd_try_from(&val.to_le_bytes()[..8], ()), Err(InitError::InvalidLength)),
+                (S32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(S32 { 0: (val as u32 as u32).to_le_bytes() })),
+                (U32::nd_try_from(&val.to_le_bytes()[..4], ()), Ok(U32 { 0: (val as u32 as u32).to_le_bytes() })),
+                (S32::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(S32 { 0: (val as u16 as u32).to_le_bytes() })),
+                (U32::nd_try_from(&val.to_le_bytes()[..2], ()), Ok(U32 { 0: (val as u16 as u32).to_le_bytes() })),
+                (S32::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(S32 { 0: (val as  u8 as u32).to_le_bytes() })),
+                (U32::nd_try_from(&val.to_le_bytes()[..1], ()), Ok(U32 { 0: (val as  u8 as u32).to_le_bytes() })),
+                (S32::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(S32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
+                (U32::nd_try_from(&val.to_le_bytes()[..0], ()), Ok(U32 { 0:   (0 as  u8 as u32).to_le_bytes() })),
+            ] }
+        }
+
+        #[test]
+        fn iter() {
+            #![allow(clippy::unnecessary_cast)]
+
+            ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+                (val.to_le_bytes().iter().copied().take(8).collect::<S64>(), S64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(8).collect::<U64>(), U64 { 0: (val as u64 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(4).collect::<S64>(), S64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(4).collect::<U64>(), U64 { 0: (val as u32 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(2).collect::<S64>(), S64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(2).collect::<U64>(), U64 { 0: (val as u16 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(1).collect::<S64>(), S64 { 0: (val as  u8 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(1).collect::<U64>(), U64 { 0: (val as  u8 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(0).collect::<S64>(), S64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(0).collect::<U64>(), U64 { 0:   (0 as  u8 as u64).to_le_bytes() }),
+
+                (val.to_le_bytes().iter().copied().take(8).collect::<S32>(), S32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(8).collect::<U32>(), U32 { 0: (val as u64 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(4).collect::<S32>(), S32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(4).collect::<U32>(), U32 { 0: (val as u32 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(2).collect::<S32>(), S32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(2).collect::<U32>(), U32 { 0: (val as u16 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(1).collect::<S32>(), S32 { 0: (val as  u8 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(1).collect::<U32>(), U32 { 0: (val as  u8 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(0).collect::<S32>(), S32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+                (val.to_le_bytes().iter().copied().take(0).collect::<U32>(), U32 { 0:   (0 as  u8 as u32).to_le_bytes() }),
+            ] }
+        }
     }
 
-    #[test]
-    fn from_str() {
-        ndassert::check! { @eq (val in ndassert::range!(i64, 48)) [
-            (format!("{:#}",  val).parse::<S64>(), Ok(S64::from(val))),
-            (format!("{:#b}", val).parse::<S64>(), Ok(S64::from(val))),
-            (format!("{:#o}", val).parse::<S64>(), Ok(S64::from(val))),
-            (format!("{:#x}", val).parse::<S64>(), Ok(S64::from(val))),
-            (format!("{:#X}", val).parse::<S64>(), Ok(S64::from(val))),
+    mod str {
+        use ndext::convert::NdFromStr;
 
-            (S64::nd_from_str(&format!("{:}",  val), Dec), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:b}", val), Bin), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:o}", val), Oct), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:x}", val), Hex), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:X}", val), Hex), Ok(S64::from(val))),
+        use crate::long::{
+            alias::{S64, U64},
+            radix::{Bin, Dec, Hex, Oct},
+        };
 
-            (S64::nd_from_str(&format!("{:#}",  val), Dec), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:#b}", val), Bin), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:#o}", val), Oct), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:#x}", val), Hex), Ok(S64::from(val))),
-            (S64::nd_from_str(&format!("{:#X}", val), Hex), Ok(S64::from(val))),
+        #[test]
+        fn from() {
+            ndassert::check! { @eq (val in ndassert::range!(i64, 48)) [
+                (format!("{:#}",  val).parse::<S64>(), Ok(S64::from(val))),
+                (format!("{:#b}", val).parse::<S64>(), Ok(S64::from(val))),
+                (format!("{:#o}", val).parse::<S64>(), Ok(S64::from(val))),
+                (format!("{:#x}", val).parse::<S64>(), Ok(S64::from(val))),
+                (format!("{:#X}", val).parse::<S64>(), Ok(S64::from(val))),
 
-            (format!("{:#}",  val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
-            (format!("{:#b}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
-            (format!("{:#o}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
-            (format!("{:#x}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
-            (format!("{:#X}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:}",  val), Dec), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:b}", val), Bin), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:o}", val), Oct), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:x}", val), Hex), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:X}", val), Hex), Ok(S64::from(val))),
 
-            (S64::nd_from_str(&format!("{:}",  val.wrapping_neg()), Dec), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:b}", val.wrapping_neg()), Bin), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:o}", val.wrapping_neg()), Oct), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:x}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:X}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:#}",  val), Dec), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:#b}", val), Bin), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:#o}", val), Oct), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:#x}", val), Hex), Ok(S64::from(val))),
+                (S64::nd_from_str(&format!("{:#X}", val), Hex), Ok(S64::from(val))),
 
-            (S64::nd_from_str(&format!("{:#}",  val.wrapping_neg()), Dec), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:#b}", val.wrapping_neg()), Bin), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:#o}", val.wrapping_neg()), Oct), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:#x}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
-            (S64::nd_from_str(&format!("{:#X}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
-        ] }
+                (format!("{:#}",  val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
+                (format!("{:#b}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
+                (format!("{:#o}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
+                (format!("{:#x}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
+                (format!("{:#X}", val.wrapping_neg()).parse::<S64>(), Ok(S64::from(val.wrapping_neg()))),
 
-        ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
-            (format!("{:#}",  val).parse::<U64>(), Ok(U64::from(val))),
-            (format!("{:#b}", val).parse::<U64>(), Ok(U64::from(val))),
-            (format!("{:#o}", val).parse::<U64>(), Ok(U64::from(val))),
-            (format!("{:#x}", val).parse::<U64>(), Ok(U64::from(val))),
-            (format!("{:#X}", val).parse::<U64>(), Ok(U64::from(val))),
+                (S64::nd_from_str(&format!("{:}",  val.wrapping_neg()), Dec), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:b}", val.wrapping_neg()), Bin), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:o}", val.wrapping_neg()), Oct), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:x}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:X}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
 
-            (U64::nd_from_str(&format!("{:}",  val), Dec), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:b}", val), Bin), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:o}", val), Oct), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:x}", val), Hex), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:X}", val), Hex), Ok(U64::from(val))),
+                (S64::nd_from_str(&format!("{:#}",  val.wrapping_neg()), Dec), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:#b}", val.wrapping_neg()), Bin), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:#o}", val.wrapping_neg()), Oct), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:#x}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
+                (S64::nd_from_str(&format!("{:#X}", val.wrapping_neg()), Hex), Ok(S64::from(val.wrapping_neg()))),
+            ] }
 
-            (U64::nd_from_str(&format!("{:#}",  val), Dec), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:#b}", val), Bin), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:#o}", val), Oct), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:#x}", val), Hex), Ok(U64::from(val))),
-            (U64::nd_from_str(&format!("{:#X}", val), Hex), Ok(U64::from(val))),
-        ] }
+            ndassert::check! { @eq (val in ndassert::range!(u64, 48)) [
+                (format!("{:#}",  val).parse::<U64>(), Ok(U64::from(val))),
+                (format!("{:#b}", val).parse::<U64>(), Ok(U64::from(val))),
+                (format!("{:#o}", val).parse::<U64>(), Ok(U64::from(val))),
+                (format!("{:#x}", val).parse::<U64>(), Ok(U64::from(val))),
+                (format!("{:#X}", val).parse::<U64>(), Ok(U64::from(val))),
+
+                (U64::nd_from_str(&format!("{:}",  val), Dec), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:b}", val), Bin), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:o}", val), Oct), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:x}", val), Hex), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:X}", val), Hex), Ok(U64::from(val))),
+
+                (U64::nd_from_str(&format!("{:#}",  val), Dec), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:#b}", val), Bin), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:#o}", val), Oct), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:#x}", val), Hex), Ok(U64::from(val))),
+                (U64::nd_from_str(&format!("{:#X}", val), Hex), Ok(U64::from(val))),
+            ] }
+        }
+
+        #[test]
+        fn to() {
+            ndassert::check! { @eq (
+                val in ndassert::range!(i64, 48),
+                pos as S64::from(val),
+                neg as S64::from(val.wrapping_neg()),
+            ) [
+                (format!("{:}",   pos), format!("{:}",   val)),
+                (format!("{:b}",  pos), format!("{:b}",  val)),
+                (format!("{:o}",  pos), format!("{:o}",  val)),
+                (format!("{:x}",  pos), format!("{:x}",  val)),
+                (format!("{:X}",  pos), format!("{:X}",  val)),
+                (format!("{:#}",  pos), format!("{:#}",  val)),
+                (format!("{:#b}", pos), format!("{:#b}", val)),
+                (format!("{:#o}", pos), format!("{:#o}", val)),
+                (format!("{:#x}", pos), format!("{:#x}", val)),
+                (format!("{:#X}", pos), format!("{:#X}", val)),
+
+                (format!("{:}",   neg), format!("{:}",   val.wrapping_neg())),
+                (format!("{:b}",  neg), format!("{:b}",  val.wrapping_neg())),
+                (format!("{:o}",  neg), format!("{:o}",  val.wrapping_neg())),
+                (format!("{:x}",  neg), format!("{:x}",  val.wrapping_neg())),
+                (format!("{:X}",  neg), format!("{:X}",  val.wrapping_neg())),
+                (format!("{:#}",  neg), format!("{:#}",  val.wrapping_neg())),
+                (format!("{:#b}", neg), format!("{:#b}", val.wrapping_neg())),
+                (format!("{:#o}", neg), format!("{:#o}", val.wrapping_neg())),
+                (format!("{:#x}", neg), format!("{:#x}", val.wrapping_neg())),
+                (format!("{:#X}", neg), format!("{:#X}", val.wrapping_neg())),
+            ] }
+
+            ndassert::check! { @eq (
+                val in ndassert::range!(u64, 48),
+                long as U64::from(val),
+            ) [
+                (format!("{:}",   long), format!("{:}",   val)),
+                (format!("{:b}",  long), format!("{:b}",  val)),
+                (format!("{:o}",  long), format!("{:o}",  val)),
+                (format!("{:x}",  long), format!("{:x}",  val)),
+                (format!("{:X}",  long), format!("{:X}",  val)),
+                (format!("{:#}",  long), format!("{:#}",  val)),
+                (format!("{:#b}", long), format!("{:#b}", val)),
+                (format!("{:#o}", long), format!("{:#o}", val)),
+                (format!("{:#x}", long), format!("{:#x}", val)),
+                (format!("{:#X}", long), format!("{:#X}", val)),
+            ] }
+        }
     }
 
-    #[test]
-    fn to_str() {
-        ndassert::check! { @eq (
-            val in ndassert::range!(i64, 48),
-            pos as S64::from(val),
-            neg as S64::from(val.wrapping_neg()),
-        ) [
-            (format!("{:}",   pos), format!("{:}",   val)),
-            (format!("{:b}",  pos), format!("{:b}",  val)),
-            (format!("{:o}",  pos), format!("{:o}",  val)),
-            (format!("{:x}",  pos), format!("{:x}",  val)),
-            (format!("{:X}",  pos), format!("{:X}",  val)),
-            (format!("{:#}",  pos), format!("{:#}",  val)),
-            (format!("{:#b}", pos), format!("{:#b}", val)),
-            (format!("{:#o}", pos), format!("{:#o}", val)),
-            (format!("{:#x}", pos), format!("{:#x}", val)),
-            (format!("{:#X}", pos), format!("{:#X}", val)),
+    mod radix {
+        use std::iter::repeat_n;
 
-            (format!("{:}",   neg), format!("{:}",   val.wrapping_neg())),
-            (format!("{:b}",  neg), format!("{:b}",  val.wrapping_neg())),
-            (format!("{:o}",  neg), format!("{:o}",  val.wrapping_neg())),
-            (format!("{:x}",  neg), format!("{:x}",  val.wrapping_neg())),
-            (format!("{:X}",  neg), format!("{:X}",  val.wrapping_neg())),
-            (format!("{:#}",  neg), format!("{:#}",  val.wrapping_neg())),
-            (format!("{:#b}", neg), format!("{:#b}", val.wrapping_neg())),
-            (format!("{:#o}", neg), format!("{:#o}", val.wrapping_neg())),
-            (format!("{:#x}", neg), format!("{:#x}", val.wrapping_neg())),
-            (format!("{:#X}", neg), format!("{:#X}", val.wrapping_neg())),
-        ] }
+        use rand::{RngExt, SeedableRng, rngs::StdRng};
 
-        ndassert::check! { @eq (
-            val in ndassert::range!(u64, 48),
-            long as U64::from(val),
-        ) [
-            (format!("{:}",   long), format!("{:}",   val)),
-            (format!("{:b}",  long), format!("{:b}",  val)),
-            (format!("{:o}",  long), format!("{:o}",  val)),
-            (format!("{:x}",  long), format!("{:x}",  val)),
-            (format!("{:X}",  long), format!("{:X}",  val)),
-            (format!("{:#}",  long), format!("{:#}",  val)),
-            (format!("{:#b}", long), format!("{:#b}", val)),
-            (format!("{:#o}", long), format!("{:#o}", val)),
-            (format!("{:#x}", long), format!("{:#x}", val)),
-            (format!("{:#X}", long), format!("{:#X}", val)),
-        ] }
+        use ndext::{
+            convert::{NdFrom, NdTryFrom},
+            iter::IteratorExt,
+        };
+
+        use crate::long::{
+            alias::{S64, U64},
+            radix::*,
+        };
+
+        #[test]
+        fn from() {
+            macro_rules! generate {
+                ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
+                    const BYTES: usize = <$primitive>::BITS as usize / 8;
+
+                    let rng = $rng;
+                    let radix = $radix;
+
+                    let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+                    let iter = digits.iter().copied();
+
+                    let bytes = digits
+                        .iter()
+                        .rev()
+                        .fold(0, |acc, &x| acc * radix as u64 + x as u64)
+                        .to_le_bytes();
+
+                    let lhs = <$long>::nd_try_from(iter, RadixImpl { radix });
+                    let rhs = <$long>::nd_from(&bytes, ());
+
+                    (lhs, Ok(rhs))
+                }};
+            }
+
+            let mut rng = ndassert::rand!(StdRng, 60);
+
+            ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
+                generate!(S64, i64, &mut rng, radix),
+                generate!(U64, u64, &mut rng, radix),
+            ] }
+        }
+
+        #[test]
+        fn into() {
+            macro_rules! generate {
+                ($long:ty, $primitive:ty, $rng:expr, $radix:expr) => {{
+                    const BYTES: usize = <$primitive>::BITS as usize / 8;
+
+                    let rng = $rng;
+                    let radix = $radix;
+
+                    let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+                    let iter = digits.iter().copied();
+
+                    let res = <$long>::nd_try_from(iter, RadixImpl { radix })
+                        .map(|long| long.into_digits(RadixImpl { radix }).collect_with([0; BYTES]));
+
+                    (res, Ok(digits))
+                }};
+            }
+
+            let mut rng = ndassert::rand!(StdRng, 60);
+
+            ndassert::check! { @eq (radix in (2..=u8::MAX).flat_map(|radix| repeat_n(radix, 1 << 8))) [
+                generate!(S64, i64, &mut rng, radix),
+                generate!(U64, u64, &mut rng, radix),
+            ] }
+        }
+
+        #[test]
+        fn to() {
+            macro_rules! generate {
+                ($long:ty, $primitive:ty, $rng:expr, $exp:expr) => {{
+                    const BYTES: usize = <$primitive>::BITS as usize / 8;
+
+                    let rng = $rng;
+                    let exp = $exp;
+
+                    let radix = 1u8 << exp;
+                    let digits = (0..BYTES).map(|_| rng.random_range(..radix)).collect_with([0; BYTES]);
+                    let iter = digits.iter().copied();
+
+                    let res = <$long>::nd_try_from(iter, ExpImpl { exp })
+                        .map(|long| long.to_digits(ExpImpl { exp }).collect_with([0; BYTES]));
+
+                    (res, Ok(digits))
+                }};
+            }
+
+            let mut rng = ndassert::rand!(StdRng, 60);
+
+            ndassert::check! { @eq (exp in (1..u8::BITS as u8).flat_map(|radix| repeat_n(radix, 1 << 16))) [
+                generate!(S64, i64, &mut rng, exp),
+                generate!(U64, u64, &mut rng, exp),
+            ] }
+        }
     }
 
-    #[test]
-    fn cmp() {
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0),
-            rhs in ndassert::range!(i64, 56, 1),
-            lhs_long as S64::from(lhs),
-            rhs_long as S64::from(rhs),
-        ) [
-            (lhs_long.eq (&rhs_long), lhs.eq (&rhs)),
-            (lhs_long.cmp(&rhs_long), lhs.cmp(&rhs)),
-        ] }
+    mod ops {
+        use std::{fmt::Debug, ops::*, panic::RefUnwindSafe};
 
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0),
-            rhs in ndassert::range!(u64, 56, 1),
-            lhs_long as U64::from(lhs),
-            rhs_long as U64::from(rhs),
-        ) [
-            (lhs_long.eq (&rhs_long), lhs.eq (&rhs)),
-            (lhs_long.cmp(&rhs_long), lhs.cmp(&rhs)),
-        ] }
+        use crate::{
+            long::alias::{S64, U64},
+            *,
+        };
+
+        fn check<
+            Lhs: Zero + Num + Debug + RefUnwindSafe,
+            Rhs: Zero + Num + Debug + RefUnwindSafe,
+            LhsLong: Num
+                + Debug
+                + RefUnwindSafe
+                + Ops<RhsLong, usize, Type = LhsLong>
+                + OpsAssign<RhsLong, usize>
+                + NdOpsChecked<LhsLong, RhsLong, usize, All = LhsLong>
+                + NdOpsOverflowing<LhsLong, RhsLong, usize, All = LhsLong>,
+            RhsLong: Num
+                + Debug
+                + RefUnwindSafe
+                + Add<LhsLong, Output = LhsLong>
+                + Sub<LhsLong, Output = LhsLong>
+                + Mul<LhsLong, Output = LhsLong>
+                + BitOr<LhsLong, Output = LhsLong>
+                + BitAnd<LhsLong, Output = LhsLong>
+                + BitXor<LhsLong, Output = LhsLong>,
+            LhsAlt: Num
+                + Debug
+                + RefUnwindSafe
+                + Ops<RhsAlt, usize, Type = LhsAlt>
+                + OpsAssign<RhsAlt, usize>
+                + NdOpsChecked<LhsAlt, RhsAlt, usize, All = LhsAlt>
+                + NdOpsOverflowing<LhsAlt, RhsAlt, usize, All = LhsAlt>,
+            RhsAlt: Num
+                + Debug
+                + RefUnwindSafe
+                + Add<LhsAlt, Output = LhsAlt>
+                + Sub<LhsAlt, Output = LhsAlt>
+                + Mul<LhsAlt, Output = LhsAlt>
+                + BitOr<LhsAlt, Output = LhsAlt>
+                + BitAnd<LhsAlt, Output = LhsAlt>
+                + BitXor<LhsAlt, Output = LhsAlt>,
+        >(
+            lhs_iter: impl Iterator<Item = Lhs> + Clone,
+            rhs_iter: impl Iterator<Item = Rhs> + Clone,
+            lhs_long_fn: impl Fn(Lhs) -> LhsLong,
+            rhs_long_fn: impl Fn(Rhs) -> RhsLong,
+            lhs_alt_fn: impl Fn(Lhs) -> LhsAlt,
+            rhs_alt_fn: impl Fn(Rhs) -> RhsAlt,
+            func: impl Copy + Fn(LhsAlt) -> LhsLong + RefUnwindSafe,
+        ) {
+            ndassert::check! { @eq (
+                lhs in lhs_iter.clone(),
+                rhs in rhs_iter.clone(),
+                lhs_long as lhs_long_fn(lhs),
+                rhs_long as rhs_long_fn(rhs),
+                lhs_alt as lhs_alt_fn(lhs),
+                rhs_alt as rhs_alt_fn(rhs),
+            ) [
+                ndassert::catch!(lhs_long + rhs_long, func(lhs_alt + rhs_alt)),
+                ndassert::catch!(lhs_long - rhs_long, func(lhs_alt - rhs_alt)),
+                ndassert::catch!(lhs_long * rhs_long, func(lhs_alt * rhs_alt)),
+
+                ndassert::catch!(rhs_long + lhs_long, func(rhs_alt + lhs_alt)),
+                ndassert::catch!(rhs_long - lhs_long, func(rhs_alt - lhs_alt)),
+                ndassert::catch!(rhs_long * lhs_long, func(rhs_alt * lhs_alt)),
+
+                ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long / rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
+                ndassert::catch!((rhs != Rhs::ZERO).then(|| lhs_long % rhs_long), (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
+
+                ndassert::catch!({ let mut val = lhs_long; val += rhs_long; val }, func(lhs_alt + rhs_alt)),
+                ndassert::catch!({ let mut val = lhs_long; val -= rhs_long; val }, func(lhs_alt - rhs_alt)),
+                ndassert::catch!({ let mut val = lhs_long; val *= rhs_long; val }, func(lhs_alt * rhs_alt)),
+
+                ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val /= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt / rhs_alt))),
+                ndassert::catch!({ let mut val = lhs_long; (rhs != Rhs::ZERO).then(|| { val %= rhs_long; val }) }, (rhs != Rhs::ZERO).then(|| func(lhs_alt % rhs_alt))),
+
+                (LhsLong::nd_add_checked(&lhs_long, &rhs_long), LhsAlt::nd_add_checked(&lhs_alt, &rhs_alt).map(func)),
+                (LhsLong::nd_sub_checked(&lhs_long, &rhs_long), LhsAlt::nd_sub_checked(&lhs_alt, &rhs_alt).map(func)),
+                (LhsLong::nd_mul_checked(&lhs_long, &rhs_long), LhsAlt::nd_mul_checked(&lhs_alt, &rhs_alt).map(func)),
+                (LhsLong::nd_div_checked(&lhs_long, &rhs_long), LhsAlt::nd_div_checked(&lhs_alt, &rhs_alt).map(func)),
+                (LhsLong::nd_rem_checked(&lhs_long, &rhs_long), LhsAlt::nd_rem_checked(&lhs_alt, &rhs_alt).map(func)),
+
+                (LhsLong::nd_add_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_add_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
+                (LhsLong::nd_sub_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_sub_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
+                (LhsLong::nd_mul_overflowing(&lhs_long, &rhs_long), { let (val, flag) = LhsAlt::nd_mul_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) }),
+
+                ((rhs != Rhs::ZERO).then(|| LhsLong::nd_div_overflowing(&lhs_long, &rhs_long)), (rhs != Rhs::ZERO).then(|| { let (val, flag) = LhsAlt::nd_div_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) })),
+                ((rhs != Rhs::ZERO).then(|| LhsLong::nd_rem_overflowing(&lhs_long, &rhs_long)), (rhs != Rhs::ZERO).then(|| { let (val, flag) = LhsAlt::nd_rem_overflowing(&lhs_alt, &rhs_alt); (func(val), flag) })),
+
+                (lhs_long | rhs_long, func(lhs_alt | rhs_alt)),
+                (lhs_long & rhs_long, func(lhs_alt & rhs_alt)),
+                (lhs_long ^ rhs_long, func(lhs_alt ^ rhs_alt)),
+
+                (rhs_long | lhs_long, func(rhs_alt | lhs_alt)),
+                (rhs_long & lhs_long, func(rhs_alt & lhs_alt)),
+                (rhs_long ^ lhs_long, func(rhs_alt ^ lhs_alt)),
+
+                ({ let mut val = lhs_long; val |= rhs_long; val }, func(lhs_alt | rhs_alt)),
+                ({ let mut val = lhs_long; val &= rhs_long; val }, func(lhs_alt & rhs_alt)),
+                ({ let mut val = lhs_long; val ^= rhs_long; val }, func(lhs_alt ^ rhs_alt)),
+            ] }
+        }
+
+        fn check_shift<
+            Value: Num + Debug + RefUnwindSafe,
+            ValueLong: Num
+                + Debug
+                + RefUnwindSafe
+                + Ops<ValueLong, usize, Type = ValueLong>
+                + OpsAssign<ValueLong, usize>
+                + NdOpsChecked<ValueLong, ValueLong, usize, All = ValueLong>
+                + NdOpsOverflowing<ValueLong, ValueLong, usize, All = ValueLong>,
+            ValueAlt: Num
+                + Debug
+                + RefUnwindSafe
+                + Ops<ValueAlt, usize, Type = ValueAlt>
+                + OpsAssign<ValueAlt, usize>
+                + NdOpsChecked<ValueAlt, ValueAlt, usize, All = ValueAlt>
+                + NdOpsOverflowing<ValueAlt, ValueAlt, usize, All = ValueAlt>,
+        >(
+            value_iter: impl Iterator<Item = Value> + Clone,
+            shift_iter: impl Iterator<Item = usize> + Clone,
+            long_fn: impl Fn(Value) -> ValueLong,
+            alt_fn: impl Fn(Value) -> ValueAlt,
+            func: impl Copy + Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
+        ) {
+            ndassert::check! { @eq (
+                value in value_iter.clone(),
+                shift in shift_iter.clone(),
+                long as long_fn(value),
+                alt as alt_fn(value),
+            ) [
+                ndassert::catch!(long << shift, func(alt << shift)),
+                ndassert::catch!(long >> shift, func(alt >> shift)),
+
+                ndassert::catch!({ let mut val = long; val <<= shift; val }, func(alt << shift)),
+                ndassert::catch!({ let mut val = long; val >>= shift; val }, func(alt >> shift)),
+
+                (ValueLong::nd_shl_checked(&long, shift), ValueAlt::nd_shl_checked(&alt, shift).map(func)),
+                (ValueLong::nd_shr_checked(&long, shift), ValueAlt::nd_shr_checked(&alt, shift).map(func)),
+
+                (ValueLong::nd_shl_overflowing(&long, shift), { let (val, flag) = ValueAlt::nd_shl_overflowing(&alt, shift); (func(val), flag) }),
+                (ValueLong::nd_shr_overflowing(&long, shift), { let (val, flag) = ValueAlt::nd_shr_overflowing(&alt, shift); (func(val), flag) }),
+            ] }
+        }
+
+        fn check_unary<
+            Value: Num + Debug + RefUnwindSafe,
+            ValueLong: Num
+                + Debug
+                + RefUnwindSafe
+                + Not<Output = ValueLong>
+                + Neg<Output = ValueLong>
+                + NdPosx<Type = ValueLong>
+                + NdNegx<Type = ValueLong>,
+            ValueAlt: Num
+                + Debug
+                + RefUnwindSafe
+                + Not<Output = ValueAlt>
+                + Neg<Output = ValueAlt>
+                + NdPosx<Type = ValueAlt>
+                + NdNegx<Type = ValueAlt>,
+        >(
+            value_iter: impl Iterator<Item = Value> + Clone,
+            long_fn: impl Fn(Value) -> ValueLong,
+            alt_fn: impl Fn(Value) -> ValueAlt,
+            func: impl Copy + Fn(ValueAlt) -> ValueLong + RefUnwindSafe,
+        ) {
+            ndassert::check! { @eq (
+                value in value_iter.clone(),
+                long as long_fn(value),
+                alt as alt_fn(value),
+            ) [
+                (!long, func(!alt)),
+
+                ndassert::catch!(-long, func(-alt)),
+                ndassert::catch!(ValueLong::nd_posx(&long), func(ValueAlt::nd_posx(&alt))),
+                ndassert::catch!(ValueLong::nd_negx(&long), func(ValueAlt::nd_negx(&alt))),
+            ] }
+        }
+
+        #[test]
+        fn cmp() {
+            ndassert::check! { @eq (
+                lhs in ndassert::range!(i64, 56, 0),
+                rhs in ndassert::range!(i64, 56, 1),
+                lhs_long as S64::from(lhs),
+                rhs_long as S64::from(rhs),
+            ) [
+                (lhs_long.eq (&rhs_long), lhs.eq (&rhs)),
+                (lhs_long.cmp(&rhs_long), lhs.cmp(&rhs)),
+            ] }
+
+            ndassert::check! { @eq (
+                lhs in ndassert::range!(u64, 56, 0),
+                rhs in ndassert::range!(u64, 56, 1),
+                lhs_long as U64::from(lhs),
+                rhs_long as U64::from(rhs),
+            ) [
+                (lhs_long.eq (&rhs_long), lhs.eq (&rhs)),
+                (lhs_long.cmp(&rhs_long), lhs.cmp(&rhs)),
+            ] }
+        }
+
+        #[test]
+        fn cmp_ct() {
+            #![allow(clippy::absurd_extreme_comparisons)]
+            #![allow(unused_comparisons)]
+
+            ndassert::check! { @eq (
+                lhs in ndassert::range!(i64, 56, 0),
+                rhs in ndassert::range!(i64, 56, 1),
+                lhs_long as S64::from(lhs),
+                rhs_long as S64::from(rhs),
+            ) [
+                (lhs_long.eq_ct(&rhs_long),  MaskCt::MAX * (lhs == rhs) as MaskCt),
+                (lhs_long.cmp_ct(&rhs_long), lhs.cmp(&rhs) as RelCt),
+                (lhs_long.sign_ct(),         lhs.cmp(&0)   as RelCt),
+
+                (lhs_long.is_zero_ct(),      MaskCt::MAX * (lhs == 0)   as MaskCt),
+                (lhs_long.is_one_ct(),       MaskCt::MAX * (lhs == 1)   as MaskCt),
+                (lhs_long.is_pos_ct(),       MaskCt::MAX * (lhs >  0)   as MaskCt),
+                (lhs_long.is_neg_ct(),       MaskCt::MAX * (lhs <  0)   as MaskCt),
+                (lhs_long.lt_ct(&rhs_long),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
+                (lhs_long.gt_ct(&rhs_long),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
+                (lhs_long.le_ct(&rhs_long),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
+                (lhs_long.ge_ct(&rhs_long),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
+                (lhs_long.min_ct(&rhs_long), S64::from(lhs.min(rhs))),
+                (lhs_long.max_ct(&rhs_long), S64::from(lhs.max(rhs))),
+            ] }
+
+            ndassert::check! { @eq (
+                lhs in ndassert::range!(u64, 56, 0),
+                rhs in ndassert::range!(u64, 56, 1),
+                lhs_long as U64::from(lhs),
+                rhs_long as U64::from(rhs),
+            ) [
+                (lhs_long.eq_ct(&rhs_long),  MaskCt::MAX * (lhs == rhs) as MaskCt),
+                (lhs_long.cmp_ct(&rhs_long), lhs.cmp(&rhs) as RelCt),
+                (lhs_long.sign_ct(),         lhs.cmp(&0)   as RelCt),
+
+                (lhs_long.is_zero_ct(),      MaskCt::MAX * (lhs == 0)   as MaskCt),
+                (lhs_long.is_one_ct(),       MaskCt::MAX * (lhs == 1)   as MaskCt),
+                (lhs_long.is_pos_ct(),       MaskCt::MAX * (lhs >  0)   as MaskCt),
+                (lhs_long.is_neg_ct(),       MaskCt::MAX * (lhs <  0)   as MaskCt),
+                (lhs_long.lt_ct(&rhs_long),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
+                (lhs_long.gt_ct(&rhs_long),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
+                (lhs_long.le_ct(&rhs_long),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
+                (lhs_long.ge_ct(&rhs_long),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
+                (lhs_long.min_ct(&rhs_long), U64::from(lhs.min(rhs))),
+                (lhs_long.max_ct(&rhs_long), U64::from(lhs.max(rhs))),
+            ] }
+        }
+
+        #[test]
+        fn signed() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| S64::from(val),
+                |val: i64| S64::from(val),
+                |val: i64| val,
+                |val: i64| val,
+                |val: i64| S64::from(val),
+            );
+
+            check_unary(
+                ndassert::range!(i64, 52),
+                |val: i64| S64::from(val),
+                |val: i64| val,
+                |val: i64| S64::from(val),
+            );
+        }
+
+        #[test]
+        fn unsigned() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| U64::from(val),
+                |val: u64| U64::from(val),
+                |val: u64| val,
+                |val: u64| val,
+                |val: u64| U64::from(val),
+            );
+
+            check_shift(
+                ndassert::range!(u64, 52),
+                0..96,
+                |val: u64| U64::from(val),
+                |val: u64| val,
+                |val: u64| U64::from(val),
+            );
+        }
+
+        #[test]
+        fn signed_shift() {
+            check_shift(
+                ndassert::range!(i64, 52),
+                0..96,
+                |val: i64| S64::from(val),
+                |val: i64| val,
+                |val: i64| S64::from(val),
+            );
+        }
+
+        #[test]
+        fn unsigned_shift() {
+            check_shift(
+                ndassert::range!(u64, 52),
+                0..96,
+                |val: u64| U64::from(val),
+                |val: u64| val,
+                |val: u64| U64::from(val),
+            );
+        }
+
+        #[test]
+        fn signed_primitive() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| S64::from(val),
+                |val: i64| val,
+                |val: i64| val,
+                |val: i64| val,
+                |val: i64| S64::from(val),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| U64::from(val),
+                |val: u64| val,
+                |val: u64| val,
+                |val: u64| val,
+                |val: u64| U64::from(val),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_native() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                i8::MIN..i8::MAX,
+                |val: i64| S64::from(val),
+                |val: i8| val,
+                |val: i64| val,
+                |val: i8| val as i64,
+                |val: i64| S64::from(val),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_native() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                u8::MIN..u8::MAX,
+                |val: u64| U64::from(val),
+                |val: u8| val,
+                |val: u64| val,
+                |val: u8| val as u64,
+                |val: u64| U64::from(val),
+            );
+        }
+
+        #[test]
+        fn signed_strict() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Strict(S64::from(val)),
+                |val: i64| Strict(S64::from(val)),
+                |val: i64| Strict(val),
+                |val: i64| Strict(val),
+                |val: Strict<i64>| Strict(S64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(i64, 52),
+                0..96,
+                |val: i64| Strict(S64::from(val)),
+                |val: i64| Strict(val),
+                |val: Strict<i64>| Strict(S64::from(val.0)),
+            );
+
+            check_unary(
+                ndassert::range!(i64, 52),
+                |val: i64| Strict(S64::from(val)),
+                |val: i64| Strict(val),
+                |val: Strict<i64>| Strict(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_strict() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Strict(U64::from(val)),
+                |val: u64| Strict(U64::from(val)),
+                |val: u64| Strict(val),
+                |val: u64| Strict(val),
+                |val: Strict<u64>| Strict(U64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(u64, 52),
+                0..96,
+                |val: u64| Strict(U64::from(val)),
+                |val: u64| Strict(val),
+                |val: Strict<u64>| Strict(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_strict() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Strict(S64::from(val)),
+                |val: i64| Strict(val),
+                |val: i64| Strict(val),
+                |val: i64| Strict(val),
+                |val: Strict<i64>| Strict(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_strict() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Strict(U64::from(val)),
+                |val: u64| Strict(val),
+                |val: u64| Strict(val),
+                |val: u64| Strict(val),
+                |val: Strict<u64>| Strict(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_native_strict() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                i8::MIN..i8::MAX,
+                |val: i64| Strict(S64::from(val)),
+                |val: i8| Strict(val),
+                |val: i64| Strict(val),
+                |val: i8| Strict(val as i64),
+                |val: Strict<i64>| Strict(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_native_strict() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                u8::MIN..u8::MAX,
+                |val: u64| Strict(U64::from(val)),
+                |val: u8| Strict(val),
+                |val: u64| Strict(val),
+                |val: u8| Strict(val as u64),
+                |val: Strict<u64>| Strict(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_wrapping() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Wrapping(S64::from(val)),
+                |val: i64| Wrapping(S64::from(val)),
+                |val: i64| Wrapping(val),
+                |val: i64| Wrapping(val),
+                |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(i64, 52),
+                0..96,
+                |val: i64| Wrapping(S64::from(val)),
+                |val: i64| Wrapping(val),
+                |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+            );
+
+            check_unary(
+                ndassert::range!(i64, 52),
+                |val: i64| Wrapping(S64::from(val)),
+                |val: i64| Wrapping(val),
+                |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_wrapping() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Wrapping(U64::from(val)),
+                |val: u64| Wrapping(U64::from(val)),
+                |val: u64| Wrapping(val),
+                |val: u64| Wrapping(val),
+                |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(u64, 52),
+                0..96,
+                |val: u64| Wrapping(U64::from(val)),
+                |val: u64| Wrapping(val),
+                |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_wrapping() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Wrapping(S64::from(val)),
+                |val: i64| Wrapping(val),
+                |val: i64| Wrapping(val),
+                |val: i64| Wrapping(val),
+                |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_wrapping() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Wrapping(U64::from(val)),
+                |val: u64| Wrapping(val),
+                |val: u64| Wrapping(val),
+                |val: u64| Wrapping(val),
+                |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_native_wrapping() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                i8::MIN..i8::MAX,
+                |val: i64| Wrapping(S64::from(val)),
+                |val: i8| Wrapping(val),
+                |val: i64| Wrapping(val),
+                |val: i8| Wrapping(val as i64),
+                |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_native_wrapping() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                u8::MIN..u8::MAX,
+                |val: u64| Wrapping(U64::from(val)),
+                |val: u8| Wrapping(val),
+                |val: u64| Wrapping(val),
+                |val: u8| Wrapping(val as u64),
+                |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_saturating() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Saturating(S64::from(val)),
+                |val: i64| Saturating(S64::from(val)),
+                |val: i64| Saturating(val),
+                |val: i64| Saturating(val),
+                |val: Saturating<i64>| Saturating(S64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(i64, 52),
+                0..96,
+                |val: i64| Saturating(S64::from(val)),
+                |val: i64| Saturating(val),
+                |val: Saturating<i64>| Saturating(S64::from(val.0)),
+            );
+
+            check_unary(
+                ndassert::range!(i64, 52),
+                |val: i64| Saturating(S64::from(val)),
+                |val: i64| Saturating(val),
+                |val: Saturating<i64>| Saturating(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_saturating() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Saturating(U64::from(val)),
+                |val: u64| Saturating(U64::from(val)),
+                |val: u64| Saturating(val),
+                |val: u64| Saturating(val),
+                |val: Saturating<u64>| Saturating(U64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(u64, 52),
+                0..96,
+                |val: u64| Saturating(U64::from(val)),
+                |val: u64| Saturating(val),
+                |val: Saturating<u64>| Saturating(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_saturating() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Saturating(S64::from(val)),
+                |val: i64| Saturating(val),
+                |val: i64| Saturating(val),
+                |val: i64| Saturating(val),
+                |val: Saturating<i64>| Saturating(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_saturating() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Saturating(U64::from(val)),
+                |val: u64| Saturating(val),
+                |val: u64| Saturating(val),
+                |val: u64| Saturating(val),
+                |val: Saturating<u64>| Saturating(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_native_saturating() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                i8::MIN..i8::MAX,
+                |val: i64| Saturating(S64::from(val)),
+                |val: i8| Saturating(val),
+                |val: i64| Saturating(val),
+                |val: i8| Saturating(val as i64),
+                |val: Saturating<i64>| Saturating(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_native_saturating() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                u8::MIN..u8::MAX,
+                |val: u64| Saturating(U64::from(val)),
+                |val: u8| Saturating(val),
+                |val: u64| Saturating(val),
+                |val: u8| Saturating(val as u64),
+                |val: Saturating<u64>| Saturating(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_unbounded() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Unbounded(S64::from(val)),
+                |val: i64| Unbounded(S64::from(val)),
+                |val: i64| Unbounded(val),
+                |val: i64| Unbounded(val),
+                |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(i64, 52),
+                0..96,
+                |val: i64| Unbounded(S64::from(val)),
+                |val: i64| Unbounded(val),
+                |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
+            );
+
+            check_unary(
+                ndassert::range!(i64, 52),
+                |val: i64| Unbounded(S64::from(val)),
+                |val: i64| Unbounded(val),
+                |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_unbounded() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Unbounded(U64::from(val)),
+                |val: u64| Unbounded(U64::from(val)),
+                |val: u64| Unbounded(val),
+                |val: u64| Unbounded(val),
+                |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
+            );
+
+            check_shift(
+                ndassert::range!(u64, 52),
+                0..96,
+                |val: u64| Unbounded(U64::from(val)),
+                |val: u64| Unbounded(val),
+                |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_unbounded() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
+                |val: i64| Unbounded(S64::from(val)),
+                |val: i64| Unbounded(val),
+                |val: i64| Unbounded(val),
+                |val: i64| Unbounded(val),
+                |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_unbounded() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                ndassert::range!(u64, 56, 1).chain([0, 1]),
+                |val: u64| Unbounded(U64::from(val)),
+                |val: u64| Unbounded(val),
+                |val: u64| Unbounded(val),
+                |val: u64| Unbounded(val),
+                |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn signed_primitive_native_unbounded() {
+            check(
+                ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
+                i8::MIN..i8::MAX,
+                |val: i64| Unbounded(S64::from(val)),
+                |val: i8| Unbounded(val),
+                |val: i64| Unbounded(val),
+                |val: i8| Unbounded(val as i64),
+                |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
+            );
+        }
+
+        #[test]
+        fn unsigned_primitive_native_unbounded() {
+            check(
+                ndassert::range!(u64, 56, 0).chain([0, 1]),
+                u8::MIN..u8::MAX,
+                |val: u64| Unbounded(U64::from(val)),
+                |val: u8| Unbounded(val),
+                |val: u64| Unbounded(val),
+                |val: u8| Unbounded(val as u64),
+                |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
+            );
+        }
     }
 
-    #[test]
-    fn cmp_ct() {
-        #![allow(clippy::absurd_extreme_comparisons)]
-        #![allow(unused_comparisons)]
+    mod uops {
+        use crate::{
+            Dir,
+            arch::word::Single,
+            long::{
+                uops,
+                uops::{Expr, ExprMut},
+            },
+        };
 
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56, 0),
-            rhs in ndassert::range!(i64, 56, 1),
-            lhs_long as S64::from(lhs),
-            rhs_long as S64::from(rhs),
-        ) [
-            (lhs_long.eq_ct(&rhs_long),  MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (lhs_long.cmp_ct(&rhs_long), lhs.cmp(&rhs) as RelCt),
-            (lhs_long.sign_ct(),         lhs.cmp(&0)   as RelCt),
+        #[test]
+        fn std() {
+            ndassert::check! { @eq (
+                val in ndassert::range!(u64, 48),
+                pos as (val as i64),
+                neg as (val as i64).wrapping_neg(),
+                bytes as val.to_le_bytes(),
+            ) [
+                (uops::not(&bytes).eval(), (!val).to_le_bytes()),
+                (uops::pos(&bytes).eval(), pos.to_le_bytes()),
+                (uops::neg(&bytes).eval(), neg.to_le_bytes()),
 
-            (lhs_long.is_zero_ct(),      MaskCt::MAX * (lhs == 0)   as MaskCt),
-            (lhs_long.is_one_ct(),       MaskCt::MAX * (lhs == 1)   as MaskCt),
-            (lhs_long.is_pos_ct(),       MaskCt::MAX * (lhs >  0)   as MaskCt),
-            (lhs_long.is_neg_ct(),       MaskCt::MAX * (lhs <  0)   as MaskCt),
-            (lhs_long.lt_ct(&rhs_long),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (lhs_long.gt_ct(&rhs_long),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (lhs_long.le_ct(&rhs_long),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (lhs_long.ge_ct(&rhs_long),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs_long.min_ct(&rhs_long), S64::from(lhs.min(rhs))),
-            (lhs_long.max_ct(&rhs_long), S64::from(lhs.max(rhs))),
-        ] }
+                (uops::dirv(&bytes, Dir::POS).eval(), pos.to_le_bytes()),
+                (uops::dirv(&bytes, Dir::NEG).eval(), neg.to_le_bytes()),
+                (uops::dirx(&bytes, Dir::POS).eval(), [pos, neg][(neg > 0) as usize].to_le_bytes()),
+                (uops::dirx(&bytes, Dir::NEG).eval(), [pos, neg][(pos > 0) as usize].to_le_bytes()),
 
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56, 0),
-            rhs in ndassert::range!(u64, 56, 1),
-            lhs_long as U64::from(lhs),
-            rhs_long as U64::from(rhs),
-        ) [
-            (lhs_long.eq_ct(&rhs_long),  MaskCt::MAX * (lhs == rhs) as MaskCt),
-            (lhs_long.cmp_ct(&rhs_long), lhs.cmp(&rhs) as RelCt),
-            (lhs_long.sign_ct(),         lhs.cmp(&0)   as RelCt),
+                ({ let mut bytes = bytes; uops::not(&mut bytes).eval_mut(); bytes }, (!val).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::pos(&mut bytes).eval_mut(); bytes }, pos.to_le_bytes()),
+                ({ let mut bytes = bytes; uops::neg(&mut bytes).eval_mut(); bytes }, neg.to_le_bytes()),
 
-            (lhs_long.is_zero_ct(),      MaskCt::MAX * (lhs == 0)   as MaskCt),
-            (lhs_long.is_one_ct(),       MaskCt::MAX * (lhs == 1)   as MaskCt),
-            (lhs_long.is_pos_ct(),       MaskCt::MAX * (lhs >  0)   as MaskCt),
-            (lhs_long.is_neg_ct(),       MaskCt::MAX * (lhs <  0)   as MaskCt),
-            (lhs_long.lt_ct(&rhs_long),  MaskCt::MAX * (lhs <  rhs) as MaskCt),
-            (lhs_long.gt_ct(&rhs_long),  MaskCt::MAX * (lhs >  rhs) as MaskCt),
-            (lhs_long.le_ct(&rhs_long),  MaskCt::MAX * (lhs <= rhs) as MaskCt),
-            (lhs_long.ge_ct(&rhs_long),  MaskCt::MAX * (lhs >= rhs) as MaskCt),
-            (lhs_long.min_ct(&rhs_long), U64::from(lhs.min(rhs))),
-            (lhs_long.max_ct(&rhs_long), U64::from(lhs.max(rhs))),
-        ] }
-    }
+                ({ let mut bytes = bytes; uops::dirv(&mut bytes, Dir::POS).eval_mut(); bytes }, pos.to_le_bytes()),
+                ({ let mut bytes = bytes; uops::dirv(&mut bytes, Dir::NEG).eval_mut(); bytes }, neg.to_le_bytes()),
+                ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::POS).eval_mut(); bytes }, [pos, neg][(neg > 0) as usize].to_le_bytes()),
+                ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::NEG).eval_mut(); bytes }, [pos, neg][(pos > 0) as usize].to_le_bytes()),
+            ] }
 
-    #[test]
-    fn ops_signed() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| S64::from(val),
-            |val: i64| S64::from(val),
-            |val: i64| val,
-            |val: i64| val,
-            |val: i64| S64::from(val),
-        );
+            ndassert::check! { @eq (
+                lhs in ndassert::range!(u64, 56),
+                rhs in ndassert::range!(u64, 56),
+                lhs_bytes as lhs.to_le_bytes(),
+                rhs_bytes as rhs.to_le_bytes(),
+            ) [
+                (uops::add(&lhs_bytes, &rhs_bytes).eval(), lhs.wrapping_add(rhs).to_le_bytes()),
+                (uops::sub(&lhs_bytes, &rhs_bytes).eval(), lhs.wrapping_sub(rhs).to_le_bytes()),
+                (uops::bitor(&lhs_bytes, &rhs_bytes).eval(), (lhs | rhs).to_le_bytes()),
+                (uops::bitand(&lhs_bytes, &rhs_bytes).eval(), (lhs & rhs).to_le_bytes()),
+                (uops::bitxor(&lhs_bytes, &rhs_bytes).eval(), (lhs ^ rhs).to_le_bytes()),
 
-        ops_shift_impl(
-            ndassert::range!(i64, 52),
-            0..96,
-            |val: i64| S64::from(val),
-            |val: i64| val,
-            |val: i64| S64::from(val),
-        );
+                ({ let mut bytes = lhs_bytes; uops::add(&mut bytes, &rhs_bytes).eval_mut(); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
+                ({ let mut bytes = lhs_bytes; uops::sub(&mut bytes, &rhs_bytes).eval_mut(); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
+                ({ let mut bytes = lhs_bytes; uops::bitor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs | rhs).to_le_bytes()),
+                ({ let mut bytes = lhs_bytes; uops::bitand(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs & rhs).to_le_bytes()),
+                ({ let mut bytes = lhs_bytes; uops::bitxor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs ^ rhs).to_le_bytes()),
+            ] }
+        }
 
-        ops_unary_impl(
-            ndassert::range!(i64, 52),
-            |val: i64| S64::from(val),
-            |val: i64| val,
-            |val: i64| S64::from(val),
-        );
-    }
+        #[test]
+        fn single() {
+            ndassert::check! { @eq (
+                lhs in ndassert::range!(u64, 56),
+                rhs in u8::MIN..u8::MAX,
+                bytes as lhs.to_le_bytes(),
+            ) [
+                (uops::add(&bytes, rhs).eval(), lhs.wrapping_add(rhs as u64).to_le_bytes()),
+                (uops::sub(&bytes, rhs).eval(), lhs.wrapping_sub(rhs as u64).to_le_bytes()),
+                (uops::bitor(&bytes, rhs).eval(), (lhs | rhs as u64).to_le_bytes()),
+                (uops::bitand(&bytes, rhs).eval(), (lhs & rhs as u64).to_le_bytes()),
+                (uops::bitxor(&bytes, rhs).eval(), (lhs ^ rhs as u64).to_le_bytes()),
 
-    #[test]
-    fn ops_unsigned() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| U64::from(val),
-            |val: u64| U64::from(val),
-            |val: u64| val,
-            |val: u64| val,
-            |val: u64| U64::from(val),
-        );
+                ({ let mut bytes = bytes; uops::add(&mut bytes, rhs).eval_mut(); bytes }, lhs.wrapping_add(rhs as u64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs).eval_mut(); bytes }, lhs.wrapping_sub(rhs as u64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs).eval_mut(); bytes }, (lhs | rhs as u64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs).eval_mut(); bytes }, (lhs & rhs as u64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs).eval_mut(); bytes }, (lhs ^ rhs as u64).to_le_bytes()),
+            ] }
 
-        ops_shift_impl(
-            ndassert::range!(u64, 52),
-            0..96,
-            |val: u64| U64::from(val),
-            |val: u64| val,
-            |val: u64| U64::from(val),
-        );
-    }
+            ndassert::check! { @eq (
+                lhs in ndassert::range!(i64, 56),
+                rhs in i8::MIN..i8::MAX,
+                bytes as lhs.to_le_bytes(),
+            ) [
+                (uops::add(&bytes, rhs).signed().eval(), lhs.wrapping_add(rhs as i64).to_le_bytes()),
+                (uops::sub(&bytes, rhs).signed().eval(), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
+                (uops::bitor(&bytes, rhs).eval(), (lhs | rhs as i64).to_le_bytes()),
+                (uops::bitand(&bytes, rhs).eval(), (lhs & rhs as i64).to_le_bytes()),
+                (uops::bitxor(&bytes, rhs).eval(), (lhs ^ rhs as i64).to_le_bytes()),
 
-    #[test]
-    fn ops_signed_primitive() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| S64::from(val),
-            |val: i64| val,
-            |val: i64| val,
-            |val: i64| val,
-            |val: i64| S64::from(val),
-        );
-    }
+                ({ let mut bytes = bytes; uops::add(&mut bytes, rhs).signed().eval_mut(); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs).signed().eval_mut(); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs).eval_mut(); bytes }, (lhs | rhs as i64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs).eval_mut(); bytes }, (lhs & rhs as i64).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs).eval_mut(); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
+            ] }
+        }
 
-    #[test]
-    fn ops_unsigned_primitive() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| U64::from(val),
-            |val: u64| val,
-            |val: u64| val,
-            |val: u64| val,
-            |val: u64| U64::from(val),
-        );
-    }
+        #[test]
+        fn shift() {
+            ndassert::check! { @eq (
+                val in ndassert::range!(u64, 52),
+                shift in 0..96,
+                bytes as val.to_le_bytes(),
+                shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
+                shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
+            ) [
+                (uops::shl(&bytes, shift).eval(), val.unbounded_shl(shift as u32).to_le_bytes()),
+                (uops::shr(&bytes, shift).eval(), val.unbounded_shr(shift as u32).to_le_bytes()),
+                (uops::shl(&bytes, shift).ext(Single::MAX).eval(), (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+                (uops::shr(&bytes, shift).ext(Single::MAX).eval(), (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
 
-    #[test]
-    fn ops_signed_primitive_native() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            i8::MIN..i8::MAX,
-            |val: i64| S64::from(val),
-            |val: i8| val,
-            |val: i64| val,
-            |val: i8| val as i64,
-            |val: i64| S64::from(val),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_native() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            u8::MIN..u8::MAX,
-            |val: u64| U64::from(val),
-            |val: u8| val,
-            |val: u64| val,
-            |val: u8| val as u64,
-            |val: u64| U64::from(val),
-        );
-    }
-
-    #[test]
-    fn ops_signed_strict() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(i64, 52),
-            0..96,
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
-
-        ops_unary_impl(
-            ndassert::range!(i64, 52),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_strict() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(u64, 52),
-            0..96,
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_strict() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Strict(S64::from(val)),
-            |val: i64| Strict(val),
-            |val: i64| Strict(val),
-            |val: i64| Strict(val),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_strict() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Strict(U64::from(val)),
-            |val: u64| Strict(val),
-            |val: u64| Strict(val),
-            |val: u64| Strict(val),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_native_strict() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            i8::MIN..i8::MAX,
-            |val: i64| Strict(S64::from(val)),
-            |val: i8| Strict(val),
-            |val: i64| Strict(val),
-            |val: i8| Strict(val as i64),
-            |val: Strict<i64>| Strict(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_native_strict() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            u8::MIN..u8::MAX,
-            |val: u64| Strict(U64::from(val)),
-            |val: u8| Strict(val),
-            |val: u64| Strict(val),
-            |val: u8| Strict(val as u64),
-            |val: Strict<u64>| Strict(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_wrapping() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Wrapping(S64::from(val)),
-            |val: i64| Wrapping(S64::from(val)),
-            |val: i64| Wrapping(val),
-            |val: i64| Wrapping(val),
-            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(i64, 52),
-            0..96,
-            |val: i64| Wrapping(S64::from(val)),
-            |val: i64| Wrapping(val),
-            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
-        );
-
-        ops_unary_impl(
-            ndassert::range!(i64, 52),
-            |val: i64| Wrapping(S64::from(val)),
-            |val: i64| Wrapping(val),
-            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_wrapping() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Wrapping(U64::from(val)),
-            |val: u64| Wrapping(U64::from(val)),
-            |val: u64| Wrapping(val),
-            |val: u64| Wrapping(val),
-            |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(u64, 52),
-            0..96,
-            |val: u64| Wrapping(U64::from(val)),
-            |val: u64| Wrapping(val),
-            |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_wrapping() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Wrapping(S64::from(val)),
-            |val: i64| Wrapping(val),
-            |val: i64| Wrapping(val),
-            |val: i64| Wrapping(val),
-            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_wrapping() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Wrapping(U64::from(val)),
-            |val: u64| Wrapping(val),
-            |val: u64| Wrapping(val),
-            |val: u64| Wrapping(val),
-            |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_native_wrapping() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            i8::MIN..i8::MAX,
-            |val: i64| Wrapping(S64::from(val)),
-            |val: i8| Wrapping(val),
-            |val: i64| Wrapping(val),
-            |val: i8| Wrapping(val as i64),
-            |val: Wrapping<i64>| Wrapping(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_native_wrapping() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            u8::MIN..u8::MAX,
-            |val: u64| Wrapping(U64::from(val)),
-            |val: u8| Wrapping(val),
-            |val: u64| Wrapping(val),
-            |val: u8| Wrapping(val as u64),
-            |val: Wrapping<u64>| Wrapping(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_saturating() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Saturating(S64::from(val)),
-            |val: i64| Saturating(S64::from(val)),
-            |val: i64| Saturating(val),
-            |val: i64| Saturating(val),
-            |val: Saturating<i64>| Saturating(S64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(i64, 52),
-            0..96,
-            |val: i64| Saturating(S64::from(val)),
-            |val: i64| Saturating(val),
-            |val: Saturating<i64>| Saturating(S64::from(val.0)),
-        );
-
-        ops_unary_impl(
-            ndassert::range!(i64, 52),
-            |val: i64| Saturating(S64::from(val)),
-            |val: i64| Saturating(val),
-            |val: Saturating<i64>| Saturating(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_saturating() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Saturating(U64::from(val)),
-            |val: u64| Saturating(U64::from(val)),
-            |val: u64| Saturating(val),
-            |val: u64| Saturating(val),
-            |val: Saturating<u64>| Saturating(U64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(u64, 52),
-            0..96,
-            |val: u64| Saturating(U64::from(val)),
-            |val: u64| Saturating(val),
-            |val: Saturating<u64>| Saturating(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_saturating() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Saturating(S64::from(val)),
-            |val: i64| Saturating(val),
-            |val: i64| Saturating(val),
-            |val: i64| Saturating(val),
-            |val: Saturating<i64>| Saturating(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_saturating() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Saturating(U64::from(val)),
-            |val: u64| Saturating(val),
-            |val: u64| Saturating(val),
-            |val: u64| Saturating(val),
-            |val: Saturating<u64>| Saturating(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_native_saturating() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            i8::MIN..i8::MAX,
-            |val: i64| Saturating(S64::from(val)),
-            |val: i8| Saturating(val),
-            |val: i64| Saturating(val),
-            |val: i8| Saturating(val as i64),
-            |val: Saturating<i64>| Saturating(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_native_saturating() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            u8::MIN..u8::MAX,
-            |val: u64| Saturating(U64::from(val)),
-            |val: u8| Saturating(val),
-            |val: u64| Saturating(val),
-            |val: u8| Saturating(val as u64),
-            |val: Saturating<u64>| Saturating(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_unbounded() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Unbounded(S64::from(val)),
-            |val: i64| Unbounded(S64::from(val)),
-            |val: i64| Unbounded(val),
-            |val: i64| Unbounded(val),
-            |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(i64, 52),
-            0..96,
-            |val: i64| Unbounded(S64::from(val)),
-            |val: i64| Unbounded(val),
-            |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
-        );
-
-        ops_unary_impl(
-            ndassert::range!(i64, 52),
-            |val: i64| Unbounded(S64::from(val)),
-            |val: i64| Unbounded(val),
-            |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_unbounded() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Unbounded(U64::from(val)),
-            |val: u64| Unbounded(U64::from(val)),
-            |val: u64| Unbounded(val),
-            |val: u64| Unbounded(val),
-            |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
-        );
-
-        ops_shift_impl(
-            ndassert::range!(u64, 52),
-            0..96,
-            |val: u64| Unbounded(U64::from(val)),
-            |val: u64| Unbounded(val),
-            |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_unbounded() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            ndassert::range!(i64, 56, 1).chain([-1, 0, 1]),
-            |val: i64| Unbounded(S64::from(val)),
-            |val: i64| Unbounded(val),
-            |val: i64| Unbounded(val),
-            |val: i64| Unbounded(val),
-            |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_unbounded() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            ndassert::range!(u64, 56, 1).chain([0, 1]),
-            |val: u64| Unbounded(U64::from(val)),
-            |val: u64| Unbounded(val),
-            |val: u64| Unbounded(val),
-            |val: u64| Unbounded(val),
-            |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_signed_primitive_native_unbounded() {
-        ops_impl(
-            ndassert::range!(i64, 56, 0).chain([-1, 0, 1]),
-            i8::MIN..i8::MAX,
-            |val: i64| Unbounded(S64::from(val)),
-            |val: i8| Unbounded(val),
-            |val: i64| Unbounded(val),
-            |val: i8| Unbounded(val as i64),
-            |val: Unbounded<i64>| Unbounded(S64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn ops_unsigned_primitive_native_unbounded() {
-        ops_impl(
-            ndassert::range!(u64, 56, 0).chain([0, 1]),
-            u8::MIN..u8::MAX,
-            |val: u64| Unbounded(U64::from(val)),
-            |val: u8| Unbounded(val),
-            |val: u64| Unbounded(val),
-            |val: u8| Unbounded(val as u64),
-            |val: Unbounded<u64>| Unbounded(U64::from(val.0)),
-        );
-    }
-
-    #[test]
-    fn uops() {
-        ndassert::check! { @eq (
-            val in ndassert::range!(u64, 48),
-            pos as (val as i64),
-            neg as (val as i64).wrapping_neg(),
-            bytes as val.to_le_bytes(),
-        ) [
-            (uops::not(&bytes).eval(), (!val).to_le_bytes()),
-            (uops::pos(&bytes).eval(), pos.to_le_bytes()),
-            (uops::neg(&bytes).eval(), neg.to_le_bytes()),
-
-            (uops::dirv(&bytes, Dir::POS).eval(), pos.to_le_bytes()),
-            (uops::dirv(&bytes, Dir::NEG).eval(), neg.to_le_bytes()),
-            (uops::dirx(&bytes, Dir::POS).eval(), [pos, neg][(neg > 0) as usize].to_le_bytes()),
-            (uops::dirx(&bytes, Dir::NEG).eval(), [pos, neg][(pos > 0) as usize].to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56),
-            rhs in ndassert::range!(u64, 56),
-            lhs_bytes as lhs.to_le_bytes(),
-            rhs_bytes as rhs.to_le_bytes(),
-        ) [
-            (uops::add(&lhs_bytes, &rhs_bytes).eval(), lhs.wrapping_add(rhs).to_le_bytes()),
-            (uops::sub(&lhs_bytes, &rhs_bytes).eval(), lhs.wrapping_sub(rhs).to_le_bytes()),
-            (uops::bitor(&lhs_bytes, &rhs_bytes).eval(), (lhs | rhs).to_le_bytes()),
-            (uops::bitand(&lhs_bytes, &rhs_bytes).eval(), (lhs & rhs).to_le_bytes()),
-            (uops::bitxor(&lhs_bytes, &rhs_bytes).eval(), (lhs ^ rhs).to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56),
-            rhs in u8::MIN..u8::MAX,
-            bytes as lhs.to_le_bytes(),
-        ) [
-            (uops::add(&bytes, rhs).eval(), lhs.wrapping_add(rhs as u64).to_le_bytes()),
-            (uops::sub(&bytes, rhs).eval(), lhs.wrapping_sub(rhs as u64).to_le_bytes()),
-            (uops::bitor(&bytes, rhs).eval(), (lhs | rhs as u64).to_le_bytes()),
-            (uops::bitand(&bytes, rhs).eval(), (lhs & rhs as u64).to_le_bytes()),
-            (uops::bitxor(&bytes, rhs).eval(), (lhs ^ rhs as u64).to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56),
-            rhs in i8::MIN..i8::MAX,
-            bytes as lhs.to_le_bytes(),
-        ) [
-            (uops::add(&bytes, rhs).signed().eval(), lhs.wrapping_add(rhs as i64).to_le_bytes()),
-            (uops::sub(&bytes, rhs).signed().eval(), lhs.wrapping_sub(rhs as i64).to_le_bytes()),
-            (uops::bitor(&bytes, rhs).eval(), (lhs | rhs as i64).to_le_bytes()),
-            (uops::bitand(&bytes, rhs).eval(), (lhs & rhs as i64).to_le_bytes()),
-            (uops::bitxor(&bytes, rhs).eval(), (lhs ^ rhs as i64).to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            val in ndassert::range!(u64, 52),
-            shift in 0..96,
-            bytes as val.to_le_bytes(),
-            shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
-            shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
-        ) [
-            (uops::shl(&bytes, shift).eval(), val.unbounded_shl(shift as u32).to_le_bytes()),
-            (uops::shr(&bytes, shift).eval(), val.unbounded_shr(shift as u32).to_le_bytes()),
-            (uops::shl(&bytes, shift).ext(MAX).eval(), (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
-            (uops::shr(&bytes, shift).ext(MAX).eval(), (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
-        ] }
-    }
-
-    #[test]
-    fn uops_mut() {
-        ndassert::check! { @eq (
-            val in ndassert::range!(u64, 48),
-            pos as (val as i64),
-            neg as (val as i64).wrapping_neg(),
-            bytes as val.to_le_bytes(),
-        ) [
-            ({ let mut bytes = bytes; uops::not(&mut bytes).eval_mut(); bytes }, (!val).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::pos(&mut bytes).eval_mut(); bytes }, pos.to_le_bytes()),
-            ({ let mut bytes = bytes; uops::neg(&mut bytes).eval_mut(); bytes }, neg.to_le_bytes()),
-
-            ({ let mut bytes = bytes; uops::dirv(&mut bytes, Dir::POS).eval_mut(); bytes }, pos.to_le_bytes()),
-            ({ let mut bytes = bytes; uops::dirv(&mut bytes, Dir::NEG).eval_mut(); bytes }, neg.to_le_bytes()),
-            ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::POS).eval_mut(); bytes }, [pos, neg][(neg > 0) as usize].to_le_bytes()),
-            ({ let mut bytes = bytes; uops::dirx(&mut bytes, Dir::NEG).eval_mut(); bytes }, [pos, neg][(pos > 0) as usize].to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56),
-            rhs in ndassert::range!(u64, 56),
-            lhs_bytes as lhs.to_le_bytes(),
-            rhs_bytes as rhs.to_le_bytes(),
-        ) [
-            ({ let mut bytes = lhs_bytes; uops::add(&mut bytes, &rhs_bytes).eval_mut(); bytes }, lhs.wrapping_add(rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::sub(&mut bytes, &rhs_bytes).eval_mut(); bytes }, lhs.wrapping_sub(rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::bitor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs | rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::bitand(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs & rhs).to_le_bytes()),
-            ({ let mut bytes = lhs_bytes; uops::bitxor(&mut bytes, &rhs_bytes).eval_mut(); bytes }, (lhs ^ rhs).to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(u64, 56),
-            rhs in u8::MIN..u8::MAX,
-            bytes as lhs.to_le_bytes(),
-        ) [
-            ({ let mut bytes = bytes; uops::add(&mut bytes, rhs).eval_mut(); bytes }, lhs.wrapping_add(rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs).eval_mut(); bytes }, lhs.wrapping_sub(rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs).eval_mut(); bytes }, (lhs | rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs).eval_mut(); bytes }, (lhs & rhs as u64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs).eval_mut(); bytes }, (lhs ^ rhs as u64).to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            lhs in ndassert::range!(i64, 56),
-            rhs in i8::MIN..i8::MAX,
-            bytes as lhs.to_le_bytes(),
-        ) [
-            ({ let mut bytes = bytes; uops::add(&mut bytes, rhs).signed().eval_mut(); bytes }, lhs.wrapping_add(rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::sub(&mut bytes, rhs).signed().eval_mut(); bytes }, lhs.wrapping_sub(rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitor(&mut bytes, rhs).eval_mut(); bytes }, (lhs | rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitand(&mut bytes, rhs).eval_mut(); bytes }, (lhs & rhs as i64).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::bitxor(&mut bytes, rhs).eval_mut(); bytes }, (lhs ^ rhs as i64).to_le_bytes()),
-        ] }
-
-        ndassert::check! { @eq (
-            val in ndassert::range!(u64, 52),
-            shift in 0..96,
-            bytes as val.to_le_bytes(),
-            shl_ext as u64::MAX.unbounded_shr(u64::BITS.saturating_sub(shift as u32)),
-            shr_ext as u64::MAX.unbounded_shl(u64::BITS.saturating_sub(shift as u32)),
-        ) [
-            ({ let mut bytes = bytes; uops::shl(&mut bytes, shift).eval_mut(); bytes }, val.unbounded_shl(shift as u32).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::shr(&mut bytes, shift).eval_mut(); bytes }, val.unbounded_shr(shift as u32).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::shl(&mut bytes, shift).ext(MAX).eval_mut(); bytes }, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
-            ({ let mut bytes = bytes; uops::shr(&mut bytes, shift).ext(MAX).eval_mut(); bytes }, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
-        ] }
+                ({ let mut bytes = bytes; uops::shl(&mut bytes, shift).eval_mut(); bytes }, val.unbounded_shl(shift as u32).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::shr(&mut bytes, shift).eval_mut(); bytes }, val.unbounded_shr(shift as u32).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::shl(&mut bytes, shift).ext(Single::MAX).eval_mut(); bytes }, (val.unbounded_shl(shift as u32) | shl_ext).to_le_bytes()),
+                ({ let mut bytes = bytes; uops::shr(&mut bytes, shift).ext(Single::MAX).eval_mut(); bytes }, (val.unbounded_shr(shift as u32) | shr_ext).to_le_bytes()),
+            ] }
+        }
     }
 }
