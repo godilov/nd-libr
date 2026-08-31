@@ -5575,29 +5575,27 @@ impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
 impl<const L: usize> Ord for Signed<L> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        let lhs_dir = uops::dir(&self.0);
-        let rhs_dir = uops::dir(&other.0);
+        let lhs = &self.0;
+        let rhs = &other.0;
 
-        let (lt, gt) = match (lhs_dir, rhs_dir) {
-            (Dir::POS, Dir::POS) => (-1, 1),
-            (Dir::POS, Dir::NEG) => (1, 1),
-            (Dir::NEG, Dir::POS) => (-1, -1),
-            (Dir::NEG, Dir::NEG) => (1, -1),
-        };
+        let idx = lhs
+            .iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .enumerate()
+            .fold(0, |acc, (idx, (x, y))| match x == y {
+                true => acc,
+                false => idx,
+            })
+            .min(L - 1);
 
-        let lhs = uops::dirx(&self.0, Dir::POS).iter();
-        let rhs = uops::dirx(&other.0, Dir::POS).iter();
+        let cmp = lhs[idx].cmp(&rhs[idx]);
 
-        let cmp = lhs.zip(rhs).fold(0i8, |acc, (x, y)| match x.cmp(&y) {
-            Ordering::Less => lt,
-            Ordering::Equal => acc,
-            Ordering::Greater => gt,
-        });
-
-        match cmp {
-            -1 => Ordering::Less,
-            1 => Ordering::Greater,
-            _ => Ordering::Equal,
+        match (uops::dir(lhs), uops::dir(rhs)) {
+            (Dir::POS, Dir::POS) => cmp,
+            (Dir::POS, Dir::NEG) => cmp.reverse(),
+            (Dir::NEG, Dir::POS) => cmp.reverse(),
+            (Dir::NEG, Dir::NEG) => cmp,
         }
     }
 }
@@ -5615,7 +5613,7 @@ impl<const L: usize> Ord for Unsigned<L> {
             .enumerate()
             .fold(0, |acc, (idx, (x, y))| match x == y {
                 true => acc,
-                false => idx + 1,
+                false => idx,
             })
             .min(L - 1);
 
