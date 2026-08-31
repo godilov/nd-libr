@@ -5605,7 +5605,21 @@ impl<const L: usize> Ord for Signed<L> {
 impl<const L: usize> Ord for Unsigned<L> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.iter().rev().cmp(other.0.iter().rev())
+        let lhs = &self.0;
+        let rhs = &other.0;
+
+        let idx = lhs
+            .iter()
+            .copied()
+            .zip(rhs.iter().copied())
+            .enumerate()
+            .fold(0, |acc, (idx, (x, y))| match x == y {
+                true => acc,
+                false => idx + 1,
+            })
+            .min(L - 1);
+
+        lhs[idx].cmp(&rhs[idx])
     }
 }
 
