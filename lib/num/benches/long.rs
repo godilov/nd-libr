@@ -377,7 +377,6 @@ mod str {
 }
 
 mod radix {
-
     use criterion::{BenchmarkGroup, BenchmarkId, Throughput, measurement::WallTime};
     use ndext::{
         convert::{NdFrom, NdTryFrom},
@@ -688,31 +687,31 @@ mod uops {
         group.throughput(Throughput::Bits(BITS as u64));
 
         exec! { group => [
-            "posx",        &args.0, |[lhs,   _]: &[Ux64; 2]| uops::dirx(&lhs.0, Dir::POS).iter().count(),
-            "negx",        &args.0, |[lhs,   _]: &[Ux64; 2]| uops::dirx(&lhs.0, Dir::NEG).iter().count(),
+            "posx",        &args.0, |[lhs,   _]: &[Ux64; 2]| uops::dirx(&lhs.0, Dir::POS).eval(),
+            "negx",        &args.0, |[lhs,   _]: &[Ux64; 2]| uops::dirx(&lhs.0, Dir::NEG).eval(),
 
-            "not",         &args.0, |[lhs,   _]: &[Ux64; 2]| uops::not(&lhs.0,       ).iter().count(),
-            "pos",         &args.0, |[lhs,   _]: &[Ux64; 2]| uops::pos(&lhs.0,       ).iter().count(),
-            "neg",         &args.0, |[lhs,   _]: &[Ux64; 2]| uops::neg(&lhs.0,       ).iter().count(),
-            "add",         &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::add(&lhs.0, &rhs.0).iter().count(),
-            "sub",         &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::sub(&lhs.0, &rhs.0).iter().count(),
+            "not",         &args.0, |[lhs,   _]: &[Ux64; 2]| uops::not(&lhs.0).eval(),
+            "pos",         &args.0, |[lhs,   _]: &[Ux64; 2]| uops::pos(&lhs.0).eval(),
+            "neg",         &args.0, |[lhs,   _]: &[Ux64; 2]| uops::neg(&lhs.0).eval(),
 
-            "bitor",       &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::bitor (&lhs.0, &rhs.0).iter().count(),
-            "bitand",      &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::bitand(&lhs.0, &rhs.0).iter().count(),
-            "bitxor",      &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::bitxor(&lhs.0, &rhs.0).iter().count(),
+            "add",         &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::add   (&lhs.0, &rhs.0).eval(),
+            "sub",         &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::sub   (&lhs.0, &rhs.0).eval(),
+            "bitor",       &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::bitor (&lhs.0, &rhs.0).eval(),
+            "bitand",      &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::bitand(&lhs.0, &rhs.0).eval(),
+            "bitxor",      &args.0, |[lhs, rhs]: &[Ux64; 2]| uops::bitxor(&lhs.0, &rhs.0).eval(),
 
-            "posx_mut",    &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::dirx(&mut val.0, Dir::POS).iter_mut().count(); },
-            "negx_mut",    &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::dirx(&mut val.0, Dir::NEG).iter_mut().count(); },
+            "posx_mut",    &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::dirx(&mut val.0, Dir::POS).eval_mut(); std::hint::black_box(&val); },
+            "negx_mut",    &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::dirx(&mut val.0, Dir::NEG).eval_mut(); std::hint::black_box(&val); },
 
-            "not_mut",     &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::not(&mut val.0,       ).iter_mut().count(); },
-            "pos_mut",     &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::pos(&mut val.0,       ).iter_mut().count(); },
-            "neg_mut",     &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::neg(&mut val.0,       ).iter_mut().count(); },
-            "add_mut",     &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::add(&mut val.0, &rhs.0).iter_mut().count(); },
-            "sub_mut",     &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::sub(&mut val.0, &rhs.0).iter_mut().count(); },
+            "not_mut",     &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::not(&mut val.0).eval_mut(); std::hint::black_box(&val); },
+            "pos_mut",     &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::pos(&mut val.0).eval_mut(); std::hint::black_box(&val); },
+            "neg_mut",     &args.0, |[lhs,   _]: &[Ux64; 2]| { let mut val = *lhs; uops::neg(&mut val.0).eval_mut(); std::hint::black_box(&val); },
 
-            "bitor_mut",   &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::bitor (&mut val.0, &rhs.0).iter_mut().count(); },
-            "bitand_mut",  &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::bitand(&mut val.0, &rhs.0).iter_mut().count(); },
-            "bitxor_mut",  &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::bitxor(&mut val.0, &rhs.0).iter_mut().count(); },
+            "add_mut",     &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::add   (&mut val.0, &rhs.0).eval_mut(); std::hint::black_box(&val); },
+            "sub_mut",     &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::sub   (&mut val.0, &rhs.0).eval_mut(); std::hint::black_box(&val); },
+            "bitor_mut",   &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::bitor (&mut val.0, &rhs.0).eval_mut(); std::hint::black_box(&val); },
+            "bitand_mut",  &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::bitand(&mut val.0, &rhs.0).eval_mut(); std::hint::black_box(&val); },
+            "bitxor_mut",  &args.0, |[lhs, rhs]: &[Ux64; 2]| { let mut val = *lhs; uops::bitxor(&mut val.0, &rhs.0).eval_mut(); std::hint::black_box(&val); },
         ] };
     }
 
@@ -722,19 +721,17 @@ mod uops {
         group.throughput(Throughput::Bits(BITS as u64));
 
         exec! { group => [
-            "add_single", &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::add(&lhs.0, *rhs).iter().count(),
-            "sub_single", &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::sub(&lhs.0, *rhs).iter().count(),
+            "add_single",    &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::add   (&lhs.0, *rhs).eval(),
+            "sub_single",    &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::sub   (&lhs.0, *rhs).eval(),
+            "bitor_single",  &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::bitor (&lhs.0, *rhs).eval(),
+            "bitand_single", &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::bitand(&lhs.0, *rhs).eval(),
+            "bitxor_single", &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::bitxor(&lhs.0, *rhs).eval(),
 
-            "bitor_single",  &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::bitor (&lhs.0, *rhs).iter().count(),
-            "bitand_single", &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::bitand(&lhs.0, *rhs).iter().count(),
-            "bitxor_single", &args.0, |(lhs, rhs): &(Ux64, UxWord)| uops::bitxor(&lhs.0, *rhs).iter().count(),
-
-            "add_single_mut", &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::add(&mut val.0, *rhs).iter_mut().count() },
-            "sub_single_mut", &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::sub(&mut val.0, *rhs).iter_mut().count() },
-
-            "bitor_single_mut",  &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::bitor (&mut val.0, *rhs).iter_mut().count() },
-            "bitand_single_mut", &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::bitand(&mut val.0, *rhs).iter_mut().count() },
-            "bitxor_single_mut", &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::bitxor(&mut val.0, *rhs).iter_mut().count() },
+            "add_single_mut",    &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::add   (&mut val.0, *rhs).eval_mut(); std::hint::black_box(&val); },
+            "sub_single_mut",    &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::sub   (&mut val.0, *rhs).eval_mut(); std::hint::black_box(&val); },
+            "bitor_single_mut",  &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::bitor (&mut val.0, *rhs).eval_mut(); std::hint::black_box(&val); },
+            "bitand_single_mut", &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::bitand(&mut val.0, *rhs).eval_mut(); std::hint::black_box(&val); },
+            "bitxor_single_mut", &args.0, |(lhs, rhs): &(Ux64, UxWord)| { let mut val = *lhs; uops::bitxor(&mut val.0, *rhs).eval_mut(); std::hint::black_box(&val); },
         ] };
     }
 
@@ -744,19 +741,17 @@ mod uops {
         group.throughput(Throughput::Bits(BITS as u64));
 
         exec! { group => [
-            "add_signed", &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::add(&lhs.0, *rhs).signed().iter().count(),
-            "sub_signed", &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::sub(&lhs.0, *rhs).signed().iter().count(),
+            "add_signed",    &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::add   (&lhs.0, *rhs).signed().eval(),
+            "sub_signed",    &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::sub   (&lhs.0, *rhs).signed().eval(),
+            "bitor_signed",  &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::bitor (&lhs.0, *rhs)         .eval(),
+            "bitand_signed", &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::bitand(&lhs.0, *rhs)         .eval(),
+            "bitxor_signed", &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::bitxor(&lhs.0, *rhs)         .eval(),
 
-            "bitor_signed",  &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::bitor (&lhs.0, *rhs).iter().count(),
-            "bitand_signed", &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::bitand(&lhs.0, *rhs).iter().count(),
-            "bitxor_signed", &args.0, |(lhs, rhs): &(Sx64, SxWord)| uops::bitxor(&lhs.0, *rhs).iter().count(),
-
-            "add_signed_mut", &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::add(&mut val.0, *rhs).signed().iter_mut().count() },
-            "sub_signed_mut", &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::sub(&mut val.0, *rhs).signed().iter_mut().count() },
-
-            "bitor_signed_mut",  &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::bitor (&mut val.0, *rhs).iter_mut().count() },
-            "bitand_signed_mut", &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::bitand(&mut val.0, *rhs).iter_mut().count() },
-            "bitxor_signed_mut", &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::bitxor(&mut val.0, *rhs).iter_mut().count() },
+            "add_signed_mut",    &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::add   (&mut val.0, *rhs).signed().eval_mut(); std::hint::black_box(&val); },
+            "sub_signed_mut",    &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::sub   (&mut val.0, *rhs).signed().eval_mut(); std::hint::black_box(&val); },
+            "bitor_signed_mut",  &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::bitor (&mut val.0, *rhs)         .eval_mut(); std::hint::black_box(&val); },
+            "bitand_signed_mut", &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::bitand(&mut val.0, *rhs)         .eval_mut(); std::hint::black_box(&val); },
+            "bitxor_signed_mut", &args.0, |(lhs, rhs): &(Sx64, SxWord)| { let mut val = *lhs; uops::bitxor(&mut val.0, *rhs)         .eval_mut(); std::hint::black_box(&val); },
         ] };
     }
 
@@ -769,8 +764,8 @@ mod uops {
             "shl", &args.0, |[val, _]: &[Ux64; 2]| uops::shl(&val.0, 7).eval(),
             "shr", &args.0, |[val, _]: &[Ux64; 2]| uops::shr(&val.0, 7).eval(),
 
-            "shl_mut", &args.0, |[val, _]: &[Ux64; 2]| { let mut val = *val; uops::shl(&mut val.0, 7).eval_mut(); },
-            "shr_mut", &args.0, |[val, _]: &[Ux64; 2]| { let mut val = *val; uops::shr(&mut val.0, 7).eval_mut(); },
+            "shl_mut", &args.0, |[val, _]: &[Ux64; 2]| { let mut val = *val; uops::shl(&mut val.0, 7).eval_mut(); std::hint::black_box(&val); },
+            "shr_mut", &args.0, |[val, _]: &[Ux64; 2]| { let mut val = *val; uops::shr(&mut val.0, 7).eval_mut(); std::hint::black_box(&val); },
         ] };
     }
 }
