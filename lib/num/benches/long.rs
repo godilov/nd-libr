@@ -49,8 +49,8 @@ macro_rules! state {
     ($criterion:expr, $group:literal) => {{
         let mut group = $criterion.benchmark_group($group);
 
-        group.measurement_time(Duration::from_millis(4500));
-        group.warm_up_time(Duration::from_millis(1500));
+        group.measurement_time(Duration::from_secs(4));
+        group.warm_up_time(Duration::from_secs(1));
 
         (group, StdRng::seed_from_u64(PRIMES[0] * PRIMES[1]))
     }};
