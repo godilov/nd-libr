@@ -5097,27 +5097,6 @@ impl<const L: usize> Default for Bytes<L> {
     }
 }
 
-impl<const L: usize> From<bool> for Signed<L> {
-    #[inline]
-    fn from(value: bool) -> Self {
-        Self::from(value as i8)
-    }
-}
-
-impl<const L: usize> From<bool> for Unsigned<L> {
-    #[inline]
-    fn from(value: bool) -> Self {
-        Self::from(value as u8)
-    }
-}
-
-impl<const L: usize> From<bool> for Bytes<L> {
-    #[inline]
-    fn from(value: bool) -> Self {
-        Self::from(value as u8)
-    }
-}
-
 from_primitive!(Signed [i8, i16, i32, i64, i128, isize]);
 from_primitive!(Unsigned [u8, u16, u32, u64, u128, usize]);
 from_primitive!(Bytes [u8, u16, u32, u64, u128, usize]);
@@ -6315,6 +6294,45 @@ impl<const L: usize> Bytes<L> {
     }
 }
 
+impl<const L: usize, W: Word> AsWordsRef<W> for Signed<L> {
+    #[inline]
+    fn as_words_ref(&self) -> &[W] {
+        transmute_ref!(&self.0[..]) as &[W]
+    }
+}
+
+impl<const L: usize, W: Word> AsWordsRef<W> for Unsigned<L> {
+    #[inline]
+    fn as_words_ref(&self) -> &[W] {
+        transmute_ref!(&self.0[..]) as &[W]
+    }
+}
+
+impl<const L: usize, W: Word> AsWordsRef<W> for Bytes<L> {
+    #[inline]
+    fn as_words_ref(&self) -> &[W] {
+        transmute_ref!(&self.0[..]) as &[W]
+    }
+}
+
+impl<const L: usize, W: Word> AsWordsMut<W> for Signed<L> {
+    fn as_words_mut(&mut self) -> &mut [W] {
+        transmute_mut!(&mut self.0[..]) as &mut [W]
+    }
+}
+
+impl<const L: usize, W: Word> AsWordsMut<W> for Unsigned<L> {
+    fn as_words_mut(&mut self) -> &mut [W] {
+        transmute_mut!(&mut self.0[..]) as &mut [W]
+    }
+}
+
+impl<const L: usize, W: Word> AsWordsMut<W> for Bytes<L> {
+    fn as_words_mut(&mut self) -> &mut [W] {
+        transmute_mut!(&mut self.0[..]) as &mut [W]
+    }
+}
+
 impl<const L: usize> ToDigits for Signed<L> {
     #[inline]
     fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
@@ -6356,45 +6374,6 @@ impl<const L: usize> IntoDigits for Unsigned<L> {
             idx: 0,
             len: (len * (Single::BITS as usize) + bits - 1) / bits,
         }
-    }
-}
-
-impl<const L: usize, W: Word> AsWordsRef<W> for Signed<L> {
-    #[inline]
-    fn as_words_ref(&self) -> &[W] {
-        transmute_ref!(&self.0[..]) as &[W]
-    }
-}
-
-impl<const L: usize, W: Word> AsWordsRef<W> for Unsigned<L> {
-    #[inline]
-    fn as_words_ref(&self) -> &[W] {
-        transmute_ref!(&self.0[..]) as &[W]
-    }
-}
-
-impl<const L: usize, W: Word> AsWordsRef<W> for Bytes<L> {
-    #[inline]
-    fn as_words_ref(&self) -> &[W] {
-        transmute_ref!(&self.0[..]) as &[W]
-    }
-}
-
-impl<const L: usize, W: Word> AsWordsMut<W> for Signed<L> {
-    fn as_words_mut(&mut self) -> &mut [W] {
-        transmute_mut!(&mut self.0[..]) as &mut [W]
-    }
-}
-
-impl<const L: usize, W: Word> AsWordsMut<W> for Unsigned<L> {
-    fn as_words_mut(&mut self) -> &mut [W] {
-        transmute_mut!(&mut self.0[..]) as &mut [W]
-    }
-}
-
-impl<const L: usize, W: Word> AsWordsMut<W> for Bytes<L> {
-    fn as_words_mut(&mut self) -> &mut [W] {
-        transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 
