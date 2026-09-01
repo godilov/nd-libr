@@ -67,22 +67,7 @@ pub trait IteratorExt: Iterator {
     where
         Self: Sized + Iterator<Item = u8>,
     {
-        #[repr(align(256))]
-        struct Aligned<T>(T);
-
-        static ASCII: Aligned<[u8; 256]> = Aligned({
-            let mut res = [0; 256];
-            let mut idx = 0;
-
-            while idx < res.len() {
-                res[idx] = (idx as u8 as char).to_ascii_uppercase() as u8;
-                idx += 1;
-            }
-
-            res
-        });
-
-        self.map(|idx| ASCII.0[idx as usize])
+        self.map(|ascii| (ascii as char).to_ascii_uppercase() as u8)
     }
 
     /// ASCII lowercase iterator.
@@ -91,22 +76,7 @@ pub trait IteratorExt: Iterator {
     where
         Self: Sized + Iterator<Item = u8>,
     {
-        #[repr(align(256))]
-        struct Aligned<T>(T);
-
-        static ASCII: Aligned<[u8; 256]> = Aligned({
-            let mut res = [0; 256];
-            let mut idx = 0;
-
-            while idx < res.len() {
-                res[idx] = (idx as u8 as char).to_ascii_lowercase() as u8;
-                idx += 1;
-            }
-
-            res
-        });
-
-        self.map(|idx| ASCII.0[idx as usize])
+        self.map(|ascii| (ascii as char).to_ascii_lowercase() as u8)
     }
 }
 
