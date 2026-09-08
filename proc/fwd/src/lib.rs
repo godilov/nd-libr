@@ -1268,7 +1268,7 @@ impl FwdDeclFn {
             let inputs = &sig.inputs;
             let output = &sig.output;
 
-            let (_, gen_type, _) = generics.split_for_impl();
+            let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
             let recv = inputs.iter().find_map(|arg| match arg {
                 FnArg::Receiver(val) => Some(val),
@@ -1338,7 +1338,7 @@ impl FwdDeclFn {
                 #[allow(unused_mut)]
                 #[inline]
                 #(#attrs)*
-                #constness #asyncness #unsafety #abi fn #ident #generics (#recv #(#args),*) #output {
+                #constness #asyncness #unsafety #abi fn #ident #gen_impl (#recv #(#args),*) #output #gen_where {
                     #expr
                 }
             })
