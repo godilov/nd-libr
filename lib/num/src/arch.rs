@@ -329,16 +329,6 @@ pub mod codec {
 
     use super::*;
 
-    /// Array.
-    #[macro_export]
-    macro_rules! array {
-        ($word:ty, $codec:path, $len:expr) => {
-            [0 as $word; $crate::arch::codec::len::<$word, $codec>($len)]
-        };
-    }
-
-    pub use array;
-
     /// Dec.
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Dec;
@@ -1278,7 +1268,7 @@ impl<Any: AsWordsRef> AsWordsRef for &mut Any {
     }
 }
 
-impl<Any: AsWordsRef + AsWordsMut> AsWordsMut for &mut Any {
+impl<Any: AsWordsMut> AsWordsMut for &mut Any {
     #[inline]
     fn as_words_mut<W: Word>(&mut self) -> &mut [W]
     where
