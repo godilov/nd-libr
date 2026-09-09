@@ -4719,6 +4719,7 @@ pub mod radix {
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
     pub trait ToDigits: AsWordsRef {
         /// Conversion function.
+        #[inline]
         fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W>
         where
             <Self as AsWords>::Wx: From<W>,
@@ -4732,6 +4733,7 @@ pub mod radix {
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
     pub trait IntoDigits: AsWordsMut {
         /// Conversion function.
+        #[inline]
         fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W>
         where
             <Self as AsWords>::Wx: From<W>,

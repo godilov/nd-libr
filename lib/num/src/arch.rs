@@ -1246,6 +1246,10 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     }
 }
 
+impl<Wx: Word, const L: usize> AsWords for [Wx; L] {
+    type Wx = Wx;
+}
+
 impl<Any: AsWords> AsWords for &Any {
     type Wx = Any::Wx;
 }
@@ -1255,6 +1259,7 @@ impl<Any: AsWords> AsWords for &mut Any {
 }
 
 impl<Any: AsWordsRef> AsWordsRef for &Any {
+    #[inline]
     fn as_words_ref<W: Word>(&self) -> &[W]
     where
         Self::Wx: From<W>,
@@ -1264,6 +1269,7 @@ impl<Any: AsWordsRef> AsWordsRef for &Any {
 }
 
 impl<Any: AsWordsRef> AsWordsRef for &mut Any {
+    #[inline]
     fn as_words_ref<W: Word>(&self) -> &[W]
     where
         Self::Wx: From<W>,
@@ -1273,11 +1279,32 @@ impl<Any: AsWordsRef> AsWordsRef for &mut Any {
 }
 
 impl<Any: AsWordsRef + AsWordsMut> AsWordsMut for &mut Any {
+    #[inline]
     fn as_words_mut<W: Word>(&mut self) -> &mut [W]
     where
         Self::Wx: From<W>,
     {
         Any::as_words_mut(self)
+    }
+}
+
+impl<Wx: Word, const L: usize> AsWordsRef for [Wx; L] {
+    #[inline]
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
+        transmute_ref!(&self[..])
+    }
+}
+
+impl<Wx: Word, const L: usize> AsWordsMut for [Wx; L] {
+    #[inline]
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+    where
+        Self::Wx: From<W>,
+    {
+        transmute_mut!(&mut self[..])
     }
 }
 
