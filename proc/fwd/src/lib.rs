@@ -12,6 +12,7 @@ use syn::{
 };
 
 mod kw {
+    syn::custom_keyword!(dbg);
     syn::custom_keyword!(with);
 }
 
@@ -294,8 +295,9 @@ pub fn iter(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
 /// - [`as_expr`]
 /// - [`as_map`]
 #[proc_macro_attribute]
-pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
+pub fn decl(attr: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
     let decl = parse_macro_input!(decl as FwdDecl);
+    let attr = parse_macro_input!(attr as FwdDeclAttr);
 
     let item = decl.item();
     let ident = &item.ident;
@@ -321,7 +323,7 @@ pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
 
     let pattern = quote! { $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*) };
 
-    quote! {
+    let quote = quote! {
         #decl
 
         #[doc(hidden)]
@@ -352,8 +354,13 @@ pub fn decl(_: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
 
         #[allow(unused_imports)]
         pub(crate) use #macros;
+    };
+
+    if attr.dbg.is_some() {
+        eprintln!("ndfwd::decl:\n{}", quote);
     }
-    .into()
+
+    quote.into()
 }
 
 /// Zero-boilerplate user traits forwarding definition.
@@ -477,7 +484,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
 
     let fns_fwd = quote! {#macros(@fn #defaults #self_ty, #ty, (#gen_params), (#gen_where));};
 
-    quote! {
+    let quote = quote! {
         #def
 
         #[doc(hidden)]
@@ -496,8 +503,13 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
             #[allow(unused_imports)]
             use #path_;
         }
+    };
+
+    if attr.dbg.is_some() {
+        eprintln!("ndfwd::def:\n{}", quote);
     }
-    .into()
+
+    quote.into()
 }
 
 /// Alters expression for [`decl`].
@@ -631,7 +643,7 @@ enum FwdDecl {
     Trait(ItemTrait),
 }
 
-enum FwdDeclAttr {
+enum FwdDeclAlter {
     Default,
     AsInto,
     AsSelf,
@@ -661,6 +673,11 @@ enum FwdDeclArgExpr {
     Alt(TokenStream),
 }
 
+#[allow(unused)]
+struct FwdDeclAttr {
+    dbg: Option<kw::dbg>,
+}
+
 enum FwdDef {
     Struct(ItemStruct),
     Enum(ItemEnum),
@@ -670,6 +687,7 @@ enum FwdDef {
 
 #[allow(unused)]
 struct FwdDefAttr {
+    dbg: Option<kw::dbg>,
     fwd: FwdAttr,
     colon: Token![:],
     path: Path,
@@ -712,6 +730,12 @@ impl Parse for FwdDecl {
     }
 }
 
+impl Parse for FwdDeclAttr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self { dbg: input.parse()? })
+    }
+}
+
 impl Parse for FwdDef {
     fn parse(input: ParseStream) -> Result<Self> {
         let item = input.parse::<Item>()?;
@@ -746,6 +770,7 @@ impl Parse for FwdDef {
 
 impl Parse for FwdDefAttr {
     fn parse(input: ParseStream) -> Result<Self> {
+        let dbg = input.parse()?;
         let fwd = input.parse()?;
         let colon = input.parse()?;
         let path = input.parse()?;
@@ -768,6 +793,7 @@ impl Parse for FwdDefAttr {
         };
 
         Ok(Self {
+            dbg,
             fwd,
             colon,
             path,
@@ -1169,7 +1195,7 @@ impl FwdDecl {
     }
 }
 
-impl FwdDeclAttr {
+impl FwdDeclAlter {
     fn from_attrs<'attr, Attrs: Clone + Iterator<Item = &'attr Attribute>>(attrs: Attrs) -> Result<Self> {
         fn expr(attr: &Attribute) -> Result<Expr> {
             match &attr.meta {
@@ -1319,12 +1345,12 @@ impl FwdDeclFn {
                 None => quote! { <$ty>::#func(#(#args_expr),*) },
             };
 
-            let expr = match FwdDeclAttr::from_attrs(attrs.iter())? {
-                FwdDeclAttr::Default => quote! { #forward },
-                FwdDeclAttr::AsInto => quote! { #forward.into() },
-                FwdDeclAttr::AsSelf => quote! { #forward; self },
-                FwdDeclAttr::AsExpr(expr) => quote! { (#expr)(#forward) },
-                FwdDeclAttr::AsMap(expr) => quote! { #forward.map(#expr) },
+            let expr = match FwdDeclAlter::from_attrs(attrs.iter())? {
+                FwdDeclAlter::Default => quote! { #forward },
+                FwdDeclAlter::AsInto => quote! { #forward.into() },
+                FwdDeclAlter::AsSelf => quote! { #forward; self },
+                FwdDeclAlter::AsExpr(expr) => quote! { (#expr)(#forward) },
+                FwdDeclAlter::AsMap(expr) => quote! { #forward.map(#expr) },
             };
 
             let attrs = attrs.iter().filter(|attr| !attr.path().is_ident("inline"));
