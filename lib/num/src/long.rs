@@ -21,8 +21,8 @@ use crate::{
     NdGcd, NdPow, NegxCt, Num, NumBinary, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
     arch::{
-        AsWordsMut, AsWordsRef, Rand, codec,
-        codec::{Codec, Decode, Encode},
+        AsWords, AsWordsMut, AsWordsRef, Rand,
+        codec::{self, Codec, Decode, Encode},
         word::*,
     },
     long::{
@@ -4664,7 +4664,7 @@ pub mod radix {
     ///
     /// For more info, see [`IntoDigits`] documentation.
     #[derive(Debug, Clone)]
-    pub struct DigitsIter<W: Word, Words: AsWordsMut<W>> {
+    pub struct DigitsIter<W: Word, Words: AsWordsMut> {
         /// Words.
         pub words: Words,
 
@@ -4773,11 +4773,10 @@ pub mod radix {
         }
 
         /// Parses in arbitrary radix.
-        pub fn parse<W: Word, Words: AsWordsMut<W>>(
-            mut words: Words,
-            radix: W,
-            iter: impl Iterator<Item = W>,
-        ) -> Words {
+        pub fn parse<W: Word, Words: AsWordsMut>(mut words: Words, radix: W, iter: impl Iterator<Item = W>) -> Words
+        where
+            Words::Wx: From<W>,
+        {
             let mut idx = 0;
 
             for digit in iter {
@@ -4802,11 +4801,14 @@ pub mod radix {
         }
 
         /// Parses in arbitrary radix (checked).
-        pub fn try_parse<W: Word, Words: AsWordsMut<W>>(
+        pub fn try_parse<W: Word, Words: AsWordsMut>(
             words: Words,
             radix: W,
             iter: impl Iterator<Item = W>,
-        ) -> Result<Words, Error> {
+        ) -> Result<Words, Error>
+        where
+            Words::Wx: From<W>,
+        {
             let mut flag = false;
 
             let words = Self::parse(words, radix, iter.inspect(|&word| flag |= radix <= word));
@@ -4852,8 +4854,11 @@ pub mod radix {
         }
     }
 
-    impl<W: Word, Words: AsWordsMut<W>> ExactSizeIterator for DigitsIter<W, Words> {}
-    impl<W: Word, Words: AsWordsMut<W>> Iterator for DigitsIter<W, Words> {
+    impl<W: Word, Words: AsWordsMut> ExactSizeIterator for DigitsIter<W, Words> where Words::Wx: From<W> {}
+    impl<W: Word, Words: AsWordsMut> Iterator for DigitsIter<W, Words>
+    where
+        Words::Wx: From<W>,
+    {
         type Item = W;
 
         #[inline]
@@ -5241,6 +5246,8 @@ impl<const L: usize, W: Word> FromIterator<W> for Bytes<L> {
 
 impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Iter, ExpImpl<W>> for Signed<L>
+where
+    <Self as AsWords>::Wx: From<W>,
 {
     type Error = radix::Error;
 
@@ -5254,6 +5261,8 @@ impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + Double
 
 impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Iter, ExpImpl<W>> for Unsigned<L>
+where
+    <Self as AsWords>::Wx: From<W>,
 {
     type Error = radix::Error;
 
@@ -5267,6 +5276,8 @@ impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + Double
 
 impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Iter, RadixImpl<W>> for Signed<L>
+where
+    <Self as AsWords>::Wx: From<W>,
 {
     type Error = radix::Error;
 
@@ -5286,6 +5297,8 @@ impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + Double
 
 impl<const L: usize, W: Word, Iter: Clone + ExactSizeIterator<Item = W> + DoubleEndedIterator>
     NdTryFrom<Iter, RadixImpl<W>> for Unsigned<L>
+where
+    <Self as AsWords>::Wx: From<W>,
 {
     type Error = radix::Error;
 
@@ -5334,10 +5347,10 @@ impl<const L: usize> FromStr for Signed<L> {
                 10u8,
                 str.bytes().map(|byte| codec::Dec::DECODE[byte as usize]),
             )?),
-            Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
-            Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
-            Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
-            Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
+            Radix::Bin(_, str, _) => Self::default().try_decoded::<codec::Bin>(str.bytes().rev()),
+            Radix::Oct(_, str, _) => Self::default().try_decoded::<codec::Oct>(str.bytes().rev()),
+            Radix::Hex(_, str, _) => Self::default().try_decoded::<codec::Hex>(str.bytes().rev()),
+            Radix::X64(_, str, _) => Self::default().try_decoded::<codec::X64>(str.bytes().rev()),
         }
         .map(|long| uops::dirv(&long.0, radix.dir()).with(Self))
         .map_err(|_| Error::InvalidPayload)
@@ -5357,10 +5370,10 @@ impl<const L: usize> FromStr for Unsigned<L> {
                 10u8,
                 str.bytes().map(|byte| codec::Dec::DECODE[byte as usize]),
             )?),
-            Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
-            Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
-            Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
-            Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
+            Radix::Bin(_, str, _) => Self::default().try_decoded::<codec::Bin>(str.bytes().rev()),
+            Radix::Oct(_, str, _) => Self::default().try_decoded::<codec::Oct>(str.bytes().rev()),
+            Radix::Hex(_, str, _) => Self::default().try_decoded::<codec::Hex>(str.bytes().rev()),
+            Radix::X64(_, str, _) => Self::default().try_decoded::<codec::X64>(str.bytes().rev()),
         }
         .map_err(|_| Error::InvalidPayload)
     }
@@ -5375,10 +5388,10 @@ impl<const L: usize> FromStr for Bytes<L> {
 
         match radix {
             Radix::Dec(_, _, _) => Err(codec::Error::InvalidEntry),
-            Radix::Bin(_, str, _) => Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()),
-            Radix::Oct(_, str, _) => Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()),
-            Radix::Hex(_, str, _) => Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()),
-            Radix::X64(_, str, _) => Decode::<u8>::try_decoded::<codec::X64>(Self::default(), str.bytes().rev()),
+            Radix::Bin(_, str, _) => Self::default().try_decoded::<codec::Bin>(str.bytes().rev()),
+            Radix::Oct(_, str, _) => Self::default().try_decoded::<codec::Oct>(str.bytes().rev()),
+            Radix::Hex(_, str, _) => Self::default().try_decoded::<codec::Hex>(str.bytes().rev()),
+            Radix::X64(_, str, _) => Self::default().try_decoded::<codec::X64>(str.bytes().rev()),
         }
         .map_err(|_| Error::InvalidPayload)
     }
@@ -5417,7 +5430,9 @@ impl<const L: usize> NdFromStr<Bin> for Signed<L> {
     fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0b").trim_start_matches("0B");
 
-        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Bin>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5428,7 +5443,9 @@ impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
     fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0b").trim_start_matches("0B");
 
-        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Bin>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5439,7 +5456,9 @@ impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
     fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0b").trim_start_matches("0B");
 
-        Decode::<u8>::try_decoded::<codec::Bin>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Bin>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5450,7 +5469,9 @@ impl<const L: usize> NdFromStr<Oct> for Signed<L> {
     fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0o").trim_start_matches("0O");
 
-        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Oct>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5461,7 +5482,9 @@ impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
     fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0o").trim_start_matches("0O");
 
-        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Oct>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5472,7 +5495,9 @@ impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
     fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0o").trim_start_matches("0O");
 
-        Decode::<u8>::try_decoded::<codec::Oct>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Oct>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5483,7 +5508,9 @@ impl<const L: usize> NdFromStr<Hex> for Signed<L> {
     fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0x").trim_start_matches("0X");
 
-        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Hex>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5494,7 +5521,9 @@ impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
     fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0x").trim_start_matches("0X");
 
-        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Hex>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
@@ -5505,46 +5534,66 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
     fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
         let str = str.trim_start_matches("0x").trim_start_matches("0X");
 
-        Decode::<u8>::try_decoded::<codec::Hex>(Self::default(), str.bytes().rev()).map_err(|_| Error::InvalidPayload)
+        Self::default()
+            .try_decoded::<codec::Hex>(str.bytes().rev())
+            .map_err(|_| Error::InvalidPayload)
     }
 }
 
-impl<const L: usize, W: Word> AsRef<[W]> for Signed<L> {
+impl<const L: usize, W: Word> AsRef<[W]> for Signed<L>
+where
+    <Self as AsWords>::Wx: From<W>,
+{
     #[inline]
     fn as_ref(&self) -> &[W] {
         self.as_words_ref()
     }
 }
 
-impl<const L: usize, W: Word> AsRef<[W]> for Unsigned<L> {
+impl<const L: usize, W: Word> AsRef<[W]> for Unsigned<L>
+where
+    <Self as AsWords>::Wx: From<W>,
+{
     #[inline]
     fn as_ref(&self) -> &[W] {
         self.as_words_ref()
     }
 }
 
-impl<const L: usize, W: Word> AsRef<[W]> for Bytes<L> {
+impl<const L: usize, W: Word> AsRef<[W]> for Bytes<L>
+where
+    <Self as AsWords>::Wx: From<W>,
+{
     #[inline]
     fn as_ref(&self) -> &[W] {
         self.as_words_ref()
     }
 }
 
-impl<const L: usize, W: Word> AsMut<[W]> for Signed<L> {
+impl<const L: usize, W: Word> AsMut<[W]> for Signed<L>
+where
+    <Self as AsWords>::Wx: From<W>,
+{
     #[inline]
     fn as_mut(&mut self) -> &mut [W] {
         self.as_words_mut()
     }
 }
 
-impl<const L: usize, W: Word> AsMut<[W]> for Unsigned<L> {
+impl<const L: usize, W: Word> AsMut<[W]> for Unsigned<L>
+where
+    <Self as AsWords>::Wx: From<W>,
+{
     #[inline]
     fn as_mut(&mut self) -> &mut [W] {
         self.as_words_mut()
     }
 }
 
-impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L> {
+impl<const L: usize, W: Word> AsMut<[W]> for Bytes<L>
+where
+    <Self as AsWords>::Wx: From<W>,
+{
     #[inline]
     fn as_mut(&mut self) -> &mut [W] {
         self.as_words_mut()
@@ -5645,8 +5694,8 @@ impl<const L: usize> Display for Bytes<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Hex>(self),
-            Encode::<u8>::encoded::<codec::Hex>(self),
+            self.encoded::<codec::Hex>(),
+            self.encoded::<codec::Hex>(),
             codec::Hex::PREFIX,
         )
     }
@@ -5657,8 +5706,8 @@ impl<const L: usize> Binary for Signed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Bin>(self),
-            Encode::<u8>::encoded::<codec::Bin>(self),
+            self.encoded::<codec::Bin>(),
+            self.encoded::<codec::Bin>(),
             codec::Bin::PREFIX,
         )
     }
@@ -5669,8 +5718,8 @@ impl<const L: usize> Binary for Unsigned<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Bin>(self),
-            Encode::<u8>::encoded::<codec::Bin>(self),
+            self.encoded::<codec::Bin>(),
+            self.encoded::<codec::Bin>(),
             codec::Bin::PREFIX,
         )
     }
@@ -5681,8 +5730,8 @@ impl<const L: usize> Binary for Bytes<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Bin>(self),
-            Encode::<u8>::encoded::<codec::Bin>(self),
+            self.encoded::<codec::Bin>(),
+            self.encoded::<codec::Bin>(),
             codec::Bin::PREFIX,
         )
     }
@@ -5693,8 +5742,8 @@ impl<const L: usize> Octal for Signed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Oct>(self),
-            Encode::<u8>::encoded::<codec::Oct>(self),
+            self.encoded::<codec::Oct>(),
+            self.encoded::<codec::Oct>(),
             codec::Oct::PREFIX,
         )
     }
@@ -5705,8 +5754,8 @@ impl<const L: usize> Octal for Unsigned<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Oct>(self),
-            Encode::<u8>::encoded::<codec::Oct>(self),
+            self.encoded::<codec::Oct>(),
+            self.encoded::<codec::Oct>(),
             codec::Oct::PREFIX,
         )
     }
@@ -5717,8 +5766,8 @@ impl<const L: usize> Octal for Bytes<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Oct>(self),
-            Encode::<u8>::encoded::<codec::Oct>(self),
+            self.encoded::<codec::Oct>(),
+            self.encoded::<codec::Oct>(),
             codec::Oct::PREFIX,
         )
     }
@@ -5729,8 +5778,8 @@ impl<const L: usize> LowerHex for Signed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
-            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
+            self.encoded::<codec::Hex>().ascii_lowercase(),
+            self.encoded::<codec::Hex>().ascii_lowercase(),
             codec::Hex::PREFIX,
         )
     }
@@ -5741,8 +5790,8 @@ impl<const L: usize> LowerHex for Unsigned<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
-            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
+            self.encoded::<codec::Hex>().ascii_lowercase(),
+            self.encoded::<codec::Hex>().ascii_lowercase(),
             codec::Hex::PREFIX,
         )
     }
@@ -5753,8 +5802,8 @@ impl<const L: usize> LowerHex for Bytes<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
-            Encode::<u8>::encoded::<codec::Hex>(self).ascii_lowercase(),
+            self.encoded::<codec::Hex>().ascii_lowercase(),
+            self.encoded::<codec::Hex>().ascii_lowercase(),
             codec::Hex::PREFIX,
         )
     }
@@ -5765,8 +5814,8 @@ impl<const L: usize> UpperHex for Signed<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Hex>(self),
-            Encode::<u8>::encoded::<codec::Hex>(self),
+            self.encoded::<codec::Hex>(),
+            self.encoded::<codec::Hex>(),
             codec::Hex::PREFIX,
         )
     }
@@ -5777,8 +5826,8 @@ impl<const L: usize> UpperHex for Unsigned<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Hex>(self),
-            Encode::<u8>::encoded::<codec::Hex>(self),
+            self.encoded::<codec::Hex>(),
+            self.encoded::<codec::Hex>(),
             codec::Hex::PREFIX,
         )
     }
@@ -5789,8 +5838,8 @@ impl<const L: usize> UpperHex for Bytes<L> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write(
             fmt,
-            Encode::<u8>::encoded::<codec::Hex>(self),
-            Encode::<u8>::encoded::<codec::Hex>(self),
+            self.encoded::<codec::Hex>(),
+            self.encoded::<codec::Hex>(),
             codec::Hex::PREFIX,
         )
     }
@@ -6294,86 +6343,124 @@ impl<const L: usize> Bytes<L> {
     }
 }
 
-impl<const L: usize, W: Word> AsWordsRef<W> for Signed<L> {
+impl<const L: usize> AsWords for Signed<L> {
+    type Wx = Single;
+}
+
+impl<const L: usize> AsWords for Unsigned<L> {
+    type Wx = Single;
+}
+
+impl<const L: usize> AsWords for Bytes<L> {
+    type Wx = Single;
+}
+
+impl<const L: usize> AsWordsRef for Signed<L> {
     #[inline]
-    fn as_words_ref(&self) -> &[W] {
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
         transmute_ref!(&self.0[..]) as &[W]
     }
 }
 
-impl<const L: usize, W: Word> AsWordsRef<W> for Unsigned<L> {
+impl<const L: usize> AsWordsRef for Unsigned<L> {
     #[inline]
-    fn as_words_ref(&self) -> &[W] {
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
         transmute_ref!(&self.0[..]) as &[W]
     }
 }
 
-impl<const L: usize, W: Word> AsWordsRef<W> for Bytes<L> {
+impl<const L: usize> AsWordsRef for Bytes<L> {
     #[inline]
-    fn as_words_ref(&self) -> &[W] {
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
         transmute_ref!(&self.0[..]) as &[W]
     }
 }
 
-impl<const L: usize, W: Word> AsWordsMut<W> for Signed<L> {
-    fn as_words_mut(&mut self) -> &mut [W] {
+impl<const L: usize> AsWordsMut for Signed<L> {
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+    where
+        Self::Wx: From<W>,
+    {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 
-impl<const L: usize, W: Word> AsWordsMut<W> for Unsigned<L> {
-    fn as_words_mut(&mut self) -> &mut [W] {
+impl<const L: usize> AsWordsMut for Unsigned<L> {
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+    where
+        Self::Wx: From<W>,
+    {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 
-impl<const L: usize, W: Word> AsWordsMut<W> for Bytes<L> {
-    fn as_words_mut(&mut self) -> &mut [W] {
+impl<const L: usize> AsWordsMut for Bytes<L> {
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+    where
+        Self::Wx: From<W>,
+    {
         transmute_mut!(&mut self.0[..]) as &mut [W]
     }
 }
 
 impl<const L: usize> ToDigits for Signed<L> {
     #[inline]
-    fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        self.read(ctx.exp.as_usize())
+    fn to_digits<W: Word>(&self, _ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
+        // self.read(ctx.exp.as_usize())
+
+        [W::ZERO].into_iter()
     }
 }
 
 impl<const L: usize> ToDigits for Unsigned<L> {
     #[inline]
-    fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        self.read(ctx.exp.as_usize())
+    fn to_digits<W: Word>(&self, _ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
+        // self.read(ctx.exp.as_usize())
+
+        [W::ZERO].into_iter()
     }
 }
 
 impl<const L: usize> IntoDigits for Signed<L> {
     #[inline]
-    fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        let bits = ctx.radix.order();
-        let len = self.0.iter().copied().length(0);
+    fn into_digits<W: Word>(self, _ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
+        // let bits = ctx.radix.order();
+        // let len = self.0.iter().copied().length(0);
+        //
+        // DigitsIter {
+        //     words: self,
+        //     radix: ctx.radix,
+        //     idx: 0,
+        //     len: (len * (Single::BITS as usize) + bits - 1) / bits,
+        // }
 
-        DigitsIter {
-            words: self,
-            radix: ctx.radix,
-            idx: 0,
-            len: (len * (Single::BITS as usize) + bits - 1) / bits,
-        }
+        [W::ZERO].into_iter()
     }
 }
 
 impl<const L: usize> IntoDigits for Unsigned<L> {
     #[inline]
-    fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        let bits = ctx.radix.order();
-        let len = self.0.iter().copied().length(0);
+    fn into_digits<W: Word>(self, _ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
+        // let bits = ctx.radix.order();
+        // let len = self.0.iter().copied().length(0);
+        //
+        // DigitsIter {
+        //     words: self,
+        //     radix: ctx.radix,
+        //     idx: 0,
+        //     len: (len * (Single::BITS as usize) + bits - 1) / bits,
+        // }
 
-        DigitsIter {
-            words: self,
-            radix: ctx.radix,
-            idx: 0,
-            len: (len * (Single::BITS as usize) + bits - 1) / bits,
-        }
+        [W::ZERO].into_iter()
     }
 }
 
@@ -6381,13 +6468,13 @@ impl<const L: usize> Rand for Signed<L> {}
 impl<const L: usize> Rand for Unsigned<L> {}
 impl<const L: usize> Rand for Bytes<L> {}
 
-impl<const L: usize, W: Word> Encode<W> for Signed<L> {}
-impl<const L: usize, W: Word> Encode<W> for Unsigned<L> {}
-impl<const L: usize, W: Word> Encode<W> for Bytes<L> {}
+impl<const L: usize> Encode for Signed<L> {}
+impl<const L: usize> Encode for Unsigned<L> {}
+impl<const L: usize> Encode for Bytes<L> {}
 
-impl<const L: usize, W: Word> Decode<W> for Signed<L> {}
-impl<const L: usize, W: Word> Decode<W> for Unsigned<L> {}
-impl<const L: usize, W: Word> Decode<W> for Bytes<L> {}
+impl<const L: usize> Decode for Signed<L> {}
+impl<const L: usize> Decode for Unsigned<L> {}
+impl<const L: usize> Decode for Bytes<L> {}
 
 impl<const L: usize> NumFn for Signed<L> {
     #[inline]

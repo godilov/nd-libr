@@ -357,7 +357,7 @@ pub fn decl(attr: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
     };
 
     if attr.dbg.is_some() {
-        eprintln!("ndfwd::decl:\n{}", quote);
+        println!("ndfwd::decl:\n{}", quote);
     }
 
     quote.into()
@@ -506,7 +506,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
     };
 
     if attr.dbg.is_some() {
-        eprintln!("ndfwd::def:\n{}", quote);
+        println!("ndfwd::def:\n{}", quote);
     }
 
     quote.into()

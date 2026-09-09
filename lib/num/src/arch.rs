@@ -4,7 +4,7 @@ use std::fmt::{Binary, Debug, Display, LowerHex, Octal, UpperHex};
 
 use ndext::{convert::NdxFrom, iter::*};
 use thiserror::Error;
-use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_ref};
+use zerocopy::{FromBytes, Immutable, IntoBytes, transmute_mut, transmute_ref};
 
 use crate::{arch::codec::*, arch::word::*, *};
 
@@ -138,24 +138,28 @@ macro_rules! bytes_impl {
         $(bytes_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl AsWordsRef<u8> for $primitive {
+        impl AsWords for $primitive {
+            type Wx = u8;
+        }
+
+        impl AsWordsRef for $primitive {
             #[inline]
-            fn as_words_ref(&self) -> &[u8] {
-                self.as_bytes()
+            fn as_words_ref<W: Word>(&self) -> &[W] where Self::Wx: From<W> {
+                transmute_ref!(self.as_bytes())
             }
         }
 
-        impl AsWordsMut<u8> for $primitive {
+        impl AsWordsMut for $primitive {
             #[inline]
-            fn as_words_mut(&mut self) -> &mut [u8] {
-                self.as_mut_bytes()
+            fn as_words_mut<W: Word>(&mut self) -> &mut [W] where Self::Wx: From<W> {
+                transmute_mut!(self.as_mut_bytes())
             }
         }
 
         impl Rand for $primitive {}
 
-        impl Encode<u8> for $primitive {}
-        impl Decode<u8> for $primitive {}
+        impl Encode for $primitive {}
+        impl Decode for $primitive {}
     };
 }
 
@@ -207,11 +211,11 @@ pub mod word {
     ///
     /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     #[rustfmt::skip]
-    pub trait Word: Sized + Clone + Copy
+    pub trait Word: Sized + Clone + Copy + From<u8>
         + PartialEq + Eq
         + PartialOrd + Ord
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
-        + AsWordsRef<u8> + AsWordsMut<u8>
+        + AsWordsRef + AsWordsMut
         + FromBytes + IntoBytes + Immutable
         + BitOr<Self> + BitAnd<Self> + BitXor<Self>
         + BitOrAssign + BitAndAssign + BitXorAssign
@@ -306,7 +310,7 @@ pub mod word {
         + PartialEq + Eq
         + PartialOrd + Ord
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
-        + AsWordsRef<u8> + AsWordsMut<u8>
+        + AsWordsRef + AsWordsMut
         + FromBytes + IntoBytes + Immutable
     {
         /// Word-extension primitive to words.
@@ -391,7 +395,7 @@ pub mod codec {
 
     /// Encode functions.
     #[ndfwd::decl]
-    pub trait Encode<W: Word>: Sized + AsWordsRef<W> {
+    pub trait Encode: Sized + AsWordsRef {
         /// Encodes from self.
         #[inline]
         fn encoded<C: Codec>(&self) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
@@ -400,7 +404,10 @@ pub mod codec {
 
         /// Reads from words in bits-len for encoding.
         #[inline]
-        fn read(&self, bits: usize) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator {
+        fn read<W: Word>(&self, bits: usize) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator
+        where
+            Self::Wx: From<W>,
+        {
             let one = Relaxed(W::ONE);
             let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
 
@@ -425,12 +432,12 @@ pub mod codec {
 
     /// Decode functions.
     #[ndfwd::decl]
-    pub trait Decode<W: Word>: Sized + Debug + AsWordsMut<W> {
+    pub trait Decode: Sized + AsWordsMut {
         /// Decodes into self.
         #[inline]
         #[ndfwd::as_into]
         fn decoded<C: Codec>(self, iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator) -> Self {
-            self.write(C::BITS, iter.map(|idx| W::from_single(C::DECODE[idx as usize] as Single)))
+            self.write(C::BITS, iter.map(|idx| C::DECODE[idx as usize]))
         }
 
         /// Decodes into self (checked).
@@ -440,13 +447,16 @@ pub mod codec {
             self,
             iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
         ) -> Result<Self, Error> {
-            self.try_write(C::BITS, iter.map(|idx| W::from_single(C::DECODE[idx as usize] as Single)))
+            self.try_write(C::BITS, iter.map(|idx| C::DECODE[idx as usize]))
         }
 
         /// Writes into words in bits-len for decoding.
         #[inline]
         #[ndfwd::as_into]
-        fn write(mut self, bits: usize, iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator) -> Self {
+        fn write<W: Word>(mut self, bits: usize, iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator) -> Self
+        where
+            Self::Wx: From<W>,
+        {
             let one = Relaxed(W::ONE);
             let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
 
@@ -475,11 +485,14 @@ pub mod codec {
         /// Writes into words in bits-len for decoding (checked).
         #[inline]
         #[ndfwd::as_map(Self::from)]
-        fn try_write(
+        fn try_write<W: Word>(
             self,
             bits: usize,
             iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
-        ) -> Result<Self, Error> {
+        ) -> Result<Self, Error>
+        where
+            Self::Wx: From<W>,
+        {
             let mut flag = false;
 
             let words = Self::write(
@@ -760,11 +773,12 @@ pub mod codec {
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
+#[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
-#[ndfwd::def(self.0 with T: codec::Encode<W>)]
-#[ndfwd::def(self.0 with T: codec::Decode<W>)]
+#[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -818,11 +832,12 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
+#[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
-#[ndfwd::def(self.0 with T: codec::Encode<W>)]
-#[ndfwd::def(self.0 with T: codec::Decode<W>)]
+#[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -869,11 +884,12 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
+#[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
-#[ndfwd::def(self.0 with T: codec::Encode<W>)]
-#[ndfwd::def(self.0 with T: codec::Decode<W>)]
+#[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -920,11 +936,12 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
+#[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
-#[ndfwd::def(self.0 with T: codec::Encode<W>)]
-#[ndfwd::def(self.0 with T: codec::Decode<W>)]
+#[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -985,11 +1002,12 @@ pub struct Aligned128<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
+#[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
-#[ndfwd::def(self.0 with T: codec::Encode<W>)]
-#[ndfwd::def(self.0 with T: codec::Decode<W>)]
+#[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: crate::NumFn)]
 #[ndfwd::def(self.0 with T: crate::Num)]
 #[ndfwd::def(self.0 with T: crate::NumExt)]
@@ -1065,32 +1083,44 @@ pub struct AlignedSimd<T>(pub T);
 #[ndfwd::fmt(self.0 with T)]
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
-#[ndfwd::def(self.0 with T: AsWordsRef<W>)]
-#[ndfwd::def(self.0 with T: AsWordsMut<W>)]
+#[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
-#[ndfwd::def(self.0 with T: codec::Encode<W>)]
-#[ndfwd::def(self.0 with T: codec::Decode<W>)]
+#[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
 #[repr(align(4096))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
 
+/// As words definitions.
+#[ndfwd::decl]
+pub trait AsWords {
+    /// Word limit;
+    type Wx: Word;
+}
+
 /// As words slice (reference).
 #[ndfwd::decl]
-pub trait AsWordsRef<W: Word> {
+pub trait AsWordsRef: AsWords {
     /// As ref-slice of words.
-    fn as_words_ref(&self) -> &[W];
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>;
 }
 
 /// As words slice (mutable).
 #[ndfwd::decl]
-pub trait AsWordsMut<W: Word>: AsWordsRef<W> {
+pub trait AsWordsMut: AsWords + AsWordsRef {
     /// As mut-slice of words.
-    fn as_words_mut(&mut self) -> &mut [W];
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+    where
+        Self::Wx: From<W>;
 }
 
 /// Random.
 #[ndfwd::decl]
-pub trait Rand: Sized + Default + AsWordsRef<u8> + AsWordsMut<u8> {
+pub trait Rand: Sized + Default + AsWordsRef + AsWordsMut {
     /// Creates random bytes.
     #[inline]
     #[cfg(feature = "rand")]
@@ -1216,20 +1246,37 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     }
 }
 
-impl<Any: AsWordsRef<W>, W: Word> AsWordsRef<W> for &Any {
-    fn as_words_ref(&self) -> &[W] {
+impl<Any: AsWords> AsWords for &Any {
+    type Wx = Any::Wx;
+}
+
+impl<Any: AsWords> AsWords for &mut Any {
+    type Wx = Any::Wx;
+}
+
+impl<Any: AsWordsRef> AsWordsRef for &Any {
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
         Any::as_words_ref(self)
     }
 }
 
-impl<Any: AsWordsRef<W>, W: Word> AsWordsRef<W> for &mut Any {
-    fn as_words_ref(&self) -> &[W] {
+impl<Any: AsWordsRef> AsWordsRef for &mut Any {
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
         Any::as_words_ref(self)
     }
 }
 
-impl<Any: AsWordsMut<W> + AsWordsRef<W>, W: Word> AsWordsMut<W> for &mut Any {
-    fn as_words_mut(&mut self) -> &mut [W] {
+impl<Any: AsWordsRef + AsWordsMut> AsWordsMut for &mut Any {
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+    where
+        Self::Wx: From<W>,
+    {
         Any::as_words_mut(self)
     }
 }
