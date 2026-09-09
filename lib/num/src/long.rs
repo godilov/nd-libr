@@ -21,7 +21,7 @@ use crate::{
     NdGcd, NdPow, NegxCt, Num, NumBinary, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
     arch::{
-        AsWords, AsWordsMut, AsWordsRef, Rand,
+        self, AsWords, AsWordsMut, AsWordsRef, Rand,
         codec::{self, Codec, Decode, Encode},
         word::*,
     },
@@ -4717,17 +4717,35 @@ pub mod radix {
     /// Conversion to arbitrary digits iterator represented by [`Word`] with `exp`.
     ///
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub trait ToDigits: Sized {
+    pub trait ToDigits: AsWordsRef {
         /// Conversion function.
-        fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W>;
+        fn to_digits<W: Word>(&self, ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W>
+        where
+            <Self as AsWords>::Wx: From<W>,
+        {
+            self.read(ctx.exp.as_usize())
+        }
     }
 
     /// Conversion into arbitrary digits iterator represented by [`Word`] with `radix`.
     ///
     /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub trait IntoDigits: Sized {
+    pub trait IntoDigits: AsWordsMut {
         /// Conversion function.
-        fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W>;
+        fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W>
+        where
+            <Self as AsWords>::Wx: From<W>,
+        {
+            let bits = ctx.radix.order();
+            let len = self.as_words_ref().iter().copied().length(W::ZERO);
+
+            DigitsIter {
+                words: self,
+                radix: ctx.radix,
+                idx: 0,
+                len: (len * (Single::BITS as usize) + bits - 1) / bits,
+            }
+        }
     }
 
     impl<'str> TryFrom<(&'str str, &'static [Dir])> for Radix<'str> {
@@ -5387,7 +5405,7 @@ impl<const L: usize> FromStr for Bytes<L> {
         let radix = Radix::try_from((str, &[][..]))?;
 
         match radix {
-            Radix::Dec(_, _, _) => Err(codec::Error::InvalidEntry),
+            Radix::Dec(_, _, _) => Err(arch::Error::InvalidEntry),
             Radix::Bin(_, str, _) => Self::default().try_decoded::<codec::Bin>(str.bytes().rev()),
             Radix::Oct(_, str, _) => Self::default().try_decoded::<codec::Oct>(str.bytes().rev()),
             Radix::Hex(_, str, _) => Self::default().try_decoded::<codec::Hex>(str.bytes().rev()),
@@ -6412,57 +6430,11 @@ impl<const L: usize> AsWordsMut for Bytes<L> {
     }
 }
 
-impl<const L: usize> ToDigits for Signed<L> {
-    #[inline]
-    fn to_digits<W: Word>(&self, _ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        // self.read(ctx.exp.as_usize())
+impl<const L: usize> ToDigits for Signed<L> {}
+impl<const L: usize> ToDigits for Unsigned<L> {}
 
-        [W::ZERO].into_iter()
-    }
-}
-
-impl<const L: usize> ToDigits for Unsigned<L> {
-    #[inline]
-    fn to_digits<W: Word>(&self, _ctx: ExpImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        // self.read(ctx.exp.as_usize())
-
-        [W::ZERO].into_iter()
-    }
-}
-
-impl<const L: usize> IntoDigits for Signed<L> {
-    #[inline]
-    fn into_digits<W: Word>(self, _ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        // let bits = ctx.radix.order();
-        // let len = self.0.iter().copied().length(0);
-        //
-        // DigitsIter {
-        //     words: self,
-        //     radix: ctx.radix,
-        //     idx: 0,
-        //     len: (len * (Single::BITS as usize) + bits - 1) / bits,
-        // }
-
-        [W::ZERO].into_iter()
-    }
-}
-
-impl<const L: usize> IntoDigits for Unsigned<L> {
-    #[inline]
-    fn into_digits<W: Word>(self, _ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W> {
-        // let bits = ctx.radix.order();
-        // let len = self.0.iter().copied().length(0);
-        //
-        // DigitsIter {
-        //     words: self,
-        //     radix: ctx.radix,
-        //     idx: 0,
-        //     len: (len * (Single::BITS as usize) + bits - 1) / bits,
-        // }
-
-        [W::ZERO].into_iter()
-    }
-}
+impl<const L: usize> IntoDigits for Signed<L> {}
+impl<const L: usize> IntoDigits for Unsigned<L> {}
 
 impl<const L: usize> Rand for Signed<L> {}
 impl<const L: usize> Rand for Unsigned<L> {}

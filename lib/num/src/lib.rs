@@ -4,7 +4,7 @@ use std::{cmp::Ordering, fmt::Debug, marker::PhantomData};
 
 use ndext::ops::*;
 
-use crate::arch::{AsWords, AsWordsMut, AsWordsRef, word::Word};
+use crate::arch::{AsWords, AsWordsMut, AsWordsRef, Error, word::Word};
 
 pub mod arch;
 pub mod long;
@@ -316,8 +316,6 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::cmp(self.0 with N)]
 #[ndfwd::fmt(self.0 with N)]
 #[ndfwd::iter(self.0 with N)]
-#[ndfwd::def(self.0 with N: arch::AsWordsRef where Self: AsWordsRef<Wx = N::Wx>)]
-#[ndfwd::def(self.0 with N: arch::AsWordsMut where Self: AsWordsRef<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: NumFn)]
 #[ndfwd::def(self.0 with N: Num)]
 #[ndfwd::def(self.0 with N: NumExt)]
