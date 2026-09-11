@@ -1137,8 +1137,8 @@ pub mod uops {
         /// Rhs in `lhs >> rhs`, `lhs >>= rhs`
         pub shift: usize,
 
-        /// Default value.
-        pub default: Single,
+        /// Extension value.
+        pub ext: Single,
     }
 
     /// Micro operations with standard implementation.
@@ -1333,9 +1333,9 @@ pub mod uops {
             let rhs = self.rhs.next()? as Double;
             let mul = self.mul as Double;
             let acc = self.acc as Double;
-            let elem = *lhs as Double;
             let ctx = self.ctx;
             let func = &self.ctx_func;
+            let elem = *lhs as Double;
 
             let val = elem * mul + rhs + acc;
             let acc = (val / RADIX) as Single;
@@ -2424,14 +2424,14 @@ pub mod uops {
             Self {
                 words: self.words,
                 shift: self.shift,
-                default: [0, Single::MAX][(dir == Dir::NEG) as usize],
+                ext: [0, Single::MAX][(dir == Dir::NEG) as usize],
             }
         }
 
         /// Shr expression with extension value.
         #[inline]
         pub fn ext(mut self, ext: Single) -> Self {
-            self.default = ext;
+            self.ext = ext;
             self
         }
     }
@@ -2445,14 +2445,14 @@ pub mod uops {
             Self {
                 words: self.words,
                 shift: self.shift,
-                default: [0, Single::MAX][(dir == Dir::NEG) as usize],
+                ext: [0, Single::MAX][(dir == Dir::NEG) as usize],
             }
         }
 
         /// Shr expression with extension value.
         #[inline]
         pub fn ext(mut self, ext: Single) -> Self {
-            self.default = ext;
+            self.ext = ext;
             self
         }
     }
@@ -3192,15 +3192,15 @@ pub mod uops {
 
             let words = self.words;
             let shift = self.shift;
-            let default = self.ext;
+            let ext = self.ext;
 
             let bits = Single::BITS as usize;
             let offset = (shift / bits).min(L);
             let shl = shift % bits;
             let shr = bits - shl;
 
-            let mut acc = default;
-            let mut res = repeat_n(default, offset)
+            let mut acc = ext;
+            let mut res = repeat_n(ext, offset)
                 .chain(words[..L - offset].iter().copied())
                 .collect_with([0; L]);
 
@@ -3229,16 +3229,16 @@ pub mod uops {
             use std::iter::repeat_n;
 
             let shift = self.shift;
-            let default = self.ext;
+            let ext = self.ext;
 
             let bits = Single::BITS as usize;
             let offset = (shift / bits).min(L);
             let shl = shift % bits;
             let shr = bits - shl;
 
-            let mut acc = default;
+            let mut acc = ext;
 
-            *self.words = repeat_n(default, offset)
+            *self.words = repeat_n(ext, offset)
                 .chain(self.words[..L - offset].iter().copied())
                 .collect_with([0; L]);
 
@@ -3268,18 +3268,18 @@ pub mod uops {
 
             let words = self.words;
             let shift = self.shift;
-            let default = self.default;
+            let ext = self.ext;
 
             let bits = Single::BITS as usize;
             let offset = (shift / bits).min(L);
             let shr = shift % bits;
             let shl = bits - shr;
 
-            let mut acc = default;
+            let mut acc = ext;
             let mut res = words[offset..]
                 .iter()
                 .copied()
-                .chain(repeat_n(default, offset))
+                .chain(repeat_n(ext, offset))
                 .collect_with([0; L]);
 
             for ptr in res[..L - offset].iter_mut().rev() {
@@ -3307,19 +3307,19 @@ pub mod uops {
             use std::iter::repeat_n;
 
             let shift = self.shift;
-            let default = self.default;
+            let ext = self.ext;
 
             let bits = Single::BITS as usize;
             let offset = (shift / bits).min(L);
             let shr = shift % bits;
             let shl = bits - shr;
 
-            let mut acc = default;
+            let mut acc = ext;
 
             *self.words = self.words[offset..]
                 .iter()
                 .copied()
-                .chain(repeat_n(default, offset))
+                .chain(repeat_n(ext, offset))
                 .collect_with([0; L]);
 
             for ptr in self.words[..L - offset].iter_mut().rev() {
@@ -3542,7 +3542,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn shr<Words>(words: Words, shift: usize) -> Shr<Words> {
-        Shr { words, shift, default: 0 }
+        Shr { words, shift, ext: 0 }
     }
 
     /// Iterates words.
