@@ -6349,7 +6349,7 @@ impl<const L: usize> AsWordsRef for Signed<L> {
     where
         Self::Wx: From<W>,
     {
-        transmute_ref!(&self.0[..]) as &[W]
+        self.0.as_words_ref()
     }
 }
 
@@ -6359,7 +6359,7 @@ impl<const L: usize> AsWordsRef for Unsigned<L> {
     where
         Self::Wx: From<W>,
     {
-        transmute_ref!(&self.0[..]) as &[W]
+        self.0.as_words_ref()
     }
 }
 
@@ -6369,7 +6369,7 @@ impl<const L: usize> AsWordsRef for Bytes<L> {
     where
         Self::Wx: From<W>,
     {
-        transmute_ref!(&self.0[..]) as &[W]
+        self.0.as_words_ref()
     }
 }
 
@@ -6378,7 +6378,7 @@ impl<const L: usize> AsWordsMut for Signed<L> {
     where
         Self::Wx: From<W>,
     {
-        transmute_mut!(&mut self.0[..]) as &mut [W]
+        self.0.as_words_mut()
     }
 }
 
@@ -6387,7 +6387,7 @@ impl<const L: usize> AsWordsMut for Unsigned<L> {
     where
         Self::Wx: From<W>,
     {
-        transmute_mut!(&mut self.0[..]) as &mut [W]
+        self.0.as_words_mut()
     }
 }
 
@@ -6396,7 +6396,7 @@ impl<const L: usize> AsWordsMut for Bytes<L> {
     where
         Self::Wx: From<W>,
     {
-        transmute_mut!(&mut self.0[..]) as &mut [W]
+        self.0.as_words_mut()
     }
 }
 
