@@ -1141,38 +1141,6 @@ pub mod uops {
         pub ext: Single,
     }
 
-    /// Micro operations with standard implementation.
-    ///
-    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub struct UopsStd;
-
-    /// Micro operations with dynamic implementation.
-    ///
-    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub struct UopsDyn;
-
-    /// Micro operations with const-time implementation.
-    ///
-    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub struct UopsCt;
-
-    /// Micro operations.
-    ///
-    /// # Related
-    ///
-    /// - [`UopsStd`] - standard impl.
-    /// - [`UopsDyn`] - dynamic impl.
-    /// - [`UopsCt`] - const-time impl.
-    ///
-    /// For more info, see [module-level](crate::long) and [crate-level](crate) documentation.
-    pub trait Uops {
-        /// Flag in equality operations.
-        type Flag;
-
-        /// Order in comparison operations.
-        type Order;
-    }
-
     /// Expression.
     pub trait Expr<Words: Copy>: Sized {
         /// Evaluates expression as default.
