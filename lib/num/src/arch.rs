@@ -1240,6 +1240,14 @@ impl<Wx: Word, const L: usize> AsWords for [Wx; L] {
     type Wx = Wx;
 }
 
+impl<Wx: Word> AsWords for &[Wx] {
+    type Wx = Wx;
+}
+
+impl<Wx: Word> AsWords for &mut [Wx] {
+    type Wx = Wx;
+}
+
 impl<Any: AsWords> AsWords for &Any {
     type Wx = Any::Wx;
 }
@@ -1289,6 +1297,36 @@ impl<Wx: Word, const L: usize> AsWordsRef for [Wx; L] {
 }
 
 impl<Wx: Word, const L: usize> AsWordsMut for [Wx; L] {
+    #[inline]
+    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+    where
+        Self::Wx: From<W>,
+    {
+        transmute_mut!(&mut self[..])
+    }
+}
+
+impl<Wx: Word> AsWordsRef for &[Wx] {
+    #[inline]
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
+        transmute_ref!(&self[..])
+    }
+}
+
+impl<Wx: Word> AsWordsRef for &mut [Wx] {
+    #[inline]
+    fn as_words_ref<W: Word>(&self) -> &[W]
+    where
+        Self::Wx: From<W>,
+    {
+        transmute_ref!(&self[..])
+    }
+}
+
+impl<Wx: Word> AsWordsMut for &mut [Wx] {
     #[inline]
     fn as_words_mut<W: Word>(&mut self) -> &mut [W]
     where
