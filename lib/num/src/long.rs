@@ -1238,6 +1238,31 @@ pub mod uops {
         fn eval_ext_mut(self) -> (&'words mut Words, bool);
     }
 
+    /// Micro operations v1 - short numbers.
+    ///
+    /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
+    pub struct UopsV1;
+
+    /// Micro operations v2 - medium numbers.
+    ///
+    /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
+    pub struct UopsV2;
+
+    /// Micro operations v3 - long numbers.
+    ///
+    /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
+    pub struct UopsV3;
+
+    /// Micro operations v4 - extra numbers.
+    ///
+    /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
+    pub struct UopsV4;
+
+    /// Micro operations.
+    ///
+    /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
+    pub trait Uops {}
+
     /// Identity function.
     #[inline]
     pub fn id<T>(value: T) -> T {

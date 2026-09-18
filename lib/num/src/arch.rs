@@ -37,7 +37,20 @@ macro_rules! aligned_impl {
 }
 
 macro_rules! word_def {
-    (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
+    (($half:ty, $single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
+        /// Half CPU-word unsigned primitive (at least).
+        ///
+        /// # Examples
+        ///
+        /// ```rust
+        /// # use std::mem::size_of;
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(size_of::<Half>(), size_of::<usize>() / 2);
+        /// ```
+        ///
+        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
+        pub type Half = $half;
+
         /// Single CPU-word unsigned primitive.
         ///
         /// # Examples
@@ -45,7 +58,7 @@ macro_rules! word_def {
         /// ```rust
         /// # use std::mem::size_of;
         /// # use ndnum::arch::word::*;
-        /// assert_eq!(size_of::<Single>(), 1 * size_of::<usize>());
+        /// assert_eq!(size_of::<Single>(), size_of::<usize>() * 1);
         /// ```
         ///
         /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
@@ -58,7 +71,7 @@ macro_rules! word_def {
         /// ```rust
         /// # use std::mem::size_of;
         /// # use ndnum::arch::word::*;
-        /// assert_eq!(size_of::<Double>(), 2 * size_of::<usize>());
+        /// assert_eq!(size_of::<Double>(), size_of::<usize>() * 2);
         /// ```
         ///
         /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
@@ -175,19 +188,19 @@ pub mod word {
     use super::*;
 
     #[cfg(all(target_pointer_width = "64", not(test)))]
-    word_def!((u64, u128), {
+    word_def!((u32, u64, u128), {
         word_impl!([u8, u16, u32, u64, usize]);
         word_impl!(@ext [u128]);
     });
 
     #[cfg(all(target_pointer_width = "32", not(test)))]
-    word_def!((u32, u64), {
+    word_def!((u16, u32, u64), {
         word_impl!([u8, u16, u32, usize]);
         word_impl!(@ext [u64, u128]);
     });
 
     #[cfg(test)]
-    word_def!((u8, u16), {
+    word_def!((u8, u8, u16), {
         word_impl!([u8]);
         word_impl!(@ext [u16, u32, u64, u128, usize]);
     });
