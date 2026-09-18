@@ -737,7 +737,7 @@ pub struct Aligned<T>(pub T);
 
 /// Aligned to 32-bytes type.
 ///
-/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+/// For more info, see [`Aligned`], [module-level](crate::arch) and [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -789,7 +789,7 @@ pub struct Aligned32<T>(pub T);
 
 /// Aligned to 64-bytes type.
 ///
-/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+/// For more info, see [`Aligned`], [module-level](crate::arch) and [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -841,7 +841,7 @@ pub struct Aligned64<T>(pub T);
 
 /// Aligned to 128-bytes type.
 ///
-/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+/// For more info, see [`Aligned`], [module-level](crate::arch) and [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -988,7 +988,7 @@ pub struct AlignedSimd<T>(pub T);
 
 /// Aligned to 4096-bytes type.
 ///
-/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+/// For more info, see [`Aligned`], [module-level](crate::arch) and [crate-level](crate) documentation.
 #[ndfwd::std(self.0 with T)]
 #[ndfwd::cmp(self.0 with T)]
 #[ndfwd::fmt(self.0 with T)]
@@ -1003,6 +1003,14 @@ pub struct AlignedSimd<T>(pub T);
 #[repr(align(4096))]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct AlignedX<T>(pub T);
+
+/// Opaque type.
+///
+/// Forwards no traits (except [`Debug`], [`Default`], [`Clone`], [`Copy`]).
+///
+/// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Opaque<T>(pub T);
 
 /// Words error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
