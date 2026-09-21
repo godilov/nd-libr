@@ -1269,7 +1269,7 @@ pub mod uops {
         value
     }
 
-    /// Identity context function.
+    /// Identity function (context).
     #[inline]
     pub fn id_ctx<Ctx>(_: Single, _: Single, _: Single, _: Single, ctx: Ctx) -> Ctx {
         ctx
@@ -1707,7 +1707,7 @@ pub mod uops {
             lhs.zip(rhs).map(move |(lhs, rhs)| func(lhs, rhs))
         }
 
-        /// Iterator for [`BitIter`] expression.
+        /// Iterator for [`BitIter`] expression (mutable).
         #[inline]
         pub fn iter_mut<'words>(self) -> impl Iterator<Item = &'words mut Single>
         where
@@ -1726,21 +1726,27 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Not<&[Single; L]> {
+    impl<Words> Not<&Words> {
         /// Iterator for [`Not`] expression.
         #[inline]
-        pub fn iter(self) -> impl Iterator<Item = Single> {
-            let words = self.words.iter().copied();
+        pub fn iter(self) -> impl Iterator<Item = Single>
+        where
+            Words: AsWordsRef<Wx: From<Single>>,
+        {
+            let words = self.words.as_words_ref().iter().copied();
 
             NotIter { words }.iter()
         }
     }
 
-    impl<const L: usize> Not<&mut [Single; L]> {
-        /// Iterator for [`Not`] expression.
+    impl<Words> Not<&mut Words> {
+        /// Iterator for [`Not`] expression (mutable).
         #[inline]
-        pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Single> {
-            let words = self.words.iter_mut();
+        pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Single>
+        where
+            Words: AsWordsMut<Wx: From<Single>>,
+        {
+            let words = self.words.as_words_mut().iter_mut();
 
             NotIter { words }.iter_mut()
         }
