@@ -390,7 +390,7 @@ pub mod codec {
 
     /// Encode functions.
     #[ndfwd::decl]
-    pub trait Encode: Sized + AsWordsRef {
+    pub trait Encode: AsWordsRef {
         /// Encodes from self.
         #[inline]
         fn encoded<C: Codec>(&self) -> impl ExactSizeIterator<Item = u8> + DoubleEndedIterator {
@@ -400,11 +400,14 @@ pub mod codec {
 
     /// Decode functions.
     #[ndfwd::decl]
-    pub trait Decode: Sized + AsWordsMut {
+    pub trait Decode: AsWordsMut {
         /// Decodes into self.
         #[inline]
         #[ndfwd::as_into]
-        fn decoded<C: Codec>(self, iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator) -> Self {
+        fn decoded<C: Codec>(self, iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator) -> Self
+        where
+            Self: Sized,
+        {
             self.write(C::BITS, iter.map(|idx| C::DECODE[idx as usize]))
         }
 
@@ -414,7 +417,10 @@ pub mod codec {
         fn try_decoded<C: Codec>(
             self,
             iter: impl ExactSizeIterator<Item = u8> + DoubleEndedIterator,
-        ) -> Result<Self, Error> {
+        ) -> Result<Self, Error>
+        where
+            Self: Sized,
+        {
             self.try_write(C::BITS, iter.map(|idx| C::DECODE[idx as usize]))
         }
     }
