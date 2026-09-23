@@ -1263,11 +1263,7 @@ impl<Wx: Word, const L: usize> AsWords for [Wx; L] {
     type Wx = Wx;
 }
 
-impl<Wx: Word> AsWords for &[Wx] {
-    type Wx = Wx;
-}
-
-impl<Wx: Word> AsWords for &mut [Wx] {
+impl<Wx: Word> AsWords for [Wx] {
     type Wx = Wx;
 }
 
@@ -1329,33 +1325,23 @@ impl<Wx: Word, const L: usize> AsWordsMut for [Wx; L] {
     }
 }
 
-impl<Wx: Word> AsWordsRef for &[Wx] {
+impl<Wx: Word> AsWordsRef for [Wx] {
     #[inline]
     fn as_words_ref<W: Word>(&self) -> &[W]
     where
         Self::Wx: From<W>,
     {
-        transmute_ref!(&self[..])
+        transmute_ref!(self)
     }
 }
 
-impl<Wx: Word> AsWordsRef for &mut [Wx] {
-    #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W]
-    where
-        Self::Wx: From<W>,
-    {
-        transmute_ref!(&self[..])
-    }
-}
-
-impl<Wx: Word> AsWordsMut for &mut [Wx] {
+impl<Wx: Word> AsWordsMut for [Wx] {
     #[inline]
     fn as_words_mut<W: Word>(&mut self) -> &mut [W]
     where
         Self::Wx: From<W>,
     {
-        transmute_mut!(&mut self[..])
+        transmute_mut!(self)
     }
 }
 
