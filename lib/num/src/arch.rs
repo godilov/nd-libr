@@ -1029,7 +1029,7 @@ pub trait AsWords {
 
 /// As words slice (reference).
 #[ndfwd::decl]
-pub trait AsWordsRef: Sized + AsWords {
+pub trait AsWordsRef: AsWords {
     /// As ref-slice of words.
     fn as_words_ref<W: Word>(&self) -> &[W]
     where
@@ -1065,7 +1065,7 @@ pub trait AsWordsRef: Sized + AsWords {
 
 /// As words slice (mutable).
 #[ndfwd::decl]
-pub trait AsWordsMut: Sized + AsWords + AsWordsRef {
+pub trait AsWordsMut: AsWords + AsWordsRef {
     /// As mut-slice of words.
     fn as_words_mut<W: Word>(&mut self) -> &mut [W]
     where
@@ -1076,6 +1076,7 @@ pub trait AsWordsMut: Sized + AsWords + AsWordsRef {
     #[ndfwd::as_into]
     fn write<W: Word>(mut self, bits: usize, iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator) -> Self
     where
+        Self: Sized,
         Self::Wx: From<W>,
     {
         let one = Relaxed(W::ONE);
@@ -1112,6 +1113,7 @@ pub trait AsWordsMut: Sized + AsWords + AsWordsRef {
         iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
     ) -> Result<Self, Error>
     where
+        Self: Sized,
         Self::Wx: From<W>,
     {
         let mut flag = false;

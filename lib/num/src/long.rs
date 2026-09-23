@@ -4755,6 +4755,7 @@ pub mod radix {
         #[inline]
         fn into_digits<W: Word>(self, ctx: RadixImpl<W>) -> impl ExactSizeIterator<Item = W>
         where
+            Self: Sized,
             <Self as AsWords>::Wx: From<W>,
         {
             let bits = ctx.radix.order();
