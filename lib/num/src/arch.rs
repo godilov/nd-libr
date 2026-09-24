@@ -352,6 +352,16 @@ pub mod word {
     {
         /// Word-extension primitive to words.
         fn as_words<W: Word>(&self) -> &[W];
+
+        /// Word-extension primitive to iterator.
+        fn iter_words<'words, W: 'words + Word>(&'words  self, ext: W) -> impl Iterator<Item = W> {
+            let words = self.as_words::<W>();
+
+            (0..).map(move |idx| match idx < words.len() {
+                true => words[idx],
+                false => ext,
+            })
+        }
     }
 }
 

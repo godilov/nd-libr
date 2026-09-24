@@ -27,7 +27,7 @@ use crate::{
     },
     long::{
         radix::*,
-        uops::{Expr, ExprMut},
+        uops::{Expr, ExprMut, UopsRaw},
     },
 };
 
@@ -133,8 +133,8 @@ macro_rules! nd_ops_primitive_impl {
             / @strict algo::div(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
             % @strict algo::rem(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(Signed),
-            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(Signed),
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.as_unsigned().iter_words([0, Single::MAX][(rhs < 0) as usize]).take(L)).with(Signed),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.as_unsigned().iter_words([0, Single::MAX][(rhs < 0) as usize]).take(L)).with(Signed),
 
             * @wrapping algo::mul(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             / @wrapping algo::div(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
@@ -170,8 +170,8 @@ macro_rules! nd_ops_primitive_impl {
             - @strict uops::sub(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
             * @strict algo::mul(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize]).take(L), rhs.0.iter().copied()).with(Signed),
-            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize]).take(L), rhs.0.iter().copied()).with(Signed),
+            + @wrapping uops::add_iter(lhs.as_unsigned().iter_words([0, Single::MAX][(lhs < 0) as usize]).take(L), rhs.0.iter().copied()).with(Signed),
+            - @wrapping uops::sub_iter(lhs.as_unsigned().iter_words([0, Single::MAX][(lhs < 0) as usize]).take(L), rhs.0.iter().copied()).with(Signed),
 
             * @wrapping algo::mul(&Signed::from(lhs).0, &rhs.0).signed().with(Signed),
 
@@ -201,8 +201,8 @@ macro_rules! nd_ops_primitive_impl {
             /= @strict algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
 
-            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(|_| ()),
-            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(|_| ()),
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.as_unsigned().iter_words([0, Single::MAX][(rhs < 0) as usize]).take(L)).with(|_| ()),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.as_unsigned().iter_words([0, Single::MAX][(rhs < 0) as usize]).take(L)).with(|_| ()),
 
             *= @wrapping algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
@@ -252,8 +252,8 @@ macro_rules! nd_ops_primitive_impl {
             / @strict algo::div(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
             % @strict algo::rem(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
 
-            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).with(Unsigned),
-            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).with(Unsigned),
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), rhs.as_unsigned().iter_words(0).take(L)).with(Unsigned),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), rhs.as_unsigned().iter_words(0).take(L)).with(Unsigned),
 
             * @wrapping algo::mul(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
             / @wrapping algo::div(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
@@ -289,8 +289,8 @@ macro_rules! nd_ops_primitive_impl {
             - @strict uops::sub(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
             * @strict algo::mul(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
 
-            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), 0).take(L), rhs.0.iter().copied()).with(Unsigned),
-            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), 0).take(L), rhs.0.iter().copied()).with(Unsigned),
+            + @wrapping uops::add_iter(lhs.as_unsigned().iter_words(0).take(L), rhs.0.iter().copied()).with(Unsigned),
+            - @wrapping uops::sub_iter(lhs.as_unsigned().iter_words(0).take(L), rhs.0.iter().copied()).with(Unsigned),
 
             * @wrapping algo::mul(&Unsigned::from(lhs).0, &rhs.0).with(Unsigned),
 
@@ -320,8 +320,8 @@ macro_rules! nd_ops_primitive_impl {
             /= @strict algo::div(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
 
-            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).eval(),
-            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).eval(),
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), rhs.as_unsigned().iter_words(0).take(L)).eval(),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), rhs.as_unsigned().iter_words(0).take(L)).eval(),
 
             *= @wrapping algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
@@ -1268,6 +1268,50 @@ pub mod uops {
         type Type: AsWordsRef + AsWordsMut;
     }
 
+    /// Micro operations (raw).
+    ///
+    /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
+    pub trait UopsRaw: AsWordsRef + AsWordsMut {
+        /// Read extension.
+        #[inline]
+        fn ext<W: Word>(&self) -> W {
+            let words = self.as_words_ref();
+            let len = words.len();
+
+            match words[len - 1] >> (W::BITS - 1) {
+                0 => W::MIN,
+                _ => W::MAX,
+            }
+        }
+
+        /// Read direction.
+        #[inline]
+        fn dir(&self) -> Dir {
+            let words = self.as_words_ref();
+            let len = words.len();
+
+            match words[len - 1] >> (u8::BITS - 1) {
+                0 => Dir::POS,
+                _ => Dir::NEG,
+            }
+        }
+
+        /// Read sign.
+        #[inline]
+        fn sign(&self) -> Sign {
+            let words = self.as_words_ref();
+            let len = words.len();
+
+            match words.iter().copied().all(|word| word == 0) {
+                false => match words[len - 1] >> (u8::BITS - 1) {
+                    0 => Sign::POS,
+                    _ => Sign::NEG,
+                },
+                true => Sign::ZERO,
+            }
+        }
+    }
+
     /// Identity function.
     #[inline]
     pub fn id<T>(value: T) -> T {
@@ -1484,6 +1528,10 @@ pub mod uops {
             ((), func(self.ctx))
         }
     }
+
+    impl<W: Word> UopsRaw for W {}
+
+    impl<W: Word> UopsRaw for [W] {}
 
     impl<Lhs, Rhs, Impl> Add<Lhs, Rhs, Impl> {
         /// Add expression for signed numbers.
@@ -1840,7 +1888,7 @@ pub mod uops {
             impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
         > {
             let dirx = self.dir;
-            let (xor, acc) = match dir(self.words) == self.dir {
+            let (xor, acc) = match self.words.dir() == self.dir {
                 true => (0, 0),
                 false => (Single::MAX, 1),
             };
@@ -1874,7 +1922,7 @@ pub mod uops {
             impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
         > {
             let dirx = self.dir;
-            let (xor, acc) = match dir(self.words) == self.dir {
+            let (xor, acc) = match self.words.dir() == self.dir {
                 true => (0, 0),
                 false => (Single::MAX, 1),
             };
@@ -2015,9 +2063,9 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = ext(&[rhs]);
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(&[rhs]);
+            let ext = rhs.ext::<Single>();
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == rhs.dir();
 
             ExprIter {
                 lhs: self.lhs.iter().copied(),
@@ -2025,7 +2073,7 @@ pub mod uops {
                 mul: 1,
                 acc: 0,
                 ctx: false,
-                ctx_func: move |_, _, _, word, _| eq && dirx != dir(&[word]),
+                ctx_func: move |_, _, _, word, _| eq && dirx != word.dir(),
             }
         }
     }
@@ -2064,9 +2112,9 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = ext(&[rhs]);
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(&[rhs]);
+            let ext = rhs.ext::<Single>();
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == rhs.dir();
 
             ExprIterMut {
                 lhs: self.lhs.iter_mut(),
@@ -2074,7 +2122,7 @@ pub mod uops {
                 mul: 1,
                 acc: 0,
                 ctx: false,
-                ctx_func: move |_, _, _, word, _| eq && dirx != dir(&[word]),
+                ctx_func: move |_, _, _, word, _| eq && dirx != word.dir(),
             }
         }
     }
@@ -2204,9 +2252,9 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = ext(&[rhs]);
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(&[rhs]);
+            let ext = rhs.ext::<Single>();
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == rhs.dir();
 
             ExprIter {
                 lhs: self.lhs.iter().copied(),
@@ -2214,7 +2262,7 @@ pub mod uops {
                 mul: 1,
                 acc: 1,
                 ctx: false,
-                ctx_func: move |_, _, _, word, _| !eq && dirx != dir(&[word]),
+                ctx_func: move |_, _, _, word, _| !eq && dirx != word.dir(),
             }
         }
     }
@@ -2232,9 +2280,9 @@ pub mod uops {
         > {
             let lhs = self.lhs as Single;
 
-            let ext = ext(&[lhs]);
-            let dirx = dir(&[lhs]);
-            let eq = dir(&[lhs]) == dir(self.rhs);
+            let ext = lhs.ext();
+            let dirx = lhs.dir();
+            let eq = lhs.dir() == self.rhs.dir();
 
             ExprIter {
                 lhs: (0..L).map(move |idx| [lhs, ext][(idx > 0) as usize]),
@@ -2242,7 +2290,7 @@ pub mod uops {
                 mul: 1,
                 acc: 1,
                 ctx: false,
-                ctx_func: move |_, _, _, word, _| !eq && dirx != dir(&[word]),
+                ctx_func: move |_, _, _, word, _| !eq && dirx != word.dir(),
             }
         }
     }
@@ -2261,9 +2309,9 @@ pub mod uops {
         > {
             let rhs = self.rhs as Single;
 
-            let ext = ext(&[rhs]);
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(&[rhs]);
+            let ext = rhs.ext::<Single>();
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == rhs.dir();
 
             ExprIterMut {
                 lhs: self.lhs.iter_mut(),
@@ -2271,7 +2319,7 @@ pub mod uops {
                 mul: 1,
                 acc: 1,
                 ctx: false,
-                ctx_func: move |_, _, _, word, _| !eq && dirx != dir(&[word]),
+                ctx_func: move |_, _, _, word, _| !eq && dirx != word.dir(),
             }
         }
     }
@@ -2389,7 +2437,7 @@ pub mod uops {
             let rhs = self.rhs as Single;
             let func = self.func;
 
-            let ext = ext(&[rhs]);
+            let ext = rhs.ext();
 
             BitIter {
                 lhs,
@@ -2410,7 +2458,7 @@ pub mod uops {
             let rhs = self.rhs as Single;
             let func = self.func;
 
-            let ext = ext(&[rhs]);
+            let ext = rhs.ext();
 
             BitIter {
                 lhs,
@@ -2455,7 +2503,7 @@ pub mod uops {
         /// Shr expression for signed numbers.
         #[inline]
         pub fn signed(self) -> Self {
-            let dir = dir(self.words);
+            let dir = self.words.dir();
 
             Self {
                 words: self.words,
@@ -2476,7 +2524,7 @@ pub mod uops {
         /// Shr expression for signed numbers.
         #[inline]
         pub fn signed(self) -> Self {
-            let dir = dir(self.words);
+            let dir = self.words.dir();
 
             Self {
                 words: self.words,
@@ -2748,8 +2796,8 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(self.rhs);
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == self.rhs.dir();
 
             Add {
                 lhs: self.lhs,
@@ -2757,7 +2805,7 @@ pub mod uops {
                 imp: self.imp,
             }
             .iter()
-            .ctx(false, move |_, _, _, word, _| eq && dirx != dir(&[word]))
+            .ctx(false, move |_, _, _, word, _| eq && dirx != word.dir())
             .eval_ext(id)
         }
     }
@@ -2778,8 +2826,8 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(self.rhs);
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == self.rhs.dir();
 
             let mut expr = Add {
                 lhs: self.lhs,
@@ -2789,7 +2837,7 @@ pub mod uops {
 
             let (_, overflow) = expr
                 .iter_mut()
-                .ctx(false, move |_, _, _, word, _| eq && dirx != dir(&[word]))
+                .ctx(false, move |_, _, _, word, _| eq && dirx != word.dir())
                 .eval_ext_mut(id);
 
             (expr.lhs, overflow)
@@ -2964,8 +3012,8 @@ pub mod uops {
 
         #[inline]
         fn eval_ext(self) -> ([Single; L], bool) {
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(self.rhs);
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == self.rhs.dir();
 
             Sub {
                 lhs: self.lhs,
@@ -2973,7 +3021,7 @@ pub mod uops {
                 imp: self.imp,
             }
             .iter()
-            .ctx(false, move |_, _, _, word, _| !eq && dirx != dir(&[word]))
+            .ctx(false, move |_, _, _, word, _| !eq && dirx != word.dir())
             .eval_ext(id)
         }
     }
@@ -2994,8 +3042,8 @@ pub mod uops {
 
         #[inline]
         fn eval_ext_mut(self) -> (&'words mut [Single; L], bool) {
-            let dirx = dir(self.lhs);
-            let eq = dir(self.lhs) == dir(self.rhs);
+            let dirx = self.lhs.dir();
+            let eq = self.lhs.dir() == self.rhs.dir();
 
             let mut expr = Sub {
                 lhs: self.lhs,
@@ -3005,7 +3053,7 @@ pub mod uops {
 
             let (_, overflow) = expr
                 .iter_mut()
-                .ctx(false, move |_, _, _, word, _| !eq && dirx != dir(&[word]))
+                .ctx(false, move |_, _, _, word, _| !eq && dirx != word.dir())
                 .eval_ext_mut(id);
 
             (expr.lhs, overflow)
@@ -3581,51 +3629,6 @@ pub mod uops {
         Shr { words, shift, ext: 0 }
     }
 
-    /// Iterates words.
-    #[inline]
-    pub fn iter<W: Word>(words: &[W], ext: W) -> impl Iterator<Item = W> {
-        (0..).map(move |idx| match idx < words.len() {
-            true => words[idx],
-            false => ext,
-        })
-    }
-
-    /// Reads extension.
-    #[inline]
-    pub fn ext(words: &[Single]) -> Single {
-        let len = words.len();
-
-        match words[len - 1] >> (Single::BITS - 1) {
-            0 => Single::MIN,
-            _ => Single::MAX,
-        }
-    }
-
-    /// Reads direction.
-    #[inline]
-    pub fn dir(words: &[Single]) -> Dir {
-        let len = words.len();
-
-        match words[len - 1] >> (Single::BITS - 1) {
-            0 => Dir::POS,
-            _ => Dir::NEG,
-        }
-    }
-
-    /// Reads sign.
-    #[inline]
-    pub fn sign(words: &[Single]) -> Sign {
-        let len = words.len();
-
-        match words.iter().copied().all(|word| word == 0) {
-            false => match words[len - 1] >> (Single::BITS - 1) {
-                0 => Sign::POS,
-                _ => Sign::NEG,
-            },
-            true => Sign::ZERO,
-        }
-    }
-
     #[inline]
     pub(crate) fn ext_ct(words: &[Single]) -> MaskCt {
         let len = words.len();
@@ -3913,7 +3916,7 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs;
 
-            let ext = uops::ext(rhs);
+            let ext = rhs.ext();
 
             let mut res = [[0; L]; 2];
 
@@ -3931,7 +3934,7 @@ pub mod algo {
                     .last()
                     .unwrap_or(0);
 
-                let mut iter = uops::mul([&[0; L], &[Single::MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
+                let mut iter = uops::mul([&[0; L], &[Single::MAX; L]][(lhs.dir() == Dir::NEG) as usize], val)
                     .iter()
                     .acc(iter.acc);
 
@@ -3947,7 +3950,7 @@ pub mod algo {
                     .eval_mut();
             }
 
-            let dir = uops::dir(&res[0]);
+            let dir = res[0].dir();
 
             (res[0], &res[1] != [&[0; L], &[Single::MAX; L]][(dir == Dir::NEG) as usize])
         }
@@ -3959,7 +3962,7 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs as Single;
 
-            let ext = uops::ext(&[rhs]);
+            let ext = rhs.ext();
 
             let mut res = [0; L];
 
@@ -3977,7 +3980,7 @@ pub mod algo {
             let lhs = self.lhs;
             let rhs = self.rhs as Single;
 
-            let ext = uops::ext(&[rhs]);
+            let ext = rhs.ext();
 
             let mut res = [[0; L]; 2];
 
@@ -3995,7 +3998,7 @@ pub mod algo {
                     .last()
                     .unwrap_or(0);
 
-                let mut iter = uops::mul([&[0; L], &[Single::MAX; L]][(uops::dir(lhs) == Dir::NEG) as usize], val)
+                let mut iter = uops::mul([&[0; L], &[Single::MAX; L]][(lhs.dir() == Dir::NEG) as usize], val)
                     .iter()
                     .acc(iter.acc);
 
@@ -4011,7 +4014,7 @@ pub mod algo {
                     .eval_mut();
             }
 
-            let dir = uops::dir(&res[0]);
+            let dir = res[0].dir();
 
             (res[0], &res[1] != [&[0; L], &[Single::MAX; L]][(dir == Dir::NEG) as usize])
         }
@@ -4290,8 +4293,8 @@ pub mod algo {
         fn eval(self) -> [Single; L] {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
             let rhs = uops::dirx(self.rhs, Dir::POS).eval();
-            let lhs_dir = uops::dir(self.lhs);
-            let rhs_dir = uops::dir(self.rhs);
+            let lhs_dir = self.lhs.dir();
+            let rhs_dir = self.rhs.dir();
 
             let res = Div {
                 lhs: &lhs,
@@ -4315,7 +4318,7 @@ pub mod algo {
         #[inline]
         fn eval(self) -> [Single; L] {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
-            let lhs_dir = uops::dir(self.lhs);
+            let lhs_dir = self.lhs.dir();
 
             let rhs = self.rhs.unsigned_abs();
             let rhs_dir = Dir::from(self.rhs);
@@ -4343,7 +4346,7 @@ pub mod algo {
         fn eval(self) -> [Single; L] {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
             let rhs = uops::dirx(self.rhs, Dir::POS).eval();
-            let lhs_dir = uops::dir(self.lhs);
+            let lhs_dir = self.lhs.dir();
 
             let res = Rem {
                 lhs: &lhs,
@@ -4372,7 +4375,7 @@ pub mod algo {
         #[inline]
         fn eval(self) -> <Single as NumExt>::Signed {
             let lhs = uops::dirx(self.lhs, Dir::POS).eval();
-            let lhs_dir = uops::dir(self.lhs);
+            let lhs_dir = self.lhs.dir();
 
             let rhs = self.rhs.unsigned_abs();
 
@@ -4597,7 +4600,7 @@ pub mod algo {
             }
             .eval() as Single;
 
-            let ext = uops::ext(&[val]);
+            let ext = val.ext();
 
             self.lhs[0] = val;
             self.lhs[1..].iter_mut().for_each(|ptr| *ptr = ext);
@@ -5688,7 +5691,7 @@ impl<const L: usize> Ord for Signed<L> {
 
         let cmp = lhs[idx].cmp(&rhs[idx]);
 
-        match (uops::dir(lhs), uops::dir(rhs)) {
+        match (lhs.dir(), rhs.dir()) {
             (Dir::POS, Dir::POS) => cmp,
             (Dir::POS, Dir::NEG) => cmp.reverse(),
             (Dir::NEG, Dir::POS) => cmp.reverse(),
@@ -6320,16 +6323,16 @@ impl<const L: usize> Signed<L> {
         Self(from_bytes(bytes))
     }
 
-    /// Long number sign.
-    #[inline]
-    pub fn sign(&self) -> Sign {
-        uops::sign(&self.0)
-    }
-
     /// Long number dir.
     #[inline]
     pub fn dir(&self) -> Dir {
-        uops::dir(&self.0)
+        self.0.dir()
+    }
+
+    /// Long number sign.
+    #[inline]
+    pub fn sign(&self) -> Sign {
+        self.0.sign()
     }
 
     /// Creates signed with specified direction.
