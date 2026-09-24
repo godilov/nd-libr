@@ -3592,17 +3592,21 @@ pub mod uops {
 
     /// Reads extension.
     #[inline]
-    pub fn ext<const L: usize>(words: &[Single; L]) -> Single {
-        match words[L - 1] >> (Single::BITS - 1) {
-            0 => 0,
+    pub fn ext(words: &[Single]) -> Single {
+        let len = words.len();
+
+        match words[len - 1] >> (Single::BITS - 1) {
+            0 => Single::MIN,
             _ => Single::MAX,
         }
     }
 
     /// Reads direction.
     #[inline]
-    pub fn dir<const L: usize>(words: &[Single; L]) -> Dir {
-        match words[L - 1] >> (Single::BITS - 1) {
+    pub fn dir(words: &[Single]) -> Dir {
+        let len = words.len();
+
+        match words[len - 1] >> (Single::BITS - 1) {
             0 => Dir::POS,
             _ => Dir::NEG,
         }
@@ -3610,9 +3614,11 @@ pub mod uops {
 
     /// Reads sign.
     #[inline]
-    pub fn sign<const L: usize>(words: &[Single; L]) -> Sign {
-        match words == &[0; L] {
-            false => match words[L - 1] >> (Single::BITS - 1) {
+    pub fn sign(words: &[Single]) -> Sign {
+        let len = words.len();
+
+        match words.iter().copied().all(|word| word == 0) {
+            false => match words[len - 1] >> (Single::BITS - 1) {
                 0 => Sign::POS,
                 _ => Sign::NEG,
             },
@@ -3621,8 +3627,10 @@ pub mod uops {
     }
 
     #[inline]
-    pub(crate) fn ext_ct<const L: usize>(words: &[Single; L]) -> MaskCt {
-        crate::pos_ct((words[L - 1] >> (Single::BITS - 1)) as MaskCt)
+    pub(crate) fn ext_ct(words: &[Single]) -> MaskCt {
+        let len = words.len();
+
+        crate::pos_ct((words[len - 1] >> (Single::BITS - 1)) as MaskCt)
     }
 
     #[inline]
