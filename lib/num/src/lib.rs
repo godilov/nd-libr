@@ -68,8 +68,7 @@ macro_rules! num_impl {
         }
 
         impl NumBinary for $primitive {
-            const BITS: usize = Self::BITS as usize;
-            const BYTES: usize = Self::BITS as usize / 8;
+            const WIDTH: usize = Self::BITS as usize;
         }
 
         impl NumCt for $primitive {
@@ -321,8 +320,7 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::def(self.0 with N: NumExt)]
 #[ndfwd::def(self.0 with N: NumUnsigned)]
 #[ndfwd::def(self.0 with N: NumBinary {
-    const BITS: usize = BITS;
-    const BYTES: usize = BITS.div_ceil(8);
+    const WIDTH: usize = WIDTH;
 })]
 #[ndfwd::def(self.0 with N: NdPow!)]
 #[ndfwd::def(self.0 with N: NdGcd!)]
@@ -345,7 +343,7 @@ pub struct Ranged<N: Num, R: Range<N>>(N, PhantomData<R>);
 #[ndfwd::def(self.0 with N: SelectCt)]
 #[ndfwd::def(self.0 with N: PowCt!)]
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Width<N: Num + NumUnsigned + NumBinary, const BITS: usize>(N);
+pub struct Width<N: Num + NumUnsigned + NumBinary, const WIDTH: usize>(N);
 
 /// Number with Modulus.
 ///
@@ -587,11 +585,8 @@ pub trait NumUnsigned: NumFn {
 /// For more info, see [crate-level](crate) documentation.
 #[ndfwd::decl]
 pub trait NumBinary: NumFn {
-    /// Length in bits.
-    const BITS: usize;
-
-    /// Length in bytes.
-    const BYTES: usize;
+    /// Width in bits.
+    const WIDTH: usize;
 }
 
 /// Number with const-time operations.
@@ -1275,7 +1270,7 @@ impl<N: Num, R: Range<N>> From<N> for Ranged<N, R> {
     }
 }
 
-impl<N: Num + NumUnsigned + NumBinary, const BITS: usize> From<N> for Width<N, BITS> {
+impl<N: Num + NumUnsigned + NumBinary, const WIDTH: usize> From<N> for Width<N, WIDTH> {
     #[inline]
     fn from(value: N) -> Self {
         Self(value).normalized()
@@ -1508,8 +1503,8 @@ impl<N> NdForward for Unbounded<N> {}
 #[ndfwd::def(self.0 with N: PowCt!)]
 impl<N> NdForward for Relaxed<N> {}
 
-impl<N: Num + NumUnsigned + NumBinary, const BITS: usize> Width<N, BITS> {
-    const _CHECK: () = assert!(0 < BITS && BITS <= N::BITS);
+impl<N: Num + NumUnsigned + NumBinary, const WIDTH: usize> Width<N, WIDTH> {
+    const _CHECK: () = assert!(0 < WIDTH && WIDTH <= N::WIDTH);
 
     #[inline]
     pub(crate) fn normalized(mut self) -> Self {
@@ -1519,7 +1514,7 @@ impl<N: Num + NumUnsigned + NumBinary, const BITS: usize> Width<N, BITS> {
 
     #[inline]
     pub(crate) fn normalize(&mut self) -> &mut Self {
-        if N::BITS <= BITS {
+        if N::WIDTH <= WIDTH {
             return self;
         }
 

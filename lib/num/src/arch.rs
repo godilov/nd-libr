@@ -94,6 +94,8 @@ macro_rules! word_impl {
             const BYTES: usize = Self::BITS as usize / 8;
             const ZERO: Self = 0;
             const ONE: Self = 1;
+            const MIN: Self = Self::MIN;
+            const MAX: Self = Self::MAX;
 
             #[inline]
             fn from_usize(value: usize) -> Self {
@@ -278,6 +280,28 @@ pub mod word {
         /// assert_eq!(<u16 as Word>::ONE, 1);
         /// ```
         const ONE: Self;
+
+        /// Min value of Word-like primitive.
+        ///
+        /// # Examples
+        ///
+        /// ```rust
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(<u8 as Word>::ZERO, 0);
+        /// assert_eq!(<u16 as Word>::ZERO, 0);
+        /// ```
+        const MIN: Self;
+
+        /// Max value of Word-like primitive.
+        ///
+        /// # Examples
+        ///
+        /// ```rust
+        /// # use ndnum::arch::word::*;
+        /// assert_eq!(<u8 as Word>::ONE, 1);
+        /// assert_eq!(<u16 as Word>::ONE, 1);
+        /// ```
+        const MAX: Self;
 
         /// Word-like primitive from [`usize`].
         ///
@@ -1321,7 +1345,7 @@ impl<Wx: Word, const L: usize> AsWordsRef for [Wx; L] {
     where
         Self::Wx: From<W>,
     {
-        transmute_ref!(&self[..])
+        transmute_ref!(self)
     }
 }
 
@@ -1331,7 +1355,7 @@ impl<Wx: Word, const L: usize> AsWordsMut for [Wx; L] {
     where
         Self::Wx: From<W>,
     {
-        transmute_mut!(&mut self[..])
+        transmute_mut!(self)
     }
 }
 

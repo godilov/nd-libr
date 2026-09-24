@@ -133,8 +133,8 @@ macro_rules! nd_ops_primitive_impl {
             / @strict algo::div(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
             % @strict algo::rem(&lhs.0, &Signed::from(rhs).0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(Signed),
-            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(Signed),
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(Signed),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(Signed),
 
             * @wrapping algo::mul(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
             / @wrapping algo::div(&lhs.0, &Signed::from(rhs).0).signed().with(Signed),
@@ -170,8 +170,8 @@ macro_rules! nd_ops_primitive_impl {
             - @strict uops::sub(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
             * @strict algo::mul(&Signed::from(lhs).0, &rhs.0).signed().strict(Signed),
 
-            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize], L), rhs.0.iter().copied()).with(Signed),
-            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize], L), rhs.0.iter().copied()).with(Signed),
+            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize]).take(L), rhs.0.iter().copied()).with(Signed),
+            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), [0, Single::MAX][(lhs < 0) as usize]).take(L), rhs.0.iter().copied()).with(Signed),
 
             * @wrapping algo::mul(&Signed::from(lhs).0, &rhs.0).signed().with(Signed),
 
@@ -201,8 +201,8 @@ macro_rules! nd_ops_primitive_impl {
             /= @strict algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Signed::from(rhs).0).signed().strict_mut(),
 
-            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(|_| ()),
-            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize], L)).with(|_| ()),
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(|_| ()),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), [0, Single::MAX][(rhs < 0) as usize]).take(L)).with(|_| ()),
 
             *= @wrapping algo::mul(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Signed::from(rhs).0).signed().eval_mut(),
@@ -252,8 +252,8 @@ macro_rules! nd_ops_primitive_impl {
             / @strict algo::div(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
             % @strict algo::rem(&lhs.0, &Unsigned::from(rhs).0).strict(Unsigned),
 
-            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), 0, L)).with(Unsigned),
-            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), 0, L)).with(Unsigned),
+            + @wrapping uops::add_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).with(Unsigned),
+            - @wrapping uops::sub_iter(lhs.0.iter().copied(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).with(Unsigned),
 
             * @wrapping algo::mul(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
             / @wrapping algo::div(&lhs.0, &Unsigned::from(rhs).0).with(Unsigned),
@@ -289,8 +289,8 @@ macro_rules! nd_ops_primitive_impl {
             - @strict uops::sub(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
             * @strict algo::mul(&Unsigned::from(lhs).0, &rhs.0).strict(Unsigned),
 
-            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), 0, L), rhs.0.iter().copied()).with(Unsigned),
-            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), 0, L), rhs.0.iter().copied()).with(Unsigned),
+            + @wrapping uops::add_iter(uops::iter(lhs.as_unsigned().as_words(), 0).take(L), rhs.0.iter().copied()).with(Unsigned),
+            - @wrapping uops::sub_iter(uops::iter(lhs.as_unsigned().as_words(), 0).take(L), rhs.0.iter().copied()).with(Unsigned),
 
             * @wrapping algo::mul(&Unsigned::from(lhs).0, &rhs.0).with(Unsigned),
 
@@ -320,8 +320,8 @@ macro_rules! nd_ops_primitive_impl {
             /= @strict algo::div(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
             %= @strict algo::rem(&mut lhs.0, &Unsigned::from(rhs).0).strict_mut(),
 
-            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), 0, L)).eval(),
-            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), 0, L)).eval(),
+            += @wrapping uops::add_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).eval(),
+            -= @wrapping uops::sub_iter(lhs.0.iter_mut(), uops::iter(rhs.as_unsigned().as_words(), 0).take(L)).eval(),
 
             *= @wrapping algo::mul(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
             /= @wrapping algo::div(&mut lhs.0, &Unsigned::from(rhs).0).eval_mut(),
@@ -1238,22 +1238,24 @@ pub mod uops {
         fn eval_ext_mut(self) -> (&'words mut Words, bool);
     }
 
-    /// Micro operations v1 - short numbers.
+    /// Micro operations v1 - short length.
     ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
     pub struct UopsV1;
 
-    /// Micro operations v2 - medium numbers.
+    /// Micro operations v2 - medium length.
     ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
     pub struct UopsV2;
 
-    /// Micro operations v3 - long numbers.
+    /// Micro operations v3 - long length.
     ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
     pub struct UopsV3;
 
-    /// Micro operations v4 - extra numbers.
+    /// Micro operations v4 - extra length.
+    ///
+    /// Trades latency for troughput.
     ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
     pub struct UopsV4;
@@ -1261,7 +1263,10 @@ pub mod uops {
     /// Micro operations.
     ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
-    pub trait Uops {}
+    pub trait Uops {
+        /// Uops type.
+        type Type: AsWordsRef + AsWordsMut;
+    }
 
     /// Identity function.
     #[inline]
@@ -1733,9 +1738,9 @@ pub mod uops {
         where
             Words: AsWordsRef<Wx: From<Single>>,
         {
-            let words = self.words.as_words_ref().iter().copied();
+            let words = self.words.as_words_ref();
 
-            NotIter { words }.iter()
+            NotIter { words: words.iter().copied() }.iter()
         }
     }
 
@@ -1746,13 +1751,13 @@ pub mod uops {
         where
             Words: AsWordsMut<Wx: From<Single>>,
         {
-            let words = self.words.as_words_mut().iter_mut();
+            let words = self.words.as_words_mut();
 
-            NotIter { words }.iter_mut()
+            NotIter { words: words.iter_mut() }.iter_mut()
         }
     }
 
-    impl<const L: usize> Dirv<&[Single; L]> {
+    impl<Words> Dirv<&Words> {
         /// Iterator for [`Dirv`] expression.
         #[inline]
         pub fn iter(
@@ -1762,26 +1767,33 @@ pub mod uops {
             impl Iterator<Item = Single>,
             (usize, bool),
             impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
-        > {
-            let words = self.words.iter().copied();
+        >
+        where
+            Words: AsWordsRef<Wx: From<Single>>,
+        {
+            let words = self.words.as_words_ref();
+            let len = words.len();
             let dir = self.dir;
             let xor = match self.dir {
                 Dir::POS => 0,
                 Dir::NEG => Single::MAX,
             };
 
-            DirvIter { words, dir }
-                .iter()
-                .ctx((0, true), move |word, _, _, _, (idx, flag)| {
-                    (
-                        idx + 1,
-                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
-                    )
-                })
+            DirvIter {
+                words: words.iter().copied(),
+                dir,
+            }
+            .iter()
+            .ctx((0, true), move |word, _, _, _, (idx, flag)| {
+                (
+                    idx + 1,
+                    flag && [0, 1 << (Single::BITS - 1)][(idx == len - 1) as usize] == word ^ xor && dir == Dir::NEG,
+                )
+            })
         }
     }
 
-    impl<const L: usize> Dirv<&mut [Single; L]> {
+    impl<Words> Dirv<&mut Words> {
         /// Iterator for [`Dirv`] expression.
         #[inline]
         pub fn iter_mut(
@@ -1792,20 +1804,25 @@ pub mod uops {
             impl Iterator<Item = Single>,
             (usize, bool),
             impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
-        > {
-            let words = self.words.iter_mut();
+        >
+        where
+            Words: AsWordsMut<Wx: From<Single>>,
+        {
+            let words = self.words.as_words_mut();
+            let len = words.len();
             let dir = self.dir;
             let xor = match self.dir {
                 Dir::POS => 0,
                 Dir::NEG => Single::MAX,
             };
 
-            DirvIter { words, dir }
+            DirvIter { words: words.iter_mut(), dir }
                 .iter_mut()
                 .ctx((0, true), move |word, _, _, _, (idx, flag)| {
                     (
                         idx + 1,
-                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dir == Dir::NEG,
+                        flag && [0, 1 << (Single::BITS - 1)][(idx == len - 1) as usize] == word ^ xor
+                            && dir == Dir::NEG,
                     )
                 })
         }
@@ -3566,8 +3583,8 @@ pub mod uops {
 
     /// Iterates words.
     #[inline]
-    pub fn iter<W: Word>(words: &[W], ext: W, len: usize) -> impl Iterator<Item = W> {
-        (0..len).map(move |idx| match idx < words.len() {
+    pub fn iter<W: Word>(words: &[W], ext: W) -> impl Iterator<Item = W> {
+        (0..).map(move |idx| match idx < words.len() {
             true => words[idx],
             false => ext,
         })
@@ -3609,12 +3626,15 @@ pub mod uops {
     }
 
     #[inline]
-    pub(crate) fn eq_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(lhs: Lhs, rhs: Rhs) -> MaskCt {
+    pub(crate) fn eq_ct<Lhs: ExactSizeIterator<Item = Single>, Rhs: ExactSizeIterator<Item = Single>>(
+        lhs: Lhs,
+        rhs: Rhs,
+    ) -> MaskCt {
         crate::eq_ct(&lhs.zip(rhs).map(|(a, b)| a ^ b).fold(0, |acc, cmp| acc | cmp), &0)
     }
 
     #[inline]
-    pub(crate) fn cmp_ct<Lhs: Iterator<Item = Single>, Rhs: Iterator<Item = Single>>(
+    pub(crate) fn cmp_ct<Lhs: ExactSizeIterator<Item = Single>, Rhs: ExactSizeIterator<Item = Single>>(
         lhs: Lhs,
         rhs: Rhs,
         lhs_ext: MaskCt,
@@ -3639,17 +3659,18 @@ pub mod uops {
     }
 
     #[inline]
-    pub(crate) fn words_ct<const L: usize>(
-        words: &[Single; L],
+    pub(crate) fn words_ct<Words: ExactSizeIterator<Item = Single>>(
+        words: Words,
         mask: MaskCt,
     ) -> BitIter<
         impl Iterator<Item = Single>,
         impl Iterator<Item = Single>,
         impl 'static + Fn(Single, Single) -> Single + Copy,
     > {
-        let mask = Single::from_ne_bytes([mask; <Single as Word>::BYTES]);
+        let len = words.len();
+        let mask = Single::from_ne_bytes([mask; Single::BYTES]);
 
-        uops::bitand_iter(words.iter().copied(), (0..L).map(move |_| mask))
+        uops::bitand_iter(words, (0..len).map(move |_| mask))
     }
 }
 
@@ -6592,13 +6613,11 @@ impl<const L: usize> NumUnsigned for Unsigned<L> {
 }
 
 impl<const L: usize> NumBinary for Signed<L> {
-    const BITS: usize = (<Single as Word>::BITS * L);
-    const BYTES: usize = (<Single as Word>::BYTES * L);
+    const WIDTH: usize = (<Single as Word>::BITS * L);
 }
 
 impl<const L: usize> NumBinary for Unsigned<L> {
-    const BITS: usize = (<Single as Word>::BITS * L);
-    const BYTES: usize = (<Single as Word>::BYTES * L);
+    const WIDTH: usize = (<Single as Word>::BITS * L);
 }
 
 impl<const L: usize> NumCt for Signed<L> {
@@ -6607,7 +6626,7 @@ impl<const L: usize> NumCt for Signed<L> {
 
     #[inline]
     fn with_mask_ct(&self, mask: MaskCt) -> Self {
-        uops::words_ct(&self.0, mask).with(Self)
+        uops::words_ct(self.0.iter().copied(), mask).with(Self)
     }
 }
 
@@ -6617,7 +6636,7 @@ impl<const L: usize> NumCt for Unsigned<L> {
 
     #[inline]
     fn with_mask_ct(&self, mask: MaskCt) -> Self {
-        uops::words_ct(&self.0, mask).with(Self)
+        uops::words_ct(self.0.iter().copied(), mask).with(Self)
     }
 }
 
@@ -6947,8 +6966,8 @@ impl<const L: usize> MinCt for Signed<L> {
             uops::ext_ct(&other.0),
         ));
 
-        let lhs = uops::words_ct(&self.0, mask).iter();
-        let rhs = uops::words_ct(&other.0, !mask).iter();
+        let lhs = uops::words_ct(self.0.iter().copied(), mask).iter();
+        let rhs = uops::words_ct(other.0.iter().copied(), !mask).iter();
 
         uops::bitor_iter(lhs, rhs).with(Self)
     }
@@ -6964,8 +6983,8 @@ impl<const L: usize> MinCt for Unsigned<L> {
             MaskCt::MIN,
         ));
 
-        let lhs = uops::words_ct(&self.0, mask).iter();
-        let rhs = uops::words_ct(&other.0, !mask).iter();
+        let lhs = uops::words_ct(self.0.iter().copied(), mask).iter();
+        let rhs = uops::words_ct(other.0.iter().copied(), !mask).iter();
 
         uops::bitor_iter(lhs, rhs).with(Self)
     }
@@ -6981,8 +7000,8 @@ impl<const L: usize> MaxCt for Signed<L> {
             uops::ext_ct(&other.0),
         ));
 
-        let lhs = uops::words_ct(&self.0, mask).iter();
-        let rhs = uops::words_ct(&other.0, !mask).iter();
+        let lhs = uops::words_ct(self.0.iter().copied(), mask).iter();
+        let rhs = uops::words_ct(other.0.iter().copied(), !mask).iter();
 
         uops::bitor_iter(lhs, rhs).with(Self)
     }
@@ -6998,8 +7017,8 @@ impl<const L: usize> MaxCt for Unsigned<L> {
             MaskCt::MIN,
         ));
 
-        let lhs = uops::words_ct(&self.0, mask).iter();
-        let rhs = uops::words_ct(&other.0, !mask).iter();
+        let lhs = uops::words_ct(self.0.iter().copied(), mask).iter();
+        let rhs = uops::words_ct(other.0.iter().copied(), !mask).iter();
 
         uops::bitor_iter(lhs, rhs).with(Self)
     }
@@ -7022,8 +7041,8 @@ impl<const L: usize> NegxCt for Signed<L> {
 impl<const L: usize> SelectCt for Signed<L> {
     #[inline(never)]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-        let lhs = uops::words_ct(&lhs.0, mask).iter();
-        let rhs = uops::words_ct(&rhs.0, !mask).iter();
+        let lhs = uops::words_ct(lhs.0.iter().copied(), mask).iter();
+        let rhs = uops::words_ct(rhs.0.iter().copied(), !mask).iter();
 
         uops::bitor_iter(lhs, rhs).with(Self)
     }
@@ -7032,8 +7051,8 @@ impl<const L: usize> SelectCt for Signed<L> {
 impl<const L: usize> SelectCt for Unsigned<L> {
     #[inline(never)]
     fn select_ct(lhs: &Self, rhs: &Self, mask: MaskCt) -> Self {
-        let lhs = uops::words_ct(&lhs.0, mask).iter();
-        let rhs = uops::words_ct(&rhs.0, !mask).iter();
+        let lhs = uops::words_ct(lhs.0.iter().copied(), mask).iter();
+        let rhs = uops::words_ct(rhs.0.iter().copied(), !mask).iter();
 
         uops::bitor_iter(lhs, rhs).with(Self)
     }
@@ -7043,18 +7062,16 @@ impl<const L: usize> PowCt for Signed<L> {}
 impl<const L: usize> PowCt for Unsigned<L> {}
 
 const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
-    const BYTES: usize = <Single as Word>::BYTES;
-
-    let (bytes, bytes_) = bytes.as_chunks::<BYTES>();
+    let (bytes, bytes_) = bytes.as_chunks::<{ Single::BYTES }>();
 
     let mut idx = 0;
     let mut idx_ = 0;
     let mut res = [0; L];
 
     #[allow(clippy::modulo_one)]
-    while idx < bytes.len() && idx < L * <Single as Word>::BYTES {
-        let offset = idx / <Single as Word>::BYTES;
-        let shift = idx % <Single as Word>::BYTES;
+    while idx < bytes.len() && idx < L * Single::BYTES {
+        let offset = idx / Single::BYTES;
+        let shift = idx % Single::BYTES;
         let byte = bytes[offset][shift] as Single;
 
         idx += 1;
@@ -7062,10 +7079,10 @@ const fn from_bytes<const L: usize>(bytes: &[u8]) -> [Single; L] {
     }
 
     #[allow(clippy::modulo_one)]
-    while idx_ < bytes_.len() && idx < L * <Single as Word>::BYTES {
-        let offset = idx / <Single as Word>::BYTES;
-        let shift = idx % <Single as Word>::BYTES;
-        let shift_ = idx_ % <Single as Word>::BYTES;
+    while idx_ < bytes_.len() && idx < L * Single::BYTES {
+        let offset = idx / Single::BYTES;
+        let shift = idx % Single::BYTES;
+        let shift_ = idx_ % Single::BYTES;
         let byte = bytes_[shift_] as Single;
 
         idx += 1;
@@ -7080,7 +7097,7 @@ fn try_from_array<const L: usize, const N: usize, W: Word>(
     arr: &[W; N],
     default: Single,
 ) -> Result<[Single; L], InitError> {
-    match (N * W::BYTES).cmp(&(L * <Single as Word>::BYTES)) {
+    match (N * W::BYTES).cmp(&(L * Single::BYTES)) {
         Ordering::Less => Ok(from_array(arr, default)),
         Ordering::Equal => Ok(from_array(arr, default)),
         Ordering::Greater => Err(InitError::InvalidLength),
@@ -7088,7 +7105,7 @@ fn try_from_array<const L: usize, const N: usize, W: Word>(
 }
 
 fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], InitError> {
-    match (slice.len() * W::BYTES).cmp(&(L * <Single as Word>::BYTES)) {
+    match (slice.len() * W::BYTES).cmp(&(L * Single::BYTES)) {
         Ordering::Less => Ok(from_slice(slice)),
         Ordering::Equal => Ok(from_slice(slice)),
         Ordering::Greater => Err(InitError::InvalidLength),
@@ -7096,7 +7113,7 @@ fn try_from_slice<const L: usize, W: Word>(slice: &[W]) -> Result<[Single; L], I
 }
 
 fn from_array<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Single) -> [Single; L] {
-    let len = N.min(L * <Single as Word>::BYTES / W::BYTES);
+    let len = N.min(L * Single::BYTES / W::BYTES);
 
     let mut res = [default; L];
 
@@ -7111,7 +7128,7 @@ fn from_array<const L: usize, const N: usize, W: Word>(arr: &[W; N], default: Si
 }
 
 fn from_slice<const L: usize, W: Word>(slice: &[W]) -> [Single; L] {
-    let len = slice.len().min(L * <Single as Word>::BYTES / W::BYTES);
+    let len = slice.len().min(L * Single::BYTES / W::BYTES);
 
     let mut res = [0; L];
 
