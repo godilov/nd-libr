@@ -1500,64 +1500,64 @@ impl<Any: AsWordsMut> AsWordsMut for &mut Any {
     }
 }
 
-ndops::auto! { @ndun <Value, T> (value: &Aligned<Value>)     -> Aligned<T>,     (Value) (T) (&value.0) }
-ndops::auto! { @ndun <Value, T> (value: &Aligned32<Value>)   -> Aligned32<T>,   (Value) (T) (&value.0) }
-ndops::auto! { @ndun <Value, T> (value: &Aligned64<Value>)   -> Aligned64<T>,   (Value) (T) (&value.0) }
-ndops::auto! { @ndun <Value, T> (value: &Aligned128<Value>)  -> Aligned128<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned    <Value>) -> Aligned    <T>, (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned32  <Value>) -> Aligned32  <T>, (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned64  <Value>) -> Aligned64  <T>, (Value) (T) (&value.0) }
+ndops::auto! { @ndun <Value, T> (value: &Aligned128 <Value>) -> Aligned128 <T>, (Value) (T) (&value.0) }
 ndops::auto! { @ndun <Value, T> (value: &AlignedSimd<Value>) -> AlignedSimd<T>, (Value) (T) (&value.0) }
 
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,     rhs: &Aligned<Rhs>)     -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,   rhs: &Aligned32<Rhs>)   -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,   rhs: &Aligned64<Rhs>)   -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>,  rhs: &Aligned128<Rhs>)  -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned    <Lhs>, rhs: &Aligned    <Rhs>) -> Aligned    <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned32  <Lhs>, rhs: &Aligned32  <Rhs>) -> Aligned32  <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned64  <Lhs>, rhs: &Aligned64  <Rhs>) -> Aligned64  <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &Aligned128 <Lhs>, rhs: &Aligned128 <Rhs>) -> Aligned128 <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
 ndops::auto! { @ndbin <Lhs, Rhs, T> (lhs: &AlignedSimd<Lhs>, rhs: &AlignedSimd<Rhs>) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
 
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned<Lhs>,    rhs: Rhs)  -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned32<Lhs>,  rhs: Rhs)  -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned64<Lhs>,  rhs: Rhs)  -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned128<Lhs>, rhs: Rhs)  -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned    <Lhs>, rhs: Rhs) -> Aligned    <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned32  <Lhs>, rhs: Rhs) -> Aligned32  <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned64  <Lhs>, rhs: Rhs) -> Aligned64  <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &Aligned128 <Lhs>, rhs: Rhs) -> Aligned128 <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
 ndops::auto! { @ndbin @shift <Lhs, Rhs, T> (lhs: &AlignedSimd<Lhs>, rhs: Rhs) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
 
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     rhs: &Aligned<Rhs>),     (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   rhs: &Aligned32<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   rhs: &Aligned64<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  rhs: &Aligned128<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned    <Lhs>, rhs: &Aligned    <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned32  <Lhs>, rhs: &Aligned32  <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned64  <Lhs>, rhs: &Aligned64  <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut Aligned128 <Lhs>, rhs: &Aligned128 <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @ndmut <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, rhs: &AlignedSimd<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned    <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned32  <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned64  <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut Aligned128 <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 ndops::auto! { @ndmut @shift <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
-ndops::auto! { @stdun <Value, T> (*value: &Aligned<Value>)     -> Aligned<T>,     (Value) (T) (&value.0) }
-ndops::auto! { @stdun <Value, T> (*value: &Aligned32<Value>)   -> Aligned32<T>,   (Value) (T) (&value.0) }
-ndops::auto! { @stdun <Value, T> (*value: &Aligned64<Value>)   -> Aligned64<T>,   (Value) (T) (&value.0) }
-ndops::auto! { @stdun <Value, T> (*value: &Aligned128<Value>)  -> Aligned128<T>,  (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned    <Value>) -> Aligned    <T>, (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned32  <Value>) -> Aligned32  <T>, (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned64  <Value>) -> Aligned64  <T>, (Value) (T) (&value.0) }
+ndops::auto! { @stdun <Value, T> (*value: &Aligned128 <Value>) -> Aligned128 <T>, (Value) (T) (&value.0) }
 ndops::auto! { @stdun <Value, T> (*value: &AlignedSimd<Value>) -> AlignedSimd<T>, (Value) (T) (&value.0) }
 
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,     *rhs: &Aligned<Rhs>)     -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,   *rhs: &Aligned32<Rhs>)   -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,   *rhs: &Aligned64<Rhs>)   -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
-ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>,  *rhs: &Aligned128<Rhs>)  -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned    <Lhs>, *rhs: &Aligned    <Rhs>) -> Aligned    <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned32  <Lhs>, *rhs: &Aligned32  <Rhs>) -> Aligned32  <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned64  <Lhs>, *rhs: &Aligned64  <Rhs>) -> Aligned64  <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
+ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &Aligned128 <Lhs>, *rhs: &Aligned128 <Rhs>) -> Aligned128 <T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
 ndops::auto! { @stdbin <Lhs, Rhs, T> (*lhs: &AlignedSimd<Lhs>, *rhs: &AlignedSimd<Rhs>) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (&rhs.0) }
 
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned<Lhs>,     rhs: Rhs) -> Aligned<T>,     (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned32<Lhs>,   rhs: Rhs) -> Aligned32<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned64<Lhs>,   rhs: Rhs) -> Aligned64<T>,   (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
-ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned128<Lhs>,  rhs: Rhs) -> Aligned128<T>,  (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned    <Lhs>, rhs: Rhs) -> Aligned    <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned32  <Lhs>, rhs: Rhs) -> Aligned32  <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned64  <Lhs>, rhs: Rhs) -> Aligned64  <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
+ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &Aligned128 <Lhs>, rhs: Rhs) -> Aligned128 <T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
 ndops::auto! { @stdbin @shift <Lhs, Rhs, T> (*lhs: &AlignedSimd<Lhs>, rhs: Rhs) -> AlignedSimd<T>, (Lhs) (Rhs) (T) (&lhs.0) (rhs) }
 
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     *rhs: &Aligned<Rhs>),     (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   *rhs: &Aligned32<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   *rhs: &Aligned64<Rhs>),   (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
-ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  *rhs: &Aligned128<Rhs>),  (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned    <Lhs>, *rhs: &Aligned    <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned32  <Lhs>, *rhs: &Aligned32  <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned64  <Lhs>, *rhs: &Aligned64  <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
+ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut Aligned128 <Lhs>, *rhs: &Aligned128 <Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 ndops::auto! { @stdmut <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, *rhs: &AlignedSimd<Rhs>), (Lhs) (Rhs) (&mut lhs.0) (&rhs.0) }
 
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned<Lhs>,     rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned32<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned64<Lhs>,   rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
-ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned128<Lhs>,  rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned    <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned32  <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned64  <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
+ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut Aligned128 <Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 ndops::auto! { @stdmut @shift <Lhs, Rhs> (lhs: &mut AlignedSimd<Lhs>, rhs: Rhs), (Lhs) (Rhs) (&mut lhs.0) (rhs) }
 
 aligned_impl!(Aligned     [i8, i16, i32, i64, i128, isize]);
