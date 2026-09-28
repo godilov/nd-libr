@@ -638,6 +638,14 @@ pub mod codec {
         const PREFIX: &'static str = "";
     }
 
+    impl<Wx: Word, const L: usize> Encode for [Wx; L] {}
+
+    impl<Wx: Word, const L: usize> Decode for [Wx; L] {}
+
+    impl<Wx: Word> Encode for [Wx] {}
+
+    impl<Wx: Word> Decode for [Wx] {}
+
     impl<Any: Encode> Encode for &Any {}
 
     impl<Any: Decode> Decode for &mut Any {}
