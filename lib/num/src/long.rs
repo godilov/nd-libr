@@ -1779,10 +1779,10 @@ pub mod uops {
         }
     }
 
-    impl<Words> Not<&Words> {
+    impl<Words> Not<Words> {
         /// Iterator for [`Not`] expression.
         #[inline]
-        pub fn iter(self) -> impl Iterator<Item = Single>
+        pub fn iter(&self) -> impl Iterator<Item = Single>
         where
             Words: AsWordsRef<Wx: From<Single>>,
         {
@@ -1790,9 +1790,7 @@ pub mod uops {
 
             NotIter { words: words.iter().copied() }.iter()
         }
-    }
 
-    impl<Words> Not<&mut Words> {
         /// Iterator for [`Not`] expression (mutable).
         #[inline]
         pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Single>
@@ -1805,11 +1803,11 @@ pub mod uops {
         }
     }
 
-    impl<Words> Dirv<&Words> {
+    impl<Words> Dirv<Words> {
         /// Iterator for [`Dirv`] expression.
         #[inline]
         pub fn iter(
-            self,
+            &self,
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
@@ -1839,10 +1837,8 @@ pub mod uops {
                 )
             })
         }
-    }
 
-    impl<Words> Dirv<&mut Words> {
-        /// Iterator for [`Dirv`] expression.
+        /// Iterator for [`Dirv`] expression (mutable).
         #[inline]
         pub fn iter_mut(
             &mut self,
@@ -1876,25 +1872,32 @@ pub mod uops {
         }
     }
 
-    impl<const L: usize> Dirx<&[Single; L]> {
+    impl<Words> Dirx<Words> {
         /// Iterator for [`Dirx`] expression.
         #[inline]
         pub fn iter(
-            self,
+            &self,
         ) -> ExprIter<
             impl Iterator<Item = Single>,
             impl Iterator<Item = Single>,
             (usize, bool),
             impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
-        > {
+        >
+        where
+            Words: AsWordsRef<Wx: From<Single>>,
+        {
+            let words = self.words.as_words_ref();
+            let dir = self.dir;
+            let len = words.len();
+
             let dirx = self.dir;
-            let (xor, acc) = match self.words.dir() == self.dir {
+            let (xor, acc) = match words.dir() == dir {
                 true => (0, 0),
                 false => (Single::MAX, 1),
             };
 
             ExprIter {
-                lhs: self.words.iter().copied().map(move |word| word ^ xor),
+                lhs: words.iter().copied().map(move |word| word ^ xor),
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc,
@@ -1902,15 +1905,14 @@ pub mod uops {
                 ctx_func: move |word, _, _, _, (idx, flag)| {
                     (
                         idx + 1,
-                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                        flag && [0, 1 << (Single::BITS - 1)][(idx == len - 1) as usize] == word ^ xor
+                            && dirx == Dir::POS,
                     )
                 },
             }
         }
-    }
 
-    impl<const L: usize> Dirx<&mut [Single; L]> {
-        /// Iterator for [`Dirx`] expression.
+        /// Iterator for [`Dirx`] expression (mutable).
         #[inline]
         pub fn iter_mut(
             &mut self,
@@ -1920,15 +1922,22 @@ pub mod uops {
             impl Iterator<Item = Single>,
             (usize, bool),
             impl Copy + Fn(Single, Single, Single, Single, (usize, bool)) -> (usize, bool),
-        > {
+        >
+        where
+            Words: AsWordsMut<Wx: From<Single>>,
+        {
+            let words = self.words.as_words_mut();
+            let dir = self.dir;
+            let len = words.len();
+
             let dirx = self.dir;
-            let (xor, acc) = match self.words.dir() == self.dir {
+            let (xor, acc) = match words.dir() == dir {
                 true => (0, 0),
                 false => (Single::MAX, 1),
             };
 
             ExprIterMut {
-                lhs: self.words.iter_mut().map(move |word| {
+                lhs: words.iter_mut().map(move |word| {
                     *word ^= xor;
                     word
                 }),
@@ -1939,7 +1948,8 @@ pub mod uops {
                 ctx_func: move |word, _, _, _, (idx, flag)| {
                     (
                         idx + 1,
-                        flag && [0, 1 << (Single::BITS - 1)][(idx == L - 1) as usize] == word ^ xor && dirx == Dir::POS,
+                        flag && [0, 1 << (Single::BITS - 1)][(idx == len - 1) as usize] == word ^ xor
+                            && dirx == Dir::POS,
                     )
                 },
             }
