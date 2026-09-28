@@ -153,10 +153,6 @@ macro_rules! bytes_impl {
         $(bytes_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
-        impl AsWords for $primitive {
-            type Wx = u8;
-        }
-
         impl AsWordsRef for $primitive {
             #[inline]
             fn as_words_ref<W: Word>(&self) -> &[W] where Self::Wx: From<W> {
@@ -171,10 +167,44 @@ macro_rules! bytes_impl {
             }
         }
 
+        impl AsWordsRef for [$primitive] {
+            #[inline]
+            fn as_words_ref<W: Word>(&self) -> &[W] where Self::Wx: From<W> {
+                transmute_ref!(self)
+            }
+        }
+
+        impl AsWordsMut for [$primitive] {
+            #[inline]
+            fn as_words_mut<W: Word>(&mut self) -> &mut [W] where Self::Wx: From<W> {
+                transmute_mut!(self)
+            }
+        }
+
+        impl<const L: usize> AsWordsRef for [$primitive; L] {
+            #[inline]
+            fn as_words_ref<W: Word>(&self) -> &[W] where Self::Wx: From<W> {
+                transmute_ref!(self)
+            }
+        }
+
+        impl<const L: usize> AsWordsMut for [$primitive; L] {
+            #[inline]
+            fn as_words_mut<W: Word>(&mut self) -> &mut [W] where Self::Wx: From<W> {
+                transmute_mut!(self)
+            }
+        }
+
         impl Rand for $primitive {}
 
         impl Encode for $primitive {}
         impl Decode for $primitive {}
+
+        impl Encode for [$primitive] {}
+        impl Decode for [$primitive] {}
+
+        impl<const L: usize> Encode for [$primitive; L] {}
+        impl<const L: usize> Decode for [$primitive; L] {}
     };
 }
 
@@ -189,22 +219,151 @@ pub mod word {
 
     use super::*;
 
+    #[rustfmt::skip]
     #[cfg(all(target_pointer_width = "64", not(test)))]
     word_def!((u32, u64, u128), {
         word_impl!([u8, u16, u32, u64, usize]);
         word_impl!(@ext [u128]);
+
+        impl AsWords for u8 { type Wx = u8; }
+        impl AsWords for u16 { type Wx = u16; }
+        impl AsWords for u32 { type Wx = u32; }
+        impl AsWords for u64 { type Wx = u64; }
+        impl AsWords for u128 { type Wx = u64; }
+        impl AsWords for usize { type Wx = u64; }
+
+        impl AsWords for i8 { type Wx = u8; }
+        impl AsWords for i16 { type Wx = u16; }
+        impl AsWords for i32 { type Wx = u32; }
+        impl AsWords for i64 { type Wx = u64; }
+        impl AsWords for i128 { type Wx = u64; }
+        impl AsWords for isize { type Wx = u64; }
+
+        impl AsWords for [u8] { type Wx = u8; }
+        impl AsWords for [u16] { type Wx = u16; }
+        impl AsWords for [u32] { type Wx = u32; }
+        impl AsWords for [u64] { type Wx = u64; }
+        impl AsWords for [u128] { type Wx = u64; }
+        impl AsWords for [usize] { type Wx = u64; }
+
+        impl AsWords for [i8] { type Wx = u8; }
+        impl AsWords for [i16] { type Wx = u16; }
+        impl AsWords for [i32] { type Wx = u32; }
+        impl AsWords for [i64] { type Wx = u64; }
+        impl AsWords for [i128] { type Wx = u64; }
+        impl AsWords for [isize] { type Wx = u64; }
+
+        impl<const L: usize> AsWords for [u8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [u16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [u32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [u64; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [u128; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [usize; L] { type Wx = u64; }
+
+        impl<const L: usize> AsWords for [i8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [i16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [i32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [i64; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [i128; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [isize; L] { type Wx = u64; }
     });
 
+    #[rustfmt::skip]
     #[cfg(all(target_pointer_width = "32", not(test)))]
     word_def!((u16, u32, u64), {
         word_impl!([u8, u16, u32, usize]);
         word_impl!(@ext [u64, u128]);
+
+        impl AsWords for u8 { type Wx = u8; }
+        impl AsWords for u16 { type Wx = u16; }
+        impl AsWords for u32 { type Wx = u32; }
+        impl AsWords for u64 { type Wx = u32; }
+        impl AsWords for u128 { type Wx = u32; }
+        impl AsWords for usize { type Wx = u32; }
+
+        impl AsWords for i8 { type Wx = u8; }
+        impl AsWords for i16 { type Wx = u16; }
+        impl AsWords for i32 { type Wx = u32; }
+        impl AsWords for i64 { type Wx = u32; }
+        impl AsWords for i128 { type Wx = u32; }
+        impl AsWords for isize { type Wx = u32; }
+
+        impl AsWords for [u8] { type Wx = u8; }
+        impl AsWords for [u16] { type Wx = u16; }
+        impl AsWords for [u32] { type Wx = u32; }
+        impl AsWords for [u64] { type Wx = u32; }
+        impl AsWords for [u128] { type Wx = u32; }
+        impl AsWords for [usize] { type Wx = u32; }
+
+        impl AsWords for [i8] { type Wx = u8; }
+        impl AsWords for [i16] { type Wx = u16; }
+        impl AsWords for [i32] { type Wx = u32; }
+        impl AsWords for [i64] { type Wx = u32; }
+        impl AsWords for [i128] { type Wx = u32; }
+        impl AsWords for [isize] { type Wx = u32; }
+
+        impl<const L: usize> AsWords for [u8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [u16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [u32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [u64; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [u128; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [usize; L] { type Wx = u32; }
+
+        impl<const L: usize> AsWords for [i8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [i16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [i32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [i64; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [i128; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [isize; L] { type Wx = u32; }
     });
 
+    #[rustfmt::skip]
     #[cfg(test)]
     word_def!((u8, u8, u16), {
         word_impl!([u8]);
         word_impl!(@ext [u16, u32, u64, u128, usize]);
+
+        impl AsWords for u8 { type Wx = u8; }
+        impl AsWords for u16 { type Wx = u8; }
+        impl AsWords for u32 { type Wx = u8; }
+        impl AsWords for u64 { type Wx = u8; }
+        impl AsWords for u128 { type Wx = u8; }
+        impl AsWords for usize { type Wx = u8; }
+
+        impl AsWords for i8 { type Wx = u8; }
+        impl AsWords for i16 { type Wx = u8; }
+        impl AsWords for i32 { type Wx = u8; }
+        impl AsWords for i64 { type Wx = u8; }
+        impl AsWords for i128 { type Wx = u8; }
+        impl AsWords for isize { type Wx = u8; }
+
+        impl AsWords for [u8] { type Wx = u8; }
+        impl AsWords for [u16] { type Wx = u8; }
+        impl AsWords for [u32] { type Wx = u8; }
+        impl AsWords for [u64] { type Wx = u8; }
+        impl AsWords for [u128] { type Wx = u8; }
+        impl AsWords for [usize] { type Wx = u8; }
+
+        impl AsWords for [i8] { type Wx = u8; }
+        impl AsWords for [i16] { type Wx = u8; }
+        impl AsWords for [i32] { type Wx = u8; }
+        impl AsWords for [i64] { type Wx = u8; }
+        impl AsWords for [i128] { type Wx = u8; }
+        impl AsWords for [isize] { type Wx = u8; }
+
+        impl<const L: usize> AsWords for [u8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [u16; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [u32; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [u64; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [u128; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [usize; L] { type Wx = u8; }
+
+        impl<const L: usize> AsWords for [i8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [i16; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [i32; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [i64; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [i128; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [isize; L] { type Wx = u8; }
     });
 
     /// Radix of CPU-word primitive.
@@ -637,14 +796,6 @@ pub mod codec {
 
         const PREFIX: &'static str = "";
     }
-
-    impl<Wx: Word, const L: usize> Encode for [Wx; L] {}
-
-    impl<Wx: Word, const L: usize> Decode for [Wx; L] {}
-
-    impl<Wx: Word> Encode for [Wx] {}
-
-    impl<Wx: Word> Decode for [Wx] {}
 
     impl<Any: Encode> Encode for &Any {}
 
@@ -1311,14 +1462,6 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     }
 }
 
-impl<Wx: Word, const L: usize> AsWords for [Wx; L] {
-    type Wx = Wx;
-}
-
-impl<Wx: Word> AsWords for [Wx] {
-    type Wx = Wx;
-}
-
 impl<Any: AsWords> AsWords for &Any {
     type Wx = Any::Wx;
 }
@@ -1354,46 +1497,6 @@ impl<Any: AsWordsMut> AsWordsMut for &mut Any {
         Self::Wx: From<W>,
     {
         Any::as_words_mut(self)
-    }
-}
-
-impl<Wx: Word, const L: usize> AsWordsRef for [Wx; L] {
-    #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W]
-    where
-        Self::Wx: From<W>,
-    {
-        transmute_ref!(self)
-    }
-}
-
-impl<Wx: Word, const L: usize> AsWordsMut for [Wx; L] {
-    #[inline]
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
-    where
-        Self::Wx: From<W>,
-    {
-        transmute_mut!(self)
-    }
-}
-
-impl<Wx: Word> AsWordsRef for [Wx] {
-    #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W]
-    where
-        Self::Wx: From<W>,
-    {
-        transmute_ref!(self)
-    }
-}
-
-impl<Wx: Word> AsWordsMut for [Wx] {
-    #[inline]
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
-    where
-        Self::Wx: From<W>,
-    {
-        transmute_mut!(self)
     }
 }
 

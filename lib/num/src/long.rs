@@ -1529,9 +1529,26 @@ pub mod uops {
         }
     }
 
-    impl<W: Word> UopsRaw for W {}
+    impl UopsRaw for u8 {}
+    impl UopsRaw for u16 {}
+    impl UopsRaw for u32 {}
+    impl UopsRaw for u64 {}
+    impl UopsRaw for u128 {}
+    impl UopsRaw for usize {}
 
-    impl<W: Word> UopsRaw for [W] {}
+    impl UopsRaw for [u8] {}
+    impl UopsRaw for [u16] {}
+    impl UopsRaw for [u32] {}
+    impl UopsRaw for [u64] {}
+    impl UopsRaw for [u128] {}
+    impl UopsRaw for [usize] {}
+
+    impl<const L: usize> UopsRaw for [u8; L] {}
+    impl<const L: usize> UopsRaw for [u16; L] {}
+    impl<const L: usize> UopsRaw for [u32; L] {}
+    impl<const L: usize> UopsRaw for [u64; L] {}
+    impl<const L: usize> UopsRaw for [u128; L] {}
+    impl<const L: usize> UopsRaw for [usize; L] {}
 
     impl<Lhs, Rhs, Impl> Add<Lhs, Rhs, Impl> {
         /// Add expression for signed numbers.
