@@ -225,46 +225,46 @@ pub mod word {
         word_impl!([u8, u16, u32, u64, usize]);
         word_impl!(@ext [u128]);
 
-        impl AsWords for u8 { type Wx = u8; }
-        impl AsWords for u16 { type Wx = u16; }
-        impl AsWords for u32 { type Wx = u32; }
-        impl AsWords for u64 { type Wx = u64; }
-        impl AsWords for u128 { type Wx = u64; }
+        impl AsWords for    u8 { type Wx =  u8; }
+        impl AsWords for   u16 { type Wx = u16; }
+        impl AsWords for   u32 { type Wx = u32; }
+        impl AsWords for   u64 { type Wx = u64; }
+        impl AsWords for  u128 { type Wx = u64; }
         impl AsWords for usize { type Wx = u64; }
 
-        impl AsWords for i8 { type Wx = u8; }
-        impl AsWords for i16 { type Wx = u16; }
-        impl AsWords for i32 { type Wx = u32; }
-        impl AsWords for i64 { type Wx = u64; }
-        impl AsWords for i128 { type Wx = u64; }
+        impl AsWords for    i8 { type Wx =  u8; }
+        impl AsWords for   i16 { type Wx = u16; }
+        impl AsWords for   i32 { type Wx = u32; }
+        impl AsWords for   i64 { type Wx = u64; }
+        impl AsWords for  i128 { type Wx = u64; }
         impl AsWords for isize { type Wx = u64; }
 
-        impl AsWords for [u8] { type Wx = u8; }
-        impl AsWords for [u16] { type Wx = u16; }
-        impl AsWords for [u32] { type Wx = u32; }
-        impl AsWords for [u64] { type Wx = u64; }
-        impl AsWords for [u128] { type Wx = u64; }
+        impl AsWords for [   u8] { type Wx =  u8; }
+        impl AsWords for [  u16] { type Wx = u16; }
+        impl AsWords for [  u32] { type Wx = u32; }
+        impl AsWords for [  u64] { type Wx = u64; }
+        impl AsWords for [ u128] { type Wx = u64; }
         impl AsWords for [usize] { type Wx = u64; }
 
-        impl AsWords for [i8] { type Wx = u8; }
-        impl AsWords for [i16] { type Wx = u16; }
-        impl AsWords for [i32] { type Wx = u32; }
-        impl AsWords for [i64] { type Wx = u64; }
-        impl AsWords for [i128] { type Wx = u64; }
+        impl AsWords for [   i8] { type Wx =  u8; }
+        impl AsWords for [  i16] { type Wx = u16; }
+        impl AsWords for [  i32] { type Wx = u32; }
+        impl AsWords for [  i64] { type Wx = u64; }
+        impl AsWords for [ i128] { type Wx = u64; }
         impl AsWords for [isize] { type Wx = u64; }
 
-        impl<const L: usize> AsWords for [u8; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [u16; L] { type Wx = u16; }
-        impl<const L: usize> AsWords for [u32; L] { type Wx = u32; }
-        impl<const L: usize> AsWords for [u64; L] { type Wx = u64; }
-        impl<const L: usize> AsWords for [u128; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [   u8; L] { type Wx =  u8; }
+        impl<const L: usize> AsWords for [  u16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [  u32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [  u64; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [ u128; L] { type Wx = u64; }
         impl<const L: usize> AsWords for [usize; L] { type Wx = u64; }
 
-        impl<const L: usize> AsWords for [i8; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [i16; L] { type Wx = u16; }
-        impl<const L: usize> AsWords for [i32; L] { type Wx = u32; }
-        impl<const L: usize> AsWords for [i64; L] { type Wx = u64; }
-        impl<const L: usize> AsWords for [i128; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [   i8; L] { type Wx =  u8; }
+        impl<const L: usize> AsWords for [  i16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [  i32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [  i64; L] { type Wx = u64; }
+        impl<const L: usize> AsWords for [ i128; L] { type Wx = u64; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u64; }
     });
 
@@ -274,46 +274,46 @@ pub mod word {
         word_impl!([u8, u16, u32, usize]);
         word_impl!(@ext [u64, u128]);
 
-        impl AsWords for u8 { type Wx = u8; }
-        impl AsWords for u16 { type Wx = u16; }
-        impl AsWords for u32 { type Wx = u32; }
-        impl AsWords for u64 { type Wx = u32; }
-        impl AsWords for u128 { type Wx = u32; }
+        impl AsWords for    u8 { type Wx =  u8; }
+        impl AsWords for   u16 { type Wx = u16; }
+        impl AsWords for   u32 { type Wx = u32; }
+        impl AsWords for   u64 { type Wx = u32; }
+        impl AsWords for  u128 { type Wx = u32; }
         impl AsWords for usize { type Wx = u32; }
 
-        impl AsWords for i8 { type Wx = u8; }
-        impl AsWords for i16 { type Wx = u16; }
-        impl AsWords for i32 { type Wx = u32; }
-        impl AsWords for i64 { type Wx = u32; }
-        impl AsWords for i128 { type Wx = u32; }
+        impl AsWords for    i8 { type Wx =  u8; }
+        impl AsWords for   i16 { type Wx = u16; }
+        impl AsWords for   i32 { type Wx = u32; }
+        impl AsWords for   i64 { type Wx = u32; }
+        impl AsWords for  i128 { type Wx = u32; }
         impl AsWords for isize { type Wx = u32; }
 
-        impl AsWords for [u8] { type Wx = u8; }
-        impl AsWords for [u16] { type Wx = u16; }
-        impl AsWords for [u32] { type Wx = u32; }
-        impl AsWords for [u64] { type Wx = u32; }
-        impl AsWords for [u128] { type Wx = u32; }
+        impl AsWords for [   u8] { type Wx =  u8; }
+        impl AsWords for [  u16] { type Wx = u16; }
+        impl AsWords for [  u32] { type Wx = u32; }
+        impl AsWords for [  u64] { type Wx = u32; }
+        impl AsWords for [ u128] { type Wx = u32; }
         impl AsWords for [usize] { type Wx = u32; }
 
-        impl AsWords for [i8] { type Wx = u8; }
-        impl AsWords for [i16] { type Wx = u16; }
-        impl AsWords for [i32] { type Wx = u32; }
-        impl AsWords for [i64] { type Wx = u32; }
-        impl AsWords for [i128] { type Wx = u32; }
+        impl AsWords for [   i8] { type Wx =  u8; }
+        impl AsWords for [  i16] { type Wx = u16; }
+        impl AsWords for [  i32] { type Wx = u32; }
+        impl AsWords for [  i64] { type Wx = u32; }
+        impl AsWords for [ i128] { type Wx = u32; }
         impl AsWords for [isize] { type Wx = u32; }
 
-        impl<const L: usize> AsWords for [u8; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [u16; L] { type Wx = u16; }
-        impl<const L: usize> AsWords for [u32; L] { type Wx = u32; }
-        impl<const L: usize> AsWords for [u64; L] { type Wx = u32; }
-        impl<const L: usize> AsWords for [u128; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [   u8; L] { type Wx =  u8; }
+        impl<const L: usize> AsWords for [  u16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [  u32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [  u64; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [ u128; L] { type Wx = u32; }
         impl<const L: usize> AsWords for [usize; L] { type Wx = u32; }
 
-        impl<const L: usize> AsWords for [i8; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [i16; L] { type Wx = u16; }
-        impl<const L: usize> AsWords for [i32; L] { type Wx = u32; }
-        impl<const L: usize> AsWords for [i64; L] { type Wx = u32; }
-        impl<const L: usize> AsWords for [i128; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [   i8; L] { type Wx =  u8; }
+        impl<const L: usize> AsWords for [  i16; L] { type Wx = u16; }
+        impl<const L: usize> AsWords for [  i32; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [  i64; L] { type Wx = u32; }
+        impl<const L: usize> AsWords for [ i128; L] { type Wx = u32; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u32; }
     });
 
@@ -323,46 +323,46 @@ pub mod word {
         word_impl!([u8]);
         word_impl!(@ext [u16, u32, u64, u128, usize]);
 
-        impl AsWords for u8 { type Wx = u8; }
-        impl AsWords for u16 { type Wx = u8; }
-        impl AsWords for u32 { type Wx = u8; }
-        impl AsWords for u64 { type Wx = u8; }
-        impl AsWords for u128 { type Wx = u8; }
+        impl AsWords for    u8 { type Wx = u8; }
+        impl AsWords for   u16 { type Wx = u8; }
+        impl AsWords for   u32 { type Wx = u8; }
+        impl AsWords for   u64 { type Wx = u8; }
+        impl AsWords for  u128 { type Wx = u8; }
         impl AsWords for usize { type Wx = u8; }
 
-        impl AsWords for i8 { type Wx = u8; }
-        impl AsWords for i16 { type Wx = u8; }
-        impl AsWords for i32 { type Wx = u8; }
-        impl AsWords for i64 { type Wx = u8; }
-        impl AsWords for i128 { type Wx = u8; }
+        impl AsWords for    i8 { type Wx = u8; }
+        impl AsWords for   i16 { type Wx = u8; }
+        impl AsWords for   i32 { type Wx = u8; }
+        impl AsWords for   i64 { type Wx = u8; }
+        impl AsWords for  i128 { type Wx = u8; }
         impl AsWords for isize { type Wx = u8; }
 
-        impl AsWords for [u8] { type Wx = u8; }
-        impl AsWords for [u16] { type Wx = u8; }
-        impl AsWords for [u32] { type Wx = u8; }
-        impl AsWords for [u64] { type Wx = u8; }
-        impl AsWords for [u128] { type Wx = u8; }
+        impl AsWords for [   u8] { type Wx = u8; }
+        impl AsWords for [  u16] { type Wx = u8; }
+        impl AsWords for [  u32] { type Wx = u8; }
+        impl AsWords for [  u64] { type Wx = u8; }
+        impl AsWords for [ u128] { type Wx = u8; }
         impl AsWords for [usize] { type Wx = u8; }
 
-        impl AsWords for [i8] { type Wx = u8; }
-        impl AsWords for [i16] { type Wx = u8; }
-        impl AsWords for [i32] { type Wx = u8; }
-        impl AsWords for [i64] { type Wx = u8; }
-        impl AsWords for [i128] { type Wx = u8; }
+        impl AsWords for [   i8] { type Wx = u8; }
+        impl AsWords for [  i16] { type Wx = u8; }
+        impl AsWords for [  i32] { type Wx = u8; }
+        impl AsWords for [  i64] { type Wx = u8; }
+        impl AsWords for [ i128] { type Wx = u8; }
         impl AsWords for [isize] { type Wx = u8; }
 
-        impl<const L: usize> AsWords for [u8; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [u16; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [u32; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [u64; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [u128; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [   u8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [  u16; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [  u32; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [  u64; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [ u128; L] { type Wx = u8; }
         impl<const L: usize> AsWords for [usize; L] { type Wx = u8; }
 
-        impl<const L: usize> AsWords for [i8; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [i16; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [i32; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [i64; L] { type Wx = u8; }
-        impl<const L: usize> AsWords for [i128; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [   i8; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [  i16; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [  i32; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [  i64; L] { type Wx = u8; }
+        impl<const L: usize> AsWords for [ i128; L] { type Wx = u8; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u8; }
     });
 
