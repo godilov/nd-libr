@@ -1240,25 +1240,31 @@ pub mod uops {
 
     /// Micro operations v1 - short length.
     ///
+    /// Approximate length: up to 1024-bits.
+    ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
     pub struct UopsV1;
 
     /// Micro operations v2 - medium length.
+    ///
+    /// Approximate length: up to 4096-bits.
     ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
     pub struct UopsV2;
 
     /// Micro operations v3 - long length.
     ///
+    /// Approximate length: up to 16384-bits.
+    ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
     pub struct UopsV3;
 
-    /// Micro operations v4 - extra length.
+    /// Micro operations vX - extra length.
     ///
     /// Trades latency for troughput.
     ///
     /// For more info, see [module-level](crate::long::uops) and [crate-level](crate) documentation.
-    pub struct UopsV4;
+    pub struct UopsVX;
 
     /// Micro operations.
     ///
