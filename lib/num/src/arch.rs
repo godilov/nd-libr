@@ -1852,17 +1852,17 @@ mod tests {
             ndassert::check! { (
                 val in ndassert::range!(u64, 48, 0),
             ) [
-                (val.encoded::<Bin>().zip(format!("{:b}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
-                (val.encoded::<Oct>().zip(format!("{:o}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
-                (val.encoded::<Hex>().zip(format!("{:X}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+                ndassert::iter!(val.encoded::<Bin>(), format!("{:b}", val).bytes().rev()),
+                ndassert::iter!(val.encoded::<Oct>(), format!("{:o}", val).bytes().rev()),
+                ndassert::iter!(val.encoded::<Hex>(), format!("{:X}", val).bytes().rev()),
             ] }
 
             ndassert::check! { (
                 val in ndassert::range!(u64, 48, 0),
             ) [
-                (Aligned(val).encoded::<Bin>().zip(format!("{:b}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
-                (Aligned(val).encoded::<Oct>().zip(format!("{:o}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
-                (Aligned(val).encoded::<Hex>().zip(format!("{:X}", val).bytes().rev()).fold(true, |acc, (lhs, rhs)| acc & (lhs == rhs))),
+                ndassert::iter!(Aligned(val).encoded::<Bin>(), format!("{:b}", val).bytes().rev()),
+                ndassert::iter!(Aligned(val).encoded::<Oct>(), format!("{:o}", val).bytes().rev()),
+                ndassert::iter!(Aligned(val).encoded::<Hex>(), format!("{:X}", val).bytes().rev()),
             ] }
         }
 
