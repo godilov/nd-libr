@@ -2,7 +2,7 @@
 
 use proc_macro::TokenStream as TokenStreamStd;
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::{ToTokens, format_ident, quote};
 use syn::{
     Error, Expr, Ident, LitInt, Result, Token, Type, bracketed, parenthesized,
     parse::{Parse, ParseStream},
@@ -213,6 +213,28 @@ pub fn range(stream: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Creates assertion iterator.
+///
+/// # Examples
+///
+/// ```rust
+/// // Add operations panics on first iteration with overflow, but catched with macro
+/// ndassert::check! { () [
+///     ndassert::iter!(0..16, 0..16),
+/// ] }
+/// ```
+///
+/// For more info, see [crate-level](crate) documentation.
+#[proc_macro]
+pub fn iter(stream: TokenStreamStd) -> TokenStreamStd {
+    let iter = parse_macro_input!(stream as AssertIter);
+
+    quote! {
+        #iter
+    }
+    .into()
+}
+
 /// Creates assertion catch.
 ///
 /// Allows catching panics for [`ndassert::check!`](check) check expressions.
@@ -329,6 +351,10 @@ struct AssertRange {
     prime: AssertPrime,
 }
 
+struct AssertIter {
+    elems: Punctuated<Expr, Token![,]>,
+}
+
 struct AssertCatch {
     elems: Punctuated<Expr, Token![,]>,
 }
@@ -440,6 +466,14 @@ impl Parse for AssertRange {
     }
 }
 
+impl Parse for AssertIter {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            elems: input.parse_terminated(Expr::parse, Token![,])?,
+        })
+    }
+}
+
 impl Parse for AssertCatch {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
@@ -530,6 +564,36 @@ impl ToTokens for AssertRange {
         let prime = &self.prime;
 
         tokens.extend(quote! { (<#ty>::MIN..=<#ty>::MAX).step_by(#prime as usize).chain([<#ty>::MAX]) });
+    }
+}
+
+impl ToTokens for AssertIter {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        if self.elems.is_empty() {
+            return;
+        }
+
+        let len = self.elems.len();
+        let first = &self.elems[0];
+
+        let expr = self
+            .elems
+            .iter()
+            .skip(1)
+            .fold(quote! { (#first) }, |acc, elem| quote! { #acc.zip(#elem) });
+
+        let elem = (1..len)
+            .map(|idx| format_ident!("arg{}", idx))
+            .fold(quote! { arg0 }, |acc, arg| quote! { (#acc, #arg) });
+
+        let check = (0..len - 1).map(|idx| {
+            let lhs = format_ident!("arg{}", idx);
+            let rhs = format_ident!("arg{}", idx + 1);
+
+            quote! { (#lhs == #rhs) }
+        });
+
+        tokens.extend(quote! { (#expr.fold(true, |acc, #elem| acc #(&& #check)*)) })
     }
 }
 
