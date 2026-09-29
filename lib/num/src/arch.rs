@@ -385,13 +385,13 @@ pub mod word {
     ///
     /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
     #[rustfmt::skip]
-    pub trait Word: Sized + Clone + Copy + From<u8>
+    pub trait Word: 'static + Sized + Clone + Copy + From<u8>
         + PartialEq + Eq
         + PartialOrd + Ord
         + Debug + Display + Binary + Octal + LowerHex + UpperHex
         + AsWordsRef + AsWordsMut
         + FromBytes + IntoBytes + Immutable
-        + BitOr<Self> + BitAnd<Self> + BitXor<Self>
+        + BitOr + BitAnd + BitXor
         + BitOrAssign + BitAndAssign + BitXorAssign
         + NdOps<All = Self> + NdOpsAssign
         + NdOpsRelaxed<All = Self> + NdOpsAssignRelaxed
@@ -513,7 +513,7 @@ pub mod word {
         fn as_words<W: Word>(&self) -> &[W];
 
         /// Word-extension primitive to iterator.
-        fn iter_words<'words, W: 'words + Word>(&'words  self, ext: W) -> impl Iterator<Item = W> {
+        fn iter_words<W: Word>(&self, ext: W) -> impl Iterator<Item = W> {
             let words = self.as_words::<W>();
 
             (0..).map(move |idx| match idx < words.len() {
