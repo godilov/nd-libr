@@ -1226,7 +1226,7 @@ pub enum Error {
 /// As words definitions.
 #[ndfwd::decl]
 pub trait AsWords {
-    /// Word limit;
+    /// Word limit.
     type Wx: Word;
 }
 
