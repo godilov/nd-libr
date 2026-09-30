@@ -1452,6 +1452,25 @@ pub mod uops {
         }
     }
 
+    impl<
+        Lhs: ExactSizeIterator<Item = Single>,
+        Rhs: ExactSizeIterator<Item = Single>,
+        Ctx: Copy,
+        CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
+    > ExactSizeIterator for ExprIter<Lhs, Rhs, Ctx, CtxFn>
+    {
+    }
+
+    impl<
+        'words,
+        Lhs: ExactSizeIterator<Item = &'words mut Single>,
+        Rhs: ExactSizeIterator<Item = Single>,
+        Ctx: Copy,
+        CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
+    > ExactSizeIterator for ExprIterMut<'words, Lhs, Rhs, Ctx, CtxFn>
+    {
+    }
+
     impl<Lhs, Rhs, Ctx, CtxFn> ExprCfg<Lhs, Rhs, Ctx, CtxFn> {
         /// Initialize expression (empty).
         #[inline]
@@ -1996,6 +2015,7 @@ pub mod uops {
         {
             let words = self.words.as_words_ref();
             let len = words.len();
+
             let dir = self.dir;
             let xor = match self.dir {
                 Dir::POS => 0,
@@ -2031,6 +2051,7 @@ pub mod uops {
         {
             let words = self.words.as_words_mut();
             let len = words.len();
+
             let dir = self.dir;
             let xor = match self.dir {
                 Dir::POS => 0,
