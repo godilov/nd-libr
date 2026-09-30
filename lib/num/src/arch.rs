@@ -139,12 +139,14 @@ macro_rules! word_impl {
         }
 
         impl AsWordRef for $primitive {
+            #[inline]
             fn as_word_ref(&self) -> &Self::Wx {
                 transmute_ref!(self)
             }
         }
 
         impl AsWordMut for $primitive {
+            #[inline]
             fn as_word_mut(&mut self) -> &mut Self::Wx {
                 transmute_mut!(self)
             }
@@ -675,18 +677,21 @@ pub mod word {
     }
 
     impl<Any: AsWordRef> AsWordRef for &Any {
+        #[inline]
         fn as_word_ref(&self) -> &Self::Wx {
             Any::as_word_ref(self)
         }
     }
 
     impl<Any: AsWordRef> AsWordRef for &mut Any {
+        #[inline]
         fn as_word_ref(&self) -> &Self::Wx {
             Any::as_word_ref(self)
         }
     }
 
     impl<Any: AsWordMut> AsWordMut for &mut Any {
+        #[inline]
         fn as_word_mut(&mut self) -> &mut Self::Wx {
             Any::as_word_mut(self)
         }
