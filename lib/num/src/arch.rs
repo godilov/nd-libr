@@ -366,6 +366,14 @@ pub mod word {
         impl<const L: usize> AsWords for [isize; L] { type Wx = u8; }
     });
 
+    /// Words error.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+    pub enum Error {
+        /// Found invalid entry.
+        #[error("Found invalid entry")]
+        InvalidEntry,
+    }
+
     /// Radix of CPU-word primitive.
     ///
     /// # Examples
@@ -520,6 +528,133 @@ pub mod word {
                 true => words[idx],
                 false => ext,
             })
+        }
+    }
+
+    /// As words definitions.
+    #[ndfwd::decl]
+    pub trait AsWords {
+        /// Word limit.
+        type Wx: Word;
+    }
+
+    /// As word (reference).
+    pub trait AsWordRef: AsWords {
+        /// As word (reference).
+        fn as_word_ref<W: Word>(&self) -> &W
+        where
+            Self::Wx: From<W>;
+    }
+
+    /// As word (mutable).
+    pub trait AsWordMut: AsWords {
+        /// As word (mutable).
+        fn as_word_mut<W: Word>(&mut self) -> &mut W
+        where
+            Self::Wx: From<W>;
+    }
+
+    /// As words slice (reference).
+    #[ndfwd::decl]
+    pub trait AsWordsRef: AsWords {
+        /// As ref-slice of words.
+        fn as_words_ref<W: Word>(&self) -> &[W]
+        where
+            Self::Wx: From<W>;
+
+        /// Reads from self in bits-len.
+        #[inline]
+        fn read<W: Word>(&self, bits: usize) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator
+        where
+            Self::Wx: From<W>,
+        {
+            let one = Relaxed(W::ONE);
+            let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
+
+            let mask = (one << bits) - one;
+
+            (0..len).map(move |idx| {
+                let offset = idx * bits;
+
+                let shl = offset % W::BITS;
+                let shr = W::BITS - shl;
+
+                let idxs = [offset / W::BITS, (offset + bits) / W::BITS];
+                let vals = [
+                    Relaxed(*self.as_words_ref().get(idxs[0]).unwrap_or(&W::ZERO)) & (mask << shl),
+                    Relaxed(*self.as_words_ref().get(idxs[1]).unwrap_or(&W::ZERO)) & (mask >> shr),
+                ];
+
+                (vals[0] >> shl | vals[1] << shr).0
+            })
+        }
+    }
+
+    /// As words slice (mutable).
+    #[ndfwd::decl]
+    pub trait AsWordsMut: AsWords + AsWordsRef {
+        /// As mut-slice of words.
+        fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+        where
+            Self::Wx: From<W>;
+
+        /// Writes into self in bits-len.
+        #[inline]
+        #[ndfwd::as_into]
+        fn write<W: Word>(mut self, bits: usize, iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator) -> Self
+        where
+            Self: Sized,
+            Self::Wx: From<W>,
+        {
+            let one = Relaxed(W::ONE);
+            let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
+
+            let mask = (one << bits) - one;
+
+            #[allow(clippy::option_map_unit_fn)]
+            for (idx, word) in iter.take(len).enumerate() {
+                let offset = idx * bits;
+
+                let shl = offset % W::BITS;
+                let shr = W::BITS - shl;
+
+                let idxs = [offset / W::BITS, (offset + bits) / W::BITS];
+                let vals = [
+                    (Relaxed(word) << shl) & (mask << shl),
+                    (Relaxed(word) >> shr) & (mask >> shr),
+                ];
+
+                self.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
+                self.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
+            }
+
+            self
+        }
+
+        /// Writes into self in bits-len (checked).
+        #[inline]
+        #[ndfwd::as_map(Self::from)]
+        fn try_write<W: Word>(
+            self,
+            bits: usize,
+            iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
+        ) -> Result<Self, Error>
+        where
+            Self: Sized,
+            Self::Wx: From<W>,
+        {
+            let mut flag = false;
+
+            let words = Self::write(
+                self,
+                bits,
+                iter.inspect(|&word| flag |= (Relaxed(W::ONE) << bits) <= Relaxed(word)),
+            );
+
+            match flag {
+                false => Ok(words),
+                true => Err(Error::InvalidEntry),
+            }
         }
     }
 }
@@ -1214,125 +1349,6 @@ pub struct AlignedX<T>(pub T);
 /// For more info, see [Aligned], [module-level](crate::arch) and [crate-level](crate) documentation.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Opaque<T>(pub T);
-
-/// Words error.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum Error {
-    /// Found invalid entry.
-    #[error("Found invalid entry")]
-    InvalidEntry,
-}
-
-/// As words definitions.
-#[ndfwd::decl]
-pub trait AsWords {
-    /// Word limit.
-    type Wx: Word;
-}
-
-/// As words slice (reference).
-#[ndfwd::decl]
-pub trait AsWordsRef: AsWords {
-    /// As ref-slice of words.
-    fn as_words_ref<W: Word>(&self) -> &[W]
-    where
-        Self::Wx: From<W>;
-
-    /// Reads from self in bits-len.
-    #[inline]
-    fn read<W: Word>(&self, bits: usize) -> impl ExactSizeIterator<Item = W> + DoubleEndedIterator
-    where
-        Self::Wx: From<W>,
-    {
-        let one = Relaxed(W::ONE);
-        let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
-
-        let mask = (one << bits) - one;
-
-        (0..len).map(move |idx| {
-            let offset = idx * bits;
-
-            let shl = offset % W::BITS;
-            let shr = W::BITS - shl;
-
-            let idxs = [offset / W::BITS, (offset + bits) / W::BITS];
-            let vals = [
-                Relaxed(*self.as_words_ref().get(idxs[0]).unwrap_or(&W::ZERO)) & (mask << shl),
-                Relaxed(*self.as_words_ref().get(idxs[1]).unwrap_or(&W::ZERO)) & (mask >> shr),
-            ];
-
-            (vals[0] >> shl | vals[1] << shr).0
-        })
-    }
-}
-
-/// As words slice (mutable).
-#[ndfwd::decl]
-pub trait AsWordsMut: AsWords + AsWordsRef {
-    /// As mut-slice of words.
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
-    where
-        Self::Wx: From<W>;
-
-    /// Writes into self in bits-len.
-    #[inline]
-    #[ndfwd::as_into]
-    fn write<W: Word>(mut self, bits: usize, iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator) -> Self
-    where
-        Self: Sized,
-        Self::Wx: From<W>,
-    {
-        let one = Relaxed(W::ONE);
-        let len = Encoded::len::<W>(self.as_words_ref().len(), bits);
-
-        let mask = (one << bits) - one;
-
-        #[allow(clippy::option_map_unit_fn)]
-        for (idx, word) in iter.take(len).enumerate() {
-            let offset = idx * bits;
-
-            let shl = offset % W::BITS;
-            let shr = W::BITS - shl;
-
-            let idxs = [offset / W::BITS, (offset + bits) / W::BITS];
-            let vals = [
-                (Relaxed(word) << shl) & (mask << shl),
-                (Relaxed(word) >> shr) & (mask >> shr),
-            ];
-
-            self.as_words_mut().get_mut(idxs[0]).map(|word| *word |= vals[0].0);
-            self.as_words_mut().get_mut(idxs[1]).map(|word| *word |= vals[1].0);
-        }
-
-        self
-    }
-
-    /// Writes into self in bits-len (checked).
-    #[inline]
-    #[ndfwd::as_map(Self::from)]
-    fn try_write<W: Word>(
-        self,
-        bits: usize,
-        iter: impl ExactSizeIterator<Item = W> + DoubleEndedIterator,
-    ) -> Result<Self, Error>
-    where
-        Self: Sized,
-        Self::Wx: From<W>,
-    {
-        let mut flag = false;
-
-        let words = Self::write(
-            self,
-            bits,
-            iter.inspect(|&word| flag |= (Relaxed(W::ONE) << bits) <= Relaxed(word)),
-        );
-
-        match flag {
-            false => Ok(words),
-            true => Err(Error::InvalidEntry),
-        }
-    }
-}
 
 /// Random.
 #[ndfwd::decl]

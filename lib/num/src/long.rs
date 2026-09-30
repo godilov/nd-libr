@@ -21,9 +21,9 @@ use crate::{
     NdGcd, NdPow, NegxCt, Num, NumBinary, NumCt, NumExt, NumExtCt, NumFn, NumSigned, NumSignedCt, NumUnsigned,
     NumUnsignedCt, One, PosxCt, PowCt, RelCt, SelectCt, Sign, SignCt, Zero,
     arch::{
-        self, AsWords, AsWordsMut, AsWordsRef, Rand,
+        Rand,
         codec::{self, Codec, Decode, Encode},
-        word::*,
+        word::{self, *},
     },
     long::{
         radix::*,
@@ -5612,7 +5612,7 @@ impl<const L: usize> FromStr for Signed<L> {
             Radix::X64(_, str, _) => Self::default().try_decoded::<codec::X64>(str.bytes().rev()),
         }
         .map(|long| uops::dirv(&long.0, radix.dir()).with(Self))
-        .map_err(|_| Error::InvalidPayload)
+        .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5634,7 +5634,7 @@ impl<const L: usize> FromStr for Unsigned<L> {
             Radix::Hex(_, str, _) => Self::default().try_decoded::<codec::Hex>(str.bytes().rev()),
             Radix::X64(_, str, _) => Self::default().try_decoded::<codec::X64>(str.bytes().rev()),
         }
-        .map_err(|_| Error::InvalidPayload)
+        .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5646,13 +5646,13 @@ impl<const L: usize> FromStr for Bytes<L> {
         let radix = Radix::try_from((str, &[][..]))?;
 
         match radix {
-            Radix::Dec(_, _, _) => Err(arch::Error::InvalidEntry),
+            Radix::Dec(_, _, _) => Err(word::Error::InvalidEntry),
             Radix::Bin(_, str, _) => Self::default().try_decoded::<codec::Bin>(str.bytes().rev()),
             Radix::Oct(_, str, _) => Self::default().try_decoded::<codec::Oct>(str.bytes().rev()),
             Radix::Hex(_, str, _) => Self::default().try_decoded::<codec::Hex>(str.bytes().rev()),
             Radix::X64(_, str, _) => Self::default().try_decoded::<codec::X64>(str.bytes().rev()),
         }
-        .map_err(|_| Error::InvalidPayload)
+        .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5662,7 +5662,7 @@ impl<const L: usize> NdFromStr<Dec> for Signed<L> {
     #[inline]
     fn nd_from_str(str: &str, _: Dec) -> Result<Self, Self::Err> {
         let (str, dir) = match &str[..1] {
-            "" => Err(Error::InvalidString),
+            "" => Err(radix::Error::InvalidString),
             "+" => Ok((&str[1..], Dir::POS)),
             "-" => Ok((&str[1..], Dir::NEG)),
             _ => Ok((str, Dir::POS)),
@@ -5691,7 +5691,7 @@ impl<const L: usize> NdFromStr<Bin> for Signed<L> {
 
         Self::default()
             .try_decoded::<codec::Bin>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5704,7 +5704,7 @@ impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
 
         Self::default()
             .try_decoded::<codec::Bin>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5717,7 +5717,7 @@ impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
 
         Self::default()
             .try_decoded::<codec::Bin>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5730,7 +5730,7 @@ impl<const L: usize> NdFromStr<Oct> for Signed<L> {
 
         Self::default()
             .try_decoded::<codec::Oct>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5743,7 +5743,7 @@ impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
 
         Self::default()
             .try_decoded::<codec::Oct>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5756,7 +5756,7 @@ impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
 
         Self::default()
             .try_decoded::<codec::Oct>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5769,7 +5769,7 @@ impl<const L: usize> NdFromStr<Hex> for Signed<L> {
 
         Self::default()
             .try_decoded::<codec::Hex>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5782,7 +5782,7 @@ impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
 
         Self::default()
             .try_decoded::<codec::Hex>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
@@ -5795,7 +5795,7 @@ impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
 
         Self::default()
             .try_decoded::<codec::Hex>(str.bytes().rev())
-            .map_err(|_| Error::InvalidPayload)
+            .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
