@@ -922,6 +922,28 @@ pub mod uops {
 
     use super::*;
 
+    /// Expression configuration.
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct ExprCfg<Lhs, Rhs, Ctx, CtxFn> {
+        /// Lhs.
+        pub lhs: Lhs,
+
+        /// Rhs.
+        pub rhs: Rhs,
+
+        /// Multiplier.
+        pub mul: Single,
+
+        /// Accumulator.
+        pub acc: Single,
+
+        /// Context.
+        pub ctx: Ctx,
+
+        /// Context function.
+        pub ctx_func: CtxFn,
+    }
+
     /// Expression iterator for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
@@ -1427,6 +1449,133 @@ pub mod uops {
             let rhs = self.lhs.size_hint();
 
             (lhs.0.min(rhs.0), lhs.1.and_then(|l| rhs.1.map(|r| l.min(r))))
+        }
+    }
+
+    impl<Lhs, Rhs, Ctx, CtxFn> ExprCfg<Lhs, Rhs, Ctx, CtxFn> {
+        /// Initialize expression (empty).
+        #[inline]
+        pub fn init() -> ExprCfg<
+            std::iter::Repeat<Single>,
+            std::iter::Repeat<Single>,
+            impl Copy,
+            impl Copy + Fn(Single, Single, Single, Single, ()),
+        > {
+            ExprCfg {
+                lhs: std::iter::repeat(0),
+                rhs: std::iter::repeat(0),
+                mul: 1,
+                acc: 0,
+                ctx: (),
+                ctx_func: id_ctx,
+            }
+        }
+
+        /// Initialize with Lhs argument.
+        #[inline]
+        pub fn with_lhs<LhsNext>(self, lhs: LhsNext) -> ExprCfg<LhsNext, Rhs, Ctx, CtxFn> {
+            ExprCfg {
+                lhs,
+                rhs: self.rhs,
+                mul: self.mul,
+                acc: self.acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
+        }
+
+        /// Initialize with Rhs argument.
+        #[inline]
+        pub fn with_rhs<RhsNext>(self, rhs: RhsNext) -> ExprCfg<Lhs, RhsNext, Ctx, CtxFn> {
+            ExprCfg {
+                lhs: self.lhs,
+                rhs,
+                mul: self.mul,
+                acc: self.acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
+        }
+
+        /// Initialize with Mul argument.
+        #[inline]
+        pub fn with_mul(self, mul: Single) -> Self {
+            ExprCfg {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                mul,
+                acc: self.acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
+        }
+
+        /// Initialize with Acc argument.
+        #[inline]
+        pub fn with_acc(self, acc: Single) -> Self {
+            ExprCfg {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                mul: self.mul,
+                acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
+        }
+
+        /// Initialize with Ctx argument.
+        #[inline]
+        pub fn with_ctx<CtxNext, CtxFnNext>(
+            self,
+            ctx: CtxNext,
+            ctx_func: CtxFnNext,
+        ) -> ExprCfg<Lhs, Rhs, CtxNext, CtxFnNext> {
+            ExprCfg {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                mul: self.mul,
+                acc: self.acc,
+                ctx,
+                ctx_func,
+            }
+        }
+
+        /// Initialize as expression iterator.
+        #[inline]
+        pub fn expr(self) -> ExprIter<Lhs, Rhs, Ctx, CtxFn>
+        where
+            Lhs: Iterator<Item = Single>,
+            Rhs: Iterator<Item = Single>,
+            Ctx: Copy,
+            CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
+        {
+            ExprIter {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                mul: self.mul,
+                acc: self.acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
+        }
+
+        /// Initialize as expression iterator (mutable).
+        #[inline]
+        pub fn expr_mut<'words>(self) -> ExprIterMut<'words, Lhs, Rhs, Ctx, CtxFn>
+        where
+            Lhs: Iterator<Item = &'words mut Single>,
+            Rhs: Iterator<Item = Single>,
+            Ctx: Copy,
+            CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
+        {
+            ExprIterMut {
+                lhs: self.lhs,
+                rhs: self.rhs,
+                mul: self.mul,
+                acc: self.acc,
+                ctx: self.ctx,
+                ctx_func: self.ctx_func,
+            }
         }
     }
 
