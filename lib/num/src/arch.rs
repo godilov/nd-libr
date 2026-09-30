@@ -137,6 +137,18 @@ macro_rules! word_impl {
                 (self & (self - 1) == 0) && self != 0
             }
         }
+
+        impl AsWordRef for $primitive {
+            fn as_word_ref(&self) -> &Self::Wx {
+                transmute_ref!(self)
+            }
+        }
+
+        impl AsWordMut for $primitive {
+            fn as_word_mut(&mut self) -> &mut Self::Wx {
+                transmute_mut!(self)
+            }
+        }
     };
     (@ext $primitive:ty $(,)?) => {
         impl WordExt for $primitive {
@@ -541,17 +553,13 @@ pub mod word {
     /// As word (reference).
     pub trait AsWordRef: AsWords {
         /// As word (reference).
-        fn as_word_ref<W: Word>(&self) -> &W
-        where
-            Self::Wx: From<W>;
+        fn as_word_ref(&self) -> &Self::Wx;
     }
 
     /// As word (mutable).
     pub trait AsWordMut: AsWords {
         /// As word (mutable).
-        fn as_word_mut<W: Word>(&mut self) -> &mut W
-        where
-            Self::Wx: From<W>;
+        fn as_word_mut(&mut self) -> &mut Self::Wx;
     }
 
     /// As words slice (reference).
@@ -655,6 +663,62 @@ pub mod word {
                 false => Ok(words),
                 true => Err(Error::InvalidEntry),
             }
+        }
+    }
+
+    impl<Any: AsWords> AsWords for &Any {
+        type Wx = Any::Wx;
+    }
+
+    impl<Any: AsWords> AsWords for &mut Any {
+        type Wx = Any::Wx;
+    }
+
+    impl<Any: AsWordRef> AsWordRef for &Any {
+        fn as_word_ref(&self) -> &Self::Wx {
+            Any::as_word_ref(self)
+        }
+    }
+
+    impl<Any: AsWordRef> AsWordRef for &mut Any {
+        fn as_word_ref(&self) -> &Self::Wx {
+            Any::as_word_ref(self)
+        }
+    }
+
+    impl<Any: AsWordMut> AsWordMut for &mut Any {
+        fn as_word_mut(&mut self) -> &mut Self::Wx {
+            Any::as_word_mut(self)
+        }
+    }
+
+    impl<Any: AsWordsRef> AsWordsRef for &Any {
+        #[inline]
+        fn as_words_ref<W: Word>(&self) -> &[W]
+        where
+            Self::Wx: From<W>,
+        {
+            Any::as_words_ref(self)
+        }
+    }
+
+    impl<Any: AsWordsRef> AsWordsRef for &mut Any {
+        #[inline]
+        fn as_words_ref<W: Word>(&self) -> &[W]
+        where
+            Self::Wx: From<W>,
+        {
+            Any::as_words_ref(self)
+        }
+    }
+
+    impl<Any: AsWordsMut> AsWordsMut for &mut Any {
+        #[inline]
+        fn as_words_mut<W: Word>(&mut self) -> &mut [W]
+        where
+            Self::Wx: From<W>,
+        {
+            Any::as_words_mut(self)
         }
     }
 }
@@ -1475,44 +1539,6 @@ impl<U, V: NdxFrom<U, ()>> NdxFrom<U, ()> for AlignedX<V> {
     #[inline]
     fn ndx_from(value: U, _: ()) -> Self {
         Self(V::ndx_from(value, ()))
-    }
-}
-
-impl<Any: AsWords> AsWords for &Any {
-    type Wx = Any::Wx;
-}
-
-impl<Any: AsWords> AsWords for &mut Any {
-    type Wx = Any::Wx;
-}
-
-impl<Any: AsWordsRef> AsWordsRef for &Any {
-    #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W]
-    where
-        Self::Wx: From<W>,
-    {
-        Any::as_words_ref(self)
-    }
-}
-
-impl<Any: AsWordsRef> AsWordsRef for &mut Any {
-    #[inline]
-    fn as_words_ref<W: Word>(&self) -> &[W]
-    where
-        Self::Wx: From<W>,
-    {
-        Any::as_words_ref(self)
-    }
-}
-
-impl<Any: AsWordsMut> AsWordsMut for &mut Any {
-    #[inline]
-    fn as_words_mut<W: Word>(&mut self) -> &mut [W]
-    where
-        Self::Wx: From<W>,
-    {
-        Any::as_words_mut(self)
     }
 }
 
