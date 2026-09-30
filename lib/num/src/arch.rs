@@ -668,36 +668,36 @@ pub mod word {
         }
     }
 
-    impl<Any: AsWords> AsWords for &Any {
+    impl<Any: ?Sized + AsWords> AsWords for &Any {
         type Wx = Any::Wx;
     }
 
-    impl<Any: AsWords> AsWords for &mut Any {
+    impl<Any: ?Sized + AsWords> AsWords for &mut Any {
         type Wx = Any::Wx;
     }
 
-    impl<Any: AsWordRef> AsWordRef for &Any {
+    impl<Any: ?Sized + AsWordRef> AsWordRef for &Any {
         #[inline]
         fn as_word_ref(&self) -> &Self::Wx {
             Any::as_word_ref(self)
         }
     }
 
-    impl<Any: AsWordRef> AsWordRef for &mut Any {
+    impl<Any: ?Sized + AsWordRef> AsWordRef for &mut Any {
         #[inline]
         fn as_word_ref(&self) -> &Self::Wx {
             Any::as_word_ref(self)
         }
     }
 
-    impl<Any: AsWordMut> AsWordMut for &mut Any {
+    impl<Any: ?Sized + AsWordMut> AsWordMut for &mut Any {
         #[inline]
         fn as_word_mut(&mut self) -> &mut Self::Wx {
             Any::as_word_mut(self)
         }
     }
 
-    impl<Any: AsWordsRef> AsWordsRef for &Any {
+    impl<Any: ?Sized + AsWordsRef> AsWordsRef for &Any {
         #[inline]
         fn as_words_ref<W: Word>(&self) -> &[W]
         where
@@ -707,7 +707,7 @@ pub mod word {
         }
     }
 
-    impl<Any: AsWordsRef> AsWordsRef for &mut Any {
+    impl<Any: ?Sized + AsWordsRef> AsWordsRef for &mut Any {
         #[inline]
         fn as_words_ref<W: Word>(&self) -> &[W]
         where
@@ -717,7 +717,7 @@ pub mod word {
         }
     }
 
-    impl<Any: AsWordsMut> AsWordsMut for &mut Any {
+    impl<Any: ?Sized + AsWordsMut> AsWordsMut for &mut Any {
         #[inline]
         fn as_words_mut<W: Word>(&mut self) -> &mut [W]
         where
@@ -1000,10 +1000,6 @@ pub mod codec {
 
         const PREFIX: &'static str = "";
     }
-
-    impl<Any: Encode> Encode for &Any {}
-
-    impl<Any: Decode> Decode for &mut Any {}
 
     /// Writes ASCII iterator into Formatter.
     #[inline]
