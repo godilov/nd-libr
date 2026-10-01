@@ -4864,22 +4864,6 @@ pub mod radix {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Dec;
 
-    /// Bin radix.
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-    pub struct Bin;
-
-    /// Oct radix.
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-    pub struct Oct;
-
-    /// Hex radix.
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-    pub struct Hex;
-
-    /// X64 radix.
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-    pub struct X64;
-
     /// Radix.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Radix<'str> {
@@ -5703,119 +5687,41 @@ impl<const L: usize> NdFromStr<Dec> for Unsigned<L> {
     }
 }
 
-impl<const L: usize> NdFromStr<Bin> for Signed<L> {
+impl<const L: usize, C: Codec> NdFromStr<C> for Signed<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0b").trim_start_matches("0B");
+    fn nd_from_str(str: &str, _: C) -> Result<Self, Self::Err> {
+        let payload = C::payload(str.as_bytes());
 
         Self::default()
-            .try_decoded::<codec::Bin>(str.bytes().rev())
+            .try_decoded::<C>(payload.iter().copied().rev())
             .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
-impl<const L: usize> NdFromStr<Bin> for Unsigned<L> {
+impl<const L: usize, C: Codec> NdFromStr<C> for Unsigned<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0b").trim_start_matches("0B");
+    fn nd_from_str(str: &str, _: C) -> Result<Self, Self::Err> {
+        let payload = C::payload(str.as_bytes());
 
         Self::default()
-            .try_decoded::<codec::Bin>(str.bytes().rev())
+            .try_decoded::<C>(payload.iter().copied().rev())
             .map_err(|_| radix::Error::InvalidPayload)
     }
 }
 
-impl<const L: usize> NdFromStr<Bin> for Bytes<L> {
+impl<const L: usize, C: Codec> NdFromStr<C> for Bytes<L> {
     type Err = radix::Error;
 
     #[inline]
-    fn nd_from_str(str: &str, _: Bin) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0b").trim_start_matches("0B");
+    fn nd_from_str(str: &str, _: C) -> Result<Self, Self::Err> {
+        let payload = C::payload(str.as_bytes());
 
         Self::default()
-            .try_decoded::<codec::Bin>(str.bytes().rev())
-            .map_err(|_| radix::Error::InvalidPayload)
-    }
-}
-
-impl<const L: usize> NdFromStr<Oct> for Signed<L> {
-    type Err = radix::Error;
-
-    #[inline]
-    fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0o").trim_start_matches("0O");
-
-        Self::default()
-            .try_decoded::<codec::Oct>(str.bytes().rev())
-            .map_err(|_| radix::Error::InvalidPayload)
-    }
-}
-
-impl<const L: usize> NdFromStr<Oct> for Unsigned<L> {
-    type Err = radix::Error;
-
-    #[inline]
-    fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0o").trim_start_matches("0O");
-
-        Self::default()
-            .try_decoded::<codec::Oct>(str.bytes().rev())
-            .map_err(|_| radix::Error::InvalidPayload)
-    }
-}
-
-impl<const L: usize> NdFromStr<Oct> for Bytes<L> {
-    type Err = radix::Error;
-
-    #[inline]
-    fn nd_from_str(str: &str, _: Oct) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0o").trim_start_matches("0O");
-
-        Self::default()
-            .try_decoded::<codec::Oct>(str.bytes().rev())
-            .map_err(|_| radix::Error::InvalidPayload)
-    }
-}
-
-impl<const L: usize> NdFromStr<Hex> for Signed<L> {
-    type Err = radix::Error;
-
-    #[inline]
-    fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0x").trim_start_matches("0X");
-
-        Self::default()
-            .try_decoded::<codec::Hex>(str.bytes().rev())
-            .map_err(|_| radix::Error::InvalidPayload)
-    }
-}
-
-impl<const L: usize> NdFromStr<Hex> for Unsigned<L> {
-    type Err = radix::Error;
-
-    #[inline]
-    fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0x").trim_start_matches("0X");
-
-        Self::default()
-            .try_decoded::<codec::Hex>(str.bytes().rev())
-            .map_err(|_| radix::Error::InvalidPayload)
-    }
-}
-
-impl<const L: usize> NdFromStr<Hex> for Bytes<L> {
-    type Err = radix::Error;
-
-    #[inline]
-    fn nd_from_str(str: &str, _: Hex) -> Result<Self, Self::Err> {
-        let str = str.trim_start_matches("0x").trim_start_matches("0X");
-
-        Self::default()
-            .try_decoded::<codec::Hex>(str.bytes().rev())
+            .try_decoded::<C>(payload.iter().copied().rev())
             .map_err(|_| radix::Error::InvalidPayload)
     }
 }
@@ -5976,7 +5882,7 @@ impl<const L: usize> Display for Bytes<L> {
             fmt,
             self.encoded::<codec::Hex>(),
             self.encoded::<codec::Hex>(),
-            codec::Hex::PREFIX,
+            codec::Hex::PREFIX[0],
         )
     }
 }
@@ -5988,7 +5894,7 @@ impl<const L: usize> Binary for Signed<L> {
             fmt,
             self.encoded::<codec::Bin>(),
             self.encoded::<codec::Bin>(),
-            codec::Bin::PREFIX,
+            codec::Bin::PREFIX[0],
         )
     }
 }
@@ -6000,7 +5906,7 @@ impl<const L: usize> Binary for Unsigned<L> {
             fmt,
             self.encoded::<codec::Bin>(),
             self.encoded::<codec::Bin>(),
-            codec::Bin::PREFIX,
+            codec::Bin::PREFIX[0],
         )
     }
 }
@@ -6012,7 +5918,7 @@ impl<const L: usize> Binary for Bytes<L> {
             fmt,
             self.encoded::<codec::Bin>(),
             self.encoded::<codec::Bin>(),
-            codec::Bin::PREFIX,
+            codec::Bin::PREFIX[0],
         )
     }
 }
@@ -6024,7 +5930,7 @@ impl<const L: usize> Octal for Signed<L> {
             fmt,
             self.encoded::<codec::Oct>(),
             self.encoded::<codec::Oct>(),
-            codec::Oct::PREFIX,
+            codec::Oct::PREFIX[0],
         )
     }
 }
@@ -6036,7 +5942,7 @@ impl<const L: usize> Octal for Unsigned<L> {
             fmt,
             self.encoded::<codec::Oct>(),
             self.encoded::<codec::Oct>(),
-            codec::Oct::PREFIX,
+            codec::Oct::PREFIX[0],
         )
     }
 }
@@ -6048,7 +5954,7 @@ impl<const L: usize> Octal for Bytes<L> {
             fmt,
             self.encoded::<codec::Oct>(),
             self.encoded::<codec::Oct>(),
-            codec::Oct::PREFIX,
+            codec::Oct::PREFIX[0],
         )
     }
 }
@@ -6060,7 +5966,7 @@ impl<const L: usize> LowerHex for Signed<L> {
             fmt,
             self.encoded::<codec::Hex>().ascii_lowercase(),
             self.encoded::<codec::Hex>().ascii_lowercase(),
-            codec::Hex::PREFIX,
+            codec::Hex::PREFIX[0],
         )
     }
 }
@@ -6072,7 +5978,7 @@ impl<const L: usize> LowerHex for Unsigned<L> {
             fmt,
             self.encoded::<codec::Hex>().ascii_lowercase(),
             self.encoded::<codec::Hex>().ascii_lowercase(),
-            codec::Hex::PREFIX,
+            codec::Hex::PREFIX[0],
         )
     }
 }
@@ -6084,7 +5990,7 @@ impl<const L: usize> LowerHex for Bytes<L> {
             fmt,
             self.encoded::<codec::Hex>().ascii_lowercase(),
             self.encoded::<codec::Hex>().ascii_lowercase(),
-            codec::Hex::PREFIX,
+            codec::Hex::PREFIX[0],
         )
     }
 }
@@ -6096,7 +6002,7 @@ impl<const L: usize> UpperHex for Signed<L> {
             fmt,
             self.encoded::<codec::Hex>(),
             self.encoded::<codec::Hex>(),
-            codec::Hex::PREFIX,
+            codec::Hex::PREFIX[0],
         )
     }
 }
@@ -6108,7 +6014,7 @@ impl<const L: usize> UpperHex for Unsigned<L> {
             fmt,
             self.encoded::<codec::Hex>(),
             self.encoded::<codec::Hex>(),
-            codec::Hex::PREFIX,
+            codec::Hex::PREFIX[0],
         )
     }
 }
@@ -6120,7 +6026,7 @@ impl<const L: usize> UpperHex for Bytes<L> {
             fmt,
             self.encoded::<codec::Hex>(),
             self.encoded::<codec::Hex>(),
-            codec::Hex::PREFIX,
+            codec::Hex::PREFIX[0],
         )
     }
 }
@@ -7588,9 +7494,12 @@ mod tests {
     mod str {
         use ndext::convert::NdFromStr;
 
-        use crate::long::{
-            alias::{S64, U64},
-            radix::{Bin, Dec, Hex, Oct},
+        use crate::{
+            arch::codec::{Bin, Hex, Oct},
+            long::{
+                alias::{S64, U64},
+                radix::Dec,
+            },
         };
 
         #[test]

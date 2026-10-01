@@ -779,10 +779,13 @@ pub mod codec {
         const DECODE: Aligned<[u8; 256]>;
 
         /// Codec prefix.
-        const PREFIX: &'static str;
+        const PREFIX: &'static [&'static str];
 
         /// Checks `Self::LEN`.
         const _CHECK: () = assert!(Self::BITS <= u8::BITS as usize);
+
+        /// Payload.
+        fn payload(bytes: &[u8]) -> &[u8];
     }
 
     /// Encode functions.
@@ -868,7 +871,17 @@ pub mod codec {
             (b'0' as usize, 0), (b'1' as usize, 1),
         ]);
 
-        const PREFIX: &'static str = "0b";
+        const PREFIX: &[&str] = &["0b", "0B"];
+
+        #[inline]
+        fn payload(bytes: &[u8]) -> &[u8] {
+            match bytes {
+                [] => bytes,
+                [_] => bytes,
+                [b'0', b'b' | b'B', bytes @ ..] => bytes,
+                bytes => bytes,
+            }
+        }
     }
 
     #[rustfmt::skip]
@@ -889,7 +902,17 @@ pub mod codec {
             (b'6' as usize, 6), (b'7' as usize, 7),
         ]);
 
-        const PREFIX: &'static str = "0o";
+        const PREFIX: &[&str] = &["0o", "0O"];
+
+        #[inline]
+        fn payload(bytes: &[u8]) -> &[u8] {
+            match bytes {
+                [] => bytes,
+                [_] => bytes,
+                [b'0', b'o' | b'O', bytes @ ..] => bytes,
+                bytes => bytes,
+            }
+        }
     }
 
     #[rustfmt::skip]
@@ -921,7 +944,17 @@ pub mod codec {
             (b'e' as usize, 14), (b'f' as usize, 15),
         ]);
 
-        const PREFIX: &'static str = "0x";
+        const PREFIX: &[&str] = &["0x", "0X"];
+
+        #[inline]
+        fn payload(bytes: &[u8]) -> &[u8] {
+            match bytes {
+                [] => bytes,
+                [_] => bytes,
+                [b'0', b'x' | b'X', bytes @ ..] => bytes,
+                bytes => bytes,
+            }
+        }
     }
 
     #[rustfmt::skip]
@@ -998,7 +1031,12 @@ pub mod codec {
             (b'-' as usize, 62), (b'_' as usize, 63),
         ]);
 
-        const PREFIX: &'static str = "";
+        const PREFIX: &[&str] = &[];
+
+        #[inline]
+        fn payload(bytes: &[u8]) -> &[u8] {
+            bytes
+        }
     }
 
     impl<Any: ?Sized + Encode> Encode for &Any {}
