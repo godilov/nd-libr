@@ -1001,6 +1001,10 @@ pub mod codec {
         const PREFIX: &'static str = "";
     }
 
+    impl<Any: ?Sized + Encode> Encode for &Any {}
+    impl<Any: ?Sized + Encode> Encode for &mut Any {}
+    impl<Any: ?Sized + Decode> Decode for &mut Any {}
+
     /// Writes ASCII iterator into Formatter.
     #[inline]
     pub fn write<Ascii: ExactSizeIterator<Item = u8>>(fmt: &mut Formatter<'_>, mut ascii: Ascii) -> std::fmt::Result {
