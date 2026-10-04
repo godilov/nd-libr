@@ -922,28 +922,6 @@ pub mod uops {
 
     use super::*;
 
-    /// Expression configuration.
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct ExprCfg<Lhs, Rhs, Ctx, CtxFn> {
-        /// Lhs.
-        pub lhs: Lhs,
-
-        /// Rhs.
-        pub rhs: Rhs,
-
-        /// Multiplier.
-        pub mul: Single,
-
-        /// Accumulator.
-        pub acc: Single,
-
-        /// Context.
-        pub ctx: Ctx,
-
-        /// Context function.
-        pub ctx_func: CtxFn,
-    }
-
     /// Expression iterator for uops.
     ///
     /// Yields `lhs * mul + rhs + acc`.
@@ -1469,133 +1447,6 @@ pub mod uops {
         CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
     > ExactSizeIterator for ExprIterMut<'words, Lhs, Rhs, Ctx, CtxFn>
     {
-    }
-
-    impl<Lhs, Rhs, Ctx, CtxFn> ExprCfg<Lhs, Rhs, Ctx, CtxFn> {
-        /// Initialize expression (empty).
-        #[inline]
-        pub fn init() -> ExprCfg<
-            std::iter::Repeat<Single>,
-            std::iter::Repeat<Single>,
-            impl Copy,
-            impl Copy + Fn(Single, Single, Single, Single, ()),
-        > {
-            ExprCfg {
-                lhs: std::iter::repeat(0),
-                rhs: std::iter::repeat(0),
-                mul: 1,
-                acc: 0,
-                ctx: (),
-                ctx_func: id_ctx,
-            }
-        }
-
-        /// Initialize with Lhs argument.
-        #[inline]
-        pub fn with_lhs<LhsNext>(self, lhs: LhsNext) -> ExprCfg<LhsNext, Rhs, Ctx, CtxFn> {
-            ExprCfg {
-                lhs,
-                rhs: self.rhs,
-                mul: self.mul,
-                acc: self.acc,
-                ctx: self.ctx,
-                ctx_func: self.ctx_func,
-            }
-        }
-
-        /// Initialize with Rhs argument.
-        #[inline]
-        pub fn with_rhs<RhsNext>(self, rhs: RhsNext) -> ExprCfg<Lhs, RhsNext, Ctx, CtxFn> {
-            ExprCfg {
-                lhs: self.lhs,
-                rhs,
-                mul: self.mul,
-                acc: self.acc,
-                ctx: self.ctx,
-                ctx_func: self.ctx_func,
-            }
-        }
-
-        /// Initialize with Mul argument.
-        #[inline]
-        pub fn with_mul(self, mul: Single) -> Self {
-            ExprCfg {
-                lhs: self.lhs,
-                rhs: self.rhs,
-                mul,
-                acc: self.acc,
-                ctx: self.ctx,
-                ctx_func: self.ctx_func,
-            }
-        }
-
-        /// Initialize with Acc argument.
-        #[inline]
-        pub fn with_acc(self, acc: Single) -> Self {
-            ExprCfg {
-                lhs: self.lhs,
-                rhs: self.rhs,
-                mul: self.mul,
-                acc,
-                ctx: self.ctx,
-                ctx_func: self.ctx_func,
-            }
-        }
-
-        /// Initialize with Ctx argument.
-        #[inline]
-        pub fn with_ctx<CtxNext, CtxFnNext>(
-            self,
-            ctx: CtxNext,
-            ctx_func: CtxFnNext,
-        ) -> ExprCfg<Lhs, Rhs, CtxNext, CtxFnNext> {
-            ExprCfg {
-                lhs: self.lhs,
-                rhs: self.rhs,
-                mul: self.mul,
-                acc: self.acc,
-                ctx,
-                ctx_func,
-            }
-        }
-
-        /// Initialize as expression iterator.
-        #[inline]
-        pub fn expr(self) -> ExprIter<Lhs, Rhs, Ctx, CtxFn>
-        where
-            Lhs: Iterator<Item = Single>,
-            Rhs: Iterator<Item = Single>,
-            Ctx: Copy,
-            CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
-        {
-            ExprIter {
-                lhs: self.lhs,
-                rhs: self.rhs,
-                mul: self.mul,
-                acc: self.acc,
-                ctx: self.ctx,
-                ctx_func: self.ctx_func,
-            }
-        }
-
-        /// Initialize as expression iterator (mutable).
-        #[inline]
-        pub fn expr_mut<'words>(self) -> ExprIterMut<'words, Lhs, Rhs, Ctx, CtxFn>
-        where
-            Lhs: Iterator<Item = &'words mut Single>,
-            Rhs: Iterator<Item = Single>,
-            Ctx: Copy,
-            CtxFn: Copy + Fn(Single, Single, Single, Single, Ctx) -> Ctx,
-        {
-            ExprIterMut {
-                lhs: self.lhs,
-                rhs: self.rhs,
-                mul: self.mul,
-                acc: self.acc,
-                ctx: self.ctx,
-                ctx_func: self.ctx_func,
-            }
-        }
     }
 
     impl<
@@ -5271,22 +5122,6 @@ mod _impl {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Signed<const L: usize>(pub [Single; L]);
 
-/// Signed long represented with `[Word; L]` by immutable reference, where `Word` is unsigned CPU-word.
-///
-/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignedRef<'words, const L: usize>(pub &'words [Single; L]);
-
-/// Signed long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
-///
-/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, PartialEq, Eq)]
-pub struct SignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
-
 /// Unsigned long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
@@ -5295,22 +5130,6 @@ pub struct SignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Unsigned<const L: usize>(pub [Single; L]);
 
-/// Unsigned long represented with `[Word; L]` by immutable reference, where `Word` is unsigned CPU-word.
-///
-/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UnsignedRef<'words, const L: usize>(pub &'words [Single; L]);
-
-/// Unsigned long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
-///
-/// Implements all standard Rust traits and arithmetic/bitwise/shift operations of `Std-kind` and `Nd-kind`.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, PartialEq, Eq)]
-pub struct UnsignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
-
 /// Bytes long represented with `[Word; L]`, where `Word` is unsigned CPU-word.
 ///
 /// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
@@ -5318,22 +5137,6 @@ pub struct UnsignedMut<'words, const L: usize>(pub &'words mut [Single; L]);
 /// For more info, see [crate-level](crate) documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bytes<const L: usize>(pub [Single; L]);
-
-/// Bytes long represented with `[Word; L]` by immutable reference, where `Word` is unsigned CPU-word.
-///
-/// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BytesRef<'words, const L: usize>(pub &'words [Single; L]);
-
-/// Bytes long represented with `[Word; L]` by mutable reference, where `Word` is unsigned CPU-word.
-///
-/// Implements all standard Rust traits and bitwise/shift operations of `Std-kind` and `Nd-kind`.
-///
-/// For more info, see [crate-level](crate) documentation.
-#[derive(Debug, PartialEq, Eq)]
-pub struct BytesMut<'words, const L: usize>(pub &'words mut [Single; L]);
 
 /// Error type for failable conversions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
