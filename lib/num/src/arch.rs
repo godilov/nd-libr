@@ -253,6 +253,20 @@ pub mod word {
         impl AsWords for  i128 { type Wx = u64; }
         impl AsWords for isize { type Wx = u64; }
 
+        impl AsWordsLen for    u8 { const LEN: usize = 1; }
+        impl AsWordsLen for   u16 { const LEN: usize = 1; }
+        impl AsWordsLen for   u32 { const LEN: usize = 1; }
+        impl AsWordsLen for   u64 { const LEN: usize = 1; }
+        impl AsWordsLen for  u128 { const LEN: usize = 2; }
+        impl AsWordsLen for usize { const LEN: usize = 1; }
+
+        impl AsWordsLen for    i8 { const LEN: usize = 1; }
+        impl AsWordsLen for   i16 { const LEN: usize = 1; }
+        impl AsWordsLen for   i32 { const LEN: usize = 1; }
+        impl AsWordsLen for   i64 { const LEN: usize = 1; }
+        impl AsWordsLen for  i128 { const LEN: usize = 2; }
+        impl AsWordsLen for isize { const LEN: usize = 1; }
+
         impl AsWords for [   u8] { type Wx =  u8; }
         impl AsWords for [  u16] { type Wx = u16; }
         impl AsWords for [  u32] { type Wx = u32; }
@@ -280,6 +294,20 @@ pub mod word {
         impl<const L: usize> AsWords for [  i64; L] { type Wx = u64; }
         impl<const L: usize> AsWords for [ i128; L] { type Wx = u64; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u64; }
+
+        impl<const L: usize> AsWordsLen for [   u8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u64; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [ u128; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [usize; L] { const LEN: usize =     L; }
+
+        impl<const L: usize> AsWordsLen for [   i8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i64; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [ i128; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [isize; L] { const LEN: usize =     L; }
     });
 
     #[rustfmt::skip]
@@ -301,6 +329,20 @@ pub mod word {
         impl AsWords for   i64 { type Wx = u32; }
         impl AsWords for  i128 { type Wx = u32; }
         impl AsWords for isize { type Wx = u32; }
+
+        impl AsWordsLen for    u8 { const LEN: usize = 1; }
+        impl AsWordsLen for   u16 { const LEN: usize = 1; }
+        impl AsWordsLen for   u32 { const LEN: usize = 1; }
+        impl AsWordsLen for   u64 { const LEN: usize = 2; }
+        impl AsWordsLen for  u128 { const LEN: usize = 4; }
+        impl AsWordsLen for usize { const LEN: usize = 2; }
+
+        impl AsWordsLen for    i8 { const LEN: usize = 1; }
+        impl AsWordsLen for   i16 { const LEN: usize = 1; }
+        impl AsWordsLen for   i32 { const LEN: usize = 1; }
+        impl AsWordsLen for   i64 { const LEN: usize = 2; }
+        impl AsWordsLen for  i128 { const LEN: usize = 4; }
+        impl AsWordsLen for isize { const LEN: usize = 2; }
 
         impl AsWords for [   u8] { type Wx =  u8; }
         impl AsWords for [  u16] { type Wx = u16; }
@@ -329,6 +371,20 @@ pub mod word {
         impl<const L: usize> AsWords for [  i64; L] { type Wx = u32; }
         impl<const L: usize> AsWords for [ i128; L] { type Wx = u32; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u32; }
+
+        impl<const L: usize> AsWordsLen for [   u8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u64; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [ u128; L] { const LEN: usize = 4 * L; }
+        impl<const L: usize> AsWordsLen for [usize; L] { const LEN: usize = 2 * L; }
+
+        impl<const L: usize> AsWordsLen for [   i8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i64; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [ i128; L] { const LEN: usize = 4 * L; }
+        impl<const L: usize> AsWordsLen for [isize; L] { const LEN: usize = 2 * L; }
     });
 
     #[rustfmt::skip]
@@ -350,6 +406,20 @@ pub mod word {
         impl AsWords for   i64 { type Wx = u8; }
         impl AsWords for  i128 { type Wx = u8; }
         impl AsWords for isize { type Wx = u8; }
+
+        impl AsWordsLen for    u8 { const LEN: usize =  1; }
+        impl AsWordsLen for   u16 { const LEN: usize =  2; }
+        impl AsWordsLen for   u32 { const LEN: usize =  4; }
+        impl AsWordsLen for   u64 { const LEN: usize =  8; }
+        impl AsWordsLen for  u128 { const LEN: usize = 16; }
+        impl AsWordsLen for usize { const LEN: usize =  8; }
+
+        impl AsWordsLen for    i8 { const LEN: usize =  1; }
+        impl AsWordsLen for   i16 { const LEN: usize =  2; }
+        impl AsWordsLen for   i32 { const LEN: usize =  4; }
+        impl AsWordsLen for   i64 { const LEN: usize =  8; }
+        impl AsWordsLen for  i128 { const LEN: usize = 16; }
+        impl AsWordsLen for isize { const LEN: usize =  8; }
 
         impl AsWords for [   u8] { type Wx = u8; }
         impl AsWords for [  u16] { type Wx = u8; }
@@ -378,6 +448,20 @@ pub mod word {
         impl<const L: usize> AsWords for [  i64; L] { type Wx = u8; }
         impl<const L: usize> AsWords for [ i128; L] { type Wx = u8; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u8; }
+
+        impl<const L: usize> AsWordsLen for [   u8; L] { const LEN: usize =      L; }
+        impl<const L: usize> AsWordsLen for [  u16; L] { const LEN: usize =  2 * L; }
+        impl<const L: usize> AsWordsLen for [  u32; L] { const LEN: usize =  4 * L; }
+        impl<const L: usize> AsWordsLen for [  u64; L] { const LEN: usize =  8 * L; }
+        impl<const L: usize> AsWordsLen for [ u128; L] { const LEN: usize = 16 * L; }
+        impl<const L: usize> AsWordsLen for [usize; L] { const LEN: usize =  8 * L; }
+
+        impl<const L: usize> AsWordsLen for [   i8; L] { const LEN: usize =      L; }
+        impl<const L: usize> AsWordsLen for [  i16; L] { const LEN: usize =  2 * L; }
+        impl<const L: usize> AsWordsLen for [  i32; L] { const LEN: usize =  4 * L; }
+        impl<const L: usize> AsWordsLen for [  i64; L] { const LEN: usize =  8 * L; }
+        impl<const L: usize> AsWordsLen for [ i128; L] { const LEN: usize = 16 * L; }
+        impl<const L: usize> AsWordsLen for [isize; L] { const LEN: usize =  8 * L; }
     });
 
     /// Words error.
@@ -552,6 +636,15 @@ pub mod word {
         type Wx: Word;
     }
 
+    /// As words length definitions.
+    #[ndfwd::decl]
+    pub trait AsWordsLen: AsWords {
+        /// Words array length.
+        ///
+        /// Self is represented as [Self::Wx; Self::LEN].
+        const LEN: usize;
+    }
+
     /// As word (reference).
     pub trait AsWordRef: AsWords {
         /// As word (reference).
@@ -674,6 +767,14 @@ pub mod word {
 
     impl<Any: ?Sized + AsWords> AsWords for &mut Any {
         type Wx = Any::Wx;
+    }
+
+    impl<Any: AsWordsLen> AsWordsLen for &Any {
+        const LEN: usize = Any::LEN;
+    }
+
+    impl<Any: AsWordsLen> AsWordsLen for &mut Any {
+        const LEN: usize = Any::LEN;
     }
 
     impl<Any: ?Sized + AsWordRef> AsWordRef for &Any {
