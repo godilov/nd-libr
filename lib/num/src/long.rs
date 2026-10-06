@@ -913,6 +913,12 @@ pub mod alias {
     pub type B16384 = bytes!(16384);
 }
 
+pub mod seq {
+    //! # Sequences
+    //!
+    //! **Long numbers/bytes sequences**
+}
+
 pub mod uops {
     #![allow(clippy::type_complexity)]
 
