@@ -1288,6 +1288,7 @@ ndops::def! { @stdbin (lhs: Sign, rhs: Sign) -> Sign, [* (lhs as i8) * (rhs as i
 ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i8)] }
 
 #[ndfwd::def(self.0 with N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsRef where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsMut where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::Rand)]
@@ -1331,6 +1332,7 @@ ndops::def! { @stdbin (lhs:  Dir, rhs:  Dir) ->  Dir, [* (lhs as i8) * (rhs as i
 impl<N> NdForward for Def<N> {}
 
 #[ndfwd::def(self.0 with &'num N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with &'num N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with &'num N: arch::word::AsWordsRef where Self: AsWords<Wx = <&'num N as AsWords>::Wx>)]
 #[ndfwd::def(self.0 with &'num N: arch::word::AsWordsMut where Self: AsWords<Wx = <&'num N as AsWords>::Wx>)]
 #[ndfwd::def(self.0 with &'num N: IsZeroCt)]
@@ -1350,6 +1352,7 @@ impl<N> NdForward for Def<N> {}
 impl<'num, N> NdForward for Ref<'num, N> {}
 
 #[ndfwd::def(self.0 with &'num mut N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with &'num mut N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with &'num mut N: arch::word::AsWordsRef where Self: AsWords<Wx = <&'num mut N as AsWords>::Wx>)]
 #[ndfwd::def(self.0 with &'num mut N: arch::word::AsWordsMut where Self: AsWords<Wx = <&'num mut N as AsWords>::Wx>)]
 #[ndfwd::def(self.0 with &'num mut N: IsZeroCt)]
@@ -1369,6 +1372,7 @@ impl<'num, N> NdForward for Ref<'num, N> {}
 impl<'num, N> NdForward for Mut<'num, N> {}
 
 #[ndfwd::def(self.0 with N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsRef where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsMut where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::Rand)]
@@ -1393,6 +1397,7 @@ impl<'num, N> NdForward for Mut<'num, N> {}
 impl<N> NdForward for Strict<N> {}
 
 #[ndfwd::def(self.0 with N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsRef where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsMut where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::Rand)]
@@ -1417,6 +1422,7 @@ impl<N> NdForward for Strict<N> {}
 impl<N> NdForward for Wrapping<N> {}
 
 #[ndfwd::def(self.0 with N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsRef where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsMut where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::Rand)]
@@ -1441,6 +1447,7 @@ impl<N> NdForward for Wrapping<N> {}
 impl<N> NdForward for Saturating<N> {}
 
 #[ndfwd::def(self.0 with N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsRef where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsMut where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::Rand)]
@@ -1465,6 +1472,7 @@ impl<N> NdForward for Saturating<N> {}
 impl<N> NdForward for Unbounded<N> {}
 
 #[ndfwd::def(self.0 with N: arch::word::AsWords)]
+#[ndfwd::def(self.0 with N: arch::word::AsWordsLen)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsRef where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::word::AsWordsMut where Self: AsWords<Wx = N::Wx>)]
 #[ndfwd::def(self.0 with N: arch::Rand)]

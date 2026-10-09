@@ -253,6 +253,20 @@ pub mod word {
         impl AsWords for  i128 { type Wx = u64; }
         impl AsWords for isize { type Wx = u64; }
 
+        impl AsWordsLen for    u8 { const LEN: usize = 1; }
+        impl AsWordsLen for   u16 { const LEN: usize = 1; }
+        impl AsWordsLen for   u32 { const LEN: usize = 1; }
+        impl AsWordsLen for   u64 { const LEN: usize = 1; }
+        impl AsWordsLen for  u128 { const LEN: usize = 2; }
+        impl AsWordsLen for usize { const LEN: usize = 1; }
+
+        impl AsWordsLen for    i8 { const LEN: usize = 1; }
+        impl AsWordsLen for   i16 { const LEN: usize = 1; }
+        impl AsWordsLen for   i32 { const LEN: usize = 1; }
+        impl AsWordsLen for   i64 { const LEN: usize = 1; }
+        impl AsWordsLen for  i128 { const LEN: usize = 2; }
+        impl AsWordsLen for isize { const LEN: usize = 1; }
+
         impl AsWords for [   u8] { type Wx =  u8; }
         impl AsWords for [  u16] { type Wx = u16; }
         impl AsWords for [  u32] { type Wx = u32; }
@@ -280,6 +294,20 @@ pub mod word {
         impl<const L: usize> AsWords for [  i64; L] { type Wx = u64; }
         impl<const L: usize> AsWords for [ i128; L] { type Wx = u64; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u64; }
+
+        impl<const L: usize> AsWordsLen for [   u8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u64; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [ u128; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [usize; L] { const LEN: usize =     L; }
+
+        impl<const L: usize> AsWordsLen for [   i8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i64; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [ i128; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [isize; L] { const LEN: usize =     L; }
     });
 
     #[rustfmt::skip]
@@ -301,6 +329,20 @@ pub mod word {
         impl AsWords for   i64 { type Wx = u32; }
         impl AsWords for  i128 { type Wx = u32; }
         impl AsWords for isize { type Wx = u32; }
+
+        impl AsWordsLen for    u8 { const LEN: usize = 1; }
+        impl AsWordsLen for   u16 { const LEN: usize = 1; }
+        impl AsWordsLen for   u32 { const LEN: usize = 1; }
+        impl AsWordsLen for   u64 { const LEN: usize = 2; }
+        impl AsWordsLen for  u128 { const LEN: usize = 4; }
+        impl AsWordsLen for usize { const LEN: usize = 1; }
+
+        impl AsWordsLen for    i8 { const LEN: usize = 1; }
+        impl AsWordsLen for   i16 { const LEN: usize = 1; }
+        impl AsWordsLen for   i32 { const LEN: usize = 1; }
+        impl AsWordsLen for   i64 { const LEN: usize = 2; }
+        impl AsWordsLen for  i128 { const LEN: usize = 4; }
+        impl AsWordsLen for isize { const LEN: usize = 1; }
 
         impl AsWords for [   u8] { type Wx =  u8; }
         impl AsWords for [  u16] { type Wx = u16; }
@@ -329,6 +371,20 @@ pub mod word {
         impl<const L: usize> AsWords for [  i64; L] { type Wx = u32; }
         impl<const L: usize> AsWords for [ i128; L] { type Wx = u32; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u32; }
+
+        impl<const L: usize> AsWordsLen for [   u8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  u64; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [ u128; L] { const LEN: usize = 4 * L; }
+        impl<const L: usize> AsWordsLen for [usize; L] { const LEN: usize =     L; }
+
+        impl<const L: usize> AsWordsLen for [   i8; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i16; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i32; L] { const LEN: usize =     L; }
+        impl<const L: usize> AsWordsLen for [  i64; L] { const LEN: usize = 2 * L; }
+        impl<const L: usize> AsWordsLen for [ i128; L] { const LEN: usize = 4 * L; }
+        impl<const L: usize> AsWordsLen for [isize; L] { const LEN: usize =     L; }
     });
 
     #[rustfmt::skip]
@@ -350,6 +406,20 @@ pub mod word {
         impl AsWords for   i64 { type Wx = u8; }
         impl AsWords for  i128 { type Wx = u8; }
         impl AsWords for isize { type Wx = u8; }
+
+        impl AsWordsLen for    u8 { const LEN: usize =  1; }
+        impl AsWordsLen for   u16 { const LEN: usize =  2; }
+        impl AsWordsLen for   u32 { const LEN: usize =  4; }
+        impl AsWordsLen for   u64 { const LEN: usize =  8; }
+        impl AsWordsLen for  u128 { const LEN: usize = 16; }
+        impl AsWordsLen for usize { const LEN: usize =  8; }
+
+        impl AsWordsLen for    i8 { const LEN: usize =  1; }
+        impl AsWordsLen for   i16 { const LEN: usize =  2; }
+        impl AsWordsLen for   i32 { const LEN: usize =  4; }
+        impl AsWordsLen for   i64 { const LEN: usize =  8; }
+        impl AsWordsLen for  i128 { const LEN: usize = 16; }
+        impl AsWordsLen for isize { const LEN: usize =  8; }
 
         impl AsWords for [   u8] { type Wx = u8; }
         impl AsWords for [  u16] { type Wx = u8; }
@@ -378,6 +448,20 @@ pub mod word {
         impl<const L: usize> AsWords for [  i64; L] { type Wx = u8; }
         impl<const L: usize> AsWords for [ i128; L] { type Wx = u8; }
         impl<const L: usize> AsWords for [isize; L] { type Wx = u8; }
+
+        impl<const L: usize> AsWordsLen for [   u8; L] { const LEN: usize =      L; }
+        impl<const L: usize> AsWordsLen for [  u16; L] { const LEN: usize =  2 * L; }
+        impl<const L: usize> AsWordsLen for [  u32; L] { const LEN: usize =  4 * L; }
+        impl<const L: usize> AsWordsLen for [  u64; L] { const LEN: usize =  8 * L; }
+        impl<const L: usize> AsWordsLen for [ u128; L] { const LEN: usize = 16 * L; }
+        impl<const L: usize> AsWordsLen for [usize; L] { const LEN: usize =  8 * L; }
+
+        impl<const L: usize> AsWordsLen for [   i8; L] { const LEN: usize =      L; }
+        impl<const L: usize> AsWordsLen for [  i16; L] { const LEN: usize =  2 * L; }
+        impl<const L: usize> AsWordsLen for [  i32; L] { const LEN: usize =  4 * L; }
+        impl<const L: usize> AsWordsLen for [  i64; L] { const LEN: usize =  8 * L; }
+        impl<const L: usize> AsWordsLen for [ i128; L] { const LEN: usize = 16 * L; }
+        impl<const L: usize> AsWordsLen for [isize; L] { const LEN: usize =  8 * L; }
     });
 
     /// Words error.
@@ -550,6 +634,13 @@ pub mod word {
     pub trait AsWords {
         /// Word limit.
         type Wx: Word;
+    }
+
+    /// As words length.
+    #[ndfwd::decl]
+    pub trait AsWordsLen {
+        /// Words length.
+        const LEN: usize;
     }
 
     /// As word (reference).
@@ -740,20 +831,27 @@ pub mod seq {
 
     /// Sequence.
     pub trait Sequence {
-        /// Iterator elem.
+        /// Sequence elem.
         type Elem;
 
-        /// Iterator length.
+        /// Sequence length.
         const LEN: usize;
 
-        /// Iterator.
+        /// Sequence iterator.
         fn seq(&self) -> impl Iterator<Item = Self::Elem>;
     }
 
     /// Sequence (mutable).
     pub trait SequenceMut: Sequence {
-        /// Iterator (mutable)
+        /// Sequence iterator (mutable)
         fn seq_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem>;
+    }
+
+    impl<const L: usize, T, F: Fn(usize) -> T> Idx<L, T, F> {
+        /// Index sequence (raw).
+        pub fn raw() -> Idx<L, usize, impl Fn(usize) -> usize> {
+            Idx { func: |idx| idx }
+        }
     }
 
     impl<const L: usize, T, F: Fn(usize) -> T> Sequence for Idx<L, T, F> {
@@ -1188,6 +1286,7 @@ pub mod codec {
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
@@ -1247,6 +1346,7 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
@@ -1299,6 +1399,7 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
@@ -1351,6 +1452,7 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
@@ -1417,6 +1519,7 @@ pub struct Aligned128<T>(pub T);
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
@@ -1498,6 +1601,7 @@ pub struct AlignedSimd<T>(pub T);
 #[ndfwd::idx(self.0 with T)]
 #[ndfwd::iter(self.0 with T)]
 #[ndfwd::def(self.0 with T: AsWords)]
+#[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
