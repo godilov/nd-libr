@@ -913,30 +913,6 @@ pub mod alias {
     pub type B16384 = bytes!(16384);
 }
 
-pub mod seq {
-    //! # Sequences
-    //!
-    //! **Long numbers/bytes sequences**
-
-    /// Sequence.
-    pub trait Sequence {
-        /// Iterator elem.
-        type Elem;
-
-        /// Iterator length.
-        const LEN: usize;
-
-        /// Iterator.
-        fn iter(self) -> impl Iterator<Item = Self::Elem>;
-    }
-
-    /// Sequence (mutable).
-    pub trait SequenceMut: Sequence {
-        /// Iterator (mutable)
-        fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem>;
-    }
-}
-
 pub mod uops {
     #![allow(clippy::type_complexity)]
 

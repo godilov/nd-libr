@@ -728,6 +728,64 @@ pub mod word {
     }
 }
 
+pub mod seq {
+    //! # Sequences
+    //!
+    //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
+
+    /// Indexed sequence.
+    pub struct Idx<const L: usize, T, F: Fn(usize) -> T> {
+        func: F,
+    }
+
+    /// Sequence.
+    pub trait Sequence {
+        /// Iterator elem.
+        type Elem;
+
+        /// Iterator length.
+        const LEN: usize;
+
+        /// Iterator.
+        fn seq(&self) -> impl Iterator<Item = Self::Elem>;
+    }
+
+    /// Sequence (mutable).
+    pub trait SequenceMut: Sequence {
+        /// Iterator (mutable)
+        fn seq_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem>;
+    }
+
+    impl<const L: usize, T, F: Fn(usize) -> T> Sequence for Idx<L, T, F> {
+        type Elem = T;
+
+        const LEN: usize = L;
+
+        #[inline]
+        fn seq(&self) -> impl Iterator<Item = Self::Elem> {
+            (0..L).map(&self.func)
+        }
+    }
+
+    impl<const L: usize, T: Copy> Sequence for [T; L] {
+        type Elem = T;
+
+        const LEN: usize = L;
+
+        #[inline]
+        fn seq(&self) -> impl Iterator<Item = Self::Elem> {
+            self.iter().copied()
+        }
+    }
+
+    impl<const L: usize, T: Copy> SequenceMut for [T; L] {
+        #[inline]
+        fn seq_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem> {
+            self.iter_mut()
+        }
+    }
+}
+
 pub mod codec {
     //! # Codec
     //!
