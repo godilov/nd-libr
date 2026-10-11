@@ -85,9 +85,6 @@ macro_rules! word_impl {
     ([$($primitive:ty),+ $(,)?]) => {
         $(word_impl!($primitive);)+
     };
-    (@ext [$($primitive:ty),+ $(,)?]) => {
-        $(word_impl!(@ext $primitive);)+
-    };
     ($primitive:ty $(,)?) => {
         impl Word for $primitive {
             const BITS: usize = Self::BITS as usize;
@@ -152,19 +149,11 @@ macro_rules! word_impl {
             }
         }
     };
-    (@ext $primitive:ty $(,)?) => {
-        impl WordExt for $primitive {
-            #[inline]
-            fn as_words<W: Word>(&self) -> &[W] {
-                transmute_ref!(self)
-            }
-        }
-    };
 }
 
-macro_rules! bytes_impl {
+macro_rules! words_impl {
     ([$($primitive:ty),+] $(,)?) => {
-        $(bytes_impl!($primitive);)+
+        $(words_impl!($primitive);)+
     };
     ($primitive:ty $(,)?) => {
         impl AsWordsRef for $primitive {
@@ -237,7 +226,6 @@ pub mod word {
     #[cfg(all(target_pointer_width = "64", not(test)))]
     word_def!((u32, u64, u128), {
         word_impl!([u8, u16, u32, u64, usize]);
-        word_impl!(@ext [u128]);
 
         impl AsWords for    u8 { type Wx =  u8; }
         impl AsWords for   u16 { type Wx = u16; }
@@ -391,7 +379,6 @@ pub mod word {
     #[cfg(test)]
     word_def!((u8, u8, u16), {
         word_impl!([u8]);
-        word_impl!(@ext [u16, u32, u64, u128, usize]);
 
         impl AsWords for    u8 { type Wx = u8; }
         impl AsWords for   u16 { type Wx = u8; }
@@ -601,45 +588,17 @@ pub mod word {
         fn is_pow2(self) -> bool;
     }
 
-    /// Word-extension primitive.
-    ///
-    /// - On **64-bit** tragets, implemented for: [`u128`].
-    /// - On **32-bit** tragets, implemented for: [`u128`], [`u64`].
-    ///
-    /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
-    #[rustfmt::skip]
-    pub trait WordExt: Clone + Copy
-        + PartialEq + Eq
-        + PartialOrd + Ord
-        + Debug + Display + Binary + Octal + LowerHex + UpperHex
-        + AsWordsRef + AsWordsMut
-        + FromBytes + IntoBytes + Immutable
-    {
-        /// Word-extension primitive to words.
-        fn as_words<W: Word>(&self) -> &[W];
-
-        /// Word-extension primitive to iterator.
-        fn iter_words<W: Word>(&self, ext: W) -> impl Iterator<Item = W> {
-            let words = self.as_words::<W>();
-
-            (0..).map(move |idx| match idx < words.len() {
-                true => words[idx],
-                false => ext,
-            })
-        }
-    }
-
     /// As words.
     #[ndfwd::decl]
     pub trait AsWords {
-        /// Word limit.
+        /// Word length limit.
         type Wx: Word;
     }
 
     /// As words length.
     #[ndfwd::decl]
-    pub trait AsWordsLen {
-        /// Words length.
+    pub trait AsWordsLen: AsWords {
+        /// Words length limit.
         const LEN: usize;
     }
 
@@ -759,33 +718,29 @@ pub mod word {
         }
     }
 
+    /// As words iterator.
+    pub trait AsWordsIter {
+        /// Iterator words (infinite).
+        #[inline]
+        fn iter_words<W: Word>(&self, ext: W) -> impl Iterator<Item = W>
+        where
+            Self: AsWordsRef<Wx: From<W>>,
+        {
+            let slice = self.as_words_ref();
+
+            (0..).map(move |idx| match idx < slice.len() {
+                true => slice[idx],
+                false => ext,
+            })
+        }
+    }
+
     impl<Any: ?Sized + AsWords> AsWords for &Any {
         type Wx = Any::Wx;
     }
 
     impl<Any: ?Sized + AsWords> AsWords for &mut Any {
         type Wx = Any::Wx;
-    }
-
-    impl<Any: ?Sized + AsWordRef> AsWordRef for &Any {
-        #[inline]
-        fn as_word_ref(&self) -> &Self::Wx {
-            Any::as_word_ref(self)
-        }
-    }
-
-    impl<Any: ?Sized + AsWordRef> AsWordRef for &mut Any {
-        #[inline]
-        fn as_word_ref(&self) -> &Self::Wx {
-            Any::as_word_ref(self)
-        }
-    }
-
-    impl<Any: ?Sized + AsWordMut> AsWordMut for &mut Any {
-        #[inline]
-        fn as_word_mut(&mut self) -> &mut Self::Wx {
-            Any::as_word_mut(self)
-        }
     }
 
     impl<Any: ?Sized + AsWordsRef> AsWordsRef for &Any {
@@ -817,6 +772,8 @@ pub mod word {
             Any::as_words_mut(self)
         }
     }
+
+    impl<Any> AsWordsIter for Any {}
 }
 
 pub mod seq {
@@ -848,7 +805,7 @@ pub mod seq {
     }
 
     impl<const L: usize, T, F: Fn(usize) -> T> Idx<L, T, F> {
-        /// Index sequence (raw).
+        /// Index sequence.
         pub fn raw() -> Idx<L, usize, impl Fn(usize) -> usize> {
             Idx { func: |idx| idx }
         }
@@ -1820,8 +1777,8 @@ aligned_impl!(AlignedSimd [u8, u16, u32, u64, u128, usize]);
 aligned_impl!(AlignedX    [i8, i16, i32, i64, i128, isize]);
 aligned_impl!(AlignedX    [u8, u16, u32, u64, u128, usize]);
 
-bytes_impl!([i8, i16, i32, i64, i128, isize]);
-bytes_impl!([u8, u16, u32, u64, u128, usize]);
+words_impl!([i8, i16, i32, i64, i128, isize]);
+words_impl!([u8, u16, u32, u64, u128, usize]);
 
 #[cfg(test)]
 mod tests {

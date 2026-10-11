@@ -80,4 +80,4 @@ pub trait IteratorExt: Iterator {
     }
 }
 
-impl<Iter: Iterator> IteratorExt for Iter {}
+impl<Any: Iterator> IteratorExt for Any {}
