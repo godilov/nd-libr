@@ -785,25 +785,22 @@ pub mod seq {
     pub struct Idx<const L: usize> {}
 
     /// Morph sequence.
-    pub struct Morph<Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> {
+    pub struct Morph<const L: usize, Seq: Sequence<L, Elem = V>, V, U, F: Fn(V) -> U> {
         seq: Seq,
         func: F,
     }
 
     /// Sequence.
-    pub trait Sequence {
+    pub trait Sequence<const L: usize> {
         /// Sequence elem.
         type Elem;
-
-        /// Sequence length.
-        const LEN: usize;
 
         /// Sequence iterator.
         fn seq(self) -> impl Iterator<Item = Self::Elem>;
 
         /// Sequence with morph.
         #[inline]
-        fn with<T, F: Fn(Self::Elem) -> T>(self, func: F) -> Morph<Self, Self::Elem, T, F>
+        fn with<T, F: Fn(Self::Elem) -> T>(self, func: F) -> Morph<L, Self, Self::Elem, T, F>
         where
             Self: Sized,
         {
@@ -811,10 +808,8 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize> Sequence for Idx<L> {
+    impl<const L: usize> Sequence<L> for Idx<L> {
         type Elem = usize;
-
-        const LEN: usize = L;
 
         #[inline]
         fn seq(self) -> impl Iterator<Item = Self::Elem> {
@@ -822,10 +817,8 @@ pub mod seq {
         }
     }
 
-    impl<Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> Sequence for Morph<Seq, V, U, F> {
+    impl<const L: usize, Seq: Sequence<L, Elem = V>, V, U, F: Fn(V) -> U> Sequence<L> for Morph<L, Seq, V, U, F> {
         type Elem = U;
-
-        const LEN: usize = Seq::LEN;
 
         #[inline]
         fn seq(self) -> impl Iterator<Item = Self::Elem> {
@@ -833,10 +826,8 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, T> Sequence for [T; L] {
+    impl<const L: usize, T> Sequence<L> for [T; L] {
         type Elem = T;
-
-        const LEN: usize = L;
 
         #[inline]
         fn seq(self) -> impl Iterator<Item = Self::Elem> {
@@ -844,10 +835,8 @@ pub mod seq {
         }
     }
 
-    impl<'seq, const L: usize, T> Sequence for &'seq [T; L] {
+    impl<'seq, const L: usize, T> Sequence<L> for &'seq [T; L] {
         type Elem = &'seq T;
-
-        const LEN: usize = L;
 
         #[inline]
         fn seq(self) -> impl Iterator<Item = Self::Elem> {
@@ -855,10 +844,8 @@ pub mod seq {
         }
     }
 
-    impl<'seq, const L: usize, T> Sequence for &'seq mut [T; L] {
+    impl<'seq, const L: usize, T> Sequence<L> for &'seq mut [T; L] {
         type Elem = &'seq mut T;
-
-        const LEN: usize = L;
 
         #[inline]
         fn seq(self) -> impl Iterator<Item = Self::Elem> {
