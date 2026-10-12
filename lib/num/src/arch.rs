@@ -785,14 +785,8 @@ pub mod seq {
     pub struct Idx<const L: usize> {}
 
     /// Morph sequence.
-    pub struct Morph<const L: usize, Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> {
+    pub struct Morph<Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> {
         seq: Seq,
-        func: F,
-    }
-
-    /// Morph sequence iterator.
-    pub struct MorphIter<Iter: Iterator<Item = V>, V, U, F: Fn(V) -> U> {
-        iter: Iter,
         func: F,
     }
 
@@ -805,13 +799,16 @@ pub mod seq {
         const LEN: usize;
 
         /// Sequence iterator.
-        fn seq(&self) -> impl Iterator<Item = Self::Elem>;
-    }
+        fn seq(self) -> impl Iterator<Item = Self::Elem>;
 
-    /// Sequence (mutable).
-    pub trait SequenceMut: Sequence {
-        /// Sequence iterator (mutable)
-        fn seq_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem>;
+        /// Sequence iterator with morph.
+        #[inline]
+        fn with<T, F: Fn(Self::Elem) -> T>(self, func: F) -> Morph<Self, Self::Elem, T, F>
+        where
+            Self: Sized,
+        {
+            Morph { seq: self, func }
+        }
     }
 
     impl<const L: usize> Sequence for Idx<L> {
@@ -820,54 +817,41 @@ pub mod seq {
         const LEN: usize = L;
 
         #[inline]
-        fn seq(&self) -> impl Iterator<Item = Self::Elem> {
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
             0..L
         }
     }
 
-    impl<const L: usize, Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> Sequence for Morph<L, Seq, V, U, F> {
+    impl<Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> Sequence for Morph<Seq, V, U, F> {
         type Elem = U;
 
-        const LEN: usize = L;
+        const LEN: usize = Seq::LEN;
 
         #[inline]
-        fn seq(&self) -> impl Iterator<Item = Self::Elem> {
-            MorphIter {
-                iter: self.seq.seq(),
-                func: &self.func,
-            }
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.seq.seq().map(self.func)
         }
     }
 
-    impl<const L: usize, T: Copy> Sequence for [T; L] {
-        type Elem = T;
+    impl<'seq, const L: usize, T: Copy> Sequence for &'seq [T; L] {
+        type Elem = &'seq T;
 
         const LEN: usize = L;
 
         #[inline]
-        fn seq(&self) -> impl Iterator<Item = Self::Elem> {
-            self.iter().copied()
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.iter()
         }
     }
 
-    impl<const L: usize, T: Copy> SequenceMut for [T; L] {
+    impl<'seq, const L: usize, T: Copy> Sequence for &'seq mut [T; L] {
+        type Elem = &'seq mut T;
+
+        const LEN: usize = L;
+
         #[inline]
-        fn seq_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem> {
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
             self.iter_mut()
-        }
-    }
-
-    impl<Iter: Iterator<Item = V>, V, U, F: Fn(V) -> U> Iterator for MorphIter<Iter, V, U, F> {
-        type Item = U;
-
-        #[inline]
-        fn next(&mut self) -> Option<Self::Item> {
-            self.iter.next().map(&self.func)
-        }
-
-        #[inline]
-        fn size_hint(&self) -> (usize, Option<usize>) {
-            self.iter.size_hint()
         }
     }
 }
