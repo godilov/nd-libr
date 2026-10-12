@@ -720,16 +720,16 @@ pub mod word {
 
     /// As words iterator.
     pub trait AsWordsIter {
-        /// Iterator words (infinite).
+        /// As words iterator (infinite).
         #[inline]
         fn iter_words<W: Word>(&self, ext: W) -> impl Iterator<Item = W>
         where
             Self: AsWordsRef<Wx: From<W>>,
         {
-            let slice = self.as_words_ref();
+            let words = self.as_words_ref();
 
-            (0..).map(move |idx| match idx < slice.len() {
-                true => slice[idx],
+            (0..).map(move |idx| match idx < words.len() {
+                true => words[idx],
                 false => ext,
             })
         }
@@ -781,8 +781,18 @@ pub mod seq {
     //!
     //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
 
-    /// Indexed sequence.
-    pub struct Idx<const L: usize, T, F: Fn(usize) -> T> {
+    /// Index sequence.
+    pub struct Idx<const L: usize> {}
+
+    /// Morph sequence.
+    pub struct Morph<const L: usize, Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> {
+        seq: Seq,
+        func: F,
+    }
+
+    /// Morph sequence iterator.
+    pub struct MorphIter<Iter: Iterator<Item = V>, V, U, F: Fn(V) -> U> {
+        iter: Iter,
         func: F,
     }
 
@@ -804,21 +814,28 @@ pub mod seq {
         fn seq_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem>;
     }
 
-    impl<const L: usize, T, F: Fn(usize) -> T> Idx<L, T, F> {
-        /// Index sequence.
-        pub fn raw() -> Idx<L, usize, impl Fn(usize) -> usize> {
-            Idx { func: |idx| idx }
-        }
-    }
-
-    impl<const L: usize, T, F: Fn(usize) -> T> Sequence for Idx<L, T, F> {
-        type Elem = T;
+    impl<const L: usize> Sequence for Idx<L> {
+        type Elem = usize;
 
         const LEN: usize = L;
 
         #[inline]
         fn seq(&self) -> impl Iterator<Item = Self::Elem> {
-            (0..L).map(&self.func)
+            0..L
+        }
+    }
+
+    impl<const L: usize, Seq: Sequence<Elem = V>, V, U, F: Fn(V) -> U> Sequence for Morph<L, Seq, V, U, F> {
+        type Elem = U;
+
+        const LEN: usize = L;
+
+        #[inline]
+        fn seq(&self) -> impl Iterator<Item = Self::Elem> {
+            MorphIter {
+                iter: self.seq.seq(),
+                func: &self.func,
+            }
         }
     }
 
@@ -837,6 +854,20 @@ pub mod seq {
         #[inline]
         fn seq_mut(&mut self) -> impl Iterator<Item = &mut Self::Elem> {
             self.iter_mut()
+        }
+    }
+
+    impl<Iter: Iterator<Item = V>, V, U, F: Fn(V) -> U> Iterator for MorphIter<Iter, V, U, F> {
+        type Item = U;
+
+        #[inline]
+        fn next(&mut self) -> Option<Self::Item> {
+            self.iter.next().map(&self.func)
+        }
+
+        #[inline]
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            self.iter.size_hint()
         }
     }
 }
