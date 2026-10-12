@@ -801,7 +801,7 @@ pub mod seq {
         /// Sequence iterator.
         fn seq(self) -> impl Iterator<Item = Self::Elem>;
 
-        /// Sequence iterator with morph.
+        /// Sequence with morph.
         #[inline]
         fn with<T, F: Fn(Self::Elem) -> T>(self, func: F) -> Morph<Self, Self::Elem, T, F>
         where
@@ -833,7 +833,18 @@ pub mod seq {
         }
     }
 
-    impl<'seq, const L: usize, T: Copy> Sequence for &'seq [T; L] {
+    impl<const L: usize, T> Sequence for [T; L] {
+        type Elem = T;
+
+        const LEN: usize = L;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.into_iter()
+        }
+    }
+
+    impl<'seq, const L: usize, T> Sequence for &'seq [T; L] {
         type Elem = &'seq T;
 
         const LEN: usize = L;
@@ -844,7 +855,7 @@ pub mod seq {
         }
     }
 
-    impl<'seq, const L: usize, T: Copy> Sequence for &'seq mut [T; L] {
+    impl<'seq, const L: usize, T> Sequence for &'seq mut [T; L] {
         type Elem = &'seq mut T;
 
         const LEN: usize = L;
