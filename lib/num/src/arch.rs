@@ -747,7 +747,9 @@ pub mod word {
     pub trait AsArrayRef: AsWordsLen + AsWordsRef {
         /// As words array (reference).
         ///
-        /// Condition: `Bytes(W) * L == Bytes(Self::Wx) * Self::LEN`.
+        /// Condition: `Bytes::<W>() * L == Bytes::<Self::Wx>() * Self::LEN`.
+        ///
+        /// Template: `expr.as_array_ref::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
         fn as_array_ref<W: Word, const L: usize>(&self) -> &[W; L]
         where
             Self::Wx: From<W>;
@@ -758,7 +760,9 @@ pub mod word {
     pub trait AsArrayMut: AsWordsLen + AsWordsMut + AsArrayRef {
         /// As words array (mutable).
         ///
-        /// Condition: `Bytes(W) * L == Bytes(Self::Wx) * Self::LEN`.
+        /// Condition: `Bytes::<W>() * L == Bytes::<Self::Wx>() * Self::LEN`.
+        ///
+        /// Template: `expr.as_array_mut::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
         fn as_array_mut<W: Word, const L: usize>(&mut self) -> &mut [W; L]
         where
             Self::Wx: From<W>;
