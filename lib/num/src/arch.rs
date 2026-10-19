@@ -793,6 +793,27 @@ pub mod word {
         type Wx = Any::Wx;
     }
 
+    impl<Any: AsWordRef> AsWordRef for &Any {
+        #[inline]
+        fn as_word_ref(&self) -> &Self::Wx {
+            Any::as_word_ref(self)
+        }
+    }
+
+    impl<Any: AsWordRef> AsWordRef for &mut Any {
+        #[inline]
+        fn as_word_ref(&self) -> &Self::Wx {
+            Any::as_word_ref(self)
+        }
+    }
+
+    impl<Any: AsWordMut> AsWordMut for &mut Any {
+        #[inline]
+        fn as_word_mut(&mut self) -> &mut Self::Wx {
+            Any::as_word_mut(self)
+        }
+    }
+
     impl<Any: ?Sized + AsWordsRef> AsWordsRef for &Any {
         #[inline]
         fn as_words_ref<W: Word>(&self) -> &[W]
