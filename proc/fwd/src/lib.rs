@@ -5,7 +5,8 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::{
     Attribute, Error, Expr, FnArg, Generics, Ident, ImplItemConst, ImplItemType, Item, ItemEnum, ItemImpl, ItemStruct,
-    ItemTrait, ItemUnion, Meta, Path, PathArguments, Result, Token, TraitItem, TraitItemFn, Type, WhereClause, braced,
+    ItemTrait, ItemUnion, Meta, Path, PathArguments, PointerMutability, ReceiverKind, Result, Token, TraitItem,
+    TraitItemFn, Type, WhereClause, braced,
     parse::{Parse, ParseStream},
     parse_macro_input,
     token::Brace,
@@ -745,18 +746,12 @@ impl Parse for FwdDef {
             Item::Enum(val) => Ok(Self::Enum(val)),
             Item::Union(val) => Ok(Self::Union(val)),
             Item::Impl(val) => match &val.trait_ {
-                Some((not, path, _)) => match not {
-                    Some(val) => Err(Error::new_spanned(
-                        val,
-                        "Failed to find correct NdForward impl marker: ! is not allowed",
+                Some((path, _)) => match path.segments.last().is_some_and(|seg| seg.ident == "NdForward") {
+                    true => Ok(Self::Impl(val)),
+                    false => Err(Error::new_spanned(
+                        path,
+                        "Failed to find correct NdForward impl marker: ident is expected to be NdForward",
                     )),
-                    None => match path.segments.last().is_some_and(|seg| seg.ident == "NdForward") {
-                        true => Ok(Self::Impl(val)),
-                        false => Err(Error::new_spanned(
-                            path,
-                            "Failed to find correct NdForward impl marker: ident is expected to be NdForward",
-                        )),
-                    },
                 },
                 None => Err(Error::new_spanned(val, "Failed to find correct NdForward impl marker")),
             },
@@ -1287,7 +1282,7 @@ impl FwdDeclFn {
 
             let constness = &sig.constness;
             let asyncness = &sig.asyncness;
-            let unsafety = &sig.unsafety;
+            let safety = &sig.safety;
             let abi = &sig.abi;
             let ident = &sig.ident;
             let generics = &sig.generics;
@@ -1337,9 +1332,11 @@ impl FwdDeclFn {
             };
 
             let forward = match recv {
-                Some(val) => match (val.reference.is_some(), val.mutability.is_some()) {
-                    (true, true) => quote! { self.forward_mut().#func(#(#args_expr),*) },
-                    (true, false) => quote! { self.forward_ref().#func(#(#args_expr),*) },
+                Some(val) => match val.kind {
+                    ReceiverKind::Reference(_, _, mutability) => match mutability {
+                        Some(_) => quote! { self.forward_mut().#func(#(#args_expr),*) },
+                        None => quote! { self.forward_ref().#func(#(#args_expr),*) },
+                    },
                     _ => quote! { self.forward().#func(#(#args_expr),*) },
                 },
                 None => quote! { <$ty>::#func(#(#args_expr),*) },
@@ -1364,7 +1361,7 @@ impl FwdDeclFn {
                 #[allow(unused_mut)]
                 #[inline]
                 #(#attrs)*
-                #constness #asyncness #unsafety #abi fn #ident #gen_impl (#recv #(#args),*) #output #gen_where {
+                #constness #asyncness #safety #abi fn #ident #gen_impl (#recv #(#args),*) #output #gen_where {
                     #expr
                 }
             })
@@ -1457,12 +1454,12 @@ impl FwdDeclArgExpr {
             Type::Group(val) => Self::from_arg(FwdDeclArg { expr, ty: &val.elem, kind }),
             Type::Paren(val) => Self::from_arg(FwdDeclArg { expr, ty: &val.elem, kind }),
             Type::Ptr(val) => Self::from_arg(match val.mutability {
-                Some(_) => FwdDeclArg {
+                PointerMutability::Mut(_) => FwdDeclArg {
                     expr,
                     ty: &val.elem,
                     kind: FwdDeclArgKind::Mut,
                 },
-                None => FwdDeclArg {
+                PointerMutability::Const(_) => FwdDeclArg {
                     expr,
                     ty: &val.elem,
                     kind: FwdDeclArgKind::Ref,
@@ -1482,7 +1479,7 @@ impl FwdDeclArgExpr {
             }),
             Type::Never(val) => Err(Error::new_spanned(val, "Failed to forward argument, never type is unsupported")),
             Type::Macro(val) => Err(Error::new_spanned(val, "Failed to forward argument, macro type is unsupported")),
-            Type::BareFn(_) => Ok(Self::Raw(expr)),
+            Type::FnPtr(_) => Ok(Self::Raw(expr)),
             Type::ImplTrait(_) => Ok(Self::Raw(expr)),
             Type::TraitObject(_) => Ok(Self::Raw(expr)),
             Type::Verbatim(val) => Err(Error::new_spanned(val, "Failed to forward argument, verbatim was found")),
