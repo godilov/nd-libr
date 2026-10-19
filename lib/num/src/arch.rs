@@ -769,12 +769,12 @@ pub mod word {
     }
 
     /// As words iterator.
-    pub trait AsWordsIter {
+    pub trait AsWordsIter: AsWordsRef {
         /// As words iterator (infinite).
         #[inline]
         fn iter_words<W: Word>(&self, ext: W) -> impl Iterator<Item = W>
         where
-            Self: AsWordsRef<Wx: From<W>>,
+            Self::Wx: From<W>,
         {
             let words = self.as_words_ref();
 
@@ -791,6 +791,14 @@ pub mod word {
 
     impl<Any: ?Sized + AsWords> AsWords for &mut Any {
         type Wx = Any::Wx;
+    }
+
+    impl<Any: AsWordsLen> AsWordsLen for &Any {
+        const LEN: usize = Any::LEN;
+    }
+
+    impl<Any: AsWordsLen> AsWordsLen for &mut Any {
+        const LEN: usize = Any::LEN;
     }
 
     impl<Any: AsWordRef> AsWordRef for &Any {
@@ -844,7 +852,7 @@ pub mod word {
         }
     }
 
-    impl<Any> AsWordsIter for Any {}
+    impl<Any: AsWordsRef> AsWordsIter for Any {}
 }
 
 pub mod codec {

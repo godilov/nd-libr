@@ -470,6 +470,7 @@ struct OpsNdSignatureUnary {
     impl_ty: OpsImplType,
 }
 
+#[allow(clippy::large_enum_variant)]
 enum OpsImplType {
     Empty,
     Single(OpsImplTypeSingle),
