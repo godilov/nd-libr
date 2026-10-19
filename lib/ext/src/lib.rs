@@ -26,7 +26,7 @@ pub mod seq {
         /// Sequence iterator.
         fn seq(self) -> impl Iterator<Item = Self::Elem>;
 
-        /// Sequence with morph.
+        /// Sequence morphism.
         #[inline]
         fn with<T, F: Fn(Self::Elem) -> T>(self, func: F) -> Morph<L, Self, Self::Elem, T, F>
         where
