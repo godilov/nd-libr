@@ -81,6 +81,45 @@ macro_rules! word_def {
     };
 }
 
+macro_rules! word_ext {
+    ([$($primitive:ty),+ $(,)?]) => {
+        $(word_ext!($primitive);)+
+    };
+    (@ref [$($primitive:ty),+ $(,)?]) => {
+        $(word_ext!(@ref $primitive);)+
+    };
+    (@mut [$($primitive:ty),+ $(,)?]) => {
+        $(word_ext!(@mut $primitive);)+
+    };
+    ($primitive:ty $(,)?) => {
+        impl AsWordExt for $primitive {
+            #[inline]
+            fn as_word_ext(&self) -> Self::Wx {
+                match self >= &0 {
+                    false => Self::Wx::MAX,
+                    true => 0,
+                }
+            }
+        }
+    };
+    (@ref $primitive:ty $(,)?) => {
+        impl AsWordRef for $primitive {
+            #[inline]
+            fn as_word_ref(&self) -> &Self::Wx {
+                transmute_ref!(self)
+            }
+        }
+    };
+    (@mut $primitive:ty $(,)?) => {
+        impl AsWordMut for $primitive {
+            #[inline]
+            fn as_word_mut(&mut self) -> &mut Self::Wx {
+                transmute_mut!(self)
+            }
+        }
+    };
+}
+
 macro_rules! word_impl {
     ([$($primitive:ty),+ $(,)?]) => {
         $(word_impl!($primitive);)+
@@ -132,20 +171,6 @@ macro_rules! word_impl {
             #[inline]
             fn is_pow2(self) -> bool {
                 (self & (self - 1) == 0) && self != 0
-            }
-        }
-
-        impl AsWordRef for $primitive {
-            #[inline]
-            fn as_word_ref(&self) -> &Self::Wx {
-                transmute_ref!(self)
-            }
-        }
-
-        impl AsWordMut for $primitive {
-            #[inline]
-            fn as_word_mut(&mut self) -> &mut Self::Wx {
-                transmute_mut!(self)
             }
         }
     };
@@ -255,6 +280,10 @@ pub mod word {
     word_def!((u32, u64, u128), {
         word_impl!([u8, u16, u32, u64, usize]);
 
+        word_ext!(     [u8, u16, u32, u64, usize, i8, i16, i32, i64, isize]);
+        word_ext!(@ref [u8, u16, u32, u64, usize, i8, i16, i32, i64, isize]);
+        word_ext!(@mut [u8, u16, u32, u64, usize, i8, i16, i32, i64, isize]);
+
         impl AsWords for    u8 { type Wx =  u8; }
         impl AsWords for   u16 { type Wx = u16; }
         impl AsWords for   u32 { type Wx = u32; }
@@ -330,7 +359,10 @@ pub mod word {
     #[cfg(all(target_pointer_width = "32", not(test)))]
     word_def!((u16, u32, u64), {
         word_impl!([u8, u16, u32, usize]);
-        word_impl!(@ext [u64, u128]);
+
+        word_ext!(     [u8, u16, u32, usize, i8, i16, i32, isize]);
+        word_ext!(@ref [u8, u16, u32, usize, i8, i16, i32, isize]);
+        word_ext!(@mut [u8, u16, u32, usize, i8, i16, i32, isize]);
 
         impl AsWords for    u8 { type Wx =  u8; }
         impl AsWords for   u16 { type Wx = u16; }
@@ -407,6 +439,10 @@ pub mod word {
     #[cfg(test)]
     word_def!((u8, u8, u16), {
         word_impl!([u8]);
+
+        word_ext!(     [u8, i8]);
+        word_ext!(@ref [u8, i8]);
+        word_ext!(@mut [u8, i8]);
 
         impl AsWords for    u8 { type Wx = u8; }
         impl AsWords for   u16 { type Wx = u8; }
@@ -630,6 +666,15 @@ pub mod word {
         const LEN: usize;
     }
 
+    /// As word extension.
+    pub trait AsWordExt: AsWords {
+        /// As word extension.
+        #[inline]
+        fn as_word_ext(&self) -> Self::Wx {
+            Self::Wx::ZERO
+        }
+    }
+
     /// As word (reference).
     pub trait AsWordRef: AsWords {
         /// As word (reference).
@@ -637,7 +682,7 @@ pub mod word {
     }
 
     /// As word (mutable).
-    pub trait AsWordMut: AsWords {
+    pub trait AsWordMut: AsWords + AsWordRef {
         /// As word (mutable).
         fn as_word_mut(&mut self) -> &mut Self::Wx;
     }
@@ -801,6 +846,20 @@ pub mod word {
         const LEN: usize = Any::LEN;
     }
 
+    impl<Any: AsWordExt> AsWordExt for &Any {
+        #[inline]
+        fn as_word_ext(&self) -> Self::Wx {
+            Any::as_word_ext(self)
+        }
+    }
+
+    impl<Any: AsWordExt> AsWordExt for &mut Any {
+        #[inline]
+        fn as_word_ext(&self) -> Self::Wx {
+            Any::as_word_ext(self)
+        }
+    }
+
     impl<Any: AsWordRef> AsWordRef for &Any {
         #[inline]
         fn as_word_ref(&self) -> &Self::Wx {
@@ -853,6 +912,101 @@ pub mod word {
     }
 
     impl<Any: AsWordsRef> AsWordsIter for Any {}
+}
+
+pub mod seq {
+    //! # Sequences
+    //!
+    //! For more info, see [module-level](crate::arch) and [crate-level](crate) documentation.
+
+    use super::*;
+
+    /// Index sequence.
+    pub struct Idx<const L: usize> {}
+
+    /// Morph sequence.
+    pub struct Morph<const L: usize, Seq: Sequence<L, Elem = V>, V, U, F: Fn(V) -> U> {
+        seq: Seq,
+        func: F,
+    }
+
+    /// Extension sequence.
+    pub struct Ext<W: AsWordRef + AsWordMut + AsWordExt>(W);
+
+    /// Sequence.
+    pub trait Sequence<const L: usize> {
+        /// Sequence elem.
+        type Elem;
+
+        /// Sequence iterator.
+        fn seq(self) -> impl Iterator<Item = Self::Elem>;
+
+        /// Sequence morphism.
+        #[inline]
+        fn with<T, F: Fn(Self::Elem) -> T>(self, func: F) -> Morph<L, Self, Self::Elem, T, F>
+        where
+            Self: Sized,
+        {
+            Morph { seq: self, func }
+        }
+    }
+
+    impl<const L: usize> Sequence<L> for Idx<L> {
+        type Elem = usize;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            0..L
+        }
+    }
+
+    impl<const L: usize, Seq: Sequence<L, Elem = V>, V, U, F: Fn(V) -> U> Sequence<L> for Morph<L, Seq, V, U, F> {
+        type Elem = U;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.seq.seq().map(self.func)
+        }
+    }
+
+    impl<const L: usize, T> Sequence<L> for [T; L] {
+        type Elem = T;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.into_iter()
+        }
+    }
+
+    impl<'seq, const L: usize, T> Sequence<L> for &'seq [T; L] {
+        type Elem = &'seq T;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.iter()
+        }
+    }
+
+    impl<'seq, const L: usize, T> Sequence<L> for &'seq mut [T; L] {
+        type Elem = &'seq mut T;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.iter_mut()
+        }
+    }
+
+    impl<const L: usize, W: AsWordRef + AsWordMut + AsWordExt> Sequence<L> for Ext<W> {
+        type Elem = W::Wx;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            let val = *self.0.as_word_ref();
+            let ext = self.0.as_word_ext();
+
+            (0..L).map(move |idx| if idx == 0 { val } else { ext })
+        }
+    }
 }
 
 pub mod codec {
