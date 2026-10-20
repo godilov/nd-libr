@@ -991,16 +991,16 @@ pub mod uops {
 
     /// Not iterator expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct NotIter<Words> {
-        /// Words of expression.
-        pub words: Words,
+    pub struct NotIter<Seq> {
+        /// Sequence of expression.
+        pub seq: Seq,
     }
 
     /// Direction iterator expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct DirvIter<Words> {
-        /// Words of expression.
-        pub words: Words,
+    pub struct DirvIter<Seq> {
+        /// Sequence of expression.
+        pub seq: Seq,
 
         /// Direction of expression.
         pub dir: Dir,
@@ -1041,16 +1041,16 @@ pub mod uops {
 
     /// Not value expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Not<Words> {
-        /// Words of expression.
-        pub words: Words,
+    pub struct Not<Seq> {
+        /// Sequence of expression.
+        pub seq: Seq,
     }
 
     /// Direction value expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Dirv<Words> {
-        /// Words of expression.
-        pub words: Words,
+    pub struct Dirv<Seq> {
+        /// Sequence of expression.
+        pub seq: Seq,
 
         /// Direction of expression.
         pub dir: Dir,
@@ -1058,9 +1058,9 @@ pub mod uops {
 
     /// Direction value (absolute) expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Dirx<Words> {
-        /// Words of expression.
-        pub words: Words,
+    pub struct Dirx<Seq> {
+        /// Sequence of expression.
+        pub seq: Seq,
 
         /// Direction of expression.
         pub dir: Dir,
@@ -1611,7 +1611,7 @@ pub mod uops {
         where
             Words: Iterator<Item = Single>,
         {
-            self.words.map(|word| !word)
+            self.seq.map(|word| !word)
         }
 
         /// Iterator for [`NotIter`] expression (mutable).
@@ -1620,7 +1620,7 @@ pub mod uops {
         where
             Words: Iterator<Item = &'words mut Single>,
         {
-            self.words.map(|word| {
+            self.seq.map(|word| {
                 *word = !*word;
                 word
             })
@@ -1647,7 +1647,7 @@ pub mod uops {
             };
 
             ExprIter {
-                lhs: self.words.map(move |word| word ^ xor),
+                lhs: self.seq.map(move |word| word ^ xor),
                 rhs: std::iter::repeat(0),
                 mul: 1,
                 acc,
@@ -1676,7 +1676,7 @@ pub mod uops {
             };
 
             ExprIterMut {
-                lhs: self.words.map(move |word| {
+                lhs: self.seq.map(move |word| {
                     *word ^= xor;
                     word
                 }),
@@ -1833,9 +1833,9 @@ pub mod uops {
         where
             Words: AsWordsRef<Wx: From<Single>>,
         {
-            let words = self.words.as_words_ref();
+            let words = self.seq.as_words_ref();
 
-            NotIter { words: words.iter().copied() }.iter()
+            NotIter { seq: words.iter().copied() }.iter()
         }
 
         /// Iterator for [`Not`] expression (mutable).
@@ -1844,9 +1844,9 @@ pub mod uops {
         where
             Words: AsWordsMut<Wx: From<Single>>,
         {
-            let words = self.words.as_words_mut();
+            let words = self.seq.as_words_mut();
 
-            NotIter { words: words.iter_mut() }.iter_mut()
+            NotIter { seq: words.iter_mut() }.iter_mut()
         }
     }
 
@@ -1864,7 +1864,7 @@ pub mod uops {
         where
             Words: AsWordsRef<Wx: From<Single>>,
         {
-            let words = self.words.as_words_ref();
+            let words = self.seq.as_words_ref();
             let len = words.len();
 
             let dir = self.dir;
@@ -1874,7 +1874,7 @@ pub mod uops {
             };
 
             DirvIter {
-                words: words.iter().copied(),
+                seq: words.iter().copied(),
                 dir,
             }
             .expr()
@@ -1900,7 +1900,7 @@ pub mod uops {
         where
             Words: AsWordsMut<Wx: From<Single>>,
         {
-            let words = self.words.as_words_mut();
+            let words = self.seq.as_words_mut();
             let len = words.len();
 
             let dir = self.dir;
@@ -1909,7 +1909,7 @@ pub mod uops {
                 Dir::NEG => Single::MAX,
             };
 
-            DirvIter { words: words.iter_mut(), dir }
+            DirvIter { seq: words.iter_mut(), dir }
                 .expr_mut()
                 .ctx((0, true), move |word, _, _, _, (idx, flag)| {
                     (
@@ -1935,7 +1935,7 @@ pub mod uops {
         where
             Words: AsWordsRef<Wx: From<Single>>,
         {
-            let words = self.words.as_words_ref();
+            let words = self.seq.as_words_ref();
             let dir = self.dir;
             let len = words.len();
 
@@ -1975,7 +1975,7 @@ pub mod uops {
         where
             Words: AsWordsMut<Wx: From<Single>>,
         {
-            let words = self.words.as_words_mut();
+            let words = self.seq.as_words_mut();
             let dir = self.dir;
             let len = words.len();
 
@@ -2705,14 +2705,14 @@ pub mod uops {
         fn eval_mut(mut self) -> &'words mut [Single; L] {
             self.iter_mut().for_each(|_| ());
 
-            self.words
+            self.seq
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
             self.iter_mut().for_each(|_| ());
 
-            (self.words, false)
+            (self.seq, false)
         }
     }
 
@@ -2733,14 +2733,14 @@ pub mod uops {
         fn eval_mut(mut self) -> &'words mut [Single; L] {
             self.expr_mut().raw().eval_mut();
 
-            self.words
+            self.seq
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
             let (_, overflow) = self.expr_mut().eval_ext_mut(|(_, flag)| flag);
 
-            (self.words, overflow)
+            (self.seq, overflow)
         }
     }
 
@@ -2761,14 +2761,14 @@ pub mod uops {
         fn eval_mut(mut self) -> &'words mut [Single; L] {
             self.expr_mut().raw().eval_mut();
 
-            self.words
+            self.seq
         }
 
         #[inline]
         fn eval_ext_mut(mut self) -> (&'words mut [Single; L], bool) {
             let (_, overflow) = self.expr_mut().eval_ext_mut(|(_, flag)| flag);
 
-            (self.words, overflow)
+            (self.seq, overflow)
         }
     }
 
@@ -3484,7 +3484,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn not_iter<Words>(words: Words) -> NotIter<Words> {
-        NotIter { words }
+        NotIter { seq: words }
     }
 
     /// Positive iterator expression.
@@ -3492,7 +3492,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn pos_iter<Words>(words: Words) -> DirvIter<Words> {
-        DirvIter { words, dir: Dir::POS }
+        DirvIter { seq: words, dir: Dir::POS }
     }
 
     /// Negative iterator expression.
@@ -3500,7 +3500,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn neg_iter<Words>(words: Words) -> DirvIter<Words> {
-        DirvIter { words, dir: Dir::NEG }
+        DirvIter { seq: words, dir: Dir::NEG }
     }
 
     /// Direction iterator expression.
@@ -3508,7 +3508,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn dirv_iter<Words>(words: Words, dir: Dir) -> DirvIter<Words> {
-        DirvIter { words, dir }
+        DirvIter { seq: words, dir }
     }
 
     /// Add iterators expression.
@@ -3577,7 +3577,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn not<Words>(words: Words) -> Not<Words> {
-        Not { words }
+        Not { seq: words }
     }
 
     /// Positive value expression.
@@ -3585,7 +3585,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn pos<Words>(words: Words) -> Dirv<Words> {
-        Dirv { words, dir: Dir::POS }
+        Dirv { seq: words, dir: Dir::POS }
     }
 
     /// Negative value expression.
@@ -3593,7 +3593,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn neg<Words>(words: Words) -> Dirv<Words> {
-        Dirv { words, dir: Dir::NEG }
+        Dirv { seq: words, dir: Dir::NEG }
     }
 
     /// Direction value expression.
@@ -3601,7 +3601,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn dirv<Words>(words: Words, dir: Dir) -> Dirv<Words> {
-        Dirv { words, dir }
+        Dirv { seq: words, dir }
     }
 
     /// Direction value (absolute) expression.
@@ -3609,7 +3609,7 @@ pub mod uops {
     /// Evaluated via [`Expr`] methods.
     #[inline]
     pub fn dirx<Words>(words: Words, dir: Dir) -> Dirx<Words> {
-        Dirx { words, dir }
+        Dirx { seq: words, dir }
     }
 
     /// Add expression.
