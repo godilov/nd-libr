@@ -925,13 +925,25 @@ pub mod seq {
     pub struct Idx<const L: usize> {}
 
     /// Morph sequence.
-    pub struct Morph<const L: usize, Seq: Sequence<L, Elem = V>, V, U, F: Fn(V) -> U> {
-        seq: Seq,
-        func: F,
+    pub struct Morph<const L: usize, Seq: Sequence<L>, Elem, F: Fn(Seq::Elem) -> Elem> {
+        /// Sequence.
+        pub seq: Seq,
+
+        /// Morphism.
+        pub func: F,
     }
 
     /// Extension sequence.
-    pub struct Ext<W: AsWordRef + AsWordMut + AsWordExt>(W);
+    pub struct Ext<const L: usize, Seq: Sequence<L>> {
+        /// Sequence.
+        pub seq: Seq,
+
+        /// Extension.
+        pub ext: Seq::Elem,
+    }
+
+    /// Words sequence.
+    pub struct Words<W: AsWordRef + AsWordExt>(W);
 
     /// Sequence.
     pub trait Sequence<const L: usize> {
@@ -943,7 +955,7 @@ pub mod seq {
 
         /// Sequence morphism.
         #[inline]
-        fn with<T, F: Fn(Self::Elem) -> T>(self, func: F) -> Morph<L, Self, Self::Elem, T, F>
+        fn with<Elem, F: Fn(Self::Elem) -> Elem>(self, func: F) -> Morph<L, Self, Elem, F>
         where
             Self: Sized,
         {
@@ -960,8 +972,17 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, Seq: Sequence<L, Elem = V>, V, U, F: Fn(V) -> U> Sequence<L> for Morph<L, Seq, V, U, F> {
-        type Elem = U;
+    impl<const L: usize, const N: usize, Seq: Sequence<L>> Sequence<N> for Ext<L, Seq> {
+        type Elem = Seq::Elem;
+
+        #[inline]
+        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+            self.seq.seq()
+        }
+    }
+
+    impl<const L: usize, Seq: Sequence<L>, Elem, F: Fn(Seq::Elem) -> Elem> Sequence<L> for Morph<L, Seq, Elem, F> {
+        type Elem = Elem;
 
         #[inline]
         fn seq(self) -> impl Iterator<Item = Self::Elem> {
@@ -996,7 +1017,7 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, W: AsWordRef + AsWordMut + AsWordExt> Sequence<L> for Ext<W> {
+    impl<const L: usize, W: AsWordRef + AsWordExt> Sequence<L> for Words<W> {
         type Elem = W::Wx;
 
         #[inline]
