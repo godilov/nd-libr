@@ -924,22 +924,25 @@ pub mod seq {
     /// Index sequence.
     pub struct Idx<const L: usize> {}
 
-    /// Morph sequence.
+    /// Extension sequence.
+    pub struct Ext<const L: usize, Seq: SequenceIdx<L>>
+    where
+        Seq::Elem: Copy,
+    {
+        /// Sequence.
+        pub seq: Seq,
+
+        /// Extension.
+        pub ext: Seq::Elem,
+    }
+
+    /// Morphism sequence.
     pub struct Morph<const L: usize, Seq: Sequence<L>, Elem, F: Fn(Seq::Elem) -> Elem> {
         /// Sequence.
         pub seq: Seq,
 
         /// Morphism.
         pub func: F,
-    }
-
-    /// Extension sequence.
-    pub struct Ext<const L: usize, Seq: Sequence<L>> {
-        /// Sequence.
-        pub seq: Seq,
-
-        /// Extension.
-        pub ext: Seq::Elem,
     }
 
     /// Words sequence.
@@ -951,7 +954,7 @@ pub mod seq {
         type Elem;
 
         /// Sequence iterator.
-        fn seq(self) -> impl Iterator<Item = Self::Elem>;
+        fn iter(self) -> impl Iterator<Item = Self::Elem>;
 
         /// Sequence morphism.
         #[inline]
@@ -963,21 +966,47 @@ pub mod seq {
         }
     }
 
+    /// Sequence index.
+    pub trait SequenceIdx<const L: usize>: Sequence<L> {
+        /// Sequence index.
+        fn idx(&self, idx: usize) -> Self::Elem;
+    }
+
     impl<const L: usize> Sequence<L> for Idx<L> {
         type Elem = usize;
 
         #[inline]
-        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
             0..L
         }
     }
 
-    impl<const L: usize, const N: usize, Seq: Sequence<L>> Sequence<N> for Ext<L, Seq> {
+    impl<const L: usize> SequenceIdx<L> for Idx<L> {
+        #[inline]
+        fn idx(&self, idx: usize) -> Self::Elem {
+            idx
+        }
+    }
+
+    impl<const L: usize, const N: usize, Seq: SequenceIdx<L>> Sequence<N> for Ext<L, Seq>
+    where
+        Seq::Elem: Copy,
+    {
         type Elem = Seq::Elem;
 
         #[inline]
-        fn seq(self) -> impl Iterator<Item = Self::Elem> {
-            self.seq.seq()
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
+            (0..N).map(move |idx| if idx < L { self.seq.idx(idx) } else { self.ext })
+        }
+    }
+
+    impl<const L: usize, const N: usize, Seq: SequenceIdx<L>> SequenceIdx<N> for Ext<L, Seq>
+    where
+        Seq::Elem: Copy,
+    {
+        #[inline]
+        fn idx(&self, idx: usize) -> Self::Elem {
+            if idx < L { self.seq.idx(idx) } else { self.ext }
         }
     }
 
@@ -985,8 +1014,18 @@ pub mod seq {
         type Elem = Elem;
 
         #[inline]
-        fn seq(self) -> impl Iterator<Item = Self::Elem> {
-            self.seq.seq().map(self.func)
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
+            self.seq.iter().map(self.func)
+        }
+    }
+
+    impl<const L: usize, Seq: SequenceIdx<L>, Elem, F: Fn(Seq::Elem) -> Elem> SequenceIdx<L> for Morph<L, Seq, Elem, F> {
+        #[inline]
+        fn idx(&self, idx: usize) -> Self::Elem {
+            let func = &self.func;
+            let val = self.seq.idx(idx);
+
+            func(val)
         }
     }
 
@@ -994,7 +1033,7 @@ pub mod seq {
         type Elem = T;
 
         #[inline]
-        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
             self.into_iter()
         }
     }
@@ -1003,8 +1042,8 @@ pub mod seq {
         type Elem = &'seq T;
 
         #[inline]
-        fn seq(self) -> impl Iterator<Item = Self::Elem> {
-            self.iter()
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
+            <[T]>::iter(self)
         }
     }
 
@@ -1012,8 +1051,8 @@ pub mod seq {
         type Elem = &'seq mut T;
 
         #[inline]
-        fn seq(self) -> impl Iterator<Item = Self::Elem> {
-            self.iter_mut()
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
+            <[T]>::iter_mut(self)
         }
     }
 
@@ -1021,7 +1060,7 @@ pub mod seq {
         type Elem = W::Wx;
 
         #[inline]
-        fn seq(self) -> impl Iterator<Item = Self::Elem> {
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
             let val = *self.0.as_word_ref();
             let ext = self.0.as_word_ext();
 
