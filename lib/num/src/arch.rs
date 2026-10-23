@@ -946,6 +946,15 @@ pub mod seq {
         pub func: F,
     }
 
+    /// Extension sequence.
+    pub struct Ext<Slice: AsRef<[Elem]>, Elem: Copy> {
+        /// Slice.
+        pub slice: Slice,
+
+        /// Extension.
+        pub ext: Elem,
+    }
+
     /// Words sequence.
     pub struct Words<W: AsWord>(W);
 
@@ -1012,6 +1021,21 @@ pub mod seq {
         }
     }
 
+    impl<const L: usize, Slice: AsRef<[Elem]>, Elem: Copy> Sequence<L> for Ext<Slice, Elem> {
+        type Elem = Elem;
+
+        #[inline]
+        fn iter(self) -> impl Iterator<Item = Self::Elem> {
+            let slice = self.slice;
+            let ext = self.ext;
+
+            (0..L).map(move |idx| match idx < slice.as_ref().len() {
+                true => slice.as_ref()[idx],
+                false => ext,
+            })
+        }
+    }
+
     impl<const L: usize, W: AsWord> Sequence<L> for Words<W> {
         type Elem = W::Wx;
 
@@ -1020,7 +1044,10 @@ pub mod seq {
             let val = self.0.as_word();
             let ext = self.0.as_word_ext();
 
-            (0..L).map(move |idx| if idx == 0 { val } else { ext })
+            (0..L).map(move |idx| match idx == 0 {
+                true => val,
+                false => ext,
+            })
         }
     }
 }
