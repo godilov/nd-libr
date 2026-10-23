@@ -92,6 +92,13 @@ macro_rules! word_ext {
         $(word_ext!(@mut $primitive);)+
     };
     ($primitive:ty $(,)?) => {
+        impl AsWord for $primitive {
+            #[inline]
+            fn as_word(&self) -> Self::Wx {
+                *self as Self::Wx
+            }
+        }
+
         impl AsWordExt for $primitive {
             #[inline]
             fn as_word_ext(&self) -> Self::Wx {
@@ -666,13 +673,10 @@ pub mod word {
         const LEN: usize;
     }
 
-    /// As word extension.
-    pub trait AsWordExt: AsWords {
-        /// As word extension.
-        #[inline]
-        fn as_word_ext(&self) -> Self::Wx {
-            Self::Wx::ZERO
-        }
+    /// As word.
+    pub trait AsWord: AsWordRef + AsWordMut + AsWordExt {
+        /// As word.
+        fn as_word(&self) -> Self::Wx;
     }
 
     /// As word (reference).
@@ -685,6 +689,15 @@ pub mod word {
     pub trait AsWordMut: AsWords + AsWordRef {
         /// As word (mutable).
         fn as_word_mut(&mut self) -> &mut Self::Wx;
+    }
+
+    /// As word extension.
+    pub trait AsWordExt: AsWords {
+        /// As word extension.
+        #[inline]
+        fn as_word_ext(&self) -> Self::Wx {
+            Self::Wx::ZERO
+        }
     }
 
     /// As words slice (reference).
@@ -922,19 +935,7 @@ pub mod seq {
     use super::*;
 
     /// Index sequence.
-    pub struct Idx<const L: usize> {}
-
-    /// Extension sequence.
-    pub struct Ext<const L: usize, Seq: SequenceIdx<L>>
-    where
-        Seq::Elem: Copy,
-    {
-        /// Sequence.
-        pub seq: Seq,
-
-        /// Extension.
-        pub ext: Seq::Elem,
-    }
+    pub struct Index<const L: usize> {}
 
     /// Morphism sequence.
     pub struct Morph<const L: usize, Seq: Sequence<L>, Elem, F: Fn(Seq::Elem) -> Elem> {
@@ -946,7 +947,7 @@ pub mod seq {
     }
 
     /// Words sequence.
-    pub struct Words<W: AsWordRef + AsWordExt>(W);
+    pub struct Words<W: AsWord>(W);
 
     /// Sequence.
     pub trait Sequence<const L: usize> {
@@ -966,47 +967,12 @@ pub mod seq {
         }
     }
 
-    /// Sequence index.
-    pub trait SequenceIdx<const L: usize>: Sequence<L> {
-        /// Sequence index.
-        fn idx(&self, idx: usize) -> Self::Elem;
-    }
-
-    impl<const L: usize> Sequence<L> for Idx<L> {
+    impl<const L: usize> Sequence<L> for Index<L> {
         type Elem = usize;
 
         #[inline]
         fn iter(self) -> impl Iterator<Item = Self::Elem> {
             0..L
-        }
-    }
-
-    impl<const L: usize> SequenceIdx<L> for Idx<L> {
-        #[inline]
-        fn idx(&self, idx: usize) -> Self::Elem {
-            idx
-        }
-    }
-
-    impl<const L: usize, const N: usize, Seq: SequenceIdx<L>> Sequence<N> for Ext<L, Seq>
-    where
-        Seq::Elem: Copy,
-    {
-        type Elem = Seq::Elem;
-
-        #[inline]
-        fn iter(self) -> impl Iterator<Item = Self::Elem> {
-            (0..N).map(move |idx| if idx < L { self.seq.idx(idx) } else { self.ext })
-        }
-    }
-
-    impl<const L: usize, const N: usize, Seq: SequenceIdx<L>> SequenceIdx<N> for Ext<L, Seq>
-    where
-        Seq::Elem: Copy,
-    {
-        #[inline]
-        fn idx(&self, idx: usize) -> Self::Elem {
-            if idx < L { self.seq.idx(idx) } else { self.ext }
         }
     }
 
@@ -1016,16 +982,6 @@ pub mod seq {
         #[inline]
         fn iter(self) -> impl Iterator<Item = Self::Elem> {
             self.seq.iter().map(self.func)
-        }
-    }
-
-    impl<const L: usize, Seq: SequenceIdx<L>, Elem, F: Fn(Seq::Elem) -> Elem> SequenceIdx<L> for Morph<L, Seq, Elem, F> {
-        #[inline]
-        fn idx(&self, idx: usize) -> Self::Elem {
-            let func = &self.func;
-            let val = self.seq.idx(idx);
-
-            func(val)
         }
     }
 
@@ -1056,12 +1012,12 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, W: AsWordRef + AsWordExt> Sequence<L> for Words<W> {
+    impl<const L: usize, W: AsWord> Sequence<L> for Words<W> {
         type Elem = W::Wx;
 
         #[inline]
         fn iter(self) -> impl Iterator<Item = Self::Elem> {
-            let val = *self.0.as_word_ref();
+            let val = self.0.as_word();
             let ext = self.0.as_word_ext();
 
             (0..L).map(move |idx| if idx == 0 { val } else { ext })
