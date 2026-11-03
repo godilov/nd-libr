@@ -37,20 +37,7 @@ macro_rules! aligned_impl {
 }
 
 macro_rules! word_def {
-    (($half:ty, $single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
-        /// Half CPU-word unsigned primitive (at least).
-        ///
-        /// # Examples
-        ///
-        /// ```rust
-        /// # use std::mem::size_of;
-        /// # use ndnum::arch::word::*;
-        /// assert_eq!(size_of::<Half>(), size_of::<usize>() / 2);
-        /// ```
-        ///
-        /// For more info, see [module-level](crate::arch::word) and [crate-level](crate) documentation.
-        pub type Half = $half;
-
+    (($single:ty, $double:ty), { $($tokens:tt)* } $(,)?) => {
         /// Single CPU-word unsigned primitive.
         ///
         /// # Examples
@@ -284,12 +271,15 @@ pub mod word {
 
     #[rustfmt::skip]
     #[cfg(all(target_pointer_width = "64", not(test)))]
-    word_def!((u32, u64, u128), {
+    word_def!((u64, u128), {
         word_impl!([u8, u16, u32, u64, usize]);
 
-        word_ext!(     [u8, u16, u32, u64, usize, i8, i16, i32, i64, isize]);
-        word_ext!(@ref [u8, u16, u32, u64, usize, i8, i16, i32, i64, isize]);
-        word_ext!(@mut [u8, u16, u32, u64, usize, i8, i16, i32, i64, isize]);
+        word_ext!(     [u8, u16, u32, u64, usize]);
+        word_ext!(     [i8, i16, i32, i64, isize]);
+        word_ext!(@ref [u8, u16, u32, u64, usize]);
+        word_ext!(@ref [i8, i16, i32, i64, isize]);
+        word_ext!(@mut [u8, u16, u32, u64, usize]);
+        word_ext!(@mut [i8, i16, i32, i64, isize]);
 
         impl AsWords for    u8 { type Wx =  u8; }
         impl AsWords for   u16 { type Wx = u16; }
@@ -364,12 +354,15 @@ pub mod word {
 
     #[rustfmt::skip]
     #[cfg(all(target_pointer_width = "32", not(test)))]
-    word_def!((u16, u32, u64), {
+    word_def!((u32, u64), {
         word_impl!([u8, u16, u32, usize]);
 
-        word_ext!(     [u8, u16, u32, usize, i8, i16, i32, isize]);
-        word_ext!(@ref [u8, u16, u32, usize, i8, i16, i32, isize]);
-        word_ext!(@mut [u8, u16, u32, usize, i8, i16, i32, isize]);
+        word_ext!(     [u8, u16, u32, usize]);
+        word_ext!(     [i8, i16, i32, isize]);
+        word_ext!(@ref [u8, u16, u32, usize]);
+        word_ext!(@ref [i8, i16, i32, isize]);
+        word_ext!(@mut [u8, u16, u32, usize]);
+        word_ext!(@mut [i8, i16, i32, isize]);
 
         impl AsWords for    u8 { type Wx =  u8; }
         impl AsWords for   u16 { type Wx = u16; }
@@ -444,7 +437,7 @@ pub mod word {
 
     #[rustfmt::skip]
     #[cfg(test)]
-    word_def!((u8, u8, u16), {
+    word_def!((u8, u16), {
         word_impl!([u8]);
 
         word_ext!(     [u8, i8]);
@@ -521,6 +514,15 @@ pub mod word {
         impl<const L: usize> AsWordsLen for [ i128; L] { const LEN: usize = 16 * L; }
         impl<const L: usize> AsWordsLen for [isize; L] { const LEN: usize =  8 * L; }
     });
+
+    /// Add SIMD CPU-word unsigned primitive.
+    pub type AddSimd = u8;
+
+    /// Sub SIMD CPU-word unsigned primitive.
+    pub type SubSimd = u8;
+
+    /// Mul SIMD CPU-word unsigned primitive.
+    pub type MulSimd = u8;
 
     /// Words error.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
