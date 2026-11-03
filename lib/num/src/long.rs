@@ -992,47 +992,47 @@ pub mod uops {
     /// Not iterator expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct NotIter<Seq> {
-        /// Sequence of expression.
+        /// Expression sequence.
         pub seq: Seq,
     }
 
     /// Direction iterator expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct DirvIter<Seq> {
-        /// Sequence of expression.
+        /// Expression sequence.
         pub seq: Seq,
 
-        /// Direction of expression.
+        /// Expression direction.
         pub dir: Dir,
     }
 
     /// Add iterators expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct AddIter<Lhs, Rhs> {
-        /// Lhs in `lhs + rhs`, `lhs += rhs`.
+        /// Lhs iterator in `lhs + rhs`, `lhs += rhs`.
         pub lhs: Lhs,
 
-        /// Rhs in `lhs + rhs`, `lhs += rhs`.
+        /// Rhs iterator in `lhs + rhs`, `lhs += rhs`.
         pub rhs: Rhs,
     }
 
     /// Sub iterators expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct SubIter<Lhs, Rhs> {
-        /// Lhs in `lhs - rhs`, `lhs -= rhs`.
+        /// Lhs iterator in `lhs - rhs`, `lhs -= rhs`.
         pub lhs: Lhs,
 
-        /// Rhs in `lhs - rhs`, `lhs -= rhs`.
+        /// Rhs iterator in `lhs - rhs`, `lhs -= rhs`.
         pub rhs: Rhs,
     }
 
     /// Bit-wise iterator expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct BitIter<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
-        /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        /// Lhs iterator in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
         pub lhs: Lhs,
 
-        /// Rhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        /// Rhs iterator in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
         pub rhs: Rhs,
 
         /// Bit-wise operation.
@@ -1042,37 +1042,37 @@ pub mod uops {
     /// Not value expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Not<Seq> {
-        /// Sequence of expression.
+        /// Expression sequence.
         pub seq: Seq,
     }
 
     /// Direction value expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Dirv<Seq> {
-        /// Sequence of expression.
+        /// Expression sequence.
         pub seq: Seq,
 
-        /// Direction of expression.
+        /// Expression direction.
         pub dir: Dir,
     }
 
     /// Direction value (absolute) expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Dirx<Seq> {
-        /// Sequence of expression.
+        /// Expression sequence.
         pub seq: Seq,
 
-        /// Direction of expression.
+        /// Expression direction.
         pub dir: Dir,
     }
 
     /// Add expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Add<Lhs, Rhs, Impl> {
-        /// Lhs in `lhs + rhs`, `lhs += rhs`.
+        /// Lhs sequence in `lhs + rhs`, `lhs += rhs`.
         pub lhs: Lhs,
 
-        /// Rhs in `lhs + rhs`, `lhs += rhs`.
+        /// Rhs sequence in `lhs + rhs`, `lhs += rhs`.
         pub rhs: Rhs,
 
         /// Implementation: [`SignedImpl`], [`UnsignedImpl`].
@@ -1082,10 +1082,10 @@ pub mod uops {
     /// Sub expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Sub<Lhs, Rhs, Impl> {
-        /// Lhs in `lhs - rhs`, `lhs -= rhs`.
+        /// Lhs sequence in `lhs - rhs`, `lhs -= rhs`.
         pub lhs: Lhs,
 
-        /// Rhs in `lhs - rhs`, `lhs -= rhs`.
+        /// Rhs sequence in `lhs - rhs`, `lhs -= rhs`.
         pub rhs: Rhs,
 
         /// Implementation: [`SignedImpl`], [`UnsignedImpl`].
@@ -1095,7 +1095,7 @@ pub mod uops {
     /// Mul expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Mul<Lhs, Rhs> {
-        /// Lhs in `lhs * rhs`, `lhs *= rhs`.
+        /// Lhs sequence in `lhs * rhs`, `lhs *= rhs`.
         pub lhs: Lhs,
 
         /// Rhs in `lhs * rhs`, `lhs *= rhs`.
@@ -1105,10 +1105,10 @@ pub mod uops {
     /// Bit-wise expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Bit<Lhs, Rhs, F: Fn(Single, Single) -> Single> {
-        /// Lhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        /// Lhs sequence in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
         pub lhs: Lhs,
 
-        /// Rhs in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
+        /// Rhs sequence in `lhs | rhs`, `lhs |= rhs`, `lhs & rhs`, `lhs &= rhs`, `lhs ^ rhs`, `lhs ^= rhs`.
         pub rhs: Rhs,
 
         /// Bit-wise operation.
@@ -1118,7 +1118,7 @@ pub mod uops {
     /// Shl expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Shl<Words> {
-        /// Lhs in `lhs << rhs`, `lhs <<= rhs`
+        /// Lhs sequence in `lhs << rhs`, `lhs <<= rhs`
         pub words: Words,
 
         /// Rhs in `lhs << rhs`, `lhs <<= rhs`
@@ -1131,7 +1131,7 @@ pub mod uops {
     /// Shr expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Shr<Words> {
-        /// Lhs in `lhs >> rhs`, `lhs >>= rhs`
+        /// Lhs sequence in `lhs >> rhs`, `lhs >>= rhs`
         pub words: Words,
 
         /// Rhs in `lhs >> rhs`, `lhs >>= rhs`

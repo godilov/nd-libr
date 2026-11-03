@@ -935,10 +935,12 @@ pub mod seq {
     use super::*;
 
     /// Index sequence.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Index<const L: usize> {}
 
     /// Morphism sequence.
-    pub struct Morph<const L: usize, Seq: Sequence<L>, Elem, F: Fn(Seq::Elem) -> Elem> {
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct Morph<const L: usize, Seq: SequenceIter<L>, Elem, F: Fn(Seq::Elem) -> Elem> {
         /// Sequence.
         pub seq: Seq,
 
@@ -947,6 +949,7 @@ pub mod seq {
     }
 
     /// Extension sequence.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Ext<Slice: AsRef<[Elem]>, Elem: Copy> {
         /// Slice.
         pub slice: Slice,
@@ -956,10 +959,14 @@ pub mod seq {
     }
 
     /// Words sequence.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct Words<W: AsWord>(W);
 
     /// Sequence.
-    pub trait Sequence<const L: usize> {
+    pub trait Sequence<const L: usize> {}
+
+    /// Sequence iterator.
+    pub trait SequenceIter<const L: usize>: Sequence<L> {
         /// Sequence elem.
         type Elem;
 
@@ -976,7 +983,15 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize> Sequence<L> for Index<L> {
+    /// Sequence index (reference).
+    pub trait SequenceRef<const L: usize>: Sequence<L> {}
+
+    /// Sequence index (mutable).
+    pub trait SequenceMut<const L: usize>: Sequence<L> {}
+
+    impl<const L: usize> Sequence<L> for Index<L> {}
+
+    impl<const L: usize> SequenceIter<L> for Index<L> {
         type Elem = usize;
 
         #[inline]
@@ -985,7 +1000,9 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, Seq: Sequence<L>, Elem, F: Fn(Seq::Elem) -> Elem> Sequence<L> for Morph<L, Seq, Elem, F> {
+    impl<const L: usize, Seq: SequenceIter<L>, Elem, F: Fn(Seq::Elem) -> Elem> Sequence<L> for Morph<L, Seq, Elem, F> {}
+
+    impl<const L: usize, Seq: SequenceIter<L>, Elem, F: Fn(Seq::Elem) -> Elem> SequenceIter<L> for Morph<L, Seq, Elem, F> {
         type Elem = Elem;
 
         #[inline]
@@ -994,7 +1011,9 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, T> Sequence<L> for [T; L] {
+    impl<const L: usize, T> Sequence<L> for [T; L] {}
+
+    impl<const L: usize, T> SequenceIter<L> for [T; L] {
         type Elem = T;
 
         #[inline]
@@ -1003,7 +1022,9 @@ pub mod seq {
         }
     }
 
-    impl<'seq, const L: usize, T> Sequence<L> for &'seq [T; L] {
+    impl<const L: usize, T> Sequence<L> for &[T; L] {}
+
+    impl<'seq, const L: usize, T> SequenceIter<L> for &'seq [T; L] {
         type Elem = &'seq T;
 
         #[inline]
@@ -1012,7 +1033,9 @@ pub mod seq {
         }
     }
 
-    impl<'seq, const L: usize, T> Sequence<L> for &'seq mut [T; L] {
+    impl<const L: usize, T> Sequence<L> for &mut [T; L] {}
+
+    impl<'seq, const L: usize, T> SequenceIter<L> for &'seq mut [T; L] {
         type Elem = &'seq mut T;
 
         #[inline]
@@ -1021,7 +1044,9 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, Slice: AsRef<[Elem]>, Elem: Copy> Sequence<L> for Ext<Slice, Elem> {
+    impl<const L: usize, Slice: AsRef<[Elem]>, Elem: Copy> Sequence<L> for Ext<Slice, Elem> {}
+
+    impl<const L: usize, Slice: AsRef<[Elem]>, Elem: Copy> SequenceIter<L> for Ext<Slice, Elem> {
         type Elem = Elem;
 
         #[inline]
@@ -1036,7 +1061,9 @@ pub mod seq {
         }
     }
 
-    impl<const L: usize, W: AsWord> Sequence<L> for Words<W> {
+    impl<const L: usize, W: AsWord> Sequence<L> for Words<W> {}
+
+    impl<const L: usize, W: AsWord> SequenceIter<L> for Words<W> {
         type Elem = W::Wx;
 
         #[inline]
