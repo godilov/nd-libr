@@ -981,11 +981,11 @@ pub mod uops {
         pub ctx_func: CtxFn,
     }
 
-    /// Signed expression implementation marker.
+    /// Signed expression implementation type-marker.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct SignedImpl;
 
-    /// Unsigned expression implementation marker.
+    /// Unsigned expression implementation type-marker.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct UnsignedImpl;
 
@@ -1095,7 +1095,7 @@ pub mod uops {
     /// Mul expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Mul<Lhs, Rhs> {
-        /// Lhs sequence in `lhs * rhs`, `lhs *= rhs`.
+        /// Lhs in `lhs * rhs`, `lhs *= rhs`.
         pub lhs: Lhs,
 
         /// Rhs in `lhs * rhs`, `lhs *= rhs`.
@@ -1118,7 +1118,7 @@ pub mod uops {
     /// Shl expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Shl<Words> {
-        /// Lhs sequence in `lhs << rhs`, `lhs <<= rhs`
+        /// Lhs in `lhs << rhs`, `lhs <<= rhs`
         pub words: Words,
 
         /// Rhs in `lhs << rhs`, `lhs <<= rhs`
@@ -1131,7 +1131,7 @@ pub mod uops {
     /// Shr expression.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct Shr<Words> {
-        /// Lhs sequence in `lhs >> rhs`, `lhs >>= rhs`
+        /// Lhs in `lhs >> rhs`, `lhs >>= rhs`
         pub words: Words,
 
         /// Rhs in `lhs >> rhs`, `lhs >>= rhs`
