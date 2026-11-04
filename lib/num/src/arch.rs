@@ -675,10 +675,13 @@ pub mod word {
         const LEN: usize;
     }
 
-    /// As word.
-    pub trait AsWord: AsWordRef + AsWordMut + AsWordExt {
-        /// As word.
-        fn as_word(&self) -> Self::Wx;
+    /// As word extension.
+    pub trait AsWordExt: AsWords {
+        /// As word extension.
+        #[inline]
+        fn as_word_ext(&self) -> Self::Wx {
+            Self::Wx::ZERO
+        }
     }
 
     /// As word (reference).
@@ -693,13 +696,10 @@ pub mod word {
         fn as_word_mut(&mut self) -> &mut Self::Wx;
     }
 
-    /// As word extension.
-    pub trait AsWordExt: AsWords {
-        /// As word extension.
-        #[inline]
-        fn as_word_ext(&self) -> Self::Wx {
-            Self::Wx::ZERO
-        }
+    /// As word.
+    pub trait AsWord: AsWordRef + AsWordMut + AsWordExt {
+        /// As word.
+        fn as_word(&self) -> Self::Wx;
     }
 
     /// As words slice (reference).
