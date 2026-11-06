@@ -835,8 +835,6 @@ pub mod word {
             Self::Wx: From<W>;
     }
 
-    // self.0.as_array_ref::<Words::Wx, Words::LEN>()
-
     /// As words array (mutable, dyn).
     #[ndfwd::decl]
     pub trait AsArrayDynMut: AsWordsLen + AsWordsMut + AsArrayDynRef {
