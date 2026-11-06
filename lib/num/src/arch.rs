@@ -189,16 +189,16 @@ macro_rules! words_impl {
             }
         }
 
-        impl AsArrayRef for $primitive {
+        impl AsArrayDynRef for $primitive {
             #[inline]
-            fn as_array_ref<W: Word, const L: usize>(&self) -> &[W; L] where Self::Wx: From<W> {
+            fn as_array_dyn_ref<W: Word, const L: usize>(&self) -> &[W; L] where Self::Wx: From<W> {
                 transmute_ref!(self)
             }
         }
 
-        impl AsArrayMut for $primitive {
+        impl AsArrayDynMut for $primitive {
             #[inline]
-            fn as_array_mut<W: Word, const L: usize>(&mut self) -> &mut [W; L] where Self::Wx: From<W> {
+            fn as_array_dyn_mut<W: Word, const L: usize>(&mut self) -> &mut [W; L] where Self::Wx: From<W> {
                 transmute_mut!(self)
             }
         }
@@ -231,16 +231,16 @@ macro_rules! words_impl {
             }
         }
 
-        impl<const L: usize> AsArrayRef for [$primitive; L] {
+        impl<const L: usize> AsArrayDynRef for [$primitive; L] {
             #[inline]
-            fn as_array_ref<W: Word, const N: usize>(&self) -> &[W; N] where Self::Wx: From<W> {
+            fn as_array_dyn_ref<W: Word, const N: usize>(&self) -> &[W; N] where Self::Wx: From<W> {
                 transmute_ref!(self)
             }
         }
 
-        impl<const L: usize> AsArrayMut for [$primitive; L] {
+        impl<const L: usize> AsArrayDynMut for [$primitive; L] {
             #[inline]
-            fn as_array_mut<W: Word, const N: usize>(&mut self) -> &mut [W; N] where Self::Wx: From<W> {
+            fn as_array_dyn_mut<W: Word, const N: usize>(&mut self) -> &mut [W; N] where Self::Wx: From<W> {
                 transmute_mut!(self)
             }
         }
@@ -804,26 +804,40 @@ pub mod word {
 
     /// As words array (reference).
     #[ndfwd::decl]
-    pub trait AsArrayRef: AsWordsLen + AsWordsRef {
+    pub trait AsArrayRef<W: Word, const L: usize>: AsWordsLen + AsWordsRef {
         /// As words array (reference).
-        ///
-        /// Condition: `Bytes::<W>() * L == Bytes::<Self::Wx>() * Self::LEN`.
-        ///
-        /// Template: `expr.as_array_ref::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
-        fn as_array_ref<W: Word, const L: usize>(&self) -> &[W; L]
-        where
-            Self::Wx: From<W>;
+        fn as_array_ref(&self) -> &[W; L];
     }
 
     /// As words array (mutable).
     #[ndfwd::decl]
-    pub trait AsArrayMut: AsWordsLen + AsWordsMut + AsArrayRef {
+    pub trait AsArrayMut<W: Word, const L: usize>: AsWordsLen + AsWordsRef + AsArrayRef<W, L> {
         /// As words array (mutable).
+        fn as_array_mut(&mut self) -> &mut [W; L];
+    }
+
+    /// As words array (reference, dyn).
+    #[ndfwd::decl]
+    pub trait AsArrayDynRef: AsWordsLen + AsWordsRef {
+        /// As words array (reference, dyn).
+        ///
+        /// Condition: `Bytes::<W>() * L == Bytes::<Self::Wx>() * Self::LEN`.
+        ///
+        /// Template: `expr.as_array_ref::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
+        fn as_array_dyn_ref<W: Word, const L: usize>(&self) -> &[W; L]
+        where
+            Self::Wx: From<W>;
+    }
+
+    /// As words array (mutable, dyn).
+    #[ndfwd::decl]
+    pub trait AsArrayDynMut: AsWordsLen + AsWordsMut + AsArrayDynRef {
+        /// As words array (mutable, dyn).
         ///
         /// Condition: `Bytes::<W>() * L == Bytes::<Self::Wx>() * Self::LEN`.
         ///
         /// Template: `expr.as_array_mut::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
-        fn as_array_mut<W: Word, const L: usize>(&mut self) -> &mut [W; L]
+        fn as_array_dyn_mut<W: Word, const L: usize>(&mut self) -> &mut [W; L]
         where
             Self::Wx: From<W>;
     }
@@ -1486,8 +1500,8 @@ pub mod codec {
 #[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayRef where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayMut where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
@@ -1548,8 +1562,8 @@ pub struct Aligned<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayRef where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayMut where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
@@ -1603,8 +1617,8 @@ pub struct Aligned32<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayRef where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayMut where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
@@ -1658,8 +1672,8 @@ pub struct Aligned64<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayRef where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayMut where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
@@ -1727,8 +1741,8 @@ pub struct Aligned128<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayRef where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayMut where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
@@ -1811,8 +1825,8 @@ pub struct AlignedSimd<T>(pub T);
 #[ndfwd::def(self.0 with T: AsWordsLen)]
 #[ndfwd::def(self.0 with T: AsWordsRef where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: AsWordsMut where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayRef where Self: AsWords<Wx = T::Wx>)]
-#[ndfwd::def(self.0 with T: AsArrayMut where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynRef where Self: AsWords<Wx = T::Wx>)]
+#[ndfwd::def(self.0 with T: AsArrayDynMut where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: Rand)]
 #[ndfwd::def(self.0 with T: codec::Encode where Self: AsWords<Wx = T::Wx>)]
 #[ndfwd::def(self.0 with T: codec::Decode where Self: AsWords<Wx = T::Wx>)]
