@@ -804,14 +804,20 @@ pub mod word {
 
     /// As words array (reference).
     #[ndfwd::decl]
-    pub trait AsArrayRef<W: Word, const L: usize>: AsWordsLen + AsWordsRef {
+    pub trait AsArrayRef<W: Word, const L: usize>: AsWordsLen + AsWordsRef + AsArrayDynRef
+    where
+        Self::Wx: From<W>,
+    {
         /// As words array (reference).
         fn as_array_ref(&self) -> &[W; L];
     }
 
     /// As words array (mutable).
     #[ndfwd::decl]
-    pub trait AsArrayMut<W: Word, const L: usize>: AsWordsLen + AsWordsRef + AsArrayRef<W, L> {
+    pub trait AsArrayMut<W: Word, const L: usize>: AsWordsLen + AsWordsMut + AsArrayDynMut + AsArrayRef<W, L>
+    where
+        Self::Wx: From<W>,
+    {
         /// As words array (mutable).
         fn as_array_mut(&mut self) -> &mut [W; L];
     }
@@ -823,11 +829,13 @@ pub mod word {
         ///
         /// Condition: `Bytes::<W>() * L == Bytes::<Self::Wx>() * Self::LEN`.
         ///
-        /// Template: `expr.as_array_ref::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
+        /// Template: `expr.as_array_dyn_ref::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
         fn as_array_dyn_ref<W: Word, const L: usize>(&self) -> &[W; L]
         where
             Self::Wx: From<W>;
     }
+
+    // self.0.as_array_ref::<Words::Wx, Words::LEN>()
 
     /// As words array (mutable, dyn).
     #[ndfwd::decl]
@@ -836,7 +844,7 @@ pub mod word {
         ///
         /// Condition: `Bytes::<W>() * L == Bytes::<Self::Wx>() * Self::LEN`.
         ///
-        /// Template: `expr.as_array_mut::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
+        /// Template: `expr.as_array_dyn_mut::<W, { <Expr as AsWordsLen>::LEN * <Expr as AsWords>::Wx::BYTES / W::BYTES }>()`.
         fn as_array_dyn_mut<W: Word, const L: usize>(&mut self) -> &mut [W; L]
         where
             Self::Wx: From<W>;
