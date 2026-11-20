@@ -284,6 +284,22 @@ pub fn iter(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
+/// Zero-boilerplate any (ref/mut) forwarding.
+#[proc_macro_attribute]
+pub fn any(attr: TokenStreamStd, any: TokenStreamStd) -> TokenStreamStd {
+    let any = parse_macro_input!(any as FwdAny);
+    let attr = parse_macro_input!(attr as FwdAnyAttr);
+
+    let impls = [any.quote(&attr), any.quote_ref(&attr), any.quote_mut(&attr)];
+
+    quote! {
+        #any
+
+        #(#impls)*
+    }
+    .into()
+}
+
 /// Zero-boilerplate user traits forwarding declaration.
 ///
 /// Declares forwardable trait.
@@ -640,6 +656,16 @@ enum FwdType {
     Union(ItemUnion),
 }
 
+struct FwdAny {
+    decl: ItemTrait,
+}
+
+enum FwdAnyAttr {
+    Raw,
+    Ref,
+    Mut,
+}
+
 enum FwdDecl {
     Trait(ItemTrait),
 }
@@ -674,7 +700,6 @@ enum FwdDeclArgExpr {
     Alt(TokenStream),
 }
 
-#[allow(unused)]
 struct FwdDeclAttr {
     dbg: Option<kw::dbg>,
 }
@@ -721,6 +746,36 @@ impl Parse for FwdType {
             Item::Enum(val) => Ok(Self::Enum(val)),
             Item::Union(val) => Ok(Self::Union(val)),
             _ => Err(input.error("Failed to find correct item, expected struct, enum or union")),
+        }
+    }
+}
+
+impl Parse for FwdAny {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            decl: input.parse::<ItemTrait>()?,
+        })
+    }
+}
+
+impl Parse for FwdAnyAttr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.is_empty() {
+            return Ok(Self::Raw);
+        }
+
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Token![ref]) {
+            input.parse::<Token![ref]>()?;
+
+            Ok(Self::Ref)
+        } else if lookahead.peek(Token![mut]) {
+            input.parse::<Token![mut]>()?;
+
+            Ok(Self::Mut)
+        } else {
+            Err(lookahead.error())
         }
     }
 }
@@ -826,6 +881,12 @@ impl ToTokens for FwdType {
             FwdType::Enum(val) => val.to_tokens(tokens),
             FwdType::Union(val) => val.to_tokens(tokens),
         }
+    }
+}
+
+impl ToTokens for FwdAny {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.decl.to_tokens(tokens);
     }
 }
 
@@ -1179,6 +1240,36 @@ impl FwdType {
                 }
             },
         }
+    }
+}
+
+impl FwdAny {
+    fn quote(&self, _: &FwdAnyAttr) -> TokenStream {
+        let decl = &self.decl;
+
+        let ident = &decl.ident;
+        let supertraits = decl.supertraits.iter();
+        let gen_params = decl.generics.params.iter();
+        let (_, gen_type, gen_where) = decl.generics.split_for_impl();
+
+        let gen_params = quote! { #(#gen_params,)* };
+
+        let gen_where = match gen_where.map(|val| val.predicates.iter()) {
+            Some(val) => quote! { where Any: #(#supertraits)+*, #(#val,)* },
+            None => quote! { where Any: #(#supertraits)+*, },
+        };
+
+        quote! {
+            impl<#gen_params, Any: #ident #gen_type> #ident #gen_type for Any #gen_where {}
+        }
+    }
+
+    fn quote_ref(&self, attr: &FwdAnyAttr) -> TokenStream {
+        quote! {}
+    }
+
+    fn quote_mut(&self, attr: &FwdAnyAttr) -> TokenStream {
+        quote! {}
     }
 }
 
