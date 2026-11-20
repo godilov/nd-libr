@@ -13,6 +13,7 @@ use syn::{
 };
 
 mod kw {
+    syn::custom_keyword!(any);
     syn::custom_keyword!(dbg);
     syn::custom_keyword!(with);
 }
@@ -284,25 +285,6 @@ pub fn iter(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Zero-boilerplate any (ref/mut) forwarding.
-#[proc_macro_attribute]
-pub fn any(attr: TokenStreamStd, any: TokenStreamStd) -> TokenStreamStd {
-    let any = parse_macro_input!(any as FwdAny);
-    let attr = parse_macro_input!(attr as FwdAnyAttr);
-
-    let quote = match attr {
-        FwdAnyAttr::Raw => any.quote(&attr),
-        FwdAnyAttr::Ref(_) => any.quote_ref(&attr),
-        FwdAnyAttr::Mut(_) => any.quote_mut(&attr),
-    };
-
-    quote! {
-        #any
-        #quote
-    }
-    .into()
-}
-
 /// Zero-boilerplate user traits forwarding declaration.
 ///
 /// Declares forwardable trait.
@@ -319,7 +301,7 @@ pub fn decl(attr: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
     let decl = parse_macro_input!(decl as FwdDecl);
     let attr = parse_macro_input!(attr as FwdDeclAttr);
 
-    let item = decl.item();
+    let item = &decl.item;
     let ident = &item.ident;
     let macros = format_ident!("__NdFwd{}", ident);
 
@@ -376,9 +358,9 @@ pub fn decl(attr: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
         pub(crate) use #macros;
     };
 
-    if attr.dbg.is_some() {
-        println!("ndfwd::decl:\n{}", quote);
-    }
+    // if attr.dbg.is_some() {
+    //     println!("ndfwd::decl:\n{}", quote);
+    // }
 
     quote.into()
 }
@@ -659,18 +641,19 @@ enum FwdType {
     Union(ItemUnion),
 }
 
-struct FwdAny {
-    decl: ItemTrait,
+struct FwdDecl {
+    item: ItemTrait,
 }
 
-enum FwdAnyAttr {
+enum FwdDeclAttr {
+    Raw(Option<kw::dbg>),
+    Any(Option<kw::dbg>, kw::any, FwdDeclAny),
+}
+
+enum FwdDeclAny {
     Raw,
-    Ref(Token![ref]),
-    Mut(Token![mut]),
-}
-
-enum FwdDecl {
-    Trait(ItemTrait),
+    Ref(Token![ref], Option<Token![!]>, Option<Token![?]>),
+    Mut(Token![mut], Option<Token![!]>, Option<Token![?]>),
 }
 
 enum FwdDeclAlter {
@@ -701,10 +684,6 @@ struct FwdDeclArg<'ty> {
 enum FwdDeclArgExpr {
     Raw(TokenStream),
     Alt(TokenStream),
-}
-
-struct FwdDeclAttr {
-    dbg: Option<kw::dbg>,
 }
 
 enum FwdDef {
@@ -753,15 +732,27 @@ impl Parse for FwdType {
     }
 }
 
-impl Parse for FwdAny {
+impl Parse for FwdDecl {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            decl: input.parse::<ItemTrait>()?,
-        })
+        Ok(Self { item: input.parse()? })
     }
 }
 
-impl Parse for FwdAnyAttr {
+impl Parse for FwdDeclAttr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let dbg = match input.peek(kw::dbg) {
+            true => Some(input.parse::<kw::dbg>()?),
+            false => None,
+        };
+
+        match input.peek(kw::any) {
+            true => Ok(Self::Any(dbg, input.parse()?, input.parse()?)),
+            false => Ok(Self::Raw(dbg)),
+        }
+    }
+}
+
+impl Parse for FwdDeclAny {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
             return Ok(Self::Raw);
@@ -770,24 +761,12 @@ impl Parse for FwdAnyAttr {
         let lookahead = input.lookahead1();
 
         if lookahead.peek(Token![ref]) {
-            Ok(Self::Ref(input.parse()?))
+            Ok(Self::Ref(input.parse()?, None, None))
         } else if lookahead.peek(Token![mut]) {
-            Ok(Self::Mut(input.parse()?))
+            Ok(Self::Mut(input.parse()?, None, None))
         } else {
             Err(lookahead.error())
         }
-    }
-}
-
-impl Parse for FwdDecl {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self::Trait(input.parse::<ItemTrait>()?))
-    }
-}
-
-impl Parse for FwdDeclAttr {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self { dbg: input.parse()? })
     }
 }
 
@@ -883,17 +862,9 @@ impl ToTokens for FwdType {
     }
 }
 
-impl ToTokens for FwdAny {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.decl.to_tokens(tokens);
-    }
-}
-
 impl ToTokens for FwdDecl {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            FwdDecl::Trait(val) => val.to_tokens(tokens),
-        }
+        self.item.to_tokens(tokens)
     }
 }
 
@@ -1242,35 +1213,29 @@ impl FwdType {
     }
 }
 
-impl FwdAny {
-    fn quote(&self, _: &FwdAnyAttr) -> TokenStream {
-        let decl = &self.decl;
+impl FwdDecl {
+    fn any(&self, attr: &FwdDeclAny) -> TokenStream {
+        let decl = &self.item;
 
         let ident = &decl.ident;
         let supertraits = decl.supertraits.iter();
         let gen_params = decl.generics.params.iter();
         let (_, gen_type, gen_where) = decl.generics.split_for_impl();
 
-        let gen_params = quote! { #(#gen_params,)* Any: #(#supertraits)+* };
+        let types_fwd = ();
+        let consts_fwd = ();
+        let fn_fwd = ();
 
-        quote! {
-            impl<#gen_params> #ident #gen_type for Any #gen_where {}
-        }
-    }
-
-    fn quote_ref(&self, attr: &FwdAnyAttr) -> TokenStream {
-        quote! {}
-    }
-
-    fn quote_mut(&self, attr: &FwdAnyAttr) -> TokenStream {
-        quote! {}
-    }
-}
-
-impl FwdDecl {
-    fn item(&self) -> &ItemTrait {
-        match self {
-            FwdDecl::Trait(val) => val,
+        match attr {
+            FwdDeclAny::Raw => quote! {
+                impl<#(#gen_params,)* Any: #(#supertraits)+*> #ident #gen_type for Any #gen_where {}
+            },
+            FwdDeclAny::Ref(_, _, _) => quote! {
+                impl<#(#gen_params,)* Any: #ident #gen_type> #ident #gen_type for &Any #gen_where {}
+            },
+            FwdDeclAny::Mut(_, _, _) => quote! {
+                impl<#(#gen_params,)* Any: #ident #gen_type> #ident #gen_type for &mut Any #gen_where {}
+            },
         }
     }
 }
@@ -1314,17 +1279,15 @@ impl FwdDeclAlter {
 
 impl FwdDeclTypes {
     fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
-        let FwdDecl::Trait(decl) = decl;
-
-        decl.items.iter().filter_map(|item| match item {
+        decl.item.items.iter().filter_map(|item| match item {
             TraitItem::Type(val) => Some({
                 let attrs = &val.attrs;
                 let ident = &val.ident;
 
                 let (gen_impl, gen_type, _) = val.generics.split_for_impl();
 
-                let id = &decl.ident;
-                let (_, gen_type_id, _) = decl.generics.split_for_impl();
+                let id = &decl.item.ident;
+                let (_, gen_type_id, _) = decl.item.generics.split_for_impl();
 
                 quote! {
                     #(#attrs)*
@@ -1338,16 +1301,14 @@ impl FwdDeclTypes {
 
 impl FwdDeclConsts {
     fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
-        let FwdDecl::Trait(decl) = decl;
-
-        decl.items.iter().filter_map(|item| match item {
+        decl.item.items.iter().filter_map(|item| match item {
             TraitItem::Const(val) => Some({
                 let attrs = &val.attrs;
                 let ident = &val.ident;
                 let ty = &val.ty;
 
-                let id = &decl.ident;
-                let (_, gen_type_id, _) = decl.generics.split_for_impl();
+                let id = &decl.item.ident;
+                let (_, gen_type_id, _) = decl.item.generics.split_for_impl();
 
                 quote! {
                     #(#attrs)*
@@ -1452,9 +1413,9 @@ impl FwdDeclFn {
             })
         }
 
-        let FwdDecl::Trait(decl) = decl;
+        let item = &decl.item;
 
-        let forwards = decl
+        let forwards = item
             .items
             .iter()
             .filter_map(|item| match item {
