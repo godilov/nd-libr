@@ -1254,13 +1254,8 @@ impl FwdAny {
 
         let gen_params = quote! { #(#gen_params,)* };
 
-        let gen_where = match gen_where.map(|val| val.predicates.iter()) {
-            Some(val) => quote! { where Any: #(#supertraits)+*, #(#val,)* },
-            None => quote! { where Any: #(#supertraits)+*, },
-        };
-
         quote! {
-            impl<#gen_params, Any: #ident #gen_type> #ident #gen_type for Any #gen_where {}
+            impl<#gen_params, Any: #(#supertraits)+*> #ident #gen_type for Any #gen_where {}
         }
     }
 
