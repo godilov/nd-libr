@@ -290,12 +290,15 @@ pub fn any(attr: TokenStreamStd, any: TokenStreamStd) -> TokenStreamStd {
     let any = parse_macro_input!(any as FwdAny);
     let attr = parse_macro_input!(attr as FwdAnyAttr);
 
-    let impls = [any.quote(&attr), any.quote_ref(&attr), any.quote_mut(&attr)];
+    let quote = match attr {
+        FwdAnyAttr::Raw => any.quote(&attr),
+        FwdAnyAttr::Ref(_) => any.quote_ref(&attr),
+        FwdAnyAttr::Mut(_) => any.quote_mut(&attr),
+    };
 
     quote! {
         #any
-
-        #(#impls)*
+        #quote
     }
     .into()
 }
@@ -662,8 +665,8 @@ struct FwdAny {
 
 enum FwdAnyAttr {
     Raw,
-    Ref,
-    Mut,
+    Ref(Token![ref]),
+    Mut(Token![mut]),
 }
 
 enum FwdDecl {
@@ -767,13 +770,9 @@ impl Parse for FwdAnyAttr {
         let lookahead = input.lookahead1();
 
         if lookahead.peek(Token![ref]) {
-            input.parse::<Token![ref]>()?;
-
-            Ok(Self::Ref)
+            Ok(Self::Ref(input.parse()?))
         } else if lookahead.peek(Token![mut]) {
-            input.parse::<Token![mut]>()?;
-
-            Ok(Self::Mut)
+            Ok(Self::Mut(input.parse()?))
         } else {
             Err(lookahead.error())
         }
@@ -1252,10 +1251,10 @@ impl FwdAny {
         let gen_params = decl.generics.params.iter();
         let (_, gen_type, gen_where) = decl.generics.split_for_impl();
 
-        let gen_params = quote! { #(#gen_params,)* };
+        let gen_params = quote! { #(#gen_params,)* Any: #(#supertraits)+* };
 
         quote! {
-            impl<#gen_params, Any: #(#supertraits)+*> #ident #gen_type for Any #gen_where {}
+            impl<#gen_params> #ident #gen_type for Any #gen_where {}
         }
     }
 

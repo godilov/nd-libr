@@ -849,6 +849,7 @@ pub mod word {
     }
 
     /// As words iterator.
+    #[ndfwd::any]
     pub trait AsWordsIter: AsWordsRef {
         /// As words iterator (infinite).
         #[inline]
@@ -945,8 +946,6 @@ pub mod word {
             Any::as_words_mut(self)
         }
     }
-
-    impl<Any: AsWordsRef> AsWordsIter for Any {}
 }
 
 pub mod codec {
