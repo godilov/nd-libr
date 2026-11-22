@@ -656,6 +656,10 @@ enum FwdDeclAny {
     Mut(Token![mut], Option<Token![!]>, Option<Token![?]>),
 }
 
+struct FwdDeclCtx {
+    ty: &'static str,
+}
+
 enum FwdDeclAlter {
     Default,
     AsInto,
