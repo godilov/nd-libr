@@ -593,15 +593,17 @@ struct FwdDecl {
     item: ItemTrait,
 }
 
+#[allow(unused)]
 enum FwdDeclAttr {
     Raw(Option<kw::dbg>),
     Any(Option<kw::dbg>, kw::any, FwdDeclAny),
 }
 
+#[allow(unused)]
 enum FwdDeclAny {
     Raw,
-    Ref(Token![ref], Option<Token![!]>, Option<Token![?]>),
-    Mut(Token![mut], Option<Token![!]>, Option<Token![?]>),
+    Ref(Token![ref], Option<Token![?]>),
+    Mut(Token![mut], Option<Token![?]>),
 }
 
 struct FwdDeclCtx {
@@ -713,9 +715,9 @@ impl Parse for FwdDeclAny {
         let lookahead = input.lookahead1();
 
         if lookahead.peek(Token![ref]) {
-            Ok(Self::Ref(input.parse()?, None, None))
+            Ok(Self::Ref(input.parse()?, None))
         } else if lookahead.peek(Token![mut]) {
-            Ok(Self::Mut(input.parse()?, None, None))
+            Ok(Self::Mut(input.parse()?, None))
         } else {
             Err(lookahead.error())
         }
@@ -841,7 +843,7 @@ impl ToTokens for FwdDeclArgExpr {
 }
 
 impl Fwds {
-    fn from_raw(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Self {
+    fn from_attr(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Self {
         let (expr, ty) = attr.args();
         let (gen_impl, _, gen_where) = generics.split_for_impl();
 
@@ -897,7 +899,7 @@ impl FwdType {
         let (ident, generics) = self.args();
         let (_, gen_type, _) = generics.split_for_impl();
 
-        Fwds::from_raw(quote! { #ident #gen_type }, generics, attr)
+        Fwds::from_attr(quote! { #ident #gen_type }, generics, attr)
     }
 
     fn std(&self, attr: &FwdAttr, _: &Fwds, std: FwdStd) -> TokenStream {
@@ -1185,7 +1187,7 @@ impl FwdDecl {
         let ctx_fwd = FwdDeclCtx { ty: quote! { $ty } };
         let types_fwd = FwdDeclTypes::from_decl(self, &ctx_fwd);
         let consts_fwd = FwdDeclConsts::from_decl(self, &ctx_fwd);
-        let (fn_fwd, fn_fwd_) = match FwdDeclFn::from_decl(self, &ctx_fwd) {
+        let (fns_fwd, fns_fwd_) = match FwdDeclFn::from_decl(self, &ctx_fwd) {
             Ok(val) => val,
             Err(err) => return err.into_compile_error(),
         };
@@ -1213,11 +1215,11 @@ impl FwdDecl {
                 };
 
                 (@fn #pattern) => {
-                    #(#fn_fwd)*
+                    #(#fns_fwd)*
                 };
 
                 (@fn! #pattern) => {
-                    #(#fn_fwd_)*
+                    #(#fns_fwd_)*
                 };
             }
 
@@ -1234,19 +1236,31 @@ impl FwdDecl {
         let gen_params = decl.generics.params.iter();
         let (_, gen_type, gen_where) = decl.generics.split_for_impl();
 
-        let types_fwd = ();
-        let consts_fwd = ();
-        let fn_fwd = ();
+        let ctx_fwd = FwdDeclCtx { ty: quote! { Any } };
+        let types_fwd = FwdDeclTypes::from_decl(self, &ctx_fwd);
+        let consts_fwd = FwdDeclConsts::from_decl(self, &ctx_fwd);
+        let (fns_fwd, _) = match FwdDeclFn::from_decl(self, &ctx_fwd) {
+            Ok(val) => val,
+            Err(err) => return err.into_compile_error(),
+        };
 
         match any {
             FwdDeclAny::Raw => quote! {
                 impl<#(#gen_params,)* Any: #(#supertraits)+*> #ident #gen_type for Any #gen_where {}
             },
-            FwdDeclAny::Ref(_, _, _) => quote! {
-                impl<#(#gen_params,)* Any: #ident #gen_type> #ident #gen_type for &Any #gen_where {}
+            FwdDeclAny::Ref(_, _) => quote! {
+                impl<#(#gen_params,)* Any: #ident #gen_type> #ident #gen_type for &Any #gen_where {
+                    #(#types_fwd)*
+                    #(#consts_fwd)*
+                    #(#fns_fwd)*
+                }
             },
-            FwdDeclAny::Mut(_, _, _) => quote! {
-                impl<#(#gen_params,)* Any: #ident #gen_type> #ident #gen_type for &mut Any #gen_where {}
+            FwdDeclAny::Mut(_, _) => quote! {
+                impl<#(#gen_params,)* Any: #ident #gen_type> #ident #gen_type for &mut Any #gen_where {
+                    #(#types_fwd)*
+                    #(#consts_fwd)*
+                    #(#fns_fwd)*
+                }
             },
         }
     }
@@ -1596,6 +1610,6 @@ impl FwdDef {
     fn fwds(&self, attr: &FwdAttr) -> Result<Fwds> {
         let (_, ty, generics) = self.args()?;
 
-        Ok(Fwds::from_raw(ty, generics, attr))
+        Ok(Fwds::from_attr(ty, generics, attr))
     }
 }
