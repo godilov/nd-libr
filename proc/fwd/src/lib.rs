@@ -301,67 +301,14 @@ pub fn decl(attr: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
     let decl = parse_macro_input!(decl as FwdDecl);
     let attr = parse_macro_input!(attr as FwdDeclAttr);
 
-    let item = &decl.item;
-    let ident = &item.ident;
-    let macros = format_ident!("__NdFwd{}", ident);
-
-    let supertraits = item.supertraits.iter();
-    let gen_params = item.generics.params.iter();
-    let (_, gen_type, gen_where) = item.generics.split_for_impl();
-
-    let gen_params = quote! { #(#gen_params,)* };
-
-    let gen_where = match gen_where.map(|val| val.predicates.iter()) {
-        Some(val) => quote! { where Self: #(#supertraits)+*, #(#val,)* },
-        None => quote! { where Self: #(#supertraits)+*, },
+    let quote = match &attr {
+        FwdDeclAttr::Raw(_) => decl.raw(),
+        FwdDeclAttr::Any(_, _, any) => decl.any(any),
     };
 
-    let ctx_fwd = FwdDeclCtx { ty: quote! { $ty } };
-    let types_fwd = FwdDeclTypes::from_decl(&decl, &ctx_fwd);
-    let consts_fwd = FwdDeclConsts::from_decl(&decl, &ctx_fwd);
-    let (fn_fwd, fn_fwd_) = match FwdDeclFn::from_decl(&decl, &ctx_fwd) {
-        Ok(val) => val,
-        Err(err) => return err.into_compile_error().into(),
-    };
-
-    let pattern = quote! { $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*) };
-
-    let quote = quote! {
-        #decl
-
-        #[doc(hidden)]
-        #[allow(unused_macros)]
-        macro_rules! #macros {
-            (@impl #pattern { $($tokens:tt)* }) => {
-                impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
-                    $($tokens)*
-                }
-            };
-
-            (@type #pattern) => {
-                #(#types_fwd)*
-            };
-
-            (@const #pattern) => {
-                #(#consts_fwd)*
-            };
-
-            (@fn #pattern) => {
-                #(#fn_fwd)*
-            };
-
-            (@fn! #pattern) => {
-                #(#fn_fwd_)*
-            };
-        }
-
-        #[allow(unused_imports)]
-        pub(crate) use #macros;
-    };
-
-    // if attr.dbg.is_some() {
-    //     println!("ndfwd::decl:\n{}", quote);
-    // }
+    if attr.is_dbg() {
+        println!("ndfwd::decl:\n{}", quote);
+    }
 
     quote.into()
 }
@@ -1219,7 +1166,67 @@ impl FwdType {
 }
 
 impl FwdDecl {
-    fn any(&self, attr: &FwdDeclAny) -> TokenStream {
+    fn raw(&self) -> TokenStream {
+        let item = &self.item;
+        let ident = &item.ident;
+        let macros = format_ident!("__NdFwd{}", ident);
+
+        let supertraits = item.supertraits.iter();
+        let gen_params = item.generics.params.iter();
+        let (_, gen_type, gen_where) = item.generics.split_for_impl();
+
+        let gen_params = quote! { #(#gen_params,)* };
+
+        let gen_where = match gen_where.map(|val| val.predicates.iter()) {
+            Some(val) => quote! { where Self: #(#supertraits)+*, #(#val,)* },
+            None => quote! { where Self: #(#supertraits)+*, },
+        };
+
+        let ctx_fwd = FwdDeclCtx { ty: quote! { $ty } };
+        let types_fwd = FwdDeclTypes::from_decl(self, &ctx_fwd);
+        let consts_fwd = FwdDeclConsts::from_decl(self, &ctx_fwd);
+        let (fn_fwd, fn_fwd_) = match FwdDeclFn::from_decl(self, &ctx_fwd) {
+            Ok(val) => val,
+            Err(err) => return err.into_compile_error(),
+        };
+
+        let pattern = quote! { $self:ty, $ty:ty, ($($gen_params:tt)*), ($($gen_where:tt)*) };
+
+        quote! {
+            #self
+
+            #[doc(hidden)]
+            #[allow(unused_macros)]
+            macro_rules! #macros {
+                (@impl #pattern { $($tokens:tt)* }) => {
+                    impl <#gen_params $($gen_params)*> #ident #gen_type for $self #gen_where $($gen_where)* {
+                        $($tokens)*
+                    }
+                };
+
+                (@type #pattern) => {
+                    #(#types_fwd)*
+                };
+
+                (@const #pattern) => {
+                    #(#consts_fwd)*
+                };
+
+                (@fn #pattern) => {
+                    #(#fn_fwd)*
+                };
+
+                (@fn! #pattern) => {
+                    #(#fn_fwd_)*
+                };
+            }
+
+            #[allow(unused_imports)]
+            pub(crate) use #macros;
+        }
+    }
+
+    fn any(&self, any: &FwdDeclAny) -> TokenStream {
         let decl = &self.item;
 
         let ident = &decl.ident;
@@ -1231,7 +1238,7 @@ impl FwdDecl {
         let consts_fwd = ();
         let fn_fwd = ();
 
-        match attr {
+        match any {
             FwdDeclAny::Raw => quote! {
                 impl<#(#gen_params,)* Any: #(#supertraits)+*> #ident #gen_type for Any #gen_where {}
             },
@@ -1241,6 +1248,15 @@ impl FwdDecl {
             FwdDeclAny::Mut(_, _, _) => quote! {
                 impl<#(#gen_params,)* Any: #ident #gen_type> #ident #gen_type for &mut Any #gen_where {}
             },
+        }
+    }
+}
+
+impl FwdDeclAttr {
+    fn is_dbg(&self) -> bool {
+        match self {
+            FwdDeclAttr::Raw(dbg) => dbg.is_some(),
+            FwdDeclAttr::Any(dbg, _, _) => dbg.is_some(),
         }
     }
 }
