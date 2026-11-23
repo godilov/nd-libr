@@ -285,7 +285,7 @@ pub fn iter(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     .into()
 }
 
-/// Zero-boilerplate user traits forwarding declaration.
+/// Zero-boilerplate user traits forwarding - declaration site.
 ///
 /// Declares forwardable trait.
 ///
@@ -316,9 +316,10 @@ pub fn decl(attr: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
         None => quote! { where Self: #(#supertraits)+*, },
     };
 
-    let types_fwd = FwdDeclTypes::from_decl(&decl);
-    let consts_fwd = FwdDeclConsts::from_decl(&decl);
-    let (fn_fwd, fn_fwd_) = match FwdDeclFn::from_decl(&decl) {
+    let ctx_fwd = FwdDeclCtx { ty: quote! { $ty } };
+    let types_fwd = FwdDeclTypes::from_decl(&decl, &ctx_fwd);
+    let consts_fwd = FwdDeclConsts::from_decl(&decl, &ctx_fwd);
+    let (fn_fwd, fn_fwd_) = match FwdDeclFn::from_decl(&decl, &ctx_fwd) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
@@ -365,7 +366,7 @@ pub fn decl(attr: TokenStreamStd, decl: TokenStreamStd) -> TokenStreamStd {
     quote.into()
 }
 
-/// Zero-boilerplate user traits forwarding definition.
+/// Zero-boilerplate user traits forwarding - definition site.
 ///
 /// Defines forwardable trait.
 ///
@@ -657,7 +658,7 @@ enum FwdDeclAny {
 }
 
 struct FwdDeclCtx {
-    ty: &'static str,
+    ty: TokenStream,
 }
 
 enum FwdDeclAlter {
@@ -1282,7 +1283,7 @@ impl FwdDeclAlter {
 }
 
 impl FwdDeclTypes {
-    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
+    fn from_decl(decl: &FwdDecl, ctx: &FwdDeclCtx) -> impl Iterator<Item = TokenStream> {
         decl.item.items.iter().filter_map(|item| match item {
             TraitItem::Type(val) => Some({
                 let attrs = &val.attrs;
@@ -1293,9 +1294,11 @@ impl FwdDeclTypes {
                 let id = &decl.item.ident;
                 let (_, gen_type_id, _) = decl.item.generics.split_for_impl();
 
+                let ty_ctx = &ctx.ty;
+
                 quote! {
                     #(#attrs)*
-                    type #ident #gen_impl = <$ty as #id #gen_type_id>::#ident #gen_type;
+                    type #ident #gen_impl = <#ty_ctx as #id #gen_type_id>::#ident #gen_type;
                 }
             }),
             _ => None,
@@ -1304,7 +1307,7 @@ impl FwdDeclTypes {
 }
 
 impl FwdDeclConsts {
-    fn from_decl(decl: &FwdDecl) -> impl Iterator<Item = TokenStream> {
+    fn from_decl(decl: &FwdDecl, ctx: &FwdDeclCtx) -> impl Iterator<Item = TokenStream> {
         decl.item.items.iter().filter_map(|item| match item {
             TraitItem::Const(val) => Some({
                 let attrs = &val.attrs;
@@ -1314,9 +1317,11 @@ impl FwdDeclConsts {
                 let id = &decl.item.ident;
                 let (_, gen_type_id, _) = decl.item.generics.split_for_impl();
 
+                let ty_ctx = &ctx.ty;
+
                 quote! {
                     #(#attrs)*
-                    const #ident: #ty = <$ty as #id #gen_type_id>::#ident;
+                    const #ident: #ty = <#ty_ctx as #id #gen_type_id>::#ident;
                 }
             }),
             _ => None,
@@ -1325,10 +1330,12 @@ impl FwdDeclConsts {
 }
 
 impl FwdDeclFn {
-    fn from_decl(decl: &FwdDecl) -> Result<(Vec<TokenStream>, Vec<TokenStream>)> {
-        fn forward(item: &TraitItemFn) -> Result<TokenStream> {
+    fn from_decl(decl: &FwdDecl, ctx: &FwdDeclCtx) -> Result<(Vec<TokenStream>, Vec<TokenStream>)> {
+        fn forward(item: &TraitItemFn, ctx: &FwdDeclCtx) -> Result<TokenStream> {
             let attrs = &item.attrs;
             let sig = &item.sig;
+
+            let ty_ctx = &ctx.ty;
 
             let constness = &sig.constness;
             let asyncness = &sig.asyncness;
@@ -1389,7 +1396,7 @@ impl FwdDeclFn {
                     },
                     _ => quote! { self.forward().#func(#(#args_expr),*) },
                 },
-                None => quote! { <$ty>::#func(#(#args_expr),*) },
+                None => quote! { <#ty_ctx>::#func(#(#args_expr),*) },
             };
 
             let expr = match FwdDeclAlter::from_attrs(attrs.iter())? {
@@ -1423,7 +1430,7 @@ impl FwdDeclFn {
             .items
             .iter()
             .filter_map(|item| match item {
-                TraitItem::Fn(val) => Some(forward(val).map(|res| (res, val.default.is_some()))),
+                TraitItem::Fn(val) => Some(forward(val, ctx).map(|res| (res, val.default.is_some()))),
                 _ => None,
             })
             .collect::<Result<Vec<(TokenStream, bool)>>>()?;
