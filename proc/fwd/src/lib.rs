@@ -622,17 +622,17 @@ struct FwdDeclTypes;
 struct FwdDeclConsts;
 struct FwdDeclFn;
 
+struct FwdDeclArg<'ty> {
+    expr: TokenStream,
+    ty: &'ty Type,
+    kind: FwdDeclArgKind,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum FwdDeclArgKind {
     Raw,
     Ref,
     Mut,
-}
-
-struct FwdDeclArg<'ty> {
-    expr: TokenStream,
-    ty: &'ty Type,
-    kind: FwdDeclArgKind,
 }
 
 enum FwdDeclArgExpr {
@@ -843,9 +843,13 @@ impl ToTokens for FwdDeclArgExpr {
 }
 
 impl Fwds {
-    fn from_attr(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Self {
+    fn from_raw(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Self {
         let (expr, ty) = attr.args();
         let (gen_impl, _, gen_where) = generics.split_for_impl();
+
+        // Forward   <Type = ..>
+        // ForwardRef<Type = ..>
+        // ForwardMut<Type = ..>
 
         Fwds(quote! {
             trait Forward {
@@ -878,6 +882,14 @@ impl Fwds {
             }
         })
     }
+
+    fn from_ty(ty: &FwdType, attr: &FwdAttr) -> Self {
+        Fwds(quote! {})
+    }
+
+    fn from_def(def: &FwdDef, attr: &FwdAttr) -> Self {
+        Fwds(quote! {})
+    }
 }
 
 impl FwdAttr {
@@ -899,7 +911,7 @@ impl FwdType {
         let (ident, generics) = self.args();
         let (_, gen_type, _) = generics.split_for_impl();
 
-        Fwds::from_attr(quote! { #ident #gen_type }, generics, attr)
+        Fwds::from_raw(quote! { #ident #gen_type }, generics, attr)
     }
 
     fn std(&self, attr: &FwdAttr, _: &Fwds, std: FwdStd) -> TokenStream {
@@ -1610,6 +1622,6 @@ impl FwdDef {
     fn fwds(&self, attr: &FwdAttr) -> Result<Fwds> {
         let (_, ty, generics) = self.args()?;
 
-        Ok(Fwds::from_attr(ty, generics, attr))
+        Ok(Fwds::from_raw(ty, generics, attr))
     }
 }
