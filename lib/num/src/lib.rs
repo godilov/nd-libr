@@ -606,13 +606,13 @@ pub trait NumCt:
     ///
     /// - `MaskCt::MAX` => Signed
     /// - `MaskCt::MIN` => Unsigned
-    const SIGNED: MaskCt;
+    const SIGNED_CT: MaskCt;
 
     /// Is Unsigned type mask.
     ///
     /// - `MaskCt::MAX` => Unsigned
     /// - `MaskCt::MIN` => Signed
-    const UNSIGNED: MaskCt;
+    const UNSIGNED_CT: MaskCt;
 
     /// Mask value.
     #[ndfwd::as_into]
@@ -1658,8 +1658,8 @@ pub(crate) fn cmp_ct<N: NumExtCt>(lhs: &N, rhs: &N) -> (MaskCt, MaskCt) {
     let rhs_bit = (rhs >> shift).as_mask_ct();
     let xor_bit = lhs_bit ^ rhs_bit;
 
-    let lhs = lhs_bit.with_mask_ct(N::SIGNED) | rhs_bit.with_mask_ct(N::UNSIGNED);
-    let rhs = rhs_bit.with_mask_ct(N::SIGNED) | lhs_bit.with_mask_ct(N::UNSIGNED);
+    let lhs = lhs_bit.with_mask_ct(N::SIGNED_CT) | rhs_bit.with_mask_ct(N::UNSIGNED_CT);
+    let rhs = rhs_bit.with_mask_ct(N::SIGNED_CT) | lhs_bit.with_mask_ct(N::UNSIGNED_CT);
 
     let lt_res = pos_ct(xor_bit & lhs | !xor_bit & lt);
     let gt_res = pos_ct(xor_bit & rhs | !xor_bit & gt);

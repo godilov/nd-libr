@@ -6549,8 +6549,8 @@ impl<const L: usize> NumBinary for Unsigned<L> {
 }
 
 impl<const L: usize> NumCt for Signed<L> {
-    const SIGNED: MaskCt = MaskCt::MAX;
-    const UNSIGNED: MaskCt = MaskCt::MIN;
+    const SIGNED_CT: MaskCt = MaskCt::MAX;
+    const UNSIGNED_CT: MaskCt = MaskCt::MIN;
 
     #[inline]
     fn with_mask_ct(&self, mask: MaskCt) -> Self {
@@ -6559,8 +6559,8 @@ impl<const L: usize> NumCt for Signed<L> {
 }
 
 impl<const L: usize> NumCt for Unsigned<L> {
-    const SIGNED: MaskCt = MaskCt::MIN;
-    const UNSIGNED: MaskCt = MaskCt::MAX;
+    const SIGNED_CT: MaskCt = MaskCt::MIN;
+    const UNSIGNED_CT: MaskCt = MaskCt::MAX;
 
     #[inline]
     fn with_mask_ct(&self, mask: MaskCt) -> Self {
