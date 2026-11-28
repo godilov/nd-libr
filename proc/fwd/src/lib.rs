@@ -1401,7 +1401,7 @@ impl FwdDeclAttr {
 }
 
 impl FwdDeclAlter {
-    fn from_attrs<'attr, Attrs: Clone + Iterator<Item = &'attr Attribute>>(attrs: Attrs) -> Result<Self> {
+    fn from_attrs(attrs: &[Attribute]) -> Result<Self> {
         fn expr(attr: &Attribute) -> Result<Expr> {
             match &attr.meta {
                 Meta::List(val) => syn::parse2::<Expr>(val.tokens.clone()),
@@ -1423,13 +1423,13 @@ impl FwdDeclAlter {
         let as_expr = ["ndfwd", "as_expr"];
         let as_map = ["ndfwd", "as_map"];
 
-        if attrs.clone().find(|attr| check(attr, &as_into)).is_some() {
+        if attrs.iter().find(|attr| check(attr, &as_into)).is_some() {
             Ok(Self::AsInto)
-        } else if attrs.clone().find(|attr| check(attr, &as_self)).is_some() {
+        } else if attrs.iter().find(|attr| check(attr, &as_self)).is_some() {
             Ok(Self::AsSelf)
-        } else if let Some(attr) = attrs.clone().find(|attr| check(attr, &as_expr)) {
+        } else if let Some(attr) = attrs.iter().find(|attr| check(attr, &as_expr)) {
             Ok(Self::AsExpr(expr(attr)?))
-        } else if let Some(attr) = attrs.clone().find(|attr| check(attr, &as_map)) {
+        } else if let Some(attr) = attrs.iter().find(|attr| check(attr, &as_map)) {
             Ok(Self::AsMap(expr(attr)?))
         } else {
             Ok(Self::Default)
@@ -1554,7 +1554,7 @@ impl FwdDeclFn {
                 None => quote! { <#ty_ctx>::#func(#(#args_expr),*) },
             };
 
-            let expr = match FwdDeclAlter::from_attrs(attrs.iter())? {
+            let expr = match FwdDeclAlter::from_attrs(attrs)? {
                 FwdDeclAlter::Default => quote! { #forward },
                 FwdDeclAlter::AsInto => quote! { #forward.into() },
                 FwdDeclAlter::AsSelf => quote! { #forward; self },
