@@ -6,7 +6,7 @@ use quote::{ToTokens, format_ident, quote};
 use syn::{
     Attribute, Error, Expr, FnArg, Generics, Ident, ImplItemConst, ImplItemType, Item, ItemEnum, ItemImpl, ItemStruct,
     ItemTrait, ItemUnion, Meta, Path, PathArguments, PointerMutability, ReceiverKind, Result, Token, TraitItem,
-    TraitItemFn, Type, WhereClause, braced,
+    TraitItemFn, Type, TypePath, WhereClause, braced,
     parse::{Parse, ParseStream},
     parse_macro_input,
     token::Brace,
@@ -42,7 +42,7 @@ pub fn all(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let forwards = ty.fwds(&attr);
+    let fwds = Fwds::from_ty(&ty, &attr);
 
     let std_impls = [FwdStd::Ref, FwdStd::Mut];
     let cmp_impls = [FwdCmp::Eq, FwdCmp::EqPartial, FwdCmp::Ord, FwdCmp::OrdPartial];
@@ -56,11 +56,11 @@ pub fn all(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let idx_impls = [FwdIdx::Ref, FwdIdx::Mut];
     let iter_impls = [FwdIter::From, FwdIter::Into, FwdIter::IntoRef, FwdIter::IntoMut];
 
-    let std_impls = std_impls.into_iter().map(|std| ty.std(&attr, &forwards, std));
-    let cmp_impls = cmp_impls.into_iter().map(|cmp| ty.cmp(&attr, &forwards, cmp));
-    let fmt_impls = fmt_impls.into_iter().map(|fmt| ty.fmt(&attr, &forwards, fmt));
-    let idx_impls = idx_impls.into_iter().map(|idx| ty.idx(&attr, &forwards, idx));
-    let iter_impls = iter_impls.into_iter().map(|iter| ty.iter(&attr, &forwards, iter));
+    let std_impls = std_impls.into_iter().map(|std| ty.std(&attr, &fwds, std));
+    let cmp_impls = cmp_impls.into_iter().map(|cmp| ty.cmp(&attr, &fwds, cmp));
+    let fmt_impls = fmt_impls.into_iter().map(|fmt| ty.fmt(&attr, &fwds, fmt));
+    let idx_impls = idx_impls.into_iter().map(|idx| ty.idx(&attr, &fwds, idx));
+    let iter_impls = iter_impls.into_iter().map(|iter| ty.iter(&attr, &fwds, iter));
 
     quote! {
         #ty
@@ -98,10 +98,10 @@ pub fn std(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let forwards = ty.fwds(&attr);
+    let fwds = Fwds::from_ty(&ty, &attr);
 
     let impls = [FwdStd::Ref, FwdStd::Mut];
-    let impls = impls.into_iter().map(|std| ty.std(&attr, &forwards, std));
+    let impls = impls.into_iter().map(|std| ty.std(&attr, &fwds, std));
 
     quote! {
         #ty
@@ -138,10 +138,10 @@ pub fn cmp(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let forwards = ty.fwds(&attr);
+    let fwds = Fwds::from_ty(&ty, &attr);
 
     let impls = [FwdCmp::Eq, FwdCmp::EqPartial, FwdCmp::Ord, FwdCmp::OrdPartial];
-    let impls = impls.into_iter().map(|cmp| ty.cmp(&attr, &forwards, cmp));
+    let impls = impls.into_iter().map(|cmp| ty.cmp(&attr, &fwds, cmp));
 
     quote! {
         #ty
@@ -182,7 +182,7 @@ pub fn fmt(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let forwards = ty.fwds(&attr);
+    let fwds = Fwds::from_ty(&ty, &attr);
 
     let impls = [
         FwdFmt::Display,
@@ -192,7 +192,7 @@ pub fn fmt(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
         FwdFmt::HexUpper,
     ];
 
-    let impls = impls.into_iter().map(|fmt| ty.fmt(&attr, &forwards, fmt));
+    let impls = impls.into_iter().map(|fmt| ty.fmt(&attr, &fwds, fmt));
 
     quote! {
         #ty
@@ -226,10 +226,10 @@ pub fn idx(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let forwards = ty.fwds(&attr);
+    let fwds = Fwds::from_ty(&ty, &attr);
 
     let impls = [FwdIdx::Ref, FwdIdx::Mut];
-    let impls = impls.into_iter().map(|idx| ty.idx(&attr, &forwards, idx));
+    let impls = impls.into_iter().map(|idx| ty.idx(&attr, &fwds, idx));
 
     quote! {
         #ty
@@ -272,10 +272,10 @@ pub fn iter(attr: TokenStreamStd, ty: TokenStreamStd) -> TokenStreamStd {
     let ty = parse_macro_input!(ty as FwdType);
     let attr = parse_macro_input!(attr as FwdAttr);
 
-    let forwards = ty.fwds(&attr);
+    let fwds = Fwds::from_ty(&ty, &attr);
 
     let impls = [FwdIter::From, FwdIter::Into, FwdIter::IntoRef, FwdIter::IntoMut];
-    let impls = impls.into_iter().map(|iter| ty.iter(&attr, &forwards, iter));
+    let impls = impls.into_iter().map(|iter| ty.iter(&attr, &fwds, iter));
 
     quote! {
         #ty
@@ -364,12 +364,14 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
     let def = parse_macro_input!(def as FwdDef);
     let attr = parse_macro_input!(attr as FwdDefAttr);
 
-    let (ident, self_ty, generics) = match def.args() {
+    let fwds_ty = match FwdsType::from_def(&def) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
 
-    let forwards = match def.fwds(&attr.fwd) {
+    let (ident, self_ty, generics) = (fwds_ty.ident(), fwds_ty.self_ty(), fwds_ty.generics());
+
+    let fwds = match Fwds::from_def(&def, &attr.fwd) {
         Ok(val) => val,
         Err(err) => return err.into_compile_error().into(),
     };
@@ -440,7 +442,7 @@ pub fn def(attr: TokenStreamStd, def: TokenStreamStd) -> TokenStreamStd {
         #[doc(hidden)]
         #[allow(non_snake_case)]
         mod #module {
-            #forwards
+            #fwds
 
             #macros(@impl #self_ty, #ty, (#gen_params), (#gen_where) {
                 #consts_fwd
@@ -574,19 +576,30 @@ enum FwdIter {
     IntoMut,
 }
 
-struct Fwds(TokenStream);
+struct Fwds<'ty, 'attr> {
+    ty: FwdsType<'ty>,
+    attr: &'attr FwdAttr,
+    with_raw: bool,
+    with_ref: bool,
+    with_mut: bool,
+}
 
-#[allow(unused)]
-struct FwdAttr {
-    expr: Expr,
-    with: kw::with,
-    ty: Type,
+enum FwdsType<'ty> {
+    Ident(&'ty Ident, &'ty Generics),
+    Path(&'ty TypePath, &'ty Generics),
 }
 
 enum FwdType {
     Struct(ItemStruct),
     Enum(ItemEnum),
     Union(ItemUnion),
+}
+
+#[allow(unused)]
+struct FwdAttr {
+    expr: Expr,
+    with: kw::with,
+    ty: Type,
 }
 
 struct FwdDecl {
@@ -663,16 +676,6 @@ enum FwdDefAttrItem {
     Const(ImplItemConst),
 }
 
-impl Parse for FwdAttr {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            expr: input.parse()?,
-            with: input.parse()?,
-            ty: input.parse()?,
-        })
-    }
-}
-
 impl Parse for FwdType {
     fn parse(input: ParseStream) -> Result<Self> {
         let item = input.parse::<Item>()?;
@@ -683,6 +686,16 @@ impl Parse for FwdType {
             Item::Union(val) => Ok(Self::Union(val)),
             _ => Err(input.error("Failed to find correct item, expected struct, enum or union")),
         }
+    }
+}
+
+impl Parse for FwdAttr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            expr: input.parse()?,
+            with: input.parse()?,
+            ty: input.parse()?,
+        })
     }
 }
 
@@ -800,9 +813,75 @@ impl Parse for FwdDefAttrItem {
     }
 }
 
-impl ToTokens for Fwds {
+impl ToTokens for Fwds<'_, '_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.0.to_tokens(tokens);
+        let self_ty = self.ty.self_ty();
+        let generics = self.ty.generics();
+        let expr = &self.attr.expr;
+        let ty = &self.attr.ty;
+
+        let (gen_impl, _, gen_where) = generics.split_for_impl();
+
+        if self.with_raw {
+            quote! {
+                trait Forward {
+                    type Type;
+
+                    fn forward(self) -> Self::Type;
+                }
+
+                impl #gen_impl Forward for #self_ty #gen_where {
+                    type Type = #ty;
+
+                    #[inline]
+                    fn forward(self) -> Self::Type {
+                        #expr
+                    }
+                }
+
+            }
+            .to_tokens(tokens);
+        }
+
+        if self.with_ref {
+            quote! {
+                trait ForwardRef {
+                    type Type;
+
+                    fn forward_ref(&self) -> &Self::Type;
+                }
+
+                impl #gen_impl ForwardRef for #self_ty #gen_where {
+                    type Type = #ty;
+
+                    #[inline]
+                    fn forward_ref(&self) -> &Self::Type {
+                        &#expr
+                    }
+                }
+            }
+            .to_tokens(tokens);
+        }
+
+        if self.with_mut {
+            quote! {
+                trait ForwardMut {
+                    type Type;
+
+                    fn forward_mut(&mut self) -> &mut Self::Type;
+                }
+
+                impl #gen_impl ForwardMut for #self_ty #gen_where {
+                    type Type = #ty;
+
+                    #[inline]
+                    fn forward_mut(&mut self) -> &mut Self::Type {
+                        &mut #expr
+                    }
+                }
+            }
+            .to_tokens(tokens);
+        }
     }
 }
 
@@ -842,81 +921,108 @@ impl ToTokens for FwdDeclArgExpr {
     }
 }
 
-impl Fwds {
-    fn from_raw(self_ty: TokenStream, generics: &Generics, attr: &FwdAttr) -> Self {
-        let (expr, ty) = attr.args();
-        let (gen_impl, _, gen_where) = generics.split_for_impl();
+impl Fwds<'_, '_> {
+    fn from_ty<'ty, 'attr>(ty: &'ty FwdType, attr: &'attr FwdAttr) -> Fwds<'ty, 'attr> {
+        Fwds {
+            ty: FwdsType::from_ty(ty),
+            attr,
+            with_raw: true,
+            with_ref: true,
+            with_mut: true,
+        }
+    }
 
-        // Forward   <Type = ..>
-        // ForwardRef<Type = ..>
-        // ForwardMut<Type = ..>
-
-        Fwds(quote! {
-            trait Forward {
-                type Type;
-
-                fn forward(self) -> Self::Type;
-
-                fn forward_ref(&self) -> &Self::Type;
-
-                fn forward_mut(&mut self) -> &mut Self::Type;
-            }
-
-            impl #gen_impl Forward for #self_ty #gen_where {
-                type Type = #ty;
-
-                #[inline]
-                fn forward(self) -> Self::Type {
-                    #expr
-                }
-
-                #[inline]
-                fn forward_ref(&self) -> &Self::Type {
-                    &#expr
-                }
-
-                #[inline]
-                fn forward_mut(&mut self) -> &mut Self::Type {
-                    &mut #expr
-                }
-            }
+    fn from_def<'def, 'attr>(def: &'def FwdDef, attr: &'attr FwdAttr) -> Result<Fwds<'def, 'attr>> {
+        Ok(Fwds {
+            ty: FwdsType::from_def(def)?,
+            attr,
+            with_raw: true,
+            with_ref: true,
+            with_mut: true,
         })
-    }
-
-    fn from_ty(ty: &FwdType, attr: &FwdAttr) -> Self {
-        Fwds(quote! {})
-    }
-
-    fn from_def(def: &FwdDef, attr: &FwdAttr) -> Self {
-        Fwds(quote! {})
     }
 }
 
-impl FwdAttr {
-    fn args(&self) -> (&Expr, &Type) {
-        (&self.expr, &self.ty)
+impl FwdsType<'_> {
+    fn ident(&self) -> Ident {
+        match *self {
+            FwdsType::Ident(ident, _) => ident.clone(),
+            FwdsType::Path(ty, _) => {
+                format_ident!(
+                    "{}",
+                    ty.path
+                        .segments
+                        .iter()
+                        .fold(String::new(), |acc, seg| format!("{}{}", acc, seg.ident))
+                )
+            },
+        }
+    }
+
+    fn self_ty(&self) -> TokenStream {
+        match *self {
+            FwdsType::Ident(ident, generics) => {
+                let (_, gen_type, _) = generics.split_for_impl();
+
+                quote! { #ident #gen_type }
+            },
+            FwdsType::Path(ty, _) => quote! { #ty },
+        }
+    }
+
+    fn generics(&self) -> &Generics {
+        match self {
+            FwdsType::Ident(_, generics) => generics,
+            FwdsType::Path(_, generics) => generics,
+        }
+    }
+
+    fn from_ty(ty: &FwdType) -> FwdsType<'_> {
+        match ty {
+            FwdType::Struct(ItemStruct { ident, generics, .. }) => FwdsType::Ident(ident, generics),
+            FwdType::Enum(ItemEnum { ident, generics, .. }) => FwdsType::Ident(ident, generics),
+            FwdType::Union(ItemUnion { ident, generics, .. }) => FwdsType::Ident(ident, generics),
+        }
+    }
+
+    fn from_def(def: &FwdDef) -> Result<FwdsType<'_>> {
+        match def {
+            FwdDef::Struct(ItemStruct { ident, generics, .. }) => Ok(FwdsType::Ident(ident, generics)),
+            FwdDef::Enum(ItemEnum { ident, generics, .. }) => Ok(FwdsType::Ident(ident, generics)),
+            FwdDef::Union(ItemUnion { ident, generics, .. }) => Ok(FwdsType::Ident(ident, generics)),
+            FwdDef::Impl(ItemImpl { self_ty, generics, .. }) => match self_ty.as_ref() {
+                Type::Path(val) => Ok(FwdsType::Path(val, generics)),
+                ty => Err(Error::new_spanned(
+                    ty,
+                    "Failed to forward definition, expected path for impl type",
+                )),
+            },
+        }
     }
 }
 
 impl FwdType {
-    fn args(&self) -> (&Ident, &Generics) {
+    fn ident(&self) -> &Ident {
         match self {
-            FwdType::Struct(ItemStruct { ident, generics, .. }) => (ident, generics),
-            FwdType::Enum(ItemEnum { ident, generics, .. }) => (ident, generics),
-            FwdType::Union(ItemUnion { ident, generics, .. }) => (ident, generics),
+            FwdType::Struct(ItemStruct { ident, .. }) => ident,
+            FwdType::Enum(ItemEnum { ident, .. }) => ident,
+            FwdType::Union(ItemUnion { ident, .. }) => ident,
         }
     }
 
-    fn fwds(&self, attr: &FwdAttr) -> Fwds {
-        let (ident, generics) = self.args();
-        let (_, gen_type, _) = generics.split_for_impl();
-
-        Fwds::from_raw(quote! { #ident #gen_type }, generics, attr)
+    fn generics(&self) -> &Generics {
+        match self {
+            FwdType::Struct(ItemStruct { generics, .. }) => generics,
+            FwdType::Enum(ItemEnum { generics, .. }) => generics,
+            FwdType::Union(ItemUnion { generics, .. }) => generics,
+        }
     }
 
     fn std(&self, attr: &FwdAttr, _: &Fwds, std: FwdStd) -> TokenStream {
-        let (ident, generics) = self.args();
-        let (expr, ty) = attr.args();
+        let ident = self.ident();
+        let generics = self.generics();
+        let expr = &attr.expr;
+        let ty = &attr.ty;
 
         let gen_params = generics.params.iter();
         let (_, gen_type, gen_where) = generics.split_for_impl();
@@ -956,8 +1062,9 @@ impl FwdType {
     }
 
     fn cmp(&self, attr: &FwdAttr, fwds: &Fwds, cmp: FwdCmp) -> TokenStream {
-        let (ident, generics) = self.args();
-        let (_, ty) = attr.args();
+        let ident = self.ident();
+        let generics = self.generics();
+        let ty = &attr.ty;
 
         let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
@@ -1027,8 +1134,10 @@ impl FwdType {
     }
 
     fn fmt(&self, attr: &FwdAttr, _: &Fwds, fmt: FwdFmt) -> TokenStream {
-        let (ident, generics) = self.args();
-        let (expr, ty) = attr.args();
+        let ident = self.ident();
+        let generics = self.generics();
+        let expr = &attr.expr;
+        let ty = &attr.ty;
 
         let (gen_impl, gen_type, gen_where) = generics.split_for_impl();
 
@@ -1056,8 +1165,10 @@ impl FwdType {
     }
 
     fn idx(&self, attr: &FwdAttr, _: &Fwds, idx: FwdIdx) -> TokenStream {
-        let (ident, generics) = self.args();
-        let (expr, ty) = attr.args();
+        let ident = self.ident();
+        let generics = self.generics();
+        let expr = &attr.expr;
+        let ty = &attr.ty;
 
         let gen_params = generics.params.iter();
         let (_, gen_type, gen_where) = generics.split_for_impl();
@@ -1099,8 +1210,10 @@ impl FwdType {
     }
 
     fn iter(&self, attr: &FwdAttr, _: &Fwds, iter: FwdIter) -> TokenStream {
-        let (ident, generics) = self.args();
-        let (expr, ty) = attr.args();
+        let ident = self.ident();
+        let generics = self.generics();
+        let expr = &attr.expr;
+        let ty = &attr.ty;
 
         let gen_params = generics.params.iter();
         let (_, gen_type, gen_where) = generics.split_for_impl();
@@ -1466,9 +1579,8 @@ impl FwdDeclFn {
             })
         }
 
-        let item = &decl.item;
-
-        let forwards = item
+        let fwds = decl
+            .item
             .items
             .iter()
             .filter_map(|item| match item {
@@ -1478,9 +1590,8 @@ impl FwdDeclFn {
             .collect::<Result<Vec<(TokenStream, bool)>>>()?;
 
         Ok((
-            forwards.iter().cloned().map(|(stream, _)| stream).collect(),
-            forwards
-                .iter()
+            fwds.iter().cloned().map(|(stream, _)| stream).collect(),
+            fwds.iter()
                 .filter(|(_, default)| !default)
                 .cloned()
                 .map(|(stream, _)| stream)
@@ -1584,44 +1695,5 @@ impl FwdDeclArgExpr {
             Type::Verbatim(val) => Err(Error::new_spanned(val, "Failed to forward argument, verbatim was found")),
             ty => Err(Error::new_spanned(ty, "Failed to forward argument, unknown type was found")),
         }
-    }
-}
-
-impl FwdDef {
-    fn args(&self) -> Result<(Ident, TokenStream, &Generics)> {
-        fn ty(ident: &Ident, generics: &Generics) -> TokenStream {
-            let (_, gen_type, _) = generics.split_for_impl();
-
-            quote! { #ident #gen_type }
-        }
-
-        match self {
-            FwdDef::Struct(ItemStruct { ident, generics, .. }) => Ok((ident.clone(), ty(ident, generics), generics)),
-            FwdDef::Enum(ItemEnum { ident, generics, .. }) => Ok((ident.clone(), ty(ident, generics), generics)),
-            FwdDef::Union(ItemUnion { ident, generics, .. }) => Ok((ident.clone(), ty(ident, generics), generics)),
-            FwdDef::Impl(ItemImpl { self_ty, generics, .. }) => match self_ty.as_ref() {
-                Type::Path(val) => Ok((
-                    format_ident!(
-                        "{}",
-                        val.path
-                            .segments
-                            .iter()
-                            .fold(String::new(), |acc, seg| format!("{}{}", acc, seg.ident))
-                    ),
-                    quote! { #val },
-                    generics,
-                )),
-                ty => Err(Error::new_spanned(
-                    ty,
-                    "Failed to forward definition, expected path for impl type",
-                )),
-            },
-        }
-    }
-
-    fn fwds(&self, attr: &FwdAttr) -> Result<Fwds> {
-        let (_, ty, generics) = self.args()?;
-
-        Ok(Fwds::from_raw(ty, generics, attr))
     }
 }

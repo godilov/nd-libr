@@ -72,8 +72,8 @@ macro_rules! num_impl {
         }
 
         impl NumCt for $primitive {
-            const SIGNED: MaskCt = $signed_ct;
-            const UNSIGNED: MaskCt = $unsigned_ct;
+            const SIGNED_CT: MaskCt = $signed_ct;
+            const UNSIGNED_CT: MaskCt = $unsigned_ct;
 
             #[inline]
             fn with_mask_ct(&self, mask: MaskCt) -> Self {
